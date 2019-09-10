@@ -280,17 +280,20 @@ private[core] object SegmentBlock {
           } match {
             //if it's a hit and binary search is not configured to be full.
             //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-            case Some(IO.Right(hit)) if keyValue.isPrefixCompressed || binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
+            case Some(IO.Right(hit)) if binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
               IO.unit
 
             case None | Some(IO.Right(_)) =>
-              binarySearchIndex map {
-                state =>
-                  BinarySearchIndexBlock.write(
-                    value = thisKeyValuesAccessOffset,
-                    state = state
-                  )
-              } getOrElse IO.unit
+              if (keyValue.isPrefixCompressed)
+                IO.unit
+              else
+                binarySearchIndex map {
+                  state =>
+                    BinarySearchIndexBlock.write(
+                      value = thisKeyValuesAccessOffset,
+                      state = state
+                    )
+                } getOrElse IO.unit
 
             case Some(IO.Left(error)) =>
               IO.Left(error)

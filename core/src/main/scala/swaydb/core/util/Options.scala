@@ -25,6 +25,7 @@ object Options {
   val `true`: Option[Boolean] = Some(true)
   val unit: Option[Unit] = Some(())
   val zero: Option[Int] = Option(0)
+  val one: Option[Int] = Option(1)
 
   def when[T](condition: Boolean)(success: => Option[T]): Option[T] =
     if (condition)

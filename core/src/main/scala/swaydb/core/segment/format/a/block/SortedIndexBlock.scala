@@ -599,7 +599,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        println("matchOrNextAndPersistent")
+        //        //println("matchOrNextAndPersistent")
         matchOrNextAndPersistent(
           previous = persistent,
           next = None,

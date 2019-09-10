@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, Options}
 import swaydb.core.util.Bytes._
 import swaydb.core.util.Options._
 import swaydb.data.slice.Slice
@@ -173,6 +173,7 @@ private[core] object SortedIndexEntryWriter {
                             current: Transient): Unit = {
 
     val accessPosition = getAccessIndexPosition(current, writeResult.isPrefixCompressed)
+    //println(s"Access position: $accessPosition for key: ${current.key.readInt()}")
 
     val closedBytes =
       normaliseToSize match {
@@ -218,19 +219,17 @@ private[core] object SortedIndexEntryWriter {
       }
 
     assert(closedBytes.isOriginalFullSlice)
+
     writeResult setIndexBytes closedBytes
+    accessPosition foreach writeResult.setThisKeyValueAccessIndexPosition
   }
 
-  def getAccessIndexPosition[T <: Transient](current: T, isPrefixCompressed: Boolean): Option[Int] =
-    if (current.sortedIndexConfig.enableAccessPositionIndex) {
-      val accessPosition =
-        if (isPrefixCompressed)
-          current.previous.map(_.thisKeyValueAccessIndexPosition) getOrElse 1
-        else
-          current.previous.map(_.thisKeyValueAccessIndexPosition + 1) getOrElse 1
-
-      Some(accessPosition)
-    } else {
+  def getAccessIndexPosition(current: Transient, isPrefixCompressed: Boolean): Option[Int] =
+    if (current.sortedIndexConfig.enableAccessPositionIndex)
+      if (isPrefixCompressed)
+        current.previous.map(_.thisKeyValueAccessIndexPosition) orElse Options.one
+      else
+        current.previous.map(_.thisKeyValueAccessIndexPosition + 1) orElse Options.one
+    else
       None
-    }
 }

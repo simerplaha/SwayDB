@@ -45,22 +45,15 @@ private[block] object BinarySearchContext {
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
       val matcher =
-        highOrLow map {
-          higher =>
+        highOrLow match {
+          case Some(higher) =>
             //if the sortedIndex has compression disabled do not fetch the next key-value. Let binary search find the next one to seek to.
             if (higher)
-              if (sortedIndex.block.hasPrefixCompression)
-                KeyMatcher.Higher.WhilePrefixCompressed(key)
-              else
-                KeyMatcher.Higher.SeekOne(key)
-            else if (sortedIndex.block.hasPrefixCompression)
-              KeyMatcher.Lower.WhilePrefixCompressed(key)
+              KeyMatcher.Higher.SeekOne(key)
             else
               KeyMatcher.Lower.SeekOne(key)
-        } getOrElse {
-          if (sortedIndex.block.hasPrefixCompression)
-            KeyMatcher.Get.WhilePrefixCompressed(key)
-          else
+
+          case None =>
             KeyMatcher.Get.SeekOne(key)
         }
 
@@ -101,15 +94,16 @@ private[block] object BinarySearchContext {
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
       val matcher =
-        highOrLow map {
-          higher =>
+        highOrLow match {
+          case Some(higher) =>
             //if the sortedIndex has compression disabled do not fetch the next key-value. Let binary search find the next one to seek to.
             if (higher)
               KeyMatcher.Higher.SeekOne(key)
             else
               KeyMatcher.Lower.SeekOne(key)
-        } getOrElse {
-          KeyMatcher.Get.SeekOne(key)
+
+          case None =>
+            KeyMatcher.Get.SeekOne(key)
         }
 
       override val bytesPerValue: Int = sortedIndex.block.segmentMaxIndexEntrySize

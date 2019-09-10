@@ -40,12 +40,11 @@ private[core] object BlockCache {
           false
       }
 
-    override def hashCode(): Int =
-      (fileId ^ (fileId >>> 32)).toInt + position
+    override def hashCode(): Int = {
+      val code = fileId + position
+      (code ^ (code >>> 32)).toInt
+    }
   }
-
-  def buildKey(fileType: DBFileType, position: Int): Key =
-    new Key(fileType.blockCacheFileId, position)
 
   def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {
@@ -141,7 +140,7 @@ private[core] object BlockCache {
                 } else if (bytes.isEmpty) {
                   Slice.emptyBytes
                 } else if (bytes.size <= state.blockSize) {
-                  val key = buildKey(file, keyPosition)
+                  val key = new Key(file.blockCacheFileId, keyPosition)
                   val value = bytes.unslice()
                   state.map.put(key, value)
                   state.sweeper.add(key, value, state.map)
@@ -152,7 +151,7 @@ private[core] object BlockCache {
                   val splits = Math.ceil(bytes.size / state.blockSizeDouble)
                   while (index < splits) {
                     val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-                    val key = buildKey(file, position)
+                    val key = new Key(file.blockCacheFileId, position)
                     state.map.put(key, bytesToPut)
                     state.sweeper.add(key, bytesToPut, state.map)
                     position = position + bytesToPut.size
@@ -172,7 +171,7 @@ private[core] object BlockCache {
                            state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
-    state.map.get(buildKey(file, keyPosition)) match {
+    state.map.get(new Key(file.blockCacheFileId, keyPosition)) match {
       case Some(fromCache) =>
         val cachedBytes = fromCache.take(position - keyPosition, size)
         val mergedBytes =
@@ -191,7 +190,6 @@ private[core] object BlockCache {
             file = file,
             state = state
           )(effect)
-
 
       case None =>
         effect.readAndCache(

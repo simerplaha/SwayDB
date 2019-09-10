@@ -322,6 +322,8 @@ private[core] object BinarySearchIndexBlock {
     def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, SearchResult[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
+      //println(s"start: $start, mid: $mid, end: $end")
+
       val valueOffset = mid * context.bytesPerValue
 
       if (start > end)
@@ -396,6 +398,8 @@ private[core] object BinarySearchIndexBlock {
 
     val startPosition = getStartPosition(context.startKeyValue)
     val endPosition = getEndPosition(context.endKeyValue)
+
+    //println(s"startKey: ${context.startKeyValue.map(_.key.readInt())}, endKey: ${context.endKeyValue.map(_.key.readInt())}")
 
     /**
      * Special treatment for lower seeks.

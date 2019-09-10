@@ -39,9 +39,6 @@ private[core] sealed trait KeyMatcher {
   def seekOne: Boolean
 
   def whileNextIsPrefixCompressed: Boolean
-
-  def shouldFetchNext(next: Option[Persistent.Partial]) =
-    KeyMatcher.shouldFetchNext(this, next)
 }
 
 private[core] object KeyMatcher {
@@ -61,9 +58,6 @@ private[core] object KeyMatcher {
     case class BehindStopped(previous: Persistent.Partial) extends Complete with Behind
     case object AheadOrNoneOrEnd extends Complete
   }
-
-  def shouldFetchNext(matcher: KeyMatcher, next: Option[Persistent.Partial]) =
-    (!matcher.seekOne || next.isEmpty) && (!matcher.whileNextIsPrefixCompressed || next.forall(_.isPrefixCompressed))
 
   sealed trait Bounded extends KeyMatcher
 
@@ -133,10 +127,10 @@ private[core] object KeyMatcher {
           if (matchResult == 0)
             Matched(next map (_ => previous), fixed, None)
           else if (matchResult > 0 && hasMore)
-            if (shouldFetchNext(next))
-              BehindFetchNext(fixed)
-            else
+            if (seekOne)
               BehindStopped(fixed)
+            else
+              BehindFetchNext(fixed)
           else
             AheadOrNoneOrEnd
 
@@ -146,10 +140,10 @@ private[core] object KeyMatcher {
           if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
             Matched(next map (_ => previous), group, None)
           else if (toKeyMatch >= 0 && hasMore)
-            if (shouldFetchNext(next))
-              BehindFetchNext(group)
-            else
+            if (seekOne)
               BehindStopped(group)
+            else
+              BehindFetchNext(group)
           else
             AheadOrNoneOrEnd
 
@@ -159,10 +153,10 @@ private[core] object KeyMatcher {
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
             Matched(next map (_ => previous), range, None)
           else if (toKeyMatch >= 0 && hasMore)
-            if (shouldFetchNext(next))
-              BehindFetchNext(range)
-            else
+            if (seekOne)
               BehindStopped(range)
+            else
+              BehindFetchNext(range)
           else
             AheadOrNoneOrEnd
       }
@@ -245,10 +239,10 @@ private[core] object KeyMatcher {
                   Matched(Some(previous), next, None)
 
                 case _ =>
-                  if (shouldFetchNext(someNext))
-                    BehindFetchNext(next)
-                  else
+                  if (seekOne)
                     BehindStopped(next)
+                  else
+                    BehindFetchNext(next)
               }
             else
               Matched(Some(previous), next, None)
@@ -269,10 +263,7 @@ private[core] object KeyMatcher {
                   Matched(None, previous, next)
 
                 case _ =>
-                  if (shouldFetchNext(None))
-                    BehindFetchNext(previous)
-                  else
-                    Matched(None, previous, next) //if fetching next is not allowed then lower is the currently known lower.
+                  BehindFetchNext(previous)
               }
             else
               Matched(None, previous, next)
@@ -354,10 +345,10 @@ private[core] object KeyMatcher {
 
           case _ =>
             if (hasMore)
-              if (shouldFetchNext(next))
-                BehindFetchNext(keyValue)
-              else
+              if (seekOne)
                 BehindStopped(keyValue)
+              else
+                BehindFetchNext(keyValue)
             else
               AheadOrNoneOrEnd
         }

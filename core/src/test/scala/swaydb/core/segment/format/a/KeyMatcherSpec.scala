@@ -131,73 +131,73 @@ class KeyMatcherSpec extends TestBase {
   }
 
   "KeyMatcher" should {
-    "shouldFetchNext" should {
-      "return false" when {
-        "it's matchOnly" in {
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some(2)) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some(2)) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some(2)) shouldBe false
-
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
-
-          import RangeImplicits._
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some((2, 3))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some((2, 3))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some((2, 3))) shouldBe false
-
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
-
-          import GroupImplicits._
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some((2, (3, 4)))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some((2, (3, 4)))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some((2, (3, 4)))) shouldBe false
-
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
-        }
-
-        "it's whilePrefixCompressed" in {
-          isPrefixCompressed = false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), Some(2)) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), Some(2)) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), Some(2)) shouldBe false
-
-          import RangeImplicits._
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), Some((2, 3))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), Some((2, 3))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), Some((2, 3))) shouldBe false
-
-          import GroupImplicits._
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), Some((2, (3, 4)))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), Some((2, (3, 4)))) shouldBe false
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), Some((2, (3, 4)))) shouldBe false
-        }
-      }
-
-      "return true" when {
-        "it's WhilePrefixCompressed but next is None or next is isPrefixCompressed" in {
-          isPrefixCompressed = true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), eitherOne(None, Some(2))) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), eitherOne(None, Some(2))) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), eitherOne(None, Some(2))) shouldBe true
-
-          import RangeImplicits._
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), eitherOne(None, Some((2, 3)))) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), eitherOne(None, Some((2, 3)))) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), eitherOne(None, Some((2, 3)))) shouldBe true
-
-          import GroupImplicits._
-          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), eitherOne(None, Some((2, (3, 4))))) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), eitherOne(None, Some((2, (3, 4))))) shouldBe true
-          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), eitherOne(None, Some((2, (3, 4))))) shouldBe true
-        }
-      }
-    }
+//    "shouldFetchNext" should {
+//      "return false" when {
+//        "it's matchOnly" in {
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some(2)) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some(2)) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some(2)) shouldBe false
+//
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
+//
+//          import RangeImplicits._
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some((2, 3))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some((2, 3))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some((2, 3))) shouldBe false
+//
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
+//
+//          import GroupImplicits._
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some((2, (3, 4)))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some((2, (3, 4)))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some((2, (3, 4)))) shouldBe false
+//
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
+//        }
+//
+//        "it's whilePrefixCompressed" in {
+//          isPrefixCompressed = false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), Some(2)) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), Some(2)) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), Some(2)) shouldBe false
+//
+//          import RangeImplicits._
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), Some((2, 3))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), Some((2, 3))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), Some((2, 3))) shouldBe false
+//
+//          import GroupImplicits._
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), Some((2, (3, 4)))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), Some((2, (3, 4)))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), Some((2, (3, 4)))) shouldBe false
+//        }
+//      }
+//
+//      "return true" when {
+//        "it's WhilePrefixCompressed but next is None or next is isPrefixCompressed" in {
+//          isPrefixCompressed = true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), eitherOne(None, Some(2))) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), eitherOne(None, Some(2))) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), eitherOne(None, Some(2))) shouldBe true
+//
+//          import RangeImplicits._
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), eitherOne(None, Some((2, 3)))) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), eitherOne(None, Some((2, 3)))) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), eitherOne(None, Some((2, 3)))) shouldBe true
+//
+//          import GroupImplicits._
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.WhilePrefixCompressed(1), eitherOne(None, Some((2, (3, 4))))) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.WhilePrefixCompressed(1), eitherOne(None, Some((2, (3, 4))))) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.WhilePrefixCompressed(1), eitherOne(None, Some((2, (3, 4))))) shouldBe true
+//        }
+//      }
+//    }
 
     "Get" when {
       "Fixed" in {
