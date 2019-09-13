@@ -134,31 +134,31 @@ class KeyMatcherSpec extends TestBase {
 //    "shouldFetchNext" should {
 //      "return false" when {
 //        "it's matchOnly" in {
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some(2)) shouldBe false
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some(2)) shouldBe false
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some(2)) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.MatchOnly(1), Some(2)) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.MatchOnly(1), Some(2)) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.MatchOnly(1), Some(2)) shouldBe false
 //
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.MatchOnly(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.MatchOnly(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.MatchOnly(1), None) shouldBe true
 //
 //          import RangeImplicits._
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some((2, 3))) shouldBe false
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some((2, 3))) shouldBe false
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some((2, 3))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.MatchOnly(1), Some((2, 3))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.MatchOnly(1), Some((2, 3))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.MatchOnly(1), Some((2, 3))) shouldBe false
 //
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.MatchOnly(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.MatchOnly(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.MatchOnly(1), None) shouldBe true
 //
 //          import GroupImplicits._
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), Some((2, (3, 4)))) shouldBe false
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), Some((2, (3, 4)))) shouldBe false
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), Some((2, (3, 4)))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.MatchOnly(1), Some((2, (3, 4)))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.MatchOnly(1), Some((2, (3, 4)))) shouldBe false
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.MatchOnly(1), Some((2, (3, 4)))) shouldBe false
 //
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.SeekOne(1), None) shouldBe true
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.SeekOne(1), None) shouldBe true
-//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.SeekOne(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Get.MatchOnly(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Higher.MatchOnly(1), None) shouldBe true
+//          KeyMatcher.shouldFetchNext(KeyMatcher.Lower.MatchOnly(1), None) shouldBe true
 //        }
 //
 //        "it's whilePrefixCompressed" in {
@@ -389,25 +389,25 @@ class KeyMatcherSpec extends TestBase {
       }
     }
 
-    "Get.SeekOne" when {
+    "Get.MatchOnly" when {
       "Fixed" in {
         //-1
         //   0, 1, 2
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = 1, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = 1, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
 
         //0
         //0, 1, 2
-        KeyMatcher.Get.SeekOne(0).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
-        KeyMatcher.Get.SeekOne(0).apply(previous = 0, next = None, hasMore = true) shouldBe Matched(None, 0, None)
-        KeyMatcher.Get.SeekOne(0).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
+        KeyMatcher.Get.MatchOnly(0).apply(previous = 0, next = None, hasMore = true) shouldBe Matched(None, 0, None)
+        KeyMatcher.Get.MatchOnly(0).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
         //next should never be fetched if previous was a match. This should not occur in actual scenarios.
         //        KeyMatcher.Get.NextOnly(0).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0)
         //        KeyMatcher.Get.NextOnly(0).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(0)
@@ -416,39 +416,39 @@ class KeyMatcherSpec extends TestBase {
 
         //   1
         //0, 1, 2
-        KeyMatcher.Get.SeekOne(1).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(1).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
-        KeyMatcher.Get.SeekOne(1).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(None, 1, None)
-        KeyMatcher.Get.SeekOne(1).apply(previous = 1, next = None, hasMore = true) shouldBe Matched(None, 1, None)
-        KeyMatcher.Get.SeekOne(1).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0, 1, None)
-        KeyMatcher.Get.SeekOne(1).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(0, 1, None)
-        KeyMatcher.Get.SeekOne(1).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(1).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(None, 1, None)
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 1, next = None, hasMore = true) shouldBe Matched(None, 1, None)
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0, 1, None)
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(0, 1, None)
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(1).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
 
         //      2
         //0, 1, 2
-        KeyMatcher.Get.SeekOne(2).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(2).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
-        KeyMatcher.Get.SeekOne(2).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(2).apply(previous = 0, next = 1, hasMore = true) shouldBe BehindStopped(1)
-        KeyMatcher.Get.SeekOne(2).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(2).apply(previous = 1, next = None, hasMore = true) shouldBe BehindFetchNext(1)
-        KeyMatcher.Get.SeekOne(2).apply(previous = 1, next = 2, hasMore = false) shouldBe Matched(1, 2, None)
-        KeyMatcher.Get.SeekOne(2).apply(previous = 1, next = 2, hasMore = true) shouldBe Matched(1, 2, None)
-        KeyMatcher.Get.SeekOne(2).apply(previous = 2, next = None, hasMore = false) shouldBe Matched(None, 2, None)
-        KeyMatcher.Get.SeekOne(2).apply(previous = 2, next = None, hasMore = true) shouldBe Matched(None, 2, None)
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 0, next = 1, hasMore = true) shouldBe BehindStopped(1)
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 1, next = None, hasMore = true) shouldBe BehindFetchNext(1)
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 1, next = 2, hasMore = false) shouldBe Matched(1, 2, None)
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 1, next = 2, hasMore = true) shouldBe Matched(1, 2, None)
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 2, next = None, hasMore = false) shouldBe Matched(None, 2, None)
+        KeyMatcher.Get.MatchOnly(2).apply(previous = 2, next = None, hasMore = true) shouldBe Matched(None, 2, None)
 
         //         3
         //0, 1, 2
-        KeyMatcher.Get.SeekOne(3).apply(previous = 2, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(3).apply(previous = 2, next = None, hasMore = true) shouldBe BehindFetchNext(2)
-        KeyMatcher.Get.SeekOne(3).apply(previous = 3, next = None, hasMore = false) shouldBe Matched(None, 3, None)
-        KeyMatcher.Get.SeekOne(3).apply(previous = 3, next = None, hasMore = true) shouldBe Matched(None, 3, None)
-        KeyMatcher.Get.SeekOne(3).apply(previous = 2, next = 3, hasMore = false) shouldBe Matched(2, 3, None)
-        KeyMatcher.Get.SeekOne(3).apply(previous = 2, next = 3, hasMore = true) shouldBe Matched(2, 3, None)
-        KeyMatcher.Get.SeekOne(3).apply(previous = 2, next = 4, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(3).apply(previous = 2, next = 4, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(3).apply(previous = 0, next = 4, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 2, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 2, next = None, hasMore = true) shouldBe BehindFetchNext(2)
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 3, next = None, hasMore = false) shouldBe Matched(None, 3, None)
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 3, next = None, hasMore = true) shouldBe Matched(None, 3, None)
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 2, next = 3, hasMore = false) shouldBe Matched(2, 3, None)
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 2, next = 3, hasMore = true) shouldBe Matched(2, 3, None)
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 2, next = 4, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 2, next = 4, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(3).apply(previous = 0, next = 4, hasMore = true) shouldBe AheadOrNoneOrEnd
       }
 
       //range tests
@@ -456,105 +456,105 @@ class KeyMatcherSpec extends TestBase {
         import RangeImplicits._
 
         //-1
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = (5, 10), hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = (5, 10), hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = (5, 10), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = (5, 10), hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(9).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(9).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
-        KeyMatcher.Get.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(9).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(9).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
+        KeyMatcher.Get.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Matched((5, 10), (20, 30), None)
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Matched((5, 10), (20, 30), None)
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Matched((5, 10), (20, 30), None)
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Matched((5, 10), (20, 30), None)
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe AheadOrNoneOrEnd
       }
 
       //group tests
       "Group" in {
         import GroupImplicits._
 
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = (5, 10), hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = (5, 10), hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = (5, 10), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = (5, 10), hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, 10), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(9).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(9).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Get.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(9).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(9).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Get.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
 
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Matched((5, 10), (20, 30), None)
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Matched((5, 10), (20, 30), None)
-        KeyMatcher.Get.SeekOne(30).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Matched((5, 10), (20, 30), None)
-        KeyMatcher.Get.SeekOne(30).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Matched((5, 10), (20, 30), None)
-        KeyMatcher.Get.SeekOne(31).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe BehindStopped(20, 30)
-        KeyMatcher.Get.SeekOne(31).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Matched((5, 10), (20, 30), None)
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Matched((5, 10), (20, 30), None)
+        KeyMatcher.Get.MatchOnly(30).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe Matched((5, 10), (20, 30), None)
+        KeyMatcher.Get.MatchOnly(30).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe Matched((5, 10), (20, 30), None)
+        KeyMatcher.Get.MatchOnly(31).apply(previous = (5, 10), next = (20, 30), hasMore = true) shouldBe BehindStopped(20, 30)
+        KeyMatcher.Get.MatchOnly(31).apply(previous = (5, 10), next = (20, 30), hasMore = false) shouldBe AheadOrNoneOrEnd
 
         //GROUP WHEN THERE MAX KEY IS A RANGE (EXCLUSIVE)
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = (5, (10, 20)), hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = 0, next = (5, (10, 20)), hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, (10, 20)), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(-1).apply(previous = (5, (10, 20)), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = (5, (10, 20)), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = 0, next = (5, (10, 20)), hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, (10, 20)), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(-1).apply(previous = (5, (10, 20)), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, (10, 20)), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(0).apply(previous = (5, (10, 20)), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, (10, 20)), next = 20, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(0).apply(previous = (5, (10, 20)), next = 20, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(5).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(5).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(6).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(6).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(9).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(9).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(10).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(10).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Get.SeekOne(20).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
-        KeyMatcher.Get.SeekOne(20).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(5).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(5).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(6).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(6).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(9).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(9).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(10).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(10).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Get.MatchOnly(20).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
+        KeyMatcher.Get.MatchOnly(20).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Get.SeekOne(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Get.SeekOne(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Get.SeekOne(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Get.SeekOne(31).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Get.SeekOne(31).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Get.SeekOne(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe BehindStopped((20, (30, 40)))
-        KeyMatcher.Get.SeekOne(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Get.MatchOnly(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Get.MatchOnly(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Get.MatchOnly(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Get.MatchOnly(31).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Get.MatchOnly(31).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Get.MatchOnly(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe BehindStopped((20, (30, 40)))
+        KeyMatcher.Get.MatchOnly(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe AheadOrNoneOrEnd
       }
 
       "up to the largest key and exit iteration early if the next key is larger then the key to find" in {
@@ -768,171 +768,171 @@ class KeyMatcherSpec extends TestBase {
       }
     }
 
-    "Lower.SeekOne" when {
+    "Lower.MatchOnly" when {
       "Fixed" in {
         //0, 1, 2
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 0, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 0, next = 1, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(-1).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 0, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 0, next = 1, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(-1).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 0, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 0, next = 1, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(0).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = 1, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = 1, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = 2, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(0).apply(previous = 0, next = 2, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(None, 0, 1)
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(None, 0, 1)
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(None, 0, 2)
-        KeyMatcher.Lower.SeekOne(1).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(None, 0, 2)
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 1, next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 1, next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(None, 0, 1)
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = 1, hasMore = true) shouldBe Matched(None, 0, 1)
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(None, 0, 2)
+        KeyMatcher.Lower.MatchOnly(1).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(None, 0, 2)
 
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(None, 1, None)
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 1, next = None, hasMore = true) shouldBe BehindFetchNext(1)
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0, 1, None)
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 0, next = 1, hasMore = true) shouldBe BehindStopped(1)
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(None, 0, 2)
-        KeyMatcher.Lower.SeekOne(2).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(None, 0, 2)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(None, 1, None)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 1, next = None, hasMore = true) shouldBe BehindFetchNext(1)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0, 1, None)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 0, next = 1, hasMore = true) shouldBe BehindStopped(1)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(None, 0, 2)
+        KeyMatcher.Lower.MatchOnly(2).apply(previous = 0, next = 2, hasMore = true) shouldBe Matched(None, 0, 2)
 
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(None, 1, None)
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 1, next = None, hasMore = true) shouldBe BehindFetchNext(1)
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0, 1, None)
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 0, next = 1, hasMore = true) shouldBe BehindStopped(1)
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(0, 2, None)
-        KeyMatcher.Lower.SeekOne(3).apply(previous = 0, next = 2, hasMore = true) shouldBe BehindStopped(2)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 0, next = None, hasMore = false) shouldBe Matched(None, 0, None)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 0, next = None, hasMore = true) shouldBe BehindFetchNext(0)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 1, next = None, hasMore = false) shouldBe Matched(None, 1, None)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 1, next = None, hasMore = true) shouldBe BehindFetchNext(1)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 0, next = 1, hasMore = false) shouldBe Matched(0, 1, None)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 0, next = 1, hasMore = true) shouldBe BehindStopped(1)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 0, next = 2, hasMore = false) shouldBe Matched(0, 2, None)
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = 0, next = 2, hasMore = true) shouldBe BehindStopped(2)
       }
 
       "Range" in {
 
         import RangeImplicits._
 
-        KeyMatcher.Lower.SeekOne(3).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(3).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(4).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(4).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(4).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(4).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Lower.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
 
-        KeyMatcher.Lower.SeekOne(11).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(11).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
+        KeyMatcher.Lower.MatchOnly(11).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(11).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
 
-        KeyMatcher.Lower.SeekOne(12).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
-        KeyMatcher.Lower.SeekOne(12).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
-        KeyMatcher.Lower.SeekOne(15).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
-        KeyMatcher.Lower.SeekOne(15).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(12).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(12).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(15).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(15).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
 
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
 
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe BehindStopped(15, 20)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe BehindStopped(15, 20)
       }
 
       "Group" in {
         import GroupImplicits._
 
-        KeyMatcher.Lower.SeekOne(3).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(3).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(4).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(4).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(4).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(4).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(5).apply(previous = (5, 10), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Lower.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(6).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = true) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(10).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
 
-        KeyMatcher.Lower.SeekOne(11).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(11).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
+        KeyMatcher.Lower.MatchOnly(11).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(11).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
 
-        KeyMatcher.Lower.SeekOne(12).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
-        KeyMatcher.Lower.SeekOne(12).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
-        KeyMatcher.Lower.SeekOne(15).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
-        KeyMatcher.Lower.SeekOne(15).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(12).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(12).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(15).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched(None, (5, 10), (15, 20))
+        KeyMatcher.Lower.MatchOnly(15).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched(None, (5, 10), (15, 20))
 
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = None, hasMore = false) shouldBe Matched(None, (5, 10), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = None, hasMore = true) shouldBe BehindFetchNext(5, 10)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe Matched((5, 10), (15, 20), None)
 
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe BehindStopped(15, 20)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, 10), next = (15, 20), hasMore = false) shouldBe Matched((5, 10), (15, 20), None)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, 10), next = (15, 20), hasMore = true) shouldBe BehindStopped(15, 20)
 
         //Group when maxKey is range
-        KeyMatcher.Lower.SeekOne(3).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(3).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(4).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(4).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(5).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
-        KeyMatcher.Lower.SeekOne(5).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(3).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(4).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(4).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(5).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe AheadOrNoneOrEnd
+        KeyMatcher.Lower.MatchOnly(5).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe AheadOrNoneOrEnd
 
-        KeyMatcher.Lower.SeekOne(6).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(6).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(10).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(10).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(11).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(11).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(19).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(19).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
+        KeyMatcher.Lower.MatchOnly(6).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(6).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(10).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(10).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(11).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(11).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(19).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(19).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
 
-        KeyMatcher.Lower.SeekOne(12).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
-        KeyMatcher.Lower.SeekOne(12).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
-        KeyMatcher.Lower.SeekOne(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
-        KeyMatcher.Lower.SeekOne(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
+        KeyMatcher.Lower.MatchOnly(12).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
+        KeyMatcher.Lower.MatchOnly(12).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
+        KeyMatcher.Lower.MatchOnly(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
+        KeyMatcher.Lower.MatchOnly(15).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
 
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
-        KeyMatcher.Lower.SeekOne(20).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
+        KeyMatcher.Lower.MatchOnly(20).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched(None, (5, (10, 20)), (20, (30, 40)))
 
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Lower.SeekOne(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Lower.MatchOnly(21).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
 
-        KeyMatcher.Lower.SeekOne(30).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(30).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
-        KeyMatcher.Lower.SeekOne(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Lower.SeekOne(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Lower.MatchOnly(30).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(30).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext((5, (10, 20)))
+        KeyMatcher.Lower.MatchOnly(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Lower.MatchOnly(30).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
 
-        KeyMatcher.Lower.SeekOne(40).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(40).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext(5, (10, 20))
-        KeyMatcher.Lower.SeekOne(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
-        KeyMatcher.Lower.SeekOne(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Lower.MatchOnly(40).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(40).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext(5, (10, 20))
+        KeyMatcher.Lower.MatchOnly(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Lower.MatchOnly(40).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
 
-        KeyMatcher.Lower.SeekOne(41).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
-        KeyMatcher.Lower.SeekOne(41).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext(5, (10, 20))
-        KeyMatcher.Lower.SeekOne(41).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe BehindStopped(20, (30, 40))
-        KeyMatcher.Lower.SeekOne(41).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
+        KeyMatcher.Lower.MatchOnly(41).apply(previous = (5, (10, 20)), next = None, hasMore = false) shouldBe Matched(None, (5, (10, 20)), None)
+        KeyMatcher.Lower.MatchOnly(41).apply(previous = (5, (10, 20)), next = None, hasMore = true) shouldBe BehindFetchNext(5, (10, 20))
+        KeyMatcher.Lower.MatchOnly(41).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = true) shouldBe BehindStopped(20, (30, 40))
+        KeyMatcher.Lower.MatchOnly(41).apply(previous = (5, (10, 20)), next = (20, (30, 40)), hasMore = false) shouldBe Matched((5, (10, 20)), (20, (30, 40)), None)
       }
     }
 

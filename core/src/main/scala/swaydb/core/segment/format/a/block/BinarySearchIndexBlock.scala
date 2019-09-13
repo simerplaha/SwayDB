@@ -308,16 +308,18 @@ private[core] object BinarySearchIndexBlock {
           case IO.Right(entry) =>
             entry match {
               case matched: KeyMatcher.Result.Matched =>
-                IO.Right {
+                val lower =
+                  MinMax.maxFavourLeft(
+                    left = knownLowest orElse context.startKeyValue,
+                    right = matched.previous orElse context.startKeyValue
+                  )
+
+                IO.Right(
                   SearchResult.Some(
-                    lower =
-                      MinMax.maxFavourLeft(
-                        left = knownLowest orElse context.startKeyValue,
-                        right = matched.previous orElse context.startKeyValue
-                      ),
+                    lower = lower,
                     value = matched.result
                   )
-                }
+                )
 
               case behind: KeyMatcher.Result.Behind =>
                 hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)

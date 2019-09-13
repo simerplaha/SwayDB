@@ -665,9 +665,10 @@ private[core] object HashIndexBlock extends LazyLogging {
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] = {
     val matcher =
       if (sortedIndexReader.block.hasPrefixCompression)
-        KeyMatcher.Get.WhilePrefixCompressed(key)
+      //        KeyMatcher.Get.WhilePrefixCompressed(key)
+        ???
       else
-        KeyMatcher.Get.SeekOne(key)
+        KeyMatcher.Get.MatchOnly(key)
 
     if (hashIndexReader.block.copyIndex)
       searchCopied(

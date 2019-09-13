@@ -43,9 +43,7 @@ private[block] object BinarySearchContext {
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
-      val matcher = KeyMatcher.Get.SeekOne(key)
-
-      println(s"Searching key: ${key.readInt()}")
+      val matcher = KeyMatcher.Get.MatchOnly(key)
 
       override val bytesPerValue: Int = binarySearchIndex.block.bytesPerValue
 
@@ -80,7 +78,7 @@ private[block] object BinarySearchContext {
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
-      val matcher = KeyMatcher.Get.SeekOne(key)
+      val matcher = KeyMatcher.Get.MatchOnly(key)
 
       override val bytesPerValue: Int = sortedIndex.block.segmentMaxIndexEntrySize
 

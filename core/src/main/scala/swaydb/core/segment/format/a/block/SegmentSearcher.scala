@@ -42,7 +42,7 @@ private[core] object SegmentSearcher extends LazyLogging {
              threadState: Option[SegmentReadThreadState])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     when(threadState.exists(_.isSequentialRead()))(start) map {
       startFrom =>
-        SortedIndexBlock.searchSeekOne(
+        SortedIndexBlock.searchMatchOnly(
           key = key,
           start = startFrom,
           indexReader = sortedIndexReader,
@@ -174,7 +174,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     start map {
       start =>
-        SortedIndexBlock.searchHigherSeekOne(
+        SortedIndexBlock.searchHigherMatchOnly(
           key = key,
           startFrom = start,
           sortedIndexReader = sortedIndexReader,

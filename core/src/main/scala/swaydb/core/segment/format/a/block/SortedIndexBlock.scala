@@ -485,7 +485,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         valuesReader = valuesReader
       )
 
-  def searchSeekOne(key: Slice[Byte],
+  def searchMatchOnly(key: Slice[Byte],
                     start: Persistent.Partial,
                     fullRead: Boolean,
                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -494,7 +494,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
     else
       search(
-        matcher = KeyMatcher.Get.SeekOne(key),
+        matcher = KeyMatcher.Get.MatchOnly(key),
         startFrom = Some(start),
         fullRead = fullRead,
         indexReader = indexReader,
@@ -517,7 +517,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         valuesReader = valuesReader
       )
 
-  def searchHigherSeekOne(key: Slice[Byte],
+  def searchHigherMatchOnly(key: Slice[Byte],
                           startFrom: Persistent.Partial,
                           fullRead: Boolean,
                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -526,7 +526,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
     else
       search(
-        matcher = KeyMatcher.Higher.SeekOne(key),
+        matcher = KeyMatcher.Higher.MatchOnly(key),
         startFrom = Some(startFrom),
         fullRead = fullRead,
         indexReader = sortedIndexReader,

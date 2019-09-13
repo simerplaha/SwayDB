@@ -19,10 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.data.Persistent.Partial
 import swaydb.core.segment.format.a.block.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -36,9 +33,7 @@ private[core] sealed trait KeyMatcher {
 
   def keyOrder: KeyOrder[Slice[Byte]]
 
-  def seekOne: Boolean
-
-  def whileNextIsPrefixCompressed: Boolean
+  def matchOnly: Boolean
 }
 
 private[core] object KeyMatcher {
@@ -62,18 +57,10 @@ private[core] object KeyMatcher {
   sealed trait Bounded extends KeyMatcher
 
   sealed trait Get extends KeyMatcher {
-    def boundWhilePrefixCompressed: Get.WhilePrefixCompressed =
+    def matchOrStop: Get.MatchOnly =
       new Getter(
         key = key,
-        whileNextIsPrefixCompressed = true,
-        seekOne = false
-      )(keyOrder)
-
-    def matchOrStop: Get.SeekOne =
-      new Getter(
-        key = key,
-        whileNextIsPrefixCompressed = false,
-        seekOne = true
+        matchOnly = true
       )(keyOrder)
   }
 
@@ -81,42 +68,27 @@ private[core] object KeyMatcher {
     def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get =
       new Getter(
         key = key,
-        whileNextIsPrefixCompressed = false,
-        seekOne = false
+        matchOnly = false
       )
 
     sealed trait Bounded extends KeyMatcher.Bounded
 
-    object WhilePrefixCompressed {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get.WhilePrefixCompressed =
+    object MatchOnly {
+      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get.MatchOnly =
         new Getter(
           key = key,
-          seekOne = false,
-          whileNextIsPrefixCompressed = true
-        )(keyOrder)
-    }
-    sealed trait WhilePrefixCompressed extends Bounded {
-      def whileNextIsPrefixCompressed: Boolean
-    }
-
-    object SeekOne {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Get.SeekOne =
-        new Getter(
-          key = key,
-          seekOne = true,
-          whileNextIsPrefixCompressed = false
+          matchOnly = true
         )(keyOrder)
     }
 
-    sealed trait SeekOne extends Bounded {
-      def seekOne: Boolean
+    sealed trait MatchOnly extends Bounded {
+      def matchOnly: Boolean
     }
   }
 
   //private to disallow creating hashIndex Get from here.
   private class Getter(val key: Slice[Byte],
-                       val seekOne: Boolean,
-                       val whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.WhilePrefixCompressed with Get.SeekOne {
+                       val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
                        next: Option[Persistent.Partial],
@@ -127,7 +99,7 @@ private[core] object KeyMatcher {
           if (matchResult == 0)
             Matched(next map (_ => previous), fixed, None)
           else if (matchResult > 0 && hasMore)
-            if (seekOne)
+            if (matchOnly)
               BehindStopped(fixed)
             else
               BehindFetchNext(fixed)
@@ -140,7 +112,7 @@ private[core] object KeyMatcher {
           if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
             Matched(next map (_ => previous), group, None)
           else if (toKeyMatch >= 0 && hasMore)
-            if (seekOne)
+            if (matchOnly)
               BehindStopped(group)
             else
               BehindFetchNext(group)
@@ -153,7 +125,7 @@ private[core] object KeyMatcher {
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
             Matched(next map (_ => previous), range, None)
           else if (toKeyMatch >= 0 && hasMore)
-            if (seekOne)
+            if (matchOnly)
               BehindStopped(range)
             else
               BehindFetchNext(range)
@@ -163,18 +135,10 @@ private[core] object KeyMatcher {
   }
 
   sealed trait Lower extends KeyMatcher {
-    def boundWhilePrefixCompressed: Lower.WhilePrefixCompressed =
+    def matchOrStop: Lower.MatchOnly =
       new LowerMatcher(
         key = key,
-        whileNextIsPrefixCompressed = true,
-        seekOne = false
-      )(keyOrder)
-
-    def matchOrStop: Lower.SeekOne =
-      new LowerMatcher(
-        key = key,
-        whileNextIsPrefixCompressed = false,
-        seekOne = true
+        matchOnly = true
       )(keyOrder)
   }
 
@@ -182,41 +146,26 @@ private[core] object KeyMatcher {
     def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Lower =
       new LowerMatcher(
         key = key,
-        whileNextIsPrefixCompressed = false,
-        seekOne = false
+        matchOnly = false
       )
 
     sealed trait Bounded extends KeyMatcher.Bounded
 
-    object WhilePrefixCompressed {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Lower.WhilePrefixCompressed =
+    object MatchOnly {
+      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Lower.MatchOnly =
         new LowerMatcher(
           key = key,
-          seekOne = false,
-          whileNextIsPrefixCompressed = true
-        )(keyOrder)
-    }
-    sealed trait WhilePrefixCompressed extends Bounded {
-      def whileNextIsPrefixCompressed: Boolean
-    }
-
-    object SeekOne {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Lower.SeekOne =
-        new LowerMatcher(
-          key = key,
-          seekOne = true,
-          whileNextIsPrefixCompressed = false
+          matchOnly = true
         )(keyOrder)
     }
 
-    sealed trait SeekOne extends Bounded {
-      def seekOne: Boolean
+    sealed trait MatchOnly extends Bounded {
+      def matchOnly: Boolean
     }
   }
 
   private class LowerMatcher(val key: Slice[Byte],
-                             val seekOne: Boolean,
-                             val whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Lower with Lower.WhilePrefixCompressed with Lower.SeekOne {
+                             val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Lower with Lower.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
                        next: Option[Persistent.Partial],
@@ -239,7 +188,7 @@ private[core] object KeyMatcher {
                   Matched(Some(previous), next, None)
 
                 case _ =>
-                  if (seekOne)
+                  if (matchOnly)
                     BehindStopped(next)
                   else
                     BehindFetchNext(next)
@@ -273,18 +222,10 @@ private[core] object KeyMatcher {
   }
 
   sealed trait Higher extends KeyMatcher {
-    def boundWhilePrefixCompressed: Higher.WhilePrefixCompressed =
+    def matchOrStop: Higher.MatchOnly =
       new HigherMatcher(
         key = key,
-        whileNextIsPrefixCompressed = true,
-        seekOne = false
-      )(keyOrder)
-
-    def matchOrStop: Higher.SeekOne =
-      new HigherMatcher(
-        key = key,
-        whileNextIsPrefixCompressed = false,
-        seekOne = true
+        matchOnly = true
       )(keyOrder)
   }
 
@@ -292,41 +233,26 @@ private[core] object KeyMatcher {
     def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Higher =
       new HigherMatcher(
         key = key,
-        whileNextIsPrefixCompressed = false,
-        seekOne = false
+        matchOnly = false
       )
 
     sealed trait Bounded extends KeyMatcher.Bounded
 
-    object WhilePrefixCompressed {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Higher.WhilePrefixCompressed =
+    object MatchOnly {
+      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Higher.MatchOnly =
         new HigherMatcher(
           key = key,
-          seekOne = false,
-          whileNextIsPrefixCompressed = true
-        )(keyOrder)
-    }
-    sealed trait WhilePrefixCompressed extends Bounded {
-      def whileNextIsPrefixCompressed: Boolean
-    }
-
-    object SeekOne {
-      def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Higher.SeekOne =
-        new HigherMatcher(
-          key = key,
-          seekOne = true,
-          whileNextIsPrefixCompressed = false
+          matchOnly = true,
         )(keyOrder)
     }
 
-    sealed trait SeekOne extends Bounded {
-      def seekOne: Boolean
+    sealed trait MatchOnly extends Bounded {
+      def matchOnly: Boolean
     }
   }
 
   private class HigherMatcher(val key: Slice[Byte],
-                              val seekOne: Boolean,
-                              val whileNextIsPrefixCompressed: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Higher with Higher.WhilePrefixCompressed with Higher.SeekOne {
+                              val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Higher with Higher.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
                        next: Option[Persistent.Partial],
@@ -345,7 +271,7 @@ private[core] object KeyMatcher {
 
           case _ =>
             if (hasMore)
-              if (seekOne)
+              if (matchOnly)
                 BehindStopped(keyValue)
               else
                 BehindFetchNext(keyValue)
