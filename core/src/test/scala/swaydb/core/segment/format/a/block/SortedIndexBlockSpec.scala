@@ -232,7 +232,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, fullRead = randomBoolean(), sortedIndexReader, valuesBlockReader).get.get.toPersistent.get
+          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, fullRead = true, sortedIndexReader, valuesBlockReader).get.get.toPersistent.get
           searchedKeyValue.key shouldBe keyValue.key
           searchedKeyValues += searchedKeyValue
           //randomly set previous
@@ -246,7 +246,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
        */
       searchedKeyValues.zip(keyValues).par foreach {
         case (persistent, transient) =>
-          val searchedPersistent = SortedIndexBlock.search(persistent.key, None, fullRead = randomBoolean(), sortedIndexReader.copy(), valuesBlockReader).get.get
+          val searchedPersistent = SortedIndexBlock.search(persistent.key, None, fullRead = true, sortedIndexReader.copy(), valuesBlockReader).get.get
           transient match {
             case transient: Transient.SegmentResponse =>
               searchedPersistent shouldBe persistent
