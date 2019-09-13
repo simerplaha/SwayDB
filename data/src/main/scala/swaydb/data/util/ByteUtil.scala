@@ -327,19 +327,21 @@ object ByteUtil {
   }
 
   def readUnsignedIntRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Int] =
-    IO[E, Int] {
-      var i = 0
-      var byte = slice(i)
-      var int: Int = byte & 0x7F
-      while ((byte & 0x80) != 0) {
-        i += 1
-        byte = slice(i)
+    IO[E, Int](readUnsignedIntRightAlignedUnsafe(slice))
 
-        int <<= 7
-        int |= (byte & 0x7F)
-      }
-      int
+  def readUnsignedIntRightAlignedUnsafe(slice: Slice[Byte]): Int = {
+    var i = 0
+    var byte = slice(i)
+    var int: Int = byte & 0x7F
+    while ((byte & 0x80) != 0) {
+      i += 1
+      byte = slice(i)
+
+      int <<= 7
+      int |= (byte & 0x7F)
     }
+    int
+  }
 
   def writeUnsignedLongRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](long: Long, slice: Slice[Byte]): Unit = {
     if (long < 0) slice.add(0x81.toByte)
@@ -356,17 +358,19 @@ object ByteUtil {
   }
 
   def readUnsignedLongRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Long] =
-    IO[E, Long] {
-      var i = 0
-      var byte = slice(i)
-      var long: Long = byte & 0x7F
-      while ((byte & 0x80) != 0) {
-        i += 1
-        byte = slice(i)
+    IO[E, Long](readUnsignedLongRightAlignedUnsafe(slice))
 
-        long <<= 7
-        long |= (byte & 0x7F)
-      }
-      long
+  def readUnsignedLongRightAlignedUnsafe(slice: Slice[Byte]): Long = {
+    var i = 0
+    var byte = slice(i)
+    var long: Long = byte & 0x7F
+    while ((byte & 0x80) != 0) {
+      i += 1
+      byte = slice(i)
+
+      long <<= 7
+      long |= (byte & 0x7F)
     }
+    long
+  }
 }

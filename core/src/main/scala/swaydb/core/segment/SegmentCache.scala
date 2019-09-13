@@ -55,6 +55,7 @@ private[core] object SegmentCache {
         )
     )(keyOrder = keyOrder, memorySweeper = memorySweeper, groupIO = segmentIO)
 }
+
 private[core] class SegmentCache(id: String,
                                  maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
