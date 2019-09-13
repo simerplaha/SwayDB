@@ -148,38 +148,20 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case SearchResult.Some(_, value) =>
-            IO.Right(Some(value))
+          case SearchResult.Some(_, got) =>
+            IO.Right(Some(got))
 
           case SearchResult.None(lower) =>
-            if (sortedIndexReader.block.isBinarySearchable || (binarySearchIndexReader.exists(_.block.isFullIndex) && !sortedIndexReader.block.hasPrefixCompression))
+            if (sortedIndexReader.block.isBinarySearchable || binarySearchIndexReader.nonEmpty)
               IO.none
             else
-              lower orElse start match {
-                case Some(startFrom) =>
-                  assertLowerAndStart(start, lower)
-                  startFrom.toPersistent flatMap {
-                    startFrom =>
-                      //println(s"WALK FROM: ${startFrom.key.readInt()}")
-                      SortedIndexBlock.search(
-                        key = key,
-                        startFrom = Some(startFrom),
-                        fullRead = true,
-                        sortedIndexReader = sortedIndexReader,
-                        valuesReader = valuesReader
-                      )
-                  }
-
-                case None =>
-                  //println(s"WALK FROM: None")
-                  SortedIndexBlock.search(
-                    key = key,
-                    startFrom = None,
-                    fullRead = true,
-                    sortedIndexReader = sortedIndexReader,
-                    valuesReader = valuesReader
-                  )
-              }
+              SortedIndexBlock.search(
+                key = key,
+                startFrom = lower orElse start,
+                fullRead = true,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader
+              )
         }
     }
 

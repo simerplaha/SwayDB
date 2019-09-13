@@ -29,41 +29,29 @@ private[block] trait BinarySearchContext {
   val bytesPerValue: Int
   val valuesCount: Int
   val isFullIndex: Boolean
-  val higherOrLower: Option[Boolean]
   val startKeyValue: Option[Persistent.Partial]
   val endKeyValue: Option[Persistent.Partial]
+
   def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result]
 }
 
 private[block] object BinarySearchContext {
   def apply(key: Slice[Byte],
-            highOrLow: Option[Boolean],
             start: Option[Persistent.Partial],
             end: Option[Persistent.Partial],
             binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
-      val matcher =
-        highOrLow match {
-          case Some(higher) =>
-            //if the sortedIndex has compression disabled do not fetch the next key-value. Let binary search find the next one to seek to.
-            if (higher)
-              KeyMatcher.Higher.SeekOne(key)
-            else
-              KeyMatcher.Lower.SeekOne(key)
+      val matcher = KeyMatcher.Get.SeekOne(key)
 
-          case None =>
-            KeyMatcher.Get.SeekOne(key)
-        }
+      println(s"Searching key: ${key.readInt()}")
 
       override val bytesPerValue: Int = binarySearchIndex.block.bytesPerValue
 
       override val isFullIndex: Boolean = binarySearchIndex.block.isFullIndex
 
       override val valuesCount: Int = binarySearchIndex.block.valuesCount
-
-      override val higherOrLower: Option[Boolean] = highOrLow
 
       override val startKeyValue: Option[Persistent.Partial] = start
 
@@ -86,33 +74,19 @@ private[block] object BinarySearchContext {
     }
 
   def apply(key: Slice[Byte],
-            highOrLow: Option[Boolean],
             start: Option[Persistent.Partial],
             end: Option[Persistent.Partial],
             keyValuesCount: Int,
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
-      val matcher =
-        highOrLow match {
-          case Some(higher) =>
-            //if the sortedIndex has compression disabled do not fetch the next key-value. Let binary search find the next one to seek to.
-            if (higher)
-              KeyMatcher.Higher.SeekOne(key)
-            else
-              KeyMatcher.Lower.SeekOne(key)
-
-          case None =>
-            KeyMatcher.Get.SeekOne(key)
-        }
+      val matcher = KeyMatcher.Get.SeekOne(key)
 
       override val bytesPerValue: Int = sortedIndex.block.segmentMaxIndexEntrySize
 
       override val isFullIndex: Boolean = true
 
       override val valuesCount: Int = keyValuesCount
-
-      override val higherOrLower: Option[Boolean] = highOrLow
 
       override val startKeyValue: Option[Persistent.Partial] = start
 

@@ -26,11 +26,11 @@ sealed trait SearchResult[+T] {
 }
 object SearchResult {
 
-  def none[A]: SearchResult.None[A] =
-    SearchResult.None(Option.empty[A])
+  val none: SearchResult.None[Nothing] =
+    SearchResult.None(Option.empty[Nothing])
 
-  def noneIO[E: IO.ExceptionHandler, A] =
-    IO.Right[E, SearchResult[A]](none)
+  def noneIO =
+    IO.Right[Nothing, SearchResult[Nothing]](none)(IO.ExceptionHandler.Nothing)
 
   case class None[T](lower: Option[T]) extends SearchResult[T] {
     override val toOption: Option[T] = scala.None

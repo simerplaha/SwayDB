@@ -127,7 +127,7 @@ private[core] object KeyMatcher {
           if (matchResult == 0)
             Matched(next map (_ => previous), fixed, None)
           else if (matchResult > 0 && hasMore)
-            if (seekOne && next.nonEmpty)
+            if (seekOne)
               BehindStopped(fixed)
             else
               BehindFetchNext(fixed)
@@ -140,7 +140,7 @@ private[core] object KeyMatcher {
           if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
             Matched(next map (_ => previous), group, None)
           else if (toKeyMatch >= 0 && hasMore)
-            if (seekOne && next.nonEmpty)
+            if (seekOne)
               BehindStopped(group)
             else
               BehindFetchNext(group)
@@ -153,7 +153,7 @@ private[core] object KeyMatcher {
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
             Matched(next map (_ => previous), range, None)
           else if (toKeyMatch >= 0 && hasMore)
-            if (seekOne && next.nonEmpty)
+            if (seekOne)
               BehindStopped(range)
             else
               BehindFetchNext(range)

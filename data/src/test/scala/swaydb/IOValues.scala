@@ -37,7 +37,7 @@ trait IOValues {
       IO.Defer(io.get).runRandomIO
   }
 
-  implicit class IOImplicits[T](io: IO[Throwable, T]) {
+  implicit class IOImplicits[E, T](io: IO[E, T]) {
     def value: T =
       try
         io.get

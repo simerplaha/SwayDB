@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
+import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.{Bytes, MinMax, Options}
@@ -282,39 +283,6 @@ private[core] object BinarySearchIndexBlock {
         state.previouslyWritten = value
       }
 
-  def resolveResult(knownLowest: Option[Persistent.Partial],
-                    knownMatch: Option[Persistent.Partial],
-                    startKeyValue: Option[Persistent.Partial],
-                    isHigherSeek: Option[Boolean])(implicit order: Ordering[Persistent.Partial]): IO[swaydb.Error.Segment, SearchResult[Persistent.Partial]] =
-    knownMatch flatMap {
-      knownMatch =>
-        isHigherSeek map {
-          isHigher =>
-            //if higher got a successful match return the result with knowLost.
-            if (isHigher)
-              IO.Right(SearchResult.Some(knownLowest, knownMatch))
-            else //if it's lower seek then match is the lower match.
-              IO.Right(SearchResult.Some(None, knownMatch))
-        }
-    } getOrElse {
-      //if there was not match create a response from known collected seeks.
-      knownLowest flatMap {
-        knowLowest =>
-          isHigherSeek map {
-            higher =>
-              //if it was higher and knownMatch is none means there was no successful higher but lower might be know.
-              if (higher)
-                IO.Right(SearchResult.None(knownLowest))
-              else //if it was lower then send the best known lower as the response.
-                IO.Right(SearchResult.Some(None, knowLowest))
-          }
-      } getOrElse {
-        //if no data return None response with lower set.
-        val lowestMax = MinMax.maxFavourLeft(knownLowest, startKeyValue)
-        IO.Right(SearchResult.None(lowestMax))
-      }
-    }
-
   def search(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent.Partial]] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
 
@@ -322,55 +290,42 @@ private[core] object BinarySearchIndexBlock {
     def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, SearchResult[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
-      //println(s"start: $start, mid: $mid, end: $end")
+      println(s"start: $start, mid: $mid, end: $end")
 
       val valueOffset = mid * context.bytesPerValue
 
       if (start > end)
-        resolveResult(
-          knownLowest = knownLowest,
-          knownMatch = knownMatch,
-          startKeyValue = context.startKeyValue,
-          isHigherSeek = context.higherOrLower
-        )
+        IO.Right {
+          SearchResult.None(
+            MinMax.maxFavourLeft(
+              left = knownLowest,
+              right = context.startKeyValue
+            )
+          )
+        }
       else
         context.seek(valueOffset) match {
           case IO.Right(entry) =>
             entry match {
               case matched: KeyMatcher.Result.Matched =>
-                context.higherOrLower match {
-                  case None =>
-                    IO.Right(SearchResult.Some(matched.previous orElse knownLowest, matched.result))
-
-                  case Some(higher) =>
-                    if (higher)
-                      if (matched.previous.isDefined)
-                        IO.Right(SearchResult.Some(matched.previous, matched.result))
-                      else
-                        hop(start = start, end = mid - 1, knownLowest, knownMatch = Some(matched.result))
-                    else if (matched.next.isDefined)
-                    //Is lower! Don't need to compare knownLowest because a successful match would've fetch the nearest lowest.
-                    //Here most times knownLowest would be the same as matched.result.
-                      IO.Right(SearchResult.Some(matched.previous, matched.result))
-                    else
-                      hop(start = mid + 1, end = end, matched.previous orElse knownLowest, knownMatch = Some(matched.result))
+                IO.Right {
+                  SearchResult.Some(
+                    lower =
+                      MinMax.maxFavourLeft(
+                        left = knownLowest orElse context.startKeyValue,
+                        right = matched.previous orElse context.startKeyValue
+                      ),
+                    value = matched.result
+                  )
                 }
 
               case behind: KeyMatcher.Result.Behind =>
-                //if the accessIndexPosition is not enabled then the start key could be lower than the seek key.
-                //do a comparison of the highest of both (currently knownLowest and current seeked lowest)
-                //seek can also return a lower lower if its not a fullIndex so do a check again.
-                val newKnownLowest =
-                  if (!context.isFullIndex || context.startKeyValue.exists(_.accessPosition == 0))
-                    MinMax.maxFavourLeft(knownLowest, behind.previous)
-                  else
-                    behind.previous
-
-                hop(start = mid + 1, end = end, Some(newKnownLowest), knownMatch = knownMatch)
+                hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)
 
               case KeyMatcher.Result.AheadOrNoneOrEnd =>
-                hop(start = start, end = mid - 1, knownLowest, knownMatch = knownMatch)
+                hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
             }
+
           case IO.Left(error) =>
             IO.Left(error)
         }
@@ -401,59 +356,7 @@ private[core] object BinarySearchIndexBlock {
 
     //println(s"startKey: ${context.startKeyValue.map(_.key.readInt())}, endKey: ${context.endKeyValue.map(_.key.readInt())}")
 
-    /**
-     * Special treatment for lower seeks.
-     * If it's a lower seek test if the end-1 or start is the next lower else do full binary search.
-     * Higher does not require special binary search seek because there is [[SortedIndexBlock.searchHigherSeekOne]]
-     * but for lower cannot have lowerSeekOne since reads move forward and there need binary search to find the next
-     * lowest index.
-     */
-    def seekLower() =
-      if (context.endKeyValue.exists(_.accessPosition > 0))
-        hop(start = (endPosition - 1) max 0, end = endPosition, None, None) flatMap {
-          case some @ SearchResult.Some(_, _) =>
-            IO.Right(some)
-
-          case none @ SearchResult.None(lower) =>
-            if (endPosition > 1)
-              hop(start = startPosition, end = endPosition - 1, context.startKeyValue, None)
-            else
-
-            /**
-             * [[seekLower]] returning a [[SearchResult.None]] with lower defined is not expected. If it does occur it
-             * would be due to small number of entries in the binarySearch index (1 or 2) where startFrom is returned
-             * to be lower. Here we check if lower is set and the assert is for development environment only.
-             * If lower is returned the check should assert that it's the same object as original startFrom else return none.
-             */
-              lower flatMap {
-                lower =>
-                  context.startKeyValue map {
-                    startKeyValue =>
-                      if (lower.hashCode() != startKeyValue.hashCode())
-                        IO.failed("Lower was defined.")
-                      else
-                        IO.Right(SearchResult.None(None))
-                  }
-              } getOrElse IO.Right(none)
-        }
-      else if (context.startKeyValue.exists(_.accessPosition > 0)) //end should not be larger than the number of entries.
-        hop(start = startPosition, end = (startPosition + 1) min (context.valuesCount - 1), None, None) flatMap {
-          case some @ SearchResult.Some(_, lower) =>
-            if (context.startKeyValue exists (order.equiv(_, lower)))
-              IO.Right(some)
-            else
-              hop(start = getStartPosition(Some(lower)), end = endPosition, Some(lower), None)
-
-          case SearchResult.None(_) =>
-            hop(start = startPosition, end = endPosition, context.startKeyValue, None)
-        }
-      else
-        hop(start = startPosition, end = endPosition, context.startKeyValue, None)
-
-    if (context.higherOrLower contains false)
-      seekLower()
-    else
-      hop(start = startPosition, end = endPosition, context.startKeyValue, None)
+    hop(start = startPosition, end = endPosition, context.startKeyValue, None)
   }
 
   def search(key: Slice[Byte],
@@ -469,7 +372,6 @@ private[core] object BinarySearchIndexBlock {
           search(
             BinarySearchContext(
               key = key,
-              highOrLow = None,
               start = start,
               end = end,
               keyValuesCount = keyValuesCount,
@@ -484,14 +386,37 @@ private[core] object BinarySearchIndexBlock {
           search(
             BinarySearchContext(
               key = key,
-              highOrLow = None,
               start = start,
               end = end,
               binarySearchIndex = binarySearchIndexReader,
               sortedIndex = sortedIndexReader,
               values = valuesReader
             )
-          )
+          ) flatMap {
+            case some: SearchResult.Some[Persistent.Partial] =>
+              IO.Right(some)
+
+            case none @ SearchResult.None(lower) =>
+              if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
+                IO.Right(none)
+              else
+                lower.map(_.toPersistent.map(Some(_))).getOrElse(IO.none) flatMap {
+                  lower =>
+                    SortedIndexBlock.search(
+                      key = key,
+                      startFrom = lower,
+                      fullRead = true,
+                      sortedIndexReader = sortedIndexReader,
+                      valuesReader = valuesReader
+                    ) flatMap {
+                      case Some(value) =>
+                        IO.Right(SearchResult.Some(lower, value))
+
+                      case None =>
+                        IO.Right(SearchResult.None(lower))
+                    }
+                }
+          }
       } getOrElse SearchResult.noneIO
 
   def searchHigher(key: Slice[Byte],
@@ -501,36 +426,71 @@ private[core] object BinarySearchIndexBlock {
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent.Partial]] =
-    if (sortedIndexReader.block.isBinarySearchable)
-      keyValuesCount flatMap {
-        keyValuesCount =>
-          search(
-            BinarySearchContext(
-              key = key,
-              highOrLow = Options.`true`,
-              start = start,
-              end = end,
-              keyValuesCount = keyValuesCount,
-              sortedIndex = sortedIndexReader,
-              values = valuesReader
-            )
-          )
-      }
-    else
-      binarySearchIndexReader map {
-        binarySearchIndexReader =>
-          search(
-            BinarySearchContext(
-              key = key,
-              highOrLow = Options.`true`,
-              start = start,
-              end = end,
-              binarySearchIndex = binarySearchIndexReader,
-              sortedIndex = sortedIndexReader,
-              values = valuesReader
-            )
-          )
-      } getOrElse SearchResult.noneIO
+    search(
+      key = key,
+      start = start,
+      end = end,
+      keyValuesCount = keyValuesCount,
+      binarySearchIndexReader = binarySearchIndexReader,
+      sortedIndexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    ) flatMap {
+      case none @ SearchResult.None(lower) =>
+        lower match {
+          case Some(lower) =>
+            lower.toPersistent flatMap {
+              lower =>
+                val someLower = Some(lower)
+                SortedIndexBlock.searchHigher(
+                  key = key,
+                  startFrom = someLower,
+                  fullRead = true,
+                  sortedIndexReader = sortedIndexReader,
+                  valuesReader = valuesReader
+                ) map {
+                  case Some(value) =>
+                    SearchResult.Some(someLower, value)
+
+                  case None =>
+                    SearchResult.None(someLower)
+                }
+            }
+
+          case None =>
+            IO.Right(none)
+        }
+
+      case result @ SearchResult.Some(_, lower) =>
+        lower match {
+          case lower: Partial.Fixed =>
+            if (lower.nextIndexSize <= 0)
+              IO.Right(SearchResult.None(Some(lower)))
+            else
+              lower.toPersistent flatMap {
+                got =>
+                  val someLower = Some(got)
+                  SortedIndexBlock.searchHigher(
+                    key = key,
+                    startFrom = someLower,
+                    fullRead = true,
+                    sortedIndexReader = sortedIndexReader,
+                    valuesReader = valuesReader
+                  ) map {
+                    case Some(higher) =>
+                      SearchResult.Some(someLower, higher)
+
+                    case None =>
+                      SearchResult.None(someLower)
+                  }
+              }
+
+          case _: Partial.RangeT =>
+            IO.Right(result)
+
+          case _: Partial.GroupT =>
+            IO.Right(result)
+        }
+    }
 
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent.Partial],
@@ -539,36 +499,33 @@ private[core] object BinarySearchIndexBlock {
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent.Partial]] =
-    if (sortedIndexReader.block.isBinarySearchable)
-      keyValuesCount flatMap {
-        keyValuesCount =>
-          search(
-            BinarySearchContext(
-              key = key,
-              highOrLow = Options.`false`,
-              start = start,
-              end = end,
-              keyValuesCount = keyValuesCount,
-              sortedIndex = sortedIndexReader,
-              values = valuesReader
-            )
-          )
-      }
-    else
-      binarySearchIndexReader map {
-        binarySearchIndexReader =>
-          search(
-            BinarySearchContext(
-              key = key,
-              highOrLow = Options.`false`,
-              start = start,
-              end = end,
-              binarySearchIndex = binarySearchIndexReader,
-              sortedIndex = sortedIndexReader,
-              values = valuesReader
-            )
-          )
-      } getOrElse SearchResult.noneIO
+    search(
+      key = key,
+      start = start,
+      end = end,
+      keyValuesCount = keyValuesCount,
+      binarySearchIndexReader = binarySearchIndexReader,
+      sortedIndexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    ) map {
+      case SearchResult.None(lower) =>
+        lower match {
+          case Some(lower) =>
+            SearchResult.Some(None, lower)
+
+          case None =>
+            SearchResult.none
+        }
+
+      case SearchResult.Some(lower, _) =>
+        lower match {
+          case Some(lower) =>
+            SearchResult.Some(None, lower)
+
+          case None =>
+            SearchResult.none
+        }
+    }
 
   implicit object BinarySearchIndexBlockOps extends BlockOps[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] {
     override def updateBlockOffset(block: BinarySearchIndexBlock, start: Int, size: Int): BinarySearchIndexBlock =
