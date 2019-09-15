@@ -34,6 +34,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
+                              binarySearchIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -80,6 +81,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                               valueOffset = valueOffset,
                               valueLength = valueLength,
                               sortedIndexAccessPosition = sortedIndexAccessPosition,
+                              binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
                               isPrefixCompressed =
                                 isKeyPrefixCompressed ||
                                   timeReader.isPrefixCompressed ||
@@ -111,6 +113,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                                 valueOffset = valueOffset,
                                 valueLength = valueLength,
                                 sortedIndexAccessPosition = sortedIndexAccessPosition,
+                                binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
                                 isPrefixCompressed =
                                   timeReader.isPrefixCompressed ||
                                     deadlineReader.isPrefixCompressed ||
@@ -148,6 +151,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                           valueOffset = valueOffset,
                           valueLength = valueLength,
                           sortedIndexAccessPosition = sortedIndexAccessPosition,
+                          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
                           isPrefixCompressed =
                             isKeyPrefixCompressed ||
                               timeReader.isPrefixCompressed ||

@@ -327,7 +327,7 @@ private[core] object BinarySearchIndexBlock {
           )
         }
       else
-        context.seek(valueOffset) match {
+        context.seek(mid, valueOffset) match {
           case IO.Right(entry) =>
             entry match {
               case matched: KeyMatcher.Result.Matched =>

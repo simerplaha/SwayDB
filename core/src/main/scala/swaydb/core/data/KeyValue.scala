@@ -459,6 +459,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
   val isGroup: Boolean
   val previous: Option[Transient]
   val thisKeyValueAccessIndexPosition: Int
+
   def mergedKey: Slice[Byte]
   def values: Slice[Slice[Byte]]
   def valuesConfig: ValuesBlock.Config
@@ -476,6 +477,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
   //start value offset is carried current value offset position.
   def currentStartValueOffsetPosition: Int
   def currentEndValueOffsetPosition: Int
+
   def nextStartValueOffsetPosition: Int =
     if (!hasValueEntryBytes && currentEndValueOffsetPosition == 0)
       0
@@ -763,6 +765,7 @@ private[core] object Transient {
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
+
     override def mergedKey = key
     override def value: Option[Slice[Byte]] = None
     override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
@@ -838,6 +841,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+
     override def mergedKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
@@ -913,6 +917,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+
     override def mergedKey = key
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
@@ -986,6 +991,7 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+
     override def mergedKey = key
     override def value: Option[Slice[Byte]] = Some(function)
     override def values: Slice[Slice[Byte]] = Slice(function)
@@ -1060,9 +1066,12 @@ private[core] object Transient {
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
     override val isRange: Boolean = false
+
     override def mergedKey = key
+
     override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
     override val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
+
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     override def time = Time.fromApplies(applies)
@@ -1212,6 +1221,7 @@ private[core] object Transient {
     override val isGroup: Boolean = false
     override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
+
     override def key = fromKey
     override def value = valueSerialiser()
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
@@ -1312,9 +1322,11 @@ private[core] object Transient {
     final val id = Group.id
 
     def key = minKey
+
     override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
     override val isRange: Boolean = keyValues.last.stats.segmentHasRange
     override val isGroup: Boolean = true
+
     override def values: Slice[Slice[Byte]] = blockedSegment.segmentBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
@@ -1431,6 +1443,7 @@ private[core] object Persistent {
                  val nextIndexOffset: Int,
                  val nextIndexSize: Int,
                  val sortedIndexAccessPosition: Int,
+                 val binarySearchIndexAccessPosition: Int,
                  indexBytes: Slice[Byte],
                  block: SortedIndexBlock,
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -1443,6 +1456,7 @@ private[core] object Persistent {
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
+          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
           block = block,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
@@ -1458,6 +1472,7 @@ private[core] object Persistent {
               val nextIndexOffset: Int,
               val nextIndexSize: Int,
               val sortedIndexAccessPosition: Int,
+              val binarySearchIndexAccessPosition: Int,
               indexBytes: Slice[Byte],
               block: SortedIndexBlock,
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -1470,6 +1485,7 @@ private[core] object Persistent {
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
+          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
           block = block,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
@@ -1485,6 +1501,7 @@ private[core] object Persistent {
                  val nextIndexOffset: Int,
                  val nextIndexSize: Int,
                  val sortedIndexAccessPosition: Int,
+                 val binarySearchIndexAccessPosition: Int,
                  indexBytes: Slice[Byte],
                  block: SortedIndexBlock,
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -1497,6 +1514,7 @@ private[core] object Persistent {
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
+          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
           block = block,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
@@ -1512,6 +1530,7 @@ private[core] object Persistent {
                    val nextIndexOffset: Int,
                    val nextIndexSize: Int,
                    val sortedIndexAccessPosition: Int,
+                   val binarySearchIndexAccessPosition: Int,
                    indexBytes: Slice[Byte],
                    block: SortedIndexBlock,
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -1524,6 +1543,7 @@ private[core] object Persistent {
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
+          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
           block = block,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
@@ -1539,6 +1559,7 @@ private[core] object Persistent {
                        val nextIndexOffset: Int,
                        val nextIndexSize: Int,
                        val sortedIndexAccessPosition: Int,
+                       val binarySearchIndexAccessPosition: Int,
                        indexBytes: Slice[Byte],
                        block: SortedIndexBlock,
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -1551,6 +1572,7 @@ private[core] object Persistent {
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
+          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
           block = block,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
@@ -1568,6 +1590,7 @@ private[core] object Persistent {
                 nextIndexOffset: Int,
                 nextIndexSize: Int,
                 sortedIndexAccessPosition: Int,
+                binarySearchIndexAccessPosition: Int,
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                 previous: Option[Persistent.Partial]): IO[Error.IO, Partial.Range] =
@@ -1580,6 +1603,7 @@ private[core] object Persistent {
               nextIndexOffset = nextIndexOffset,
               nextIndexSize = nextIndexSize,
               sortedIndexAccessPosition = sortedIndexAccessPosition,
+              binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
               indexBytes = indexBytes,
               block = block,
               valuesReader = valuesReader,
@@ -1594,6 +1618,7 @@ private[core] object Persistent {
                 val nextIndexOffset: Int,
                 val nextIndexSize: Int,
                 val sortedIndexAccessPosition: Int,
+                val binarySearchIndexAccessPosition: Int,
                 indexBytes: Slice[Byte],
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -1608,6 +1633,7 @@ private[core] object Persistent {
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Range(fromKey, toKey),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
+          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
           block = block,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
@@ -1625,6 +1651,7 @@ private[core] object Persistent {
                 nextIndexOffset: Int,
                 nextIndexSize: Int,
                 sortedIndexAccessPosition: Int,
+                binarySearchIndexAccessPosition: Int,
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                 previous: Option[Persistent.Partial]): IO[Error.Segment, Partial.Group] =
@@ -1637,6 +1664,7 @@ private[core] object Persistent {
               nextIndexOffset = nextIndexOffset,
               nextIndexSize = nextIndexSize,
               sortedIndexAccessPosition = sortedIndexAccessPosition,
+              binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
               indexBytes = indexBytes,
               block = block,
               valuesReader = valuesReader,
@@ -1651,6 +1679,7 @@ private[core] object Persistent {
                 val nextIndexOffset: Int,
                 val nextIndexSize: Int,
                 val sortedIndexAccessPosition: Int,
+                val binarySearchIndexAccessPosition: Int,
                 indexBytes: Slice[Byte],
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -1664,6 +1693,7 @@ private[core] object Persistent {
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Group(minKey, maxKey),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
+          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
           block = block,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
@@ -1693,6 +1723,7 @@ private[core] object Persistent {
                     nextIndexOffset: Int,
                     nextIndexSize: Int,
                     sortedIndexAccessPosition: Int,
+                    binarySearchIndexAccessPosition: Int,
                     isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Remove {
     override val valueLength: Int = 0
     override val isValueCached: Boolean = true
@@ -1751,6 +1782,7 @@ private[core] object Persistent {
                   valueOffset: Int,
                   valueLength: Int,
                   sortedIndexAccessPosition: Int,
+                  binarySearchIndexAccessPosition: Int,
                   isPrefixCompressed: Boolean) =
       new Put(
         _key = key,
@@ -1770,6 +1802,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
+        binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
@@ -1784,6 +1817,7 @@ private[core] object Persistent {
                  valueOffset: Int,
                  valueLength: Int,
                  sortedIndexAccessPosition: Int,
+                 binarySearchIndexAccessPosition: Int,
                  isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Put {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
@@ -1852,6 +1886,7 @@ private[core] object Persistent {
                   valueOffset: Int,
                   valueLength: Int,
                   sortedIndexAccessPosition: Int,
+                  binarySearchIndexAccessPosition: Int,
                   isPrefixCompressed: Boolean) =
       new Update(
         _key = key,
@@ -1871,6 +1906,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
+        binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
@@ -1885,6 +1921,7 @@ private[core] object Persistent {
                     valueOffset: Int,
                     valueLength: Int,
                     sortedIndexAccessPosition: Int,
+                    binarySearchIndexAccessPosition: Int,
                     isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Update {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
@@ -1953,6 +1990,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
+        binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
 
@@ -1968,6 +2006,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
+        binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
 
@@ -1985,6 +2024,7 @@ private[core] object Persistent {
                   valueOffset: Int,
                   valueLength: Int,
                   sortedIndexAccessPosition: Int,
+                  binarySearchIndexAccessPosition: Int,
                   isPrefixCompressed: Boolean) =
       new Function(
         _key = key,
@@ -2003,6 +2043,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
+        binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
@@ -2016,6 +2057,7 @@ private[core] object Persistent {
                       valueOffset: Int,
                       valueLength: Int,
                       sortedIndexAccessPosition: Int,
+                      binarySearchIndexAccessPosition: Int,
                       isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.Function {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
@@ -2073,6 +2115,7 @@ private[core] object Persistent {
                   valueOffset: Int,
                   valueLength: Int,
                   sortedIndexAccessPosition: Int,
+                  binarySearchIndexAccessPosition: Int,
                   isPrefixCompressed: Boolean) =
       new PendingApply(
         _key = key,
@@ -2097,6 +2140,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
+        binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
@@ -2111,6 +2155,7 @@ private[core] object Persistent {
                           valueOffset: Int,
                           valueLength: Int,
                           sortedIndexAccessPosition: Int,
+                          binarySearchIndexAccessPosition: Int,
                           isPrefixCompressed: Boolean) extends Persistent.Fixed with KeyValue.ReadOnly.PendingApply {
     override def unsliceKeys: Unit = {
       _key = _key.unslice()
@@ -2161,6 +2206,7 @@ private[core] object Persistent {
               valueOffset: Int,
               valueLength: Int,
               sortedIndexAccessPosition: Int,
+              binarySearchIndexAccessPosition: Int,
               isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Persistent.Range] =
       Bytes.decompressJoin(key) map {
         case (fromKey, toKey) =>
@@ -2174,6 +2220,7 @@ private[core] object Persistent {
             valueOffset = valueOffset,
             valueLength = valueLength,
             sortedIndexAccessPosition = sortedIndexAccessPosition,
+            binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
             isPrefixCompressed = isPrefixCompressed
           )
       }
@@ -2187,6 +2234,7 @@ private[core] object Persistent {
                   valueOffset: Int,
                   valueLength: Int,
                   sortedIndexAccessPosition: Int,
+                  binarySearchIndexAccessPosition: Int,
                   isPrefixCompressed: Boolean): Persistent.Range =
       Range(
         _fromKey = fromKey,
@@ -2209,6 +2257,7 @@ private[core] object Persistent {
         valueOffset = valueOffset,
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
+        binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
         isPrefixCompressed = isPrefixCompressed
       )
   }
@@ -2222,6 +2271,7 @@ private[core] object Persistent {
                            valueOffset: Int,
                            valueLength: Int,
                            sortedIndexAccessPosition: Int,
+                           binarySearchIndexAccessPosition: Int,
                            isPrefixCompressed: Boolean) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range with Partial.RangeT {
 
     def fromKey = _fromKey
@@ -2274,6 +2324,7 @@ private[core] object Persistent {
               valueLength: Int,
               valueOffset: Int,
               sortedIndexAccessPosition: Int,
+              binarySearchIndexAccessPosition: Int,
               deadline: Option[Deadline],
               isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Group] =
       GroupKeyCompressor.decompress(key) flatMap {
@@ -2288,6 +2339,7 @@ private[core] object Persistent {
             valueLength = valueLength,
             valueOffset = valueOffset,
             sortedIndexAccessPosition = sortedIndexAccessPosition,
+            binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
             deadline = deadline,
             isPrefixCompressed = isPrefixCompressed
           )
@@ -2302,6 +2354,7 @@ private[core] object Persistent {
               valueLength: Int,
               valueOffset: Int,
               sortedIndexAccessPosition: Int,
+              binarySearchIndexAccessPosition: Int,
               deadline: Option[Deadline],
               isPrefixCompressed: Boolean): IO[swaydb.Error.Segment, Group] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
@@ -2340,6 +2393,7 @@ private[core] object Persistent {
             valueOffset = valueOffset,
             valueLength = valueLength,
             sortedIndexAccessPosition = sortedIndexAccessPosition,
+            binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
             deadline = deadline,
             isPrefixCompressed = isPrefixCompressed
           )
@@ -2355,6 +2409,7 @@ private[core] object Persistent {
                    valueOffset: Int,
                    valueLength: Int,
                    sortedIndexAccessPosition: Int,
+                   binarySearchIndexAccessPosition: Int,
                    deadline: Option[Deadline],
                    isPrefixCompressed: Boolean) extends Persistent with KeyValue.ReadOnly.Group with Partial.GroupT {
 

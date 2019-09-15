@@ -32,7 +32,7 @@ private[block] trait BinarySearchContext {
   val lowestKeyValue: Option[Persistent.Partial]
   val highestKeyValue: Option[Persistent.Partial]
 
-  def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result]
+  def seek(index: Int, offset: Int): IO[Error.Segment, KeyMatcher.Result]
 }
 
 private[block] object BinarySearchContext {
@@ -55,7 +55,7 @@ private[block] object BinarySearchContext {
 
       override val highestKeyValue: Option[Persistent.Partial] = highest
 
-      override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
+      override def seek(index: Int, offset: Int): IO[Error.Segment, KeyMatcher.Result] =
         binarySearchIndex
           .moveTo(offset)
           .readInt(unsigned = binarySearchIndex.block.isVarInt)
@@ -65,6 +65,7 @@ private[block] object BinarySearchContext {
                 matcher = matcher,
                 fullRead = false,
                 fromOffset = sortedIndexOffsetValue,
+                binarySearchIndexAccessPosition = index,
                 sortedIndex = sortedIndex,
                 valuesReader = values
               )
@@ -90,12 +91,13 @@ private[block] object BinarySearchContext {
 
       override val highestKeyValue: Option[Persistent.Partial] = highest
 
-      override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
+      override def seek(index: Int, offset: Int): IO[Error.Segment, KeyMatcher.Result] =
         SortedIndexBlock.findAndMatchOrNextMatch(
           matcher = matcher,
           fullRead = false,
           fromOffset = offset,
           sortedIndex = sortedIndex,
+          binarySearchIndexAccessPosition = index,
           valuesReader = values
         )
     }
