@@ -75,25 +75,19 @@ object KeyReader {
            keySize: Option[Int],
            indexReader: ReaderBase[swaydb.Error.Segment],
            previous: Option[Persistent.Partial],
-           keyValueId: KeyValueId): IO[swaydb.Error.Segment, (Slice[Byte], Boolean)] =
+           keyValueId: KeyValueId): IO[swaydb.Error.Segment, Slice[Byte]] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(
         indexReader = indexReader,
         keySize = keySize,
         previous = previous
-      ) map {
-        key =>
-          (key, true)
-      }
+      )
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       KeyReader.uncompressed(
         indexReader = indexReader,
         keySize = keySize,
         previous = previous
-      ) map {
-        key =>
-          (key, false)
-      }
+      )
     else
       IO.Left(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
 }

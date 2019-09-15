@@ -33,7 +33,7 @@ private[core] object BaseEntryReaderUncompressed extends BaseEntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               sortedIndexAccessPosition: Int,
-              binarySearchIndexAccessPosition: Int,
+              binarySearchIndexPosition: Int,
               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
               indexReader: ReaderBase[swaydb.Error.Segment],
               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -44,49 +44,49 @@ private[core] object BaseEntryReaderUncompressed extends BaseEntryReader {
               reader: SortedIndexEntryReader[T]): Option[IO[swaydb.Error.Segment, T]] =
   //GENERATED CONDITIONS
     if (baseId == 1110)
-      Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+      Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
     else if (baseId < 1110)
       if (baseId == 669)
-        Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+        Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
       else if (baseId < 669)
         if (baseId == 659)
-          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
         else if (baseId < 659)
           if (baseId == 650)
-            Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+            Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
           else
             None
         else if (baseId > 659)
           if (baseId == 660)
-            Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+            Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
           else
             None
         else
           None
       else if (baseId > 669)
         if (baseId == 910)
-          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
         else if (baseId == 919)
-          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
         else
           None
       else
         None
     else if (baseId > 1110)
       if (baseId == 1129)
-        Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+        Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
       else if (baseId < 1129)
         if (baseId == 1119)
-          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
         else if (baseId == 1120)
-          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
         else
           None
       else if (baseId > 1129)
         if (baseId == 1370)
-          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
         else if (baseId == 1379)
-          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexAccessPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
+          Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexAccessPosition, binarySearchIndexPosition, keyInfo, indexReader, valueCache, indexOffset, nextIndexOffset, nextIndexSize, previous))
         else
           None
       else

@@ -34,7 +34,7 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              binarySearchIndexAccessPosition: Int,
+                              binarySearchIndexPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -59,7 +59,7 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                   previous = previous,
                   keyValueId = KeyValueId.Range
                 ) flatMap {
-                  case (key, isKeyPrefixCompressed) =>
+                  key =>
                     valueCache match {
                       case Some(valueCache) =>
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
@@ -74,14 +74,7 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                           valueOffset = valueOffset,
                           valueLength = valueLength,
                           sortedIndexAccessPosition = sortedIndexAccessPosition,
-                          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                          isPrefixCompressed =
-                            isKeyPrefixCompressed ||
-                              timeReader.isPrefixCompressed ||
-                              deadlineReader.isPrefixCompressed ||
-                              valueOffsetReader.isPrefixCompressed ||
-                              valueLengthReader.isPrefixCompressed ||
-                              valueBytesReader.isPrefixCompressed
+                          binarySearchIndexPosition = binarySearchIndexPosition
                         )
                       case None =>
                         ValuesBlock.valuesBlockNotInitialised
@@ -106,13 +99,7 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                             valueOffset = valueOffset,
                             valueLength = valueLength,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
-                            binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                            isPrefixCompressed =
-                              timeReader.isPrefixCompressed ||
-                                deadlineReader.isPrefixCompressed ||
-                                valueOffsetReader.isPrefixCompressed ||
-                                valueLengthReader.isPrefixCompressed ||
-                                valueBytesReader.isPrefixCompressed
+                            binarySearchIndexPosition = binarySearchIndexPosition
                           )
                         }
                       case None =>
@@ -133,7 +120,7 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
               previous = previous,
               keyValueId = KeyValueId.Range
             ) flatMap {
-              case (key, isKeyPrefixCompressed) =>
+              key =>
                 valueCache match {
                   case Some(valueCache) =>
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
@@ -148,14 +135,7 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                       valueOffset = valueOffset,
                       valueLength = valueLength,
                       sortedIndexAccessPosition = sortedIndexAccessPosition,
-                      binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
+                      binarySearchIndexPosition = binarySearchIndexPosition
                     )
                   case None =>
                     ValuesBlock.valuesBlockNotInitialised

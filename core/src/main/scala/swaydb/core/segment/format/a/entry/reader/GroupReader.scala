@@ -34,7 +34,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              binarySearchIndexAccessPosition: Int,
+                              binarySearchIndexPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -63,7 +63,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                           previous = previous,
                           keyValueId = KeyValueId.Group
                         ) flatMap {
-                          case (key, isKeyPrefixCompressed) =>
+                          key =>
                             valueCache match {
                               case Some(valueCache) =>
                                 Persistent.Group(
@@ -76,14 +76,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                                   valueOffset = valueOffset,
                                   valueLength = valueLength,
                                   sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                  binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                                  isPrefixCompressed =
-                                    isKeyPrefixCompressed ||
-                                      timeReader.isPrefixCompressed ||
-                                      deadlineReader.isPrefixCompressed ||
-                                      valueOffsetReader.isPrefixCompressed ||
-                                      valueLengthReader.isPrefixCompressed ||
-                                      valueBytesReader.isPrefixCompressed
+                                  binarySearchIndexPosition = binarySearchIndexPosition
                                 )
 
                               case None =>
@@ -107,13 +100,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                                   valueOffset = valueOffset,
                                   valueLength = valueLength,
                                   sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                  binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                                  isPrefixCompressed =
-                                    timeReader.isPrefixCompressed ||
-                                      deadlineReader.isPrefixCompressed ||
-                                      valueOffsetReader.isPrefixCompressed ||
-                                      valueLengthReader.isPrefixCompressed ||
-                                      valueBytesReader.isPrefixCompressed
+                                  binarySearchIndexPosition = binarySearchIndexPosition
                                 )
 
                               case key @ (_: Key.Fixed | _: Key.Range) =>
@@ -132,7 +119,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                       previous = previous,
                       keyValueId = KeyValueId.Group
                     ) flatMap {
-                      case (key, isKeyPrefixCompressed) =>
+                      key =>
                         valueCache match {
                           case Some(valueCache) =>
                             Persistent.Group(
@@ -145,14 +132,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                               valueOffset = valueOffset,
                               valueLength = valueLength,
                               sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                              isPrefixCompressed =
-                                isKeyPrefixCompressed ||
-                                  timeReader.isPrefixCompressed ||
-                                  deadlineReader.isPrefixCompressed ||
-                                  valueOffsetReader.isPrefixCompressed ||
-                                  valueLengthReader.isPrefixCompressed ||
-                                  valueBytesReader.isPrefixCompressed
+                              binarySearchIndexPosition = binarySearchIndexPosition
                             )
                           case None =>
                             ValuesBlock.valuesBlockNotInitialised

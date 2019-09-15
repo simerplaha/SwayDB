@@ -286,14 +286,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     }
 
   private def readKeyValue(previous: Persistent.Partial,
-                           binarySearchIndexAccessPosition: Int,
+                           binarySearchIndexPosition: Int,
                            fullRead: Boolean,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Persistent.Partial] =
     readKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
       overwriteNextIndexOffset = None,
-      binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
+      binarySearchIndexPosition = binarySearchIndexPosition,
       fullRead = fullRead,
       indexReader = indexReader moveTo previous.nextIndexOffset,
       valuesReader = valuesReader,
@@ -302,14 +302,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   private def readKeyValue(fromPosition: Int,
                            overwriteNextIndexOffset: Option[Int],
-                           binarySearchIndexAccessPosition: Int,
+                           binarySearchIndexPosition: Int,
                            fullRead: Boolean,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, Persistent.Partial] =
     readKeyValue(
       indexEntrySizeMayBe = None,
       overwriteNextIndexOffset = overwriteNextIndexOffset,
-      binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
+      binarySearchIndexPosition = binarySearchIndexPosition,
       fullRead = fullRead,
       indexReader = indexReader moveTo fromPosition,
       valuesReader = valuesReader,
@@ -327,7 +327,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
    */
   private def readKeyValue(indexEntrySizeMayBe: Option[Int],
                            overwriteNextIndexOffset: Option[Int],
-                           binarySearchIndexAccessPosition: Int,
+                           binarySearchIndexPosition: Int,
                            fullRead: Boolean,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -387,7 +387,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
             isNormalised = indexReader.block.hasNormalisedBytes,
             isPartialReadEnabled = indexReader.block.enablePartialRead,
-            binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
+            binarySearchIndexPosition = binarySearchIndexPosition,
             previous = previous
           )
         else
@@ -397,7 +397,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             indexOffset = positionBeforeRead,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
+            binarySearchIndexPosition = binarySearchIndexPosition,
             valuesReader = valuesReader,
             previous = previous
           )
@@ -412,7 +412,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
           isNormalised = indexReader.block.hasNormalisedBytes,
           isPartialReadEnabled = indexReader.block.enablePartialRead,
-          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
+          binarySearchIndexPosition = binarySearchIndexPosition,
           previous = previous
         )
 
@@ -460,7 +460,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             indexEntrySizeMayBe = nextIndexSize,
             indexReader = readSortedIndexReader,
             overwriteNextIndexOffset = None,
-            binarySearchIndexAccessPosition = -1,
+            binarySearchIndexPosition = -1,
             fullRead = true,
             valuesReader = valuesReader,
             previous = previousMayBe
@@ -584,7 +584,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case None =>
         readKeyValue(
           fromPosition = 0,
-          binarySearchIndexAccessPosition = -1,
+          binarySearchIndexPosition = -1,
           indexReader = indexReader,
           fullRead = fullRead,
           overwriteNextIndexOffset = None,
@@ -610,7 +610,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     readKeyValue(
       fromPosition = fromOffset,
       indexReader = indexReader,
-      binarySearchIndexAccessPosition = -1,
+      binarySearchIndexPosition = -1,
       fullRead = fullRead,
       overwriteNextIndexOffset = None,
       valuesReader = valuesReader
@@ -666,7 +666,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       fromPosition = fromOffset,
       indexReader = sortedIndexReader,
       fullRead = fullRead,
-      binarySearchIndexAccessPosition = -1,
+      binarySearchIndexPosition = -1,
       overwriteNextIndexOffset = overwriteNextIndexOffset,
       valuesReader = valuesReader
     ) map {
@@ -689,7 +689,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       fromPosition = fromOffset,
       indexReader = sortedIndexReader,
       fullRead = fullRead,
-      binarySearchIndexAccessPosition = -1,
+      binarySearchIndexPosition = -1,
       overwriteNextIndexOffset = overwriteNextIndexOffset,
       valuesReader = valuesReader
     ) map {
@@ -712,7 +712,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       fromPosition = fromOffset,
       indexReader = sortedIndexReader,
       fullRead = fullRead,
-      binarySearchIndexAccessPosition = -1,
+      binarySearchIndexPosition = -1,
       overwriteNextIndexOffset = overwriteNextIndexOffset,
       valuesReader = valuesReader
     ) map {
@@ -726,7 +726,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def findAndMatchOrNextMatch(matcher: KeyMatcher,
                               fromOffset: Int,
-                              binarySearchIndexAccessPosition: Int,
+                              binarySearchIndexPosition: Int,
                               fullRead: Boolean,
                               sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, KeyMatcher.Result] =
@@ -734,7 +734,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       fromPosition = fromOffset,
       indexReader = sortedIndex,
       fullRead = fullRead,
-      binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
+      binarySearchIndexPosition = binarySearchIndexPosition,
       overwriteNextIndexOffset = None,
       valuesReader = valuesReader
     ) flatMap {
@@ -770,7 +770,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         readKeyValue(
           previous = readFrom,
           fullRead = fullRead,
-          binarySearchIndexAccessPosition = -1,
+          binarySearchIndexPosition = -1,
           indexReader = indexReader,
           valuesReader = valuesReader
         ) match {
@@ -797,7 +797,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                          valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, KeyMatcher.Result.Complete] =
     readKeyValue(
       previous = next getOrElse previous,
-      binarySearchIndexAccessPosition = -1,
+      binarySearchIndexPosition = -1,
       fullRead = fullRead,
       indexReader = indexReader,
       valuesReader = valuesReader

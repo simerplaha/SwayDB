@@ -65,7 +65,7 @@ private[block] object BinarySearchContext {
                 matcher = matcher,
                 fullRead = false,
                 fromOffset = sortedIndexOffsetValue,
-                binarySearchIndexAccessPosition = index,
+                binarySearchIndexPosition = index,
                 sortedIndex = sortedIndex,
                 valuesReader = values
               )
@@ -97,7 +97,7 @@ private[block] object BinarySearchContext {
           fullRead = false,
           fromOffset = offset,
           sortedIndex = sortedIndex,
-          binarySearchIndexAccessPosition = index,
+          binarySearchIndexPosition = index,
           valuesReader = values
         )
     }

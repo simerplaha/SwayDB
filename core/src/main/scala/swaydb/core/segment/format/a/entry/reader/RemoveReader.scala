@@ -34,7 +34,7 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              binarySearchIndexAccessPosition: Int,
+                              binarySearchIndexPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -61,7 +61,7 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                       previous = previous,
                       keyValueId = KeyValueId.Remove
                     ) map {
-                      case (key, isKeyPrefixCompressed) =>
+                      key =>
                         Persistent.Remove(
                           _key = key,
                           indexOffset = indexOffset,
@@ -69,15 +69,8 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                           nextIndexSize = nextIndexSize,
                           deadline = deadline,
                           sortedIndexAccessPosition = sortedIndexAccessPosition,
-                          binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                          _time = time,
-                          isPrefixCompressed =
-                            isKeyPrefixCompressed ||
-                              timeReader.isPrefixCompressed ||
-                              deadlineReader.isPrefixCompressed ||
-                              valueOffsetReader.isPrefixCompressed ||
-                              valueLengthReader.isPrefixCompressed ||
-                              valueBytesReader.isPrefixCompressed
+                          binarySearchIndexPosition = binarySearchIndexPosition,
+                          _time = time
                         )
                     }
 
@@ -92,14 +85,8 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                             nextIndexSize = nextIndexSize,
                             deadline = deadline,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
-                            binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                            _time = time,
-                            isPrefixCompressed =
-                              timeReader.isPrefixCompressed ||
-                                deadlineReader.isPrefixCompressed ||
-                                valueOffsetReader.isPrefixCompressed ||
-                                valueLengthReader.isPrefixCompressed ||
-                                valueBytesReader.isPrefixCompressed
+                            binarySearchIndexPosition = binarySearchIndexPosition,
+                            _time = time
                           )
                         }
                       case key @ (_: Key.Range | _: Key.Group) =>
@@ -114,7 +101,7 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                   previous = previous,
                   keyValueId = KeyValueId.Remove
                 ) map {
-                  case (key, isKeyPrefixCompressed) =>
+                  key =>
                     Persistent.Remove(
                       _key = key,
                       indexOffset = indexOffset,
@@ -122,15 +109,8 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                       nextIndexSize = nextIndexSize,
                       deadline = deadline,
                       sortedIndexAccessPosition = sortedIndexAccessPosition,
-                      binarySearchIndexAccessPosition = binarySearchIndexAccessPosition,
-                      _time = time,
-                      isPrefixCompressed =
-                        isKeyPrefixCompressed ||
-                          timeReader.isPrefixCompressed ||
-                          deadlineReader.isPrefixCompressed ||
-                          valueOffsetReader.isPrefixCompressed ||
-                          valueLengthReader.isPrefixCompressed ||
-                          valueBytesReader.isPrefixCompressed
+                      binarySearchIndexPosition = binarySearchIndexPosition,
+                      _time = time
                     )
                 }
             }

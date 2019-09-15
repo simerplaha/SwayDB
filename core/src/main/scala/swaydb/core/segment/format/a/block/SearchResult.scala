@@ -36,7 +36,7 @@ object SearchResult {
     override val toOption: Option[T] = scala.None
   }
 
-  case class Some[T](lower: Option[T], value: T, index: Option[Int]) extends SearchResult[T] {
+  case class Some[T](lower: Option[T], value: T) extends SearchResult[T] {
     override def toOption: Option[T] = scala.Some(value)
   }
 }

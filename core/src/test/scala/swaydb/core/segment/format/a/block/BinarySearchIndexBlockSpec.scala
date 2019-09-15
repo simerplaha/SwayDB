@@ -239,7 +239,7 @@
 //            valueOffset = 0,
 //            valueLength = 0,
 //            sortedIndexAccessPosition = -1,
-//            sortedIndexAccessPosition = binarySearchIndexAccessPosition = eitherOne(0, 1),
+//            sortedIndexAccessPosition = binarySearchIndexPosition = eitherOne(0, 1),
 //            isPrefixCompressed = randomBoolean()
 //          )
 //
