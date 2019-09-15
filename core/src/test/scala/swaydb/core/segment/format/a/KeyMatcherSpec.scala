@@ -103,7 +103,7 @@ class KeyMatcherSpec extends TestBase {
         indexOffset = 0,
         valueOffset = 0,
         valueLength = 0,
-        accessPosition = 0,
+        sortedIndexAccessPosition = 0,
         deadline = None,
         isPrefixCompressed = isPrefixCompressed
       )
@@ -118,7 +118,7 @@ class KeyMatcherSpec extends TestBase {
         indexOffset = 0,
         valueOffset = 0,
         valueLength = 0,
-        accessPosition = 0,
+        sortedIndexAccessPosition = 0,
         deadline = None,
         isPrefixCompressed = isPrefixCompressed
       )

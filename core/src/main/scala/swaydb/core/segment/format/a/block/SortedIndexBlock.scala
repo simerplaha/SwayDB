@@ -419,7 +419,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //          indexOffset = positionBeforeRead,
       //          valueOffset = 0,
       //          valueLength = 0,
-      //          accessPosition = 0,
+      //          sortedIndexAccessPosition = 0,
       //          isPrefixCompressed = false
       //        )
       //      }

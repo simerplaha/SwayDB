@@ -802,7 +802,7 @@ object TestData {
 
     def toMemoryGroup =
       keyValue match {
-        case Persistent.Group(minKey, maxKey, valueCache, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, accessPosition, deadline, _) =>
+        case Persistent.Group(minKey, maxKey, valueCache, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, sortedIndexAccessPosition, deadline, _) =>
           val groupBytes = valueCache.value(KeyOrder.default, TestLimitQueues.memorySweeper, SegmentIO.random).readAllBytes().get.unslice()
           groupBytes should not be empty
           Memory.Group(

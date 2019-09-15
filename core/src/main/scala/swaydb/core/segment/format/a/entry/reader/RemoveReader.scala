@@ -33,7 +33,7 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              accessPosition: Int,
+                              sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -67,7 +67,7 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                           nextIndexOffset = nextIndexOffset,
                           nextIndexSize = nextIndexSize,
                           deadline = deadline,
-                          accessPosition = accessPosition,
+                          sortedIndexAccessPosition = sortedIndexAccessPosition,
                           _time = time,
                           isPrefixCompressed =
                             isKeyPrefixCompressed ||
@@ -89,7 +89,7 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                             nextIndexOffset = nextIndexOffset,
                             nextIndexSize = nextIndexSize,
                             deadline = deadline,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             _time = time,
                             isPrefixCompressed =
                               timeReader.isPrefixCompressed ||
@@ -118,7 +118,7 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                       nextIndexOffset = nextIndexOffset,
                       nextIndexSize = nextIndexSize,
                       deadline = deadline,
-                      accessPosition = accessPosition,
+                      sortedIndexAccessPosition = sortedIndexAccessPosition,
                       _time = time,
                       isPrefixCompressed =
                         isKeyPrefixCompressed ||

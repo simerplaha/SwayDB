@@ -238,7 +238,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
             indexOffset = randomIntMax(),
             valueOffset = 0,
             valueLength = 0,
-            accessPosition = eitherOne(0, 1),
+            sortedIndexAccessPosition = eitherOne(0, 1),
             isPrefixCompressed = randomBoolean()
           )
 
@@ -253,7 +253,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
               indexOffset = randomIntMax(),
               valueOffset = 0,
               valueLength = 0,
-              accessPosition = eitherOne(0, 1),
+              sortedIndexAccessPosition = eitherOne(0, 1),
               isPrefixCompressed = randomBoolean()
             )
 

@@ -35,7 +35,7 @@ import swaydb.data.slice.{ReaderBase, Slice}
 trait SortedIndexEntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              accessPosition: Int,
+                              sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -76,7 +76,7 @@ object SortedIndexEntryReader {
 
   private def parse[T](baseId: Int,
                        keyValueId: Int,
-                       accessPosition: Int,
+                       sortedIndexAccessPosition: Int,
                        keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                        mightBeCompressed: Boolean,
                        indexReader: ReaderBase[swaydb.Error.Segment],
@@ -91,7 +91,7 @@ object SortedIndexEntryReader {
         entry.read(
           baseId = baseId,
           keyValueId = keyValueId,
-          accessPosition = accessPosition,
+          sortedIndexAccessPosition = sortedIndexAccessPosition,
           keyInfo = keyInfo,
           indexReader = indexReader,
           valueCache = buildValueCache(valuesReader),
@@ -113,14 +113,14 @@ object SortedIndexEntryReader {
 
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
-    val accessPosition =
+    val sortedIndexAccessPosition =
       if (block.enableAccessPositionIndex)
         reader.readIntUnsigned()
       else
         IO.zero
 
-    accessPosition flatMap {
-      accessPosition =>
+    sortedIndexAccessPosition flatMap {
+      sortedIndexAccessPosition =>
         reader.readIntUnsigned() flatMap {
           keySize =>
             reader.read(keySize) flatMap {
@@ -136,7 +136,7 @@ object SortedIndexEntryReader {
                               indexOffset = indexOffset,
                               nextIndexOffset = nextIndexOffset,
                               nextIndexSize = nextIndexSize,
-                              accessPosition = accessPosition,
+                              sortedIndexAccessPosition = sortedIndexAccessPosition,
                               indexBytes = tailIndexBytes,
                               block = block,
                               valuesReader = valuesReader,
@@ -150,7 +150,7 @@ object SortedIndexEntryReader {
                               indexOffset = indexOffset,
                               nextIndexOffset = nextIndexOffset,
                               nextIndexSize = nextIndexSize,
-                              accessPosition = accessPosition,
+                              sortedIndexAccessPosition = sortedIndexAccessPosition,
                               indexBytes = tailIndexBytes,
                               block = block,
                               valuesReader = valuesReader,
@@ -164,7 +164,7 @@ object SortedIndexEntryReader {
                               indexOffset = indexOffset,
                               nextIndexOffset = nextIndexOffset,
                               nextIndexSize = nextIndexSize,
-                              accessPosition = accessPosition,
+                              sortedIndexAccessPosition = sortedIndexAccessPosition,
                               indexBytes = tailIndexBytes,
                               block = block,
                               valuesReader = valuesReader,
@@ -178,7 +178,7 @@ object SortedIndexEntryReader {
                               indexOffset = indexOffset,
                               nextIndexOffset = nextIndexOffset,
                               nextIndexSize = nextIndexSize,
-                              accessPosition = accessPosition,
+                              sortedIndexAccessPosition = sortedIndexAccessPosition,
                               indexBytes = tailIndexBytes,
                               block = block,
                               valuesReader = valuesReader,
@@ -192,7 +192,7 @@ object SortedIndexEntryReader {
                               indexOffset = indexOffset,
                               nextIndexOffset = nextIndexOffset,
                               nextIndexSize = nextIndexSize,
-                              accessPosition = accessPosition,
+                              sortedIndexAccessPosition = sortedIndexAccessPosition,
                               indexBytes = tailIndexBytes,
                               block = block,
                               valuesReader = valuesReader,
@@ -206,7 +206,7 @@ object SortedIndexEntryReader {
                             indexOffset = indexOffset,
                             nextIndexOffset = nextIndexOffset,
                             nextIndexSize = nextIndexSize,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             block = block,
                             valuesReader = valuesReader,
                             previous = previous
@@ -218,7 +218,7 @@ object SortedIndexEntryReader {
                             indexOffset = indexOffset,
                             nextIndexOffset = nextIndexOffset,
                             nextIndexSize = nextIndexSize,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             block = block,
                             valuesReader = valuesReader,
                             previous = previous
@@ -234,7 +234,7 @@ object SortedIndexEntryReader {
 
   def completePartialRead[T](indexEntry: Slice[Byte],
                              key: Persistent.Partial.Key,
-                             accessPosition: Int,
+                             sortedIndexAccessPosition: Int,
                              block: SortedIndexBlock,
                              indexOffset: Int,
                              nextIndexOffset: Int,
@@ -249,7 +249,7 @@ object SortedIndexEntryReader {
         SortedIndexEntryReader.parse[T](
           baseId = baseId,
           keyValueId = baseId,
-          accessPosition = accessPosition,
+          sortedIndexAccessPosition = sortedIndexAccessPosition,
           keyInfo = Some(Right(key)),
           mightBeCompressed = block.hasPrefixCompression,
           indexReader = reader,
@@ -276,7 +276,7 @@ object SortedIndexEntryReader {
     //check if de-normalising is required.
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
-    val accessPosition =
+    val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
         reader.readIntUnsigned()
       else
@@ -291,8 +291,8 @@ object SortedIndexEntryReader {
       else
         IO.none
 
-    accessPosition flatMap {
-      accessPosition =>
+    sortedIndexAccessPosition flatMap {
+      sortedIndexAccessPosition =>
         keySize flatMap {
           keySize =>
             reader.readIntUnsigned() flatMap {
@@ -301,7 +301,7 @@ object SortedIndexEntryReader {
                   SortedIndexEntryReader.parse(
                     baseId = KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
-                    accessPosition = accessPosition,
+                    sortedIndexAccessPosition = sortedIndexAccessPosition,
                     keyInfo = keySize,
                     mightBeCompressed = mightBeCompressed,
                     indexReader = reader,
@@ -316,7 +316,7 @@ object SortedIndexEntryReader {
                   SortedIndexEntryReader.parse(
                     baseId = KeyValueId.Group.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
-                    accessPosition = accessPosition,
+                    sortedIndexAccessPosition = sortedIndexAccessPosition,
                     keyInfo = keySize,
                     mightBeCompressed = mightBeCompressed,
                     indexReader = reader,
@@ -331,7 +331,7 @@ object SortedIndexEntryReader {
                   SortedIndexEntryReader.parse(
                     baseId = KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
-                    accessPosition = accessPosition,
+                    sortedIndexAccessPosition = sortedIndexAccessPosition,
                     keyInfo = keySize,
                     mightBeCompressed = mightBeCompressed,
                     indexReader = reader,
@@ -346,7 +346,7 @@ object SortedIndexEntryReader {
                   SortedIndexEntryReader.parse(
                     baseId = KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
-                    accessPosition = accessPosition,
+                    sortedIndexAccessPosition = sortedIndexAccessPosition,
                     keyInfo = keySize,
                     mightBeCompressed = mightBeCompressed,
                     indexReader = reader,
@@ -361,7 +361,7 @@ object SortedIndexEntryReader {
                   SortedIndexEntryReader.parse(
                     baseId = KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
-                    accessPosition = accessPosition,
+                    sortedIndexAccessPosition = sortedIndexAccessPosition,
                     keyInfo = keySize,
                     mightBeCompressed = mightBeCompressed,
                     indexReader = reader,
@@ -376,7 +376,7 @@ object SortedIndexEntryReader {
                   SortedIndexEntryReader.parse(
                     baseId = KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
-                    accessPosition = accessPosition,
+                    sortedIndexAccessPosition = sortedIndexAccessPosition,
                     keyInfo = keySize,
                     mightBeCompressed = mightBeCompressed,
                     indexReader = reader,
@@ -391,7 +391,7 @@ object SortedIndexEntryReader {
                   SortedIndexEntryReader.parse(
                     baseId = KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
-                    accessPosition = accessPosition,
+                    sortedIndexAccessPosition = sortedIndexAccessPosition,
                     keyInfo = keySize,
                     mightBeCompressed = mightBeCompressed,
                     indexReader = reader,
@@ -422,14 +422,14 @@ object SortedIndexEntryReader {
     //check if de-normalising is required.
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
-    val accessPosition =
+    val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
         reader.readIntUnsigned()
       else
         IO.zero
 
-    accessPosition flatMap {
-      accessPosition =>
+    sortedIndexAccessPosition flatMap {
+      sortedIndexAccessPosition =>
         reader.readIntUnsigned() flatMap {
           keySize =>
             reader.read(keySize) flatMap {
@@ -442,7 +442,7 @@ object SortedIndexEntryReader {
                           SortedIndexEntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
                             mightBeCompressed = mightBeCompressed,
                             indexReader = reader,
@@ -457,7 +457,7 @@ object SortedIndexEntryReader {
                           SortedIndexEntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
                             mightBeCompressed = mightBeCompressed,
                             indexReader = reader,
@@ -472,7 +472,7 @@ object SortedIndexEntryReader {
                           SortedIndexEntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
                             mightBeCompressed = mightBeCompressed,
                             indexReader = reader,
@@ -487,7 +487,7 @@ object SortedIndexEntryReader {
                           SortedIndexEntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
                             mightBeCompressed = mightBeCompressed,
                             indexReader = reader,
@@ -502,7 +502,7 @@ object SortedIndexEntryReader {
                           SortedIndexEntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
-                            accessPosition = accessPosition,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition,
                             keyInfo = Some(Right(new Persistent.Partial.Key.Fixed(key))),
                             mightBeCompressed = mightBeCompressed,
                             indexReader = reader,
@@ -519,7 +519,7 @@ object SortedIndexEntryReader {
                               SortedIndexEntryReader.parse(
                                 baseId = baseId,
                                 keyValueId = baseId,
-                                accessPosition = accessPosition,
+                                sortedIndexAccessPosition = sortedIndexAccessPosition,
                                 keyInfo = Some(Right(new Persistent.Partial.Key.Range(fromKey, toKey))),
                                 mightBeCompressed = mightBeCompressed,
                                 indexReader = reader,
@@ -537,7 +537,7 @@ object SortedIndexEntryReader {
                               SortedIndexEntryReader.parse(
                                 baseId = baseId,
                                 keyValueId = baseId,
-                                accessPosition = accessPosition,
+                                sortedIndexAccessPosition = sortedIndexAccessPosition,
                                 keyInfo = Some(Right(new Persistent.Partial.Key.Group(minKey, maxKey))),
                                 mightBeCompressed = mightBeCompressed,
                                 indexReader = reader,

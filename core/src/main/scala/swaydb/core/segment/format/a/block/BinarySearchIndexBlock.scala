@@ -284,15 +284,15 @@ private[core] object BinarySearchIndexBlock {
         state.previouslyWritten = value
       }
 
-  //accessPositions start from 1 but BinarySearch starts from 0.
-  //A 0 accessPosition indicates that accessPositionIndex was disabled.
-  //A key-values accessPosition can sometimes be larger than what binarySearchIndex knows for cases where binarySearchIndex is partial
-  //to handle that check that accessPosition is not over the number total binarySearchIndex entries.
+  //sortedIndexAccessPositions start from 1 but BinarySearch starts from 0.
+  //A 0 sortedIndexAccessPosition indicates that sortedIndexAccessPositionIndex was disabled.
+  //A key-values sortedIndexAccessPosition can sometimes be larger than what binarySearchIndex knows for cases where binarySearchIndex is partial
+  //to handle that check that sortedIndexAccessPosition is not over the number total binarySearchIndex entries.
   def getAccessPosition(keyValue: Persistent.Partial, context: BinarySearchContext): Option[Int] =
-    if (keyValue.accessPosition <= 0 || (!context.isFullIndex && keyValue.accessPosition > context.valuesCount))
+    if (keyValue.sortedIndexAccessPosition <= 0 || (!context.isFullIndex && keyValue.sortedIndexAccessPosition > context.valuesCount))
       None
     else
-      Some(keyValue.accessPosition - 1)
+      Some(keyValue.sortedIndexAccessPosition - 1)
 
   def getStartPosition(context: BinarySearchContext): Int =
     context.lowestKeyValue
@@ -548,7 +548,7 @@ private[core] object BinarySearchIndexBlock {
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, SearchResult[Persistent.Partial]] = {
-    val floorPosition = end.map(_.accessPosition - 2) getOrElse -1
+    val floorPosition = end.map(_.sortedIndexAccessPosition - 2) getOrElse -1
 
     val overwriteStart =
       if (floorPosition <= 0)
@@ -648,7 +648,7 @@ private[core] object BinarySearchIndexBlock {
                 if (lower.nextIndexOffset == got.indexOffset) {
                   IO.Right(SearchResult.Some(start, lower, index))
                 } else {
-                  val floorPosition = end.map(_.accessPosition - 2) getOrElse -1
+                  val floorPosition = end.map(_.sortedIndexAccessPosition - 2) getOrElse -1
 
                   val overwriteStart =
                     if (floorPosition <= 0)

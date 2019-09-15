@@ -33,7 +33,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
-                              accessPosition: Int,
+                              sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -74,7 +74,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                                   indexOffset = indexOffset,
                                   valueOffset = valueOffset,
                                   valueLength = valueLength,
-                                  accessPosition = accessPosition,
+                                  sortedIndexAccessPosition = sortedIndexAccessPosition,
                                   isPrefixCompressed =
                                     isKeyPrefixCompressed ||
                                       timeReader.isPrefixCompressed ||
@@ -104,7 +104,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                                   indexOffset = indexOffset,
                                   valueOffset = valueOffset,
                                   valueLength = valueLength,
-                                  accessPosition = accessPosition,
+                                  sortedIndexAccessPosition = sortedIndexAccessPosition,
                                   isPrefixCompressed =
                                     timeReader.isPrefixCompressed ||
                                       deadlineReader.isPrefixCompressed ||
@@ -141,7 +141,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                               indexOffset = indexOffset,
                               valueOffset = valueOffset,
                               valueLength = valueLength,
-                              accessPosition = accessPosition,
+                              sortedIndexAccessPosition = sortedIndexAccessPosition,
                               isPrefixCompressed =
                                 isKeyPrefixCompressed ||
                                   timeReader.isPrefixCompressed ||
