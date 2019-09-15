@@ -343,8 +343,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-//        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-              segment.get(keyValue.key).get
+        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+//              segment.get(keyValue.key).get
     }
   }
 

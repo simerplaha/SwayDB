@@ -144,7 +144,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           blocks.hashIndexReader.get.block.hit shouldBe keyValues.size
           blocks.hashIndexReader.get.block.miss shouldBe 0
 
-          if (keyValues.last.stats.segmentTotalNumberOfRanges > 0 && !blocks.sortedIndexReader.block.isBinarySearchable) {
+          if (keyValues.last.stats.segmentTotalNumberOfRanges > 0 && !blocks.sortedIndexReader.block.isNormalisedBinarySearchable) {
             val expectedBinarySearchValuesCount = keyValues.count(keyValue => keyValue.isRange && !keyValue.isPrefixCompressed)
             if (expectedBinarySearchValuesCount > 0) { //if all ranges were prefix compressed then binary search index is not created.
               blocks.binarySearchIndexReader shouldBe defined
@@ -202,7 +202,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
           val expectedBinarySearchValuesCount = keyValues.count(keyValue => !keyValue.isPrefixCompressed)
           //if all ranges were prefix compressed then binary search index is not created.
-          if (expectedBinarySearchValuesCount > 0 && !blocks.sortedIndexReader.block.isBinarySearchable) {
+          if (expectedBinarySearchValuesCount > 0 && !blocks.sortedIndexReader.block.isNormalisedBinarySearchable) {
             blocks.binarySearchIndexReader shouldBe defined
             blocks.binarySearchIndexReader.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
           }
@@ -249,7 +249,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val blocks = getBlocks(keyValues).get
           blocks.hashIndexReader shouldBe empty
 
-          if (!blocks.sortedIndexReader.block.isBinarySearchable) {
+          if (!blocks.sortedIndexReader.block.isNormalisedBinarySearchable) {
             blocks.binarySearchIndexReader shouldBe defined
             val expectedBinarySearchValuesCount =
               keyValues

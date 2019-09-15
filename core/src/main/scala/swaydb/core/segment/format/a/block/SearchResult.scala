@@ -29,14 +29,14 @@ object SearchResult {
   val none: SearchResult.None[Nothing] =
     SearchResult.None(Option.empty[Nothing])
 
-  def noneIO =
+  val noneIO =
     IO.Right[Nothing, SearchResult[Nothing]](none)(IO.ExceptionHandler.Nothing)
 
   case class None[T](lower: Option[T]) extends SearchResult[T] {
     override val toOption: Option[T] = scala.None
   }
 
-  case class Some[T](lower: Option[T], value: T) extends SearchResult[T] {
+  case class Some[T](lower: Option[T], value: T, index: Option[Int]) extends SearchResult[T] {
     override def toOption: Option[T] = scala.Some(value)
   }
 }
