@@ -95,7 +95,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   }
 
   "Config" should {
-    "not normalise if prefix compression is defined" in {
+    "set prefixCompression to zero if normalise defined" in {
       runThis(100.times) {
         val prefixCompression = PrefixCompression.Enable(randomIntMax(10) max 1)
 
@@ -126,8 +126,8 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             compressions = _ => randomCompressions()
           )
 
-        internalConfig.prefixCompressionResetCount shouldBe prefixCompression.resetCount
-        internalConfig.normaliseIndex shouldBe false
+        internalConfig.prefixCompressionResetCount shouldBe 0
+        internalConfig.normaliseIndex shouldBe true
       }
     }
 
@@ -232,7 +232,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.search(keyValue.key, previous, fullRead = true, sortedIndexReader, valuesBlockReader).get.get.toPersistent.get
+          val searchedKeyValue = SortedIndexBlock.seekAndMatch(keyValue.key, previous, fullRead = true, sortedIndexReader, valuesBlockReader).get.get.toPersistent.get
           searchedKeyValue.key shouldBe keyValue.key
           searchedKeyValues += searchedKeyValue
           //randomly set previous
@@ -246,7 +246,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
        */
       searchedKeyValues.zip(keyValues).par foreach {
         case (persistent, transient) =>
-          val searchedPersistent = SortedIndexBlock.search(persistent.key, None, fullRead = true, sortedIndexReader.copy(), valuesBlockReader).get.get
+          val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, None, fullRead = true, sortedIndexReader.copy(), valuesBlockReader).get.get
           transient match {
             case transient: Transient.SegmentResponse =>
               searchedPersistent shouldBe persistent

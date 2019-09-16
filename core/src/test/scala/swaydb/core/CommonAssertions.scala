@@ -1263,7 +1263,7 @@ object CommonAssertions {
             valuesReader = blocks.valuesReader
           ) flatMap {
             case Some(partial) =>
-              partial.toPersistent.map(Some(_))
+              partial.toPersistent.toOptionValue
 
             case None =>
               IO.none

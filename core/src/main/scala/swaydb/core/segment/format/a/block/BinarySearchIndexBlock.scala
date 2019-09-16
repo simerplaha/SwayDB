@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Options._
@@ -312,14 +311,14 @@ private[core] object BinarySearchIndexBlock {
         context.valuesCount - 1
     }
 
-  def search(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] = {
+  private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
 
     @tailrec
     def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
-      println(s"start: $start, mid: $mid, end: $end")
+      //println(s"start: $start, mid: $mid, end: $end")
 
       val valueOffset = mid * context.bytesPerValue
 
@@ -365,30 +364,31 @@ private[core] object BinarySearchIndexBlock {
     val start = getStartPosition(context)
     val end = getEndPosition(context)
 
-    println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
+    //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
     hop(start = start, end = end, context.lowestKeyValue, None)
   }
 
-  def searchLower(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryLower.Some[Persistent.Partial]] = {
+  private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryLower.Some[Persistent.Partial]] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
 
     @tailrec
     def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinaryLower.Some[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
-      println(s"start: $start, mid: $mid, end: $end")
+      //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
 
       val valueOffset = mid * context.bytesPerValue
 
-      if (start > end || valueOffset < 0)
+      if (start > end || mid < 0)
         IO.Right {
+          //println("End")
           BinaryLower.Some(
             lower =
               MinMax.maxFavourLeft(
                 left = knownLowest,
                 right = context.lowestKeyValue
               ),
-            get = knownMatch
+            matched = knownMatch
           )
         }
       else
@@ -410,11 +410,16 @@ private[core] object BinarySearchIndexBlock {
         }
     }
 
-    val start = getStartPosition(context)
+    //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
+
     val end = getEndPosition(context)
 
-    println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
-    hop(start = start, end = end, knownLowest = context.lowestKeyValue, knownMatch = None)
+    if (fetchLeft) {
+      hop(start = end - 1, end = end - 1, knownLowest = context.lowestKeyValue, knownMatch = None)
+    } else {
+      val start = getStartPosition(context)
+      hop(start = start, end = end, knownLowest = context.lowestKeyValue, knownMatch = None)
+    }
   }
 
   def search(key: Slice[Byte],
@@ -427,7 +432,7 @@ private[core] object BinarySearchIndexBlock {
     if (sortedIndexReader.block.isNormalisedBinarySearchable)
       keyValuesCount flatMap {
         keyValuesCount =>
-          search(
+          binarySearch(
             BinarySearchContext(
               key = key,
               lowest = lowest,
@@ -441,7 +446,7 @@ private[core] object BinarySearchIndexBlock {
     else
       binarySearchIndexReader match {
         case Some(binarySearchIndexReader) =>
-          search(
+          binarySearch(
             BinarySearchContext(
               key = key,
               lowest = lowest,
@@ -458,50 +463,66 @@ private[core] object BinarySearchIndexBlock {
               if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
                 IO.Right(none)
               else
-                IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.map(_.toPersistent.map(Some(_))) getOrElse IO.none, onFalse = lower) {
-                  lower =>
-                    SortedIndexBlock.search(
+                lower match {
+                  case Some(lower) =>
+                    IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.toPersistent, onFalse = lower) {
+                      lower =>
+                        SortedIndexBlock.matchOrSeek(
+                          key = key,
+                          startFrom = lower,
+                          sortedIndexReader = sortedIndexReader,
+                          valuesReader = valuesReader
+                        ) flatMap {
+                          case Some(got) =>
+                            IO.Right(BinaryGet.Some(Some(lower), got))
+
+                          case None =>
+                            IO.Right(BinaryGet.None(Some(lower)))
+                        }
+                    }
+
+                  case None =>
+                    SortedIndexBlock.seekAndMatch(
                       key = key,
-                      startFrom = lower,
+                      startFrom = None,
                       fullRead = sortedIndexReader.block.hasPrefixCompression,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader
                     ) flatMap {
                       case Some(got) =>
-                        IO.Right(BinaryGet.Some(lower, got))
+                        IO.Right(BinaryGet.Some(lowest, got))
 
                       case None =>
-                        IO.Right(BinaryGet.None(lower))
+                        BinaryGet.noneIO
                     }
                 }
+
           }
 
         case None =>
-          IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lowest.map(_.toPersistent.map(Some(_))) getOrElse IO.none, onFalse = lowest) {
-            lower =>
-              SortedIndexBlock.search(
-                key = key,
-                startFrom = lower,
-                fullRead = true,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              ) flatMap {
-                case Some(got) =>
-                  IO.Right(BinaryGet.Some(lower, got))
+          SortedIndexBlock.seekAndMatch(
+            key = key,
+            startFrom = None,
+            fullRead = sortedIndexReader.block.hasPrefixCompression,
+            sortedIndexReader = sortedIndexReader,
+            valuesReader = valuesReader
+          ) flatMap {
+            case Some(got) =>
+              IO.Right(BinaryGet.Some(lowest, got))
 
-                case None =>
-                  IO.Right(BinaryGet.None(lower))
-              }
+            case None =>
+              BinaryGet.noneIO
           }
       }
 
+  //it's assumed that input param start will not be a higher value of key.
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent.Partial],
                    end: Option[Persistent.Partial],
                    keyValuesCount: => IO[swaydb.Error.Segment, Int],
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     when(start.exists(start => ordering.equiv(start.key, key)))(start) match {
       case Some(start) =>
         IO.when(sortedIndexReader.block.hasPrefixCompression, start.toPersistent, start) {
@@ -511,10 +532,7 @@ private[core] object BinarySearchIndexBlock {
               fullRead = sortedIndexReader.block.hasPrefixCompression,
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
-            ) map {
-              higher =>
-                BinaryGet.Some(Some(start), higher)
-            }
+            ).toOptionValue
         }
 
       case None =>
@@ -527,58 +545,57 @@ private[core] object BinarySearchIndexBlock {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case none @ BinaryGet.None(lower) =>
-            lower match {
-              case Some(lower) =>
-                IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.toPersistent, onFalse = lower) {
-                  lower =>
-                    val someLower = Some(lower)
-                    SortedIndexBlock.searchHigher(
-                      key = key,
-                      startFrom = someLower,
-                      fullRead = sortedIndexReader.block.hasPrefixCompression,
-                      sortedIndexReader = sortedIndexReader,
-                      valuesReader = valuesReader
-                    ) map {
-                      case Some(higher) =>
-                        BinaryGet.Some(someLower, higher)
-
-                      case None =>
-                        BinaryGet.None(someLower)
-                    }
-                }
-
-              case None =>
-                IO.Right(none)
+          case BinaryGet.None(lower) =>
+            IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.map(_.toPersistent.toOptionValue) getOrElse IO.none, onFalse = lower) {
+              lower =>
+                SortedIndexBlock.matchOrSeekHigher(
+                  key = key,
+                  startFrom = lower,
+                  sortedIndexReader = sortedIndexReader,
+                  valuesReader = valuesReader
+                )
             }
 
-          case result @ BinaryGet.Some(_, lower) =>
-            lower match {
-              case lower: Partial.Fixed =>
-                if (lower.nextIndexSize <= 0)
-                  IO.Right(BinaryGet.None(Some(lower)))
-                else
-                  IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.toPersistent, onFalse = lower) {
-                    lower =>
-                      SortedIndexBlock.readNextKeyValue(
-                        previous = lower,
-                        fullRead = sortedIndexReader.block.hasPrefixCompression,
-                        sortedIndexReader = sortedIndexReader,
-                        valuesReader = valuesReader
-                      ) map {
-                        higher =>
-                          BinaryGet.Some(Some(lower), higher)
-                      }
-                  }
-
-              case _: Partial.RangeT =>
-                IO.Right(result)
-
-              case _: Partial.GroupT =>
-                IO.Right(result)
+          case BinaryGet.Some(_, got) =>
+            IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = got.toPersistent, onFalse = got) {
+              got =>
+                SortedIndexBlock.matchOrSeekHigher(
+                  key = key,
+                  startFrom = Some(got),
+                  sortedIndexReader = sortedIndexReader,
+                  valuesReader = valuesReader
+                )
             }
         }
+    }
 
+  private def resolveLowerFromBinarySearch(key: Slice[Byte],
+                                           lower: Option[Persistent.Partial],
+                                           got: Option[Persistent.Partial],
+                                           end: Option[Persistent.Partial],
+                                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                           valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]) =
+    IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.map(_.toPersistent.toOptionValue) getOrElse IO.none, onFalse = lower) {
+      lower =>
+        //next can either be got or end if end is inline with lower.
+        val next =
+          if (end.exists(end => lower.exists(_.nextIndexOffset == end.indexOffset)))
+            end
+          else if (got.exists(got => lower.exists(_.nextIndexOffset == got.indexOffset)))
+            got
+          else
+            None
+
+        IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = next.map(_.toPersistent.toOptionValue) getOrElse IO.none, onFalse = next) {
+          next =>
+            SortedIndexBlock.matchOrSeekLower(
+              key = key,
+              startFrom = lower,
+              next = next,
+              sortedIndexReader = sortedIndexReader,
+              valuesReader = valuesReader
+            )
+        }
     }
 
   def searchLower(key: Slice[Byte],
@@ -587,87 +604,74 @@ private[core] object BinarySearchIndexBlock {
                   keyValuesCount: => IO[swaydb.Error.Segment, Int],
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable)
       keyValuesCount flatMap {
         keyValuesCount =>
-          searchLower(
-            BinarySearchContext(
-              key = key,
-              lowest = start,
-              highest = end,
-              keyValuesCount = keyValuesCount,
-              sortedIndex = sortedIndexReader,
-              values = valuesReader
-            )
-          ) map {
-            some =>
-              some.lower match {
-                case Some(lower) =>
-                  BinaryGet.Some(start, lower)
-                case None =>
-                  BinaryGet.none
-              }
+          binarySearchLower(
+            fetchLeft =
+              sortedIndexReader.block.enableAccessPositionIndex && end.exists(end => ordering.equiv(key, end.key)),
+            context =
+              BinarySearchContext(
+                key = key,
+                lowest = start,
+                highest = end,
+                keyValuesCount = keyValuesCount,
+                sortedIndex = sortedIndexReader,
+                values = valuesReader
+              )
+          ) flatMap {
+            result =>
+              if (result.lower.isEmpty && result.matched.isEmpty)
+                IO.none
+              else
+                resolveLowerFromBinarySearch(
+                  key = key,
+                  lower = result.lower,
+                  got = result.matched,
+                  end = end,
+                  sortedIndexReader = sortedIndexReader,
+                  valuesReader = valuesReader
+                )
           }
       }
     else
       binarySearchIndexReader match {
         case Some(binarySearchIndexReader) =>
-          searchLower(
-            BinarySearchContext(
-              key = key,
-              lowest = start,
-              highest = end,
-              binarySearchIndex = binarySearchIndexReader,
-              sortedIndex = sortedIndexReader,
-              values = valuesReader
-            )
+          binarySearchLower(
+            fetchLeft =
+              sortedIndexReader.block.enableAccessPositionIndex && end.exists(end => ordering.equiv(key, end.key)),
+            context =
+              BinarySearchContext(
+                key = key,
+                lowest = start,
+                highest = end,
+                binarySearchIndex = binarySearchIndexReader,
+                sortedIndex = sortedIndexReader,
+                values = valuesReader
+              )
           ) flatMap {
-            case BinaryLower.Some(lower, got) =>
-              if (got.isDefined && lower.isEmpty)
-                BinaryGet.noneIO
-              else
-                lower match {
-                  case Some(lower) if lower.nextIndexOffset <= 0 || got.exists(_.indexOffset == lower.nextIndexOffset) || end.exists(_.indexOffset == lower.nextIndexOffset) || (!sortedIndexReader.block.hasPrefixCompression && binarySearchIndexReader.block.isFullIndex) =>
-                    IO.Right(BinaryGet.Some(start, lower))
-
-                  case None | Some(_) =>
-                    IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.map(_.toPersistent.map(Some(_))) getOrElse IO.none, onFalse = lower) {
-                      lower =>
-                        SortedIndexBlock.searchLower(
-                          key = key,
-                          startFrom = lower,
-                          fullRead = sortedIndexReader.block.hasPrefixCompression,
-                          sortedIndexReader = sortedIndexReader,
-                          valuesReader = valuesReader
-                        ) flatMap {
-                          case Some(got) =>
-                            IO.Right(BinaryGet.Some(lower, got))
-
-                          case None =>
-                            IO.Right(BinaryGet.None(lower))
-                        }
-                    }
-                }
-
+            result =>
+              resolveLowerFromBinarySearch(
+                key = key,
+                lower = result.lower,
+                got = result.matched,
+                end = end,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader
+              )
           }
 
         case None =>
-          IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = start.map(_.toPersistent.map(Some(_))) getOrElse IO.none, onFalse = start) {
+          IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = start.map(_.toPersistent.toOptionValue) getOrElse IO.none, onFalse = start) {
             lower =>
-              SortedIndexBlock.search(
+              SortedIndexBlock.seekLowerAndMatch(
                 key = key,
                 startFrom = lower,
                 fullRead = sortedIndexReader.block.hasPrefixCompression,
                 sortedIndexReader = sortedIndexReader,
                 valuesReader = valuesReader
-              ) flatMap {
-                case Some(got) =>
-                  IO.Right(BinaryGet.Some(lower, got))
-
-                case None =>
-                  IO.Right(BinaryGet.None(lower))
-              }
+              )
           }
       }
 

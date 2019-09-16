@@ -220,7 +220,7 @@ private[core] class SegmentCache(id: String,
                 sortedIndexReader =>
                   createValuesReader(threadState) flatMap {
                     valuesReader =>
-                      SortedIndexBlock.search(
+                      SortedIndexBlock.seekAndMatch(
                         key = key,
                         startFrom = None,
                         fullRead = true,

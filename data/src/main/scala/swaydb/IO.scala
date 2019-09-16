@@ -63,6 +63,7 @@ sealed trait IO[+L, +R] {
   def recoverWith[L2 >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[L2, B]]): IO[L2, B]
   def recover[B >: R](f: PartialFunction[L, B]): IO[L, B]
   def toOption: Option[R]
+  def toOptionValue: IO[L, Option[R]]
   def flatten[L2, R2](implicit ev: R <:< IO[L2, R2]): IO[L2, R2]
   def toEither: Either[L, R]
   def toFuture: Future[R]
@@ -343,6 +344,15 @@ object IO {
     }
   }
 
+  /** *********************
+   * **********************
+   * **********************
+   * ******** RIGHT *******
+   * **********************
+   * **********************
+   * **********************
+   */
+
   final case class Right[+L: IO.ExceptionHandler, +R](value: R) extends IO[L, R] {
     override def get: R =
       value
@@ -389,6 +399,9 @@ object IO {
     override def toOption: Option[R] =
       Some(get)
 
+    def toOptionValue: IO[L, Option[R]] =
+      IO.Right(Some(value))
+
     override def toEither: Either[L, R] =
       scala.util.Right(get)
 
@@ -420,6 +433,15 @@ object IO {
 
   @inline final def failed[E: IO.ExceptionHandler, A](exceptionMessage: String): IO.Left[E, A] =
     new IO.Left[E, A](IO.ExceptionHandler.toError[E](new scala.Exception(exceptionMessage)))
+
+  /** *********************
+   * **********************
+   * **********************
+   * ******** LEFT ********
+   * **********************
+   * **********************
+   * **********************
+   */
 
   final case class Left[+L: IO.ExceptionHandler, +R](value: L) extends IO[L, R] {
     def exception: Throwable =
@@ -478,6 +500,9 @@ object IO {
 
     override def toOption: Option[R] =
       None
+
+    def toOptionValue: IO[L, Option[R]] =
+      IO.Left(value)
 
     override def toEither: Either[L, R] =
       scala.util.Left(value)

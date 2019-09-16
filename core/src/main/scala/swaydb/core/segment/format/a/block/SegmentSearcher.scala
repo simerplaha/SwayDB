@@ -107,52 +107,33 @@ private[core] object SegmentSearcher extends LazyLogging {
                 if (hashIndexReader.block.isPerfect && !hasRange)
                   IO.none
                 else
-                  binarySearch(
-                    key = key,
-                    start = start,
-                    end = end,
-                    keyValueCount = keyValueCount,
-                    binarySearchIndexReader = binarySearchIndexReader,
-                    sortedIndexReader = sortedIndexReader,
-                    valuesReader = valuesReader
-                  )
+                  binarySearchIndexReader flatMap {
+                    binarySearchIndexReader =>
+                      BinarySearchIndexBlock.search(
+                        key = key,
+                        lowest = start,
+                        highest = end,
+                        keyValuesCount = keyValueCount,
+                        binarySearchIndexReader = binarySearchIndexReader,
+                        sortedIndexReader = sortedIndexReader,
+                        valuesReader = valuesReader
+                      ).map(_.toOption)
+                  }
+
             }
         } getOrElse {
-          binarySearch(
-            key = key,
-            start = start,
-            end = end,
-            keyValueCount = keyValueCount,
-            binarySearchIndexReader = binarySearchIndexReader,
-            sortedIndexReader = sortedIndexReader,
-            valuesReader = valuesReader
-          )
-        }
-    }
-
-  private def binarySearch(key: Slice[Byte],
-                           start: Option[Persistent.Partial],
-                           end: => Option[Persistent.Partial],
-                           keyValueCount: => IO[swaydb.Error.Segment, Int],
-                           binarySearchIndexReader: IO[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]],
-                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                           valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    binarySearchIndexReader flatMap {
-      binarySearchIndexReader =>
-        BinarySearchIndexBlock.search(
-          key = key,
-          lowest = start,
-          highest = end,
-          keyValuesCount = keyValueCount,
-          binarySearchIndexReader = binarySearchIndexReader,
-          sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader
-        ) flatMap {
-          case BinaryGet.Some(_, value) =>
-            IO.Right(Some(value))
-
-          case BinaryGet.None(_) =>
-            IO.none
+          binarySearchIndexReader flatMap {
+            binarySearchIndexReader =>
+              BinarySearchIndexBlock.search(
+                key = key,
+                lowest = start,
+                highest = end,
+                keyValuesCount = keyValueCount,
+                binarySearchIndexReader = binarySearchIndexReader,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader
+              ).map(_.toOption)
+          }
         }
     }
 
@@ -164,10 +145,10 @@ private[core] object SegmentSearcher extends LazyLogging {
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     start map {
-      start =>
+      startFrom =>
         SortedIndexBlock.searchHigherMatchOnly(
           key = key,
-          startFrom = start,
+          startFrom = startFrom,
           sortedIndexReader = sortedIndexReader,
           fullRead = false,
           valuesReader = valuesReader
@@ -176,26 +157,33 @@ private[core] object SegmentSearcher extends LazyLogging {
             if (found.isDefined)
               IO.Right(found)
             else
-              binarySearchHigher(
-                key = key,
-                start = Some(start),
-                end = end,
-                keyValueCount = keyValueCount,
-                binarySearchIndexReader = binarySearchIndexReader,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              )
+              binarySearchIndexReader flatMap {
+                binarySearchIndexReader =>
+                  BinarySearchIndexBlock.searchHigher(
+                    key = key,
+                    start = start,
+                    end = end,
+                    keyValuesCount = keyValueCount,
+                    binarySearchIndexReader = binarySearchIndexReader,
+                    sortedIndexReader = sortedIndexReader,
+                    valuesReader = valuesReader
+                  )
+              }
         }
     } getOrElse {
-      binarySearchHigher(
-        key = key,
-        start = start,
-        end = end,
-        keyValueCount = keyValueCount,
-        binarySearchIndexReader = binarySearchIndexReader,
-        sortedIndexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+      binarySearchIndexReader flatMap {
+        binarySearchIndexReader =>
+          BinarySearchIndexBlock.searchHigher(
+            key = key,
+            start = start,
+            end = end,
+            keyValuesCount = keyValueCount,
+            binarySearchIndexReader = binarySearchIndexReader,
+            sortedIndexReader = sortedIndexReader,
+            valuesReader = valuesReader
+          )
+      }
+
     }
 
   def assertLowerAndStart(start: Option[Persistent.Partial], lower: Option[Persistent.Partial])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit =
@@ -205,35 +193,9 @@ private[core] object SegmentSearcher extends LazyLogging {
       else
         ()
 
-  private def binarySearchHigher(key: Slice[Byte],
-                                 start: Option[Persistent.Partial],
-                                 end: => Option[Persistent.Partial],
-                                 keyValueCount: => IO[swaydb.Error.Segment, Int],
-                                 binarySearchIndexReader: => IO[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]],
-                                 sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    binarySearchIndexReader flatMap {
-      binarySearchIndexReader =>
-        BinarySearchIndexBlock.searchHigher(
-          key = key,
-          start = start,
-          end = end,
-          keyValuesCount = keyValueCount,
-          binarySearchIndexReader = binarySearchIndexReader,
-          sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader
-        ) flatMap {
-          case BinaryGet.None(_) =>
-            IO.none
-
-          case BinaryGet.Some(_, value) =>
-            IO.Right(Some(value))
-        }
-    }
-
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent.Partial],
-                  end: => Option[Persistent.Partial],
+                  end: Option[Persistent.Partial],
                   keyValueCount: => IO[swaydb.Error.Segment, Int],
                   binarySearchIndexReader: => IO[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -248,12 +210,6 @@ private[core] object SegmentSearcher extends LazyLogging {
           binarySearchIndexReader = binarySearchIndexReader,
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
-        ) flatMap {
-          case BinaryGet.None(_) =>
-            IO.none
-
-          case BinaryGet.Some(_, value) =>
-            IO.Right(Some(value))
-        }
+        )
     }
 }

@@ -51,7 +51,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
         def matcher(valueToFind: Int, valueFound: Int): IO[swaydb.Error.Segment, KeyMatcher.Result] =
           IO {
-            //            println(s"valueToFind: $valueToFind. valueFound: $valueFound")
+            //            //println(s"valueToFind: $valueToFind. valueFound: $valueFound")
             if (valueToFind == valueFound)
               KeyMatcher.Result.Matched(None, null, None)
             else if (valueToFind < valueFound)
@@ -82,7 +82,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
         values foreach {
           value =>
-            BinarySearchIndexBlock.search(context(value)).value shouldBe a[BinaryGet.Some[_]]
+            BinarySearchIndexBlock.binarySearch(context(value)).value shouldBe a[BinaryGet.Some[_]]
         }
 
         //check for items not in the index.
@@ -90,7 +90,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
         notInIndex foreach {
           i =>
-            BinarySearchIndexBlock.search(context(i)).value shouldBe a[BinaryGet.None[_]]
+            BinarySearchIndexBlock.binarySearch(context(i)).value shouldBe a[BinaryGet.None[_]]
         }
       }
 
@@ -281,7 +281,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
             }
 
           //search get
-          BinarySearchIndexBlock.search(context).value match {
+          BinarySearchIndexBlock.binarySearch(context).value match {
             case BinaryGet.None(_) =>
               fail()
 
@@ -296,96 +296,91 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
   "fully indexed search" should {
     val startId = 0
 
-    def genKeyValuesAndBlocks(keyValuesCount: Int = 50): (Slice[Transient], Blocks) = {
+    def genKeyValuesAndBlocks(keyValuesCount: Int = randomIntMax(1000) max 1): (Slice[Transient], Blocks) = {
 
       val keyValues =
         randomizedKeyValues(
           count = keyValuesCount,
           startId = Some(startId),
-          addGroups = false,
-          addRanges = false
+          //          addGroups = false,
+          //          addRanges = true
         ).updateStats(
           sortedIndexConfig =
             SortedIndexBlock.Config.random.copy(
-              normaliseIndex = false,
-              prefixCompressionResetCount = 3,
-              enablePartialRead = false
+              //              normaliseIndex = true,
+              //              prefixCompressionResetCount = 3,
+              //              enablePartialRead = true,
+              //              enableAccessPositionIndex = true
             ),
           binarySearchIndexConfig =
             BinarySearchIndexBlock.Config.random.copy(
               enabled = true,
               minimumNumberOfKeys = 0,
-              fullIndex = true
+              fullIndex = keyValuesCount < 10
             )
         )
 
       keyValues foreach {
         keyValue =>
-          println(s"Key: ${keyValue.key.readInt()}. isPrefixCompressed: ${keyValue.isPrefixCompressed}: ${keyValue.getClass.getSimpleName}")
+        //println(s"Key: ${keyValue.key.readInt()}. isPrefixCompressed: ${keyValue.isPrefixCompressed}: ${keyValue.getClass.getSimpleName}")
       }
 
       val blocks = getBlocks(keyValues).value
 
-      (blocks.binarySearchIndexReader.isDefined || blocks.sortedIndexReader.block.isNormalisedBinarySearchable) shouldBe true
-
-      blocks.binarySearchIndexReader foreach {
-        binarySearchIndexReader =>
-          println
-          println(s"binarySearchIndexReader.valuesCount: ${binarySearchIndexReader.block.valuesCount}")
-      }
-
-
-      //      blocks.binarySearchIndexReader match {
-      //        case Some(binarySearchIndexReader) =>
-      //          binarySearchIndexReader.block.isFullIndex shouldBe true
-      //
-      //        case None =>
-      //          if(blocks.binarySearchIndexReader.is)
-      //          blocks.sortedIndexReader.block.isNormalisedBinarySearchable shouldBe true
-      //          blocks.sortedIndexReader.block.hasPrefixCompression shouldBe false
+      //      blocks.binarySearchIndexReader foreach {
+      //      binarySearchIndexReader =>
+      //println
+      //println(s"binarySearchIndexReader.valuesCount: ${binarySearchIndexReader.block.valuesCount}")
+      //println(s"binarySearchIndexReader.isFullIndex: ${binarySearchIndexReader.block.isFullIndex}")
       //      }
+
+      //println(s"sortedIndexReader.enableAccessPositionIndex: ${blocks.sortedIndexReader.block.enableAccessPositionIndex}")
+      //println(s"sortedIndexReader.isNormalisedBinarySearchable: ${blocks.sortedIndexReader.block.isNormalisedBinarySearchable}")
+      //println(s"sortedIndexReader.hasPrefixCompression: ${blocks.sortedIndexReader.block.hasPrefixCompression}")
+
+      (blocks.binarySearchIndexReader.isDefined || blocks.sortedIndexReader.block.isNormalisedBinarySearchable) shouldBe true
 
       (keyValues, blocks)
     }
 
     "search key-values" in {
 
-      runThis(1.times, log = true, s"Running binary search test") {
+      runThis(10.times, log = true, s"Running binary search test") {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
 
         keyValues.zipWithIndex.foldLeft(Option.empty[Persistent.Partial]) {
           case (previous, (keyValue, index)) =>
 
-            println
-            println(s"Key: ${keyValue.key.readInt()}")
+            //println
+            //println(s"Key: ${keyValue.key.readInt()}")
             val start: Option[Persistent.Partial] =
               eitherOne(None, previous)
 
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
-            println("--- For end ---")
+            //println("--- For end ---")
             val end: Option[Persistent.Partial] =
-              eitherOne(
-                left = None,
-                right = //There is a random test. It could get index out of bounds.
-                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
-                    keyValue =>
-                      //read the end key from index.
-                      BinarySearchIndexBlock.search(
-                        key = keyValue.key,
-                        lowest = eitherOne(None, start),
-                        highest = None,
-                        keyValuesCount = IO(keyValues.size),
-                        binarySearchIndexReader = blocks.binarySearchIndexReader,
-                        sortedIndexReader = blocks.sortedIndexReader,
-                        valuesReader = blocks.valuesReader
-                      ).value.toOption
-                  }
-              )
-            println("--- End end ---")
-            println
+            eitherOne(
+              left = None,
+              right = //There is a random test. It could get index out of bounds.
+                Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
+                  keyValue =>
+                    //read the end key from index.
+                    BinarySearchIndexBlock.search(
+                      key = keyValue.key,
+                      lowest = eitherOne(None, start),
+                      highest = None,
+                      keyValuesCount = IO(keyValues.size),
+                      binarySearchIndexReader = blocks.binarySearchIndexReader,
+                      sortedIndexReader = blocks.sortedIndexReader,
+                      valuesReader = blocks.valuesReader
+                    ).value.toOption
+                }
+            )
+            //println("--- End end ---")
+            //println
             //              None
 
-            //println(s"Find: ${keyValue.minKey.readInt()}")
+            ////println(s"Find: ${keyValue.minKey.readInt()}")
 
             val found =
               BinarySearchIndexBlock.search(
@@ -403,34 +398,34 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
                 case BinaryGet.Some(lower, value) =>
                   if (value.isInstanceOf[Persistent.Partial.GroupT])
-                    println("debug")
+                  //println("debug")
                   //if startFrom is given, search either return a more nearest lowest of the passed in lowest.
                   //                  if (index > 0) {
                   //                    if (lower.isEmpty)
-                  //                      println("debug")
+                  //                      //println("debug")
                   //                    lower shouldBe defined
                   //                  }
                   //                  if (start.isDefined) lower shouldBe defined
 
-                  lower foreach {
-                    lower =>
-                      //println(s"Lower: ${lower.key.readInt()}, startFrom: ${start.map(_.key.readInt())}")
-                      //lower should always be less than keyValue's key.
-                      lower.key.readInt() should be < keyValue.key.readInt()
-                      start foreach {
-                        from =>
-                          //lower should be greater than the supplied lower or should be equals.
-                          //seek should not result in another lower key-value which is smaller than the input start key-value.
-                          lower.key.readInt() should be >= from.key.readInt()
-                      }
-                  }
+                    lower foreach {
+                      lower =>
+                        ////println(s"Lower: ${lower.key.readInt()}, startFrom: ${start.map(_.key.readInt())}")
+                        //lower should always be less than keyValue's key.
+                        lower.key.readInt() should be < keyValue.key.readInt()
+                        start foreach {
+                          from =>
+                            //lower should be greater than the supplied lower or should be equals.
+                            //seek should not result in another lower key-value which is smaller than the input start key-value.
+                            lower.key.readInt() should be >= from.key.readInt()
+                        }
+                    }
                   value.key shouldBe keyValue.key
                   Some(value)
               }
 
-            found.value shouldBe keyValue
-            //            eitherOne(None, found, previous)
-            found
+            //            found.value shouldBe keyValue
+            eitherOne(None, found, previous)
+          //            found
         }
       }
     }
@@ -441,8 +436,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
         val higherStartFrom = keyValues.last.key.readInt() + 1000000
         (higherStartFrom to higherStartFrom + 100) foreach {
           key =>
-            println
-            println(s"find: $key")
+            //println
+            //println(s"find: $key")
             BinarySearchIndexBlock.search(
               key = key,
               lowest = None,
@@ -467,8 +462,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
         (0 until startId) foreach {
           key =>
-            println
-            println(s"find: $key")
+            //println
+            //println(s"find: $key")
             BinarySearchIndexBlock.search(
               key = key,
               lowest = None,
@@ -490,15 +485,15 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
     }
 
     "search higher for existing key-values" in {
-      runThis(1.times, log = true) {
+      runThis(10.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
         //test higher in reverse order
         keyValues.zipWithIndex.foldRight(Option.empty[Persistent.Partial]) {
           case ((keyValue, index), expectedHigher) =>
 
-            println(s"\nKey: ${keyValue.key.readInt()}")
+            //println(s"\nKey: ${keyValue.key.readInt()}")
 
-            println("--- Start ---")
+            //println("--- Start ---")
             val start: Option[Persistent.Partial] =
               eitherOne(
                 left = None,
@@ -517,29 +512,29 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                       ).value.toOption.map(_.toPersistent.get)
                   }
               )
-            println("--- Start ---")
+            //println("--- Start ---")
 
-            println("--- End ---")
+            //println("--- End ---")
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
             val end: Option[Persistent.Partial] =
-              eitherOne(
-                left = None,
-                right = //There is a random test. It could get index out of bounds.
-                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
-                    keyValue =>
-                      //read the end key from index.
-                      BinarySearchIndexBlock.search(
-                        key = keyValue.key,
-                        lowest = eitherOne(None, start),
-                        highest = None,
-                        keyValuesCount = IO.Right(blocks.footer.keyValueCount),
-                        binarySearchIndexReader = blocks.binarySearchIndexReader,
-                        sortedIndexReader = blocks.sortedIndexReader,
-                        valuesReader = blocks.valuesReader
-                      ).value.toOption
-                  }
-              )
-            println("--- End ---")
+            eitherOne(
+              left = None,
+              right = //There is a random test. It could get index out of bounds.
+                Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
+                  keyValue =>
+                    //read the end key from index.
+                    BinarySearchIndexBlock.search(
+                      key = keyValue.key,
+                      lowest = eitherOne(None, start),
+                      highest = None,
+                      keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                      binarySearchIndexReader = blocks.binarySearchIndexReader,
+                      sortedIndexReader = blocks.sortedIndexReader,
+                      valuesReader = blocks.valuesReader
+                    ).value.toOption
+                }
+            )
+            //println("--- End ---")
 
             def getHigher(key: Slice[Byte]) =
               BinarySearchIndexBlock.searchHigher(
@@ -555,83 +550,57 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
             keyValue match {
               case fixed: Transient.Fixed =>
                 val higher = getHigher(fixed.key)
-                println(s"Higher: ${higher.toOption.map(_.key.readInt())}")
-                higher match {
-                  case BinaryGet.None(lower) =>
-                    lower.value.key.readInt() should be <= fixed.key.readInt()
-                    expectedHigher shouldBe empty
-
-                  case BinaryGet.Some(lower, actualHigher) =>
-                    //                    lower.foreach(_.key.readInt() should be < actualHigher.key.readInt())
-                    lower.value.key.readInt() should be <= fixed.key.readInt()
-                    actualHigher.key shouldBe expectedHigher.value.key
-                }
+                //println(s"Higher: ${higher.map(_.key.readInt())}")
+                if (index == keyValues.size - 1)
+                  higher shouldBe empty
+                else
+                  higher.value.key shouldBe expectedHigher.value.key
 
               case range: Transient.Range =>
                 (range.fromKey.readInt() until range.toKey.readInt()) foreach {
                   key =>
                     val higher = getHigher(key)
-                    println(s"Higher: ${higher.toOption.map(_.key.readInt())}")
-                    higher match {
-                      case BinaryGet.None(lower) =>
-                        lower.value.key.readInt() should be <= key
-                        expectedHigher shouldBe empty
-
-                      case BinaryGet.Some(lower, actualHigher) =>
-                        println(s"Key: $key")
-                        println("Lower: " + lower.map(keyValue => keyValue.key.readInt()))
-
-                        //                        if (index > 0 && key > range.fromKey.readInt()) {
-                        //                          if(lower.isEmpty)
-                        //                            println("debug")
-                        //                          lower.value.key.readInt() should be <= key
-                        //                        }
-                        actualHigher shouldBe range
-                    }
+                    //println(s"Higher: ${higher.map(_.key.readInt())}")
+                    //println(s"Key: $key")
+                    higher.value shouldBe range
                 }
-              //
+
               case group: Transient.Group =>
                 (group.key.readInt() until group.maxKey.maxKey.readInt()) foreach {
                   key =>
-                    getHigher(key) match {
-                      case BinaryGet.None(lower) =>
-                        lower.value.key.readInt() should be <= key
-                        expectedHigher shouldBe empty
-
-                      case BinaryGet.Some(lower, actualHigher) =>
-                        lower.value.key.readInt() should be <= key
-                        actualHigher.key shouldBe group.key
-                    }
+                    val actualHigher = getHigher(key).value
+                    actualHigher.key shouldBe group.key
                 }
             }
 
             //get the persistent key-value for the next higher assert.
-            println
-            println("--- Next higher ---")
+            //println
+            //println("--- Next higher ---")
             val nextHigher =
-              SortedIndexBlock.search(
-                key = keyValue.key,
-                startFrom = eitherOne(start, None),
-                fullRead = true,
-                sortedIndexReader = blocks.sortedIndexReader,
-                valuesReader = blocks.valuesReader
-              ).value
-            println("--- End next higher ---")
+            SortedIndexBlock.seekAndMatch(
+              key = keyValue.key,
+              startFrom = eitherOne(start, None),
+              fullRead = true,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).value
+            //println("--- End next higher ---")
             nextHigher
         }
       }
     }
 
     "search lower for existing key-values" in {
-      runThis(1.times, log = true) {
+      runThis(10.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
 
         keyValues.zipWithIndex.foldLeft(Option.empty[Persistent]) {
           case (expectedLower, (keyValue, index)) =>
 
-            println
-            println(s"Key: ${keyValue.key.readInt()}. Expected lower: ${expectedLower.map(_.key.readInt())}")
+            //println
+            //println(s"Key: ${keyValue.key.readInt()}. Expected lower: ${expectedLower.map(_.key.readInt())}")
 
+            //println("--- Start ---")
             val start: Option[Persistent.Partial] =
               eitherOne(
                 left = None,
@@ -641,7 +610,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                       //read the end key from index.
                       BinarySearchIndexBlock.search(
                         key = keyValue.key,
-                        lowest = orNone(expectedLower),
+                        lowest = None,
                         highest = None,
                         keyValuesCount = IO.Right(blocks.footer.keyValueCount),
                         binarySearchIndexReader = blocks.binarySearchIndexReader,
@@ -650,27 +619,34 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                       ).value.toOption
                   }
               )
+            //println("--- Start ---")
             //              None
 
+            //println("--- END ---")
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
             val end: Option[Persistent.Partial] =
-              eitherOne(
-                left = None,
-                right = //There is a random test. It could get index out of bounds.
-                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
-                    keyValue =>
-                      //read the end key from index.
-                      BinarySearchIndexBlock.search(
-                        key = keyValue.key,
-                        lowest = orNone(start),
-                        highest = None,
-                        keyValuesCount = IO.Right(blocks.footer.keyValueCount),
-                        binarySearchIndexReader = blocks.binarySearchIndexReader,
-                        sortedIndexReader = blocks.sortedIndexReader,
-                        valuesReader = blocks.valuesReader
-                      ).value.toOption
-                  }
-              )
+            eitherOne(
+              left = None,
+              right = //There is a random test. It could get index out of bounds.
+                //                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
+                Try(keyValues(index)).toOption flatMap {
+                  endKeyValue =>
+                    //read the end key from index.
+                    //                      if (endKeyValue.isRange && endKeyValue.key == keyValue.key)
+                    //                        None
+                    //                      else
+                    BinarySearchIndexBlock.search(
+                      key = endKeyValue.key,
+                      lowest = orNone(start),
+                      highest = None,
+                      keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                      binarySearchIndexReader = blocks.binarySearchIndexReader,
+                      sortedIndexReader = blocks.sortedIndexReader,
+                      valuesReader = blocks.valuesReader
+                    ).value.toOption
+                }
+            )
+            //println("--- END ---")
             //              None
 
             def getLower(key: Slice[Byte]) =
@@ -684,87 +660,66 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                 valuesReader = blocks.valuesReader
               ).value
 
-            //          println(s"Lower for: ${keyValue.minKey.readInt()}")
+            //          //println(s"Lower for: ${keyValue.minKey.readInt()}")
 
             keyValue match {
               case fixed: Transient.Fixed =>
-                getLower(fixed.key) match {
-                  case BinaryGet.None(lower) =>
-                    if (index == 0)
-                      lower shouldBe empty
-                    else
-                      fail("Didn't expect None")
-
-                  case BinaryGet.Some(lower, actualLower) =>
-                    //                    lower shouldBe empty
-                    actualLower.key shouldBe expectedLower.value.key
-                }
+                val lower = getLower(fixed.key)
+                if (index == 0)
+                  lower shouldBe empty
+                else
+                  lower.value.key shouldBe expectedLower.value.key
 
               case range: Transient.Range =>
-                //do a lower on fromKey first.
-                getLower(range.fromKey) match {
-                  case BinaryGet.None(lower) =>
-                    if (index == 0)
-                      lower shouldBe empty
-                    else
-                      fail("Didn't expect None")
+                val lower = getLower(range.fromKey)
+                if (index == 0)
+                  lower shouldBe empty
+                else
+                  lower.map(_.toPersistent.value) shouldBe expectedLower
 
-                  case BinaryGet.Some(lower, actualLower) =>
-                    lower shouldBe empty
-                    actualLower shouldBe expectedLower.value
-                }
+                val from = range.fromKey.readInt() + 1
+                val to = range.toKey.readInt()
 
+                //println
+                //println(s"Range: $from -> $to")
                 //do lower on within range keys
-                (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
+                (from to to) foreach {
                   key =>
-                    getLower(key) match {
-                      case BinaryGet.None(lower) =>
-                        fail("Didn't expect None")
-
-                      case BinaryGet.Some(lower, actualLower) =>
-                        lower shouldBe empty
-                        actualLower shouldBe range
-                    }
+                    //println
+                    //println(s"Key: $key")
+                    val lower = getLower(key)
+                    lower.value shouldBe range
                 }
 
               case group: Transient.Group =>
                 //do lower on Group's minKey first
-                getLower(group.key) match {
-                  case BinaryGet.None(lower) =>
-                    if (index == 0)
-                      lower shouldBe empty
-                    else
-                      fail("Didn't expect None")
-
-                  case BinaryGet.Some(lower, actualLower) =>
-                    lower shouldBe empty
-                    actualLower shouldBe expectedLower.value
-                }
+                val lower = getLower(group.key)
+                if (index == 0)
+                  lower shouldBe empty
+                else
+                  lower.value shouldBe expectedLower.value
 
                 (group.key.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
                   key =>
-                    getLower(key) match {
-                      case BinaryGet.None(_) =>
-                        fail("Didn't expect None")
-
-                      case BinaryGet.Some(lower, actualLower) =>
-                        lower shouldBe empty
-                        actualLower.key shouldBe group.key
-                    }
+                    //println
+                    //println(s"Key: $key")
+                    val lower = getLower(key)
+                    lower.value.key shouldBe group.key
                 }
             }
 
             //get the persistent key-value for the next lower assert.
-            println(" --- lower for next ---")
+            //println
+            //println(" --- lower for next ---")
             val got =
-              SortedIndexBlock.search(
-                key = keyValue.key,
-                startFrom = None,
-                fullRead = randomBoolean(),
-                sortedIndexReader = blocks.sortedIndexReader,
-                valuesReader = blocks.valuesReader
-              ).value.map(_.toPersistent.value)
-            println(" --- lower for next ---")
+            SortedIndexBlock.seekAndMatch(
+              key = keyValue.key,
+              startFrom = None,
+              fullRead = true,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).value.map(_.toPersistent.value)
+            //println(" --- lower for next ---")
 
             got.value.key shouldBe keyValue.key
             got

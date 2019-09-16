@@ -679,7 +679,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             if (isReference)
               referenceOrIndexEntry.readIntUnsigned() flatMap {
                 index =>
-                  SortedIndexBlock.nextAndMatchOrNextToPersistent(
+                  SortedIndexBlock.seekAndMatchOrSeekToPersistent(
                     matcher = matcher,
                     fullRead = false,
                     fromOffset = index,
@@ -719,7 +719,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         reader = hashIndexReader,
         assertValue =
           (sortedIndexOffsetValue: Int) =>
-            SortedIndexBlock.nextAndMatchOrNextToPersistent(
+            SortedIndexBlock.seekAndMatchOrSeekToPersistent(
               matcher = matcher,
               fromOffset = sortedIndexOffsetValue,
               fullRead = false,

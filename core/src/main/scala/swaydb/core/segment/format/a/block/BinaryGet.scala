@@ -20,9 +20,12 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.IO
+import swaydb.IO.ExceptionHandler
 
 sealed trait BinaryGet[+T] {
   def toOption: Option[T]
+  def lower: Option[T]
+  def toIO[E: ExceptionHandler]: IO[E, Option[T]]
 }
 object BinaryGet {
 
@@ -34,9 +37,15 @@ object BinaryGet {
 
   case class None[T](lower: Option[T]) extends BinaryGet[T] {
     override val toOption: Option[T] = scala.None
+
+    override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =
+      IO.none
   }
 
   case class Some[T](lower: Option[T], value: T) extends BinaryGet[T] {
     override def toOption: Option[T] = scala.Some(value)
+
+    override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =
+      IO.Right(scala.Some(value))
   }
 }
