@@ -50,8 +50,11 @@ sealed trait IO[+L, +R] {
   @inline final def withFilter(p: R => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: R => Boolean) {
     def map[B](f: R => B): IO[L, B] = IO.this filter p map f
+
     def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B] = IO.this filter p flatMap f
+
     def foreach[B](f: R => B): Unit = IO.this filter p foreach f
+
     def withFilter(q: R => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
   def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO[L, R]
@@ -247,6 +250,12 @@ object IO {
         None
     }
 
+  @inline def when[E: IO.ExceptionHandler, T, F](condition: => Boolean, onTrue: => IO[E, T], onFalse: => T)(f: T => IO[E, F]): IO[E, F] =
+    if (condition)
+      onTrue flatMap f
+    else
+      f(onFalse)
+
   @inline final def apply[E: IO.ExceptionHandler, A](f: => A): IO[E, A] =
     try IO.Right[E, A](f) catch {
       case ex: Throwable =>
@@ -335,31 +344,71 @@ object IO {
   }
 
   final case class Right[+L: IO.ExceptionHandler, +R](value: R) extends IO[L, R] {
-    override def get: R = value
-    override def isLeft: Boolean = false
-    override def isRight: Boolean = true
-    override def left: IO.Left[Throwable, L] = IO.Left[Throwable, L](new UnsupportedOperationException("Value is IO.Right"))(IO.ExceptionHandler.Throwable)
-    override def right: IO.Right[Throwable, R] = IO.Right[Throwable, R](get)(IO.ExceptionHandler.Throwable)
-    override def exists(f: R => Boolean): Boolean = f(value)
-    override def getOrElse[B >: R](default: => B): B = get
-    override def orElse[F >: L : IO.ExceptionHandler, B >: R](default: => IO[F, B]): IO.Right[F, B] = this
-    override def foreach[B](f: R => B): Unit = f(get)
-    override def map[B](f: R => B): IO[L, B] = IO[L, B](f(get))
-    override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO[F, B] = IO.Catch(f(get))
-    override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO[F, B] = get
-    override def recover[B >: R](f: PartialFunction[L, B]): IO[L, B] = this
-    override def recoverWith[F >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[F, B]]): IO[F, B] = this
-    override def toOption: Option[R] = Some(get)
-    override def toEither: Either[L, R] = scala.util.Right(get)
+    override def get: R =
+      value
+
+    override def isLeft: Boolean =
+      false
+
+    override def isRight: Boolean =
+      true
+
+    override def left: IO.Left[Throwable, L] =
+      IO.Left[Throwable, L](new UnsupportedOperationException("Value is IO.Right"))(IO.ExceptionHandler.Throwable)
+
+    override def right: IO.Right[Throwable, R] =
+      IO.Right[Throwable, R](get)(IO.ExceptionHandler.Throwable)
+
+    override def exists(f: R => Boolean): Boolean =
+      f(value)
+
+    override def getOrElse[B >: R](default: => B): B =
+      get
+
+    override def orElse[F >: L : IO.ExceptionHandler, B >: R](default: => IO[F, B]): IO.Right[F, B] =
+      this
+
+    override def foreach[B](f: R => B): Unit =
+      f(get)
+
+    override def map[B](f: R => B): IO[L, B] =
+      IO[L, B](f(get))
+
+    override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO[F, B] =
+      IO.Catch(f(get))
+
+    override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO[F, B] =
+      get
+
+    override def recover[B >: R](f: PartialFunction[L, B]): IO[L, B] =
+      this
+
+    override def recoverWith[F >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[F, B]]): IO[F, B] =
+      this
+
+    override def toOption: Option[R] =
+      Some(get)
+
+    override def toEither: Either[L, R] =
+      scala.util.Right(get)
+
     override def filter(p: R => Boolean): IO[L, R] =
       IO.Catch(if (p(get)) this else IO.failed[L, R](new NoSuchElementException("Predicate does not hold for " + get)))
-    override def toFuture: Future[R] = Future.successful(get)
-    override def toTry: scala.util.Try[R] = scala.util.Success(get)
-    override def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO.Right[L, R] = this
+
+    override def toFuture: Future[R] =
+      Future.successful(get)
+
+    override def toTry: scala.util.Try[R] =
+      scala.util.Success(get)
+
+    override def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO.Right[L, R] =
+      this
+
     override def onRightSideEffect(f: R => Unit): IO.Right[L, R] = {
       try f(get) finally {}
       this
     }
+
     override def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R] = {
       try f(this) finally {}
       this
@@ -373,20 +422,48 @@ object IO {
     new IO.Left[E, A](IO.ExceptionHandler.toError[E](new scala.Exception(exceptionMessage)))
 
   final case class Left[+L: IO.ExceptionHandler, +R](value: L) extends IO[L, R] {
-    def exception: Throwable = IO.ExceptionHandler.toException(value)
-    override def get: R = throw exception
-    override def isLeft: Boolean = true
-    override def isRight: Boolean = false
-    override def left: IO.Right[Throwable, L] = IO.Right[Throwable, L](value)(IO.ExceptionHandler.Throwable)
-    override def right: IO.Left[Throwable, R] = IO.Left[Throwable, R](new UnsupportedOperationException("Value is IO.Left", IO.ExceptionHandler.toException(value)))(IO.ExceptionHandler.Throwable)
-    def isRecoverable = IO.ExceptionHandler.recover(value).isDefined
-    override def exists(f: R => Boolean): Boolean = false
-    override def getOrElse[B >: R](default: => B): B = default
-    override def orElse[L2 >: L : IO.ExceptionHandler, B >: R](default: => IO[L2, B]): IO[L2, B] = IO.Catch(default)
-    override def foreach[B](f: R => B): Unit = ()
-    override def map[B](f: R => B): IO.Left[L, B] = this.asInstanceOf[IO.Left[L, B]]
-    override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO.Left[F, B] = this.asInstanceOf[IO.Left[F, B]]
-    override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO.Left[F, B] = this.asInstanceOf[IO.Left[F, B]]
+    def exception: Throwable =
+      IO.ExceptionHandler.toException(value)
+
+    override def get: R =
+      throw exception
+
+    override def isLeft: Boolean =
+      true
+
+    override def isRight: Boolean =
+      false
+
+    override def left: IO.Right[Throwable, L] =
+      IO.Right[Throwable, L](value)(IO.ExceptionHandler.Throwable)
+
+    override def right: IO.Left[Throwable, R] =
+      IO.Left[Throwable, R](new UnsupportedOperationException("Value is IO.Left", IO.ExceptionHandler.toException(value)))(IO.ExceptionHandler.Throwable)
+
+    def isRecoverable =
+      IO.ExceptionHandler.recover(value).isDefined
+
+    override def exists(f: R => Boolean): Boolean =
+      false
+
+    override def getOrElse[B >: R](default: => B): B =
+      default
+
+    override def orElse[L2 >: L : IO.ExceptionHandler, B >: R](default: => IO[L2, B]): IO[L2, B] =
+      IO.Catch(default)
+
+    override def foreach[B](f: R => B): Unit =
+      ()
+
+    override def map[B](f: R => B): IO.Left[L, B] =
+      this.asInstanceOf[IO.Left[L, B]]
+
+    override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO.Left[F, B] =
+      this.asInstanceOf[IO.Left[F, B]]
+
+    override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO.Left[F, B] =
+      this.asInstanceOf[IO.Left[F, B]]
+
     override def recover[B >: R](f: PartialFunction[L, B]): IO[L, B] =
       IO.Catch(if (f isDefinedAt value) IO.Right[L, B](f(value)) else this)
 
@@ -399,17 +476,31 @@ object IO {
       else
         IO.Defer[F, B](throw IO.ExceptionHandler.toException(this.value))
 
-    override def toOption: Option[R] = None
-    override def toEither: Either[L, R] = scala.util.Left(value)
-    override def filter(p: R => Boolean): IO.Left[L, R] = this
-    override def toFuture: Future[R] = Future.failed(exception)
-    override def toTry: scala.util.Try[R] = scala.util.Failure(exception)
+    override def toOption: Option[R] =
+      None
+
+    override def toEither: Either[L, R] =
+      scala.util.Left(value)
+
+    override def filter(p: R => Boolean):
+    IO.Left[L, R] = this
+
+    override def toFuture: Future[R] =
+      Future.failed(exception)
+
+    override def toTry: scala.util.Try[R] =
+      scala.util.Failure(exception)
+
     override def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO.Left[L, R] = {
       try f(this) finally {}
       this
     }
-    override def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R] = onLeftSideEffect(f)
-    override def onRightSideEffect(f: R => Unit): IO.Left[L, R] = this
+
+    override def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R] =
+      onLeftSideEffect(f)
+
+    override def onRightSideEffect(f: R => Unit): IO.Left[L, R] =
+      this
   }
 
   def fromFuture[L: IO.ExceptionHandler, R](future: Future[R])(implicit ec: ExecutionContext): IO.Defer[L, R] = {
@@ -498,6 +589,7 @@ object IO {
                                                               private val recovery: Option[_ => IO.Defer[E, A]] = None) extends LazyLogging {
 
     @volatile private var _value: Option[Any] = None
+
     private def getValue = _value.map(_.asInstanceOf[A])
 
     //a deferred IO is completed if it's not reserved.

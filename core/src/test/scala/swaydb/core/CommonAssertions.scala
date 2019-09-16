@@ -780,7 +780,7 @@ object CommonAssertions {
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           hasRange = blocks.footer.hasRange,
-          threadState = None
+          threadState = ???
         ).runRandomIO.right.value.value.toPersistent.get shouldBe keyValue
     }
   }
@@ -1687,37 +1687,37 @@ object CommonAssertions {
         }
       case persistent: Persistent =>
         persistent match {
-          case Persistent.Remove(_key, deadline, _time, indexOffset, nextIndexOffset, nextIndexSize, _, _) =>
+          case Persistent.Remove(_key, deadline, _time, indexOffset, nextIndexOffset, nextIndexSize, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
 
-          case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
             put.getOrFetchValue.runRandomIO.right.value.shouldBeSliced()
 
-          case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
             updated.getOrFetchValue.runRandomIO.right.value.shouldBeSliced()
 
-          case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
             function.getOrFetchFunction.runRandomIO.right.value.shouldBeSliced()
 
-          case pendingApply @ Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case pendingApply @ Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
             pendingApply.getOrFetchApplies.runRandomIO.right.value foreach assertSliced
 
-          case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _, _) =>
+          case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _fromKey.shouldBeSliced()
             _toKey.shouldBeSliced()
             range.fetchFromValue.runRandomIO.right.value foreach assertSliced
             assertSliced(range.fetchRangeValue.runRandomIO.right.value)
 
-          case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _, _) =>
+          case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
             _minKey.shouldBeSliced()
             _maxKey.maxKey.shouldBeSliced()
         }

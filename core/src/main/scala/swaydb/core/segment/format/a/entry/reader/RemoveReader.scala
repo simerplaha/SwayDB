@@ -34,7 +34,6 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              binarySearchIndexPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -69,7 +68,6 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                           nextIndexSize = nextIndexSize,
                           deadline = deadline,
                           sortedIndexAccessPosition = sortedIndexAccessPosition,
-                          binarySearchIndexPosition = binarySearchIndexPosition,
                           _time = time
                         )
                     }
@@ -85,7 +83,6 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                             nextIndexSize = nextIndexSize,
                             deadline = deadline,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
-                            binarySearchIndexPosition = binarySearchIndexPosition,
                             _time = time
                           )
                         }
@@ -109,7 +106,6 @@ object RemoveReader extends SortedIndexEntryReader[Persistent.Remove] {
                       nextIndexSize = nextIndexSize,
                       deadline = deadline,
                       sortedIndexAccessPosition = sortedIndexAccessPosition,
-                      binarySearchIndexPosition = binarySearchIndexPosition,
                       _time = time
                     )
                 }

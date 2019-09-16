@@ -32,7 +32,7 @@ private[block] trait BinarySearchContext {
   val lowestKeyValue: Option[Persistent.Partial]
   val highestKeyValue: Option[Persistent.Partial]
 
-  def seek(index: Int, offset: Int): IO[Error.Segment, KeyMatcher.Result]
+  def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result]
 }
 
 private[block] object BinarySearchContext {
@@ -55,18 +55,18 @@ private[block] object BinarySearchContext {
 
       override val highestKeyValue: Option[Persistent.Partial] = highest
 
-      override def seek(index: Int, offset: Int): IO[Error.Segment, KeyMatcher.Result] =
+      override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
         binarySearchIndex
           .moveTo(offset)
           .readInt(unsigned = binarySearchIndex.block.isVarInt)
           .flatMap {
             sortedIndexOffsetValue =>
-              SortedIndexBlock.findAndMatchOrNextMatch(
+              SortedIndexBlock.readAndMatch(
                 matcher = matcher,
-                fullRead = false,
                 fromOffset = sortedIndexOffsetValue,
-                binarySearchIndexPosition = index,
-                sortedIndex = sortedIndex,
+                fullRead = false,
+                overwriteNextIndexOffset = None,
+                sortedIndexReader = sortedIndex,
                 valuesReader = values
               )
           }
@@ -91,13 +91,13 @@ private[block] object BinarySearchContext {
 
       override val highestKeyValue: Option[Persistent.Partial] = highest
 
-      override def seek(index: Int, offset: Int): IO[Error.Segment, KeyMatcher.Result] =
-        SortedIndexBlock.findAndMatchOrNextMatch(
+      override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
+        SortedIndexBlock.readAndMatch(
           matcher = matcher,
-          fullRead = false,
           fromOffset = offset,
-          sortedIndex = sortedIndex,
-          binarySearchIndexPosition = index,
+          fullRead = false,
+          overwriteNextIndexOffset = None,
+          sortedIndexReader = sortedIndex,
           valuesReader = values
         )
     }

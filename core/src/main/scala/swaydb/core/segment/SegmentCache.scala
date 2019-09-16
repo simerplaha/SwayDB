@@ -65,7 +65,6 @@ private[core] class SegmentCache(id: String,
                                                                     memorySweeper: Option[MemorySweeper.KeyValue],
                                                                     groupIO: SegmentIO) extends LazyLogging {
 
-
   import keyOrder._
 
   private val threadStates = SegmentThreadState.create[Slice[Byte], Persistent]()
@@ -150,7 +149,7 @@ private[core] class SegmentCache(id: String,
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader,
               hasRange = hasRange,
-              threadState = Some(threadState)
+              threadState = threadState
             ) flatMap {
 
               case Some(response: Persistent.SegmentResponse) =>

@@ -688,7 +688,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                   )
               }
             else
-              SortedIndexBlock.parseAndMatchToPersistent( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
+              SortedIndexBlock.readAndMatchToPersistent( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
                 matcher = matcher,
                 fromOffset = 0,
                 fullRead = false,
@@ -721,8 +721,8 @@ private[core] object HashIndexBlock extends LazyLogging {
           (sortedIndexOffsetValue: Int) =>
             SortedIndexBlock.nextAndMatchOrNextToPersistent(
               matcher = matcher,
-              fullRead = false,
               fromOffset = sortedIndexOffsetValue,
+              fullRead = false,
               indexReader = sortedIndexReader,
               valuesReader = valuesReader
             )

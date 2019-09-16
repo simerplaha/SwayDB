@@ -39,16 +39,47 @@ private[core] object SegmentSearcher extends LazyLogging {
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
              keyValueCount: => IO[swaydb.Error.Segment, Int],
-             threadState: Option[SegmentReadThreadState])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    binarySearch(
-      key = key,
-      start = start,
-      end = end,
-      keyValueCount = keyValueCount,
-      binarySearchIndexReader = binarySearchIndexReader,
-      sortedIndexReader = sortedIndexReader,
-      valuesReader = valuesReader
-    )
+             threadState: SegmentReadThreadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
+    when(start.isDefined && threadState.isSequentialRead())(start) map {
+      startFrom =>
+        SortedIndexBlock.searchSeekOne(
+          key = key,
+          start = startFrom,
+          indexReader = sortedIndexReader,
+          fullRead = true,
+          valuesReader = valuesReader
+        ) flatMap {
+          found =>
+            if (found.isDefined) {
+              threadState.notifySuccessfulSequentialRead()
+              IO.Right(found)
+            } else {
+              hashIndexSearch(
+                key = key,
+                start = start,
+                end = end,
+                keyValueCount = keyValueCount,
+                hashIndexReader = hashIndexReader,
+                binarySearchIndexReader = binarySearchIndexReader,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader,
+                hasRange = hasRange
+              )
+            }
+        }
+    } getOrElse {
+      hashIndexSearch(
+        key = key,
+        start = start,
+        end = end,
+        keyValueCount = keyValueCount,
+        hashIndexReader = hashIndexReader,
+        binarySearchIndexReader = binarySearchIndexReader,
+        sortedIndexReader = sortedIndexReader,
+        valuesReader = valuesReader,
+        hasRange = hasRange
+      )
+    }
 
   def hashIndexSearch(key: Slice[Byte],
                       start: Option[Persistent.Partial],
@@ -112,17 +143,15 @@ private[core] object SegmentSearcher extends LazyLogging {
           key = key,
           lowest = start,
           highest = end,
-          startIndex = None,
-          endIndex = None,
           keyValuesCount = keyValueCount,
           binarySearchIndexReader = binarySearchIndexReader,
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case SearchResult.Some(_, got, _) =>
-            IO.Right(Some(got))
+          case BinaryGet.Some(_, value) =>
+            IO.Right(Some(value))
 
-          case SearchResult.None(_) =>
+          case BinaryGet.None(_) =>
             IO.none
         }
     }
@@ -194,29 +223,11 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case SearchResult.None(lower) =>
-            assertLowerAndStart(start, lower)
-            SortedIndexBlock.searchHigher(
-              key = key,
-              startFrom = lower orElse start,
-              fullRead = false,
-              sortedIndexReader = sortedIndexReader,
-              valuesReader = valuesReader
-            )
+          case BinaryGet.None(_) =>
+            IO.none
 
-          case result @ SearchResult.Some(lower, value, _) =>
-            assertLowerAndStart(start, lower)
-
-            if (lower.exists(_.nextIndexOffset == value.indexOffset))
-              IO.Right(result.toOption)
-            else
-              SortedIndexBlock.searchHigher(
-                key = key,
-                startFrom = lower orElse start,
-                fullRead = false,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              )
+          case BinaryGet.Some(_, value) =>
+            IO.Right(Some(value))
         }
     }
 
@@ -238,31 +249,11 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case SearchResult.Some(lowerLower, lower, _) =>
-            assert(lowerLower.isEmpty, "lowerLower is not empty")
-            if (sortedIndexReader.block.isNormalisedBinarySearchable || binarySearchIndexReader.exists(_.block.isFullIndex) || end.exists(end => lower.nextIndexOffset == end.indexOffset))
-              IO.Right(Some(lower))
-            else
-              SortedIndexBlock.searchLower(
-                key = key,
-                startFrom = Some(lower),
-                fullRead = false,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              )
+          case BinaryGet.None(_) =>
+            IO.none
 
-          case SearchResult.None(lower) =>
-            assert(lower.isEmpty, "Lower is non-empty")
-            if (sortedIndexReader.block.isNormalisedBinarySearchable || binarySearchIndexReader.exists(_.block.isFullIndex))
-              IO.none
-            else
-              SortedIndexBlock.searchLower(
-                key = key,
-                startFrom = start,
-                fullRead = false,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              )
+          case BinaryGet.Some(_, value) =>
+            IO.Right(Some(value))
         }
     }
 }

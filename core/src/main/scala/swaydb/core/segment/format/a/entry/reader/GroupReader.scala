@@ -34,7 +34,6 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              binarySearchIndexPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -75,8 +74,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                                   indexOffset = indexOffset,
                                   valueOffset = valueOffset,
                                   valueLength = valueLength,
-                                  sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                  binarySearchIndexPosition = binarySearchIndexPosition
+                                  sortedIndexAccessPosition = sortedIndexAccessPosition
                                 )
 
                               case None =>
@@ -99,8 +97,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                                   indexOffset = indexOffset,
                                   valueOffset = valueOffset,
                                   valueLength = valueLength,
-                                  sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                  binarySearchIndexPosition = binarySearchIndexPosition
+                                  sortedIndexAccessPosition = sortedIndexAccessPosition
                                 )
 
                               case key @ (_: Key.Fixed | _: Key.Range) =>
@@ -131,8 +128,7 @@ object GroupReader extends SortedIndexEntryReader[Persistent.Group] {
                               indexOffset = indexOffset,
                               valueOffset = valueOffset,
                               valueLength = valueLength,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              binarySearchIndexPosition = binarySearchIndexPosition
+                              sortedIndexAccessPosition = sortedIndexAccessPosition
                             )
                           case None =>
                             ValuesBlock.valuesBlockNotInitialised

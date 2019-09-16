@@ -36,7 +36,6 @@ private[core] trait BaseEntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               sortedIndexAccessPosition: Int,
-              binarySearchIndexPosition: Int,
               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
               indexReader: ReaderBase[swaydb.Error.Segment],
               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],

@@ -34,7 +34,6 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              binarySearchIndexPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -80,8 +79,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                                     indexOffset = indexOffset,
                                     valueOffset = valueOffset,
                                     valueLength = valueLength,
-                                    sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                    binarySearchIndexPosition = binarySearchIndexPosition
+                                    sortedIndexAccessPosition = sortedIndexAccessPosition
                                   )
                                 }
                               case None =>
@@ -108,8 +106,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                                     indexOffset = indexOffset,
                                     valueOffset = valueOffset,
                                     valueLength = valueLength,
-                                    sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                    binarySearchIndexPosition = binarySearchIndexPosition
+                                    sortedIndexAccessPosition = sortedIndexAccessPosition
                                   )
                                 }
 
@@ -147,8 +144,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                                 indexOffset = indexOffset,
                                 valueOffset = valueOffset,
                                 valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                binarySearchIndexPosition = binarySearchIndexPosition
+                                sortedIndexAccessPosition = sortedIndexAccessPosition
                               )
                             }
 

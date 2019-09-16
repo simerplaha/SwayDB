@@ -34,7 +34,6 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              binarySearchIndexPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
                               valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
@@ -80,8 +79,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                               indexOffset = indexOffset,
                               valueOffset = valueOffset,
                               valueLength = valueLength,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              binarySearchIndexPosition = binarySearchIndexPosition
+                              sortedIndexAccessPosition = sortedIndexAccessPosition
                             )
                         }
 
@@ -105,8 +103,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                                 indexOffset = indexOffset,
                                 valueOffset = valueOffset,
                                 valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                binarySearchIndexPosition = binarySearchIndexPosition
+                                sortedIndexAccessPosition = sortedIndexAccessPosition
                               )
                             }
 
@@ -137,8 +134,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                           indexOffset = indexOffset,
                           valueOffset = valueOffset,
                           valueLength = valueLength,
-                          sortedIndexAccessPosition = sortedIndexAccessPosition,
-                          binarySearchIndexPosition = binarySearchIndexPosition
+                          sortedIndexAccessPosition = sortedIndexAccessPosition
                         )
                     }
                 }
