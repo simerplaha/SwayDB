@@ -22,27 +22,28 @@ package swaydb.core.segment.format.a.block
 import swaydb.IO
 import swaydb.IO.ExceptionHandler
 
-sealed trait BinaryGet[+T] {
+private[block] sealed trait BinarySearchGetResult[+T] {
   def toOption: Option[T]
   def lower: Option[T]
   def toIO[E: ExceptionHandler]: IO[E, Option[T]]
 }
-object BinaryGet {
 
-  val none: BinaryGet.None[Nothing] =
-    BinaryGet.None(Option.empty[Nothing])
+private[block] object BinarySearchGetResult {
+
+  val none: BinarySearchGetResult.None[Nothing] =
+    BinarySearchGetResult.None(Option.empty[Nothing])
 
   val noneIO =
-    IO.Right[Nothing, BinaryGet[Nothing]](none)(IO.ExceptionHandler.Nothing)
+    IO.Right[Nothing, BinarySearchGetResult[Nothing]](none)(IO.ExceptionHandler.Nothing)
 
-  case class None[T](lower: Option[T]) extends BinaryGet[T] {
+  case class None[T](lower: Option[T]) extends BinarySearchGetResult[T] {
     override val toOption: Option[T] = scala.None
 
     override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =
       IO.none
   }
 
-  case class Some[T](lower: Option[T], value: T) extends BinaryGet[T] {
+  case class Some[T](lower: Option[T], value: T) extends BinarySearchGetResult[T] {
     override def toOption: Option[T] = scala.Some(value)
 
     override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =

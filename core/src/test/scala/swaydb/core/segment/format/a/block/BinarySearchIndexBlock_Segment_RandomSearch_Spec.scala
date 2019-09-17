@@ -19,329 +19,78 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.OptionValues._
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Error, IO}
+import swaydb.IO
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.{Blocks, TestBase}
 import swaydb.core.TestData._
-import swaydb.core.cache.Cache
-import swaydb.core.data.{Persistent, Time, Transient}
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.util.Bytes
+import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.{Blocks, TestBase}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.IOValues._
-import org.scalatest.OptionValues._
 
 import scala.util.Try
 
-class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
+class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
 
-  "write full index" when {
-    def assertSearch(bytes: Slice[Byte],
-                     byteSizePerValue: Int,
-                     values: Seq[Int]) =
-      runThis(10.times) {
-        val largestValue = values.last
+  val startId = 0
 
-        def matcher(valueToFind: Int, valueFound: Int): IO[swaydb.Error.Segment, KeyMatcher.Result] =
-          IO {
-            //            //println(s"valueToFind: $valueToFind. valueFound: $valueFound")
-            if (valueToFind == valueFound)
-              KeyMatcher.Result.Matched(None, null, None)
-            else if (valueToFind < valueFound)
-              KeyMatcher.Result.AheadOrNoneOrEnd
-            else
-              KeyMatcher.Result.BehindFetchNext(null)
-          }
+  def genKeyValuesAndBlocks(keyValuesCount: Int = randomIntMax(500) max 1): (Slice[Transient], Blocks) = {
+    //  def genKeyValuesAndBlocks(keyValuesCount: Int = 50): (Slice[Transient], Blocks) = {
 
-        def context(valueToFind: Int) =
-          new BinarySearchContext {
-            val bytesPerValue: Int = byteSizePerValue
-            val valuesCount: Int = values.size
-            val isFullIndex: Boolean = true
-            val higherOrLower: Option[Boolean] = None
-            val lowestKeyValue: Option[Persistent] = None
-            val highestKeyValue: Option[Persistent] = None
-
-            def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] = {
-              val foundValue =
-                if (bytesPerValue == 4)
-                  bytes.take(offset, bytesPerValue).readInt()
-                else
-                  bytes.take(offset, bytesPerValue).readIntUnsigned().value
-
-              matcher(valueToFind, foundValue)
-            }
-          }
-
-        values foreach {
-          value =>
-            BinarySearchIndexBlock.binarySearch(context(value)).value shouldBe a[BinaryGet.Some[_]]
-        }
-
-        //check for items not in the index.
-        val notInIndex = (values.head - 100 until values.head) ++ (largestValue + 1 to largestValue + 100)
-
-        notInIndex foreach {
-          i =>
-            BinarySearchIndexBlock.binarySearch(context(i)).value shouldBe a[BinaryGet.None[_]]
-        }
-      }
-
-    "all values have the same size" in {
-      runThis(10.times) {
-        Seq(0 to 127, 128 to 300, 16384 to 16384 + 200, Int.MaxValue - 5000 to Int.MaxValue - 1000) foreach {
-          values =>
-            val valuesCount = values.size
-            val largestValue = values.last
-            val state =
-              BinarySearchIndexBlock.State(
-                largestValue = largestValue,
-                uniqueValuesCount = valuesCount,
-                isFullIndex = true,
-                minimumNumberOfKeys = 0,
-                compressions = _ => Seq.empty
-              ).value
-
-            values foreach {
-              offset =>
-                BinarySearchIndexBlock.write(value = offset, state = state).value
-            }
-
-            BinarySearchIndexBlock.close(state).value
-
-            state.writtenValues shouldBe values.size
-
-            state.bytes.isFull shouldBe true
-
-            Seq(
-              BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).value,
-              BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
-            ) foreach {
-              reader =>
-                val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).value).value
-
-                val decompressedBytes = Block.unblock(reader.copy()).value.readFullBlock().value
-
-                block.valuesCount shouldBe state.writtenValues
-
-                //byte size of Int.MaxValue is 5, but the index will switch to using 4 byte ints.
-                block.bytesPerValue should be <= 4
-
-                assertSearch(decompressedBytes, block.bytesPerValue, values)
-            }
-        }
-      }
-    }
-
-    "all values have unique size" in {
-      runThis(10.times) {
-        //generate values of uniques sizes.
-        val values = (126 to 130) ++ (16384 - 2 to 16384)
-        val valuesCount = values.size
-        val largestValue = values.last
-        val compression = eitherOne(Seq.empty, Seq(randomCompression()))
-
-        val state =
-          BinarySearchIndexBlock.State(
-            largestValue = largestValue,
-            uniqueValuesCount = valuesCount,
-            isFullIndex = true,
+    val keyValues =
+      randomizedKeyValues(
+        count = keyValuesCount,
+        startId = Some(startId)
+        //        addGroups = false,
+        //        addRanges = false
+      ).updateStats(
+        sortedIndexConfig =
+          SortedIndexBlock.Config.random.copy(
+            //            normaliseIndex = true,
+            //            prefixCompressionResetCount = 3,
+            //            enablePartialRead = true,
+            //            enableAccessPositionIndex = true
+          ),
+        binarySearchIndexConfig =
+          BinarySearchIndexBlock.Config.random.copy(
+            enabled = true,
             minimumNumberOfKeys = 0,
-            compressions = _ => compression
-          ).value
-
-        values foreach {
-          value =>
-            BinarySearchIndexBlock.write(value = value, state = state).value
-        }
-        BinarySearchIndexBlock.close(state).value
-
-        state.writtenValues shouldBe values.size
-
-        Seq(
-          BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).value,
-          BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
-        ) foreach {
-          reader =>
-            val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).value).value
-
-            val decompressedBytes = Block.unblock(reader.copy()).value.readFullBlock().value
-
-            block.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
-
-            block.valuesCount shouldBe values.size
-
-            assertSearch(decompressedBytes, block.bytesPerValue, values)
-        }
-      }
-    }
-  }
-
-  "search" when {
-    val values = Slice(1, 5, 10)
-    val valuesCount = values.size
-    val largestValue = values.last
-    val compression = eitherOne(Seq.empty, Seq(randomCompression()))
-
-    val state =
-      BinarySearchIndexBlock.State(
-        largestValue = largestValue,
-        uniqueValuesCount = valuesCount,
-        isFullIndex = true,
-        minimumNumberOfKeys = 0,
-        compressions = _ => compression
-      ).value
-
-    values foreach {
-      value =>
-        BinarySearchIndexBlock.write(value = value, state = state).value
-    }
-
-    BinarySearchIndexBlock.close(state).value
-
-    state.writtenValues shouldBe 3
-
-    "1" in {
-      //1, 5, 10
-      Seq(
-        BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).value,
-        BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
-      ) foreach {
-        reader =>
-          val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).value).value
-
-          block.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
-          block.valuesCount shouldBe values.size
-
-          val unblocked = Block.unblock[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](reader.copy()).value
-          val unblockedBytes = unblocked.readFullBlock().value
-
-          unblocked.size.value shouldBe 3
-
-          //1, 5, 10
-          //1
-          val one =
-          Persistent.Put.fromCache(
-            key = 1,
-            deadline = None,
-            valueCache = Cache.emptyValuesBlock,
-            time = Time.empty,
-            nextIndexOffset = randomIntMax(),
-            nextIndexSize = randomIntMax(),
-            indexOffset = randomIntMax(),
-            valueOffset = 0,
-            valueLength = 0,
-            sortedIndexAccessPosition = eitherOne(0, 1)
+            //            fullIndex = keyValuesCount < 10
+            fullIndex = true
           )
+      )
 
-          val five =
-            Persistent.Put.fromCache(
-              key = 5,
-              deadline = None,
-              valueCache = Cache.emptyValuesBlock,
-              time = Time.empty,
-              nextIndexOffset = randomIntMax(),
-              nextIndexSize = randomIntMax(),
-              indexOffset = randomIntMax(),
-              valueOffset = 0,
-              valueLength = 0,
-              sortedIndexAccessPosition = eitherOne(0, 1)
-            )
-
-          val matchResultForOne = KeyMatcher.Result.Matched(None, one, None)
-          KeyMatcher.Get(1).apply(one, None, randomBoolean()) shouldBe matchResultForOne
-
-          val matchResultForFive = KeyMatcher.Result.AheadOrNoneOrEnd
-          KeyMatcher.Get(1).apply(five, None, randomBoolean()) shouldBe matchResultForFive
-
-          val matcher = mockFunction[Int, IO[swaydb.Error.Segment, KeyMatcher.Result]]("matcher")
-          matcher.expects(5) returns IO.Right(matchResultForFive)
-          matcher.expects(1) returns IO.Right(matchResultForOne)
-
-          val context =
-            new BinarySearchContext {
-              val bytesPerValue: Int = block.bytesPerValue
-              val valuesCount: Int = values.size
-              val isFullIndex: Boolean = true
-              val higherOrLower: Option[Boolean] = None
-              val lowestKeyValue: Option[Persistent] = None
-              val highestKeyValue: Option[Persistent] = None
-
-              def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] = {
-                val value = unblockedBytes.take(offset, bytesPerValue).readIntUnsigned().value
-                matcher(value)
-              }
-            }
-
-          //search get
-          BinarySearchIndexBlock.binarySearch(context).value match {
-            case BinaryGet.None(_) =>
-              fail()
-
-            case BinaryGet.Some(lower, value) =>
-              lower shouldBe empty
-              value shouldBe one
-          }
-      }
+    keyValues foreach {
+      keyValue =>
+      //println(s"Key: ${keyValue.key.readInt()}. isPrefixCompressed: ${keyValue.isPrefixCompressed}: ${keyValue.getClass.getSimpleName}")
     }
+
+    val blocks = getBlocks(keyValues).value
+
+    blocks.binarySearchIndexReader foreach {
+      binarySearchIndexReader =>
+        println
+        println(s"binarySearchIndexReader.valuesCount: ${binarySearchIndexReader.block.valuesCount}")
+        println(s"binarySearchIndexReader.isFullIndex: ${binarySearchIndexReader.block.isFullIndex}")
+    }
+
+    println(s"sortedIndexReader.enableAccessPositionIndex: ${blocks.sortedIndexReader.block.enableAccessPositionIndex}")
+    println(s"sortedIndexReader.isNormalisedBinarySearchable: ${blocks.sortedIndexReader.block.isNormalisedBinarySearchable}")
+    println(s"sortedIndexReader.hasPrefixCompression: ${blocks.sortedIndexReader.block.hasPrefixCompression}")
+
+    (blocks.binarySearchIndexReader.isDefined || blocks.sortedIndexReader.block.isNormalisedBinarySearchable) shouldBe true
+
+    (keyValues, blocks)
   }
 
   "fully indexed search" should {
-    val startId = 0
-
-    def genKeyValuesAndBlocks(keyValuesCount: Int = randomIntMax(1000) max 1): (Slice[Transient], Blocks) = {
-
-      val keyValues =
-        randomizedKeyValues(
-          count = keyValuesCount,
-          startId = Some(startId),
-          //          addGroups = false,
-          //          addRanges = true
-        ).updateStats(
-          sortedIndexConfig =
-            SortedIndexBlock.Config.random.copy(
-              //              normaliseIndex = true,
-              //              prefixCompressionResetCount = 3,
-              //              enablePartialRead = true,
-              //              enableAccessPositionIndex = true
-            ),
-          binarySearchIndexConfig =
-            BinarySearchIndexBlock.Config.random.copy(
-              enabled = true,
-              minimumNumberOfKeys = 0,
-              fullIndex = keyValuesCount < 10
-            )
-        )
-
-      keyValues foreach {
-        keyValue =>
-        //println(s"Key: ${keyValue.key.readInt()}. isPrefixCompressed: ${keyValue.isPrefixCompressed}: ${keyValue.getClass.getSimpleName}")
-      }
-
-      val blocks = getBlocks(keyValues).value
-
-      //      blocks.binarySearchIndexReader foreach {
-      //      binarySearchIndexReader =>
-      //println
-      //println(s"binarySearchIndexReader.valuesCount: ${binarySearchIndexReader.block.valuesCount}")
-      //println(s"binarySearchIndexReader.isFullIndex: ${binarySearchIndexReader.block.isFullIndex}")
-      //      }
-
-      //println(s"sortedIndexReader.enableAccessPositionIndex: ${blocks.sortedIndexReader.block.enableAccessPositionIndex}")
-      //println(s"sortedIndexReader.isNormalisedBinarySearchable: ${blocks.sortedIndexReader.block.isNormalisedBinarySearchable}")
-      //println(s"sortedIndexReader.hasPrefixCompression: ${blocks.sortedIndexReader.block.hasPrefixCompression}")
-
-      (blocks.binarySearchIndexReader.isDefined || blocks.sortedIndexReader.block.isNormalisedBinarySearchable) shouldBe true
-
-      (keyValues, blocks)
-    }
 
     "search key-values" in {
 
@@ -380,7 +129,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
             //println
             //              None
 
-            ////println(s"Find: ${keyValue.minKey.readInt()}")
+            //            //println(s"Find: ${keyValue.minKey.readInt()}")
 
             val found =
               BinarySearchIndexBlock.search(
@@ -392,33 +141,25 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
               ).value match {
-                case BinaryGet.None(_) =>
+                case BinarySearchGetResult.None(_) =>
                   //all keys are known to exist.
                   fail("Expected success")
 
-                case BinaryGet.Some(lower, value) =>
-                  if (value.isInstanceOf[Persistent.Partial.GroupT])
-                  //println("debug")
-                  //if startFrom is given, search either return a more nearest lowest of the passed in lowest.
-                  //                  if (index > 0) {
-                  //                    if (lower.isEmpty)
-                  //                      //println("debug")
-                  //                    lower shouldBe defined
-                  //                  }
-                  //                  if (start.isDefined) lower shouldBe defined
+                case BinarySearchGetResult.Some(lower, value) =>
+                  if (start.isDefined) lower shouldBe defined
 
-                    lower foreach {
-                      lower =>
-                        ////println(s"Lower: ${lower.key.readInt()}, startFrom: ${start.map(_.key.readInt())}")
-                        //lower should always be less than keyValue's key.
-                        lower.key.readInt() should be < keyValue.key.readInt()
-                        start foreach {
-                          from =>
-                            //lower should be greater than the supplied lower or should be equals.
-                            //seek should not result in another lower key-value which is smaller than the input start key-value.
-                            lower.key.readInt() should be >= from.key.readInt()
-                        }
-                    }
+                  lower foreach {
+                    lower =>
+                      //                      //println(s"Lower: ${lower.key.readInt()}, startFrom: ${start.map(_.key.readInt())}")
+                      //lower should always be less than keyValue's key.
+                      lower.key.readInt() should be < keyValue.key.readInt()
+                      start foreach {
+                        from =>
+                          //lower should be greater than the supplied lower or should be equals.
+                          //seek should not result in another lower key-value which is smaller than the input start key-value.
+                          lower.key.readInt() should be >= from.key.readInt()
+                      }
+                  }
                   value.key shouldBe keyValue.key
                   Some(value)
               }
@@ -447,7 +188,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).value match {
-              case BinaryGet.None(lower) =>
+              case BinarySearchGetResult.None(lower) =>
                 //lower will always be the last known uncompressed key before the last key-value.
                 if (keyValues.size > 4)
                   keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed) foreach {
@@ -455,7 +196,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                       lower.value.key shouldBe expectedLower.key
                   }
 
-              case _: BinaryGet.Some[_] =>
+              case _: BinarySearchGetResult.Some[_] =>
                 fail("Didn't expect a match")
             }
         }
@@ -473,11 +214,11 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).value match {
-              case BinaryGet.None(lower) =>
+              case BinarySearchGetResult.None(lower) =>
                 //lower is always empty since the test keys are lower than the actual key-values.
                 lower shouldBe empty
 
-              case _: BinaryGet.Some[_] =>
+              case _: BinarySearchGetResult.Some[_] =>
                 fail("Didn't expect a math")
             }
         }
@@ -630,6 +371,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
               right = //There is a random test. It could get index out of bounds.
                 //                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
                 Try(keyValues(index)).toOption flatMap {
+                  //                  Try(keyValues(index + randomIntMax(index))).toOption flatMap {
                   endKeyValue =>
                     //read the end key from index.
                     //                      if (endKeyValue.isRange && endKeyValue.key == keyValue.key)
@@ -662,6 +404,8 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
 
             //          //println(s"Lower for: ${keyValue.minKey.readInt()}")
 
+            //println
+            //println("--- SEARCHING ---")
             keyValue match {
               case fixed: Transient.Fixed =>
                 val lower = getLower(fixed.key)
@@ -697,7 +441,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                 if (index == 0)
                   lower shouldBe empty
                 else
-                  lower.value shouldBe expectedLower.value
+                  lower.value.key shouldBe expectedLower.value.key
 
                 (group.key.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
                   key =>
@@ -707,6 +451,7 @@ class BinarySearchIndexBlockSpec extends TestBase with MockFactory {
                     lower.value.key shouldBe group.key
                 }
             }
+            //println("--- SEARCHING ---")
 
             //get the persistent key-value for the next lower assert.
             //println

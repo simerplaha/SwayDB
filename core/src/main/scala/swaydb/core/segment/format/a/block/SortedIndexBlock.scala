@@ -410,10 +410,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous = previous
           )
 
-//      readKey foreach {
-//        readKey =>
-//          //println(s"readKeyValue: ${readKey.key.readInt()}: ${readKey.getClass.getSimpleName}")
-//      }
+      //println(s"readKeyValue: ${readKey.get.key.readInt()}: ${readKey.get.getClass.getSimpleName}")
 
       readKey
 
@@ -731,7 +728,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        ////println("matchOrSeekAndPersistent")
+        //        println("matchOrSeekAndPersistent")
         matchOrSeekToPersistent(
           previous = persistent,
           next = None,

@@ -20,17 +20,19 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.core.data.Persistent
+import swaydb.core.segment.format.a.block.KeyMatcher.Get
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
 private[block] trait BinarySearchContext {
-  val bytesPerValue: Int
-  val valuesCount: Int
-  val isFullIndex: Boolean
-  val lowestKeyValue: Option[Persistent.Partial]
-  val highestKeyValue: Option[Persistent.Partial]
+  def targetKey: Slice[Byte]
+  def bytesPerValue: Int
+  def valuesCount: Int
+  def isFullIndex: Boolean
+  def lowestKeyValue: Option[Persistent.Partial]
+  def highestKeyValue: Option[Persistent.Partial]
 
   def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result]
 }
@@ -43,7 +45,9 @@ private[block] object BinarySearchContext {
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
-      val matcher = KeyMatcher.Get.MatchOnly(key)
+      val matcher: Get.MatchOnly = KeyMatcher.Get.MatchOnly(key)
+
+      override val targetKey = key
 
       override val bytesPerValue: Int = binarySearchIndex.block.bytesPerValue
 
@@ -79,7 +83,9 @@ private[block] object BinarySearchContext {
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
-      val matcher = KeyMatcher.Get.MatchOnly(key)
+      val matcher: Get.MatchOnly = KeyMatcher.Get.MatchOnly(key)
+
+      override val targetKey = key
 
       override val bytesPerValue: Int = sortedIndex.block.segmentMaxIndexEntrySize
 

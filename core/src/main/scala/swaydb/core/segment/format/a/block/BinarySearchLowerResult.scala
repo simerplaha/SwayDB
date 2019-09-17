@@ -19,10 +19,10 @@
 
 package swaydb.core.segment.format.a.block
 
-sealed trait BinaryLower[+T] {
+private[block] sealed trait BinarySearchLowerResult[+T] {
   def lower: Option[T]
 }
 
-object BinaryLower {
-  case class Some[T](lower: Option[T], matched: Option[T]) extends BinaryLower[T]
+private[block] object BinarySearchLowerResult {
+  case class Some[T](lower: Option[T], matched: Option[T]) extends BinarySearchLowerResult[T]
 }

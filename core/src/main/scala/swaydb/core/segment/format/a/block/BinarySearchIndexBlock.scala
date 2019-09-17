@@ -311,11 +311,11 @@ private[core] object BinarySearchIndexBlock {
         context.valuesCount - 1
     }
 
-  private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] = {
+  private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end")
@@ -324,7 +324,7 @@ private[core] object BinarySearchIndexBlock {
 
       if (start > end)
         IO.Right {
-          BinaryGet.None(
+          BinarySearchGetResult.None(
             MinMax.maxFavourLeft(
               left = knownLowest,
               right = context.lowestKeyValue
@@ -343,7 +343,7 @@ private[core] object BinarySearchIndexBlock {
                   )
 
                 IO.Right {
-                  BinaryGet.Some(
+                  BinarySearchGetResult.Some(
                     lower = lower,
                     value = matched.result
                   )
@@ -368,35 +368,75 @@ private[core] object BinarySearchIndexBlock {
     hop(start = start, end = end, context.lowestKeyValue, None)
   }
 
-  private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryLower.Some[Persistent.Partial]] = {
-    implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
+  private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchLowerResult.Some[Persistent.Partial]] = {
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinaryLower.Some[Persistent.Partial]] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinarySearchLowerResult.Some[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
 
       val valueOffset = mid * context.bytesPerValue
 
+      /**
+       * if shifting left did not result in a valid lower key-value then reboot binarySearch without shift.
+       * This can only occur if [[BinarySearchIndexBlock.isFullIndex]] is false || [[SortedIndexBlock.enableAccessPositionIndex]] is false.
+       *
+       * @example keys = [1 ... 30]
+       *          binaryEntries = [1, 5, 10, 20]
+       *          search key = 15
+       *          end hint = 30
+       *          shiftLeft will result in 20 which is not the lowest.
+       */
       if (start > end || mid < 0)
-        IO.Right {
-          //println("End")
-          BinaryLower.Some(
-            lower =
-              MinMax.maxFavourLeft(
-                left = knownLowest,
-                right = context.lowestKeyValue
-              ),
-            matched = knownMatch
-          )
+        if (fetchLeft && knownLowest.isEmpty) {
+          //println("Restart")
+          binarySearchLower(fetchLeft = false, context = context)
+        } else {
+          IO.Right {
+            //println("End")
+            implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
+            BinarySearchLowerResult.Some(
+              lower =
+                MinMax.maxFavourLeft(
+                  left = knownLowest,
+                  right = context.lowestKeyValue
+                ),
+              matched = knownMatch
+            )
+          }
         }
       else
         context.seek(valueOffset) match {
           case IO.Right(entry) =>
             entry match {
               case matched: KeyMatcher.Result.Matched =>
-                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(matched.result))
+                matched.result match {
+                  case fixed: Persistent.Partial.Fixed =>
+                    hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(fixed))
+
+                  case range: Persistent.Partial.RangeT =>
+                    if (ordering.gt(context.targetKey, range.fromKey))
+                      IO.Right {
+                        BinarySearchLowerResult.Some(
+                          lower = None,
+                          matched = Some(range)
+                        )
+                      }
+                    else
+                      hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(matched.result))
+
+                  case group: Persistent.Partial.GroupT =>
+                    if (ordering.gt(context.targetKey, group.minKey))
+                      IO.Right {
+                        BinarySearchLowerResult.Some(
+                          lower = None,
+                          matched = Some(group)
+                        )
+                      }
+                    else
+                      hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(matched.result))
+                }
 
               case behind: KeyMatcher.Result.Behind =>
                 hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)
@@ -428,7 +468,7 @@ private[core] object BinarySearchIndexBlock {
              keyValuesCount: => IO[swaydb.Error.Segment, Int],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinaryGet[Persistent.Partial]] =
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable)
       keyValuesCount flatMap {
         keyValuesCount =>
@@ -456,10 +496,10 @@ private[core] object BinarySearchIndexBlock {
               values = valuesReader
             )
           ) flatMap {
-            case some: BinaryGet.Some[Persistent.Partial] =>
+            case some: BinarySearchGetResult.Some[Persistent.Partial] =>
               IO.Right(some)
 
-            case none @ BinaryGet.None(lower) =>
+            case none @ BinarySearchGetResult.None(lower) =>
               if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
                 IO.Right(none)
               else
@@ -474,10 +514,10 @@ private[core] object BinarySearchIndexBlock {
                           valuesReader = valuesReader
                         ) flatMap {
                           case Some(got) =>
-                            IO.Right(BinaryGet.Some(Some(lower), got))
+                            IO.Right(BinarySearchGetResult.Some(Some(lower), got))
 
                           case None =>
-                            IO.Right(BinaryGet.None(Some(lower)))
+                            IO.Right(BinarySearchGetResult.None(Some(lower)))
                         }
                     }
 
@@ -490,10 +530,10 @@ private[core] object BinarySearchIndexBlock {
                       valuesReader = valuesReader
                     ) flatMap {
                       case Some(got) =>
-                        IO.Right(BinaryGet.Some(lowest, got))
+                        IO.Right(BinarySearchGetResult.Some(lowest, got))
 
                       case None =>
-                        BinaryGet.noneIO
+                        BinarySearchGetResult.noneIO
                     }
                 }
 
@@ -508,10 +548,10 @@ private[core] object BinarySearchIndexBlock {
             valuesReader = valuesReader
           ) flatMap {
             case Some(got) =>
-              IO.Right(BinaryGet.Some(lowest, got))
+              IO.Right(BinarySearchGetResult.Some(lowest, got))
 
             case None =>
-              BinaryGet.noneIO
+              BinarySearchGetResult.noneIO
           }
       }
 
@@ -545,7 +585,7 @@ private[core] object BinarySearchIndexBlock {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case BinaryGet.None(lower) =>
+          case BinarySearchGetResult.None(lower) =>
             IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.map(_.toPersistent.toOptionValue) getOrElse IO.none, onFalse = lower) {
               lower =>
                 SortedIndexBlock.matchOrSeekHigher(
@@ -556,7 +596,7 @@ private[core] object BinarySearchIndexBlock {
                 )
             }
 
-          case BinaryGet.Some(_, got) =>
+          case BinarySearchGetResult.Some(_, got) =>
             IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = got.toPersistent, onFalse = got) {
               got =>
                 SortedIndexBlock.matchOrSeekHigher(
@@ -610,6 +650,10 @@ private[core] object BinarySearchIndexBlock {
         keyValuesCount =>
           binarySearchLower(
             fetchLeft =
+              //cannot shiftLeft is it's accessPosition is not known at start.
+              //but there will be cases with binarySearchIndex is partial || sortedIndex is prefixCompressed
+              //which means that accessPositions might not be in sync with binarySearch's positions.
+              //Here binarySearchLower will triggers are restart if shiftLeft was not successful.
               sortedIndexReader.block.enableAccessPositionIndex && end.exists(end => ordering.equiv(key, end.key)),
             context =
               BinarySearchContext(
