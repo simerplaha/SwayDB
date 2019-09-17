@@ -63,8 +63,6 @@ class MapSpec extends TestBase {
 
   implicit val merger = AppendixSkipListMerger
 
-  implicit def grouping = randomGroupByOption(randomNextInt(1000))
-
   implicit def segmentIO = SegmentIO.random
 
   val appendixReader = AppendixMapEntryReader(true, true)
@@ -663,7 +661,7 @@ class MapSpec extends TestBase {
             ).runRandomIO.right.value.item
 
           //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
-          val keyValues = randomizedKeyValues(1000, addPut = true, addGroups = false).toMemory
+          val keyValues = randomizedKeyValues(1000, addPut = true).toMemory
           //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
           keyValues.groupedSlice(5) foreach {
             keyValues =>
@@ -672,7 +670,7 @@ class MapSpec extends TestBase {
           map.skipList.values().asScala shouldBe keyValues
 
           //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
-          val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addPut = true, addGroups = false)
+          val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addPut = true)
           val updatedEntries = updatedValues.toMapEntry.value
           map.write(updatedEntries).runRandomIO.right.value shouldBe true
 

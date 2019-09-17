@@ -34,7 +34,6 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Memory.PendingApply
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data.{Memory, Value, _}
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect
 import swaydb.core.io.reader.Reader
 import swaydb.core.level.zero.{LevelZero, LevelZeroSkipListMerger}
@@ -112,12 +111,7 @@ object CommonAssertions {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
 
-      (actualMemory, expectedMemory) match {
-        case (actual: Memory.Group, expected: Memory.Group) =>
-          actual.segment.getAll().right.value shouldBe expected.segment.getAll().right.value
-        case _ =>
-          actualMemory should be(expectedMemory)
-      }
+      actualMemory should be(expectedMemory)
     }
 
     def getOrFetchValue: Option[Slice[Byte]] =
@@ -141,8 +135,6 @@ object CommonAssertions {
               RangeValueSerializer.write(keyValue.fromValue, keyValue.rangeValue)(bytes)
               Some(bytes)
 
-            case keyValue: Memory.Group =>
-              Option(keyValue.segmentBytes)
           }
         case keyValue: Transient =>
           keyValue match {
@@ -158,8 +150,6 @@ object CommonAssertions {
               keyValue.value
             case keyValue: Transient.Range =>
               keyValue.value
-            case keyValue: Transient.Group =>
-              Some(keyValue.blockedSegment.flattenSegmentBytes)
           }
         case keyValue: Persistent =>
           keyValue match {
@@ -179,9 +169,6 @@ object CommonAssertions {
               keyValue.toTransient.getOrFetchValue
 
             case keyValue: Persistent.Range =>
-              keyValue.toTransient.getOrFetchValue
-
-            case keyValue: Persistent.Group =>
               keyValue.toTransient.getOrFetchValue
           }
       }
@@ -225,49 +212,6 @@ object CommonAssertions {
 
   def eitherOne[T](one: => T, two: => T, three: => T, four: => T, five: => T, six: => T): T =
     Random.shuffle(Seq(() => one, () => two, () => three, () => four, () => five, () => six)).head()
-
-  def randomGroupByOption(keyValuesCount: Int = randomIntMax(50) max 1,
-                          keyValueSize: Option[Int] = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
-                          groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): Option[GroupByInternal.KeyValues] =
-    eitherOne(
-      left = None,
-      right = Some(randomGroupBy(keyValuesCount, keyValueSize, groupByGroups))
-    )
-
-  def randomGroupBy(keyValuesCount: Int = randomIntMax(50) max 1,
-                    keyValueSize: Option[Int] = eitherOne(None, Some(randomIntMax(1.mb) max 1)),
-                    groupByGroups: Option[GroupByInternal.Groups] = randomGroupByGroupsOption()): GroupByInternal.KeyValues = {
-
-    GroupByInternal.KeyValues(
-      count = keyValuesCount max 1,
-      size = keyValueSize,
-      groupByGroups = groupByGroups,
-      valuesConfig = ValuesBlock.Config.random,
-      sortedIndexConfig = SortedIndexBlock.Config.random,
-      binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-      hashIndexConfig = HashIndexBlock.Config.random,
-      bloomFilterConfig = BloomFilterBlock.Config.random,
-      groupConfig = SegmentBlock.Config.random,
-      applyGroupingOnCopy = randomBoolean()
-    )
-  }
-
-  def randomGroupByGroupsOption(keyValuesCount: Int = randomIntMax(50) max 1): Option[GroupByInternal.Groups] =
-    eitherOne(None, Some(randomGroupByGroups(keyValuesCount)))
-
-  def randomGroupByGroups(keyValuesCount: Int = randomIntMax(50) max 1,
-                          size: Option[Int] = eitherOne(None, Some(randomIntMax(1.mb) max 1))): GroupByInternal.Groups =
-    GroupByInternal.Groups(
-      count = keyValuesCount max 1,
-      size = size,
-      valuesConfig = ValuesBlock.Config.random,
-      sortedIndexConfig = SortedIndexBlock.Config.random,
-      binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-      hashIndexConfig = HashIndexBlock.Config.random,
-      bloomFilterConfig = BloomFilterBlock.Config.random,
-      groupConfig = SegmentBlock.Config.random,
-      applyGroupingOnCopy = randomBoolean()
-    )
 
   implicit class ValueImplicits(value: Value) {
 
@@ -370,16 +314,14 @@ object CommonAssertions {
                   oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: Slice[Transient],
                   isLastLevel: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] =
+                                                timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] =
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel)
 
   def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
                   oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
                   expected: Slice[Transient],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] = {
+                                        timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] = {
     val result =
       SegmentMerger.merge(
         newKeyValues = newKeyValues,
@@ -400,7 +342,7 @@ object CommonAssertions {
       result shouldBe empty
     } else {
       result should have size 1
-      val ungrouped = unzipGroups(result.head)
+      val ungrouped = result.head
       ungrouped should have size expected.size
       ungrouped.toMemory.toList should contain inOrderElementsOf expected.toMemory
     }
@@ -411,16 +353,14 @@ object CommonAssertions {
                   oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                      groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] =
+                                                      timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] =
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), Slice(lastLevelExpect))
 
   def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: Option[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                              timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.map(Slice(_)).getOrElse(Slice.empty))
     //println("*** Skip list assert ***")
@@ -431,8 +371,7 @@ object CommonAssertions {
                   oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                             groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                             timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValues, oldKeyValues, expected.toTransient(), isLastLevel = false)
     //println("*** Expected last level ***")
@@ -445,8 +384,7 @@ object CommonAssertions {
                   oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                             groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] = {
+                                                             timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] = {
     //    println("*** Last level = false ***")
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected.toTransient(), isLastLevel = false)
     //println("*** Last level = true ***")
@@ -457,16 +395,14 @@ object CommonAssertions {
                   oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
                   expected: Transient,
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        groupBy: Option[GroupByInternal.KeyValues]): Iterable[Iterable[Transient]] =
+                                        timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] =
     assertMerge(newKeyValues, oldKeyValues, Slice(expected), isLastLevel)
 
   def assertMerge(newKeyValue: Memory.Function,
                   oldKeyValue: Memory.PendingApply,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -477,8 +413,7 @@ object CommonAssertions {
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -489,8 +424,7 @@ object CommonAssertions {
                   oldKeyValue: Memory.Fixed,
                   expected: KeyValue.ReadOnly.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     RemoveMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -501,8 +435,7 @@ object CommonAssertions {
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -514,8 +447,7 @@ object CommonAssertions {
                   oldKeyValue: Memory.Fixed,
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -526,8 +458,7 @@ object CommonAssertions {
                   oldKeyValue: Memory.PendingApply,
                   expected: KeyValue.ReadOnly.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
@@ -539,8 +470,7 @@ object CommonAssertions {
                   oldKeyValue: Memory.PendingApply,
                   expected: Memory.PendingApply,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                   groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
     //todo merge with persistent
@@ -548,8 +478,8 @@ object CommonAssertions {
 
   implicit class SliceKeyValueImplicits(actual: Iterable[KeyValue]) {
     def shouldBe(expected: Iterable[KeyValue]): Unit = {
-      val unzipActual = unzipGroups(actual)
-      val unzipExpected = unzipGroups(expected)
+      val unzipActual = actual
+      val unzipExpected = expected
       unzipActual.size shouldBe unzipExpected.size
       unzipActual.zip(unzipExpected) foreach {
         case (left, right) =>
@@ -559,7 +489,7 @@ object CommonAssertions {
 
     def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]]) =
     //LevelZero does not write Groups therefore this unzip is required.
-      unzipGroups(actual).foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
+      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
         case (mapEntry, keyValue) =>
           val newEntry = MapEntry.Put[Slice[Byte], Memory.SegmentResponse](keyValue.key, keyValue.toMemoryResponse)
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
@@ -652,7 +582,6 @@ object CommonAssertions {
       actual.maxKey shouldBe expected.maxKey
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
       actual.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe expected.getBloomFilterKeyValueCount().runRandomIO.right.value
-      actual.isGrouped.runRandomIO.right.value shouldBe actual.isGrouped.runRandomIO.right.value
       actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
       assertReads(expected.getAll().runRandomIO.right.value, actual)
@@ -789,28 +718,25 @@ object CommonAssertions {
 
   def assertBloom(keyValues: Slice[Transient],
                   bloom: BloomFilterBlock.State) = {
-    val unzipedKeyValues = unzipGroups(keyValues)
     val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.bytes).get
 
-    unzipedKeyValues.par.count {
+    keyValues.par.count {
       keyValue =>
         BloomFilterBlock.mightContain(
           key = keyValue.key,
           reader = bloomFilter
         ).get
-    } should be >= (unzipedKeyValues.size * 0.90).toInt
+    } should be >= (keyValues.size * 0.90).toInt
 
     assertBloomNotContains(bloom)
   }
 
   def assertBloom(keyValues: Slice[Transient],
                   segment: Segment) = {
-    val unzipedKeyValues = unzipGroups(keyValues)
-
-    unzipedKeyValues.par.count {
+    keyValues.par.count {
       keyValue =>
         segment.mightContainKey(keyValue.key).runRandomIO.right.value
-    } shouldBe unzipedKeyValues.size
+    } shouldBe keyValues.size
 
     if (segment.hasBloomFilter.right.value)
       assertBloomNotContains(segment)
@@ -818,7 +744,7 @@ object CommonAssertions {
 
   def assertBloom(keyValues: Slice[Transient],
                   bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) = {
-    val unzipedKeyValues = unzipGroups(keyValues)
+    val unzipedKeyValues = keyValues
 
     unzipedKeyValues.par.count {
       keyValue =>
@@ -940,13 +866,13 @@ object CommonAssertions {
   private def runAssertGet(keyValues: Iterable[KeyValue],
                            segment: Segment,
                            parallel: Boolean = true) = {
-    val unzippedKeyValues =
+    val parallelKeyValues =
       if (parallel)
-        unzipGroups(keyValues).par
+        keyValues.par
       else
-        unzipGroups(keyValues)
+        keyValues
 
-    unzippedKeyValues foreach {
+    parallelKeyValues foreach {
       keyValue =>
         //        val intKey = keyValue.key.readInt()
         //        if (intKey % 1000 == 0)
@@ -966,7 +892,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos =
-            unzipGroups(segment.getAll().get) map {
+            segment.getAll().value map {
               keyValue =>
                 keyValue.toMemory match {
                   case response: Memory.SegmentResponse =>
@@ -994,9 +920,6 @@ object CommonAssertions {
                       case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
                         s"""RANGE - ${fromKey.readInt()} -> ${toKey.readInt()}, $fromValue (${fromValue.map(Value.hasTimeLeft)}), $rangeValue (${Value.hasTimeLeft(rangeValue)})"""
                     }
-
-                  case Memory.Group(minKey, maxKey, _, _) =>
-                    fail("should have ungrouped.")
                 }
             }
 
@@ -1027,7 +950,7 @@ object CommonAssertions {
 
   def assertGet(keyValues: Iterable[KeyValue],
                 level: LevelRef) =
-    unzipGroups(keyValues) foreach {
+    keyValues foreach {
       keyValue =>
         try
           level.get(keyValue.key).runRandomIO.get match {
@@ -1050,7 +973,7 @@ object CommonAssertions {
 
   def assertGetNone(keyValues: Iterable[KeyValue],
                     level: LevelRef) =
-    unzipGroups(keyValues) foreach {
+    keyValues foreach {
       keyValue =>
         try
           level.get(keyValue.key).runRandomIO.right.value shouldBe empty
@@ -1067,7 +990,7 @@ object CommonAssertions {
 
   def assertGetNone(keyValues: Iterable[KeyValue],
                     level: LevelZero) =
-    unzipGroups(keyValues).par foreach {
+    keyValues.par foreach {
       keyValue =>
         level.get(keyValue.key).runRandomIO.right.value shouldBe None
     }
@@ -1088,7 +1011,7 @@ object CommonAssertions {
 
   def assertGetNoneButLast(keyValues: Iterable[KeyValue],
                            level: LevelRef) = {
-    unzipGroups(keyValues).dropRight(1).par foreach {
+    keyValues.dropRight(1).par foreach {
       keyValue =>
         level.get(keyValue.key).runRandomIO.right.value shouldBe empty
     }
@@ -1101,7 +1024,7 @@ object CommonAssertions {
 
   def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValue],
                                      level: Level) =
-    unzipGroups(keyValues) foreach {
+    keyValues foreach {
       keyValue =>
         level.getFromThisLevel(keyValue.key).runRandomIO.right.value shouldBe empty
     }
@@ -1114,7 +1037,7 @@ object CommonAssertions {
   def assertHigherNone(keyValues: Iterable[KeyValue],
                        level: LevelRef,
                        shuffleTake: Option[Int] = None) = {
-    val unzipedKeyValues = unzipGroups(keyValues)
+    val unzipedKeyValues = keyValues
     val keyValuesToAssert = shuffleTake.map(Random.shuffle(unzipedKeyValues).take) getOrElse unzipedKeyValues
     keyValuesToAssert foreach {
       keyValue =>
@@ -1137,7 +1060,7 @@ object CommonAssertions {
   def assertLowerNone(keyValues: Iterable[KeyValue],
                       level: LevelRef,
                       shuffleTake: Option[Int] = None) = {
-    val unzipedKeyValues = unzipGroups(keyValues)
+    val unzipedKeyValues = keyValues
     val keyValuesToAssert = shuffleTake.map(Random.shuffle(unzipedKeyValues).take) getOrElse unzipedKeyValues
     keyValuesToAssert foreach {
       keyValue =>
@@ -1273,10 +1196,8 @@ object CommonAssertions {
     )
   }
 
-  def assertLower(_keyValues: Slice[KeyValue],
+  def assertLower(keyValues: Slice[KeyValue],
                   segment: Segment) = {
-
-    val keyValues = unzipGroups(_keyValues)
 
     @tailrec
     def assertLowers(index: Int) {
@@ -1308,27 +1229,9 @@ object CommonAssertions {
     assertLowers(0)
   }
 
-  def unzipGroups[T <: KeyValue](keyValues: Iterable[T])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                         memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
-                                                         segmentIO: SegmentIO = SegmentIO.random): Slice[Transient] =
-    keyValues.flatMap {
-      case keyValue: Transient.Group =>
-        unzipGroups(keyValue.keyValues)
-      case keyValue: KeyValue.ReadOnly.Group =>
-        unzipGroups(keyValue.segment.getAll().runRandomIO.right.value)
-      case keyValue: KeyValue =>
-        Slice(keyValue.toMemory)
-    }.toMemory.toTransient(
-      valuesConfig = Try(keyValues.last.asInstanceOf[Transient].valuesConfig) getOrElse ValuesBlock.Config.random,
-      sortedIndexConfig = Try(keyValues.last.asInstanceOf[Transient].sortedIndexConfig) getOrElse SortedIndexBlock.Config.random,
-      binarySearchIndexConfig = Try(keyValues.last.asInstanceOf[Transient].binarySearchIndexConfig) getOrElse BinarySearchIndexBlock.Config.random,
-      hashIndexConfig = Try(keyValues.last.asInstanceOf[Transient].hashIndexConfig) getOrElse HashIndexBlock.Config.random,
-      bloomFilterConfig = Try(keyValues.last.asInstanceOf[Transient].bloomFilterConfig) getOrElse BloomFilterBlock.Config.random
-    )
-
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(unzipGroups(keyValues), getHigher = key => IO(segment.higher(key).runRandomIO.right.value))
+    assertHigher(keyValues, getHigher = key => IO(segment.higher(key).runRandomIO.right.value))
 
   /**
    * Asserts that all key-values are returned in order when fetching higher in sequence.
@@ -1344,14 +1247,6 @@ object CommonAssertions {
         case range: KeyValue.ReadOnly.Range =>
           getHigher(range.fromKey).runRandomIO.right.value.value shouldBe range
           getHigher(range.toKey).runRandomIO.right.value shouldBe empty
-
-        case group: KeyValue.ReadOnly.Group =>
-          if (group.minKey equiv group.maxKey.maxKey) {
-            getHigher(group.minKey).runRandomIO.right.value shouldBe empty
-          } else {
-            getHigher(group.minKey).runRandomIO.right.value.value shouldBe group
-            getHigher(group.maxKey.maxKey).runRandomIO.right.value shouldBe empty
-          }
 
         case keyValue =>
           getHigher(keyValue.key).runRandomIO.right.value shouldBe empty
@@ -1383,24 +1278,18 @@ object CommonAssertions {
               //if the range's toKey is the same as next key, higher is next's next.
               //or if the next is group then
               if (next.key equiv range.toKey)
-                next match {
-                  case nextGroup: KeyValue.ReadOnly.Group if nextGroup.minKey != nextGroup.maxKey.maxKey =>
-                    toKeyHigher.value shouldBe nextGroup
-
-                  case _ =>
-                    //should be next next
-                    if (nextNext.isEmpty) //if there is no 3rd key, higher should be empty
-                      toKeyHigher shouldBe empty
-                    else
-                      try
-                        toKeyHigher.value shouldBe nextNext.value
-                      catch {
-                        case exception: Exception =>
-                          exception.printStackTrace()
-                          val toKeyHigher = getHigher(range.toKey).runRandomIO.right.value
-                          throw exception
-                      }
-                }
+              //should be next next
+                if (nextNext.isEmpty) //if there is no 3rd key, higher should be empty
+                  toKeyHigher shouldBe empty
+                else
+                  try
+                    toKeyHigher.value shouldBe nextNext.value
+                  catch {
+                    case exception: Exception =>
+                      exception.printStackTrace()
+                      val toKeyHigher = getHigher(range.toKey).runRandomIO.right.value
+                      throw exception
+                  }
               else
                 try
                   toKeyHigher.value shouldBe next
@@ -1411,10 +1300,6 @@ object CommonAssertions {
                     throw exception
                 }
           }
-
-        case group: KeyValue.ReadOnly.Group if group.minKey != group.maxKey.maxKey =>
-          getHigher(group.minKey).runRandomIO.right.value.value shouldBe group
-          getHigher(group.maxKey.maxKey).runRandomIO.right.value.value shouldBe next
 
         case _ =>
           Try(getHigher(keyValue.key).runRandomIO.right.value.value shouldBe next) recover {
@@ -1447,16 +1332,6 @@ object CommonAssertions {
       None
     else
       Some(expiredDeadline())
-
-  def readAll(group: Transient.Group): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] = {
-    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, SegmentBlock.Config.random).get
-    readAll(segment)
-  }
-
-  def readBlocks(group: Transient.Group): IO[swaydb.Error.Segment, Blocks] = {
-    val segment = SegmentBlock.writeClosed(Slice(group).updateStats, 0, SegmentBlock.Config.random).get
-    readBlocksFromSegment(segment)
-  }
 
   def readAll(closedSegment: SegmentBlock.Closed): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     readAll(closedSegment.flattenSegmentBytes)
@@ -1544,51 +1419,6 @@ object CommonAssertions {
         bloomFilterReader = blockCache.createBloomFilterReader().get
       )
     }
-
-  def printGroupHierarchy(keyValues: Slice[KeyValue.ReadOnly], spaces: Int)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                            memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
-                                                                            segmentIO: SegmentIO = SegmentIO.random): Unit =
-    keyValues foreachBreak {
-      case group: Persistent.Group =>
-        println(s"$spaces " + " " * spaces + group.getClass.getSimpleName)
-        printGroupHierarchy(group.segment.getAll().runRandomIO.right.value, spaces + 1)
-        false
-      case group: Memory.Group =>
-        println(s"$spaces " + " " * spaces + group.getClass.getSimpleName)
-        printGroupHierarchy(group.segment.getAll().runRandomIO.right.value, spaces + 1)
-        false
-      case _ =>
-        true
-    }
-
-  def printGroupHierarchy(segments: Slice[Segment]): Unit =
-    segments foreach {
-      segment =>
-        println(s"Segment: ${segment.path}")
-        printGroupHierarchy(segment.getAll().runRandomIO.right.value, 0)
-    }
-
-  def openGroups(keyValues: Slice[KeyValue.ReadOnly]): Slice[KeyValue.ReadOnly] =
-    keyValues flatMap {
-      case group: KeyValue.ReadOnly.Group =>
-        openGroup(group)
-
-      case keyValue =>
-        Slice(keyValue)
-    }
-
-  def openGroup(group: KeyValue.ReadOnly.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
-                                                segmentIO: SegmentIO = SegmentIO.random): Slice[KeyValue.ReadOnly] = {
-    val allKeyValues = group.segment.getAll().runRandomIO.right.value
-    allKeyValues flatMap {
-      case group: KeyValue.ReadOnly.Group =>
-        openGroup(group)
-
-      case keyValue =>
-        Slice(keyValue)
-    }
-  }
 
   def collapseMerge(newKeyValue: Memory.Fixed,
                     oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.ReadOnly.Fixed =
@@ -1680,12 +1510,6 @@ object CommonAssertions {
             toKey.shouldBeSliced()
             fromValue foreach assertSliced
             assertSliced(rangeValue)
-
-          case Memory.Group(minKey, maxKey, _, _) =>
-            minKey.shouldBeSliced()
-            maxKey.maxKey.shouldBeSliced()
-          //todo assert decompressed length
-          //            groupDecompressor.reader().runIO.remaining.runIO
         }
       case persistent: Persistent =>
         persistent match {
@@ -1718,10 +1542,6 @@ object CommonAssertions {
             _toKey.shouldBeSliced()
             range.fetchFromValue.runRandomIO.right.value foreach assertSliced
             assertSliced(range.fetchRangeValue.runRandomIO.right.value)
-
-          case Persistent.Group(_minKey, _maxKey, valueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, deadline, _) =>
-            _minKey.shouldBeSliced()
-            _maxKey.maxKey.shouldBeSliced()
         }
     }
 
@@ -1733,27 +1553,12 @@ object CommonAssertions {
             count
           case range: Transient.Range =>
             count + 1
-          case group: Transient.Group =>
-            count + countRangesManually(group.keyValues)
         }
     }
 
   implicit class BooleanImplicit(bool: Boolean) {
     def toInt =
       if (bool) 1 else 0
-  }
-
-  def assertGroup(group: Transient.Group)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                          memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
-                                          segmentIO: SegmentIO = SegmentIO.random): Persistent.Group = {
-    val readKeyValues = readAll(group).get
-    readKeyValues should have size 1
-    val persistedGroup = readKeyValues.head.asInstanceOf[Persistent.Group]
-    val groupKeyValues = persistedGroup.segment.getAll().get
-    groupKeyValues should have size group.keyValues.size
-    groupKeyValues shouldBe group.keyValues
-    //    persistedGroup.segment.blockCache.isCached shouldBe false
-    persistedGroup
   }
 
   implicit class SegmentIOImplicits(io: SegmentIO.type) {

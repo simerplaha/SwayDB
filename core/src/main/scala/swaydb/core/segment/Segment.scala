@@ -28,7 +28,6 @@ import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, DBFile, IOEffect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
@@ -60,7 +59,6 @@ private[core] object Segment extends LazyLogging {
                                              timeOrder: TimeOrder[Slice[Byte]],
                                              functionStore: FunctionStore,
                                              fileSweeper: FileSweeper.Enabled,
-                                             groupBy: Option[GroupByInternal.KeyValues],
                                              memorySweeper: Option[MemorySweeper.KeyValue],
                                              segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
@@ -99,9 +97,6 @@ private[core] object Segment extends LazyLogging {
                       case range: Transient.Range =>
                         MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                      case group: Transient.Group =>
-                        group.maxKey.unslice()
-
                       case keyValue: Transient.Fixed =>
                         MaxKey.Fixed(keyValue.key.unslice())
                     },
@@ -110,7 +105,6 @@ private[core] object Segment extends LazyLogging {
                   _hasRange = keyValues.last.stats.segmentHasRange,
                   _hasPut = keyValues.last.stats.segmentHasPut,
                   _hasGroup = keyValues.last.stats.segmentHasGroup,
-                  _isGrouped = groupBy.isDefined,
                   _createdInLevel = createdInLevel.toInt,
                   skipList = skipList,
                   bloomFilterReader = bloomFilter,
@@ -210,9 +204,6 @@ private[core] object Segment extends LazyLogging {
                     case range: Transient.Range =>
                       MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
 
-                    case group: Transient.Group =>
-                      group.maxKey.unslice()
-
                     case keyValue: Transient.Fixed =>
                       MaxKey.Fixed(keyValue.key.unslice())
                   },
@@ -242,7 +233,6 @@ private[core] object Segment extends LazyLogging {
                                                                 memorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
-                                                                compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment match {
       case segment: PersistentSegment =>
@@ -309,7 +299,6 @@ private[core] object Segment extends LazyLogging {
                                                                 memorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
-                                                                compression: Option[GroupByInternal.KeyValues],
                                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
       keyValues = keyValues,
@@ -365,7 +354,6 @@ private[core] object Segment extends LazyLogging {
                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper.Enabled,
-                                                               groupBy: Option[GroupByInternal.KeyValues],
                                                                memorySweeper: Option[MemorySweeper.KeyValue],
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     segment.getAll() flatMap {
@@ -397,7 +385,6 @@ private[core] object Segment extends LazyLogging {
                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper.Enabled,
-                                                               groupBy: Option[GroupByInternal.KeyValues],
                                                                memorySweeper: Option[MemorySweeper.KeyValue],
                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
     SegmentMerger.split(
@@ -554,9 +541,6 @@ private[core] object Segment extends LazyLogging {
                                         keyValues.last match {
                                           case fixed: KeyValue.ReadOnly.Fixed =>
                                             MaxKey.Fixed(fixed.key.unslice())
-
-                                          case group: KeyValue.ReadOnly.Group =>
-                                            group.maxKey.unslice()
 
                                           case range: KeyValue.ReadOnly.Range =>
                                             MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
@@ -828,9 +812,6 @@ private[core] object Segment extends LazyLogging {
           case (None, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
-
-      case group: KeyValue.ReadOnly.Group =>
-        IO(FiniteDurations.getNearestDeadline(deadline, group.deadline))
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
@@ -848,9 +829,6 @@ private[core] object Segment extends LazyLogging {
           case (None, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
-
-      case group: Transient.Group =>
-        FiniteDurations.getNearestDeadline(deadline, group.deadline)
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
@@ -928,8 +906,6 @@ private[core] trait Segment extends FileSweeperItem {
 
   def createdInLevel: IO[swaydb.Error.Segment, Int]
 
-  def isGrouped: IO[swaydb.Error.Segment, Boolean]
-
   def path: Path
 
   def put(newKeyValues: Slice[KeyValue.ReadOnly],
@@ -942,8 +918,7 @@ private[core] trait Segment extends FileSweeperItem {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                      groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]]
+          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[swaydb.Error.Segment, Slice[Segment]]
 
   def refresh(minSegmentSize: Long,
               removeDeletes: Boolean,
@@ -954,8 +929,7 @@ private[core] trait Segment extends FileSweeperItem {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator,
-                                                                                                          groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Segment, Slice[Segment]]
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[swaydb.Error.Segment, Slice[Segment]]
 
   def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 

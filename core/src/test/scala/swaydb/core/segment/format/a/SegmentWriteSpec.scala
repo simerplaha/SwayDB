@@ -31,7 +31,6 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.level.PathsDistributor
@@ -84,9 +83,6 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   implicit val testTimer: TestTimer = TestTimer.Incremental()
 
-  implicit def groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupByOption(keyValuesCount)
-
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
@@ -109,32 +105,32 @@ sealed trait SegmentWriteSpec extends TestBase {
           assert =
             (keyValues, segment) => {
               assertReads(keyValues, segment)
-//              segment.segmentId shouldBe IOEffect.fileId(segment.path).get._1
-//              segment.minKey shouldBe keyValues.head.key
-//              segment.maxKey shouldBe {
-//                keyValues.last match {
-//                  case _: Transient.Fixed =>
-//                    MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
-//
-//                  case group: Transient.Group =>
-//                    group.maxKey
-//
-//                  case range: Transient.Range =>
-//                    MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
-//                }
-//              }
-//              //ensure that min and max keys are slices
-//              segment.minKey.underlyingArraySize shouldBe 4
-//              segment.maxKey match {
-//                case MaxKey.Fixed(maxKey) =>
-//                  maxKey.underlyingArraySize shouldBe 4
-//
-//                case MaxKey.Range(fromKey, maxKey) =>
-//                  fromKey.underlyingArraySize shouldBe 4
-//                  maxKey.underlyingArraySize shouldBe 4
-//              }
-//              assertBloom(keyValues, segment)
-//              segment.close.right.value
+              //              segment.segmentId shouldBe IOEffect.fileId(segment.path).get._1
+              //              segment.minKey shouldBe keyValues.head.key
+              //              segment.maxKey shouldBe {
+              //                keyValues.last match {
+              //                  case _: Transient.Fixed =>
+              //                    MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
+              //
+              //                  case group: Transient.Group =>
+              //                    group.maxKey
+              //
+              //                  case range: Transient.Range =>
+              //                    MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
+              //                }
+              //              }
+              //              //ensure that min and max keys are slices
+              //              segment.minKey.underlyingArraySize shouldBe 4
+              //              segment.maxKey match {
+              //                case MaxKey.Fixed(maxKey) =>
+              //                  maxKey.underlyingArraySize shouldBe 4
+              //
+              //                case MaxKey.Range(fromKey, maxKey) =>
+              //                  fromKey.underlyingArraySize shouldBe 4
+              //                  maxKey.underlyingArraySize shouldBe 4
+              //              }
+              //              assertBloom(keyValues, segment)
+              //              segment.close.right.value
             }
         )
       }
@@ -165,69 +161,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             (keyValues, segment) => {
               segment.minKey shouldBe (0: Slice[Byte])
               segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](1, 10)
-              segment.close.runRandomIO.right.value
-            }
-        )
-      }
-    }
-
-    "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is Range" in {
-      runThis(50.times) {
-        assertSegment(
-          keyValues = Slice(randomFixedKeyValue(0).toTransient, randomGroup(Slice(randomFixedKeyValue(2), randomRangeKeyValue(5, 10)).toTransient)).updateStats,
-          assert =
-            (keyValues, segment) => {
-              segment.minKey shouldBe (0: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
-              segment.minKey.underlyingArraySize shouldBe ByteSizeOf.int
-
-              val rangeMaxKey = segment.maxKey.asInstanceOf[MaxKey.Range[Slice[Byte]]]
-              rangeMaxKey.maxKey.underlyingArraySize shouldBe ByteSizeOf.int
-              rangeMaxKey.fromKey.underlyingArraySize shouldBe ByteSizeOf.int
-
-              segment.close.runRandomIO.right.value
-            }
-        )
-      }
-    }
-
-    "set minKey & maxKey to be Range if last key-value is a Group and the Group's last key-value is Fixed" in {
-      runThis(30.times) {
-        assertSegment(
-          keyValues =
-            Slice(
-              randomFixedTransientKeyValue(0),
-              randomGroup(Slice(randomRangeKeyValue(5, 10), randomFixedKeyValue(20)).toTransient)
-            ).updateStats,
-
-          assert =
-            (keyValues, segment) => {
-              segment.minKey shouldBe (0: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Fixed[Slice[Byte]](20)
-              segment.close.runRandomIO.right.value
-            }
-        )
-      }
-    }
-
-    "set minKey & maxKey to be Range if the last key-value is a Group and the Group's last key-value is also another Group with range last key-Value" in {
-      runThis(10.times) {
-        assertSegment(
-          keyValues =
-            Slice(
-              randomFixedTransientKeyValue(0),
-              randomGroup(
-                Slice(
-                  randomFixedTransientKeyValue(2),
-                  randomGroup(Slice(randomFixedKeyValue(3), randomRangeKeyValue(5, 10)).toTransient)
-                ).updateStats
-              )
-            ).updateStats,
-
-          assert =
-            (keyValues, segment) => {
-              segment.minKey shouldBe (0: Slice[Byte])
-              segment.maxKey shouldBe MaxKey.Range[Slice[Byte]](5, 10)
               segment.close.runRandomIO.right.value
             }
         )
@@ -293,8 +226,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           List(
             () => randomFixedKeyValue(nextData, Some(nextData)),
             () => randomFixedKeyValue(nextData, Some(nextData)),
-            () => randomRangeKeyValue(nextData, nextData, randomFromValueOption(Some(nextData)), randomRangeValue(Some(nextData))),
-            () => randomGroup(Slice(randomFixedKeyValue(nextData, Some(nextData)).toTransient)).toMemory
+            () => randomRangeKeyValue(nextData, nextData, randomFromValueOption(Some(nextData)), randomRangeValue(Some(nextData)))
           )
 
         doAssert(
@@ -336,39 +268,6 @@ sealed trait SegmentWriteSpec extends TestBase {
       //        keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Some(Value.PendingApply(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty))),
       //        assert = doAssert
       //      )
-
-      //group can also have a range key-value which should have the same effect.
-
-      runThis(50.times) {
-        assertSegment(
-          keyValues =
-            Slice(
-              Memory.put(0),
-              randomGroup(
-                Slice(
-                  eitherOne(
-                    Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.remove(randomDeadlineOption, Time.empty)),
-                    Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.Function(randomFunctionId(), Time.empty)),
-                    Memory.Range(
-                      fromKey = 1,
-                      toKey = 10,
-                      fromValue = Some(Value.put(Some(1), randomDeadlineOption, Time.empty)),
-                      rangeValue =
-                        Value.PendingApply(
-                          applies =
-                            eitherOne(
-                              left = Slice(randomFunctionValue()),
-                              right = Slice(randomRemoveFunctionValue())
-                            )
-                        )
-                    )
-                  )
-                ).toTransient
-              ).toMemory
-            ).toTransient,
-          assert = doAssert
-        )
-      }
     }
 
     "create bloomFilter if the Segment has no Remove range key-values but has update range key-values. And set hasRange to true" in {
@@ -408,31 +307,6 @@ sealed trait SegmentWriteSpec extends TestBase {
                 )
             ),
 
-        assert =
-          (keyValues, segment) => {
-            segment.hasBloomFilter.runRandomIO.right.value shouldBe true
-            segment.hasRange.runRandomIO.right.value shouldBe true
-            segment.close.runRandomIO.right.value
-          }
-      )
-
-      assertSegment(
-        keyValues =
-          Slice(
-            Memory.put(0),
-            randomGroup(
-              Slice(Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.update(1, randomDeadlineOption))).toTransient
-            ).toMemory
-          ).toTransient(
-            bloomFilterConfig =
-              BloomFilterBlock.Config(
-                falsePositiveRate = 0.001,
-                minimumNumberOfKeys = 0,
-                optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                blockIO = _ => randomIOStrategy(),
-                compressions = _ => randomCompressionsOrEmpty()
-              )
-          ),
         assert =
           (keyValues, segment) => {
             segment.hasBloomFilter.runRandomIO.right.value shouldBe true
@@ -489,17 +363,6 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       assertSegment(
         keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addRanges = true, addPutDeadlines = true, addRemoveDeadlines = true).toTransient,
-        assert = doAssert
-      )
-
-      assertSegment(
-        keyValues =
-          Slice(
-            randomGroup(
-              Slice(
-                Memory.Range(1, 10, Some(Value.put(Some(1), randomDeadlineOption, Time.empty)), Value.update(1, randomDeadlineOption))).toTransient
-            )
-          ),
         assert = doAssert
       )
     }
@@ -655,7 +518,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           segment.isOpen shouldBe true
         }
 
-        unzipGroups(keyValues) foreach {
+        keyValues foreach {
           keyValue =>
             close
             open(keyValue)
@@ -712,7 +575,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     } else {
       implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
       implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(100.millisecond, ec))
-      val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+      val keyValues = randomizedKeyValues(keyValuesCount)
       val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).right.value
 
       segment1.getHeadKeyValueCount().right.value shouldBe keyValues.size
@@ -784,7 +647,6 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
       implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
 
       val keyValues = randomizedKeyValues(keyValuesCount)
@@ -860,9 +722,9 @@ sealed trait SegmentWriteSpec extends TestBase {
         segments.foreach(_.existsOnDisk shouldBe true)
 
         if (persistent)
-          unzipGroups(Segment.getAllKeyValues(segments).right.value) shouldBe unzipGroups(keyValues) //persistent Segments are simply copied and are not checked for removed key-values.
+          Segment.getAllKeyValues(segments).right.value shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
         else
-          unzipGroups(Segment.getAllKeyValues(segments).right.value) shouldBe unzipGroups(keyValues).collect { //memory Segments does a split/merge and apply lastLevel rules.
+          Segment.getAllKeyValues(segments).right.value shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
             case Transient.Range(fromKey, _, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
@@ -916,8 +778,6 @@ sealed trait SegmentWriteSpec extends TestBase {
       val levelPath = createNextLevelPath
       val nextSegmentId = nextId
 
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-
       def nextPath = {
         val segmentId = nextId
         val path = levelPath.resolve(IDGenerator.segmentId(segmentId))
@@ -959,7 +819,6 @@ sealed trait SegmentWriteSpec extends TestBase {
     "copy persistent segment and store it in Memory" in {
       runThis(100.times) {
         implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
-        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).right.value
         val levelPath = createNextLevelPath
@@ -998,9 +857,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
         implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
-        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-
-        val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+        val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).right.value
         val levelPath = createNextLevelPath
 
@@ -1030,7 +887,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
         //some key-values could value expired while unexpired key-values are being collected. So try again!
         IO {
-          Segment.getAllKeyValues(segments).right.value shouldBe unzipGroups(keyValues).collect {
+          Segment.getAllKeyValues(segments).right.value shouldBe keyValues.collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
             case Transient.Range(fromKey, _, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
@@ -1172,8 +1029,6 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "return multiple new segments with merged key values" in {
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).get
 
@@ -1223,8 +1078,6 @@ sealed trait SegmentWriteSpec extends TestBase {
       if (memory) {
         // not for in-memory Segments
       } else {
-
-        implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues).get
@@ -1287,7 +1140,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       deletedSegment should have size 1
       val newDeletedSegment = deletedSegment.head
-      unzipGroups(newDeletedSegment.getAll().right.value) shouldBe deleteKeyValues
+      newDeletedSegment.getAll().right.value shouldBe deleteKeyValues
 
       assertGet(keyValues, segment)
       if (persistent) assertGet(keyValues, segment.reopen)
@@ -1296,7 +1149,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "return new segment with updated KeyValues if all keys values were updated to None" in {
       implicit val testTimer: TestTimer = TestTimer.Incremental()
 
-      val keyValues = randomizedKeyValues(count = keyValuesCount, addGroups = false)
+      val keyValues = randomizedKeyValues(count = keyValuesCount)
       val segment = TestSegment(keyValues).right.value
 
       val updatedKeyValues = Slice.create[Memory](keyValues.size)
@@ -1319,7 +1172,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       updatedSegments should have size 1
 
       val newUpdatedSegment = updatedSegments.head
-      unzipGroups(newUpdatedSegment.getAll().right.value) shouldBe updatedKeyValues
+      newUpdatedSegment.getAll().right.value shouldBe updatedKeyValues
 
       assertGet(updatedKeyValues, newUpdatedSegment)
     }
@@ -1332,7 +1185,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         val segment1 = TestSegment(keyValues1).right.value
 
         val keyValues2Unclosed = Slice.create[Transient](keyValues1.size * 100)
-        unzipGroups(keyValues1) foreach {
+        keyValues1 foreach {
           keyValue =>
             keyValues2Unclosed add randomPutKeyValue(keyValue.key).toTransient
         }
@@ -1364,7 +1217,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             (mergedSegment get keyValue.key).right.value.value shouldBe keyValue
         }
 
-        unzipGroups(mergedSegment.getAll().right.value).size shouldBe keyValues2Closed.size
+        mergedSegment.getAll().right.value.size shouldBe keyValues2Closed.size
       }
     }
 
@@ -1376,8 +1229,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             randomFixedKeyValue(2),
             randomFixedKeyValue(3),
             randomFixedKeyValue(4),
-            randomRangeKeyValue(5, 10, Some(randomRangeValue()), randomRangeValue()),
-            randomGroup(Slice(randomFixedKeyValue(11), randomRangeKeyValue(12, 15, Some(randomRangeValue()), randomRangeValue())).toTransient).toMemory
+            randomRangeKeyValue(5, 10, Some(randomRangeValue()), randomRangeValue())
           ).toTransient
 
         val segment = TestSegment(keyValues).right.value
@@ -1466,8 +1318,6 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "distribute new Segments to multiple folders equally" in {
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-
       val keyValues1 = Slice(Transient.put(1, 1), Transient.put(2, 2), Transient.put(3, 3), Transient.put(4, 4), Transient.put(5, 5), Transient.put(6, 6)).updateStats
       val segment = TestSegment(keyValues1).right.value
 
@@ -1600,8 +1450,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "split & then write" should {
     "succeed for non group key-values" in {
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-      val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+      val keyValues = randomizedKeyValues(keyValuesCount)
 
       val result: Iterable[Iterable[Transient]] =
         SegmentMerger.split(
@@ -1620,29 +1469,6 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       result should have size 1
       result.head should have size keyValues.size
-
-      writeAndRead(result.head).right.value shouldBe keyValues
-    }
-
-    "succeed for grouped key-values" in {
-
-      val keyValues = randomizedKeyValues(keyValuesCount)
-
-      val result = SegmentMerger.split(
-        keyValues = keyValues,
-        minSegmentSize = 100.mb,
-        isLastLevel = false,
-        forInMemory = inMemoryStorage,
-        valuesConfig = ValuesBlock.Config.random,
-        sortedIndexConfig = SortedIndexBlock.Config.random,
-        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-        hashIndexConfig = HashIndexBlock.Config.random,
-        bloomFilterConfig = BloomFilterBlock.Config.random,
-        segmentIO = SegmentIO.random,
-        createdInLevel = randomIntMax()
-      )(keyOrder, Some(randomGroupBy())).right.value
-
-      result should have size 1
 
       writeAndRead(result.head).right.value shouldBe keyValues
     }

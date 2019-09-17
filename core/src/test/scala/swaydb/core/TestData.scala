@@ -36,7 +36,6 @@ import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
@@ -126,8 +125,7 @@ object TestData {
                                                  fileSweeper: FileSweeper.Enabled = fileSweeper,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                  blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
-                                                 segmentIO: SegmentIO = SegmentIO.random,
-                                                 groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomNextInt(1000))) {
+                                                 segmentIO: SegmentIO = SegmentIO.random) {
 
     def tryReopen: IO[swaydb.Error.Segment, Segment] =
       tryReopen(segment.path)
@@ -163,7 +161,6 @@ object TestData {
                                            ec: ExecutionContext,
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                            memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
-                                           compression: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomNextInt(1000)),
                                            segmentIO: SegmentIO = SegmentIO.random) {
 
     import swaydb.Error.Level.ExceptionHandler
@@ -410,24 +407,8 @@ object TestData {
           }
       }
 
-    def toMemoryGroup: Memory.Group =
-      keyValue match {
-        case group: Transient.Group =>
-          group match {
-            case Transient.Group(fromKey, toKey, mergedKey, _, compressedKeyValues, minMaxFunctionId, deadline, _, _, _, _, _, _, _) =>
-              Memory.Group(
-                minKey = fromKey,
-                maxKey = toKey,
-                blockedSegment = compressedKeyValues
-              )
-          }
-      }
-
     def toMemory: Memory = {
       keyValue match {
-        case group: Transient.Group =>
-          group.toMemoryGroup
-
         case _ =>
           toMemoryResponse
       }
@@ -669,28 +650,6 @@ object TestData {
                 bloomFilterConfig = bloomFilterConfig,
                 previous = previous
               )
-
-            case group: Memory.Group =>
-              implicit val segmentIO = SegmentIO.random
-              Transient.Group(
-                keyValues =
-                  group.segment.getAll().runRandomIO.right.value
-                    .toTransient(
-                      valuesConfig = valuesConfig,
-                      sortedIndexConfig = sortedIndexConfig,
-                      binarySearchIndexConfig = binarySearchIndexConfig,
-                      hashIndexConfig = hashIndexConfig,
-                      bloomFilterConfig = bloomFilterConfig
-                    ),
-                createdInLevel = group.segment.getFooter().get.createdInLevel,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
-                previous = previous,
-                groupConfig = SegmentBlock.Config.random
-              ).runRandomIO.right.value
           }
 
         case persistent: Persistent =>
@@ -783,41 +742,9 @@ object TestData {
                 bloomFilterConfig = bloomFilterConfig,
                 previous = previous
               )
-
-            case group: Persistent.Group =>
-              implicit val segmentIO = SegmentIO.random
-
-              Transient.Group(
-                keyValues = group.segment.getAll().runRandomIO.right.value.toTransient,
-                createdInLevel = group.segment.getFooter().get.createdInLevel,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
-                previous = previous,
-                groupConfig = SegmentBlock.Config.random
-              ).runRandomIO.right.value
           }
       }
     }
-
-    def toMemoryGroup =
-      keyValue match {
-        case Persistent.Group(minKey, maxKey, valueCache, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, sortedIndexAccessPosition, deadline) =>
-          val groupBytes = valueCache.value(KeyOrder.default, TestLimitQueues.memorySweeper, SegmentIO.random).readAllBytes().get.unslice()
-          groupBytes should not be empty
-          Memory.Group(
-            minKey = minKey,
-            maxKey = maxKey,
-            blockedSegment =
-              SegmentBlock.Closed(
-                segmentBytes = Slice(groupBytes), //Slice(valueReader.moveTo(valueOffset).read(valueLength).get.unslice()),
-                minMaxFunctionId = None,
-                nearestDeadline = deadline
-              )
-          )
-      }
 
     def toMemory: Memory = {
       keyValue match {
@@ -826,9 +753,6 @@ object TestData {
 
         case persistent: Persistent.SegmentResponse =>
           persistent.toMemoryResponse
-
-        case persistent: Persistent.Group =>
-          persistent.toMemoryGroup
       }
     }
 
@@ -1269,35 +1193,6 @@ object TestData {
         bloomFilterConfig = bloomFilterConfig,
         previous = previous
       )
-    else if (includeGroups && randomBoolean())
-      randomGroup(
-        keyValues =
-          (0 to maxGroupKeyValues) map {
-            i =>
-              randomTransientKeyValue(
-                key = key,
-                toKey = toKey,
-                value = value,
-                fromValue = fromValue,
-                rangeValue = rangeValue,
-                deadline = deadline,
-                time = time,
-                previous = previous,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
-                functionOutput = functionOutput,
-                includePendingApply = includePendingApply,
-                includeFunctions = includeFunctions,
-                includeRemoves = includeRemoves,
-                includePuts = includePuts,
-                includeRanges = includeRanges,
-                includeGroups = i % 4 == 0 && randomBoolean()
-              )
-          } updateStats
-      )
     else
       randomFixedTransientKeyValue(
         key = key,
@@ -1665,7 +1560,6 @@ object TestData {
                           addPutDeadlines: Boolean = randomBoolean(),
                           addExpiredPutDeadlines: Boolean = randomBoolean(),
                           addUpdateDeadlines: Boolean = randomBoolean(),
-                          addGroups: Boolean = randomBoolean(),
                           nestedGroupsKeyValueCount: Int = 5,
                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -1689,26 +1583,12 @@ object TestData {
       addPutDeadlines = addPutDeadlines,
       addExpiredPutDeadlines = addExpiredPutDeadlines,
       addUpdateDeadlines = addUpdateDeadlines,
-      addGroups = addGroups,
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       nestedGroupsKeyValueCount = nestedGroupsKeyValueCount,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig
-    )
-
-  def groupsOnly(count: Int = 5,
-                 startId: Option[Int] = None,
-                 valueSize: Int = 50,
-                 nonValue: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                            keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                            memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper): Slice[Transient] =
-    randomKeyValues(
-      count = count,
-      startId = startId,
-      valueSize = valueSize,
-      addGroups = true
     )
 
   def randomPutKeyValues(count: Int = 5,
@@ -1745,7 +1625,6 @@ object TestData {
                       addExpiredPutDeadlines: Boolean = false,
                       addUpdateDeadlines: Boolean = false,
                       addRanges: Boolean = false,
-                      addGroups: Boolean = false,
                       nestedGroupsKeyValueCount: Int = 5,
                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -1764,57 +1643,8 @@ object TestData {
       //      if (slice.written % 100000 == 0) println(s"Generated ${slice.written} key-values.")
       //protect from going into infinite loop
       if ((iteration >= count * 5) && slice.isEmpty) fail(s"Too many iterations ($iteration) without generated key-values. Expected $count.")
-      if (addGroups && randomBoolean() && randomBoolean()) {
-        //create a Random group with the inner key-values the same as count of this group.
-        val groupKeyValues =
-          randomKeyValues(
-            count = nestedGroupsKeyValueCount,
-            startId = Some(key),
-            valueSize = valueSize,
-            addPut = addPut,
-            addRemoves = addRemoves,
-            addRangeRemoves = addRangeRemoves,
-            addFunctions = addFunctions,
-            addUpdates = addUpdates,
-            addRemoveDeadlines = addRemoveDeadlines,
-            addExpiredPutDeadlines = addExpiredPutDeadlines,
-            addPendingApply = addPendingApply,
-            addPutDeadlines = addPutDeadlines,
-            addUpdateDeadlines = addUpdateDeadlines,
-            valuesConfig = valuesConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig,
-            nestedGroupsKeyValueCount = nestedGroupsKeyValueCount,
-            addRanges = addRanges,
-            addGroups = false //do not create more inner groups.
-          )
-        //could be possible that randomKeyValues returns empty if all generations were set to false.
-        if (groupKeyValues.isEmpty) {
-          if (randomBoolean()) key += 1
-        } else {
-          val group =
-            Transient.Group(
-              keyValues = groupKeyValues,
-              previous = slice.lastOption,
-              groupConfig = SegmentBlock.Config.random,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig,
-              createdInLevel = createdInLevel
-            ).runRandomIO.right.value
 
-          slice add group
-          //randomly skip the Group's toKey for the next key. Next key should not be the same as toKey so add a minimum of 1 to next key.
-          if (randomBoolean())
-            key = group.maxKey.maxKey.readInt() + 1
-          else
-            key = group.maxKey.maxKey.readInt() + 1 + randomIntMax(5)
-        }
-      } else if (addRanges && randomBoolean()) {
+      if (addRanges && randomBoolean()) {
         val toKey = key + 10
         val fromValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
         val rangeValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
@@ -1944,27 +1774,6 @@ object TestData {
       addPutDeadlines = addPutDeadlines,
       addRemoves = addRemoves,
       addRemoveDeadlines = addRemoveDeadlines)
-
-  def randomGroup(keyValues: Slice[Transient] = randomizedKeyValues()(TestTimer.random, KeyOrder.default, TestLimitQueues.memorySweeper),
-                  groupConfig: SegmentBlock.Config = SegmentBlock.Config.random,
-                  valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                  sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-                  binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
-                  hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                  bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                  previous: Option[Transient] = None,
-                  createdInLevel: Int = Int.MaxValue)(implicit testTimer: TestTimer = TestTimer.Incremental()): Transient.Group =
-    Transient.Group(
-      keyValues = keyValues,
-      previous = previous,
-      groupConfig = groupConfig,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      createdInLevel = createdInLevel
-    ).runRandomIO.right.value
 
   implicit class MemoryTypeImplicits(memory: Memory.type) {
 
@@ -2505,8 +2314,6 @@ object TestData {
             val fromTransient = range.fromValue.map(_.toMemory(Slice.emptyBytes).toTransient)
             val rangeTransient = range.rangeValue.toMemory(Slice.emptyBytes).toTransient
             collectUsedDeadlines(Slice(rangeTransient) ++ fromTransient, usedDeadlines)
-          case group: Transient.Group =>
-            collectUsedDeadlines(group.keyValues, usedDeadlines)
         }
     }
 
@@ -2529,7 +2336,6 @@ object TestData {
   def maxKey(keyValues: Slice[Transient]): MaxKey[Slice[Byte]] =
     getMaxKey(keyValues.last)
 
-  @tailrec
   def getMaxKey(transient: Transient): MaxKey[Slice[Byte]] =
     transient match {
       case last: Transient.Remove =>
@@ -2544,12 +2350,10 @@ object TestData {
         MaxKey.Fixed(last.key)
       case last: Transient.Range =>
         MaxKey.Range(last.fromKey, last.toKey)
-      case last: Transient.Group =>
-        getMaxKey(last.keyValues.last)
     }
 
   def unexpiredPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] =
-    unzipGroups(keyValues).flatMap {
+    keyValues.flatMap {
       keyValue =>
         keyValue.asPut flatMap {
           put =>
@@ -2561,7 +2365,7 @@ object TestData {
     }(collection.breakOut)
 
   def getPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] =
-    unzipGroups(keyValues).flatMap {
+    keyValues.flatMap {
       keyValue =>
         keyValue.asPut
     }(collection.breakOut)

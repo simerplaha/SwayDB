@@ -21,8 +21,8 @@ package swaydb.data.config
 
 import java.nio.file.Path
 
+import swaydb.Compression
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.api.grouping.{Compression, GroupBy}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.storage.Level0Storage
 
@@ -91,7 +91,6 @@ case class LevelZeroPersistentConfig(mapSize: Long,
                           valuesConfig: ValuesConfig,
                           segmentIO: IOAction => IOStrategy,
                           segmentCompressions: UncompressedBlockInfo => Seq[Compression],
-                          groupBy: Option[GroupBy.KeyValues],
                           compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -112,7 +111,6 @@ case class LevelZeroPersistentConfig(mapSize: Long,
         segmentCompressions = segmentCompressions,
         mightContainKey = mightContainIndex,
         values = valuesConfig,
-        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -123,7 +121,6 @@ case class LevelZeroPersistentConfig(mapSize: Long,
                       copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
                       mightContainKey: MightContainIndex,
-                      groupBy: Option[GroupBy.KeyValues],
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
@@ -133,7 +130,6 @@ case class LevelZeroPersistentConfig(mapSize: Long,
         copyForward = copyForward,
         mightContainKey = mightContainKey,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -162,7 +158,6 @@ case class LevelZeroMemoryConfig(mapSize: Long,
                           values: ValuesConfig,
                           segmentIO: IOAction => IOStrategy,
                           segmentCompressions: UncompressedBlockInfo => Seq[Compression],
-                          groupBy: Option[GroupBy.KeyValues],
                           compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -183,7 +178,6 @@ case class LevelZeroMemoryConfig(mapSize: Long,
         segmentCompressions = segmentCompressions,
         values = values,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -194,7 +188,6 @@ case class LevelZeroMemoryConfig(mapSize: Long,
                       copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
                       mightContainIndex: MightContainIndex,
-                      groupBy: Option[GroupBy.KeyValues],
                       compactionExecutionContext: CompactionExecutionContext,
                       throttle: LevelMeter => Throttle) =
     SwayDBMemoryConfig(
@@ -204,7 +197,6 @@ case class LevelZeroMemoryConfig(mapSize: Long,
         copyForward = copyForward,
         mightContainKey = mightContainIndex,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       ),
@@ -220,7 +212,6 @@ case class MemoryLevelConfig(segmentSize: Int,
                              copyForward: Boolean,
                              deleteSegmentsEventually: Boolean,
                              mightContainKey: MightContainIndex,
-                             groupBy: Option[GroupBy.KeyValues],
                              compactionExecutionContext: CompactionExecutionContext,
                              throttle: LevelMeter => Throttle) extends LevelConfig
 
@@ -239,7 +230,6 @@ case class PersistentLevelConfig(dir: Path,
                                  values: ValuesConfig,
                                  segmentIO: IOAction => IOStrategy,
                                  segmentCompressions: UncompressedBlockInfo => Seq[Compression],
-                                 groupBy: Option[GroupBy.KeyValues],
                                  compactionExecutionContext: CompactionExecutionContext,
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
@@ -292,7 +282,6 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                          values: ValuesConfig,
                          segmentIO: IOAction => IOStrategy,
                          segmentCompressions: UncompressedBlockInfo => Seq[Compression],
-                         groupBy: Option[GroupBy.KeyValues],
                          compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     addPersistentLevel(
@@ -312,7 +301,6 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
         segmentCompressions = segmentCompressions,
         mightContainKey = mightContainKey,
         values = values,
-        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       )
@@ -326,7 +314,6 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
                      copyForward: Boolean,
                      deleteSegmentsEventually: Boolean,
                      mightContainKey: MightContainIndex,
-                     groupBy: Option[GroupBy.KeyValues],
                      compactionExecutionContext: CompactionExecutionContext,
                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
@@ -336,7 +323,6 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
         copyForward = copyForward,
         deleteSegmentsEventually = deleteSegmentsEventually,
         mightContainKey = mightContainKey,
-        groupBy = groupBy,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       )
@@ -370,7 +356,6 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                          valuesConfig: ValuesConfig,
                          segmentIO: IOAction => IOStrategy,
                          segmentCompressions: UncompressedBlockInfo => Seq[Compression],
-                         groupBy: Option[GroupBy.KeyValues],
                          compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
@@ -391,7 +376,6 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           segmentIO = segmentIO,
           segmentCompressions = segmentCompressions,
           values = valuesConfig,
-          groupBy = groupBy,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
@@ -404,7 +388,6 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                      copyForward: Boolean,
                      deleteSegmentsEventually: Boolean,
                      mightContainKey: MightContainIndex,
-                     groupBy: Option[GroupBy.KeyValues],
                      compactionExecutionContext: CompactionExecutionContext,
                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
@@ -415,7 +398,6 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           copyForward = copyForward,
           deleteSegmentsEventually = deleteSegmentsEventually,
           mightContainKey = mightContainKey,
-          groupBy = groupBy,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )

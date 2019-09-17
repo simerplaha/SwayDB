@@ -28,7 +28,6 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -57,8 +56,6 @@ class LevelReadSomeSpec3 extends LevelReadSomeSpec {
 }
 
 sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
-
-  implicit def groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(keyValuesCount)
 
   //  override def deleteFiles = false
 

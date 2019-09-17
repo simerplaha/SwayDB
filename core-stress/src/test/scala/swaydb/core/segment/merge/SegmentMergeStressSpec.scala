@@ -23,7 +23,6 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -51,9 +50,7 @@ class SegmentMergeStressSpec extends TestBase {
         case (oldKeyValues, index) =>
           println(s"Iteration: $index/$maxIteration")
 
-          val newKeyValues = randomizedKeyValues(count = keyValueCount, startId = Some(index * 200), addGroups = false)
-
-          implicit val groupGroupBy = randomGroupByOption(10)
+          val newKeyValues = randomizedKeyValues(count = keyValueCount, startId = Some(index * 200))
 
           val mergedKeyValues =
             Benchmark("Merge performance") {

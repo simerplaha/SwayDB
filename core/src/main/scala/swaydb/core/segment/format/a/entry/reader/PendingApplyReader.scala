@@ -114,7 +114,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                                 ValuesBlock.valuesBlockNotInitialised
                             }
 
-                          case key @ (_: Key.Range | _: Key.Group) =>
+                          case key: Key.Range =>
                             IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
                         }
                     }

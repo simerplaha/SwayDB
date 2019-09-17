@@ -110,7 +110,6 @@ class SegmentBlockInitialisationSpec extends TestBase {
             randomizedKeyValues(
               count = 1000,
               startId = Some(1),
-              addGroups = false,
               addPut = true,
               addRanges = true,
               addUpdates = false,
@@ -168,7 +167,6 @@ class SegmentBlockInitialisationSpec extends TestBase {
             randomizedKeyValues(
               count = 100,
               startId = Some(1),
-              addGroups = false,
               addPut = true,
               addRanges = true,
               addUpdates = false,
@@ -219,7 +217,6 @@ class SegmentBlockInitialisationSpec extends TestBase {
             randomizedKeyValues(
               count = 100,
               startId = Some(1),
-              addGroups = false,
               addPut = true,
               addRanges = true,
               addUpdates = false,
@@ -377,7 +374,6 @@ class SegmentBlockInitialisationSpec extends TestBase {
           randomizedKeyValues(
             count = 1000,
             addPut = true,
-            addGroups = false,
             startId = Some(1)
           )
 

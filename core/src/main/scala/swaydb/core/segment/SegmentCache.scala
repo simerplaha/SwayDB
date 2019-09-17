@@ -90,14 +90,6 @@ private[core] class SegmentCache(id: String,
       memorySweeper.foreach(_.add(keyValue, skipList))
   }
 
-  private def addToCache(group: Persistent.Group): Unit = {
-    if (unsliceKey) group.unsliceKeys
-    if (!skipList.isConcurrent)
-      skipList.put(group.key, group)
-    else if (skipList.putIfAbsent(group.key, group))
-      memorySweeper.foreach(_.add(group, skipList))
-  }
-
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     skipList.get(key)
 
@@ -155,10 +147,6 @@ private[core] class SegmentCache(id: String,
                 addToCache(response)
                 IO.Right(Some(response))
 
-              case Some(group: Persistent.Group) =>
-                addToCache(group)
-                group.segment.get(key)
-
               case Some(fixed: Persistent.Partial.Fixed) =>
                 fixed.toPersistent map {
                   fixed =>
@@ -171,13 +159,6 @@ private[core] class SegmentCache(id: String,
                   range =>
                     addToCache(range)
                     Some(range)
-                }
-
-              case Some(response: Persistent.Partial.Group) =>
-                response.toPersistent flatMap {
-                  group =>
-                    addToCache(group)
-                    group.segment.get(key)
                 }
 
               case None =>
@@ -205,10 +186,6 @@ private[core] class SegmentCache(id: String,
         skipList.floor(key) match {
           case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
             IO.Right(Some(floor))
-
-          //check if the key belongs to this group.
-          case Some(group: Persistent.Group) if group contains key =>
-            group.segment.get(key)
 
           case Some(floorRange: Persistent.Range) if floorRange contains key =>
             IO.Right(Some(floorRange))
@@ -265,10 +242,6 @@ private[core] class SegmentCache(id: String,
                 addToCache(response)
                 IO.Right(Some(response))
 
-              case Some(group: Persistent.Group) =>
-                addToCache(group)
-                group.segment.lower(key)
-
               case Some(fixed: Persistent.Partial.Fixed) =>
                 fixed.toPersistent map {
                   persistent =>
@@ -281,13 +254,6 @@ private[core] class SegmentCache(id: String,
                   range =>
                     addToCache(range)
                     Some(range)
-                }
-
-              case Some(fixed: Persistent.Partial.Group) =>
-                fixed.toPersistent flatMap {
-                  group =>
-                    addToCache(group)
-                    group.segment.lower(key)
                 }
 
               case None =>
@@ -330,17 +296,11 @@ private[core] class SegmentCache(id: String,
                 lowerKeyValue match {
                   case response: Persistent.SegmentResponse =>
                     IO.Right(Some(response))
-
-                  case group: Persistent.Group =>
-                    group.segment.lower(key)
                 }
               else
                 lowerKeyValue match {
                   case lowerRange: Persistent.Range if lowerRange containsLower key =>
                     IO.Right(Some(lowerRange))
-
-                  case lowerGroup: Persistent.Group if lowerGroup containsLower key =>
-                    lowerGroup.segment.lower(key)
 
                   case lowerKeyValue: Persistent =>
                     getForLower(key) flatMap {
@@ -348,9 +308,6 @@ private[core] class SegmentCache(id: String,
                         lowerKeyValue match {
                           case response: Persistent.SegmentResponse =>
                             IO.Right(Some(response))
-
-                          case group: Persistent.Group =>
-                            group.segment.lower(key)
                         }
 
                       case someCeiling @ Some(ceilingRange: Persistent.Range) =>
@@ -363,18 +320,6 @@ private[core] class SegmentCache(id: String,
                             end = someCeiling,
                             keyValueCount = getFooter().map(_.keyValueCount)
                           )
-
-                      case someCeiling @ Some(ceilingGroup: Persistent.Group) =>
-                        if (ceilingGroup containsLower key)
-                          ceilingGroup.segment.lower(key)
-                        else
-                          lower(
-                            key = key,
-                            start = someLower,
-                            end = someCeiling,
-                            keyValueCount = getFooter().map(_.keyValueCount)
-                          )
-
                       case someCeiling @ Some(_: Persistent.Fixed) =>
                         lower(
                           key = key,
@@ -448,10 +393,6 @@ private[core] class SegmentCache(id: String,
                         addToCache(response)
                         IO.Right(Some(response))
 
-                      case Some(group: Persistent.Group) =>
-                        addToCache(group)
-                        group.segment.higher(key)
-
                       case Some(fixed: Persistent.Partial.Fixed) =>
                         fixed.toPersistent map {
                           persistent =>
@@ -464,13 +405,6 @@ private[core] class SegmentCache(id: String,
                           range =>
                             addToCache(range)
                             Some(range)
-                        }
-
-                      case Some(fixed: Persistent.Partial.Group) =>
-                        fixed.toPersistent flatMap {
-                          group =>
-                            addToCache(group)
-                            group.segment.higher(key)
                         }
 
                       case None =>
@@ -496,25 +430,16 @@ private[core] class SegmentCache(id: String,
               case floor: Persistent.Range if floor contains key =>
                 IO.Right(Some(floor))
 
-              case floor: Persistent.Group if floor containsHigher key =>
-                floor.segment.higher(key)
-
               case _ =>
                 skipList.higher(key) match {
                   case Some(higherRange: Persistent.Range) if higherRange contains key =>
                     IO.Right(Some(higherRange))
-
-                  case Some(higherGroup: Persistent.Group) if higherGroup containsHigher key =>
-                    higherGroup.segment.higher(key)
 
                   case someHigher @ Some(higherKeyValue) =>
                     if (floorEntry.nextIndexOffset == higherKeyValue.indexOffset)
                       higherKeyValue match {
                         case response: Persistent.SegmentResponse =>
                           IO.Right(Some(response))
-
-                        case group: Persistent.Group =>
-                          group.segment.higher(key)
                       }
                     else
                       higher(

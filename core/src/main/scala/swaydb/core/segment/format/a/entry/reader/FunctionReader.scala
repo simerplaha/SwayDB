@@ -110,7 +110,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                             ValuesBlock.valuesBlockNotInitialised
                         }
 
-                      case key @ (_: Key.Range | _: Key.Group) =>
+                      case key: Key.Range =>
                         IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
                     }
                 }

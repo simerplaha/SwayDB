@@ -23,7 +23,6 @@ import java.nio.file.{Path, Paths}
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory}
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.Slice
@@ -193,9 +192,6 @@ private[core] object TrashLevel extends NextLevel {
 
   override def optimalSegmentsToCollapse(take: Int): Iterable[Segment] =
     Segment.emptyIterable
-
-  override def groupBy: Option[GroupByInternal.KeyValues] =
-    None
 
   def lastSegmentId: Option[Long] =
     None

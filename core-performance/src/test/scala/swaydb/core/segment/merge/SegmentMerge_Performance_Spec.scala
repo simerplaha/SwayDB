@@ -21,7 +21,6 @@ package swaydb.core.segment.merge
 
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -39,13 +38,9 @@ class SegmentMerge_Performance_Spec extends TestBase {
   val keyValueCount = 100
 
   "performance" in {
-    //        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(100, keyValueSize = Some(1.mb), groupByGroups = None))
-    //        implicit val groupBy: Option[GroupByInternal.KeyValues] = Some(randomGroupBy(2, groupByGroups = Some(randomGroupByGroups(Int.MaxValue, size = Some(1.mb)))))
     //    implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(10, keyValueSize = None, groupByGroups = None)
-    implicit val groupBy: Option[GroupByInternal.KeyValues] = None
-
     val keyValues = randomKeyValues(100000)
-    Benchmark(s"SegmentMerger performance. groupBy: ${groupBy.map(_.count)}:${groupBy.flatMap(_.size)}.bytes - groupByGroups: ${groupBy.flatMap(_.groupByGroups.map(_.count))}:${groupBy.flatMap(_.groupByGroups.flatMap(_.size))}.bytes") {
+    Benchmark(s"SegmentMerger performance") {
       SegmentMerger.merge(
         newKeyValues = keyValues,
         oldKeyValues = keyValues,

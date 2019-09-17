@@ -97,9 +97,6 @@ private[writer] object TimeWriter {
         }
       case _: Transient.Range =>
         Time.empty
-
-      case _: Transient.Group =>
-        Time.empty
     }
 
   private def writePartiallyCompressed(currentTime: Time,

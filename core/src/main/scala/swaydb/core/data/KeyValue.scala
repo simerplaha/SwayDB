@@ -19,30 +19,24 @@
 
 package swaydb.core.data
 
-import java.beans.BeanProperty
-
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.cache.{Cache, NoIO}
+import swaydb.core.cache.Cache
 import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.group.compression.{GroupCompressor, GroupKeyCompressor}
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
-import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
+import swaydb.core.segment.Segment
+import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.{SegmentBlock, _}
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader._
 import swaydb.core.segment.format.a.entry.writer._
-import swaydb.core.segment.{Segment, SegmentCache}
-import swaydb.core.util.Collections._
-import swaydb.core.util.{Bytes, MinMax}
+import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.{Error, IO}
 
-import scala.beans.BeanProperty
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[core] sealed trait KeyValue {
@@ -169,39 +163,6 @@ private[core] object KeyValue {
           case (fromValue, rangeValue) =>
             fromValue getOrElse rangeValue
         }
-    }
-
-    object Group {
-      implicit class GroupImplicit(group: KeyValue.ReadOnly.Group) {
-        @inline def contains(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
-          import keyOrder._
-          key >= group.minKey && ((group.maxKey.inclusive && key <= group.maxKey.maxKey) || (!group.maxKey.inclusive && key < group.maxKey.maxKey))
-        }
-
-        @inline def containsHigher(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
-          import keyOrder._
-          key >= group.minKey && key < group.maxKey.maxKey
-        }
-
-        @inline def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
-          import keyOrder._
-          key > group.minKey && key <= group.maxKey.maxKey
-        }
-      }
-    }
-
-    sealed trait Group extends KeyValue.ReadOnly with CacheAble {
-      def minKey: Slice[Byte]
-      def maxKey: MaxKey[Slice[Byte]]
-      def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                  memorySweeper: Option[MemorySweeper.KeyValue],
-                  groupIO: SegmentIO): SegmentCache
-      def deadline: Option[Deadline]
-      def areAllCachesEmpty: Boolean
-      def isKeyValuesCacheEmpty: Boolean
-      def isBlockCacheEmpty: Boolean
-      def clearCachedKeyValues(): Unit
-      def clearBlockCache(): Unit
     }
   }
 
@@ -388,73 +349,6 @@ private[swaydb] object Memory {
     override def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)] =
       IO.Right(fromValue, rangeValue)
   }
-
-  object Group {
-    def apply(minKey: Slice[Byte],
-              maxKey: MaxKey[Slice[Byte]],
-              blockedSegment: SegmentBlock.Closed): Group =
-      Group(
-        minKey = minKey.unslice(),
-        maxKey = maxKey.unslice(),
-        segmentBytes = blockedSegment.flattenSegmentBytes.unslice(),
-        deadline = blockedSegment.nearestDeadline
-      )
-  }
-
-  case class Group(minKey: Slice[Byte],
-                   maxKey: MaxKey[Slice[Byte]],
-                   segmentBytes: Slice[Byte],
-                   deadline: Option[Deadline]) extends Memory with KeyValue.ReadOnly.Group {
-
-    private val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
-      Cache.noIO(synchronised = true, stored = true, initial = None) {
-        case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
-          SegmentCache(
-            id = "Memory.Group - BinarySegment",
-            maxKey = maxKey,
-            minKey = minKey,
-            unsliceKey = false,
-            blockRef = BlockRefReader(segmentBytes)(SegmentBlockOps),
-            segmentIO = groupIO
-          )(keyOrder, memorySweeper)
-      }
-
-    override def valueLength: Int = segmentBytes.size
-
-    override def indexEntryDeadline: Option[Deadline] = deadline
-
-    override def key: Slice[Byte] = minKey
-
-    override def areAllCachesEmpty: Boolean =
-      segmentCache.get() forall (_.areAllCachesEmpty)
-
-    def isKeyValuesCacheEmpty: Boolean =
-      segmentCache.get() forall (_.isKeyValueCacheEmpty)
-
-    def isBlockCacheEmpty: Boolean =
-      segmentCache.get() forall (_.isBlockCacheEmpty)
-
-    def clearCachedKeyValues(): Unit =
-      segmentCache.get() foreach (_.clearCachedKeyValues())
-
-    def clearBlockCache(): Unit =
-      segmentCache.get() foreach (_.clearLocalAndBlockCache())
-
-    def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                memorySweeper: Option[MemorySweeper.KeyValue],
-                config: SegmentIO): SegmentCache =
-      segmentCache getOrElse {
-        segmentCache.value(keyOrder, memorySweeper, config)
-      }
-
-    /**
-     * Simply clearing the [[segmentCache]] will not work. A new group is required because
-     * while [[MemorySweeper]] puts the Group back into it's cache some other thread might've
-     * read the [[segmentCache]] and therefore missing the [[SegmentCache.addToCache]] check.
-     */
-    def uncompress(): Memory.Group =
-      copy()
-  }
 }
 
 private[core] sealed trait Transient extends KeyValue { self =>
@@ -515,20 +409,10 @@ private[core] sealed trait Transient extends KeyValue { self =>
 private[core] object Transient {
 
   implicit class TransientIterableImplicits(keyValues: Slice[Transient]) {
-    def lastGroup(): Option[Transient.Group] =
-      keyValues.foldLeftWhile(Option.empty[Transient.Group], _.isGroup) {
-        case (_, group: Transient.Group) =>
-          Some(group)
-        case (previousGroup, _) =>
-          previousGroup
-      }
-
     def maxKey() =
       keyValues.last match {
         case range: Range =>
           MaxKey.Range(range.fromKey, range.toKey)
-        case group: Group =>
-          group.maxKey
         case fixed: Transient =>
           MaxKey.Fixed(fixed.key)
       }
@@ -546,9 +430,6 @@ private[core] object Transient {
 
   def hasSameValue(left: Transient, right: Transient): Boolean =
     (left, right) match {
-      //Groups
-      case (_: Transient.Group, right: Transient) => false
-      case (_: Transient, right: Transient.Group) => false
       //Remove
       case (left: Transient.Remove, right: Transient.Remove) => true
       case (left: Transient.Remove, right: Transient.Put) => right.value.isEmpty
@@ -606,7 +487,7 @@ private[core] object Transient {
       case _: Transient.Remove =>
         false
 
-      case _: Transient.Group | _: Transient.Range | _: Transient.PendingApply | _: Transient.Function =>
+      case _: Transient.Range | _: Transient.PendingApply | _: Transient.Function =>
         true
     }
 
@@ -621,8 +502,6 @@ private[core] object Transient {
           None
         else
           transient.value
-      case _: Transient.Group =>
-        None
     }
 
   def enablePrefixCompression(keyValue: Transient): Boolean =
@@ -679,13 +558,6 @@ private[core] object Transient {
                 previous = normalisedKeyValues.lastOption
               )
         }
-
-      case keyValue: Transient.Group =>
-        normalisedKeyValues add
-          keyValue.copy(
-            normaliseToSize = toSize,
-            previous = normalisedKeyValues.lastOption
-          )
     }
 
     normalisedKeyValues
@@ -1289,110 +1161,6 @@ private[core] object Transient {
         previous = previous
       )
   }
-
-  object Group {
-
-    final val id = 6.toByte
-
-    def apply(keyValues: Slice[Transient],
-              previous: Option[Transient],
-              createdInLevel: Int,
-              //compression is for the group's key-values.
-              groupConfig: SegmentBlock.Config,
-              //these configs are for the Group itself and not the key-values within the group.
-              valuesConfig: ValuesBlock.Config,
-              sortedIndexConfig: SortedIndexBlock.Config,
-              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-              hashIndexConfig: HashIndexBlock.Config,
-              bloomFilterConfig: BloomFilterBlock.Config): IO[swaydb.Error.Segment, Transient.Group] =
-      GroupCompressor.compress(
-        keyValues = keyValues,
-        previous = previous,
-        groupConfig = groupConfig,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
-  }
-
-  case class Group(minKey: Slice[Byte],
-                   maxKey: MaxKey[Slice[Byte]],
-                   mergedKey: Slice[Byte],
-                   normaliseToSize: Option[Int],
-                   blockedSegment: SegmentBlock.Closed,
-                   //the deadline is the nearest deadline in the Group's key-values.
-                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                   deadline: Option[Deadline],
-                   keyValues: Slice[Transient],
-                   valuesConfig: ValuesBlock.Config,
-                   sortedIndexConfig: SortedIndexBlock.Config,
-                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                   hashIndexConfig: HashIndexBlock.Config,
-                   bloomFilterConfig: BloomFilterBlock.Config,
-                   previous: Option[Transient]) extends Transient {
-    final val id = Group.id
-
-    def key = minKey
-
-    override val isRemoveRangeMayBe: Boolean = keyValues.last.stats.segmentHasRemoveRange
-    override val isRange: Boolean = keyValues.last.stats.segmentHasRange
-    override val isGroup: Boolean = true
-
-    override def values: Slice[Slice[Byte]] = blockedSegment.segmentBytes
-
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      SortedIndexEntryWriter.write(
-        current = this,
-        currentTime = Time.empty,
-        normaliseToSize = normaliseToSize,
-        //it's highly unlikely that 2 groups after compression will have duplicate values.
-        //compressDuplicateValues check is unnecessary since the value bytes of a group can be large.
-        compressDuplicateValues = false,
-        enablePrefixCompression = Transient.enablePrefixCompression(this)
-      ).unapply
-
-    override val hasValueEntryBytes: Boolean = previous.exists(_.hasValueEntryBytes) || valueEntryBytes.exists(_.nonEmpty)
-
-    val stats =
-      Stats(
-        keySize = minKey.size + maxKey.maxKey.size,
-        indexEntry = indexEntryBytes,
-        value = valueEntryBytes,
-        isRemoveRange = isRemoveRangeMayBe,
-        isRange = isRange,
-        isGroup = isGroup,
-        isPut = keyValues.last.stats.segmentHasPut,
-        isPrefixCompressed = isPrefixCompressed,
-        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
-        thisKeyValuesNumberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
-        thisKeyValuesUniqueKeys = keyValues.last.stats.segmentUniqueKeysCount,
-        sortedIndex = sortedIndexConfig,
-        bloomFilter = bloomFilterConfig,
-        hashIndex = hashIndexConfig,
-        binarySearch = binarySearchIndexConfig,
-        values = valuesConfig,
-        previousStats = previous.map(_.stats),
-        deadline = deadline
-      )
-
-    override def updatePrevious(valuesConfig: ValuesBlock.Config,
-                                sortedIndexConfig: SortedIndexBlock.Config,
-                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                                hashIndexConfig: HashIndexBlock.Config,
-                                bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[Transient]): Transient.Group =
-      this.copy(
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        previous = previous
-      )
-  }
 }
 
 private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial {
@@ -1429,7 +1197,6 @@ private[core] object Persistent {
     object Key {
       class Fixed(val key: Slice[Byte]) extends Key
       class Range(val fromKey: Slice[Byte], val toKey: Slice[Byte]) extends Key
-      class Group(val minKey: Slice[Byte], val maxKey: MaxKey[Slice[Byte]]) extends Key
     }
 
     sealed trait Fixed extends Persistent.Partial {
@@ -1440,12 +1207,6 @@ private[core] object Persistent {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
       def toPersistent: IO[Error.Segment, Persistent.Range]
-    }
-
-    sealed trait GroupT extends Persistent.Partial {
-      def minKey: Slice[Byte]
-      def maxKey: MaxKey[Slice[Byte]]
-      def toPersistent: IO[Error.Segment, Persistent.Group]
     }
 
     class Remove(val key: Slice[Byte],
@@ -1624,60 +1385,6 @@ private[core] object Persistent {
           nextIndexSize = nextIndexSize,
           valuesReader = valuesReader,
           entryReader = RangeReader,
-          previous = previous
-        )
-    }
-
-    object Group {
-      def apply(key: Slice[Byte],
-                indexBytes: Slice[Byte],
-                indexOffset: Int,
-                nextIndexOffset: Int,
-                nextIndexSize: Int,
-                sortedIndexAccessPosition: Int,
-                block: SortedIndexBlock,
-                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent.Partial]): IO[Error.Segment, Partial.Group] =
-        GroupKeyCompressor.decompress(key) map {
-          case (minKey, maxKey) =>
-            new Group(
-              minKey = minKey,
-              maxKey = maxKey,
-              indexOffset = indexOffset,
-              nextIndexOffset = nextIndexOffset,
-              nextIndexSize = nextIndexSize,
-              sortedIndexAccessPosition = sortedIndexAccessPosition,
-              indexBytes = indexBytes,
-              block = block,
-              valuesReader = valuesReader,
-              previous = previous
-            )
-        }
-    }
-
-    class Group(val minKey: Slice[Byte],
-                val maxKey: MaxKey[Slice[Byte]],
-                val indexOffset: Int,
-                val nextIndexOffset: Int,
-                val nextIndexSize: Int,
-                val sortedIndexAccessPosition: Int,
-                indexBytes: Slice[Byte],
-                block: SortedIndexBlock,
-                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent.Partial]) extends Partial.GroupT {
-      def key = minKey
-
-      override def toPersistent: IO[Error.Segment, Persistent.Group] =
-        SortedIndexEntryReader.completePartialRead(
-          indexEntry = indexBytes,
-          key = new Persistent.Partial.Key.Group(minKey, maxKey),
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          block = block,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          entryReader = GroupReader,
           previous = previous
         )
     }
@@ -2250,136 +1957,6 @@ private[core] object Persistent {
       valueCache.isCached
 
     override def toPersistent: IO[Error.Segment, Persistent.Range] =
-      IO.Right(this)
-  }
-
-  object Group {
-    def apply(key: Slice[Byte],
-              valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              nextIndexOffset: Int,
-              nextIndexSize: Int,
-              indexOffset: Int,
-              valueLength: Int,
-              valueOffset: Int,
-              sortedIndexAccessPosition: Int,
-              deadline: Option[Deadline]): IO[swaydb.Error.Segment, Group] =
-      GroupKeyCompressor.decompress(key) flatMap {
-        case (minKey, maxKey) =>
-          Group(
-            minKey = minKey,
-            maxKey = maxKey,
-            valueCache = valueCache,
-            nextIndexOffset = nextIndexOffset,
-            nextIndexSize = nextIndexSize,
-            indexOffset = indexOffset,
-            valueLength = valueLength,
-            valueOffset = valueOffset,
-            sortedIndexAccessPosition = sortedIndexAccessPosition,
-            deadline = deadline
-          )
-      }
-
-    def apply(minKey: Slice[Byte],
-              maxKey: MaxKey[Slice[Byte]],
-              valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              nextIndexOffset: Int,
-              nextIndexSize: Int,
-              indexOffset: Int,
-              valueLength: Int,
-              valueOffset: Int,
-              sortedIndexAccessPosition: Int,
-              deadline: Option[Deadline]): IO[swaydb.Error.Segment, Group] =
-      valueCache.value(ValuesBlock.Offset(valueOffset, valueLength)) map {
-        reader =>
-          val segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache] =
-            Cache.noIO(synchronised = true, stored = true, initial = None) {
-              case (keyOrder: KeyOrder[Slice[Byte]], memorySweeper: Option[MemorySweeper.KeyValue], groupIO: SegmentIO) =>
-                val blockRef: BlockRefReader[SegmentBlock.Offset] =
-                  BlockRefReader.moveTo(
-                    //cache will return a reader with the offset pointing to this Group's offset, here simply reset to return as an BlockRef within the parent Segment's values block.
-                    start = 0,
-                    size = valueLength,
-                    reader = reader.copy()
-                  )
-
-                SegmentCache(
-                  id = "Persistent.Group - BinarySegment",
-                  maxKey = maxKey,
-                  minKey = minKey,
-                  //persistent key-value's key do not have be sliced either because the decompressed bytes are still in memory.
-                  //slicing will just use more memory. On memory overflow the Group itself will find dropped and hence all the
-                  //key-values inside the group's SegmentCache will also be GC'd.
-                  unsliceKey = false,
-                  blockRef = blockRef,
-                  segmentIO = groupIO
-                )(keyOrder, memorySweeper)
-            }
-
-          Group(
-            _minKey = minKey,
-            _maxKey = maxKey,
-            segmentCache = segmentCache,
-            nextIndexOffset = nextIndexOffset,
-            nextIndexSize = nextIndexSize,
-            indexOffset = indexOffset,
-            valueOffset = valueOffset,
-            valueLength = valueLength,
-            sortedIndexAccessPosition = sortedIndexAccessPosition,
-            deadline = deadline
-          )
-      }
-  }
-
-  case class Group(private var _minKey: Slice[Byte],
-                   private var _maxKey: MaxKey[Slice[Byte]],
-                   segmentCache: NoIO[(KeyOrder[Slice[Byte]], Option[MemorySweeper.KeyValue], SegmentIO), SegmentCache],
-                   nextIndexOffset: Int,
-                   nextIndexSize: Int,
-                   indexOffset: Int,
-                   valueOffset: Int,
-                   valueLength: Int,
-                   sortedIndexAccessPosition: Int,
-                   deadline: Option[Deadline]) extends Persistent with KeyValue.ReadOnly.Group with Partial.GroupT {
-
-    def areAllCachesEmpty: Boolean =
-      segmentCache.get() forall (_.areAllCachesEmpty)
-
-    def isKeyValuesCacheEmpty: Boolean =
-      segmentCache.get() forall (_.isKeyValueCacheEmpty)
-
-    def isBlockCacheEmpty: Boolean =
-      segmentCache.get() forall (_.isBlockCacheEmpty)
-
-    def clearCachedKeyValues(): Unit =
-      segmentCache.get() foreach (_.clearCachedKeyValues())
-
-    def clearBlockCache(): Unit =
-      segmentCache.get() foreach (_.clearLocalAndBlockCache())
-
-    override def indexEntryDeadline: Option[Deadline] = deadline
-
-    override def key: Slice[Byte] =
-      _minKey
-
-    override def minKey: Slice[Byte] =
-      _minKey
-
-    override def maxKey: MaxKey[Slice[Byte]] =
-      _maxKey
-
-    override def unsliceKeys: Unit = {
-      this._minKey = _minKey.unslice()
-      this._maxKey = _maxKey.unslice()
-    }
-
-    def segment(implicit keyOrder: KeyOrder[Slice[Byte]],
-                memorySweeper: Option[MemorySweeper.KeyValue],
-                config: SegmentIO): SegmentCache =
-      segmentCache getOrElse {
-        segmentCache.value(keyOrder, memorySweeper, config)
-      }
-
-    override def toPersistent: IO[Error.Segment, Persistent.Group] =
       IO.Right(this)
   }
 }

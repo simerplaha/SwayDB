@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.BeforeAndAfterAll
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.configs.level.DefaultGroupBy
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -37,10 +36,6 @@ import scala.concurrent.duration._
 
 class Memory_WeatherDataSpec extends WeatherDataSpec {
   override val db = swaydb.memory.Map[Int, WeatherData]().get
-}
-
-class Memory_WeatherDataGroupBySpec extends WeatherDataSpec {
-  override val db = swaydb.memory.Map[Int, WeatherData](groupBy = Some(DefaultGroupBy())).get
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {

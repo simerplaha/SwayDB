@@ -426,17 +426,6 @@ private[core] object BinarySearchIndexBlock {
                       }
                     else
                       hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(matched.result))
-
-                  case group: Persistent.Partial.GroupT =>
-                    if (ordering.gt(context.targetKey, group.minKey))
-                      IO.Right {
-                        BinarySearchLowerResult.Some(
-                          lower = None,
-                          matched = Some(group)
-                        )
-                      }
-                    else
-                      hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(matched.result))
                 }
 
               case behind: KeyMatcher.Result.Behind =>

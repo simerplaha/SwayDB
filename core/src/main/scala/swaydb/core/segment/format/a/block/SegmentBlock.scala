@@ -19,9 +19,8 @@
 
 package swaydb.core.segment.format.a.block
 
-
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Compression, IO}
 import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
@@ -30,7 +29,6 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax, SkipList}
-import swaydb.data.api.grouping.Compression
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
@@ -236,21 +234,12 @@ private[core] object SegmentBlock {
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                        currentNearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, DeadlineAndFunctionId] = {
 
-    def writeOne(rootGroup: Option[Transient.Group],
-                 keyValue: Transient): IO[swaydb.Error.Segment, Unit] =
+    def writeOne(keyValue: Transient): IO[swaydb.Error.Segment, Unit] =
       keyValue match {
-        case childGroup: Transient.Group =>
-          writeMany(
-            rootGroup = rootGroup,
-            keyValues = childGroup.keyValues
-          )
 
         case keyValue @ (_: Transient.Range | _: Transient.Fixed) =>
           //always write to the rootGroup's accessIndexOffset. Nested group's key-values are just opened and indexed againsts the rootGroup's key-values.
-          val thisKeyValuesAccessOffset =
-            rootGroup
-              .map(_.stats.thisKeyValuesAccessIndexOffset)
-              .getOrElse(keyValue.stats.thisKeyValuesAccessIndexOffset)
+          val thisKeyValuesAccessOffset = keyValue.stats.thisKeyValuesAccessIndexOffset
 
           bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
@@ -260,7 +249,7 @@ private[core] object SegmentBlock {
               //Cannot copy HashIndex from a child Group key-values or prefixCompressed key-values because a Group's valueOffset
               //is embedded within that's Group's values block and the block might be compressed or prefix-compressed key-values.
               //Instead a reference entry is inserted into the HashIndex.
-                if (rootGroup.isEmpty && !keyValue.isPrefixCompressed)
+                if (!keyValue.isPrefixCompressed)
                   HashIndexBlock.writeCopied(
                     key = keyValue.key,
                     thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
@@ -303,18 +292,6 @@ private[core] object SegmentBlock {
       }
 
     @tailrec
-    def writeMany(rootGroup: Option[Transient.Group],
-                  keyValues: Slice[Transient]): IO[swaydb.Error.Segment, Unit] =
-      keyValues.headOption match {
-        case Some(keyValue) =>
-          writeOne(rootGroup, keyValue)
-          writeMany(rootGroup, keyValues.drop(1))
-
-        case None =>
-          IO.unit
-      }
-
-    @tailrec
     def writeRoot(keyValues: Slice[Transient],
                   currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                   currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId =
@@ -324,36 +301,11 @@ private[core] object SegmentBlock {
           var nextMinMaxFunctionId = currentMinMaxFunction
 
           keyValue match {
-            case rootGroup: Transient.Group =>
-              nextMinMaxFunctionId = MinMax.minMax(currentMinMaxFunction, rootGroup.minMaxFunctionId)(FunctionStore.order)
-
-              if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeMany(
-                  rootGroup = Some(rootGroup),
-                  keyValues = rootGroup.keyValues
-                ).get
-
-              memoryMap foreach {
-                skipList =>
-                  val minKeyUnsliced = rootGroup.key.unslice()
-                  skipList.put(
-                    minKeyUnsliced,
-                    Memory.Group(
-                      minKey = minKeyUnsliced,
-                      maxKey = rootGroup.maxKey.unslice(),
-                      blockedSegment = rootGroup.blockedSegment
-                    )
-                  )
-              }
-
             case range: Transient.Range =>
               nextMinMaxFunctionId = MinMax.minMaxFunction(range, currentMinMaxFunction)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(
-                  rootGroup = None,
-                  keyValue = range
-                ).get
+                writeOne(keyValue = range).get
 
               memoryMap foreach {
                 skipList =>
@@ -373,10 +325,7 @@ private[core] object SegmentBlock {
               nextMinMaxFunctionId = Some(MinMax.minMaxFunction(function, currentMinMaxFunction))
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(
-                  rootGroup = None,
-                  keyValue = function
-                ).get
+                writeOne(keyValue = function).get
 
               memoryMap foreach {
                 skipList =>
@@ -395,10 +344,7 @@ private[core] object SegmentBlock {
               nextMinMaxFunctionId = MinMax.minMaxFunction(pendingApply.applies, currentMinMaxFunction)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(
-                  rootGroup = None,
-                  keyValue = pendingApply
-                ).get
+                writeOne(keyValue = pendingApply).get
 
               memoryMap foreach {
                 skipList =>
@@ -414,10 +360,7 @@ private[core] object SegmentBlock {
 
             case put: Transient.Put =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(
-                  rootGroup = None,
-                  keyValue = put
-                ).get
+                writeOne(keyValue = put).get
 
               memoryMap foreach {
                 skipList =>
@@ -437,10 +380,7 @@ private[core] object SegmentBlock {
 
             case remove: Transient.Remove =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(
-                  rootGroup = None,
-                  keyValue = remove
-                ).get
+                writeOne(keyValue = remove).get
 
               memoryMap foreach {
                 skipList =>
@@ -456,13 +396,9 @@ private[core] object SegmentBlock {
                   )
               }
 
-
             case update: Transient.Update =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(
-                  rootGroup = None,
-                  keyValue = update
-                ).get
+                writeOne(keyValue = update).get
 
               memoryMap foreach {
                 skipList =>

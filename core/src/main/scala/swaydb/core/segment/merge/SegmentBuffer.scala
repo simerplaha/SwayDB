@@ -20,9 +20,6 @@
 package swaydb.core.segment.merge
 
 import swaydb.core.data.Transient
-import swaydb.core.group.compression.GroupByInternal
-import swaydb.data.slice.Slice
-import swaydb.IO
 
 import scala.collection.mutable.ListBuffer
 
@@ -42,17 +39,8 @@ sealed trait SegmentBuffer extends Iterable[Transient] {
 
 object SegmentBuffer {
 
-  def apply(groupBy: Option[GroupByInternal.KeyValues]): SegmentBuffer =
-    groupBy match {
-      case Some(groupBy) =>
-        new Grouped(ListBuffer.empty, groupBy, Slice.create[Transient.SegmentResponse](groupBy.count))
-
-      case None =>
-        new Flattened(ListBuffer.empty[Transient.SegmentResponse])
-    }
-
-  def apply(groupBy: GroupByInternal.KeyValues): SegmentBuffer.Grouped =
-    new Grouped(ListBuffer.empty, groupBy, Slice.create[Transient.SegmentResponse](groupBy.count))
+  def apply(): SegmentBuffer =
+    new Flattened(ListBuffer.empty[Transient.SegmentResponse])
 
   class Flattened(keyValues: ListBuffer[Transient.SegmentResponse]) extends SegmentBuffer {
     def add(keyValue: Transient.SegmentResponse): Unit =
@@ -90,145 +78,5 @@ object SegmentBuffer {
 
     override def isReadyForGrouping: Boolean =
       false
-  }
-
-  class Grouped(groups: ListBuffer[Transient.Group],
-                val groupBy: GroupByInternal.KeyValues,
-                private var _unGrouped: Slice[Transient.SegmentResponse]) extends SegmentBuffer {
-
-    def groupedKeyValues: Iterable[Transient.Group] =
-      groups
-
-    def unGrouped =
-      _unGrouped
-
-    def add(keyValue: Transient.SegmentResponse): Unit =
-      _unGrouped add keyValue
-
-    def addGroup[T: IO.ExceptionHandler](keyValue: Transient.Group): IO[T, Unit] =
-      if (_unGrouped.nonEmpty) {
-        IO.failed("Cannot add group. Has unGrouped key-values.")
-      } else {
-        groups += keyValue
-        IO.unit
-      }
-
-    def replaceGroupedKeyValues(keyValue: Transient.Group): Unit = {
-      groups += keyValue
-      _unGrouped = Slice.create[Transient.SegmentResponse](groupBy.count)
-    }
-
-    def replaceGroupedGroups(group: Transient.Group): Unit = {
-      groups.clear()
-      groups += group
-    }
-
-    def isLastGroup: Boolean =
-      groups.nonEmpty && _unGrouped.isEmpty
-
-    def currentGroups: Iterable[Transient.Group] =
-      groups
-
-    /**
-     * The cost of updatePrevious will be negligible since the number of grouping
-     * of groups is expected to be very low.
-     */
-    def getGroupsToGroup(groupBy: GroupByInternal.Groups): Slice[Transient.Group] = {
-      val slicedGroups = Slice.create[Transient.Group](groups.size)
-      groups foreach {
-        group =>
-          slicedGroups add
-            group.updatePrevious(
-              valuesConfig = groupBy.valuesConfig,
-              sortedIndexConfig = groupBy.sortedIndexConfig,
-              binarySearchIndexConfig = groupBy.binarySearchIndexConfig,
-              hashIndexConfig = groupBy.hashIndexConfig,
-              bloomFilterConfig = groupBy.bloomFilterConfig,
-              previous = slicedGroups.lastOption
-            )
-      }
-      slicedGroups
-    }
-
-    def shouldGroupKeyValues(force: Boolean): Boolean =
-      _unGrouped.nonEmpty && {
-        force ||
-          _unGrouped.isFull ||
-          _unGrouped.size >= groupBy.count || {
-          groupBy.size exists {
-            size =>
-              _unGrouped.lastOption exists {
-                last =>
-                  last.stats.segmentSizeWithoutFooter >= size
-              }
-          }
-        }
-      }
-
-    def shouldGroupGroups(groupBy: GroupByInternal.Groups): Boolean =
-      groups.nonEmpty && {
-        groups.size >= groupBy.count || {
-          groupBy.size exists {
-            size =>
-              groups.lastOption exists {
-                last =>
-                  last.stats.segmentSizeWithoutFooter >= size
-              }
-          }
-        }
-      }
-
-    override def isReadyForGrouping: Boolean =
-      _unGrouped.isFull
-
-    override def lastNonGroup: Transient.SegmentResponse =
-      _unGrouped.last
-
-    override def lastNonGroupOption: Option[Transient.SegmentResponse] =
-      _unGrouped.lastOption
-
-    def lastGroup: Option[Transient.Group] =
-      groups.lastOption
-
-    override def lastOption: Option[Transient] =
-      _unGrouped.lastOption orElse groups.lastOption
-
-    override def nonEmpty: Boolean =
-      groups.nonEmpty || _unGrouped.nonEmpty
-
-    override def isEmpty: Boolean =
-      groups.isEmpty && _unGrouped.nonEmpty
-
-    override def size: Int =
-      groups.size + _unGrouped.size
-
-    override def head =
-      unGrouped.headOption getOrElse groups.head
-
-    override def headOption =
-      unGrouped.headOption orElse groups.headOption
-
-    override def iterator: Iterator[Transient] =
-      new Iterator[Transient] {
-        val left = groups.iterator
-        val right = _unGrouped.iterator
-
-        var nextOne: Transient = _
-
-        override def hasNext: Boolean =
-          if (left.hasNext) {
-            nextOne = left.next()
-            true
-          } else if (right.hasNext) {
-            nextOne = right.next()
-            true
-          } else {
-            nextOne = null
-            false
-          }
-
-        override def next(): Transient =
-          nextOne
-      }
   }
 }

@@ -46,10 +46,6 @@ private[core] object PersistentToKeyValueIdBinder {
     override val keyValueId: KeyValueId = KeyValueId.Function
   }
 
-  implicit object GroupBinder extends PersistentToKeyValueIdBinder[Persistent.Group] {
-    override val keyValueId: KeyValueId = KeyValueId.Group
-  }
-
   implicit object RangeBinder extends PersistentToKeyValueIdBinder[Persistent.Range] {
     override val keyValueId: KeyValueId = KeyValueId.Range
   }

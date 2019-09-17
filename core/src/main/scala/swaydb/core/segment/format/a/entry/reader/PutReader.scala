@@ -107,7 +107,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                               )
                             }
 
-                          case key @ (_: Key.Range | _: Key.Group) =>
+                          case key: Key.Range =>
                             IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
                         }
                     }

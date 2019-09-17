@@ -118,24 +118,6 @@ private[core] object DeadlineAndFunctionId {
               minMaxFunctionId = MinMax.minMaxFunction(None, rangeValue, minMaxFunctionId)
             )
         }
-
-      case group: KeyValue.ReadOnly.Group =>
-        val nextDeadline = FiniteDurations.getNearestDeadline(deadline, group.deadline)
-
-        group
-          .segment
-          .getAll()
-          .flatMap {
-            keyValues =>
-              keyValues.foldLeftIO(DeadlineAndFunctionId(nextDeadline, minMaxFunctionId)) {
-                case (minMax, keyValue) =>
-                  apply(
-                    deadline = minMax.nearestDeadline,
-                    minMaxFunctionId = minMax.minMaxFunctionId,
-                    next = keyValue
-                  )
-              }
-          }
     }
 }
 

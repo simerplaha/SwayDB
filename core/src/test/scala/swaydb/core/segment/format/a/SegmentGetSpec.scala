@@ -28,7 +28,6 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -69,9 +68,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
   implicit val keyOrder = KeyOrder.default
 
   def keyValuesCount: Int
-
-  implicit val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupByOption(keyValuesCount)
 
   "Segment.get" should {
 
@@ -151,22 +147,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       }
     }
 
-    "value Group key-values" in {
-      //run this test randomly to possibly test all range key-value combinations
-      runThis(5.times, log = true) {
-        val nestedGroupsKeyValueCount = 5
-        val groupKeyValues = randomizedKeyValues(keyValuesCount, nestedGroupsKeyValueCount = nestedGroupsKeyValueCount)
-        val group = randomGroup(groupKeyValues)
-        val keyValues = Slice(group).updateStats
-        assertSegment(
-          keyValues = keyValues,
-          assert =
-            (_, segment) =>
-              assertGet(groupKeyValues, segment)
-        )
-      }
-    }
-
     "value random key-values" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues).runRandomIO.right.value
@@ -175,7 +155,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "add unsliced key-values to Segment's caches" in {
       assertSegment(
-        keyValues = randomizedKeyValues(keyValuesCount, addGroups = false),
+        keyValues = randomizedKeyValues(keyValuesCount),
         testAgainAfterAssert = false,
         assert =
           (keyValues, segment) =>
@@ -204,7 +184,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       runThis(20.times, log = true) {
         assertSegment(
           keyValues =
-            randomizedKeyValues(keyValuesCount, addGroups = false),
+            randomizedKeyValues(keyValuesCount),
 
           testAgainAfterAssert =
             false,
@@ -244,7 +224,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     //          testAgainAfterAssert = false,
     //          assert =
     //            (keyValues, segment) =>
-    //              unzipGroups(keyValues) foreach {
+    //              keyValues foreach {
     //                keyValue =>
     //                  val readKeyValue = segment.get(keyValue.key).runIO
     //

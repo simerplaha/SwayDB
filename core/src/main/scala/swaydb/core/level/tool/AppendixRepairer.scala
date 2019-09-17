@@ -51,7 +51,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
       AppendixMapEntryReader(
         mmapSegmentsOnRead = false,
         mmapSegmentsOnWrite = false
-      )(keyOrder, timeOrder, functionStore, None, fileSweeper, None, SegmentIO.defaultSynchronisedStoredIfCompressed, None)
+      )(keyOrder, timeOrder, functionStore, None, fileSweeper, None, SegmentIO.defaultSynchronisedStoredIfCompressed)
 
     import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._

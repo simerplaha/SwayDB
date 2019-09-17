@@ -19,7 +19,7 @@
 
 package swaydb.data.config
 
-import swaydb.data.api.grouping.Compression
+import swaydb.Compression
 
 sealed trait MightContainIndex {
   def toOption: Option[MightContainIndex.Enable] =

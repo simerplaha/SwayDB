@@ -32,7 +32,6 @@ import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, Time, Transient}
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, IOEffect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -251,8 +250,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
-                                                                               segmentIO: SegmentIO = SegmentIO.random,
-                                                                               groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(randomIntMax(1000))): IO[swaydb.Error.Segment, Segment] =
+                                                                               segmentIO: SegmentIO = SegmentIO.random): IO[swaydb.Error.Segment, Segment] =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
@@ -316,8 +314,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                       memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
                                                       fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
                                                       blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
-                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                      compression: Option[GroupByInternal.KeyValues] = randomGroupBy(randomNextInt(1000))): Level =
+                                                      timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Level =
       Level(
         segmentSize = segmentSize,
         levelStorage = levelStorage,
@@ -415,8 +412,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                   level2KeyValues: TestTimer => Slice[Memory] = _ => Slice.empty,
                   assertLevel2: (Slice[Memory], LevelRef) => Unit = (_, _) => (),
                   assertAllLevels: (Slice[Memory], Slice[Memory], Slice[Memory], LevelRef) => Unit = (_, _, _, _) => (),
-                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                               groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                  throttleOn: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
 
     def iterationMessage =
       s"Thread: ${Thread.currentThread().getId} - throttleOn: $throttleOn"
@@ -603,8 +599,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                               assertLevel3: LevelRef => Unit,
                               level3: Level,
                               assertAllLevels: LevelRef => Unit,
-                              assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 groupBy: Option[GroupByInternal.KeyValues]): Unit = {
+                              assertLevel3ForAllLevels: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): Unit = {
     println("level3.putKeyValues")
     if (level3KeyValues.nonEmpty) level3.putKeyValuesTest(level3KeyValues).runRandomIO.right.value
     println("level2.putKeyValues")
@@ -660,8 +655,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
-                                                          segmentIO: SegmentIO = SegmentIO.random,
-                                                          groupBy: Option[GroupByInternal.KeyValues]) = {
+                                                          segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
     val segment = TestSegment(keyValues).right.value
     if (closeAfterCreate) segment.close.right.value

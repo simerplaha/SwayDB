@@ -40,8 +40,6 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit def groupBy = randomGroupByOption(randomNextInt(1000) max 1)
-
   "Single into Range" when {
 
     "left out" in {

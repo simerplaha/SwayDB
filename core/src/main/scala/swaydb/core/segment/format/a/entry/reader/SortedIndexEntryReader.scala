@@ -211,18 +211,6 @@ object SortedIndexEntryReader {
                             valuesReader = valuesReader,
                             previous = previous
                           )
-                        else if (id == Transient.Group.id)
-                          Persistent.Partial.Group(
-                            key = key,
-                            indexBytes = tailIndexBytes,
-                            indexOffset = indexOffset,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition,
-                            block = block,
-                            valuesReader = valuesReader,
-                            previous = previous
-                          )
                         else
                           IO.failed(s"Invalid partialRead entryId: $id")
                     }
@@ -311,21 +299,6 @@ object SortedIndexEntryReader {
                     nextIndexSize = nextIndexSize,
                     previous = previous,
                     entryReader = PutReader
-                  )
-                else if (KeyValueId.Group hasKeyValueId keyValueId)
-                  SortedIndexEntryReader.parse(
-                    baseId = KeyValueId.Group.adjustKeyValueIdToBaseId(keyValueId),
-                    keyValueId = keyValueId,
-                    sortedIndexAccessPosition = sortedIndexAccessPosition,
-                    keyInfo = keySize,
-                    mightBeCompressed = mightBeCompressed,
-                    indexReader = reader,
-                    valuesReader = valuesReader,
-                    indexOffset = indexOffset,
-                    nextIndexOffset = nextIndexOffset,
-                    nextIndexSize = nextIndexSize,
-                    previous = previous,
-                    entryReader = GroupReader
                   )
                 else if (KeyValueId.Range hasKeyValueId keyValueId)
                   SortedIndexEntryReader.parse(
@@ -529,24 +502,6 @@ object SortedIndexEntryReader {
                                 nextIndexSize = nextIndexSize,
                                 previous = previous,
                                 entryReader = RangeReader
-                              )
-                          }
-                        else if (id == Transient.Group.id)
-                          GroupKeyCompressor.decompress(key) flatMap {
-                            case (minKey, maxKey) =>
-                              SortedIndexEntryReader.parse(
-                                baseId = baseId,
-                                keyValueId = baseId,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition,
-                                keyInfo = Some(Right(new Persistent.Partial.Key.Group(minKey, maxKey))),
-                                mightBeCompressed = mightBeCompressed,
-                                indexReader = reader,
-                                valuesReader = valuesReader,
-                                indexOffset = indexOffset,
-                                nextIndexOffset = nextIndexOffset,
-                                nextIndexSize = nextIndexSize,
-                                previous = previous,
-                                entryReader = GroupReader
                               )
                           }
                         else

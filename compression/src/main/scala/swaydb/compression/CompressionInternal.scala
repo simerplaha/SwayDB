@@ -20,7 +20,7 @@
 package swaydb.compression
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.data.api.grouping
+import swaydb.Compression
 
 import scala.util.Random
 
@@ -33,19 +33,19 @@ private[swaydb] sealed trait CompressionInternal {
 
 private[swaydb] object CompressionInternal extends LazyLogging {
 
-  def apply(compression: grouping.Compression): CompressionInternal =
+  def apply(compression: Compression): CompressionInternal =
     compression match {
-      case lz4: grouping.Compression.LZ4 =>
+      case lz4: swaydb.Compression.LZ4 =>
         CompressionInternal(lz4)
 
-      case grouping.Compression.Snappy(minCompressionPercentage) =>
+      case swaydb.Compression.Snappy(minCompressionPercentage) =>
         CompressionInternal.Snappy(minCompressionPercentage)
 
-      case grouping.Compression.None =>
+      case swaydb.Compression.None =>
         CompressionInternal.UnCompressedGroup
     }
 
-  def apply(compression: grouping.Compression.LZ4): CompressionInternal.LZ4 =
+  def apply(compression: swaydb.Compression.LZ4): CompressionInternal.LZ4 =
     CompressionInternal.LZ4(
       compressor = CompressorInternal(compression.compressor._1, compression.compressor._2),
       decompressor = DecompressorInternal(compression.decompressor._1, compression.decompressor._2)

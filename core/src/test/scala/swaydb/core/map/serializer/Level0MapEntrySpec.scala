@@ -81,8 +81,7 @@ class Level0MapEntrySpec extends TestBase {
           addRemoveDeadlines = true,
           addPutDeadlines = true,
           addExpiredPutDeadlines = true,
-          addUpdateDeadlines = true,
-          addGroups = false
+          addUpdateDeadlines = true
         )
 
       keyValues foreach {
@@ -115,9 +114,6 @@ class Level0MapEntrySpec extends TestBase {
           import LevelZeroMapEntryReader.Level0RangeReader
           import LevelZeroMapEntryWriter.Level0RangeWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Range]))
-
-        case keyValue: Transient.Group =>
-          fail("Groups are not added to Level0")
       }
     }
 

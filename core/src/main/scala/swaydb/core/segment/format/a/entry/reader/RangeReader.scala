@@ -103,11 +103,10 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                         ValuesBlock.valuesBlockNotInitialised
                     }
 
-                  case key @ (_: Key.Fixed | _: Key.Group) =>
+                  case key: Key.Fixed =>
                     IO.failed(s"Expected Range key. Actual: ${key.getClass.getSimpleName}")
                 }
             }
-
 
           case None =>
             KeyReader.read(

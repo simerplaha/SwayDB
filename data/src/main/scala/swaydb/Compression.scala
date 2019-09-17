@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.api.grouping
+package swaydb
 
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 

@@ -34,8 +34,6 @@ class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
-  implicit def groupBy = randomGroupByOption(randomNextInt(1000))
-
   "Merging Function into PendingApply with a single apply" when {
 
     "times are in order" should {

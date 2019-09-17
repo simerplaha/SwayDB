@@ -19,14 +19,13 @@
 
 package swaydb.core.actor
 
-import swaydb.{Actor, ActorRef}
-import swaydb.core.actor.Command.WeighedKeyValue
-import swaydb.core.data.{KeyValue, Memory, Persistent}
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.util.{HashedMap, SkipList}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+import swaydb.{Actor, ActorRef}
 
 import scala.ref.WeakReference
 
@@ -40,10 +39,6 @@ private[core] object Command {
 
   case class WeighKeyValue(keyValueRef: WeakReference[Persistent.SegmentResponse],
                            skipListRef: WeakReference[SkipList[Slice[Byte], _]]) extends KeyValueCommand
-
-  case class WeighedKeyValue(keyValueRef: WeakReference[KeyValue.ReadOnly.Group],
-                             skipListRef: WeakReference[SkipList[Slice[Byte], _]],
-                             weight: Int) extends KeyValueCommand
 
   case class Block(key: BlockCache.Key,
                    valueSize: Int,
@@ -99,9 +94,6 @@ private[core] object MemorySweeper {
           keyValue =>
             MemorySweeper.weight(keyValue).toInt
         } getOrElse 264 //264 for the weight of WeakReference itself.
-
-      case custom: WeighedKeyValue =>
-        custom.weight
     }
 
   def weight(keyValue: Persistent.SegmentResponse) = {
@@ -132,34 +124,7 @@ private[core] object MemorySweeper {
             skipList <- command.skipListRef.get
             keyValue <- command.keyValueRef.get
           } yield {
-            keyValue match {
-              case group: swaydb.core.data.KeyValue.ReadOnly.Group =>
-
-                /**
-                 * Before removing Group, check if removes cache key-values it is enough,
-                 * if it's already clear only then remove.
-                 */
-                if (!group.isBlockCacheEmpty) {
-                  group.clearBlockCache()
-                  self ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
-                } else if (!group.isKeyValuesCacheEmpty) {
-                  group.clearCachedKeyValues()
-                  self ! Command.WeighedKeyValue(new WeakReference(group), new WeakReference[SkipList[Slice[Byte], _]](skipList), keyValue.valueLength)
-                } else {
-                  group match {
-                    case group: Memory.Group =>
-                      //Memory.Group key-values are only uncompressed. DO NOT REMOVE THEM!
-                      val uncompressedGroup = group.uncompress()
-                      skipList.asInstanceOf[SkipList[Slice[Byte], Memory]].put(uncompressedGroup.key, uncompressedGroup)
-
-                    case group: Persistent.Group =>
-                      skipList remove group.key
-                  }
-                }
-
-              case _: Persistent.SegmentResponse =>
-                skipList remove keyValue.key
-            }
+            skipList remove keyValue.key
           }
       }
 
@@ -198,19 +163,6 @@ private[core] object MemorySweeper {
       actor ! Command.WeighKeyValue(
         keyValueRef = new WeakReference(keyValue),
         skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList)
-      )
-
-    /**
-     * If there was failure reading the Group's header guess it's weight. Successful reads are priority over 100% cache's accuracy.
-     * The cache's will eventually adjust to be accurate but until then guessed weights should be used. The accuracy of guessed
-     * weights can also be used.
-     */
-    def add(keyValue: swaydb.core.data.KeyValue.ReadOnly.Group,
-            skipList: SkipList[Slice[Byte], _]): Unit =
-      actor ! Command.WeighedKeyValue(
-        keyValueRef = new WeakReference(keyValue),
-        skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList),
-        weight = keyValue.valueLength
       )
   }
 

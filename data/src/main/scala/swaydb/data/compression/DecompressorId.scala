@@ -19,13 +19,14 @@
 
 package swaydb.data.compression
 
+import swaydb.Compression
 import swaydb.macros.SealedList
 
 import scala.util.Random
 
 /**
  * These IDs are used internally by core and are not exposed to the outside. To create an
- * lZ4 compression configuration use [[swaydb.data.api.grouping.Compression]] instead.
+ * lZ4 compression configuration use [[Compression]] instead.
  */
 private[swaydb] sealed trait DecompressorId {
   val id: Int

@@ -98,37 +98,4 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
-
-  "None, Group" in {
-    runThis(20.times) {
-      val last: Transient.Group = randomGroup(randomizedKeyValues(100))
-
-      val (minKey, maxKey, compressedKey) =
-        GroupKeyCompressor.compress(
-          head = None,
-          last = last
-        )
-      minKey shouldBe last.key
-      maxKey shouldBe last.maxKey
-
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, last.maxKey))
-    }
-  }
-
-  "Some(_), Group" in {
-    runThis(20.times) {
-      val head = randomPutKeyValues(1, startId = Some(0)).head.toTransient
-      val last = randomGroup(randomizedKeyValues(100))
-
-      val (minKey, maxKey, compressedKey) =
-        GroupKeyCompressor.compress(
-          head = Some(head),
-          last = last
-        )
-      minKey shouldBe head.key
-      maxKey shouldBe last.maxKey
-
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, last.maxKey))
-    }
-  }
 }

@@ -65,7 +65,7 @@
 //
 //  "write and read range entry with other entries" in {
 //    runThisParallel(1000.times) {
-//      val keyValues = randomizedKeyValues(count = 1, addPut = true, addGroups = false)
+//      val keyValues = randomizedKeyValues(count = 1, addPut = true)
 //      val previous = keyValues.head
 //
 //      val fromKey = keyValues.last.key.readInt() + 1

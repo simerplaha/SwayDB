@@ -94,13 +94,6 @@ object KeyValueId {
     override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
-  object Group extends KeyValueId {
-    override val minKey_Compressed_KeyValueId: Int = Put.maxKey_Uncompressed_KeyValueId + 1
-    override val maxKey_Compressed_KeyValueId: Int = minKey_Compressed_KeyValueId + reservedKeysPerGroup
-    override val minKey_Uncompressed_KeyValueId: Int = maxKey_Compressed_KeyValueId + 1
-    override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
-  }
-
   /**
    * Reserve 1 & 2 bytes ids for Put and Group. All the following key-values
    * disappear in last Level but [[Put]] and [[Group]] are kept unless deleted.

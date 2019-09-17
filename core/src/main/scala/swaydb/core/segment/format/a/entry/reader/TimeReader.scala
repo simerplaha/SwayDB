@@ -100,7 +100,7 @@ object TimeReader {
         case previous: Persistent.Update =>
           readTime(indexReader, previous.time)
 
-        case _: Persistent.Range | _: Persistent.Group =>
+        case _: Persistent.Range =>
           IO.failed(EntryReaderFailure.PreviousIsNotFixedKeyValue)
 
         case _: Persistent.Partial =>

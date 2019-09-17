@@ -119,30 +119,6 @@ private[core] object SegmentAssigner {
                   assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
                   assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
               }
-
-            case keyValue: KeyValue.ReadOnly.Group =>
-              nextSegmentMayBe match {
-                case None =>
-                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-
-                case Some(nextSegment) if keyValue.maxKey lessThan nextSegment.minKey =>
-                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-
-                case _ =>
-                  keyValue.segment.getAll() match {
-                    case IO.Right(groupsKeyValues) =>
-                      assign(
-                        MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
-                        thisSegmentMayBe,
-                        nextSegmentMayBe
-                      )
-
-                    case IO.Left(error) =>
-                      IO.Left(error)
-                  }
-              }
           }
 
 
@@ -172,36 +148,6 @@ private[core] object SegmentAssigner {
                     assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
                   } else {
                     assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
-                  }
-              }
-
-            case keyValue: KeyValue.ReadOnly.Group =>
-              nextSegmentMayBe match {
-                case Some(nextSegment) if keyValue.maxKey lessThan nextSegment.minKey =>
-                  //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
-                  //same code as above, need to push it to a common function.
-                  if (assignmentsMap.contains(thisSegment)) {
-                    assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                    assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-                  } else {
-                    assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
-                  }
-
-                case None =>
-                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-
-                case _ =>
-                  keyValue.segment.getAll() match {
-                    case IO.Right(groupsKeyValues) =>
-                      assign(
-                        remainingKeyValues = MergeList[Memory.Range, KeyValue.ReadOnly](groupsKeyValues) append remainingKeyValues.dropHead(),
-                        thisSegmentMayBe = thisSegmentMayBe,
-                        nextSegmentMayBe = nextSegmentMayBe
-                      )
-
-                    case IO.Left(error) =>
-                      IO.Left(error)
                   }
               }
           }

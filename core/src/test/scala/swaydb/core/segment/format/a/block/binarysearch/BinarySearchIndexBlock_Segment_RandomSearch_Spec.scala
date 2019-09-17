@@ -306,13 +306,6 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                     //println(s"Key: $key")
                     higher.value shouldBe range
                 }
-
-              case group: Transient.Group =>
-                (group.key.readInt() until group.maxKey.maxKey.readInt()) foreach {
-                  key =>
-                    val actualHigher = getHigher(key).value
-                    actualHigher.key shouldBe group.key
-                }
             }
 
             //get the persistent key-value for the next higher assert.
@@ -434,22 +427,6 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                     //println(s"Key: $key")
                     val lower = getLower(key)
                     lower.value shouldBe range
-                }
-
-              case group: Transient.Group =>
-                //do lower on Group's minKey first
-                val lower = getLower(group.key)
-                if (index == 0)
-                  lower shouldBe empty
-                else
-                  lower.value.key shouldBe expectedLower.value.key
-
-                (group.key.readInt() + 1 to group.maxKey.maxKey.readInt()) foreach {
-                  key =>
-                    //println
-                    //println(s"Key: $key")
-                    val lower = getLower(key)
-                    lower.value.key shouldBe group.key
                 }
             }
             //println("--- SEARCHING ---")

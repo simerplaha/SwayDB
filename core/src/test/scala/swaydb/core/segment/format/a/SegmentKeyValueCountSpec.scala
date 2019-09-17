@@ -26,7 +26,6 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -63,9 +62,6 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
 
   def keyValuesCount: Int
 
-  implicit def groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupByOption(keyValuesCount)
-
   "Segment.keyValueCount" should {
 
     "return 1 when the Segment contains only 1 key-value" in {
@@ -76,7 +72,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
             (keyValues, segment) => {
               keyValues should have size 1
               segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
-              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe unzipGroups(keyValues).size
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
             }
         )
       }
@@ -89,70 +85,7 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
           assert =
             (keyValues, segment) => {
               segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
-              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe unzipGroups(keyValues).size
-            }
-        )
-      }
-    }
-
-    "return the number key-values in a single Group" in {
-      runThis(10.times) {
-        val groupsKeyValues = randomizedKeyValues(keyValuesCount)
-        assertSegment(
-          keyValues = Slice(randomGroup(groupsKeyValues)),
-          assert =
-            (keyValues, segment) => {
-              //if nested groups are created then getHeadKeyValueCount shouldBe 1
-              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
-              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe unzipGroups(keyValues).size
-            }
-        )
-      }
-    }
-
-    "return the number key-values in nested Groups" in {
-      runThis(10.times) {
-        val group1KeyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
-        val group1 = randomGroup(group1KeyValues)
-
-        val group2KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group1.maxKey.maxKey.readInt() + 1), addGroups = false)
-        val group2 = randomGroup((Slice(group1) ++ group2KeyValues).updateStats)
-        group2.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size)
-
-        //group3 contains group2 as a child and group2 contains group1 as a child.
-        val group3KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group2.maxKey.maxKey.readInt() + 1), addGroups = false)
-        val group3 = randomGroup((Slice(group2) ++ group3KeyValues).updateStats)
-        group3.stats.segmentUniqueKeysCount shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
-
-        val group4KeyValues = randomizedKeyValues(keyValuesCount, startId = Some(group3.maxKey.maxKey.readInt() + 1), addGroups = false)
-        val group4 = randomGroup(group4KeyValues)
-        group4.stats.segmentUniqueKeysCount shouldBe group4KeyValues.size
-
-        assertSegment(
-          keyValues = Slice(group4),
-          assert = {
-            (_, segment) => {
-              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe group4KeyValues.size
-              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
-            }
-          }
-        )
-
-        assertSegment(
-          keyValues = Slice(group3),
-          assert =
-            (keyValues, segment) => {
-              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size)
-              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
-            }
-        )
-
-        assertSegment(
-          keyValues = Slice(randomGroup(Slice(group3, group4).updateStats)),
-          assert =
-            (keyValues, segment) => {
-              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe (group1KeyValues.size + group2KeyValues.size + group3KeyValues.size + group4KeyValues.size)
-              segment.getHeadKeyValueCount().runRandomIO.right.value shouldBe 1
+              segment.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe keyValues.size
             }
         )
       }

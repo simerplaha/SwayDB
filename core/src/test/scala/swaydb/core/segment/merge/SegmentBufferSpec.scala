@@ -30,70 +30,18 @@ class SegmentBufferSpec extends WordSpec with Matchers {
 
   "apply" when {
     "flatten" in {
-      SegmentBuffer(None).isInstanceOf[SegmentBuffer.Flattened] shouldBe true
-    }
-
-    "grouped" in {
-      SegmentBuffer(Some(randomGroupBy(10))).isInstanceOf[SegmentBuffer.Grouped] shouldBe true
+      SegmentBuffer().isInstanceOf[SegmentBuffer.Flattened] shouldBe true
     }
   }
 
   "flatten" should {
     "add" in {
-      val flattened = SegmentBuffer(None)
+      val flattened = SegmentBuffer()
       val keyValue = randomFixedTransientKeyValue(1)
       flattened add keyValue
       flattened should have size 1
       flattened.head shouldBe keyValue
       flattened.isReadyForGrouping shouldBe false
-    }
-  }
-
-  "grouped" when {
-    "no groupByGroup" should {
-      "add to ungrouped" in {
-        val buffer = SegmentBuffer(Some(randomGroupBy(10, None))).asInstanceOf[SegmentBuffer.Grouped]
-
-        buffer.groupedKeyValues.size shouldBe 0
-        buffer.isReadyForGrouping shouldBe false
-        buffer add randomFixedTransientKeyValue(1)
-        buffer add randomFixedTransientKeyValue(2)
-
-        buffer.size shouldBe 2
-        buffer.isReadyForGrouping shouldBe false
-        buffer.groupedKeyValues.size shouldBe 0
-        //add 8 more to make it ready for grouping
-        (3 to 10) foreach {
-          i =>
-            buffer add randomFixedTransientKeyValue(i)
-        }
-        assertThrows[ArrayIndexOutOfBoundsException] {
-          buffer add randomFixedTransientKeyValue(100)
-        }
-        buffer.isReadyForGrouping shouldBe true
-        buffer.shouldGroupKeyValues(false) shouldBe true
-
-        //adding a group when it has ungrouped key-value should fail
-        buffer.addGroup[Throwable](randomGroup()).left.get.getMessage.contains("unGrouped") shouldBe true
-
-        //replaceGroupedKeyValues clear key-values
-        buffer replaceGroupedKeyValues randomGroup()
-        buffer.unGrouped.size shouldBe 0
-        buffer.currentGroups.size shouldBe 1
-
-        (1 to 10) foreach {
-          i =>
-            buffer add randomFixedTransientKeyValue(i)
-        }
-
-        buffer replaceGroupedKeyValues randomGroup()
-        buffer.unGrouped.size shouldBe 0
-        buffer.currentGroups.size shouldBe 2
-
-        buffer replaceGroupedGroups randomGroup()
-        buffer.unGrouped.size shouldBe 0
-        buffer.currentGroups.size shouldBe 1
-      }
     }
   }
 }

@@ -106,19 +106,6 @@ private[core] object KeyMatcher {
           else
             AheadOrNoneOrEnd
 
-        case group: Persistent.Partial.GroupT =>
-          val fromKeyMatch = keyOrder.compare(key, group.minKey)
-          val toKeyMatch: Int = keyOrder.compare(key, group.maxKey.maxKey)
-          if (fromKeyMatch >= 0 && ((group.maxKey.inclusive && toKeyMatch <= 0) || (!group.maxKey.inclusive && toKeyMatch < 0))) //is within the range
-            Matched(next map (_ => previous), group, None)
-          else if (toKeyMatch >= 0 && hasMore)
-            if (matchOnly)
-              BehindStopped(group)
-            else
-              BehindFetchNext(group)
-          else
-            AheadOrNoneOrEnd
-
         case range: Persistent.Partial.RangeT =>
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
           val toKeyMatch = keyOrder.compare(key, range.toKey)
@@ -184,9 +171,6 @@ private[core] object KeyMatcher {
                 case range: Persistent.Partial.RangeT if keyOrder.compare(key, range.toKey) <= 0 =>
                   Matched(Some(previous), next, None)
 
-                case group: Persistent.Partial.GroupT if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
-                  Matched(Some(previous), next, None)
-
                 case _ =>
                   if (matchOnly)
                     BehindStopped(next)
@@ -206,9 +190,6 @@ private[core] object KeyMatcher {
             if (hasMore)
               previous match {
                 case range: Persistent.Partial.RangeT if keyOrder.compare(key, range.toKey) <= 0 =>
-                  Matched(None, previous, next)
-
-                case group: Persistent.Partial.GroupT if keyOrder.compare(key, group.minKey) > 0 && keyOrder.compare(key, group.maxKey.maxKey) <= 0 =>
                   Matched(None, previous, next)
 
                 case _ =>
@@ -264,9 +245,6 @@ private[core] object KeyMatcher {
       else if (nextCompare <= 0)
         keyValue match {
           case range: Persistent.Partial.RangeT if keyOrder.compare(key, range.toKey) < 0 =>
-            Matched(next map (_ => previous), keyValue, None)
-
-          case group: Persistent.Partial.GroupT if keyOrder.compare(key, group.maxKey.maxKey) < 0 =>
             Matched(next map (_ => previous), keyValue, None)
 
           case _ =>

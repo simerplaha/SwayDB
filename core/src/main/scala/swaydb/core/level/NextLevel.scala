@@ -21,7 +21,6 @@ package swaydb.core.level
 
 import swaydb.IO
 import swaydb.core.data.Memory
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.map.Map
 import swaydb.core.segment.Segment
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -118,8 +117,6 @@ trait NextLevel extends LevelRef {
   def segmentsInLevel(): Iterable[Segment]
 
   def nextThrottlePushCount: Int
-
-  def groupBy: Option[GroupByInternal.KeyValues]
 
   def delete: IO[swaydb.Error.Delete, Unit]
 }

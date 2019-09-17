@@ -74,7 +74,7 @@
 //    runThis(1000.times) {
 //      implicit val testTimer = TestTimer.random
 //
-//      val keyValues = randomizedKeyValues(count = 1, addPut = true, addGroups = false)
+//      val keyValues = randomizedKeyValues(count = 1, addPut = true)
 //      val previous = keyValues.head
 //
 //      previous.values.size should be <= 1

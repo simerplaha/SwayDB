@@ -30,7 +30,6 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestTimer}
@@ -76,9 +75,6 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
   implicit def testTimer: TestTimer = TestTimer.random
 
   def keyValuesCount: Int
-
-  implicit val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupByOption(keyValuesCount)
 
   implicit val segmentIO = SegmentIO.random
 
@@ -886,7 +882,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
       if (persistent)
         runThis(10.times) {
           //ensure groups are not added because ones read their values are populated in memory
-          val keyValues = randomizedKeyValues(keyValuesCount, addGroups = false)
+          val keyValues = randomizedKeyValues(keyValuesCount)
           val segment = TestSegment(keyValues).runRandomIO.right.value
 
           if (persistent) segment.isKeyValueCacheEmpty shouldBe true
@@ -907,9 +903,6 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
                   case persistent: Persistent.SegmentResponse =>
                     persistent.isValueCached shouldBe false
-
-                  case _: Persistent.Group =>
-                    fail("Didn't expect a group")
                 }
 
                 actualKeyValue shouldBe segmentKeyValue //after comparison values should be populated.
@@ -920,9 +913,6 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
                   case persistent: Persistent.SegmentResponse =>
                     persistent.isValueCached shouldBe true
-
-                  case _: Persistent.Group =>
-                    fail("Didn't expect a group")
                 }
               }
           }

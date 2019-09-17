@@ -85,113 +85,6 @@ class SegmentBlockSpec extends TestBase {
       }
     }
 
-    "write and read a group" in {
-      runThis(100.times, log = true) {
-        val count = eitherOne(randomIntMax(5) max 1, 100, 500, 700, 1000)
-        val keyValues = randomizedKeyValues(count, startId = Some(1))
-        val group =
-          Transient.Group(
-            keyValues = keyValues,
-            groupConfig = SegmentBlock.Config.random,
-            valuesConfig = ValuesBlock.Config.random,
-            sortedIndexConfig = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-            hashIndexConfig = HashIndexBlock.Config.random,
-            bloomFilterConfig = BloomFilterBlock.Config.random,
-            previous = None,
-            createdInLevel = randomIntMax()
-          ).runRandomIO.right.value
-
-        val bytes =
-          SegmentBlock.writeClosed(
-            keyValues = Seq(group),
-            segmentConfig =
-              new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
-                compressions = _ => Seq.empty
-              ),
-            createdInLevel = 0
-          ).runRandomIO.right.value.flattenSegmentBytes
-
-        bytes.isFull shouldBe true
-
-        Seq(Reader[swaydb.Error.Segment](bytes), createRandomFileReader(bytes)) foreach {
-          reader =>
-            val readGroup = readAll(reader).runRandomIO.right.value.asInstanceOf[Slice[KeyValue.ReadOnly.Group]]
-            val allKeyValuesForGroups = readGroup.flatMap(_.segment.getAll().runRandomIO.right.value)
-            allKeyValuesForGroups shouldBe keyValues.toMemory
-        }
-      }
-    }
-
-    "write two sibling groups" in {
-      runThis(100.times, log = true) {
-        val group1KeyValues = randomizedKeyValues(keyValueCount)
-        val group1 = randomGroup(group1KeyValues)
-
-        val group2KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1))
-
-        val group2 = randomGroup(group2KeyValues)
-
-        val segmentBytes =
-          SegmentBlock.writeClosed(
-            keyValues = Seq(group1, group2).updateStats,
-            segmentConfig =
-              new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
-                compressions = _ => Seq.empty
-              ),
-            createdInLevel = 0
-          ).runRandomIO.right.value.flattenSegmentBytes
-
-        val allBytes = readAll(segmentBytes).runRandomIO.right.value
-        allBytes.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
-
-        val allKeyValuesForGroups = allBytes.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().runRandomIO.right.value)
-        allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues).toMemory
-      }
-    }
-
-    "write child groups to a root group" in {
-      runThis(100.times, log = true) {
-        val group1KeyValues = randomizedKeyValues(keyValueCount)
-        val group1 = randomGroup(group1KeyValues)
-
-        val group2KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group1.maxKey.maxKey.readInt() + 1))
-        val group2 = randomGroup(group2KeyValues, previous = Some(group1))
-
-        val group3KeyValues = randomizedKeyValues(keyValueCount, startId = Some(group2.maxKey.maxKey.readInt() + 1))
-        val group3 = randomGroup(group3KeyValues, previous = Some(group2))
-
-        //root group
-        val group4KeyValues = Seq(group1, group2, group3).updateStats
-        val group4 = randomGroup(group4KeyValues, previous = None)
-
-        val bytes =
-          SegmentBlock.writeClosed(
-            keyValues = Seq(group4),
-            segmentConfig =
-              new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
-                compressions = _ => Seq.empty
-              ),
-            createdInLevel = 0
-          ).runRandomIO.right.value.flattenSegmentBytes
-
-        bytes.isFull shouldBe true
-
-        val rootGroup = readAll(bytes).runRandomIO.right.value
-        rootGroup should have size 1
-        rootGroup.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
-
-        val childGroups = rootGroup.head.asInstanceOf[KeyValue.ReadOnly.Group].segment.getAll().runRandomIO.right.value
-        childGroups.isInstanceOf[Slice[KeyValue.ReadOnly.Group]] shouldBe true
-
-        val allKeyValuesForGroups = childGroups.asInstanceOf[Slice[KeyValue.ReadOnly.Group]].flatMap(_.segment.getAll().runRandomIO.right.value)
-        allKeyValuesForGroups shouldBe (group1KeyValues ++ group2KeyValues ++ group3KeyValues).toMemory
-      }
-    }
-
     "converting large KeyValues to bytes" in {
       runThis(10.times, log = true) {
         //increase the size of value to test it on larger values.
@@ -315,7 +208,7 @@ class SegmentBlockSpec extends TestBase {
     "set hasRange to true and hasRemoveRange to false when Segment does not contain Remove range or function or pendingApply with function or remove but has other ranges" in {
       def doAssert(keyValues: Slice[Transient]) = {
         val expectedHasRemoveRange =
-          unzipGroups(keyValues).exists {
+          keyValues.exists {
             case _: Transient.Remove => true
             case _: Transient.Put => false
             case _: Transient.Update => false
@@ -371,59 +264,15 @@ class SegmentBlockSpec extends TestBase {
         val keyValues =
           randomizedKeyValues(keyValueCount, startId = Some(1)) ++
             Seq(
-              eitherOne(
-                left =
-                  randomGroup(
-                    Slice(
-                      randomFixedKeyValue(10),
-                      randomRangeKeyValue(12, 15, rangeValue = Value.remove(randomDeadlineOption))
-                    ).toTransient
-                  ),
-                right =
-                  Transient.Range.create[FromValue, RangeValue](
-                    fromKey = 20,
-                    toKey = 21,
-                    fromValue = randomFromValueOption(),
-                    rangeValue = Value.remove(randomDeadlineOption)
-                  )
+              Transient.Range.create[FromValue, RangeValue](
+                fromKey = 20,
+                toKey = 21,
+                fromValue = randomFromValueOption(),
+                rangeValue = Value.remove(randomDeadlineOption)
               )
             )
 
         doAssert(keyValues.updateStats)
-      }
-    }
-
-    "create bloomFilter when Segment not does contains Remove range key-value but contains a Group" in {
-      def doAssert(_keyValues: Slice[Transient]) = {
-        _keyValues.last.stats.segmentHasRemoveRange shouldBe false
-
-        val keyValues =
-          _keyValues.updateStats(
-            bloomFilterConfig =
-              BloomFilterBlock.Config.random.copy(
-                falsePositiveRate = 0.0001,
-                minimumNumberOfKeys = 0
-              )
-          )
-
-        val blocks = getBlocks(keyValues).get
-
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.hasRange shouldBe true
-        blocks.footer.bloomFilterOffset shouldBe defined
-        blocks.bloomFilterReader shouldBe defined
-        assertBloom(keyValues, blocks.bloomFilterReader.get)
-      }
-
-      runThis(100.times) {
-        doAssert(
-          Slice(
-            randomFixedKeyValue(1).toTransient,
-            randomFixedKeyValue(2).toTransient,
-            randomGroup(Slice(randomFixedKeyValue(10), randomRangeKeyValue(12, 15, rangeValue = Value.update(1))).toTransient)
-          ).updateStats
-        )
       }
     }
 
@@ -460,47 +309,7 @@ class SegmentBlockSpec extends TestBase {
       }
     }
 
-    "set hasRange to true when only the group contains range" in {
-      def doAssert(keyValues: Slice[Transient]) = {
-        keyValues.last.stats.segmentHasRemoveRange shouldBe false
-
-        val blocks = getBlocks(keyValues).get
-
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.keyValueCount shouldBe keyValues.size
-        blocks.footer.hasRange shouldBe true
-        blocks.footer.bloomFilterOffset shouldBe defined
-        blocks.bloomFilterReader shouldBe defined
-        assertBloom(keyValues, blocks.bloomFilterReader.get)
-
-        keyValues foreach {
-          case group: Transient.Group =>
-            assertGroup(group)
-          case _ =>
-        }
-      }
-
-      runThis(100.times) {
-        doAssert(
-          Slice(
-            randomFixedKeyValue(1).toTransient,
-            randomFixedKeyValue(2).toTransient,
-            randomGroup(Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(from = 12, to = 15, rangeValue = Value.update(1))).toTransient)
-          ).updateStats(
-            bloomFilterConfig =
-              BloomFilterBlock.Config.random.copy(
-                falsePositiveRate = 0.0001,
-                minimumNumberOfKeys = 0
-              )
-          )
-        )
-      }
-    }
-
     "set hasRemoveRange to true, hasGroup to true & not create bloomFilter when only the group contains remove range" in {
-      val keyCompression = randomCompression()
-      val valueCompression = randomCompression()
-
       def doAssert(keyValues: Slice[Transient]) = {
         keyValues.last.stats.segmentHasRemoveRange shouldBe true
 
@@ -510,12 +319,6 @@ class SegmentBlockSpec extends TestBase {
         blocks.footer.hasRange shouldBe true
         blocks.footer.bloomFilterOffset shouldBe empty
         blocks.bloomFilterReader shouldBe empty
-
-        keyValues foreach {
-          case group: Transient.Group =>
-            assertGroup(group)
-          case _ =>
-        }
       }
 
       runThis(100.times) {
@@ -523,7 +326,8 @@ class SegmentBlockSpec extends TestBase {
           Slice(
             randomFixedKeyValue(1).toTransient,
             randomFixedKeyValue(2).toTransient,
-            randomGroup(Slice(randomPutKeyValue(10, Some("val")), randomRangeKeyValue(12, 15, rangeValue = Value.remove(None))).toTransient)
+            randomPutKeyValue(10, Some("val")).toTransient,
+            randomRangeKeyValue(12, 15, rangeValue = Value.remove(None)).toTransient
           ).updateStats(
             bloomFilterConfig =
               BloomFilterBlock.Config.random.copy(

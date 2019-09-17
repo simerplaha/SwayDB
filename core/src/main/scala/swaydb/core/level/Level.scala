@@ -30,7 +30,6 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.io.file.{BlockCache, IOEffect}
 import swaydb.core.level.seek._
@@ -101,8 +100,7 @@ private[core] object Level extends LazyLogging {
                                                functionStore: FunctionStore,
                                                memorySweeper: Option[MemorySweeper.KeyValue],
                                                blockCache: Option[BlockCache.State],
-                                               fileSweeper: FileSweeper.Enabled,
-                                               groupBy: Option[GroupByInternal.KeyValues]): IO[swaydb.Error.Level, Level] = {
+                                               fileSweeper: FileSweeper.Enabled): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -283,9 +281,7 @@ private[core] object Level extends LazyLogging {
                                        keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     ReserveRange.isUnreserved(segment) && {
       isSmallSegment(segment, level.segmentSize) ||
-        //if group strategy in the level is defined and segment's grouping is undefined or vice-versa.
-        level.groupBy.isDefined != segment.isGrouped.getOrElse(level.groupBy.isDefined) ||
-        //if grouping is as expected by the Segment was not created in this level.
+        //if the Segment was not created in this level.
         segment.createdInLevel.getOrElse(0) != level.levelNumber
     }
 
@@ -350,7 +346,6 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               memorySweeper: Option[MemorySweeper.KeyValue],
                                                               fileSweeper: FileSweeper.Enabled,
                                                               blockCache: Option[BlockCache.State],
-                                                              val groupBy: Option[GroupByInternal.KeyValues],
                                                               val segmentIDGenerator: IDGenerator,
                                                               segmentIO: SegmentIO,
                                                               reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
@@ -702,15 +697,6 @@ private[core] case class Level(dirs: Seq[Dir],
       (segmentId, path)
     }
 
-    implicit val groupBy =
-      self.groupBy flatMap {
-        groupBy =>
-          if (groupBy.applyGroupingOnCopy)
-            self.groupBy
-          else
-            None
-      }
-
     val keyValues = map.skipList.toSlice()
 
     if (inMemory)
@@ -790,15 +776,6 @@ private[core] case class Level(dirs: Seq[Dir],
             val path = paths.next.resolve(IDGenerator.segmentId(segmentId))
             (segmentId, path)
           }
-
-          implicit val groupBy =
-            self.groupBy flatMap {
-              groupBy =>
-                if (groupBy.applyGroupingOnCopy)
-                  self.groupBy
-                else
-                  None
-            }
 
           if (inMemory)
             Segment.copyToMemory(

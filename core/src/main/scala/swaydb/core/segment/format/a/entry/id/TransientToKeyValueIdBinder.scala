@@ -46,10 +46,6 @@ private[core] object TransientToKeyValueIdBinder {
     override val keyValueId: KeyValueId = KeyValueId.Function
   }
 
-  implicit object GroupBinder extends TransientToKeyValueIdBinder[Transient.Group] {
-    override val keyValueId: KeyValueId = KeyValueId.Group
-  }
-
   implicit object RangeBinder extends TransientToKeyValueIdBinder[Transient.Range] {
     override val keyValueId: KeyValueId = KeyValueId.Range
   }

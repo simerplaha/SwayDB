@@ -109,7 +109,7 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                               )
                             }
 
-                          case key @ (_: Key.Range | _: Key.Group) =>
+                          case key: Key.Range =>
                             IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
                         }
                     }

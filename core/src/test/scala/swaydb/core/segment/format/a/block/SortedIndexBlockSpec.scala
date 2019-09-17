@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalatest.PrivateMethodTester
+import swaydb.Compression
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -28,7 +29,6 @@ import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.util.{Benchmark, Bytes}
 import swaydb.core.{TestBase, TestLimitQueues}
-import swaydb.data.api.grouping.Compression
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
@@ -83,9 +83,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         persistent match {
           case response: Persistent.SegmentResponse =>
             response.getOrFetchValue shouldBe transient.getOrFetchValue
-
-          case group: Persistent.Group =>
-            group.segment.getAll().get shouldBe transient.asInstanceOf[Transient.Group].keyValues
         }
 
 
@@ -251,13 +248,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             case transient: Transient.SegmentResponse =>
               searchedPersistent shouldBe persistent
               searchedPersistent shouldBe transient
-
-            case group: Transient.Group =>
-              val persistentGroup = searchedPersistent.asInstanceOf[Persistent.Group]
-              group.keyValues.par foreach {
-                groupKeyValue =>
-                  persistentGroup.segment.get(groupKeyValue.key).runRandomIO.get shouldBe groupKeyValue
-              }
           }
       }
     }

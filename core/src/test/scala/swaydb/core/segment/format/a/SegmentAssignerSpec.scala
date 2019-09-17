@@ -26,7 +26,6 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Transient, Value}
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.IOEffect._
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.{Segment, SegmentAssigner}
@@ -76,9 +75,6 @@ sealed trait SegmentAssignerSpec extends TestBase {
 
   def keyValueCount: Int
 
-  val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupByOption(keyValueCount)
-
   "SegmentAssign.assign" should {
 
     "assign KeyValues to the first Segment if there is only one Segment" in {
@@ -92,20 +88,6 @@ sealed trait SegmentAssignerSpec extends TestBase {
       result.values.head shouldBe keyValues
     }
 
-    "assign a KeyValue and then a Group that spread over multiple Segments" in {
-      //this test asserts for when Group's expansion results in ArrayIndexOutOfBoundsException
-      //when inserting assigned key-values to a Segment in SegmentAssigner.
-      val fixed = randomFixedKeyValue(1)
-      val group = randomGroup(randomKeyValues(count = 1000, startId = Some(2))).toMemory
-      val newKeyValues = Seq(fixed, group).toTransient
-
-      val segment1 = TestSegment(randomKeyValues(startId = Some(1))).runRandomIO.right.value
-      val segment2 = TestSegment(randomKeyValues(startId = Some(10))).runRandomIO.right.value
-
-      val result = SegmentAssigner.assign(newKeyValues, List(segment1, segment2)).runRandomIO.right.value
-      result.size shouldBe 2
-    }
-
     "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
       val segment1 = TestSegment(Slice(Transient.put(1), Transient.Range.create[FromValue, RangeValue](2, 10, None, Value.remove(10.seconds.fromNow))).updateStats).runRandomIO.right.value
       val segment2 = TestSegment(Slice(Transient.put(10)).updateStats).runRandomIO.right.value
@@ -117,8 +99,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
             Slice(
               randomFixedKeyValue(10),
               randomRangeKeyValue(11, 20),
-              randomFixedKeyValue(20),
-              randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50)).toTransient).toMemory
+              randomFixedKeyValue(20)
             ),
           segments = segments
         ).runRandomIO.right.value
@@ -137,7 +118,6 @@ sealed trait SegmentAssignerSpec extends TestBase {
         Slice(
           Memory.put(1, 1),
           Memory.put(15),
-          randomGroup(Slice(Memory.remove(16), Memory.Range(17, 18, None, Value.update("update"))).toTransient).toMemory,
           Memory.Range(16, 20, None, Value.update(16))
         )
 
@@ -160,7 +140,6 @@ sealed trait SegmentAssignerSpec extends TestBase {
         val keyValues =
           Slice(
             randomFixedKeyValue(15),
-            randomGroup(Slice(randomFixedKeyValue(16), randomRangeKeyValue(17, 18)).toTransient).toMemory,
             randomRangeKeyValue(20, 100)
           )
 
@@ -199,10 +178,6 @@ sealed trait SegmentAssignerSpec extends TestBase {
       }
 
       assertResult(SegmentAssigner.assign(keyValues, segments).runRandomIO.right.value)
-
-      //group should also result in same.
-      val grouped = randomGroup(keyValues.toTransient).toMemory
-      assertResult(SegmentAssigner.assign(Slice(grouped), segments).runRandomIO.right.value)
     }
 
     "assign key value to the first segment when the key is the new smallest" in {
@@ -283,13 +258,6 @@ sealed trait SegmentAssignerSpec extends TestBase {
           result.size shouldBe 1
           result.keys.head.path shouldBe segment4.path
           result.values.head should contain only Memory.Range(10, 20, Some(Value.put(10)), Value.remove(None))
-      }
-
-      SegmentAssigner.assign(Slice(randomGroup(Slice(Memory.Range(10, 20, Some(Value.put(10)), Value.remove(None))).toTransient).toMemory), segments).runRandomIO.right.value ==> {
-        result =>
-          result.size shouldBe 1
-          result.keys.head.path shouldBe segment4.path
-          unzipGroups(result.values.head).head shouldBe Memory.Range(10, 20, Some(Value.put(10)), Value.remove(None))
       }
     }
 

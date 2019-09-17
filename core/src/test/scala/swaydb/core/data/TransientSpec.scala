@@ -126,8 +126,7 @@ class TransientSpec extends TestBase {
             _ =>
               eitherOne(
                 randomFixedKeyValue(Int.MaxValue).toTransient,
-                randomRangeKeyValue(randomIntMax(1000), 100 + randomIntMax(1000)).toTransient,
-                randomGroup(keyValues = randomizedKeyValues(startId = Some(eitherOne(randomIntMax(1000), randomIntMax(10), randomIntMax(10000)))))
+                randomRangeKeyValue(randomIntMax(1000), 100 + randomIntMax(1000)).toTransient
               )
           } updateStats
 

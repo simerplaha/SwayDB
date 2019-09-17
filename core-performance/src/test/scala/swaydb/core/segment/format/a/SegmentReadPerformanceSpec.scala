@@ -23,11 +23,9 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Transient
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
@@ -38,18 +36,14 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
-import scala.reflect.ClassTag
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
 }
 
 class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = false
-
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = true
   override def mmapSegmentsOnRead = true
@@ -58,7 +52,6 @@ class SegmentReadPerformanceSpec1 extends SegmentReadPerformanceSpec {
 }
 
 class SegmentReadPerformanceSpec2 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = false
   override def levelFoldersCount = 10
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
@@ -67,35 +60,6 @@ class SegmentReadPerformanceSpec2 extends SegmentReadPerformanceSpec {
 }
 
 class SegmentReadPerformanceSpec3 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = false
-  override def inMemoryStorage = true
-}
-
-class SegmentReadPerformanceGroupedKeyValuesSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
-}
-
-class SegmentReadPerformanceGroupedKeyValuesSpec1 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
-
-  override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = true
-  override def mmapSegmentsOnRead = true
-  override def level0MMAP = true
-  override def appendixStorageMMAP = true
-}
-
-class SegmentReadPerformanceGroupedKeyValuesSpec2 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
-  override def levelFoldersCount = 10
-  override def mmapSegmentsOnWrite = false
-  override def mmapSegmentsOnRead = false
-  override def level0MMAP = false
-  override def appendixStorageMMAP = false
-}
-
-class SegmentReadPerformanceGroupedKeyValuesSpec3 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = true
   override def inMemoryStorage = true
 }
 
@@ -103,7 +67,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  def testGroupedKeyValues: Boolean
 
   val keyValuesCount = 1000000
 
@@ -229,7 +192,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //          )
   //      )
 
-  lazy val unGroupedKeyValues: Slice[Transient] =
+  val keyValues: Slice[Transient] =
     randomKeyValues(
       keyValuesCount,
       valueSize = 4,
@@ -282,59 +245,31 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //        )
     )
 
-  val group =
-    Some(
-      GroupByInternal.KeyValues(
-        count = 1000,
-        size = None,
-        groupByGroups = None,
-        valuesConfig = unGroupedKeyValues.last.valuesConfig,
-        sortedIndexConfig = unGroupedKeyValues.last.sortedIndexConfig,
-        binarySearchIndexConfig = unGroupedKeyValues.last.binarySearchIndexConfig,
-        hashIndexConfig = unGroupedKeyValues.last.hashIndexConfig,
-        bloomFilterConfig = unGroupedKeyValues.last.bloomFilterConfig,
-        groupConfig = SegmentBlock.Config(
-          {
-            case IOAction.OpenResource =>
-              IOStrategy.SynchronisedIO(cacheOnAccess = true)
-            case IOAction.ReadDataOverview =>
-              IOStrategy.SynchronisedIO(cacheOnAccess = true)
-            case action: IOAction.DataAction =>
-              IOStrategy.SynchronisedIO(cacheOnAccess = false)
-          },
-          _ => Seq.empty
-        ),
-        applyGroupingOnCopy = randomBoolean()
-      )
-    )
-
   lazy val groupedKeyValues: Slice[Transient] = {
     val grouped =
       SegmentMerger.split(
-        keyValues = unGroupedKeyValues,
+        keyValues = keyValues,
         minSegmentSize = 1000.mb,
         isLastLevel = false,
         forInMemory = false,
         createdInLevel = randomIntMax(),
-        valuesConfig = unGroupedKeyValues.last.valuesConfig,
-        sortedIndexConfig = unGroupedKeyValues.last.sortedIndexConfig,
-        binarySearchIndexConfig = unGroupedKeyValues.last.binarySearchIndexConfig,
-        hashIndexConfig = unGroupedKeyValues.last.hashIndexConfig,
-        bloomFilterConfig = unGroupedKeyValues.last.bloomFilterConfig,
+        valuesConfig = keyValues.last.valuesConfig,
+        sortedIndexConfig = keyValues.last.sortedIndexConfig,
+        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+        hashIndexConfig = keyValues.last.hashIndexConfig,
+        bloomFilterConfig = keyValues.last.bloomFilterConfig,
         segmentIO = segmentIO
-      )(keyOrder = keyOrder, groupBy = group).right.value
+      )(keyOrder = keyOrder).right.value
 
     grouped should have size 1
     grouped.head.toSlice
   }
 
-  def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
-
-  val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
+  val shuffledKeyValues = Random.shuffle(keyValues)
   //  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
-    shuffledUnGroupedKeyValues foreach {
+    shuffledKeyValues foreach {
       keyValue =>
         //        if (index % 1000 == 0)
         //          segment.get(shuffledUnGroupedKeyValues.head.key)
@@ -351,11 +286,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   }
 
   def assertHigher(segment: Segment) = {
-    (0 until unGroupedKeyValues.size - 1) foreach {
+    (0 until keyValues.size - 1) foreach {
       index =>
         //        segment.higherKey(keyValues(index).key)
         //        println(s"index: $index")
-        val keyValue = unGroupedKeyValues(index)
+        val keyValue = keyValues(index)
         //        val expectedHigher = unGroupedKeyValues(index + 1)
         //        segment.higher(keyValue.key).get.get shouldBe expectedHigher
         segment.higher(keyValue.key).get
@@ -363,11 +298,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   }
 
   def assertLower(segment: Segment) =
-    (1 until unGroupedKeyValues.size) foreach {
+    (1 until keyValues.size) foreach {
       index =>
         //        println(s"index: $index")
         //        segment.lowerKeyValue(keyValues(index).key)
-        val keyValue = unGroupedKeyValues(index)
+        val keyValue = keyValues(index)
         //        val expectedLower = unGroupedKeyValues(index - 1)
         //        segment.lower(keyValue.key).value.get shouldBe expectedLower
         segment.lower(keyValue.key).get
@@ -383,8 +318,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   def initSegment() = {
     warmUp()
 
-    Benchmark(s"Creating segment. keyValues: ${keyValues.size}. groupedKeyValues: $testGroupedKeyValues") {
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
+    Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
       val segmentConfig = SegmentBlock.Config(strategy, _ => Seq.empty)
       segment = TestSegment(keyValues, segmentConfig = segmentConfig).right.value
     }

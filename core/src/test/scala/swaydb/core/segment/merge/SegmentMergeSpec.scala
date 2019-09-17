@@ -25,7 +25,6 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -43,7 +42,6 @@ class SegmentMergeSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val testTimer: TestTimer = TestTimer.Empty
-  implicit def groupBy = randomGroupByOption(randomNextInt(1000) max 1)
 
   val keyValueCount = 100
 
@@ -54,11 +52,11 @@ class SegmentMergeSpec extends TestBase {
       def doTest(inMemory: Boolean) = {
         implicit val testTimer: TestTimer = TestTimer.Empty
 
-        val segment1 = SegmentBuffer(None)
+        val segment1 = SegmentBuffer()
         segment1 add Transient.put(key = 1, value = Some(1), previous = segment1.lastOption)
         segment1 add Transient.put(key = 2, value = Some(2), previous = segment1.lastOption) //total segmentSize is 144.bytes
 
-        val smallerLastSegment = SegmentBuffer(groupBy)
+        val smallerLastSegment = SegmentBuffer()
         smallerLastSegment add Transient.put(key = 3, value = Some(3), previous = None) //total segmentSize is 105.bytes
 
         val segments = ListBuffer[SegmentBuffer](segment1, smallerLastSegment)
@@ -79,7 +77,7 @@ class SegmentMergeSpec extends TestBase {
 
         newSegments.size shouldBe 1
 
-        val newSegmentsUnzipped = unzipGroups(newSegments.head)
+        val newSegmentsUnzipped = newSegments.head.toList
         newSegmentsUnzipped(0).key equiv segment1.head.key
         newSegmentsUnzipped(1).key equiv segment1.last.key
         newSegmentsUnzipped(2).key equiv smallerLastSegment.head.key
@@ -93,7 +91,7 @@ class SegmentMergeSpec extends TestBase {
 
     "make no change if there is only one segment" in {
       runThisParallel(100.times) {
-        val buffer = SegmentBuffer(None)
+        val buffer = SegmentBuffer()
         (1 to 100) foreach {
           i =>
             buffer add randomFixedTransientKeyValue(i)
@@ -128,8 +126,6 @@ class SegmentMergeSpec extends TestBase {
 
   "close" should {
     "split KeyValues into equal chunks" in {
-
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val oldKeyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4))
       val newKeyValues: Slice[Memory] = Slice(Memory.put(1, 22), Memory.put(2, 22), Memory.put(3, 22), Memory.put(4, 22))
@@ -188,8 +184,6 @@ class SegmentMergeSpec extends TestBase {
 
   "split" should {
     "split key-values" in {
-
-      implicit val groupBy: Option[GroupByInternal.KeyValues] = None
 
       val keyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.remove(2), Memory.put(3, 3), Memory.put(4, 4), Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5)))
 
@@ -266,63 +260,4 @@ class SegmentMergeSpec extends TestBase {
     }
   }
 
-  "Merging fixed into Group" should {
-    "return the same result as merging a list of Fixed key-values into Fixed" in {
-      runThisParallel(10.times) {
-        val fixedKeyValues = randomKeyValues(count = keyValueCount, addRemoves = true, startId = Some(1))
-        val oldKeyValues = randomKeyValues(count = keyValueCount, startId = Some(fixedKeyValues.head.key.readInt()), addRemoves = true, addRanges = true)
-
-        val mergeResultWithoutGroup =
-          SegmentMerger.merge(
-            newKeyValues = fixedKeyValues,
-            oldKeyValues = oldKeyValues,
-            minSegmentSize = 100.mb,
-            isLastLevel = false,
-            forInMemory = false,
-            valuesConfig = ValuesBlock.Config.random,
-            sortedIndexConfig = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-            hashIndexConfig = HashIndexBlock.Config.random,
-            bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentIO = SegmentIO.random,
-            createdInLevel = randomIntMax()
-          ).runRandomIO.right.value
-
-        mergeResultWithoutGroup should have size 1
-
-        val group =
-          Transient.Group(
-            keyValues = oldKeyValues,
-            previous = None,
-            valuesConfig = ValuesBlock.Config.random,
-            sortedIndexConfig = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-            hashIndexConfig = HashIndexBlock.Config.random,
-            bloomFilterConfig = BloomFilterBlock.Config.random,
-            groupConfig = SegmentBlock.Config.random,
-            createdInLevel = randomIntMax()
-          ).runRandomIO.right.value.toMemory
-
-        val mergeResultWithGroup =
-          SegmentMerger.merge(
-            newKeyValues = fixedKeyValues,
-            oldKeyValues = Slice(group),
-            minSegmentSize = 100.mb,
-            isLastLevel = false,
-            forInMemory = false,
-            valuesConfig = ValuesBlock.Config.random,
-            sortedIndexConfig = SortedIndexBlock.Config.random,
-            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-            hashIndexConfig = HashIndexBlock.Config.random,
-            bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentIO = SegmentIO.random,
-            createdInLevel = randomIntMax()
-          ).runRandomIO.right.value
-
-        mergeResultWithGroup should have size 1
-
-        mergeResultWithoutGroup.head shouldBe mergeResultWithGroup.head
-      }
-    }
-  }
 }

@@ -31,7 +31,6 @@ class FunctionMerger_Function_Spec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def compression = randomGroupByOption(randomNextInt(1000))
 
   "Merging Function into function" when {
 

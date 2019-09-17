@@ -618,7 +618,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
     if (startFrom.exists(from => order.gteq(from.key, key)) ||
       next.exists(next => next match {
         case range: Partial.RangeT => order.lt(range.toKey, key)
-        case group: Partial.GroupT => order.lt(group.maxKey.maxKey, key)
         case fixed: Partial.Fixed => order.lt(fixed.key, key)
       }
       )

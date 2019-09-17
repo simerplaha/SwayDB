@@ -28,7 +28,6 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
-import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -70,9 +69,6 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
   implicit val keyOrder = KeyOrder.default
 
   def keyValuesCount: Int
-
-  implicit val groupBy: Option[GroupByInternal.KeyValues] =
-    randomGroupByOption(keyValuesCount)
 
   "Segment.lower" should {
     "value the lower key from the segment that has only 1 fixed key-value" in {
@@ -120,7 +116,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
             randomRangeKeyValue(20, 30),
-            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50)).toTransient).toMemory
+//            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50)).toTransient).toMemory
           ).toTransient(
             hashIndexConfig = HashIndexBlock.Config(10, 0, 0, copyIndex = randomBoolean(), _.requiredSpace * 10, _ => randomIOStrategy(), _ => Seq.empty)
           ),
@@ -172,21 +168,6 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
               //                                 30
               //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
               segment.lower(30).runRandomIO.right.value.value shouldBe keyValues(4)
-              //                                           31
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(31).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
-              //                                              40
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(40).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.head
-              //                                                41
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(41).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
-              //                                                   50
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(50).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
-              //                                                      51
-              //  1, (2 - 5), 10, (11 - 20), (20 - 30) (30), (40 - 50)
-              segment.lower(51).runRandomIO.right.value.value shouldBe keyValues(5).asInstanceOf[Transient.Group].keyValues.last
             }
         )
       }

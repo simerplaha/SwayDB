@@ -33,8 +33,6 @@ class UpdateMerger_Remove_Spec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def groupBy = randomGroupByOption(randomNextInt(1000))
-
   "Merging update into Remove" when {
 
     "times are in order" in {
