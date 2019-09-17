@@ -715,6 +715,30 @@ private[core] object SortedIndexBlock extends LazyLogging {
         }
     }
 
+  def seekAndMatchOrSeek(matcher: KeyMatcher,
+                         fromOffset: Int,
+                         fullRead: Boolean,
+                         indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                         valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[Error.Segment, Result.Complete] =
+    readKeyValue(
+      fromPosition = fromOffset,
+      indexReader = indexReader,
+      fullRead = fullRead,
+      overwriteNextIndexOffset = None,
+      valuesReader = valuesReader
+    ) flatMap {
+      persistent =>
+        //        println("matchOrSeekAndPersistent")
+        matchOrSeek(
+          previous = persistent,
+          next = None,
+          fullRead = fullRead,
+          matcher = matcher,
+          indexReader = indexReader,
+          valuesReader = valuesReader
+        )
+    }
+
   def seekAndMatchOrSeekToPersistent(matcher: KeyMatcher,
                                      fromOffset: Int,
                                      fullRead: Boolean,

@@ -28,10 +28,13 @@ import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.{Block, SortedIndexBlock}
+import swaydb.core.segment.format.a.block.{Block, KeyMatcher, SortedIndexBlock}
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import org.scalatest.OptionValues._
+import swaydb.IOValues._
+import swaydb.core.segment.format.a.block.KeyMatcher.Result
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -322,7 +325,38 @@ class HashIndexBlockSpec extends TestBase {
               hashIndexReader = blocks.hashIndexReader.get,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).get.get shouldBe keyValue
+            ).get match {
+              case notFound: HashIndexSearchResult.NotFound =>
+                //if it's not found then the index must be prefix compressed.
+                blocks.sortedIndexReader.block.hasPrefixCompression shouldBe true
+
+                notFound match {
+                  case HashIndexSearchResult.None =>
+                    fail("Expected Lower.")
+
+                  case HashIndexSearchResult.Lower(lower) =>
+                    SortedIndexBlock.seekAndMatchOrSeek(
+                      matcher = KeyMatcher.Get(keyValue.key),
+                      previous = lower.toPersistent.get,
+                      next = None,
+                      fullRead = true,
+                      indexReader = blocks.sortedIndexReader,
+                      valuesReader = blocks.valuesReader
+                    ).value match {
+                      case Result.Matched(previous, result, next) =>
+                        result shouldBe keyValue
+
+                      case Result.BehindStopped(_) =>
+                        fail()
+
+                      case Result.AheadOrNoneOrEnd =>
+                        fail()
+                    }
+                }
+
+              case HashIndexSearchResult.Found(found) =>
+                found shouldBe keyValue
+            }
         }
       }
     }

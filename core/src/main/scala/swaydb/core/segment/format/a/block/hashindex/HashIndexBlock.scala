@@ -23,8 +23,9 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Numbers._
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
@@ -36,6 +37,7 @@ import swaydb.{Error, IO}
 import scala.annotation.tailrec
 import scala.beans.BeanProperty
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 /**
  * HashIndex.
@@ -663,71 +665,123 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] = {
-    val matcher =
-      if (sortedIndexReader.block.hasPrefixCompression)
-      //        KeyMatcher.Get.WhilePrefixCompressed(key)
-        ???
-      else
-        KeyMatcher.Get.MatchOnly(key)
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, HashIndexSearchResult] = {
+    val matcher = KeyMatcher.Get.MatchOnly(key)
 
-    if (hashIndexReader.block.copyIndex)
-      searchCopied(
-        key = key,
-        reader = hashIndexReader,
-        assertValue =
-          (referenceOrIndexEntry: Slice[Byte], accessIndexOffset: Int, isReference: Boolean) =>
-            if (isReference)
-              referenceOrIndexEntry.readIntUnsigned() flatMap {
-                index =>
-                  SortedIndexBlock.seekAndMatchOrSeekToPersistent(
-                    matcher = matcher,
-                    fullRead = false,
-                    fromOffset = index,
-                    indexReader = sortedIndexReader,
-                    valuesReader = valuesReader
-                  )
-              }
-            else
-              SortedIndexBlock.readAndMatchToPersistent( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
+    val lowerKeyValues = ListBuffer.empty[Persistent.Partial]
+
+    val result =
+      if (hashIndexReader.block.copyIndex)
+        searchCopied(
+          key = key,
+          reader = hashIndexReader,
+          assertValue =
+            (referenceOrIndexEntry: Slice[Byte], accessIndexOffset: Int, isReference: Boolean) =>
+              if (isReference)
+                referenceOrIndexEntry.readIntUnsigned() flatMap {
+                  indexOffset =>
+                    SortedIndexBlock.seekAndMatchOrSeek(
+                      matcher = matcher,
+                      fullRead = false,
+                      fromOffset = indexOffset,
+                      indexReader = sortedIndexReader,
+                      valuesReader = valuesReader
+                    ) map {
+                      case Result.Matched(_, result, _) =>
+                        Some(result)
+
+                      case Result.BehindStopped(previous) =>
+                        lowerKeyValues += previous
+                        None
+
+                      case Result.AheadOrNoneOrEnd =>
+                        None
+                    }
+                }
+              else
+                SortedIndexBlock.readAndMatch( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
+                  matcher = matcher,
+                  fromOffset = 0,
+                  fullRead = false,
+                  overwriteNextIndexOffset = Some(accessIndexOffset + referenceOrIndexEntry.size),
+                  sortedIndexReader =
+                    UnblockedReader(
+                      block =
+                        SortedIndexBlock(
+                          offset = SortedIndexBlock.Offset(0, referenceOrIndexEntry.size),
+                          enableAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
+                          hasPrefixCompression = false,
+                          normaliseForBinarySearch = sortedIndexReader.block.normaliseForBinarySearch,
+                          isPreNormalised = sortedIndexReader.block.isPreNormalised,
+                          enablePartialRead = sortedIndexReader.block.enablePartialRead,
+                          disableKeyPrefixCompression = sortedIndexReader.block.disableKeyPrefixCompression,
+                          headerSize = 0,
+                          segmentMaxIndexEntrySize = sortedIndexReader.block.segmentMaxIndexEntrySize,
+                          compressionInfo = None
+                        ),
+                      bytes = referenceOrIndexEntry
+                    ),
+                  valuesReader = valuesReader
+                ) map {
+                  case Result.Matched(_, result, _) =>
+                    Some(result)
+
+                  case Result.BehindStopped(previous) =>
+                    lowerKeyValues += previous
+                    None
+
+                  case Result.AheadOrNoneOrEnd =>
+                    None
+                }
+        )
+      else
+        search(
+          key = key,
+          reader = hashIndexReader,
+          assertValue =
+            (sortedIndexOffsetValue: Int) =>
+              SortedIndexBlock.seekAndMatchOrSeek(
                 matcher = matcher,
-                fromOffset = 0,
+                fromOffset = sortedIndexOffsetValue,
                 fullRead = false,
-                overwriteNextIndexOffset = Some(accessIndexOffset + referenceOrIndexEntry.size),
-                sortedIndexReader =
-                  UnblockedReader(
-                    block =
-                      SortedIndexBlock(
-                        offset = SortedIndexBlock.Offset(0, referenceOrIndexEntry.size),
-                        enableAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
-                        hasPrefixCompression = false,
-                        normaliseForBinarySearch = sortedIndexReader.block.normaliseForBinarySearch,
-                        isPreNormalised = sortedIndexReader.block.isPreNormalised,
-                        enablePartialRead = sortedIndexReader.block.enablePartialRead,
-                        disableKeyPrefixCompression = sortedIndexReader.block.disableKeyPrefixCompression,
-                        headerSize = 0,
-                        segmentMaxIndexEntrySize = sortedIndexReader.block.segmentMaxIndexEntrySize,
-                        compressionInfo = None
-                      ),
-                    bytes = referenceOrIndexEntry
-                  ),
+                indexReader = sortedIndexReader,
                 valuesReader = valuesReader
-              )
-      )
-    else
-      search(
-        key = key,
-        reader = hashIndexReader,
-        assertValue =
-          (sortedIndexOffsetValue: Int) =>
-            SortedIndexBlock.seekAndMatchOrSeekToPersistent(
-              matcher = matcher,
-              fromOffset = sortedIndexOffsetValue,
-              fullRead = false,
-              indexReader = sortedIndexReader,
-              valuesReader = valuesReader
-            )
-      )
+              ) map {
+                case Result.Matched(_, result, _) =>
+                  Some(result)
+
+                case Result.BehindStopped(previous) =>
+                  lowerKeyValues += previous
+                  None
+
+                case Result.AheadOrNoneOrEnd =>
+                  None
+              }
+        )
+
+    result map {
+      case Some(got) =>
+        HashIndexSearchResult.Found(got)
+
+      case None =>
+        //if hashIndex did not successfully return a valid key-value then return the nearest lowest from the currently read
+        //key-value from hashIndex.
+        if (lowerKeyValues.isEmpty)
+          HashIndexSearchResult.None
+        else if (lowerKeyValues.size == 1)
+          HashIndexSearchResult.Lower(lowerKeyValues.head)
+        else {
+          implicit val keyValueOrdering = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)
+
+          val nearest =
+            lowerKeyValues.reduce[Persistent.Partial] {
+              case (left, right) =>
+                keyValueOrdering.max(left, right)
+            }
+
+          HashIndexSearchResult.Lower(nearest)
+        }
+    }
   }
 
   implicit object HashIndexBlockOps extends BlockOps[HashIndexBlock.Offset, HashIndexBlock] {

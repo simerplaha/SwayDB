@@ -24,8 +24,9 @@ import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentReadThreadState
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexSearchResult}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.util.MinMax
 import swaydb.core.util.Options._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -102,10 +103,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
             ) flatMap {
-              case some @ Some(_) =>
-                IO.Right(some)
-
-              case None =>
+              case notFound: HashIndexSearchResult.NotFound =>
                 if (hashIndexReader.block.isPerfect && !hasRange)
                   IO.none
                 else
@@ -113,7 +111,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                     binarySearchIndexReader =>
                       BinarySearchIndexBlock.search(
                         key = key,
-                        lowest = start,
+                        lowest = MinMax.maxFavourLeft(start, notFound.lower)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)),
                         highest = end,
                         keyValuesCount = keyValueCount,
                         binarySearchIndexReader = binarySearchIndexReader,
@@ -122,6 +120,8 @@ private[core] object SegmentSearcher extends LazyLogging {
                       ).map(_.toOption)
                   }
 
+              case HashIndexSearchResult.Found(keyValue) =>
+                IO.Right(Some(keyValue))
             }
         } getOrElse {
           binarySearchIndexReader flatMap {
