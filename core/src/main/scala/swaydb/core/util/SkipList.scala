@@ -387,9 +387,7 @@ private[core] object SkipList {
           }
 
     override def putIfAbsent(key: K, value: V): Boolean =
-      if (contains(key)) {
-        false
-      } else {
+      !contains(key) && {
         put(key, value)
         true
       }

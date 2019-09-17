@@ -24,6 +24,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import org.scalatest.{FlatSpec, Matchers}
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
@@ -38,38 +39,6 @@ sealed trait SkipListSpec extends FlatSpec with Matchers {
 
   implicit val ordering = KeyOrder(Ordering.Int)
 
-  it should "Dsdss" in {
-    @volatile var skipList = new ConcurrentSkipListMap[Int, Int]()
-
-    val lock = new ReentrantReadWriteLock()
-
-    def get(key: Int) = {
-      lock.readLock().lock()
-      skipList.get(key)
-      lock.readLock().unlock()
-    }
-
-    def write(key: Int) = {
-      lock.writeLock().lock()
-      skipList.put(key, key)
-      lock.writeLock().unlock()
-    }
-
-    Benchmark("") {
-      (1 to 10000).par foreach {
-        i =>
-          write(i)
-      }
-    }
-
-    Benchmark("") {
-      (1 to 1000000).par foreach {
-        i =>
-          get(i)
-      }
-      //      skipList.clone()
-    }
-  }
 
   it should "dsds" in {
     val skipList = new ConcurrentSkipListMap[Int, Int]()
@@ -416,4 +385,18 @@ sealed trait SkipListSpec extends FlatSpec with Matchers {
     skipList.get(5) shouldBe empty
     skipList.isEmpty shouldBe true
   }
+
+//  it should "concurrent vs minMax" in {
+//    implicit val ordering = KeyOrder[Int](Ordering.Int)
+//
+//        val skipList = SkipList.concurrent[Int, Int]()
+////    val skipList = SkipList.minMax[Int, Int]()
+//
+//    Benchmark("") {
+//      (1 to 10000000) foreach {
+//        i =>
+//          skipList.put(i, i)
+//      }
+//    }
+//  }
 }

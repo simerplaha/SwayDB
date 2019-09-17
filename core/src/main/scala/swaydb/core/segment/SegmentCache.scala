@@ -151,7 +151,6 @@ private[core] class SegmentCache(id: String,
               hasRange = hasRange,
               threadState = threadState
             ) flatMap {
-
               case Some(response: Persistent.SegmentResponse) =>
                 addToCache(response)
                 IO.Right(Some(response))
@@ -215,80 +214,33 @@ private[core] class SegmentCache(id: String,
             IO.Right(Some(floorRange))
 
           case floorValue =>
-            if (key equiv minKey)
-              createSortedIndexReader(threadState) flatMap {
-                sortedIndexReader =>
-                  createValuesReader(threadState) flatMap {
-                    valuesReader =>
-                      SortedIndexBlock.seekAndMatch(
-                        key = key,
-                        startFrom = None,
-                        fullRead = true,
-                        sortedIndexReader = sortedIndexReader,
-                        valuesReader = valuesReader
-                      ) flatMap {
-                        case Some(response: Persistent.SegmentResponse) =>
-                          addToCache(response)
-                          IO.Right(Some(response))
-
-                        case Some(group: Persistent.Group) =>
-                          addToCache(group)
-                          group.segment.get(key)
-
-                        case Some(fixed: Persistent.Partial.Fixed) =>
-                          fixed.toPersistent map {
-                            persistent =>
-                              addToCache(persistent)
-                              Some(persistent)
-                          }
-
-                        case Some(fixed: Persistent.Partial.Range) =>
-                          fixed.toPersistent map {
-                            range =>
-                              addToCache(range)
-                              Some(range)
-                          }
-
-                        case Some(fixed: Persistent.Partial.Group) =>
-                          fixed.toPersistent flatMap {
-                            group =>
-                              addToCache(group)
-                              group.segment.get(key)
-                          }
-
-                        case None =>
-                          IO.none
-                      }
+            blockCache.getFooter() flatMap {
+              footer =>
+                if (footer.hasRange)
+                  get(
+                    key = key,
+                    start = floorValue,
+                    keyValueCount = footer.keyValueCount,
+                    end = skipList.higher(key),
+                    threadState = thisThreadState,
+                    hasRange = footer.hasRange
+                  )
+                else
+                  mightContain(key) flatMap {
+                    mightContain =>
+                      if (mightContain)
+                        get(
+                          key = key,
+                          start = floorValue,
+                          keyValueCount = footer.keyValueCount,
+                          threadState = thisThreadState,
+                          end = skipList.higher(key),
+                          hasRange = footer.hasRange
+                        )
+                      else
+                        IO.none
                   }
-              }
-            else
-              blockCache.getFooter() flatMap {
-                footer =>
-                  if (footer.hasRange)
-                    get(
-                      key = key,
-                      start = floorValue,
-                      keyValueCount = footer.keyValueCount,
-                      end = skipList.higher(key),
-                      threadState = thisThreadState,
-                      hasRange = footer.hasRange
-                    )
-                  else
-                    mightContain(key) flatMap {
-                      mightContain =>
-                        if (mightContain)
-                          get(
-                            key = key,
-                            start = floorValue,
-                            keyValueCount = footer.keyValueCount,
-                            threadState = thisThreadState,
-                            end = skipList.higher(key),
-                            hasRange = footer.hasRange
-                          )
-                        else
-                          IO.none
-                    }
-              }
+            }
         }
     }
 

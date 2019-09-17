@@ -537,7 +537,6 @@ private[core] object BinarySearchIndexBlock {
                         BinarySearchGetResult.noneIO
                     }
                 }
-
           }
 
         case None =>

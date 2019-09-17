@@ -317,7 +317,7 @@ object ByteUtil {
     size
   }
 
-  def writeUnsignedIntRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](int: Int, slice: Slice[Byte]): Unit = {
+  def writeUnsignedIntRightAligned(int: Int, slice: Slice[Byte]): Unit = {
     if (int > 0x0FFFFFFF || int < 0) slice.add((0x80 | int >>> 28).asInstanceOf[Byte])
     if (int > 0x1FFFFF || int < 0) slice.add((0x80 | ((int >>> 21) & 0x7F)).asInstanceOf[Byte])
     if (int > 0x3FFF || int < 0) slice.add((0x80 | ((int >>> 14) & 0x7F)).asInstanceOf[Byte])
@@ -343,7 +343,7 @@ object ByteUtil {
     int
   }
 
-  def writeUnsignedLongRightAligned[E >: swaydb.Error.IO : IO.ExceptionHandler](long: Long, slice: Slice[Byte]): Unit = {
+  def writeUnsignedLongRightAligned(long: Long, slice: Slice[Byte]): Unit = {
     if (long < 0) slice.add(0x81.toByte)
     if (long > 0xFFFFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 56) & 0x7FL)).asInstanceOf[Byte])
     if (long > 0x1FFFFFFFFFFFFL || long < 0) slice.add((0x80 | ((long >>> 49) & 0x7FL)).asInstanceOf[Byte])

@@ -42,7 +42,7 @@ import scala.reflect.ClassTag
 import scala.util.Random
 
 class SegmentReadPerformanceSpec0 extends SegmentReadPerformanceSpec {
-  val testGroupedKeyValues: Boolean = false
+  val testGroupedKeyValues: Boolean = true
   override def mmapSegmentsOnWrite = false
   override def mmapSegmentsOnRead = false
 }
@@ -110,7 +110,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //  override def deleteFiles = false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
+  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeper
   implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
 
   def strategy(action: IOAction): IOStrategy =
@@ -263,14 +263,14 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //      hashIndexConfig =
       //        HashIndexBlock.Config(
       //          maxProbe = 5,
-      //          copyIndex = true,
+      //          copyIndex = false,
       //          minimumNumberOfKeys = 5,
       //          minimumNumberOfHits = 5,
-      //          allocateSpace = _.requiredSpace,
+      //          allocateSpace = _.requiredSpace * 2,
       //          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
       //          compressions = _ => Seq.empty
       //        ),
-      hashIndexConfig = HashIndexBlock.Config.disabled,
+      //      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(
@@ -330,11 +330,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
-    val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
+  val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
   //  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {
-    unGroupedKeyValues foreach {
+    shuffledUnGroupedKeyValues foreach {
       keyValue =>
         //        if (index % 1000 == 0)
         //          segment.get(shuffledUnGroupedKeyValues.head.key)
@@ -345,8 +345,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //          println(key)
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
-        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
-      //              segment.get(keyValue.key).get
+        //        segment.get(keyValue.key).get.get.key shouldBe keyValue.key
+        segment.get(keyValue.key).get
     }
   }
 
@@ -441,6 +441,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
+      //      segment.getAll().get
     }
 
     //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {

@@ -24,7 +24,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{KeyValue, Persistent, Transient}
+import swaydb.core.data.{KeyValue, Persistent, Time, Transient}
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.SortedIndexEntryReader
@@ -414,21 +414,20 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       readKey
 
-      //      IO.Right {
-      //        Persistent.Put(
-      //          _key = indexEntry.take(indexSize).takeRight(4),
-      //          deadline = None,
-      //          valueCache = null,
-      //          _time = Time.empty,
-      //          nextIndexOffset = nextIndexOffset,
-      //          nextIndexSize = nextIndexSize,
-      //          indexOffset = positionBeforeRead,
-      //          valueOffset = 0,
-      //          valueLength = 0,
-      //          sortedIndexAccessPosition = 0,
-      //          isPrefixCompressed = false
-      //        )
-      //      }
+//      IO.Right {
+//        Persistent.Put(
+//          _key = indexEntry.take(indexSize).takeRight(4),
+//          deadline = None,
+//          valueCache = null,
+//          _time = Time.empty,
+//          nextIndexOffset = nextIndexOffset,
+//          nextIndexSize = nextIndexSize,
+//          indexOffset = positionBeforeRead,
+//          valueOffset = 0,
+//          valueLength = 0,
+//          sortedIndexAccessPosition = 0
+//        )
+//      }
     } catch {
       case exception: Exception =>
         IO.failed(exception)
