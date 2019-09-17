@@ -17,13 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.hashindex
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block._
 import swaydb.core.util.Numbers._
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}

@@ -29,7 +29,7 @@ import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.segment.format.a.block.HashIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

@@ -20,6 +20,7 @@ package swaydb.core
 
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 
 case class Blocks(valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],

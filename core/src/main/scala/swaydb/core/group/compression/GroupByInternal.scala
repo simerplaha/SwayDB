@@ -21,6 +21,7 @@ package swaydb.core.group.compression
 
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 
 private[swaydb] sealed trait GroupByInternal {
   def count: Int

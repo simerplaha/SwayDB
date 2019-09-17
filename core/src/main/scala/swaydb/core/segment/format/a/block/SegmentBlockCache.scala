@@ -25,6 +25,7 @@ import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.cache.Lazy
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice

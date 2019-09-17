@@ -38,6 +38,7 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util._

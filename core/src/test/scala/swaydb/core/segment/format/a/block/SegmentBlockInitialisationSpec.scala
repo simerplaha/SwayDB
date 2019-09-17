@@ -25,6 +25,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.{IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder

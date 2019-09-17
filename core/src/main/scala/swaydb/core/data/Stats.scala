@@ -21,6 +21,7 @@ package swaydb.core.data
 
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 

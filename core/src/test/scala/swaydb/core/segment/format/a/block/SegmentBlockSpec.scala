@@ -28,6 +28,7 @@ import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder

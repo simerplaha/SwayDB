@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.config.{IOAction, IOStrategy}
 
 object SegmentIO {

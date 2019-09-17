@@ -17,26 +17,24 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.hashindex
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
-import swaydb.core.segment.format.a.block.HashIndexBlock.HashIndexBlockOps
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.util.CRC32
+import swaydb.core.segment.format.a.block.{Block, SortedIndexBlock}
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.Random
 
 class HashIndexBlockSpec extends TestBase {
 

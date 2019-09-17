@@ -46,6 +46,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.util.Collections._
