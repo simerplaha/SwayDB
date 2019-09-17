@@ -26,6 +26,7 @@ import swaydb.core.data.Transient
 import swaydb.core.group.compression.GroupByInternal
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
@@ -328,7 +329,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def keyValues = if (testGroupedKeyValues) groupedKeyValues else unGroupedKeyValues
 
-  //  val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
+    val shuffledUnGroupedKeyValues = Random.shuffle(unGroupedKeyValues)
   //  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
 
   def assertGet(segment: Segment) = {

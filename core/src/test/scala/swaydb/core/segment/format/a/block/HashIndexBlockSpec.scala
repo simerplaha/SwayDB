@@ -279,11 +279,6 @@ class HashIndexBlockSpec extends TestBase {
     }
   }
 
-  "dssad" in {
-    val bytes = Slice.create[Byte](1).add(0)
-    println(CRC32.forBytes(bytes))
-  }
-
   "searching a segment" should {
     "value" in {
       runThis(100.times, log = true) {

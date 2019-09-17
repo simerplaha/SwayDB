@@ -31,6 +31,7 @@ import swaydb.core.data.{Memory, _}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.{ActorConfig, MemoryCache}

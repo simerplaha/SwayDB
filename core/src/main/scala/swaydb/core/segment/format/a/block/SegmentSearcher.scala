@@ -23,6 +23,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentReadThreadState
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Options._
 import swaydb.data.order.KeyOrder

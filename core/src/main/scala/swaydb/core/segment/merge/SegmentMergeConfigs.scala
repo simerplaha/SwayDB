@@ -20,8 +20,8 @@
 package swaydb.core.segment.merge
 
 import swaydb.core.group.compression.GroupByInternal
-import swaydb.core.segment.format.a.block.{BinarySearchIndexBlock, BloomFilterBlock, HashIndexBlock, SortedIndexBlock, ValuesBlock}
-
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.{BloomFilterBlock, HashIndexBlock, SortedIndexBlock, ValuesBlock}
 
 object SegmentMergeConfigs {
   def apply( //segment related configs

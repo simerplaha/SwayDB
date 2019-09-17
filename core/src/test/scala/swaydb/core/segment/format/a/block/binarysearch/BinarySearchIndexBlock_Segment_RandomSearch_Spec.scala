@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.binarysearch
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
@@ -27,6 +27,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.segment.format.a.block.SortedIndexBlock
 import swaydb.core.{Blocks, TestBase}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

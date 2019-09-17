@@ -37,6 +37,7 @@ import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.{Segment, SegmentAssigner}
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
