@@ -35,17 +35,17 @@ import scala.util.Random
 package object map {
 
   //cannot be added to TestBase because PersistentMap cannot leave the map package.
-  implicit class ReopenMap(map: PersistentMap[Slice[Byte], Memory.SegmentResponse]) {
+  implicit class ReopenMap(map: PersistentMap[Slice[Byte], Memory]) {
     def reopen(implicit keyOrder: KeyOrder[Slice[Byte]],
                timeOrder: TimeOrder[Slice[Byte]],
                functionStore: FunctionStore,
                fileSweeper: FileSweeper,
                ec: ExecutionContext,
-               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]],
-               reader: MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]],
-               skipListMerge: SkipListMerger[Slice[Byte], Memory.SegmentResponse]) = {
+               writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
+               reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],
+               skipListMerge: SkipListMerger[Slice[Byte], Memory]) = {
       map.close().runRandomIO.right.value
-      Map.persistent[Slice[Byte], Memory.SegmentResponse](
+      Map.persistent[Slice[Byte], Memory](
         folder = map.path,
         mmap = Random.nextBoolean(),
         flushOnOverflow = Random.nextBoolean(),

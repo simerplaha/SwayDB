@@ -60,10 +60,6 @@ private[core] object KeyValue {
    * Key-values that can be added to [[MemorySweeper]].
    *
    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
-   *
-   * Only [[KeyValue.ReadOnly.Group]] && [[Persistent.SegmentResponse]] key-values are [[CacheAble]].
-   *
-   * Only [[Memory.Group]] key-values are uncompressed and every other key-value is dropped.
    */
   sealed trait CacheAble extends ReadOnly {
     def valueLength: Int
@@ -75,9 +71,7 @@ private[core] object KeyValue {
      *
      * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
      */
-    sealed trait SegmentResponse extends KeyValue with ReadOnly
-
-    sealed trait Fixed extends SegmentResponse {
+    sealed trait Fixed extends KeyValue with ReadOnly {
       def toFromValue(): IO[swaydb.Error.Segment, Value.FromValue]
 
       def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue]
@@ -152,7 +146,7 @@ private[core] object KeyValue {
       }
     }
 
-    sealed trait Range extends KeyValue.ReadOnly with SegmentResponse {
+    sealed trait Range extends KeyValue.ReadOnly {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
       def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]]
@@ -172,9 +166,8 @@ private[core] object KeyValue {
 private[swaydb] sealed trait Memory extends KeyValue.ReadOnly
 
 private[swaydb] object Memory {
-  sealed trait SegmentResponse extends Memory with KeyValue.ReadOnly.SegmentResponse
 
-  sealed trait Fixed extends Memory.SegmentResponse with KeyValue.ReadOnly.Fixed
+  sealed trait Fixed extends Memory with KeyValue.ReadOnly.Fixed
 
   case class Put(key: Slice[Byte],
                  value: Option[Slice[Byte]],
@@ -205,7 +198,7 @@ private[swaydb] object Memory {
     override def copyWithTime(time: Time): Put =
       copy(time = time)
 
-    //ahh not very type-safe.
+    //to do - make type-safe.
     override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
       IO.failed("Put cannot be converted to RangeValue")
   }
@@ -334,7 +327,7 @@ private[swaydb] object Memory {
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
                    fromValue: Option[Value.FromValue],
-                   rangeValue: Value.RangeValue) extends Memory.SegmentResponse with KeyValue.ReadOnly.Range {
+                   rangeValue: Value.RangeValue) extends Memory with KeyValue.ReadOnly.Range {
 
     override def key: Slice[Byte] = fromKey
 
@@ -360,6 +353,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
   val thisKeyValueAccessIndexPosition: Int
 
   def mergedKey: Slice[Byte]
+  def value: Option[Slice[Byte]]
   def values: Slice[Slice[Byte]]
   def valuesConfig: ValuesBlock.Config
   def sortedIndexConfig: SortedIndexBlock.Config
@@ -421,7 +415,7 @@ private[core] object Transient {
       keyValues.head.key
   }
 
-  sealed trait Fixed extends Transient.SegmentResponse {
+  sealed trait Fixed extends Transient {
 
     def hasTimeLeft(): Boolean
     def isOverdue(): Boolean = !hasTimeLeft()
@@ -496,7 +490,7 @@ private[core] object Transient {
 
   def compressibleValue(keyValue: Transient): Option[Slice[Byte]] =
     keyValue match {
-      case transient: Transient.SegmentResponse =>
+      case transient: Transient =>
         //if value is empty byte slice, return None instead of empty Slice.We do not store empty byte arrays.
         if (transient.value.exists(_.isEmpty))
           None
@@ -519,64 +513,50 @@ private[core] object Transient {
     val normalisedKeyValues = Slice.create[Transient](keyValues.size)
 
     keyValues foreach {
-      case keyValue: SegmentResponse =>
-        keyValue match {
-          case keyValue: Transient.Remove =>
-            normalisedKeyValues add keyValue.copy(
-              normaliseToSize = toSize,
-              previous = normalisedKeyValues.lastOption
-            )
+      case keyValue: Transient.Remove =>
+        normalisedKeyValues add keyValue.copy(
+          normaliseToSize = toSize,
+          previous = normalisedKeyValues.lastOption
+        )
 
-          case keyValue: Transient.Put =>
-            normalisedKeyValues add keyValue.copy(
-              normaliseToSize = toSize,
-              previous = normalisedKeyValues.lastOption
-            )
+      case keyValue: Transient.Put =>
+        normalisedKeyValues add keyValue.copy(
+          normaliseToSize = toSize,
+          previous = normalisedKeyValues.lastOption
+        )
 
-          case keyValue: Transient.Update =>
-            normalisedKeyValues add keyValue.copy(
-              normaliseToSize = toSize,
-              previous = normalisedKeyValues.lastOption
-            )
+      case keyValue: Transient.Update =>
+        normalisedKeyValues add keyValue.copy(
+          normaliseToSize = toSize,
+          previous = normalisedKeyValues.lastOption
+        )
 
-          case keyValue: Transient.Function =>
-            normalisedKeyValues add keyValue.copy(
-              normaliseToSize = toSize,
-              previous = normalisedKeyValues.lastOption
-            )
+      case keyValue: Transient.Function =>
+        normalisedKeyValues add keyValue.copy(
+          normaliseToSize = toSize,
+          previous = normalisedKeyValues.lastOption
+        )
 
-          case keyValue: Transient.PendingApply =>
-            normalisedKeyValues add keyValue.copy(
-              normaliseToSize = toSize,
-              previous = normalisedKeyValues.lastOption
-            )
+      case keyValue: Transient.PendingApply =>
+        normalisedKeyValues add keyValue.copy(
+          normaliseToSize = toSize,
+          previous = normalisedKeyValues.lastOption
+        )
 
-          case keyValue: Transient.Range =>
-            normalisedKeyValues add
-              keyValue.copy(
-                normaliseToSize = toSize,
-                previous = normalisedKeyValues.lastOption
-              )
-        }
+      case keyValue: Transient.Range =>
+        normalisedKeyValues add
+          keyValue.copy(
+            normaliseToSize = toSize,
+            previous = normalisedKeyValues.lastOption
+          )
     }
 
     normalisedKeyValues
   }
 
-  private[core] sealed trait SegmentResponse extends Transient {
-    def value: Option[Slice[Byte]]
+  implicit class TransientImplicits(transient: Transient)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
 
-    def updatePrevious(valuesConfig: ValuesBlock.Config,
-                       sortedIndexConfig: SortedIndexBlock.Config,
-                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                       hashIndexConfig: HashIndexBlock.Config,
-                       bloomFilterConfig: BloomFilterBlock.Config,
-                       previous: Option[Transient]): Transient.SegmentResponse
-  }
-
-  implicit class TransientImplicits(transient: Transient.SegmentResponse)(implicit keyOrder: KeyOrder[Slice[Byte]]) {
-
-    def toMemoryResponse: Memory.SegmentResponse =
+    def toMemoryResponse: Memory =
       transient match {
         case put: Transient.Put =>
           Memory.Put(
@@ -637,7 +617,7 @@ private[core] object Transient {
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
                     bloomFilterConfig: BloomFilterBlock.Config,
-                    previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+                    previous: Option[Transient]) extends Transient.Fixed {
     final val id = Remove.id
     override val isRange: Boolean = false
     override val isGroup: Boolean = false
@@ -687,7 +667,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[Transient]): Transient.SegmentResponse =
+                                previous: Option[Transient]): Transient =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -715,7 +695,7 @@ private[core] object Transient {
                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                  hashIndexConfig: HashIndexBlock.Config,
                  bloomFilterConfig: BloomFilterBlock.Config,
-                 previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+                 previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = Put.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -764,7 +744,7 @@ private[core] object Transient {
                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                 hashIndexConfig: HashIndexBlock.Config,
                                 bloomFilterConfig: BloomFilterBlock.Config,
-                                previous: Option[Transient]): Transient.SegmentResponse =
+                                previous: Option[Transient]): Transient =
       this.copy(
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
@@ -792,7 +772,7 @@ private[core] object Transient {
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
                     bloomFilterConfig: BloomFilterBlock.Config,
-                    previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+                    previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = Update.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -867,7 +847,7 @@ private[core] object Transient {
                       binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                       hashIndexConfig: HashIndexBlock.Config,
                       bloomFilterConfig: BloomFilterBlock.Config,
-                      previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+                      previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = Function.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -945,7 +925,7 @@ private[core] object Transient {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          previous: Option[Transient]) extends Transient.SegmentResponse with Transient.Fixed {
+                          previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = PendingApply.id
     override val isRemoveRangeMayBe = false
     override val isGroup: Boolean = false
@@ -1099,7 +1079,7 @@ private[core] object Transient {
                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
-                   previous: Option[Transient]) extends Transient.SegmentResponse {
+                   previous: Option[Transient]) extends Transient {
     final val id = Range.id
     override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
     override val isGroup: Boolean = false
@@ -1173,6 +1153,13 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   def valueLength: Int
 
   def valueOffset: Int
+
+  def toMemory(): IO[swaydb.Error.Segment, Memory]
+
+  def isValueCached: Boolean
+
+  def toMemoryResponseOption(): IO[swaydb.Error.Segment, Option[Memory]] =
+    toMemory() map (Some(_))
 
   /**
    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
@@ -1390,16 +1377,7 @@ private[core] object Persistent {
     }
   }
 
-  sealed trait SegmentResponse extends KeyValue.ReadOnly.SegmentResponse with Persistent {
-    def toMemory(): IO[swaydb.Error.Segment, Memory.SegmentResponse]
-
-    def isValueCached: Boolean
-
-    def toMemoryResponseOption(): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
-      toMemory() map (Some(_))
-  }
-
-  sealed trait Fixed extends Persistent.SegmentResponse with KeyValue.ReadOnly.Fixed with Partial.Fixed
+  sealed trait Fixed extends Persistent with KeyValue.ReadOnly.Fixed with Partial.Fixed
 
   case class Remove(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
@@ -1917,7 +1895,7 @@ private[core] object Persistent {
                            indexOffset: Int,
                            valueOffset: Int,
                            valueLength: Int,
-                           sortedIndexAccessPosition: Int) extends Persistent.SegmentResponse with KeyValue.ReadOnly.Range with Partial.RangeT {
+                           sortedIndexAccessPosition: Int) extends Persistent with KeyValue.ReadOnly.Range with Partial.RangeT {
 
     def fromKey = _fromKey
 

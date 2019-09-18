@@ -27,7 +27,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.Memory.SegmentResponse
+import swaydb.core.data.Memory
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
@@ -185,15 +185,15 @@ private[segment] case class MemorySegment(path: Path,
    * Basic value does not perform floor checks on the cache which are only required if the Segment contains
    * range or groups.
    */
-  private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+  private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
     skipList.get(key) map {
-      case response: Memory.SegmentResponse =>
+      case response: Memory =>
         IO.Right(Some(response))
     } getOrElse {
       IO.none
     }
 
-  override def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+  override def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
@@ -249,12 +249,12 @@ private[segment] case class MemorySegment(path: Path,
       }
     }
 
-  override def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+  override def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
       skipList.lower(key) map {
-        case response: Memory.SegmentResponse =>
+        case response: Memory =>
           IO.Right(Some(response))
       } getOrElse {
         IO.none
@@ -264,9 +264,9 @@ private[segment] case class MemorySegment(path: Path,
    * Basic value does not perform floor checks on the cache which are only required if the Segment contains
    * range or groups.
    */
-  private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+  private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
     skipList.higher(key) map {
-      case response: Memory.SegmentResponse =>
+      case response: Memory =>
         IO.Right(Some(response))
     } getOrElse {
       IO.none
@@ -289,7 +289,7 @@ private[segment] case class MemorySegment(path: Path,
             None
       }
 
-  override def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory.SegmentResponse]] =
+  override def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else if (_hasRange || _hasGroup)
@@ -338,13 +338,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      skipList.values().asScala.foldLeftIO(0) {
-        case (count, keyValue) =>
-          keyValue match {
-            case _: SegmentResponse =>
-              IO.Right(count + 1)
-          }
-      }
+      IO.Right(skipList.size)
 
   override def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)

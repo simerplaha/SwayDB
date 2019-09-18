@@ -183,7 +183,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
                                       stateId: Long,
-                                      map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): ThrottleLevelState =
+                                      map: swaydb.core.map.Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")

@@ -364,10 +364,10 @@ private[core] case class Level(dirs: Seq[Dir],
       override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         self get key
 
-      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
+      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
         higherInThisLevel(key)
 
-      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
+      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
         self lowerInThisLevel key
 
       override def levelNumber: String =
@@ -391,7 +391,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private implicit val currentGetter =
     new CurrentGetter {
-      override def get(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+      override def get(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly]] =
         getFromThisLevel(key)
     }
 
@@ -464,7 +464,7 @@ private[core] case class Level(dirs: Seq[Dir],
         } getOrElse IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
     }
 
-  private[level] implicit def reserve(map: Map[Slice[Byte], Memory.SegmentResponse]): IO[Error.Segment, IO[Promise[Unit], Slice[Byte]]] =
+  private[level] implicit def reserve(map: Map[Slice[Byte], Memory]): IO[Error.Segment, IO[Promise[Unit], Slice[Byte]]] =
     SegmentAssigner.assignMinMaxOnly(
       map = map,
       targetSegments = appendix.skipList.values().asScala
@@ -513,7 +513,7 @@ private[core] case class Level(dirs: Seq[Dir],
       )
     }
 
-  def isCopyable(map: Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
+  def isCopyable(map: Map[Slice[Byte], Memory]): Boolean =
     Segment
       .minMaxKey(map)
       .forall {
@@ -626,7 +626,7 @@ private[core] case class Level(dirs: Seq[Dir],
         appendEntry = None
       )
 
-  def put(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
+  def put(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.skipList.count())
     reserveAndRelease(map) {
       val appendixValues = appendix.skipList.values().asScala
@@ -660,7 +660,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return empty if copied into next Level else Segments copied into this Level.
    */
-  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
+  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
     forward(map) flatMap {
       copied =>
         if (copied)
@@ -672,7 +672,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Returns segments that were not forwarded.
    */
-  private def forward(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Boolean] = {
+  private def forward(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = $pushForward", paths.head, map.pathOption)
     if (pushForward)
       nextLevel map {
@@ -688,7 +688,7 @@ private[core] case class Level(dirs: Seq[Dir],
       IO.`false`
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory.SegmentResponse])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private[level] def copy(map: Map[Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
     def targetSegmentPath: (Long, Path) = {
@@ -1106,7 +1106,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def getFromThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.SegmentResponse]] =
+  def getFromThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly]] =
     appendix.skipList.floor(key) match {
       case Some(segment) =>
         segment get key
@@ -1162,7 +1162,7 @@ private[core] case class Level(dirs: Seq[Dir],
           nextLevel.map(_.mightContainFunction(functionId)) getOrElse IO.`false`
     }
 
-  private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
+  private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
     appendix
       .skipList
       .lower(key)
@@ -1196,7 +1196,7 @@ private[core] case class Level(dirs: Seq[Dir],
       nextSeek = Seek.Next.Read
     )
 
-  private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
+  private def higherFromFloorSegment(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
     appendix
       .skipList
       .floor(key)
@@ -1211,7 +1211,7 @@ private[core] case class Level(dirs: Seq[Dir],
           }
       } getOrElse LevelSeek.none
 
-  private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
+  private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
     appendix
       .skipList
       .higher(key)
@@ -1226,7 +1226,7 @@ private[core] case class Level(dirs: Seq[Dir],
           }
       } getOrElse LevelSeek.none
 
-  private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly.SegmentResponse]] =
+  private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
     higherFromFloorSegment(key) flatMap {
       fromFloor =>
         if (fromFloor.isDefined)

@@ -730,6 +730,10 @@ private[core] object HashIndexBlock extends LazyLogging {
                     lowerKeyValues += previous
                     None
 
+                  case Result.BehindFetchNext(previous) =>
+                    lowerKeyValues += previous
+                    None
+
                   case Result.AheadOrNoneOrEnd =>
                     None
                 }

@@ -58,7 +58,7 @@ private[core] object SegmentMerger extends LazyLogging {
         newBuffersLast match {
           case flattened: SegmentBuffer.Flattened =>
             buffers.last foreachIO {
-              case response: Transient.SegmentResponse =>
+              case response: Transient =>
                 IO {
                   flattened add
                     response.updatePrevious(
@@ -178,10 +178,10 @@ private[core] object SegmentMerger extends LazyLogging {
    *
    * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
    */
-  def merge(newKeyValues: Slice[Memory.SegmentResponse],
-            oldKeyValues: Slice[Memory.SegmentResponse])(implicit keyOrder: KeyOrder[Slice[Byte]],
+  def merge(newKeyValues: Slice[Memory],
+            oldKeyValues: Slice[Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore): ListBuffer[Transient.SegmentResponse] =
+                                                         functionStore: FunctionStore): ListBuffer[Transient] =
     merge(
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
@@ -198,12 +198,12 @@ private[core] object SegmentMerger extends LazyLogging {
     )(keyOrder, timeOrder, functionStore)
       .get
       .flatten
-      .asInstanceOf[ListBuffer[Transient.SegmentResponse]]
+      .asInstanceOf[ListBuffer[Transient]]
 
-  def merge(newKeyValue: Memory.SegmentResponse,
-            oldKeyValue: Memory.SegmentResponse)(implicit keyOrder: KeyOrder[Slice[Byte]],
+  def merge(newKeyValue: Memory,
+            oldKeyValue: Memory)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore): ListBuffer[Transient.SegmentResponse] =
+                                                 functionStore: FunctionStore): ListBuffer[Transient] =
     merge(
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),
@@ -220,7 +220,7 @@ private[core] object SegmentMerger extends LazyLogging {
     )(keyOrder, timeOrder, functionStore)
       .get
       .flatten
-      .asInstanceOf[ListBuffer[Transient.SegmentResponse]]
+      .asInstanceOf[ListBuffer[Transient]]
 
   def merge(newKeyValues: Slice[KeyValue.ReadOnly],
             oldKeyValues: Slice[KeyValue.ReadOnly],

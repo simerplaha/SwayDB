@@ -150,7 +150,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
       //    2, 7, 10, 20
       val newKeyValues = Slice(Memory.Range(0, 25, Some(Value.remove(None)), Value.remove(None)))
 
-      val oldKeyValues: Slice[Memory.SegmentResponse] =
+      val oldKeyValues: Slice[Memory] =
         Slice(
           Memory.put(2, "new value value"),
           Memory.put(7, "new value value"),

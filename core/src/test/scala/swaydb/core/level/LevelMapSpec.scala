@@ -80,11 +80,11 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   "putMap on a single Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
+    implicit val merged: SkipListMerger[Slice[Byte], Memory] = LevelZeroSkipListMerger
 
     val map =
       if (persistent)
-        Map.persistent[Slice[Byte], Memory.SegmentResponse](
+        Map.persistent[Slice[Byte], Memory](
           folder = randomIntDirectory,
           mmap = true,
           flushOnOverflow = true,
@@ -92,12 +92,12 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           dropCorruptedTailEntries = false
         ).runRandomIO.right.value.item
       else
-        Map.memory[Slice[Byte], Memory.SegmentResponse]()
+        Map.memory[Slice[Byte], Memory]()
 
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
-        map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
+        map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory]))
     }
 
     "succeed" when {
@@ -146,23 +146,23 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
   "putMap on two Level" should {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader._
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val merged: SkipListMerger[Slice[Byte], Memory.SegmentResponse] = LevelZeroSkipListMerger
+    implicit val merged: SkipListMerger[Slice[Byte], Memory] = LevelZeroSkipListMerger
 
     val map =
       if (persistent)
-        Map.persistent[Slice[Byte], Memory.SegmentResponse](
+        Map.persistent[Slice[Byte], Memory](
           folder = randomIntDirectory,
           mmap = true,
           flushOnOverflow = true,
           fileSize = 1.mb,
           dropCorruptedTailEntries = false).runRandomIO.right.value.item
       else
-        Map.memory[Slice[Byte], Memory.SegmentResponse]()
+        Map.memory[Slice[Byte], Memory]()
 
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
-        map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory.SegmentResponse]))
+        map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory]))
     }
 
     "succeed" when {
@@ -171,14 +171,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
 
         nextLevel.isTrash _ expects() returning false
 
-        (nextLevel.isCopyable(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
-          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+        (nextLevel.isCopyable(_: Map[Slice[Byte], Memory])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory] =>
             putMap.pathOption shouldBe map.pathOption
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
-          (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
+        (nextLevel.put(_: Map[Slice[Byte], Memory])(_: ExecutionContext)) expects(*, *) onCall {
+          (putMap: Map[Slice[Byte], Memory], _) =>
             putMap.pathOption shouldBe map.pathOption
             IO.unitUnit
         }
@@ -191,19 +191,19 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
         val nextLevel = mock[NextLevel]
 
-        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory.SegmentResponse])
+        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory])
         val map = TestMap(lastLevelKeyValues)
 
         nextLevel.isTrash _ expects() returning false
 
-        (nextLevel.isCopyable(_: Map[Slice[Byte], Memory.SegmentResponse])) expects * onCall {
-          putMap: Map[Slice[Byte], Memory.SegmentResponse] =>
+        (nextLevel.isCopyable(_: Map[Slice[Byte], Memory])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory] =>
             putMap.pathOption shouldBe map.pathOption
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory.SegmentResponse])(_: ExecutionContext)) expects(*, *) onCall {
-          (putMap: Map[Slice[Byte], Memory.SegmentResponse], _) =>
+        (nextLevel.put(_: Map[Slice[Byte], Memory])(_: ExecutionContext)) expects(*, *) onCall {
+          (putMap: Map[Slice[Byte], Memory], _) =>
             putMap.pathOption shouldBe map.pathOption
             IO.unitUnit
         }

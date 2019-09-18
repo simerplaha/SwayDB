@@ -901,7 +901,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                   case persistent: Persistent.Remove =>
                     persistent.isValueCached shouldBe true
 
-                  case persistent: Persistent.SegmentResponse =>
+                  case persistent: Persistent =>
                     persistent.isValueCached shouldBe false
                 }
 
@@ -911,7 +911,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
                   case persistent: Persistent.Remove =>
                     persistent.isValueCached shouldBe true
 
-                  case persistent: Persistent.SegmentResponse =>
+                  case persistent: Persistent =>
                     persistent.isValueCached shouldBe true
                 }
               }

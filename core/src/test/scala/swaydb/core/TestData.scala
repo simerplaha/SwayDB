@@ -363,8 +363,8 @@ object TestData {
       slice
     }
 
-    def toMemoryResponse: Slice[Memory.SegmentResponse] = {
-      val slice = Slice.create[Memory.SegmentResponse](keyValues.size)
+    def toMemoryResponse: Slice[Memory] = {
+      val slice = Slice.create[Memory](keyValues.size)
 
       keyValues foreach {
         keyValue =>
@@ -380,7 +380,7 @@ object TestData {
   }
 
   implicit class TransientToMemory(keyValue: Transient) {
-    def toMemoryResponse: Memory.SegmentResponse =
+    def toMemoryResponse: Memory =
       keyValue match {
         case fixed: Transient.Fixed =>
           fixed match {
@@ -751,14 +751,14 @@ object TestData {
         case memory: Memory =>
           memory
 
-        case persistent: Persistent.SegmentResponse =>
+        case persistent: Persistent =>
           persistent.toMemoryResponse
       }
     }
 
-    def toMemoryResponse: Memory.SegmentResponse = {
+    def toMemoryResponse: Memory = {
       keyValue match {
-        case memory: Memory.SegmentResponse =>
+        case memory: Memory =>
           memory
 
         case persistent: Persistent =>
@@ -842,7 +842,7 @@ object TestData {
 
   def randomRemoveAny(from: Slice[Byte],
                       to: Slice[Byte],
-                      addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.SegmentResponse =
+                      addFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory =
     eitherOne(
       left = randomRemoveOrUpdateOrFunctionRemove(from, addFunctions),
       right = randomRemoveRange(from, to)
@@ -1075,7 +1075,7 @@ object TestData {
 
   implicit class FunctionOutputImplicits(functionOutput: SwayFunctionOutput) {
     def toMemory(key: Slice[Byte],
-                 time: Time) = {
+                 time: Time): Memory.Fixed = {
       val outputFixed =
         functionOutput match {
           case SwayFunctionOutput.Remove =>

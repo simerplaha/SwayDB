@@ -99,7 +99,7 @@ object CommonAssertions {
         case writeOnly: Transient => writeOnly.toMemory
       }
 
-    def toMemoryResponse: Memory.SegmentResponse =
+    def toMemoryResponse: Memory =
       actual match {
         case readOnly: ReadOnly => readOnly.toMemoryResponse
         case writeOnly: Transient => writeOnly.toMemoryResponse
@@ -295,30 +295,30 @@ object CommonAssertions {
       }
   }
 
-  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
-                          oldKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
-                          expected: Transient): SkipList.Concurrent[Slice[Byte], Memory.SegmentResponse] =
+  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly],
+                          oldKeyValues: Iterable[KeyValue.ReadOnly],
+                          expected: Transient): SkipList.Concurrent[Slice[Byte], Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
-  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
-                          oldKeyValues: Iterable[KeyValue.ReadOnly.SegmentResponse],
+  def assertSkipListMerge(newKeyValues: Iterable[KeyValue.ReadOnly],
+                          oldKeyValues: Iterable[KeyValue.ReadOnly],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[Slice[Byte], Memory.SegmentResponse] = {
-    val skipList = SkipList.concurrent[Slice[Byte], Memory.SegmentResponse]()(KeyOrder.default)
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[Slice[Byte], Memory] = {
+    val skipList = SkipList.concurrent[Slice[Byte], Memory]()(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemoryResponse) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory))
     skipList
   }
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
-                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly,
+                  oldKeyValue: KeyValue.ReadOnly,
                   expected: Slice[Transient],
                   isLastLevel: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] =
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel)
 
-  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
-                  oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
+  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly],
+                  oldKeyValues: Slice[KeyValue.ReadOnly],
                   expected: Slice[Transient],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] = {
@@ -349,15 +349,15 @@ object CommonAssertions {
     result
   }
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
-                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly,
+                  oldKeyValue: KeyValue.ReadOnly,
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                       timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] =
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), Slice(lastLevelExpect))
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
-                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly,
+                  oldKeyValue: KeyValue.ReadOnly,
                   expected: KeyValue.ReadOnly,
                   lastLevelExpect: Option[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               timeOrder: TimeOrder[Slice[Byte]]): Unit = {
@@ -367,8 +367,8 @@ object CommonAssertions {
     assertSkipListMerge(Slice(newKeyValue), Slice(oldKeyValue), Slice(expected))
   }
 
-  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
-                  oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
+  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly],
+                  oldKeyValues: Slice[KeyValue.ReadOnly],
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              timeOrder: TimeOrder[Slice[Byte]]): Unit = {
@@ -380,8 +380,8 @@ object CommonAssertions {
     assertSkipListMerge(newKeyValues, oldKeyValues, expected)
   }
 
-  def assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse,
-                  oldKeyValue: KeyValue.ReadOnly.SegmentResponse,
+  def assertMerge(newKeyValue: KeyValue.ReadOnly,
+                  oldKeyValue: KeyValue.ReadOnly,
                   expected: Slice[KeyValue.ReadOnly],
                   lastLevelExpect: Slice[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] = {
@@ -391,8 +391,8 @@ object CommonAssertions {
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect.toTransient(), isLastLevel = true)
   }
 
-  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
-                  oldKeyValues: Slice[KeyValue.ReadOnly.SegmentResponse],
+  def assertMerge(newKeyValues: Slice[KeyValue.ReadOnly],
+                  oldKeyValues: Slice[KeyValue.ReadOnly],
                   expected: Transient,
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]]): Iterable[Iterable[Transient]] =
@@ -405,7 +405,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
+    assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
 
@@ -416,7 +416,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
+    assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
 
@@ -427,7 +427,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     RemoveMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
+    assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
 
@@ -438,7 +438,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
+    assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
 
     //todo merge with persistent
   }
@@ -450,7 +450,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
+    assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
 
@@ -461,7 +461,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
+    assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
 
     //todo merge with persistent
   }
@@ -472,7 +472,7 @@ object CommonAssertions {
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    assertMerge(newKeyValue: KeyValue.ReadOnly.SegmentResponse, oldKeyValue: KeyValue.ReadOnly.SegmentResponse, expected, lastLevel)
+    assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
 
@@ -487,20 +487,20 @@ object CommonAssertions {
       }
     }
 
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]]) =
+    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]]) =
     //LevelZero does not write Groups therefore this unzip is required.
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
+      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
         case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory.SegmentResponse](keyValue.key, keyValue.toMemoryResponse)
+          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue.toMemoryResponse)
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
   }
 
-  implicit class MemoryImplicits(actual: Iterable[Memory.SegmentResponse]) {
-    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]]) =
-      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
+  implicit class MemoryImplicits(actual: Iterable[Memory]) {
+    def toMapEntry(implicit serializer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]]) =
+      actual.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
         case (mapEntry, keyValue) =>
-          val newEntry = MapEntry.Put[Slice[Byte], Memory.SegmentResponse](keyValue.key, keyValue)
+          val newEntry = MapEntry.Put[Slice[Byte], Memory](keyValue.key, keyValue)
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
   }
@@ -594,14 +594,14 @@ object CommonAssertions {
       }
   }
 
-  implicit class MapEntryImplicits(actual: MapEntry[Slice[Byte], Memory.SegmentResponse]) {
+  implicit class MapEntryImplicits(actual: MapEntry[Slice[Byte], Memory]) {
 
-    def shouldBe(expected: MapEntry[Slice[Byte], Memory.SegmentResponse]): Unit = {
+    def shouldBe(expected: MapEntry[Slice[Byte], Memory]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
       actual.totalByteSize shouldBe expected.totalByteSize
       actual match {
         case MapEntry.Put(key, value) =>
-          val exp = expected.asInstanceOf[MapEntry.Put[Slice[Byte], Memory.SegmentResponse]]
+          val exp = expected.asInstanceOf[MapEntry.Put[Slice[Byte], Memory]]
           key shouldBe exp.key
           value shouldBe exp.value
 
@@ -895,7 +895,7 @@ object CommonAssertions {
             segment.getAll().value map {
               keyValue =>
                 keyValue.toMemory match {
-                  case response: Memory.SegmentResponse =>
+                  case response: Memory =>
                     response match {
                       case fixed: Memory.Fixed =>
                         fixed match {

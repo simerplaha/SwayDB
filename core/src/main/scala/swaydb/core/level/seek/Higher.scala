@@ -194,7 +194,7 @@ private[core] object Higher {
               //if the input key is smaller than this Level's higher Range's fromKey.
               //0           (input key)
               //    10 - 20 (higher range)
-              case _: KeyValue.ReadOnly.SegmentResponse =>
+              case _: KeyValue.ReadOnly =>
                 nextWalker.higher(key).toIO match {
                   case IO.Right(Some(next)) =>
                     Higher(key, currentStash, Seek.Next.Stash(next))

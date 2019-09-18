@@ -55,7 +55,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   bloomFilterConfig: BloomFilterBlock.Config,
                   segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] = {
 
-    def doAdd(keyValueToAdd: Option[Transient.SegmentResponse] => Transient.SegmentResponse): IO[swaydb.Error.Segment, Unit] = {
+    def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[swaydb.Error.Segment, Unit] = {
 
       /**
        * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
@@ -76,7 +76,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 else
                   currentGroupsLastKeyValues.map(_.stats.segmentSize).getOrElse(0)
 
-              val nextKeyValueWithUpdatedStats: Transient.SegmentResponse = keyValueToAdd(currentGroupsLastKeyValues)
+              val nextKeyValueWithUpdatedStats: Transient = keyValueToAdd(currentGroupsLastKeyValues)
 
               val segmentSizeWithNextKeyValue =
                 if (forInMemory)

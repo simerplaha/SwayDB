@@ -144,7 +144,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def inMemory: Boolean = true
 
-  override def isCopyable(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse]): Boolean =
+  override def isCopyable(map: swaydb.core.map.Map[Slice[Byte], Memory]): Boolean =
     true
 
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -153,7 +153,7 @@ private[core] object TrashLevel extends NextLevel {
   override def put(segment: Segment)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Unit]] =
     IO.unitUnit
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory.SegmentResponse])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
     IO.unitUnit
 
   override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =

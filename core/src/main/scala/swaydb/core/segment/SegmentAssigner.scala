@@ -42,7 +42,7 @@ private[core] object SegmentAssigner {
                                                           segmentIO: SegmentIO): IO[swaydb.Error.Segment, Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.keys)
 
-  def assignMinMaxOnly(map: Map[Slice[Byte], Memory.SegmentResponse],
+  def assignMinMaxOnly(map: Map[Slice[Byte], Memory],
                        targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                           segmentIO: SegmentIO): IO[swaydb.Error.Segment, Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(map), targetSegments).map(_.keys)

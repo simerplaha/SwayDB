@@ -81,7 +81,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           }
 
         persistent match {
-          case response: Persistent.SegmentResponse =>
+          case response: Persistent =>
             response.getOrFetchValue shouldBe transient.getOrFetchValue
         }
 
@@ -245,7 +245,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         case (persistent, transient) =>
           val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, None, fullRead = true, sortedIndexReader.copy(), valuesBlockReader).get.get
           transient match {
-            case transient: Transient.SegmentResponse =>
+            case transient: Transient =>
               searchedPersistent shouldBe persistent
               searchedPersistent shouldBe transient
           }

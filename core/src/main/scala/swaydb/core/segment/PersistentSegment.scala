@@ -268,16 +268,16 @@ private[segment] case class PersistentSegment(file: DBFile,
       }
     }
 
-  def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+  def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
     segmentCache get key
 
-  def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+  def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
     segmentCache lower key
 
   def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     segmentCache floorHigherHint key
 
-  def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+  def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
     segmentCache higher key
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =

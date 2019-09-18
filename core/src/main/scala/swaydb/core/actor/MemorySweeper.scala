@@ -37,7 +37,7 @@ private[core] object Command {
     val skipListRef: WeakReference[SkipList[Slice[Byte], _]]
   }
 
-  case class WeighKeyValue(keyValueRef: WeakReference[Persistent.SegmentResponse],
+  case class WeighKeyValue(keyValueRef: WeakReference[Persistent],
                            skipListRef: WeakReference[SkipList[Slice[Byte], _]]) extends KeyValueCommand
 
   case class Block(key: BlockCache.Key,
@@ -96,7 +96,7 @@ private[core] object MemorySweeper {
         } getOrElse 264 //264 for the weight of WeakReference itself.
     }
 
-  def weight(keyValue: Persistent.SegmentResponse) = {
+  def weight(keyValue: Persistent) = {
     val otherBytes = (Math.ceil(keyValue.key.size + keyValue.valueLength / 8.0) - 1.0) * 8
     //        if (keyValue.hasRemoveMayBe) (168 + otherBytes).toLong else (264 + otherBytes).toLong
     (264 * 2) + otherBytes
@@ -158,7 +158,7 @@ private[core] object MemorySweeper {
   sealed trait KeyValue extends Enabled {
     def actor: ActorRef[Command, Unit]
 
-    def add(keyValue: Persistent.SegmentResponse,
+    def add(keyValue: Persistent,
             skipList: SkipList[Slice[Byte], _]): Unit =
       actor ! Command.WeighKeyValue(
         keyValueRef = new WeakReference(keyValue),

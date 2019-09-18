@@ -115,7 +115,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
       val level = TestLevel()
       level.isEmpty shouldBe true
 
-      val keyValues = randomPutKeyValues(keyValuesCount).asInstanceOf[Slice[Memory.SegmentResponse]]
+      val keyValues = randomPutKeyValues(keyValuesCount).asInstanceOf[Slice[Memory]]
       val copiedSegments = level.copy(TestMap(keyValues)).runRandomIO.right.value
       level.isEmpty shouldBe true //copy function does not write to appendix.
 

@@ -47,7 +47,7 @@ class MapStressSpec extends TestBase {
     "write entries when flushOnOverflow is true and map size is 1.kb" in {
       val keyValues = randomKeyValues(100)
 
-      def test(map: Map[Slice[Byte], Memory.SegmentResponse]) = {
+      def test(map: Map[Slice[Byte], Memory]) = {
         keyValues foreach {
           keyValue =>
             val entry = MapEntry.Put[Slice[Byte], Memory.Put](keyValue.key, Memory.put(keyValue.key, keyValue.getOrFetchValue))(Level0PutWriter)
@@ -57,7 +57,7 @@ class MapStressSpec extends TestBase {
         testRead(map)
       }
 
-      def testRead(map: Map[Slice[Byte], Memory.SegmentResponse]) =
+      def testRead(map: Map[Slice[Byte], Memory]) =
         keyValues foreach {
           keyValue =>
             map.skipList.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
@@ -69,21 +69,21 @@ class MapStressSpec extends TestBase {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter.Level0MapEntryPutWriter
 
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-      test(Map.memory[Slice[Byte], Memory.SegmentResponse](flushOnOverflow = true, fileSize = 1.kb))
+      test(Map.persistent[Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      test(Map.persistent[Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      test(Map.memory[Slice[Byte], Memory](flushOnOverflow = true, fileSize = 1.kb))
 
       //reopen - all the entries should value recovered for persistent maps. Also switch mmap types.
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      testRead(Map.persistent[Slice[Byte], Memory](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      testRead(Map.persistent[Slice[Byte], Memory](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
 
       //write the same data again
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-      test(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      test(Map.persistent[Slice[Byte], Memory](dir1, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      test(Map.persistent[Slice[Byte], Memory](dir2, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
 
       //read again
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
-      testRead(Map.persistent[Slice[Byte], Memory.SegmentResponse](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      testRead(Map.persistent[Slice[Byte], Memory](dir1, mmap = false, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
+      testRead(Map.persistent[Slice[Byte], Memory](dir2, mmap = true, flushOnOverflow = true, 1.kb, dropCorruptedTailEntries = false).runRandomIO.right.value.item)
     }
   }
 }

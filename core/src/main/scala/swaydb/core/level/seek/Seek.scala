@@ -27,7 +27,7 @@ private[swaydb] object Seek {
   object Current {
     case class Read(previousSegmentId: Long) extends Seek.Current
     case object Stop extends Seek.Current
-    case class Stash(segmentId: Long, current: KeyValue.ReadOnly.SegmentResponse) extends Seek.Current
+    case class Stash(segmentId: Long, current: KeyValue.ReadOnly) extends Seek.Current
   }
 
   sealed trait Next

@@ -125,16 +125,16 @@ object LevelZeroMapEntryReader {
       }
   }
 
-  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory.SegmentResponse]] {
-    private def merge(nextEntry: Option[MapEntry[Slice[Byte], Memory.SegmentResponse]],
-                      previousEntry: Option[MapEntry[Slice[Byte], Memory.SegmentResponse]]) =
+  implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory]] {
+    private def merge(nextEntry: Option[MapEntry[Slice[Byte], Memory]],
+                      previousEntry: Option[MapEntry[Slice[Byte], Memory]]) =
       nextEntry flatMap {
         nextEntry =>
           previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
       }
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Memory.SegmentResponse]]] =
-      reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Memory.SegmentResponse]]) {
+    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Memory]]] =
+      reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Memory]]) {
         case (previousEntry, reader) =>
           reader.readInt() flatMap {
             entryId =>

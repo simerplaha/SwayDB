@@ -54,7 +54,7 @@ private[core] object Get {
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly.SegmentResponse): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+    def returnSegmentResponse(current: KeyValue.ReadOnly): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())

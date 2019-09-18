@@ -208,26 +208,26 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     walkDeleteFolder(testDir)
 
   object TestMap {
-    def apply(keyValues: Slice[Memory.SegmentResponse],
+    def apply(keyValues: Slice[Memory],
               fileSize: Int = 4.mb,
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                     memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
                                     fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
-                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory.SegmentResponse] = {
+                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger
 
       val testMap =
         if (levelStorage.memory)
-          map.Map.memory[Slice[Byte], Memory.SegmentResponse](
+          map.Map.memory[Slice[Byte], Memory](
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow
           )
         else
-          map.Map.persistent[Slice[Byte], Memory.SegmentResponse](
+          map.Map.persistent[Slice[Byte], Memory](
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,

@@ -27,10 +27,10 @@ import scala.collection.mutable.ListBuffer
  * A mutable Buffer that maintains the current state of Grouped key-values for a Segment.
  */
 sealed trait SegmentBuffer extends Iterable[Transient] {
-  def add(keyValue: Transient.SegmentResponse): Unit
+  def add(keyValue: Transient): Unit
   def lastOption: Option[Transient]
-  def lastNonGroup: Transient.SegmentResponse
-  def lastNonGroupOption: Option[Transient.SegmentResponse]
+  def lastNonGroup: Transient
+  def lastNonGroupOption: Option[Transient]
   def nonEmpty: Boolean
   def isEmpty: Boolean
   def size: Int
@@ -40,10 +40,10 @@ sealed trait SegmentBuffer extends Iterable[Transient] {
 object SegmentBuffer {
 
   def apply(): SegmentBuffer =
-    new Flattened(ListBuffer.empty[Transient.SegmentResponse])
+    new Flattened(ListBuffer.empty[Transient])
 
-  class Flattened(keyValues: ListBuffer[Transient.SegmentResponse]) extends SegmentBuffer {
-    def add(keyValue: Transient.SegmentResponse): Unit =
+  class Flattened(keyValues: ListBuffer[Transient]) extends SegmentBuffer {
+    def add(keyValue: Transient): Unit =
       keyValues += keyValue
 
     override def lastNonGroup =
@@ -64,7 +64,7 @@ object SegmentBuffer {
     override def lastOption: Option[Transient] =
       keyValues.lastOption
 
-    override def last: Transient.SegmentResponse =
+    override def last: Transient =
       keyValues.last
 
     override def head =

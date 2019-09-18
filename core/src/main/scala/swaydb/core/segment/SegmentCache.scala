@@ -82,7 +82,7 @@ private[core] class SegmentCache(id: String,
    * here it's unknown if a lower key 7 exists without doing a file seek. This is also one of the reasons
    * reverse iterations are slower than forward.
    */
-  private def addToCache(keyValue: Persistent.SegmentResponse): Unit = {
+  private def addToCache(keyValue: Persistent): Unit = {
     if (unsliceKey) keyValue.unsliceKeys
     if (!skipList.isConcurrent)
       skipList.put(keyValue.key, keyValue)
@@ -126,7 +126,7 @@ private[core] class SegmentCache(id: String,
                   end: => Option[Persistent],
                   hasRange: Boolean,
                   keyValueCount: Int,
-                  threadState: SegmentReadThreadState): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                  threadState: SegmentReadThreadState): IO[swaydb.Error.Segment, Option[Persistent]] =
     createSortedIndexReader(threadState) flatMap {
       sortedIndexReader =>
         createValuesReader(threadState) flatMap {
@@ -143,7 +143,7 @@ private[core] class SegmentCache(id: String,
               hasRange = hasRange,
               threadState = threadState
             ) flatMap {
-              case Some(response: Persistent.SegmentResponse) =>
+              case Some(response: Persistent) =>
                 addToCache(response)
                 IO.Right(Some(response))
 
@@ -167,7 +167,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+  def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key > maxKey =>
         IO.none
@@ -184,7 +184,7 @@ private[core] class SegmentCache(id: String,
         val skipList = threadState.skipList
 
         skipList.floor(key) match {
-          case Some(floor: Persistent.SegmentResponse) if floor.key equiv key =>
+          case Some(floor: Persistent) if floor.key equiv key =>
             IO.Right(Some(floor))
 
           case Some(floorRange: Persistent.Range) if floorRange contains key =>
@@ -224,7 +224,7 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: => Option[Persistent],
-                    keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                    keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent]] =
     blockCache.createSortedIndexReader() flatMap {
       sortedIndexReader =>
         blockCache.createValuesReader flatMap {
@@ -238,7 +238,7 @@ private[core] class SegmentCache(id: String,
               sortedIndexReader = sortedIndexReader,
               valuesReader
             ) flatMap {
-              case Some(response: Persistent.SegmentResponse) =>
+              case Some(response: Persistent) =>
                 addToCache(response)
                 IO.Right(Some(response))
 
@@ -277,7 +277,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+  def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
     if (key <= minKey)
       IO.none
     else
@@ -294,7 +294,7 @@ private[core] class SegmentCache(id: String,
               //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
               if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
                 lowerKeyValue match {
-                  case response: Persistent.SegmentResponse =>
+                  case response: Persistent =>
                     IO.Right(Some(response))
                 }
               else
@@ -306,7 +306,7 @@ private[core] class SegmentCache(id: String,
                     getForLower(key) flatMap {
                       case Some(got) if lowerKeyValue.nextIndexOffset == got.indexOffset =>
                         lowerKeyValue match {
-                          case response: Persistent.SegmentResponse =>
+                          case response: Persistent =>
                             IO.Right(Some(response))
                         }
 
@@ -365,7 +365,7 @@ private[core] class SegmentCache(id: String,
   private def higher(key: Slice[Byte],
                      start: Option[Persistent],
                      end: => Option[Persistent],
-                     keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+                     keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent]] =
     blockCache.getFooter() flatMap {
       footer =>
         blockCache.createSortedIndexReader() flatMap {
@@ -389,7 +389,7 @@ private[core] class SegmentCache(id: String,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader
                     ) flatMap {
-                      case Some(response: Persistent.SegmentResponse) =>
+                      case Some(response: Persistent) =>
                         addToCache(response)
                         IO.Right(Some(response))
 
@@ -415,7 +415,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent.SegmentResponse]] =
+  def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key >= maxKey =>
         IO.none
@@ -438,7 +438,7 @@ private[core] class SegmentCache(id: String,
                   case someHigher @ Some(higherKeyValue) =>
                     if (floorEntry.nextIndexOffset == higherKeyValue.indexOffset)
                       higherKeyValue match {
-                        case response: Persistent.SegmentResponse =>
+                        case response: Persistent =>
                           IO.Right(Some(response))
                       }
                     else

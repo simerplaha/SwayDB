@@ -153,7 +153,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
       //9, 10, 11, 15, 18,    23,      27,  30
       //   10      -     20        25   -   30
-      val newKeyValues: Slice[Memory.SegmentResponse] =
+      val newKeyValues: Slice[Memory] =
       Slice(
         Memory.put(9, 9),
         Memory.put(10, 10),
@@ -167,13 +167,13 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         Memory.put(30, 30)
       )
 
-      val oldKeyValues: Slice[Memory.SegmentResponse] =
+      val oldKeyValues: Slice[Memory] =
         Slice(
           Memory.Range(10, 20, Option.empty[Value.Put], Value.update("ranges value 1")),
           Memory.Range(25, 30, Some(Value.put(25)), Value.update("ranges value 2", deadline2))
         )
 
-      val expected: Slice[Memory.SegmentResponse] =
+      val expected: Slice[Memory] =
         Slice(
           Memory.put(9, 9),
           Memory.Range(10, 11, Some(Value.put(10)), Value.update("ranges value 1")),
@@ -188,7 +188,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         )
 
       //last level check
-      val expectedInLastLevel: Slice[Memory.SegmentResponse] =
+      val expectedInLastLevel: Slice[Memory] =
         Slice(
           Memory.put(9, 9),
           Memory.put(10, 10),
