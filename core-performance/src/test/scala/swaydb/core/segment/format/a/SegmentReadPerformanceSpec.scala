@@ -27,14 +27,12 @@ import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 
 import scala.util.Random
 
@@ -73,7 +71,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //  override def deleteFiles = false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeper
+  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
   implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
 
   def strategy(action: IOAction): IOStrategy =
@@ -148,50 +146,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       }
     )
 
-  //    lazy val unGroupedKeyValues: Slice[Transient] =
-  //      randomKeyValues(
-  //        keyValuesCount,
-  //        startId = Some(1),
-  //        valuesConfig =
-  //          ValuesBlock.Config(
-  //            compressDuplicateValues = true,
-  //            compressDuplicateRangeValues = true,
-  //            blockIO = strategy,
-  //            compressions = _ => Seq.empty
-  //          ),
-  //        sortedIndexConfig =
-  //          SortedIndexBlock.Config.create(
-  //            blockIO = strategy,
-  //            prefixCompressionResetCount = 0,
-  //            enableAccessPositionIndex = true,
-  //            compressions = _ => Seq.empty
-  //          ),
-  //        binarySearchIndexConfig =
-  //          BinarySearchIndexBlock.Config(
-  //            enabled = true,
-  //            minimumNumberOfKeys = 1,
-  //            fullIndex = true,
-  //            blockIO = strategy,
-  //            compressions = _ => Seq.empty
-  //          ),
-  //        hashIndexConfig =
-  //          HashIndexBlock.Config(
-  //            maxProbe = 5,
-  //            minimumNumberOfKeys = 2,
-  //            minimumNumberOfHits = 2,
-  //            allocateSpace = _.requiredSpace * 10,
-  //            blockIO = strategy,
-  //            compressions = _ => Seq.empty
-  //          ),
-  //        bloomFilterConfig =
-  //          BloomFilterBlock.Config(
-  //            falsePositiveRate = 0.001,
-  //            minimumNumberOfKeys = 2,
-  //            blockIO = strategy,
-  //            compressions = _ => Seq.empty
-  //          )
-  //      )
-
   val keyValues: Slice[Transient] =
     randomKeyValues(
       keyValuesCount,
@@ -245,31 +199,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //        )
     )
 
-  lazy val groupedKeyValues: Slice[Transient] = {
-    val grouped =
-      SegmentMerger.split(
-        keyValues = keyValues,
-        minSegmentSize = 1000.mb,
-        isLastLevel = false,
-        forInMemory = false,
-        createdInLevel = randomIntMax(),
-        valuesConfig = keyValues.last.valuesConfig,
-        sortedIndexConfig = keyValues.last.sortedIndexConfig,
-        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
-        hashIndexConfig = keyValues.last.hashIndexConfig,
-        bloomFilterConfig = keyValues.last.bloomFilterConfig,
-        segmentIO = segmentIO
-      )(keyOrder = keyOrder).right.value
-
-    grouped should have size 1
-    grouped.head.toSlice
-  }
-
-  val shuffledKeyValues = Random.shuffle(keyValues)
-  //  val unGroupedKeyValuesZipped = unGroupedKeyValues.zipWithIndex
+  lazy val shuffledKeyValues = Random.shuffle(keyValues)
 
   def assertGet(segment: Segment) = {
-    shuffledKeyValues foreach {
+    keyValues foreach {
       keyValue =>
         //        if (index % 1000 == 0)
         //          segment.get(shuffledUnGroupedKeyValues.head.key)
@@ -322,8 +255,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       val segmentConfig = SegmentBlock.Config(strategy, _ => Seq.empty)
       segment = TestSegment(keyValues, segmentConfig = segmentConfig).right.value
     }
-
-    //    printGroupHierarchy(Slice(segment))
   }
 
   def reopenSegment() = {

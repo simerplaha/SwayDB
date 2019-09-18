@@ -27,7 +27,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.TestTimer
 //import swaydb.core.data.Transient
-//import swaydb.core.segment.format.a.entry.reader.EntryReader
+//import swaydb.core.segment.format.a.entry.reader.SortedIndexEntryReader
 //import swaydb.data.order.KeyOrder
 //import swaydb.data.slice.Slice
 //import swaydb.serializers.Default._
@@ -54,16 +54,17 @@
 //      normalisedEntry.valueEntryBytes.size should be <= 1
 //
 //      val read =
-//        EntryReader.fullRead(
+//        SortedIndexEntryReader.fullRead(
 //          indexEntry = normalisedEntry.indexEntryBytes.dropIntUnsigned().right.value,
 //          mightBeCompressed = entry.stats.hasPrefixCompression,
-//          valueCache = entry.valueEntryBytes.headOption.map(buildSingleValueCache),
+//          valuesReader = entry.valueEntryBytes.headOption.map(buildSingleValueReader),
 //          indexOffset = 0,
 //          nextIndexOffset = 0,
 //          nextIndexSize = 0,
 //          hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
 //          isNormalised = entry.sortedIndexConfig.normaliseIndex,
-//          previous = None
+//          previous = None,
+//          isPartialReadEnabled = entry.sortedIndexConfig.enablePartialRead
 //        ).runRandomIO.right.value
 //      //      println("read:  " + read)
 //      read shouldBe entry
@@ -89,31 +90,33 @@
 //      val valueBytes: Slice[Byte] = (previous.valueEntryBytes ++ next.valueEntryBytes).flatten.toSlice
 //
 //      val previousRead =
-//        EntryReader.fullRead(
+//        SortedIndexEntryReader.fullRead(
 //          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
 //          mightBeCompressed = false,
-//          valueCache = Some(buildSingleValueCache(valueBytes)),
+//          valuesReader = Some(buildSingleValueReader(valueBytes)),
 //          indexOffset = 0,
 //          nextIndexOffset = 0,
 //          nextIndexSize = 0,
 //          hasAccessPositionIndex = previous.sortedIndexConfig.enableAccessPositionIndex,
 //          isNormalised = false,
-//          previous = None
+//          previous = None,
+//          isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead
 //        ).runRandomIO.right.value
 //
 //      previousRead shouldBe previous
 //
 //      val nextRead =
-//        EntryReader.fullRead(
+//        SortedIndexEntryReader.fullRead(
 //          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
 //          mightBeCompressed = next.stats.hasPrefixCompression,
-//          valueCache = Some(buildSingleValueCache(valueBytes)),
+//          valuesReader = Some(buildSingleValueReader(valueBytes)),
 //          indexOffset = 0,
 //          nextIndexOffset = 0,
 //          nextIndexSize = 0,
 //          isNormalised = false,
 //          hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
-//          previous = Some(previousRead)
+//          previous = Some(previousRead),
+//          isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead
 //        ).runRandomIO.right.value
 //
 //      //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO

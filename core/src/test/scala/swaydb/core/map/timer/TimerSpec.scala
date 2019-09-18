@@ -28,6 +28,8 @@ import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteUtil
+import swaydb.IOValues._
 
 import scala.concurrent.ExecutionContext
 
@@ -80,7 +82,7 @@ sealed trait TimerSpec extends TestBase {
         range foreach {
           i =>
             val nextTime = timer.next.time
-            val nextTimeLong = nextTime.readLong()
+            val nextTimeLong = ByteUtil.readUnsignedLongRightAligned(nextTime).value
             nextTimeLong shouldBe i
         }
 

@@ -2547,4 +2547,10 @@ object TestData {
           )
         )(Nothing)
     }
+
+  def buildSingleValueReader(bytes: Slice[Byte]): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
+    UnblockedReader(
+      block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None),
+      bytes = bytes
+    )
 }

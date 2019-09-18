@@ -41,7 +41,7 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{Segment, SegmentReadThreadState, SegmentThreadState}
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -559,18 +559,18 @@ object CommonAssertions {
 
   implicit class PersistentReadOnlyKeyValueImplicits(actual: Persistent) {
     def shouldBe(expected: Transient) = {
-      actual.toMemory shouldBe expected.toMemory
+      actual.toMemory.value shouldBe expected.toMemory
     }
   }
 
   implicit class PersistentReadOnlyImplicits(actual: Persistent) {
     def shouldBe(expected: Persistent) =
-      actual.toMemory shouldBe expected.toMemory
+      actual.toMemory.value shouldBe expected.toMemory.value
   }
 
   implicit class PersistentPartialReadOnlyImplicits(actual: Persistent.Partial) {
     def shouldBe(expected: KeyValue) =
-      actual.toPersistent.get.toMemory shouldBe expected.toMemory
+      actual.toPersistent.get.toMemory.value shouldBe expected.toMemory
   }
 
   implicit class SegmentImplicits(actual: Segment) {
@@ -711,7 +711,7 @@ object CommonAssertions {
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           hasRange = blocks.footer.hasRange,
-          threadState = ???
+          threadState = SegmentReadThreadState.empty(randomBoolean())
         ).runRandomIO.right.value.value.toPersistent.get shouldBe keyValue
     }
   }

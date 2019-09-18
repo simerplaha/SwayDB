@@ -55,9 +55,17 @@ private[segment] class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHas
     states.clear()
 }
 
-private[segment] sealed trait SegmentReadThreadState {
+private[core] sealed trait SegmentReadThreadState {
   def isSequentialRead(): Boolean
   def notifySuccessfulSequentialRead(): Unit
+}
+
+object SegmentReadThreadState {
+  def empty(sequentialRead: Boolean) =
+    new SegmentReadThreadState {
+      override def isSequentialRead(): Boolean = sequentialRead
+      override def notifySuccessfulSequentialRead(): Unit = ()
+    }
 }
 
 private[segment] class SegmentThreadState[K, V](@BeanProperty var skipList: MinMaxSkipList[K, V],
