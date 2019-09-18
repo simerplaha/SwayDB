@@ -38,9 +38,6 @@ import scala.collection.mutable.ListBuffer
  * added in the middle.
  */
 private[merge] object SegmentGrouper extends LazyLogging {
-  //Read key-values during merge are always cleared by GC after the merge therefore in-memory key-value
-  //management of these key-values is not required.
-  implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
 
   def addKeyValue(keyValueToAdd: KeyValue.ReadOnly,
                   splits: ListBuffer[SegmentBuffer],
@@ -66,31 +63,28 @@ private[merge] object SegmentGrouper extends LazyLogging {
       def addToCurrentSplit(force: Boolean): Boolean =
         splits.lastOption exists {
           lastBuffer =>
-            if (lastBuffer.isReadyForGrouping) {
-              false
+            val currentBuffersLastKeyValues = lastBuffer.lastNonGroupOption
+
+            val currentSegmentSize =
+              if (forInMemory)
+                currentBuffersLastKeyValues.map(_.stats.memorySegmentSize).getOrElse(0)
+              else
+                currentBuffersLastKeyValues.map(_.stats.segmentSize).getOrElse(0)
+
+            val nextKeyValueWithUpdatedStats: Transient = keyValueToAdd(currentBuffersLastKeyValues)
+
+            val segmentSizeWithNextKeyValue =
+              if (forInMemory)
+                currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValueMemorySize
+              else
+                currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValuesSegmentKeyAndValueSize
+
+            //if there are no key-values in the current Segment or if the current Segment size with new key-value fits, do add else return false.
+            if (force || currentSegmentSize == 0 || segmentSizeWithNextKeyValue <= minSegmentSize) {
+              splits.last add nextKeyValueWithUpdatedStats
+              true
             } else {
-              val currentGroupsLastKeyValues = lastBuffer.lastNonGroupOption
-              val currentSegmentSize =
-                if (forInMemory)
-                  currentGroupsLastKeyValues.map(_.stats.memorySegmentSize).getOrElse(0)
-                else
-                  currentGroupsLastKeyValues.map(_.stats.segmentSize).getOrElse(0)
-
-              val nextKeyValueWithUpdatedStats: Transient = keyValueToAdd(currentGroupsLastKeyValues)
-
-              val segmentSizeWithNextKeyValue =
-                if (forInMemory)
-                  currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValueMemorySize
-                else
-                  currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValuesSegmentKeyAndValueSize
-
-              //if there are no key-values in the current Segment or if the current Segment size with new key-value fits, do add else return false.
-              if (force || currentSegmentSize == 0 || segmentSizeWithNextKeyValue <= minSegmentSize) {
-                splits.last add nextKeyValueWithUpdatedStats
-                true
-              } else {
-                false
-              }
+              false
             }
         }
 

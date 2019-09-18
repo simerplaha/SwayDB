@@ -38,7 +38,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
-  implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
 
   def transferSmall(buffers: ListBuffer[SegmentBuffer],
                     minSegmentSize: Long,
@@ -58,10 +57,10 @@ private[core] object SegmentMerger extends LazyLogging {
         newBuffersLast match {
           case flattened: SegmentBuffer.Flattened =>
             buffers.last foreachIO {
-              case response: Transient =>
+              transient =>
                 IO {
                   flattened add
-                    response.updatePrevious(
+                    transient.updatePrevious(
                       valuesConfig = newBuffersLastKeyValue.valuesConfig,
                       sortedIndexConfig = newBuffersLastKeyValue.sortedIndexConfig,
                       binarySearchIndexConfig = newBuffersLastKeyValue.binarySearchIndexConfig,
@@ -180,8 +179,8 @@ private[core] object SegmentMerger extends LazyLogging {
    */
   def merge(newKeyValues: Slice[Memory],
             oldKeyValues: Slice[Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore): ListBuffer[Transient] =
+                                         timeOrder: TimeOrder[Slice[Byte]],
+                                         functionStore: FunctionStore): ListBuffer[Transient] =
     merge(
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
@@ -202,8 +201,8 @@ private[core] object SegmentMerger extends LazyLogging {
 
   def merge(newKeyValue: Memory,
             oldKeyValue: Memory)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore): ListBuffer[Transient] =
+                                 timeOrder: TimeOrder[Slice[Byte]],
+                                 functionStore: FunctionStore): ListBuffer[Transient] =
     merge(
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),

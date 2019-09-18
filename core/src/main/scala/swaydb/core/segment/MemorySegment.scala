@@ -181,18 +181,6 @@ private[segment] case class MemorySegment(path: Path,
   override def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly] =
     skipList.get(key)
 
-  /**
-   * Basic value does not perform floor checks on the cache which are only required if the Segment contains
-   * range or groups.
-   */
-  private def doBasicGet(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
-    skipList.get(key) map {
-      case response: Memory =>
-        IO.Right(Some(response))
-    } getOrElse {
-      IO.none
-    }
-
   override def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
@@ -214,10 +202,10 @@ private[segment] case class MemorySegment(path: Path,
                       IO.Right(Some(range))
 
                     case _ =>
-                      doBasicGet(key)
+                      IO.Right(skipList.get(key))
                   }
                 else
-                  doBasicGet(key)
+                  IO.Right(skipList.get(key))
             }
           else
             IO.none
@@ -253,24 +241,7 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else
-      skipList.lower(key) map {
-        case response: Memory =>
-          IO.Right(Some(response))
-      } getOrElse {
-        IO.none
-      }
-
-  /**
-   * Basic value does not perform floor checks on the cache which are only required if the Segment contains
-   * range or groups.
-   */
-  private def doBasicHigher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
-    skipList.higher(key) map {
-      case response: Memory =>
-        IO.Right(Some(response))
-    } getOrElse {
-      IO.none
-    }
+      IO.Right(skipList.lower(key))
 
   def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
     if (deleted)
@@ -293,17 +264,21 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else if (_hasRange || _hasGroup)
-      skipList.floor(key) map {
-        case floorRange: Memory.Range if floorRange contains key =>
-          IO.Right(Some(floorRange))
+      skipList.floor(key) match {
+        case Some(floor) =>
+          floor match {
+            case floorRange: Memory.Range if floorRange contains key =>
+              IO.Right(Some(floorRange))
 
-        case _ =>
-          doBasicHigher(key)
-      } getOrElse {
-        doBasicHigher(key)
+            case _ =>
+              IO.Right(skipList.higher(key))
+          }
+
+        case None =>
+          IO.Right(skipList.higher(key))
       }
     else
-      doBasicHigher(key)
+      IO.Right(skipList.higher(key))
 
   override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
     if (deleted)
