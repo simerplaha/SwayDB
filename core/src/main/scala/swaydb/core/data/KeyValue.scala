@@ -1433,7 +1433,7 @@ private[core] object Persistent {
   }
 
   object Put {
-    def fromCache(key: Slice[Byte],
+    def apply(key: Slice[Byte],
                   deadline: Option[Deadline],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
@@ -1534,7 +1534,7 @@ private[core] object Persistent {
   }
 
   object Update {
-    def fromCache(key: Slice[Byte],
+    def apply(key: Slice[Byte],
                   deadline: Option[Deadline],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
@@ -1666,7 +1666,7 @@ private[core] object Persistent {
   }
 
   object Function {
-    def fromCache(key: Slice[Byte],
+    def apply(key: Slice[Byte],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
                   nextIndexOffset: Int,
@@ -1750,7 +1750,7 @@ private[core] object Persistent {
   }
 
   object PendingApply {
-    def fromCache(key: Slice[Byte],
+    def apply(key: Slice[Byte],
                   time: Time,
                   deadline: Option[Deadline],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],

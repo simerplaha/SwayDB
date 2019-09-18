@@ -67,7 +67,7 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                             IO.Right {
-                              Persistent.Update.fromCache(
+                              Persistent.Update(
                                 key = key,
                                 deadline = deadline,
                                 valuesReader = valuesReader,
@@ -92,7 +92,7 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                             //                              ValuesBlock.valuesBlockNotInitialised
                             //                            else
                             IO.Right {
-                              Persistent.Update.fromCache(
+                              Persistent.Update(
                                 key = fixed.key,
                                 deadline = deadline,
                                 valuesReader = valuesReader,
@@ -125,7 +125,7 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                         IO.Right {
-                          Persistent.Update.fromCache(
+                          Persistent.Update(
                             key = key,
                             deadline = deadline,
                             valuesReader = valuesReader,

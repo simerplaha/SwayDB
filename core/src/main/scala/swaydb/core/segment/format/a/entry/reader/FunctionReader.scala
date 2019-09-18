@@ -65,7 +65,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                         IO.Right {
-                          Persistent.Function.fromCache(
+                          Persistent.Function(
                             key = key,
                             valuesReader = valuesReader,
                             time = time,
@@ -86,7 +86,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                         IO.Right {
-                          Persistent.Function.fromCache(
+                          Persistent.Function(
                             key = fixed.key,
                             valuesReader = valuesReader,
                             time = time,
@@ -117,7 +117,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                     IO.Right {
-                      Persistent.Function.fromCache(
+                      Persistent.Function(
                         key = key,
                         valuesReader = valuesReader,
                         time = time,

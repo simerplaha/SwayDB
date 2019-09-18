@@ -69,7 +69,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
                             val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
 
-                            Persistent.Put.fromCache(
+                            Persistent.Put(
                               key = key,
                               deadline = deadline,
                               valuesReader = valuesReader,
@@ -93,7 +93,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                             val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
 
                             IO.Right {
-                              Persistent.Put.fromCache(
+                              Persistent.Put(
                                 key = fixed.key,
                                 deadline = deadline,
                                 valuesReader = valuesReader,
@@ -124,7 +124,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
 
-                        Persistent.Put.fromCache(
+                        Persistent.Put(
                           key = key,
                           deadline = deadline,
                           valuesReader = valuesReader,

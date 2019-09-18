@@ -66,7 +66,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                             IO.Right {
-                              Persistent.PendingApply.fromCache(
+                              Persistent.PendingApply(
                                 key = key,
                                 time = time,
                                 deadline = deadline,
@@ -88,7 +88,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                             IO.Right {
-                              Persistent.PendingApply.fromCache(
+                              Persistent.PendingApply(
                                 key = key.key,
                                 time = time,
                                 deadline = deadline,
@@ -120,7 +120,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
                         IO.Right {
-                          Persistent.PendingApply.fromCache(
+                          Persistent.PendingApply(
                             key = key,
                             time = time,
                             deadline = deadline,

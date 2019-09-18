@@ -353,7 +353,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues: Slice[KeyValue] = Slice.create[KeyValue](3) //null KeyValue will throw an exception and the put should be reverted
       keyValues.add(Memory.put(123))
       keyValues.add(Memory.put(1234, 12345))
-      keyValues.add(Persistent.Put(1235, None, null, Time.empty, 10, 10, 10, 10, 10, 0)) //give it a null Reader so that it fails reading the value.
+      keyValues.add(Persistent.Put(_key = 1235, None, null, Time.empty, 10, 10, 10, 10, 10, 0)) //give it a null Reader so that it fails reading the value.
 
       val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
       val failed = level invokePrivate function(keyValues, Iterable(targetSegment), None)
