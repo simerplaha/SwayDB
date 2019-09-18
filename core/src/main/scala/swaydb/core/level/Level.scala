@@ -1298,7 +1298,7 @@ private[core] case class Level(dirs: Seq[Dir],
   override def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int] =
     appendix.skipList.foldLeft(IO[swaydb.Error.Level, Int](0)) {
       case (currentTotal, (_, segment)) =>
-        segment.getBloomFilterKeyValueCount() flatMap {
+        segment.getKeyValueCount() flatMap {
           segmentSize =>
             currentTotal.map(_ + segmentSize)
         }

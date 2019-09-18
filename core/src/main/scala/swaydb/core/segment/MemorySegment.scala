@@ -334,13 +334,7 @@ private[segment] case class MemorySegment(path: Path,
   override val close: IO[swaydb.Error.Segment, Unit] =
     IO.unit
 
-  override def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int] =
-    if (deleted)
-      IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
-    else
-      IO.Right(skipList.size)
-
-  override def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
+  override def getKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
     else

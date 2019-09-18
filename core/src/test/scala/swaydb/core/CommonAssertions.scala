@@ -581,7 +581,7 @@ object CommonAssertions {
       actual.minKey shouldBe expected.minKey
       actual.maxKey shouldBe expected.maxKey
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
-      actual.getBloomFilterKeyValueCount().runRandomIO.right.value shouldBe expected.getBloomFilterKeyValueCount().runRandomIO.right.value
+      actual.getKeyValueCount().runRandomIO.right.value shouldBe expected.getKeyValueCount().runRandomIO.right.value
       actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
       assertReads(expected.getAll().runRandomIO.right.value, actual)

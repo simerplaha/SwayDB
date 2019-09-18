@@ -289,10 +289,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   override def hasPut: IO[swaydb.Error.Segment, Boolean] =
     segmentCache.hasPut
 
-  def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
-    segmentCache.getHeadKeyValueCount()
-
-  def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int] =
+  def getKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     segmentCache.getBloomFilterKeyValueCount()
 
   def getFooter(): IO[swaydb.Error.Segment, SegmentFooterBlock] =

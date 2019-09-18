@@ -652,7 +652,7 @@ private[core] object Segment extends LazyLogging {
     else
       segments.foldLeftIO(0) {
         case (total, segment) =>
-          segment.getHeadKeyValueCount().map(_ + total)
+          segment.getKeyValueCount().map(_ + total)
       } flatMap {
         totalKeyValues =>
           segments.foldLeftIO(Slice.create[KeyValue.ReadOnly](totalKeyValues)) {
@@ -953,9 +953,7 @@ private[core] trait Segment extends FileSweeperItem {
 
   def close: IO[swaydb.Error.Segment, Unit]
 
-  def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int]
-
-  def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int]
+  def getKeyValueCount(): IO[swaydb.Error.Segment, Int]
 
   def clearCachedKeyValues(): Unit
 
