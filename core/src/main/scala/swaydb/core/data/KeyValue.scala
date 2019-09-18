@@ -1435,7 +1435,7 @@ private[core] object Persistent {
   object Put {
     def fromCache(key: Slice[Byte],
                   deadline: Option[Deadline],
-                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
@@ -1447,12 +1447,15 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          valueCache mapConcurrentStored {
-            reader =>
-              reader
-                .copy()
-                .readFullBlockOrNone()
-                .map(_.unslice())
+          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+            offset =>
+              if (offset.size == 0)
+                IO.none
+              else
+                UnblockedReader.moveTo(offset, valuesReader.get)
+                  .copy()
+                  .readFullBlockOrNone()
+                  .map(_.unslice())
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1533,7 +1536,7 @@ private[core] object Persistent {
   object Update {
     def fromCache(key: Slice[Byte],
                   deadline: Option[Deadline],
-                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
@@ -1545,12 +1548,15 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          valueCache mapConcurrentStored {
-            reader =>
-              reader
-                .copy()
-                .readFullBlockOrNone()
-                .map(_.unslice())
+          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+            offset =>
+              if (offset.size == 0)
+                IO.none
+              else
+                UnblockedReader.moveTo(offset, valuesReader.get)
+                  .copy()
+                  .readFullBlockOrNone()
+                  .map(_.unslice())
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1661,7 +1667,7 @@ private[core] object Persistent {
 
   object Function {
     def fromCache(key: Slice[Byte],
-                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   time: Time,
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
@@ -1672,9 +1678,9 @@ private[core] object Persistent {
       new Function(
         _key = key,
         valueCache =
-          valueCache mapConcurrentStored {
-            reader =>
-              reader
+          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
+            offset =>
+              UnblockedReader.moveTo(offset, valuesReader.get)
                 .copy()
                 .readFullBlock()
                 .map(_.unslice())
@@ -1747,7 +1753,7 @@ private[core] object Persistent {
     def fromCache(key: Slice[Byte],
                   time: Time,
                   deadline: Option[Deadline],
-                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
                   indexOffset: Int,
@@ -1759,9 +1765,9 @@ private[core] object Persistent {
         _time = time,
         deadline = deadline,
         valueCache =
-          valueCache mapConcurrentStored {
-            reader =>
-              reader
+          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
+            offset =>
+              UnblockedReader.moveTo(offset, valuesReader.get)
                 .copy()
                 .readFullBlock()
                 .flatMap {
@@ -1832,7 +1838,7 @@ private[core] object Persistent {
 
   object Range {
     def apply(key: Slice[Byte],
-              valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,
               nextIndexSize: Int,
               indexOffset: Int,
@@ -1844,7 +1850,7 @@ private[core] object Persistent {
           Range.parsedKey(
             fromKey = fromKey,
             toKey = toKey,
-            valueCache = valueCache,
+            valuesReader = valuesReader,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
             indexOffset = indexOffset,
@@ -1856,7 +1862,7 @@ private[core] object Persistent {
 
     def parsedKey(fromKey: Slice[Byte],
                   toKey: Slice[Byte],
-                  valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
                   indexOffset: Int,
@@ -1867,9 +1873,9 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          valueCache mapConcurrentStored {
-            rangeReader =>
-              rangeReader
+          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)](synchronised = true, stored = true, initial = None) {
+            offset =>
+              UnblockedReader.moveTo(offset, valuesReader.get)
                 .copy()
                 .readFullBlock()
                 .flatMap(RangeValueSerializer.read)

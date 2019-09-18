@@ -36,7 +36,7 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
-                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -59,48 +59,38 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
                   keyValueId = KeyValueId.Range
                 ) flatMap {
                   key =>
-                    valueCache match {
-                      case Some(valueCache) =>
-                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        Persistent.Range(
-                          key = key,
-                          valueCache = valueCache,
-                          nextIndexOffset = nextIndexOffset,
-                          nextIndexSize = nextIndexSize,
-                          indexOffset = indexOffset,
-                          valueOffset = valueOffset,
-                          valueLength = valueLength,
-                          sortedIndexAccessPosition = sortedIndexAccessPosition
-                        )
-                      case None =>
-                        ValuesBlock.valuesBlockNotInitialised
-                    }
+                    Persistent.Range(
+                      key = key,
+                      valuesReader = valuesReader,
+                      nextIndexOffset = nextIndexOffset,
+                      nextIndexSize = nextIndexSize,
+                      indexOffset = indexOffset,
+                      valueOffset = valueOffset,
+                      valueLength = valueLength,
+                      sortedIndexAccessPosition = sortedIndexAccessPosition
+                    )
                 }
               case Right(value) =>
                 value match {
                   case range: Key.Range =>
-                    valueCache match {
-                      case Some(valueCache) =>
-                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        IO.Right {
-                          Persistent.Range.parsedKey(
-                            fromKey = range.fromKey,
-                            toKey = range.toKey,
-                            valueCache = valueCache,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            indexOffset = indexOffset,
-                            valueOffset = valueOffset,
-                            valueLength = valueLength,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition
-                          )
-                        }
-                      case None =>
-                        ValuesBlock.valuesBlockNotInitialised
+                    IO.Right {
+                      Persistent.Range.parsedKey(
+                        fromKey = range.fromKey,
+                        toKey = range.toKey,
+                        valuesReader = valuesReader,
+                        nextIndexOffset = nextIndexOffset,
+                        nextIndexSize = nextIndexSize,
+                        indexOffset = indexOffset,
+                        valueOffset = valueOffset,
+                        valueLength = valueLength,
+                        sortedIndexAccessPosition = sortedIndexAccessPosition
+                      )
                     }
 
                   case key: Key.Fixed =>
@@ -117,24 +107,19 @@ object RangeReader extends SortedIndexEntryReader[Persistent.Range] {
               keyValueId = KeyValueId.Range
             ) flatMap {
               key =>
-                valueCache match {
-                  case Some(valueCache) =>
-                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                    Persistent.Range(
-                      key = key,
-                      valueCache = valueCache,
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      indexOffset = indexOffset,
-                      valueOffset = valueOffset,
-                      valueLength = valueLength,
-                      sortedIndexAccessPosition = sortedIndexAccessPosition
-                    )
-                  case None =>
-                    ValuesBlock.valuesBlockNotInitialised
-                }
+                Persistent.Range(
+                  key = key,
+                  valuesReader = valuesReader,
+                  nextIndexOffset = nextIndexOffset,
+                  nextIndexSize = nextIndexSize,
+                  indexOffset = indexOffset,
+                  valueOffset = valueOffset,
+                  valueLength = valueLength,
+                  sortedIndexAccessPosition = sortedIndexAccessPosition
+                )
             }
         }
     }

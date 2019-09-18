@@ -38,7 +38,7 @@ trait SortedIndexEntryReader[E] {
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
-                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -62,18 +62,6 @@ object SortedIndexEntryReader {
     else
       someUncompressedReader
 
-  def buildValueCache(valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]) =
-    valuesReader map {
-      valuesReader =>
-        Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](synchronised = false, stored = false, initial = None) {
-          offset =>
-            if (offset.size == 0)
-              ValuesBlock.emptyUnblockedIO
-            else
-              IO(UnblockedReader.moveTo(offset, valuesReader))
-        }
-    }
-
   private def parse[T](baseId: Int,
                        keyValueId: Int,
                        sortedIndexAccessPosition: Int,
@@ -94,7 +82,7 @@ object SortedIndexEntryReader {
           sortedIndexAccessPosition = sortedIndexAccessPosition,
           keyInfo = keyInfo,
           indexReader = indexReader,
-          valueCache = buildValueCache(valuesReader),
+          valuesReader = valuesReader,
           indexOffset = indexOffset,
           nextIndexOffset = nextIndexOffset,
           nextIndexSize = nextIndexSize,

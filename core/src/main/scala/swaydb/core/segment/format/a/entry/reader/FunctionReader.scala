@@ -36,7 +36,7 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
-                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -64,23 +64,18 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        valueCache match {
-                          case Some(valueCache) =>
-                            IO.Right {
-                              Persistent.Function.fromCache(
-                                key = key,
-                                valueCache = valueCache,
-                                time = time,
-                                nextIndexOffset = nextIndexOffset,
-                                nextIndexSize = nextIndexSize,
-                                indexOffset = indexOffset,
-                                valueOffset = valueOffset,
-                                valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition
-                              )
-                            }
-                          case None =>
-                            ValuesBlock.valuesBlockNotInitialised
+                        IO.Right {
+                          Persistent.Function.fromCache(
+                            key = key,
+                            valuesReader = valuesReader,
+                            time = time,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            indexOffset = indexOffset,
+                            valueOffset = valueOffset,
+                            valueLength = valueLength,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition
+                          )
                         }
                     }
 
@@ -90,26 +85,19 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        valueCache match {
-                          case Some(valueCache) =>
-                            IO.Right {
-                              Persistent.Function.fromCache(
-                                key = fixed.key,
-                                valueCache = valueCache,
-                                time = time,
-                                nextIndexOffset = nextIndexOffset,
-                                nextIndexSize = nextIndexSize,
-                                indexOffset = indexOffset,
-                                valueOffset = valueOffset,
-                                valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition
-                              )
-                            }
-
-                          case None =>
-                            ValuesBlock.valuesBlockNotInitialised
+                        IO.Right {
+                          Persistent.Function.fromCache(
+                            key = fixed.key,
+                            valuesReader = valuesReader,
+                            time = time,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            indexOffset = indexOffset,
+                            valueOffset = valueOffset,
+                            valueLength = valueLength,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition
+                          )
                         }
-
                       case key: Key.Range =>
                         IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
                     }
@@ -128,24 +116,18 @@ object FunctionReader extends SortedIndexEntryReader[Persistent.Function] {
                     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                    valueCache match {
-                      case Some(valueCache) =>
-                        IO.Right {
-                          Persistent.Function.fromCache(
-                            key = key,
-                            valueCache = valueCache,
-                            time = time,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            indexOffset = indexOffset,
-                            valueOffset = valueOffset,
-                            valueLength = valueLength,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition
-                          )
-                        }
-
-                      case None =>
-                        ValuesBlock.valuesBlockNotInitialised
+                    IO.Right {
+                      Persistent.Function.fromCache(
+                        key = key,
+                        valuesReader = valuesReader,
+                        time = time,
+                        nextIndexOffset = nextIndexOffset,
+                        nextIndexSize = nextIndexSize,
+                        indexOffset = indexOffset,
+                        valueOffset = valueOffset,
+                        valueLength = valueLength,
+                        sortedIndexAccessPosition = sortedIndexAccessPosition
+                      )
                     }
                 }
             }

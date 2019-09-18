@@ -36,7 +36,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
-                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -72,7 +72,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                             Persistent.Put.fromCache(
                               key = key,
                               deadline = deadline,
-                              valueCache = valueCache getOrElse Cache.emptyValuesBlock,
+                              valuesReader = valuesReader,
                               time = time,
                               nextIndexOffset = nextIndexOffset,
                               nextIndexSize = nextIndexSize,
@@ -96,7 +96,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                               Persistent.Put.fromCache(
                                 key = fixed.key,
                                 deadline = deadline,
-                                valueCache = valueCache getOrElse Cache.emptyValuesBlock,
+                                valuesReader = valuesReader,
                                 time = time,
                                 nextIndexOffset = nextIndexOffset,
                                 nextIndexSize = nextIndexSize,
@@ -127,7 +127,7 @@ object PutReader extends SortedIndexEntryReader[Persistent.Put] {
                         Persistent.Put.fromCache(
                           key = key,
                           deadline = deadline,
-                          valueCache = valueCache getOrElse Cache.emptyValuesBlock,
+                          valuesReader = valuesReader,
                           time = time,
                           nextIndexOffset = nextIndexOffset,
                           nextIndexSize = nextIndexSize,

@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
 import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
@@ -36,7 +35,7 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
-                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -63,55 +62,44 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                           keyValueId = KeyValueId.PendingApply
                         ) flatMap {
                           key =>
-                            valueCache match {
-                              case Some(valueCache) =>
-                                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                                IO.Right {
-                                  Persistent.PendingApply.fromCache(
-                                    key = key,
-                                    time = time,
-                                    deadline = deadline,
-                                    valueCache = valueCache,
-                                    nextIndexOffset = nextIndexOffset,
-                                    nextIndexSize = nextIndexSize,
-                                    indexOffset = indexOffset,
-                                    valueOffset = valueOffset,
-                                    valueLength = valueLength,
-                                    sortedIndexAccessPosition = sortedIndexAccessPosition
-                                  )
-                                }
-                              case None =>
-                                ValuesBlock.valuesBlockNotInitialised
+                            IO.Right {
+                              Persistent.PendingApply.fromCache(
+                                key = key,
+                                time = time,
+                                deadline = deadline,
+                                valuesReader = valuesReader,
+                                nextIndexOffset = nextIndexOffset,
+                                nextIndexSize = nextIndexSize,
+                                indexOffset = indexOffset,
+                                valueOffset = valueOffset,
+                                valueLength = valueLength,
+                                sortedIndexAccessPosition = sortedIndexAccessPosition
+                              )
                             }
                         }
 
                       case Right(key) =>
                         key match {
                           case key: Key.Fixed =>
-                            valueCache match {
-                              case Some(valueCache) =>
-                                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                                IO.Right {
-                                  Persistent.PendingApply.fromCache(
-                                    key = key.key,
-                                    time = time,
-                                    deadline = deadline,
-                                    valueCache = valueCache,
-                                    nextIndexOffset = nextIndexOffset,
-                                    nextIndexSize = nextIndexSize,
-                                    indexOffset = indexOffset,
-                                    valueOffset = valueOffset,
-                                    valueLength = valueLength,
-                                    sortedIndexAccessPosition = sortedIndexAccessPosition
-                                  )
-                                }
-
-                              case None =>
-                                ValuesBlock.valuesBlockNotInitialised
+                            IO.Right {
+                              Persistent.PendingApply.fromCache(
+                                key = key.key,
+                                time = time,
+                                deadline = deadline,
+                                valuesReader = valuesReader,
+                                nextIndexOffset = nextIndexOffset,
+                                nextIndexSize = nextIndexSize,
+                                indexOffset = indexOffset,
+                                valueOffset = valueOffset,
+                                valueLength = valueLength,
+                                sortedIndexAccessPosition = sortedIndexAccessPosition
+                              )
                             }
 
                           case key: Key.Range =>
@@ -128,28 +116,22 @@ object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply
                       keyValueId = KeyValueId.PendingApply
                     ) flatMap {
                       key =>
-                        valueCache match {
-                          case Some(valueCache) =>
-                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                            IO.Right {
-                              Persistent.PendingApply.fromCache(
-                                key = key,
-                                time = time,
-                                deadline = deadline,
-                                valueCache = valueCache,
-                                nextIndexOffset = nextIndexOffset,
-                                nextIndexSize = nextIndexSize,
-                                indexOffset = indexOffset,
-                                valueOffset = valueOffset,
-                                valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition
-                              )
-                            }
-
-                          case None =>
-                            ValuesBlock.valuesBlockNotInitialised
+                        IO.Right {
+                          Persistent.PendingApply.fromCache(
+                            key = key,
+                            time = time,
+                            deadline = deadline,
+                            valuesReader = valuesReader,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            indexOffset = indexOffset,
+                            valueOffset = valueOffset,
+                            valueLength = valueLength,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition
+                          )
                         }
                     }
                 }

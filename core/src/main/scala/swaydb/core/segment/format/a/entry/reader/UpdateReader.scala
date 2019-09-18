@@ -36,7 +36,7 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                               indexReader: ReaderBase[swaydb.Error.Segment],
-                              valueCache: Option[Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
+                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
@@ -66,23 +66,20 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                             val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                             val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                            if (valueLength > 0 && valueCache.isEmpty)
-                              ValuesBlock.valuesBlockNotInitialised
-                            else
-                              IO {
-                                Persistent.Update.fromCache(
-                                  key = key,
-                                  deadline = deadline,
-                                  valueCache = valueCache getOrElse Cache.emptyValuesBlock,
-                                  time = time,
-                                  nextIndexOffset = nextIndexOffset,
-                                  nextIndexSize = nextIndexSize,
-                                  indexOffset = indexOffset,
-                                  valueOffset = valueOffset,
-                                  valueLength = valueLength,
-                                  sortedIndexAccessPosition = sortedIndexAccessPosition
-                                )
-                              }
+                            IO.Right {
+                              Persistent.Update.fromCache(
+                                key = key,
+                                deadline = deadline,
+                                valuesReader = valuesReader,
+                                time = time,
+                                nextIndexOffset = nextIndexOffset,
+                                nextIndexSize = nextIndexSize,
+                                indexOffset = indexOffset,
+                                valueOffset = valueOffset,
+                                valueLength = valueLength,
+                                sortedIndexAccessPosition = sortedIndexAccessPosition
+                              )
+                            }
                         }
 
                       case Right(key) =>
@@ -98,7 +95,7 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                               Persistent.Update.fromCache(
                                 key = fixed.key,
                                 deadline = deadline,
-                                valueCache = valueCache getOrElse Cache.emptyValuesBlock,
+                                valuesReader = valuesReader,
                                 time = time,
                                 nextIndexOffset = nextIndexOffset,
                                 nextIndexSize = nextIndexSize,
@@ -127,23 +124,20 @@ object UpdateReader extends SortedIndexEntryReader[Persistent.Update] {
                         val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
                         val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        if (valueLength > 0 && valueCache.isEmpty)
-                          ValuesBlock.valuesBlockNotInitialised
-                        else
-                          IO {
-                            Persistent.Update.fromCache(
-                              key = key,
-                              deadline = deadline,
-                              valueCache = valueCache getOrElse Cache.emptyValuesBlock,
-                              time = time,
-                              nextIndexOffset = nextIndexOffset,
-                              nextIndexSize = nextIndexSize,
-                              indexOffset = indexOffset,
-                              valueOffset = valueOffset,
-                              valueLength = valueLength,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition
-                            )
-                          }
+                        IO.Right {
+                          Persistent.Update.fromCache(
+                            key = key,
+                            deadline = deadline,
+                            valuesReader = valuesReader,
+                            time = time,
+                            nextIndexOffset = nextIndexOffset,
+                            nextIndexSize = nextIndexSize,
+                            indexOffset = indexOffset,
+                            valueOffset = valueOffset,
+                            valueLength = valueLength,
+                            sortedIndexAccessPosition = sortedIndexAccessPosition
+                          )
+                        }
                     }
                 }
             }

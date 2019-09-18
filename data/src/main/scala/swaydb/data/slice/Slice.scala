@@ -192,7 +192,7 @@ object Slice {
 
   implicit class OptionByteSliceImplicits(slice: Option[Slice[Byte]]) {
 
-    def unslice(): Option[Slice[Byte]] =
+    @inline def unslice(): Option[Slice[Byte]] =
       slice flatMap {
         slice =>
           if (slice.isEmpty)
@@ -427,7 +427,6 @@ class Slice[+T: ClassTag] private(array: Array[T],
    *
    * @param fromOffset start offset
    * @param toOffset   end offset
-   *
    * @return Slice for the given offsets
    */
   override def slice(fromOffset: Int, toOffset: Int): Slice[T] =
