@@ -21,7 +21,7 @@ package swaydb
 
 import java.util.TimerTask
 
-import swaydb.Actor.Scheduled
+import swaydb.Actor.Task
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.Promise
@@ -62,33 +62,6 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
             function(impl, self.state)
         }
     }
-
-  class Schedule {
-
-    def map[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit tag: Tag.Async[T]): Actor.Scheduled[R, T] = {
-      val promise = Promise[R]()
-
-      val timerTask =
-        actor.send(
-          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, self))),
-          delay = delay
-        )
-
-      new Scheduled(tag fromPromise promise, timerTask)
-    }
-
-    def flatMap[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => T[R])(implicit tag: Tag.Async[T]): Actor.Scheduled[R, T] = {
-      val promise = Promise[R]()
-
-      val timerTask =
-        actor.send(
-          message = (impl: I, state: S) => tag.complete(promise, function(impl, state, self)),
-          delay = delay
-        )
-
-      new Actor.Scheduled(tag fromPromise promise, timerTask)
-    }
-  }
 
   class Ask {
     def map[R, T[_]](function: (I, S) => R)(implicit tag: Tag.Async[T]): T[R] = {
@@ -135,7 +108,29 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
       tag fromPromise promise
     }
 
-    final val schedule = new Schedule
+    def map[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit tag: Tag.Async[T]): Actor.Task[R, T] = {
+      val promise = Promise[R]()
+
+      val timerTask =
+        actor.send(
+          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, self))),
+          delay = delay
+        )
+
+      new Task(tag fromPromise promise, timerTask)
+    }
+
+    def flatMap[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => T[R])(implicit tag: Tag.Async[T]): Actor.Task[R, T] = {
+      val promise = Promise[R]()
+
+      val timerTask =
+        actor.send(
+          message = (impl: I, state: S) => tag.complete(promise, function(impl, state, self)),
+          delay = delay
+        )
+
+      new Actor.Task(tag fromPromise promise, timerTask)
+    }
   }
 
   final val ask = new Ask
@@ -152,7 +147,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
         function(impl, state, this)
     }
 
-  def schedule[R](delay: FiniteDuration)(function: (I, S) => R): TimerTask =
+  def send[R](delay: FiniteDuration)(function: (I, S) => R): TimerTask =
     actor.send(
       message = (impl: I, state: S) => function(impl, state),
       delay = delay

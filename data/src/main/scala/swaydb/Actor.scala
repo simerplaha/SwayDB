@@ -43,7 +43,7 @@ sealed trait ActorRef[-T, S] { self =>
    */
   def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
 
-  def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Scheduled[R, X]
+  def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Task[R, X]
 
   def totalWeight: Int
 
@@ -100,7 +100,7 @@ sealed trait ActorRef[-T, S] { self =>
           actor.send(message, delay)
         }
 
-      override def ask[R, X[_]](message: ActorRef[R, Unit] => T2, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Scheduled[R, X] =
+      override def ask[R, X[_]](message: ActorRef[R, Unit] => T2, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Task[R, X] =
         throw new NotImplementedError("Ask not implemented for merged actors.")
 
       def totalWeight: Int =
@@ -142,7 +142,7 @@ object Actor {
 
   private[swaydb] val incrementDelayBy = 100.millisecond
 
-  class Scheduled[R, T[_]](val value: T[R], val task: TimerTask)
+  class Task[R, T[_]](val task: T[R], val timer: TimerTask)
 
   sealed trait Error
   object Error {
@@ -475,7 +475,7 @@ class Actor[-T, S](val state: S,
     tag fromPromise promise
   }
 
-  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Scheduled[R, X] = {
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Task[R, X] = {
     val promise = Promise[R]()
 
     implicit val queueOrder = QueueOrder.FIFO
@@ -483,7 +483,7 @@ class Actor[-T, S](val state: S,
     val replyTo: ActorRef[R, Unit] = Actor[R]((response, _) => promise.success(response))
     val task = this.send(message(replyTo), delay)
 
-    new Actor.Scheduled(tag fromPromise promise, task)
+    new Actor.Task(tag fromPromise promise, task)
   }
 
   @inline private def wakeUp(currentStashed: Int): Unit =

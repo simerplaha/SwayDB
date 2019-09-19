@@ -145,7 +145,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
             state.sleepTask foreach (_._1.cancel())
 
             val newTask =
-              self.schedule(newWakeUpDeadline.timeLeft) {
+              self.send(newWakeUpDeadline.timeLeft) {
                 (impl, state) =>
                   impl.wakeUp(
                     state = state,

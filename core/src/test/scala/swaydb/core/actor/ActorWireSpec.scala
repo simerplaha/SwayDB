@@ -132,7 +132,7 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
 
       val actor = Actor.wire(new MyImpl(invoked = false))
 
-      actor.schedule(2.second) {
+      actor.send(2.second) {
         (impl, _) =>
           impl.invoke()
       }
@@ -180,7 +180,6 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
       val result =
         actor
           .ask
-          .schedule
           .flatMap(2.second) {
             (impl, _, _) =>
               impl.invoke()
@@ -209,7 +208,7 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
         }
         .await shouldBe true
 
-      result.value.await shouldBe true
+      result.task.await shouldBe true
     }
 
     "scheduleAskWithSelf" in {
@@ -238,7 +237,6 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
       val result =
         actor
           .ask
-          .schedule
           .flatMap(2.second) {
             (impl, state, self) =>
               impl.invoke(self)
@@ -267,7 +265,7 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
           }
           .await shouldBe true
       }
-      result.value.await shouldBe true
+      result.task.await shouldBe true
     }
   }
 }
