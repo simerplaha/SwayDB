@@ -20,7 +20,7 @@
 package swaydb.core.actor
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.{Actor, WiredActor}
+import swaydb.{Actor, ActorWire}
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -29,9 +29,9 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class WiredActorSpec extends WordSpec with Matchers with TestBase {
+class ActorWireSpec extends WordSpec with Matchers with TestBase {
 
-  "WiredActor" should {
+  "ActorWire" should {
 
     "process messages in order of arrival" in {
       class MyImpl(message: ListBuffer[Int]) {
@@ -59,7 +59,7 @@ class WiredActorSpec extends WordSpec with Matchers with TestBase {
 
     "ask" in {
       object MyImpl {
-        def hello(name: String, replyTo: WiredActor[MyImpl.type, Unit]): String =
+        def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): String =
           s"Hello $name"
       }
 
@@ -73,7 +73,7 @@ class WiredActorSpec extends WordSpec with Matchers with TestBase {
 
     "askFlatMap" in {
       object MyImpl {
-        def hello(name: String, replyTo: WiredActor[MyImpl.type, Unit]): Future[String] =
+        def hello(name: String, replyTo: ActorWire[MyImpl.type, Unit]): Future[String] =
           Future(s"Hello $name")
       }
 
@@ -198,7 +198,7 @@ class WiredActorSpec extends WordSpec with Matchers with TestBase {
 
     "scheduleAskWithSelf" in {
       class MyImpl(var invoked: Boolean = false) {
-        def invoke(replyTo: WiredActor[MyImpl, Unit]): Future[Boolean] =
+        def invoke(replyTo: ActorWire[MyImpl, Unit]): Future[Boolean] =
           replyTo
             .ask {
               (impl, _) =>

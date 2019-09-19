@@ -63,6 +63,7 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
     val deadline = timeoutDuration.fromNow
     var keepTrying: Boolean = true
     var result: Either[Throwable, T] = Left(new TimeoutException("Test timed-out!"))
+
     while (keepTrying)
       Try(f) match {
         case Failure(exception) =>
@@ -76,6 +77,7 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
           result = Right(value)
           keepTrying = false
       }
+
     result match {
       case Right(success) =>
         success

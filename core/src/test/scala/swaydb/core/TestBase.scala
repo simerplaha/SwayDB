@@ -51,7 +51,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
-import swaydb.{IO, WiredActor}
+import swaydb.{IO, ActorWire}
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -441,7 +441,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val level1 = TestLevel(nextLevel = Some(level2), throttle = levelThrottle)
     val level0 = TestLevelZero(nextLevel = Some(level1), throttle = levelZeroThrottle)
 
-    val compaction: Option[WiredActor[Compactor[ThrottleState], ThrottleState]] =
+    val compaction: Option[ActorWire[Compactor[ThrottleState], ThrottleState]] =
       if (throttleOn)
         CoreInitializer.initialiseCompaction(
           zero = level0,

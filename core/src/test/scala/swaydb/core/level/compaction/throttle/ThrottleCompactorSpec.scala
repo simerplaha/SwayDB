@@ -28,7 +28,7 @@ import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues, TestTimer}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.{Scheduler, WiredActor}
+import swaydb.{Scheduler, ActorWire}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 
@@ -190,7 +190,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
         implicit val scheduler = Scheduler()
 
         val actor =
-          WiredActor[Compactor[ThrottleState], ThrottleState](
+          ActorWire[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = testState
           )
@@ -219,7 +219,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
         state.sleepTask = Some(null)
 
         val actor =
-          WiredActor[Compactor[ThrottleState], ThrottleState](
+          ActorWire[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = state
           )
@@ -248,7 +248,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
           )
 
         val actor =
-          WiredActor[Compactor[ThrottleState], ThrottleState](
+          ActorWire[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = state
           )
@@ -303,7 +303,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
         //initialise Compactor with the mocked class
         val actor =
-          WiredActor[Compactor[ThrottleState], ThrottleState](
+          ActorWire[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = state
           )
@@ -356,7 +356,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
         //initialise Compactor with the mocked class
         val actor =
-          WiredActor[Compactor[ThrottleState], ThrottleState](
+          ActorWire[Compactor[ThrottleState], ThrottleState](
             impl = compactor,
             state = state
           )
@@ -399,8 +399,8 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
 
       val copyForward = randomBoolean()
 
-      val childActor: WiredActor[Compactor[ThrottleState], ThrottleState] =
-        WiredActor[Compactor[ThrottleState], ThrottleState](
+      val childActor: ActorWire[Compactor[ThrottleState], ThrottleState] =
+        ActorWire[Compactor[ThrottleState], ThrottleState](
           impl = childCompactor,
           state = testState
         )
@@ -409,7 +409,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
         testState.copy(compactionStates = mutable.Map.empty, child = Some(childActor))
 
       val actor =
-        WiredActor[Compactor[ThrottleState], ThrottleState](
+        ActorWire[Compactor[ThrottleState], ThrottleState](
           impl = parentCompactor,
           state = state
         )

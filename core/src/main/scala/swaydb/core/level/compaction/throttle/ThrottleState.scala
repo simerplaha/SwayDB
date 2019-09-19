@@ -26,7 +26,7 @@ import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.util.FiniteDurations
 import swaydb.data.slice.Slice
-import swaydb.{Scheduler, WiredActor}
+import swaydb.{Scheduler, ActorWire}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -36,7 +36,7 @@ import scala.concurrent.duration.Deadline
  * Compaction state for a group of Levels. The number of compaction depends on concurrentCompactions input.
  */
 private[core] case class ThrottleState(levels: Slice[LevelRef],
-                                       child: Option[WiredActor[Compactor[ThrottleState], ThrottleState]],
+                                       child: Option[ActorWire[Compactor[ThrottleState], ThrottleState]],
                                        executionContext: ExecutionContext,
                                        compactionStates: mutable.Map[LevelRef, ThrottleLevelState]) extends LazyLogging {
   @volatile private[compaction] var terminate: Boolean = false

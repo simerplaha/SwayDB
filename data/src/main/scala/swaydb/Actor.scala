@@ -368,16 +368,16 @@ object Actor {
       recovery = None
     )(scheduler.ec)
 
-  def wire[T](impl: T)(implicit scheduler: Scheduler): WiredActor[T, Unit] =
-    WiredActor[T, Unit](
+  def wire[T](impl: T)(implicit scheduler: Scheduler): ActorWire[T, Unit] =
+    ActorWire[T, Unit](
       impl = impl,
       state = ()
     )
 
   def wireTimer[T](interval: FiniteDuration,
                    stashCapacity: Int,
-                   impl: T)(implicit scheduler: Scheduler): WiredActor[T, Unit] =
-    WiredActor[T, Unit](
+                   impl: T)(implicit scheduler: Scheduler): ActorWire[T, Unit] =
+    ActorWire[T, Unit](
       impl = impl,
       interval = interval,
       stashCapacity = stashCapacity,

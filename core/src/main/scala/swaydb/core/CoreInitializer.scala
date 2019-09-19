@@ -37,7 +37,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{IO, Scheduler, WiredActor}
+import swaydb.{IO, Scheduler, ActorWire}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -68,8 +68,8 @@ private[core] object CoreInitializer extends LazyLogging {
    * Closes all the open files and releases the locks on database folders.
    */
   private def addShutdownHook(zero: LevelZero,
-                              compactor: WiredActor[Compactor[ThrottleState], ThrottleState])(implicit compactionStrategy: Compactor[ThrottleState],
-                                                                                              executionContext: ExecutionContext): Unit =
+                              compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit compactionStrategy: Compactor[ThrottleState],
+                                                                                             executionContext: ExecutionContext): Unit =
     sys.addShutdownHook {
       logger.info("Shutting down compaction.")
       def compactionShutdown: Future[Unit] =
@@ -165,13 +165,13 @@ private[core] object CoreInitializer extends LazyLogging {
       config.otherLevels.flatMap(executionContext)
 
   def initialiseCompaction(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[swaydb.Error.Level, Option[WiredActor[Compactor[ThrottleState], ThrottleState]]] =
+                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[swaydb.Error.Level, Option[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts
     ) map (Some(_))
 
-  def sendInitialWakeUp(compactor: WiredActor[Compactor[ThrottleState], ThrottleState]): Unit =
+  def sendInitialWakeUp(compactor: ActorWire[Compactor[ThrottleState], ThrottleState]): Unit =
     compactor send {
       (impl, state, self) =>
         impl.wakeUp(

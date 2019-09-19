@@ -21,18 +21,18 @@ package swaydb.core.level.compaction
 
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.{IO, WiredActor}
+import swaydb.{IO, ActorWire}
 
 import scala.concurrent.Future
 
 private[core] trait Compactor[S] {
 
   def createAndListen(zero: LevelZero,
-                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, WiredActor[Compactor[S], S]]
+                      executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, ActorWire[Compactor[S], S]]
 
   def wakeUp(state: S,
              forwardCopyOnAllLevels: Boolean,
-             self: WiredActor[Compactor[S], S]): Unit
+             self: ActorWire[Compactor[S], S]): Unit
 
-  def terminate(state: S, self: WiredActor[Compactor[S], S]): Future[Unit]
+  def terminate(state: S, self: ActorWire[Compactor[S], S]): Future[Unit]
 }
