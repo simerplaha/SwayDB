@@ -85,8 +85,6 @@ private[core] object SegmentMerger extends LazyLogging {
 
   /**
    * If the last Segment is too small merge the last Segment with the previous Segment's key-value.
-   *
-   * It also executes grouping on the last un-grouped key-values if compression type (grouping) is provided.
    */
   def close(buffers: ListBuffer[SegmentBuffer],
             minSegmentSize: Long,

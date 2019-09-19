@@ -86,7 +86,7 @@ private[swaydb] object DecompressorId {
       override val id: Int = 10
     }
   }
-  private[swaydb] case object UnCompressedGroup extends DecompressorId {
+  private[swaydb] case object UnCompressed extends DecompressorId {
     override val id: Int = 11
   }
 

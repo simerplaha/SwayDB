@@ -17,7 +17,7 @@ and easy data management with simple collections API.
 
 [Documentation - SwayDB.io](http://swaydb.io).
 
-## Performance
+## Performance (v0.2: outdated - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
 | Storage  type   | Performance                               
 |:---------------:|:------------------------------------------------------
@@ -38,7 +38,6 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - Key only iterations (Lazily fetched values).
 - Supported data types - `Map[K, V]` & `Set[T]`.
 - [Configurable](http://www.swaydb.io/configuring-levels/) levels.
-- [Compression](http://www.swaydb.io/configuring-levels/groupingStrategy/) for both Persistent & Memory databases with LZ4 & Snappy.
 - Duplicate values can be eliminated with [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
 
 [Read more](http://swaydb.io/).

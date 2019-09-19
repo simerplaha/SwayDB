@@ -127,7 +127,7 @@ private[core] object HashIndexBlock extends LazyLogging {
       val last = keyValues.last
 
       val copyWithReferences =
-        last.hashIndexConfig.copyIndex && (last.stats.segmentHasGroup || last.stats.hasPrefixCompression)
+        last.hashIndexConfig.copyIndex && last.stats.hasPrefixCompression
 
       val writeAbleLargestValueSize =
         if (last.hashIndexConfig.copyIndex)
@@ -142,14 +142,14 @@ private[core] object HashIndexBlock extends LazyLogging {
 
       val headSize =
         headerSize(
-          keyCounts = last.stats.segmentUniqueKeysCount,
+          keyCounts = last.stats.chainPosition,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           hasCompression = hasCompression
         )
 
       val optimalBytes =
         optimalBytesRequired(
-          keyCounts = last.stats.segmentUniqueKeysCount,
+          keyCounts = last.stats.chainPosition,
           minimumNumberOfKeys = last.hashIndexConfig.minimumNumberOfKeys,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           allocateSpace = last.hashIndexConfig.allocateSpace,

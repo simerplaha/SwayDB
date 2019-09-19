@@ -45,26 +45,6 @@ class TransientSpec extends TestBase {
   }
 
   "hasSameValue" should {
-    "return false for groups" in {
-      //      runThis(1.times) {
-      //        Transient.hasSameValue(
-      //          left = randomGroup(),
-      //          right = randomTransientKeyValue(randomString, randomStringOption)
-      //        ) shouldBe false
-      //      }
-
-      runThis(100.times, log = true) {
-        //        randomGroup()
-        //        randomTransientKeyValue(randomString, None, deadline = None, includeGroups = false)
-      }
-
-      //      runThis(10.times) {
-      //        Transient.hasSameValue(
-      //          left = randomTransientKeyValue(randomString, randomStringOption),
-      //          right = randomGroup()
-      //        ) shouldBe false
-      //      }
-    }
 
     "return false for put" in {
       runThis(100.times) {

@@ -53,7 +53,6 @@ object SegmentFooterBlock {
       Bytes.sizeOf(Block.headerSize(false)) +
       ByteSizeOf.byte + //1 byte for format
       ByteSizeOf.varInt + //created in level
-      ByteSizeOf.varInt + //numberOfGroups
       ByteSizeOf.varInt + //numberOfRanges
       ByteSizeOf.boolean + //hasPut
       ByteSizeOf.varInt + //key-values count
@@ -74,7 +73,6 @@ object SegmentFooterBlock {
                    bytes: Slice[Byte],
                    topLevelKeyValuesCount: Int,
                    uniqueKeyValuesCount: Int,
-                   numberOfGroups: Int,
                    numberOfRanges: Int,
                    hasPut: Boolean)
 
@@ -84,9 +82,8 @@ object SegmentFooterBlock {
       footerSize = Block.headerSize(false),
       createdInLevel = createdInLevel,
       topLevelKeyValuesCount = keyValues.size,
-      uniqueKeyValuesCount = keyValues.last.stats.segmentUniqueKeysCount,
+      uniqueKeyValuesCount = keyValues.last.stats.chainPosition,
       bytes = Slice.create[Byte](optimalBytesRequired),
-      numberOfGroups = keyValues.last.stats.groupsCount,
       numberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
       hasPut = keyValues.last.stats.segmentHasPut
     )
@@ -106,7 +103,6 @@ object SegmentFooterBlock {
       //the following group of bytes are also used for CRC check.
       footerBytes addIntUnsigned SegmentBlock.formatId
       footerBytes addIntUnsigned state.createdInLevel
-      footerBytes addIntUnsigned state.numberOfGroups
       footerBytes addIntUnsigned state.numberOfRanges
       footerBytes addBoolean state.hasPut
       //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
@@ -184,7 +180,6 @@ object SegmentFooterBlock {
           IO.Left(swaydb.Error.DataAccess(message = message, new Exception(message)): swaydb.Error.Segment)
         } else {
           val createdInLevel = footerReader.readIntUnsigned().get
-          val numberOfGroups = footerReader.readIntUnsigned().get
           val numberOfRanges = footerReader.readIntUnsigned().get
           val hasPut = footerReader.readBoolean().get
           val keyValueCount = footerReader.readIntUnsigned().get
@@ -252,7 +247,6 @@ object SegmentFooterBlock {
               createdInLevel = createdInLevel,
               bloomFilterItemsCount = bloomFilterItemsCount,
               numberOfRanges = numberOfRanges,
-              numberOfGroups = numberOfGroups,
               hasPut = hasPut
             )
           )
@@ -287,11 +281,7 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               createdInLevel: Int,
                               bloomFilterItemsCount: Int,
                               numberOfRanges: Int,
-                              numberOfGroups: Int,
                               hasPut: Boolean) extends Block[block.SegmentFooterBlock.Offset] {
-  def hasGroup =
-    numberOfGroups > 0
-
   def hasRange =
     numberOfRanges > 0
 }

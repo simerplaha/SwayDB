@@ -296,7 +296,6 @@ class SegmentBlockSpec extends TestBase {
         blocks.footer.keyValueCount shouldBe keyValues.size
         blocks.footer.keyValueCount shouldBe keyValues.size
         blocks.footer.numberOfRanges shouldBe keyValues.last.stats.segmentTotalNumberOfRanges
-        blocks.footer.numberOfGroups shouldBe keyValues.last.stats.groupsCount
         blocks.bloomFilterReader shouldBe defined
         blocks.footer.bloomFilterOffset shouldBe defined
         blocks.bloomFilterReader shouldBe defined

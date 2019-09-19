@@ -34,12 +34,10 @@ private[core] object Stats {
             value: Slice[Slice[Byte]],
             isRemoveRange: Boolean,
             isRange: Boolean,
-            isGroup: Boolean,
             isPut: Boolean,
             isPrefixCompressed: Boolean,
             previousKeyValueAccessIndexPosition: Option[Int],
             thisKeyValuesNumberOfRanges: Int,
-            thisKeyValuesUniqueKeys: Int,
             sortedIndex: SortedIndexBlock.Config,
             bloomFilter: BloomFilterBlock.Config,
             hashIndex: HashIndexBlock.Config,
@@ -56,12 +54,6 @@ private[core] object Stats {
 
     val chainPosition =
       previousStats.map(_.chainPosition + 1) getOrElse 1
-
-    val groupsCount =
-      if (isGroup)
-        previousStats.map(_.groupsCount + 1) getOrElse 1
-      else
-        previousStats.map(_.groupsCount) getOrElse 0
 
     val hasPrefixCompressed =
       isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
@@ -112,11 +104,6 @@ private[core] object Stats {
     val segmentTotalNumberOfRanges =
       previousStats.map(_.segmentTotalNumberOfRanges + thisKeyValuesNumberOfRanges) getOrElse thisKeyValuesNumberOfRanges
 
-    //Items to add to BloomFilters is different to the position because a Group can contain
-    //multiple inner key-values but the Group's key itself does not get added to the BloomFilter.
-    val segmentUniqueKeysCount =
-    previousStats.map(_.segmentUniqueKeysCount + thisKeyValuesUniqueKeys) getOrElse thisKeyValuesUniqueKeys
-
     //unique keys that do not have prefix compressed keys.
     val segmentUniqueAccessIndexKeyCounts =
       previousStats map {
@@ -128,11 +115,11 @@ private[core] object Stats {
       } getOrElse 1
 
     val segmentHashIndexSize =
-      if (segmentUniqueKeysCount < hashIndex.minimumNumberOfKeys)
+      if (chainPosition < hashIndex.minimumNumberOfKeys)
         0
       else
         HashIndexBlock.optimalBytesRequired( //just a rough calculation. This does not need to be accurate but needs to be lower than the actual
-          keyCounts = segmentUniqueKeysCount,
+          keyCounts = chainPosition,
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           writeAbleLargestValueSize =
             if (hashIndex.copyIndex)
@@ -198,11 +185,11 @@ private[core] object Stats {
           ValuesBlock.headerSize(false)
 
     val segmentBloomFilterSize =
-      if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange || segmentUniqueKeysCount < bloomFilter.minimumNumberOfKeys)
+      if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange || chainPosition < bloomFilter.minimumNumberOfKeys)
         0
       else
         BloomFilterBlock.optimalSize(
-          numberOfKeys = segmentUniqueKeysCount,
+          numberOfKeys = chainPosition,
           falsePositiveRate = bloomFilter.falsePositiveRate,
           hasCompression = false,
           minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys,
@@ -215,14 +202,6 @@ private[core] object Stats {
         segmentHashIndexSize +
         segmentBinarySearchIndexSize +
         segmentBloomFilterSize
-
-    //calculates the size of Segment after the last Group. This is used for size based grouping/compression.
-    val segmentSizeWithoutFooterForNextGroup: Int =
-      if (previousStats.exists(_.isGroup)) //if previous is a group, restart the size calculation
-        segmentSizeWithoutFooter
-      else //if previous is not a group, add previous key-values set segment size since the last group to this key-values Segment size.
-        previousStats.map(_.segmentSizeWithoutFooterForNextGroup).getOrElse(0) +
-          segmentSizeWithoutFooter
 
     val segmentSize: Int =
       segmentSizeWithoutFooter +
@@ -237,14 +216,11 @@ private[core] object Stats {
       chainPosition = chainPosition,
       segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
       segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
-      groupsCount = groupsCount,
-      segmentUniqueKeysCount = segmentUniqueKeysCount,
       segmentValuesSize = segmentValuesSize,
       segmentValuesSizeWithoutHeader = segmentValuesSizeWithoutHeader,
       segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
-      segmentSizeWithoutFooterForNextGroup = segmentSizeWithoutFooterForNextGroup,
       segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
       thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
@@ -259,8 +235,7 @@ private[core] object Stats {
       segmentHasRemoveRange = hasRemoveRange,
       segmentHasRange = segmentHasRange,
       segmentHasPut = segmentHasPut,
-      hasPrefixCompression = hasPrefixCompressed,
-      isGroup = isGroup
+      hasPrefixCompression = hasPrefixCompressed
     )
   }
 }
@@ -270,14 +245,11 @@ private[core] case class Stats(valueLength: Int,
                                chainPosition: Int,
                                segmentValueAndSortedIndexEntrySize: Int,
                                segmentSortedIndexSizeWithoutHeader: Int,
-                               groupsCount: Int,
-                               segmentUniqueKeysCount: Int,
                                segmentValuesSize: Int,
                                segmentValuesSizeWithoutHeader: Int,
                                segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
-                               segmentSizeWithoutFooterForNextGroup: Int,
                                segmentUniqueAccessIndexKeyCounts: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesSortedIndexSize: Int,
@@ -293,10 +265,7 @@ private[core] case class Stats(valueLength: Int,
                                segmentHasPut: Boolean,
                                segmentMaxSortedIndexEntrySize: Int,
                                segmentMinSortedIndexEntrySize: Int,
-                               hasPrefixCompression: Boolean,
-                               isGroup: Boolean) {
-  def segmentHasGroup: Boolean =
-    groupsCount > 0
+                               hasPrefixCompression: Boolean) {
 
   def memorySegmentSize =
     segmentUncompressedKeysSize + segmentValuesSize

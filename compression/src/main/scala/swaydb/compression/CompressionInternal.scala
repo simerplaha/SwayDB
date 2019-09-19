@@ -42,7 +42,7 @@ private[swaydb] object CompressionInternal extends LazyLogging {
         CompressionInternal.Snappy(minCompressionPercentage)
 
       case swaydb.Compression.None =>
-        CompressionInternal.UnCompressedGroup
+        CompressionInternal.UnCompressed
     }
 
   def apply(compression: swaydb.Compression.LZ4): CompressionInternal.LZ4 =
@@ -54,9 +54,9 @@ private[swaydb] object CompressionInternal extends LazyLogging {
   private[swaydb] case class LZ4(compressor: CompressorInternal.LZ4,
                                  decompressor: DecompressorInternal.LZ4) extends CompressionInternal
 
-  private[swaydb] case object UnCompressedGroup extends CompressionInternal {
-    val compressor: CompressorInternal = CompressorInternal.UnCompressedGroup
-    val decompressor: DecompressorInternal = DecompressorInternal.UnCompressedGroup
+  private[swaydb] case object UnCompressed extends CompressionInternal {
+    val compressor: CompressorInternal = CompressorInternal.UnCompressed
+    val decompressor: DecompressorInternal = DecompressorInternal.UnCompressed
   }
 
   private[swaydb] case class Snappy(minCompressionPercentage: Double) extends CompressionInternal {
@@ -71,7 +71,7 @@ private[swaydb] object CompressionInternal extends LazyLogging {
     else if (Random.nextBoolean())
       Snappy(minCompressionPercentage = minCompressionPercentage)
     else
-      UnCompressedGroup
+      UnCompressed
 
   def randomLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue) =
     if (Random.nextBoolean())

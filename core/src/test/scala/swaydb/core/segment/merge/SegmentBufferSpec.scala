@@ -41,7 +41,6 @@ class SegmentBufferSpec extends WordSpec with Matchers {
       flattened add keyValue
       flattened should have size 1
       flattened.head shouldBe keyValue
-      flattened.isReadyForGrouping shouldBe false
     }
   }
 }

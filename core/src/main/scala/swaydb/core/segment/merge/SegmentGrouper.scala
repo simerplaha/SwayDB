@@ -62,7 +62,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
       def addToCurrentSplit(force: Boolean): Boolean =
         splits.lastOption exists {
           lastBuffer =>
-            val currentBuffersLastKeyValues = lastBuffer.lastNonGroupOption
+            val currentBuffersLastKeyValues = lastBuffer.lastOption
 
             val currentSegmentSize =
               if (forInMemory)

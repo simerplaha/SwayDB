@@ -49,8 +49,8 @@ class CompressionSpec extends WordSpec {
   "Compression" should {
 
     "successfully compress bytes" when {
-      "UnCompressedGroup" in {
-        assertSuccessfulCompression(CompressionInternal.UnCompressedGroup)
+      "UnCompressed" in {
+        assertSuccessfulCompression(CompressionInternal.UnCompressed)
       }
 
       "Snappy" in {
@@ -136,13 +136,13 @@ class CompressionSpec extends WordSpec {
         }
       }
 
-      "UnCompressedGroup" in {
+      "UnCompressed" in {
         (1 to 100) foreach {
           _ =>
-            val compressed = CompressorInternal.UnCompressedGroup.compress(10, bytes).get.get
+            val compressed = CompressorInternal.UnCompressed.compress(10, bytes).get.get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.UnCompressedGroup.decompress(compressed.drop(10), bytes.size).get
+            val decompressedBytes = DecompressorInternal.UnCompressed.decompress(compressed.drop(10), bytes.size).get
             decompressedBytes shouldBe bytes
         }
       }

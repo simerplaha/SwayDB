@@ -17,19 +17,18 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.group.compression
+package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Transient
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class GroupKeyCompressorSpec extends WordSpec with Matchers {
+class KeyCompressorSpec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -38,14 +37,14 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       val last = randomFixedKeyValue(2).toTransient
 
       val (minKey, maxKey, compressedKey) =
-        GroupKeyCompressor.compress(
+        KeyCompressor.compress(
           head = None,
           last = last
         )
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Fixed(last.key)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -55,14 +54,14 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       val last = randomFixedKeyValue(2).toTransient
 
       val (minKey, maxKey, compressedKey) =
-        GroupKeyCompressor.compress(
+        KeyCompressor.compress(
           head = Some(head),
           last = last
         )
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Fixed(last.key)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Fixed(last.key)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Fixed(last.key)))
     }
   }
 
@@ -71,14 +70,14 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       val last = randomRangeKeyValue(1, 10)
 
       val (minKey, maxKey, compressedKey) =
-        GroupKeyCompressor.compress(
+        KeyCompressor.compress(
           head = None,
           last = last.toTransient
         )
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((last.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 
@@ -88,14 +87,14 @@ class GroupKeyCompressorSpec extends WordSpec with Matchers {
       val last = randomRangeKeyValue(100, 200)
 
       val (minKey, maxKey, compressedKey) =
-        GroupKeyCompressor.compress(
+        KeyCompressor.compress(
           head = Some(head),
           last = last.toTransient
         )
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
 
-      GroupKeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
+      KeyCompressor.decompress(compressedKey).runRandomIO.right.value shouldBe ((head.key, MaxKey.Range(last.fromKey, last.toKey)))
     }
   }
 }

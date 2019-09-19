@@ -52,15 +52,12 @@ private[segment] case class MemorySegment(path: Path,
                                           segmentSize: Int,
                                           _hasRange: Boolean,
                                           _hasPut: Boolean,
-                                          //only Memory Segment's need to know if there is a Group. Persistent Segments always find floor from cache when reading.
-                                          _hasGroup: Boolean,
                                           _createdInLevel: Int,
                                           private[segment] val skipList: SkipList.Concurrent[Slice[Byte], Memory],
                                           bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
-                                                                                   memorySweeper: Option[MemorySweeper.KeyValue],
                                                                                    fileSweeper: FileSweeper.Enabled) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
@@ -193,7 +190,7 @@ private[segment] case class MemorySegment(path: Path,
                 IO.none
 
               case _ =>
-                if (_hasRange || _hasGroup)
+                if (_hasRange)
                   skipList.floor(key) match {
                     case Some(range: Memory.Range) if range contains key =>
                       IO.Right(Some(range))
@@ -209,7 +206,7 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   def mightContainKey(key: Slice[Byte], rangeCheck: Boolean): IO[swaydb.Error.Segment, Boolean] =
-    if (rangeCheck && (_hasGroup || _hasRange))
+    if (rangeCheck && _hasRange)
       IO.`true`
     else
       bloomFilterReader map {
@@ -260,7 +257,7 @@ private[segment] case class MemorySegment(path: Path,
   override def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Memory]] =
     if (deleted)
       IO.Left(swaydb.Error.NoSuchFile(path): swaydb.Error.Segment)
-    else if (_hasRange || _hasGroup)
+    else if (_hasRange)
       skipList.floor(key) match {
         case Some(floor) =>
           floor match {

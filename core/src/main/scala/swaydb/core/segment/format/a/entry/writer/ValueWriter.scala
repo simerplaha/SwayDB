@@ -150,27 +150,15 @@ private[writer] object ValueWriter {
           )
 
         case (None, _) =>
-          if (current.isGroup)
-            uncompressed(
-              current = current,
-              currentValues = current.values,
-              entryId = entryId,
-              plusSize = plusSize,
-              enablePrefixCompression = enablePrefixCompression,
-              isKeyUncompressed = isKeyUncompressed,
-              hasPrefixCompressed = hasPrefixCompressed,
-              adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
-            )
-          else
-            noValue(
-              current = current,
-              entryId = entryId,
-              plusSize = plusSize,
-              enablePrefixCompression = enablePrefixCompression,
-              isKeyUncompressed = isKeyUncompressed,
-              hasPrefixCompressed = hasPrefixCompressed,
-              adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
-            )
+          noValue(
+            current = current,
+            entryId = entryId,
+            plusSize = plusSize,
+            enablePrefixCompression = enablePrefixCompression,
+            isKeyUncompressed = isKeyUncompressed,
+            hasPrefixCompressed = hasPrefixCompressed,
+            adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
+          )
       }
     else
       uncompressed(

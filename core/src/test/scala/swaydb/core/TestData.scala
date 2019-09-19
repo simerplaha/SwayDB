@@ -1167,7 +1167,6 @@ object TestData {
                               deadline: Option[Deadline] = randomDeadlineOption,
                               time: Time = Time.empty,
                               previous: Option[Transient] = None,
-                              maxGroupKeyValues: Int = randomIntMax(50) + 1, //+1 to avoid empty groups
                               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1178,8 +1177,7 @@ object TestData {
                               includeFunctions: Boolean = true,
                               includeRemoves: Boolean = true,
                               includePuts: Boolean = true,
-                              includeRanges: Boolean = true,
-                              includeGroups: Boolean = true): Transient =
+                              includeRanges: Boolean = true): Transient =
     if (toKey.isDefined && includeRanges && randomBoolean())
       Transient.Range(
         fromKey = key,
@@ -1560,7 +1558,6 @@ object TestData {
                           addPutDeadlines: Boolean = randomBoolean(),
                           addExpiredPutDeadlines: Boolean = randomBoolean(),
                           addUpdateDeadlines: Boolean = randomBoolean(),
-                          nestedGroupsKeyValueCount: Int = 5,
                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1586,7 +1583,6 @@ object TestData {
       valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
-      nestedGroupsKeyValueCount = nestedGroupsKeyValueCount,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig
     )
@@ -1625,7 +1621,6 @@ object TestData {
                       addExpiredPutDeadlines: Boolean = false,
                       addUpdateDeadlines: Boolean = false,
                       addRanges: Boolean = false,
-                      nestedGroupsKeyValueCount: Int = 5,
                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -2452,11 +2447,9 @@ object TestData {
                   value: Slice[Slice[Byte]] = Slice(randomBytesSlice()),
                   isRemoveRange: Boolean = randomBoolean(),
                   isRange: Boolean = randomBoolean(),
-                  isGroup: Boolean = randomBoolean(),
                   isPut: Boolean = randomBoolean(),
                   isPrefixCompressed: Boolean = randomBoolean(),
                   numberOfRanges: Int = randomIntMax(10000000),
-                  thisKeyValuesUniqueKeys: Int = randomIntMax(10000000),
                   sortedIndex: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                   bloomFilter: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                   hashIndex: HashIndexBlock.Config = HashIndexBlock.Config.random,
@@ -2470,12 +2463,10 @@ object TestData {
       value = value,
       isRemoveRange = isRemoveRange,
       isRange = isRange,
-      isGroup = isGroup,
       isPut = isPut,
       isPrefixCompressed = isPrefixCompressed,
       previousKeyValueAccessIndexPosition = None,
       thisKeyValuesNumberOfRanges = numberOfRanges,
-      thisKeyValuesUniqueKeys = thisKeyValuesUniqueKeys,
       sortedIndex = sortedIndex,
       bloomFilter = bloomFilter,
       hashIndex = hashIndex,

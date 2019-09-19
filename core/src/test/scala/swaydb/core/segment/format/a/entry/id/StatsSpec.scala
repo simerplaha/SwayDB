@@ -10,14 +10,12 @@ class StatsSpec extends WordSpec with Matchers {
   "it" should {
     "update stats" when {
       "value length is empty" in {
-        val isGroup = randomBoolean()
-        val stats = randomStats(indexEntry = Slice.fill(2)(1.toByte), value = Slice.emptyEmptyBytes, isGroup = isGroup)
+        val stats = randomStats(indexEntry = Slice.fill(2)(1.toByte), value = Slice.emptyEmptyBytes)
         stats.valueLength shouldBe 0
         stats.segmentSize should be > 0
         stats.chainPosition shouldBe 1
         stats.segmentValueAndSortedIndexEntrySize should be > 0
         stats.segmentSortedIndexSizeWithoutHeader should be > 0
-        stats.groupsCount shouldBe isGroup.toInt
       }
     }
   }

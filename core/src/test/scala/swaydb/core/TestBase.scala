@@ -303,7 +303,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
               deleteSegmentsEventually: Boolean = false,
-              applyGroupingOnCopy: Boolean = false,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,

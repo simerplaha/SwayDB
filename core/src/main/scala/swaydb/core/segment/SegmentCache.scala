@@ -53,7 +53,7 @@ private[core] object SegmentCache {
           blockRef = blockRef,
           segmentIO = segmentIO
         )
-    )(keyOrder = keyOrder, memorySweeper = memorySweeper, groupIO = segmentIO)
+    )(keyOrder = keyOrder, memorySweeper = memorySweeper)
 }
 
 private[core] class SegmentCache(id: String,
@@ -62,8 +62,7 @@ private[core] class SegmentCache(id: String,
                                  _skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    memorySweeper: Option[MemorySweeper.KeyValue],
-                                                                    groupIO: SegmentIO) extends LazyLogging {
+                                                                    memorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
 
   import keyOrder._
 
@@ -268,13 +267,7 @@ private[core] class SegmentCache(id: String,
         IO(some)
 
       case None =>
-        blockCache.getFooter() flatMap {
-          footer =>
-            if (footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
-              IO.none
-            else
-              get(key = key)
-        }
+        get(key = key)
     }
 
   def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
@@ -366,50 +359,47 @@ private[core] class SegmentCache(id: String,
                      start: Option[Persistent],
                      end: => Option[Persistent],
                      keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    blockCache.getFooter() flatMap {
-      footer =>
-        blockCache.createSortedIndexReader() flatMap {
-          sortedIndexReader =>
-            blockCache.createValuesReader() flatMap {
-              valuesReader =>
-                val startFrom =
-                  if (start.isDefined || footer.hasGroup) //don't do get if it has Group because it will fetch the inner group key-value which cannot be used as startFrom.
-                    IO.Right(start)
-                  else
-                    get(key)
+    blockCache.createSortedIndexReader() flatMap {
+      sortedIndexReader =>
+        blockCache.createValuesReader() flatMap {
+          valuesReader =>
+            val startFrom =
+              if (start.isDefined)
+                IO.Right(start)
+              else
+                get(key)
 
-                startFrom flatMap {
-                  startFrom =>
-                    SegmentSearcher.searchHigher(
-                      key = key,
-                      start = startFrom,
-                      end = end,
-                      keyValueCount = keyValueCount,
-                      binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
-                      sortedIndexReader = sortedIndexReader,
-                      valuesReader = valuesReader
-                    ) flatMap {
-                      case Some(response: Persistent) =>
-                        addToCache(response)
-                        IO.Right(Some(response))
+            startFrom flatMap {
+              startFrom =>
+                SegmentSearcher.searchHigher(
+                  key = key,
+                  start = startFrom,
+                  end = end,
+                  keyValueCount = keyValueCount,
+                  binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+                  sortedIndexReader = sortedIndexReader,
+                  valuesReader = valuesReader
+                ) flatMap {
+                  case Some(response: Persistent) =>
+                    addToCache(response)
+                    IO.Right(Some(response))
 
-                      case Some(fixed: Persistent.Partial.Fixed) =>
-                        fixed.toPersistent map {
-                          persistent =>
-                            addToCache(persistent)
-                            Some(persistent)
-                        }
-
-                      case Some(fixed: Persistent.Partial.Range) =>
-                        fixed.toPersistent map {
-                          range =>
-                            addToCache(range)
-                            Some(range)
-                        }
-
-                      case None =>
-                        IO.none
+                  case Some(fixed: Persistent.Partial.Fixed) =>
+                    fixed.toPersistent map {
+                      persistent =>
+                        addToCache(persistent)
+                        Some(persistent)
                     }
+
+                  case Some(fixed: Persistent.Partial.Range) =>
+                    fixed.toPersistent map {
+                      range =>
+                        addToCache(range)
+                        Some(range)
+                    }
+
+                  case None =>
+                    IO.none
                 }
             }
         }
@@ -520,9 +510,6 @@ private[core] class SegmentCache(id: String,
 
   def createdInLevel: IO[swaydb.Error.Segment, Int] =
     blockCache.getFooter().map(_.createdInLevel)
-
-  def isGrouped: IO[swaydb.Error.Segment, Boolean] =
-    blockCache.getFooter().map(_.hasGroup)
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
     skipList contains key

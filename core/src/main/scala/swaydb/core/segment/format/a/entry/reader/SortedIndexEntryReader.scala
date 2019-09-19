@@ -23,13 +23,12 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.cache.Cache
 import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.group.compression.GroupKeyCompressor
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, KeyCompressor}
 import swaydb.data.slice.{ReaderBase, Slice}
 
 trait SortedIndexEntryReader[E] {

@@ -341,9 +341,9 @@ object CommonAssertions {
       result shouldBe empty
     } else {
       result should have size 1
-      val ungrouped = result.head
-      ungrouped should have size expected.size
-      ungrouped.toMemory.toList should contain inOrderElementsOf expected.toMemory
+      val head = result.head
+      head should have size expected.size
+      head.toMemory.toList should contain inOrderElementsOf expected.toMemory
     }
     result
   }

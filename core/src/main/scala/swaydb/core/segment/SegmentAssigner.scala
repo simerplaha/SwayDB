@@ -34,12 +34,8 @@ import scala.collection.mutable
 
 private[core] object SegmentAssigner {
 
-  //memorySweeper for when reading a Group's inner key-values.
-  implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
-
   def assignMinMaxOnly(inputSegments: Iterable[Segment],
-                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                          segmentIO: SegmentIO): IO[swaydb.Error.Segment, Iterable[Segment]] =
+                       targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Iterable[Segment]] =
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).map(_.keys)
 
   def assignMinMaxOnly(map: Map[Slice[Byte], Memory],
@@ -48,8 +44,7 @@ private[core] object SegmentAssigner {
     SegmentAssigner.assign(Segment.tempMinMaxKeyValues(map), targetSegments).map(_.keys)
 
   def assign(keyValues: Slice[KeyValue.ReadOnly],
-             segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          segmentIO: SegmentIO): IO[swaydb.Error.Segment, mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
+             segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, mutable.Map[Segment, Slice[KeyValue.ReadOnly]]] = {
     import keyOrder._
     val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue.ReadOnly]]
     val segmentsIterator = segments.iterator

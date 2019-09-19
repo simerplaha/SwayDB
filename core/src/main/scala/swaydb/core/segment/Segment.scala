@@ -58,12 +58,9 @@ private[core] object Segment extends LazyLogging {
              keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                              timeOrder: TimeOrder[Slice[Byte]],
                                              functionStore: FunctionStore,
-                                             fileSweeper: FileSweeper.Enabled,
-                                             memorySweeper: Option[MemorySweeper.KeyValue]): IO[swaydb.Error.Segment, Segment] =
+                                             fileSweeper: FileSweeper.Enabled): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
       IO.failed("Empty key-values submitted to memory Segment.")
-    } else if (keyValues.last.stats.segmentHasGroup && memorySweeper.isEmpty) { //this check needs to be type-safe instead.
-      IO.failed("Segment has groups but memorySweeper is not specified.")
     } else {
       val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
@@ -103,7 +100,6 @@ private[core] object Segment extends LazyLogging {
                   segmentSize = keyValues.last.stats.memorySegmentSize,
                   _hasRange = keyValues.last.stats.segmentHasRange,
                   _hasPut = keyValues.last.stats.segmentHasPut,
-                  _hasGroup = keyValues.last.stats.segmentHasGroup,
                   _createdInLevel = createdInLevel.toInt,
                   skipList = skipList,
                   bloomFilterReader = bloomFilter,
@@ -748,8 +744,7 @@ private[core] object Segment extends LazyLogging {
 
   def overlapsWithBusySegments(map: Map[Slice[Byte], Memory],
                                busySegments: Iterable[Segment],
-                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    groupIO: SegmentIO): IO[swaydb.Error.Segment, Boolean] =
+                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Boolean] =
     if (busySegments.isEmpty)
       IO.`false`
     else {

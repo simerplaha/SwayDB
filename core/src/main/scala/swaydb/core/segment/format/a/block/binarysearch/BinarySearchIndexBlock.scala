@@ -178,7 +178,7 @@ private[core] object BinarySearchIndexBlock {
       BinarySearchIndexBlock.State(
         largestValue = normalisedLast.stats.thisKeyValuesAccessIndexOffset,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
-        uniqueValuesCount = normalisedLast.stats.segmentUniqueKeysCount,
+        uniqueValuesCount = normalisedLast.stats.chainPosition,
         isFullIndex = normalisedLast.binarySearchIndexConfig.fullIndex,
         minimumNumberOfKeys = normalisedLast.binarySearchIndexConfig.minimumNumberOfKeys,
         compressions = normalisedLast.binarySearchIndexConfig.compressions

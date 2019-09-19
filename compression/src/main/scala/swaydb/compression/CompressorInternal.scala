@@ -121,7 +121,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
       }
   }
 
-  private[swaydb] case object UnCompressedGroup extends CompressorInternal {
+  private[swaydb] case object UnCompressed extends CompressorInternal {
 
     final val compressionName = this.getClass.getSimpleName.dropRight(1)
 
@@ -131,7 +131,7 @@ private[swaydb] object CompressorInternal extends LazyLogging {
       IO(Some(Slice.fill[Byte](emptyHeadSpace)(0) ++ slice))
 
     override def compress(slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] = {
-      logger.debug(s"Grouped {}.bytes with {}", slice.size, compressionName)
+      logger.debug(s"Uncompressed {}.bytes with {}", slice.size, compressionName)
       IO.Right(Some(slice))
     }
   }

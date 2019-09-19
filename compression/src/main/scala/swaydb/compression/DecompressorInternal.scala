@@ -75,7 +75,7 @@ private[swaydb] object DecompressorInternal {
     id match {
       //@formatter:off
       case DecompressorId.Snappy.Default =>                           Snappy
-      case DecompressorId.UnCompressedGroup =>                        UnCompressedGroup
+      case DecompressorId.UnCompressed =>                        UnCompressed
       case id: DecompressorId.LZ4DecompressorId =>                    DecompressorInternal(id)
       //@formatter:on
     }
@@ -112,9 +112,9 @@ private[swaydb] object DecompressorInternal {
       IO(Slice(decompressor.decompress(slice.toArray, decompressLength)))
   }
 
-  private[swaydb] case object UnCompressedGroup extends DecompressorInternal {
+  private[swaydb] case object UnCompressed extends DecompressorInternal {
 
-    override val id: Int = DecompressorId.UnCompressedGroup.id
+    override val id: Int = DecompressorId.UnCompressed.id
 
     override def decompress(slice: Slice[Byte],
                             decompressLength: Int): IO[swaydb.Error.Segment, Slice[Byte]] =

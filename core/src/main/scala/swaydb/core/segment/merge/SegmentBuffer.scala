@@ -29,12 +29,10 @@ import scala.collection.mutable.ListBuffer
 sealed trait SegmentBuffer extends Iterable[Transient] {
   def add(keyValue: Transient): Unit
   def lastOption: Option[Transient]
-  def lastNonGroup: Transient
-  def lastNonGroupOption: Option[Transient]
+  def last: Transient
   def nonEmpty: Boolean
   def isEmpty: Boolean
   def size: Int
-  def isReadyForGrouping: Boolean
 }
 
 object SegmentBuffer {
@@ -46,10 +44,10 @@ object SegmentBuffer {
     def add(keyValue: Transient): Unit =
       keyValues += keyValue
 
-    override def lastNonGroup =
+    override def last =
       keyValues.last
 
-    override def lastNonGroupOption =
+    override def lastOption =
       keyValues.lastOption
 
     override def nonEmpty: Boolean =
@@ -61,12 +59,6 @@ object SegmentBuffer {
     override def size: Int =
       keyValues.size
 
-    override def lastOption: Option[Transient] =
-      keyValues.lastOption
-
-    override def last: Transient =
-      keyValues.last
-
     override def head =
       keyValues.head
 
@@ -75,8 +67,5 @@ object SegmentBuffer {
 
     override def iterator: Iterator[Transient] =
       keyValues.iterator
-
-    override def isReadyForGrouping: Boolean =
-      false
   }
 }

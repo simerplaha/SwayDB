@@ -68,8 +68,6 @@ private[core] object KeyValue {
   object ReadOnly {
     /**
      * An API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
-     *
-     * Key-value types like [[Group]] are processed within [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
      */
     sealed trait Fixed extends KeyValue with ReadOnly {
       def toFromValue(): IO[swaydb.Error.Segment, Value.FromValue]
@@ -348,7 +346,6 @@ private[core] sealed trait Transient extends KeyValue { self =>
   val id: Byte
   val isRemoveRangeMayBe: Boolean
   val isRange: Boolean
-  val isGroup: Boolean
   val previous: Option[Transient]
   val thisKeyValueAccessIndexPosition: Int
 
@@ -620,7 +617,6 @@ private[core] object Transient {
                     previous: Option[Transient]) extends Transient.Fixed {
     final val id = Remove.id
     override val isRange: Boolean = false
-    override val isGroup: Boolean = false
     override val isRemoveRangeMayBe = false
 
     override def mergedKey = key
@@ -647,12 +643,10 @@ private[core] object Transient {
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
-        isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         thisKeyValuesNumberOfRanges = 0,
-        thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -698,7 +692,6 @@ private[core] object Transient {
                  previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = Put.id
     override val isRemoveRangeMayBe = false
-    override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
     override def mergedKey = key
@@ -724,12 +717,10 @@ private[core] object Transient {
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
-        isGroup = isGroup,
         isPut = true,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         thisKeyValuesNumberOfRanges = 0,
-        thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -775,7 +766,6 @@ private[core] object Transient {
                     previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = Update.id
     override val isRemoveRangeMayBe = false
-    override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
     override def mergedKey = key
@@ -800,12 +790,10 @@ private[core] object Transient {
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
-        isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         thisKeyValuesNumberOfRanges = 0,
-        thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -850,7 +838,6 @@ private[core] object Transient {
                       previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = Function.id
     override val isRemoveRangeMayBe = false
-    override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
     override def mergedKey = key
@@ -879,12 +866,10 @@ private[core] object Transient {
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
-        isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         thisKeyValuesNumberOfRanges = 0,
-        thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -928,7 +913,6 @@ private[core] object Transient {
                           previous: Option[Transient]) extends Transient with Transient.Fixed {
     final val id = PendingApply.id
     override val isRemoveRangeMayBe = false
-    override val isGroup: Boolean = false
     override val isRange: Boolean = false
 
     override def mergedKey = key
@@ -976,12 +960,10 @@ private[core] object Transient {
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
-        isGroup = isGroup,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         thisKeyValuesNumberOfRanges = 0,
-        thisKeyValuesUniqueKeys = 1,
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -1082,7 +1064,6 @@ private[core] object Transient {
                    previous: Option[Transient]) extends Transient {
     final val id = Range.id
     override val isRemoveRangeMayBe = rangeValue.hasRemoveMayBe
-    override val isGroup: Boolean = false
     override val isRange: Boolean = true
     override val deadline: Option[Deadline] = None
 
@@ -1111,10 +1092,8 @@ private[core] object Transient {
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
-        isGroup = isGroup,
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
         thisKeyValuesNumberOfRanges = 1,
-        thisKeyValuesUniqueKeys = 1,
         previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         sortedIndex = sortedIndexConfig,
         isPrefixCompressed = isPrefixCompressed,

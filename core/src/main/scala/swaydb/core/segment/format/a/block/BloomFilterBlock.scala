@@ -238,7 +238,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   def init(keyValues: Iterable[Transient]): Option[BloomFilterBlock.State] =
     if (shouldCreateBloomFilter(keyValues))
       init(
-        numberOfKeys = keyValues.last.stats.segmentUniqueKeysCount,
+        numberOfKeys = keyValues.last.stats.chainPosition,
         falsePositiveRate = keyValues.last.bloomFilterConfig.falsePositiveRate,
         compressions = keyValues.last.bloomFilterConfig.compressions,
         updateMaxProbe = keyValues.last.bloomFilterConfig.optimalMaxProbe
