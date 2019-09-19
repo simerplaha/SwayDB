@@ -69,73 +69,6 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminateAndRecoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     terminateAndRecover[M, Throwable](f)
-
-  /**
-   * Returns an Actor that merges both Actor and sends messages
-   * to both Actors.
-   *
-   * Currently does not guarantee the order in which the messages will get processed by both actors.
-   * Is order guarantee required?
-   */
-  def merge[T2 <: T](actor: ActorRef[T2, S]): ActorRef[T2, S] =
-    new ActorRef[T2, S] {
-      def send(message: T2): Unit =
-        this.synchronized {
-          self send message
-          actor send message
-        }
-
-      def isTerminated: Boolean =
-        self.isTerminated && actor.isTerminated
-
-      override def ask[R, X[_]](message: ActorRef[R, Unit] => T2)(implicit tag: Tag.Async[X]): X[R] =
-        tag.failure(new NotImplementedError("Ask not implemented for merged actors."))
-
-      /**
-       * Sends a message to this actor with delay
-       */
-      def send(message: T2, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
-        this.synchronized {
-          self.send(message, delay)
-          actor.send(message, delay)
-        }
-
-      override def ask[R, X[_]](message: ActorRef[R, Unit] => T2, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Task[R, X] =
-        throw new NotImplementedError("Ask not implemented for merged actors.")
-
-      def totalWeight: Int =
-        self.totalWeight + actor.totalWeight
-
-      def terminate(): Unit =
-        this.synchronized {
-          self.terminate()
-          actor.terminate()
-        }
-
-      def clear(): Unit =
-        this.synchronized {
-          self.clear()
-          actor.clear()
-        }
-
-      def terminateAndClear(): Unit =
-        this.synchronized {
-          self.terminate()
-          actor.terminate()
-          self.clear()
-          actor.clear()
-        }
-
-      def messageCount: Int =
-        self.messageCount + actor.messageCount
-
-      override def recover[M <: T2, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T2, S]) => Unit): ActorRef[T2, S] =
-        throw new NotImplementedError("Recovery on merged Actors is currently not supported.")
-
-      override def terminateAndRecover[M <: T2, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T2, S]) => Unit): ActorRef[T2, S] =
-        throw new NotImplementedError("Recovery on merged Actors is currently not supported.")
-
-    }
 }
 
 object Actor {
@@ -662,5 +595,4 @@ class Actor[-T, S](val state: S,
     terminate()
     clear()
   }
-
 }
