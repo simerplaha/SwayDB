@@ -314,7 +314,7 @@ object IO {
       catch {
         case exception: Throwable =>
           logger.error("Failed to fetch Reserve. Stopping recovery.", exception)
-          None
+          scala.None
       }
 
     object Nothing extends IO.ExceptionHandler[Nothing] {
@@ -331,6 +331,14 @@ object IO {
 
       override def toException(f: Unit): Throwable =
         new Exception("Unit value.")
+    }
+
+    object None extends IO.ExceptionHandler[scala.None.type] {
+      override def toError(e: Throwable): scala.None.type =
+        throw new scala.Exception("None cannot be created from Exception.", e)
+
+      override def toException(f: scala.None.type): Throwable =
+        new Exception("None value.")
     }
 
     implicit object Throwable extends IO.ExceptionHandler[Throwable] {
