@@ -75,8 +75,7 @@ class SegmentGrouperSpec extends TestBase {
           sortedIndexConfig = SortedIndexBlock.Config.random,
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random
+          bloomFilterConfig = BloomFilterBlock.Config.random
         )
 
         //the initialSegment should be closed and a new segment should value started

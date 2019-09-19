@@ -52,8 +52,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
         sortedIndexConfig = SortedIndexBlock.Config.disabled,
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
         hashIndexConfig = HashIndexBlock.Config.disabled,
-        bloomFilterConfig = BloomFilterBlock.Config.disabled,
-        segmentIO = SegmentIO.defaultConcurrentStoredIfCompressed
+        bloomFilterConfig = BloomFilterBlock.Config.disabled
       ).get
     }
   }

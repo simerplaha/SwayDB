@@ -61,8 +61,7 @@ private[segment] case class MemorySegment(path: Path,
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
                                                                                    memorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                   fileSweeper: FileSweeper.Enabled,
-                                                                                   segmentIO: SegmentIO) extends Segment with LazyLogging {
+                                                                                   fileSweeper: FileSweeper.Enabled) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -95,8 +94,7 @@ private[segment] case class MemorySegment(path: Path,
             sortedIndexConfig = sortedIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig,
-            segmentIO = segmentIO
+            bloomFilterConfig = bloomFilterConfig
           ) flatMap {
             splits =>
               splits.mapIO[Segment](
@@ -149,8 +147,7 @@ private[segment] case class MemorySegment(path: Path,
             sortedIndexConfig = sortedIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
             hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig,
-            segmentIO = segmentIO
+            bloomFilterConfig = bloomFilterConfig
           ) flatMap {
             splits =>
               splits.mapIO[Segment](

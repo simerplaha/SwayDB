@@ -158,7 +158,6 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).runRandomIO.right.value.toArray
       )
@@ -175,7 +174,6 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).runRandomIO.right.value.toArray
       )
@@ -198,7 +196,6 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).runRandomIO.right.value
 
@@ -222,7 +219,6 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).runRandomIO.right.value
 
@@ -250,7 +246,6 @@ class SegmentMergeSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).runRandomIO.right.value
 

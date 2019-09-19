@@ -49,8 +49,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   sortedIndexConfig: SortedIndexBlock.Config,
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                   hashIndexConfig: HashIndexBlock.Config,
-                  bloomFilterConfig: BloomFilterBlock.Config,
-                  segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] = {
+                  bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] = {
 
     def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[swaydb.Error.Segment, Unit] = {
 

@@ -133,8 +133,7 @@ private[core] object SegmentMerger extends LazyLogging {
             sortedIndexConfig: SortedIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config,
-            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] = {
+            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] = {
     val splits = ListBuffer(SegmentBuffer())
 
     keyValues foreachIO {
@@ -150,8 +149,7 @@ private[core] object SegmentMerger extends LazyLogging {
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentIO = segmentIO
+          bloomFilterConfig = bloomFilterConfig
         )
     } match {
       case None =>
@@ -192,8 +190,7 @@ private[core] object SegmentMerger extends LazyLogging {
       sortedIndexConfig = SortedIndexBlock.Config.disabled,
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
       hashIndexConfig = HashIndexBlock.Config.disabled,
-      bloomFilterConfig = BloomFilterBlock.Config.disabled,
-      segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
+      bloomFilterConfig = BloomFilterBlock.Config.disabled
     )(keyOrder, timeOrder, functionStore)
       .get
       .flatten
@@ -214,8 +211,7 @@ private[core] object SegmentMerger extends LazyLogging {
       sortedIndexConfig = SortedIndexBlock.Config.disabled,
       binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
       hashIndexConfig = HashIndexBlock.Config.disabled,
-      bloomFilterConfig = BloomFilterBlock.Config.disabled,
-      segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
+      bloomFilterConfig = BloomFilterBlock.Config.disabled
     )(keyOrder, timeOrder, functionStore)
       .get
       .flatten
@@ -231,10 +227,9 @@ private[core] object SegmentMerger extends LazyLogging {
             sortedIndexConfig: SortedIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config,
-            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] =
+            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                        functionStore: FunctionStore): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] =
     merge(
       newKeyValues = MergeList(newKeyValues),
       oldKeyValues = MergeList(oldKeyValues),
@@ -247,8 +242,7 @@ private[core] object SegmentMerger extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentIO = segmentIO
+      bloomFilterConfig = bloomFilterConfig
     ) flatMap {
       segments =>
         close(
@@ -275,10 +269,9 @@ private[core] object SegmentMerger extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config,
-                    segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] = {
+                    bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                functionStore: FunctionStore): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] = {
 
     import keyOrder._
 
@@ -294,8 +287,7 @@ private[core] object SegmentMerger extends LazyLogging {
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
         hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentIO = segmentIO
+        bloomFilterConfig = bloomFilterConfig
       )
 
     @tailrec

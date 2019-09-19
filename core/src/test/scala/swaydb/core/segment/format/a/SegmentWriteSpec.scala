@@ -1019,7 +1019,6 @@ sealed trait SegmentWriteSpec extends TestBase {
           binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).right.value
 
@@ -1064,7 +1063,6 @@ sealed trait SegmentWriteSpec extends TestBase {
           binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).right.value
 
@@ -1463,7 +1461,6 @@ sealed trait SegmentWriteSpec extends TestBase {
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
-          segmentIO = SegmentIO.random,
           createdInLevel = randomIntMax()
         ).right.value
 

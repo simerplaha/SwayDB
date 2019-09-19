@@ -162,8 +162,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentIO = segmentIO
+          bloomFilterConfig = bloomFilterConfig
         ) flatMap {
           splits =>
             splits.mapIO(
@@ -216,8 +215,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig,
-          segmentIO = segmentIO
+          bloomFilterConfig = bloomFilterConfig
         ) flatMap {
           splits =>
             splits.mapIO(

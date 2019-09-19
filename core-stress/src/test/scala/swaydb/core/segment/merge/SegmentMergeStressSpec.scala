@@ -65,8 +65,7 @@ class SegmentMergeStressSpec extends TestBase {
                 sortedIndexConfig = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
                 hashIndexConfig = HashIndexBlock.Config.random,
-                bloomFilterConfig = BloomFilterBlock.Config.random,
-                segmentIO = SegmentIO.random
+                bloomFilterConfig = BloomFilterBlock.Config.random
               ).get
             }
 

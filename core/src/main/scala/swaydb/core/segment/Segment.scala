@@ -59,8 +59,7 @@ private[core] object Segment extends LazyLogging {
                                              timeOrder: TimeOrder[Slice[Byte]],
                                              functionStore: FunctionStore,
                                              fileSweeper: FileSweeper.Enabled,
-                                             memorySweeper: Option[MemorySweeper.KeyValue],
-                                             segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
+                                             memorySweeper: Option[MemorySweeper.KeyValue]): IO[swaydb.Error.Segment, Segment] =
     if (keyValues.isEmpty) {
       IO.failed("Empty key-values submitted to memory Segment.")
     } else if (keyValues.last.stats.segmentHasGroup && memorySweeper.isEmpty) { //this check needs to be type-safe instead.
@@ -310,8 +309,7 @@ private[core] object Segment extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentIO = segmentIO
+      bloomFilterConfig = bloomFilterConfig
     ) flatMap {
       splits =>
         splits.mapIO(
@@ -397,8 +395,7 @@ private[core] object Segment extends LazyLogging {
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig,
-      segmentIO = segmentIO
+      bloomFilterConfig = bloomFilterConfig
     ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
       keyValues =>
         keyValues mapIO {
