@@ -35,23 +35,15 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 sealed trait ActorRef[-T, S] { self =>
 
-  /**
-   * Submits message to Actor's queue and starts message execution if not already running.
-   */
-  def !(message: T): Unit
+  def send(message: T): Unit
 
-  def ?[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R]
-
-  def send(message: T): Unit =
-    this ! message
-
-  def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R] =
-    this ? message
-
+  def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R]
   /**
    * Sends a message to this actor with delay
    */
-  def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
+  def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
+
+  def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Scheduled[R, X]
 
   def totalWeight: Int
 
@@ -87,26 +79,29 @@ sealed trait ActorRef[-T, S] { self =>
    */
   def merge[T2 <: T](actor: ActorRef[T2, S]): ActorRef[T2, S] =
     new ActorRef[T2, S] {
-      def !(message: T2): Unit =
+      def send(message: T2): Unit =
         this.synchronized {
-          self ! message
-          actor ! message
+          self send message
+          actor send message
         }
 
       def isTerminated: Boolean =
         self.isTerminated && actor.isTerminated
 
-      override def ?[R, X[_]](message: ActorRef[R, Unit] => T2)(implicit tag: Tag.Async[X]): X[R] =
+      override def ask[R, X[_]](message: ActorRef[R, Unit] => T2)(implicit tag: Tag.Async[X]): X[R] =
         tag.failure(new NotImplementedError("Ask not implemented for merged actors."))
 
       /**
        * Sends a message to this actor with delay
        */
-      def schedule(message: T2, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
+      def send(message: T2, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
         this.synchronized {
-          self.schedule(message, delay)
-          actor.schedule(message, delay)
+          self.send(message, delay)
+          actor.send(message, delay)
         }
+
+      override def ask[R, X[_]](message: ActorRef[R, Unit] => T2, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Scheduled[R, X] =
+        throw new NotImplementedError("Ask not implemented for merged actors.")
 
       def totalWeight: Int =
         self.totalWeight + actor.totalWeight
@@ -139,12 +134,15 @@ sealed trait ActorRef[-T, S] { self =>
 
       override def terminateAndRecover[M <: T2, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T2, S]) => Unit): ActorRef[T2, S] =
         throw new NotImplementedError("Recovery on merged Actors is currently not supported.")
+
     }
 }
 
 object Actor {
 
   private[swaydb] val incrementDelayBy = 100.millisecond
+
+  class Scheduled[R, T[_]](val value: T[R], val task: TimerTask)
 
   sealed trait Error
   object Error {
@@ -438,10 +436,10 @@ class Actor[-T, S](val state: S,
   def messageCount: Int =
     queue.size
 
-  override def schedule(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
-    scheduler.task(delay)(self ! message)
+  override def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask =
+    scheduler.task(delay)(self send message)
 
-  override def !(message: T): Unit =
+  override def send(message: T): Unit =
     if (terminated) {
       recovery foreach {
         f =>
@@ -466,15 +464,26 @@ class Actor[-T, S](val state: S,
         wakeUp(currentStashed = currentStashed)
     }
 
-  override def ?[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R] = {
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R] = {
     val promise = Promise[R]()
 
     implicit val queueOrder = QueueOrder.FIFO
 
     val replyTo: ActorRef[R, Unit] = Actor[R]((response, _) => promise.success(response))
-    this ! message(replyTo)
+    this send message(replyTo)
 
     tag fromPromise promise
+  }
+
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Scheduled[R, X] = {
+    val promise = Promise[R]()
+
+    implicit val queueOrder = QueueOrder.FIFO
+
+    val replyTo: ActorRef[R, Unit] = Actor[R]((response, _) => promise.success(response))
+    val task = this.send(message(replyTo), delay)
+
+    new Actor.Scheduled(tag fromPromise promise, task)
   }
 
   @inline private def wakeUp(currentStashed: Int): Unit =

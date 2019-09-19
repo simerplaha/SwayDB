@@ -21,6 +21,7 @@ package swaydb
 
 import java.util.TimerTask
 
+import swaydb.Actor.Scheduled
 import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.concurrent.Promise
@@ -64,13 +65,11 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
 
   class Schedule {
 
-    class Scheduled[T[_], R](val value: T[R], val task: TimerTask)
-
-    def map[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit tag: Tag.Async[T]): Scheduled[T, R] = {
+    def map[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit tag: Tag.Async[T]): Actor.Scheduled[R, T] = {
       val promise = Promise[R]()
 
       val timerTask =
-        actor.schedule(
+        actor.send(
           message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, self))),
           delay = delay
         )
@@ -78,16 +77,16 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
       new Scheduled(tag fromPromise promise, timerTask)
     }
 
-    def flatMap[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => T[R])(implicit tag: Tag.Async[T]): Scheduled[T, R] = {
+    def flatMap[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => T[R])(implicit tag: Tag.Async[T]): Actor.Scheduled[R, T] = {
       val promise = Promise[R]()
 
       val timerTask =
-        actor.schedule(
+        actor.send(
           message = (impl: I, state: S) => tag.complete(promise, function(impl, state, self)),
           delay = delay
         )
 
-      new Scheduled(tag fromPromise promise, timerTask)
+      new Actor.Scheduled(tag fromPromise promise, timerTask)
     }
   }
 
@@ -95,7 +94,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
     def map[R, T[_]](function: (I, S) => R)(implicit tag: Tag.Async[T]): T[R] = {
       val promise = Promise[R]()
 
-      actor ! {
+      actor send {
         (impl: I, state: S) =>
           promise.tryComplete(Try(function(impl, state)))
       }
@@ -106,7 +105,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
     def map[R, T[_]](function: (I, S, ActorWire[I, S]) => R)(implicit tag: Tag.Async[T]): T[R] = {
       val promise = Promise[R]()
 
-      actor ! {
+      actor send {
         (impl: I, state: S) =>
           promise.tryComplete(Try(function(impl, state, self)))
       }
@@ -117,7 +116,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
     def flatMap[R, T[_]](function: (I, S) => T[R])(implicit tag: Tag.Async[T]): T[R] = {
       val promise = Promise[R]()
 
-      actor ! {
+      actor send {
         (impl: I, state: S) =>
           tag.complete(promise, function(impl, state))
       }
@@ -128,7 +127,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
     def flatMap[R, T[_]](function: (I, S, ActorWire[I, S]) => T[R])(implicit tag: Tag.Async[T]): T[R] = {
       val promise = Promise[R]()
 
-      actor ! {
+      actor send {
         (impl: I, state: S) =>
           tag.complete(promise, function(impl, state, self))
       }
@@ -142,28 +141,29 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
   final val ask = new Ask
 
   def send[R](function: (I, S) => R): Unit =
-    actor ! {
+    actor send {
       (impl: I, state: S) =>
         function(impl, state)
     }
 
   def send[R](function: (I, S, ActorWire[I, S]) => R): Unit =
-    actor ! {
+    actor send {
       (impl: I, state: S) =>
         function(impl, state, this)
     }
 
   def schedule[R](delay: FiniteDuration)(function: (I, S) => R): TimerTask =
-    actor.schedule(
+    actor.send(
       message = (impl: I, state: S) => function(impl, state),
       delay = delay
     )
 
   def state[T[_]](implicit tag: Tag.Async[T]): T[S] =
-    ask(
-      (_, state: S) =>
-        state
-    )
+    ask
+      .map(
+        (_, state: S) =>
+          state
+      )
 
   def terminateAndClear(): Unit = {
     scheduler.terminate()

@@ -128,35 +128,35 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
         //do updates and delete every 1000th product added and continue Creating more products
         if (state.productsCreatedCountBeforeAssertion >= maxProductsToCreateBeforeAssertion) {
           println(s"UserId: $userId - Created ${state.productsCreatedCountBeforeAssertion} products, state.products = ${state.products.size}, state.removedProducts = ${state.removedProducts.size} - ProductId: $productId1")
-          self ! AssertState(removeAsserted = RemoveAsserted.RemoveNone)
-          self.schedule(Put, (randomNextInt(2) + 1).seconds)
-          self.schedule(BatchPut, (randomNextInt(2) + 1).seconds)
+          self send AssertState(removeAsserted = RemoveAsserted.RemoveNone)
+          self.send(Put, (randomNextInt(2) + 1).seconds)
+          self.send(BatchPut, (randomNextInt(2) + 1).seconds)
           //          self.schedule(UpdateRange, (randomNextInt(2) + 1).second)
-          self.schedule(Delete, (randomNextInt(2) + 1).seconds)
-          self.schedule(Expire, (randomNextInt(2) + 1).seconds)
-          self.schedule(BatchDelete, (randomNextInt(2) + 1).seconds)
-          self.schedule(BatchExpire, (randomNextInt(2) + 1).second)
-          self.schedule(DeleteRange, (randomNextInt(2) + 1).seconds)
-          self.schedule(ExpireRange, (randomNextInt(2) + 1).seconds)
+          self.send(Delete, (randomNextInt(2) + 1).seconds)
+          self.send(Expire, (randomNextInt(2) + 1).seconds)
+          self.send(BatchDelete, (randomNextInt(2) + 1).seconds)
+          self.send(BatchExpire, (randomNextInt(2) + 1).second)
+          self.send(DeleteRange, (randomNextInt(2) + 1).seconds)
+          self.send(ExpireRange, (randomNextInt(2) + 1).seconds)
           //if this User accumulates more then 50000 products in-memory, then assert and remove all
           if (state.products.size + state.removedProducts.size >= 5000)
-            self.schedule(AssertState(removeAsserted = RemoveAsserted.RemoveAll), 3.seconds)
+            self.send(AssertState(removeAsserted = RemoveAsserted.RemoveAll), 3.seconds)
           //if this User accumulates more then 1000 products in-memory, then assert and remove 10
           else if (state.products.size + state.removedProducts.size >= 1000)
-            self.schedule(AssertState(removeAsserted = RemoveAsserted.Remove(10)), 3.seconds)
+            self.send(AssertState(removeAsserted = RemoveAsserted.Remove(10)), 3.seconds)
           //other do not remove any in-memory data.
           else
-            self.schedule(AssertState(removeAsserted = RemoveAsserted.RemoveNone), 3.seconds)
+            self.send(AssertState(removeAsserted = RemoveAsserted.RemoveNone), 3.seconds)
 
           //also schedule a Create to repeatedly keep creating more Products by this User.
-          self.schedule(Create, 1.second)
+          self.send(Create, 1.second)
           //                  self ! Create
           //reset the counter as the assertion is triggered.
           state.productsCreatedCountBeforeAssertion = 0
           println(s"UserId: $userId - Reset created product counter to ${state.productsCreatedCountBeforeAssertion} products")
         } else {
           //keep on Creating more Products.
-          self ! Create
+          self send Create
         }
 
       case Put =>
@@ -548,7 +548,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               (command, self) =>
                 processCommand(self.state, command, self)
             }
-          actor ! ProductCommand.Create
+          actor send ProductCommand.Create
       }
 
       Thread.sleep(runFor.toMillis)

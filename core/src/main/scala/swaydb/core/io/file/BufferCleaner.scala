@@ -126,7 +126,7 @@ private[core] object BufferCleaner extends LazyLogging {
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
     cleaner map {
       cleaner =>
-        cleaner.actor ! (buffer, path, false)
+        cleaner.actor send (buffer, path, false)
     } getOrElse logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
 }
 
@@ -145,9 +145,9 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
         if (isOverdue)
           BufferCleaner.clean(self.state, buffer, path)
         else
-          self.schedule((message._1, path, true), 5.seconds)
+          self.send((message._1, path, true), 5.seconds)
     }
 
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
-    actor ! (buffer, path, false)
+    actor send (buffer, path, false)
 }

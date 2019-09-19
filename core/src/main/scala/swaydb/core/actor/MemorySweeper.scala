@@ -144,7 +144,7 @@ private[core] object MemorySweeper {
     def add(key: BlockCache.Key,
             value: Slice[Byte],
             map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
-      actor ! Command.Block(
+      actor send Command.Block(
         key = key,
         valueSize = value.size,
         map = map
@@ -160,7 +160,7 @@ private[core] object MemorySweeper {
 
     def add(keyValue: Persistent,
             skipList: SkipList[Slice[Byte], _]): Unit =
-      actor ! Command.WeighKeyValue(
+      actor send Command.WeighKeyValue(
         keyValueRef = new WeakReference(keyValue),
         skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList)
       )

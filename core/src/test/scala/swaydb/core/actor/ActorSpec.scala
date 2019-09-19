@@ -52,7 +52,7 @@ class ActorSpec extends WordSpec with Matchers {
             self.state.processed += int
         }
 
-      (1 to messageCount) foreach (actor ! _)
+      (1 to messageCount) foreach (actor send _)
 
       //same thread, messages should arrive in order
       eventual {
@@ -78,7 +78,7 @@ class ActorSpec extends WordSpec with Matchers {
 
       (1 to messageCount).par foreach {
         message =>
-          actor ! message.toString
+          actor send message.toString
       }
       //concurrent sends, messages should arrive in any order but all messages should value processed
       eventual {
@@ -100,7 +100,7 @@ class ActorSpec extends WordSpec with Matchers {
             self.state.processed += int
         }
 
-      (1 to 3) foreach (actor ! _)
+      (1 to 3) foreach (actor send _)
       //
       eventual {
         state.processed.size shouldBe 2
@@ -124,7 +124,7 @@ class ActorSpec extends WordSpec with Matchers {
             actor.state.recovered += message
         }
 
-      (1 to 3) foreach (actor ! _)
+      (1 to 3) foreach (actor send _)
       //
       eventual {
         //2nd message failed
@@ -151,7 +151,7 @@ class ActorSpec extends WordSpec with Matchers {
               error.right.value shouldBe Actor.Error.TerminatedActor
         }
 
-      (1 to 4) foreach (actor ! _)
+      (1 to 4) foreach (actor send _)
       //
       eventual {
         //2nd message failed
@@ -175,7 +175,7 @@ class ActorSpec extends WordSpec with Matchers {
 
       (1 to 10) foreach {
         i =>
-          actor ! i
+          actor send i
           if (i == 2) {
             while (state.processed.size() != 2) {
               sleep(100.millisecond)
@@ -205,10 +205,10 @@ class ActorSpec extends WordSpec with Matchers {
             println("Message: " + int)
             self.state.processed += int
             //delay sending message to self so that it does value processed in the same batch
-            self.schedule(int + 1, 500.millisecond)
+            self.send(int + 1, 500.millisecond)
         }
 
-      actor ! 1
+      actor send 1
       sleep(7.second)
       //ensure that within those 5.second interval at least 3 and no more then 5 messages value processed.
       state.processed.size should be >= 3
@@ -235,12 +235,12 @@ class ActorSpec extends WordSpec with Matchers {
             val nextMessageAndDelay = if (state.processed.size <= 2) int + 1 else int - 1
             println("nextMessageAndDelay: " + nextMessageAndDelay)
 
-            self.schedule(nextMessageAndDelay, 100.millisecond)
+            self.send(nextMessageAndDelay, 100.millisecond)
             val nextDelay = int.second
             println("nextDelay: " + nextDelay)
         }
 
-      actor ! 1
+      actor send 1
       sleep(10.seconds)
       state.processed.size should be >= 1
       state.processed.size should be <= 10
@@ -326,17 +326,17 @@ class ActorSpec extends WordSpec with Matchers {
               self.state.processed add int
           }
 
-        (1 to 10) foreach (actor ! _)
+        (1 to 10) foreach (actor send _)
 
         sleep(2.seconds)
         state.processed shouldBe empty
 
-        actor ! 11
+        actor send 11
         eventual(state.processed should contain only 1)
-        actor ! 12
+        actor send 12
         eventual(state.processed should contain only(1, 2))
 
-        (1 to 10000).par foreach (actor ! _)
+        (1 to 10000).par foreach (actor send _)
         eventual(actor.messageCount shouldBe 10)
 
         sleep(5.second)
@@ -363,7 +363,7 @@ class ActorSpec extends WordSpec with Matchers {
 
       (1 to 10000).par foreach {
         i =>
-          actor ! i
+          actor send i
         //          Thread.sleep(randomIntMax(10))
       }
 
@@ -395,7 +395,7 @@ class ActorSpec extends WordSpec with Matchers {
 
       (1 to 10000).par foreach {
         i =>
-          actor ! i
+          actor send i
           Thread.sleep(randomIntMax(10))
       }
 
@@ -416,7 +416,7 @@ class ActorSpec extends WordSpec with Matchers {
       val actor =
         Actor[ToInt] {
           (message, _) =>
-            message.replyTo ! message.string.toInt
+            message.replyTo send message.string.toInt
         }
 
       import scala.concurrent.duration._

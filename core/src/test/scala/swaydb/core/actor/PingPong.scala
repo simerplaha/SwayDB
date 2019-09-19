@@ -39,7 +39,7 @@ object PingPong extends App {
         self.state.count += 1
         println(s"Ping: ${self.state.count}")
         sleep(100.millisecond)
-        message.replyTo ! Pong(self)
+        message.replyTo send Pong(self)
     }
 
   val pong =
@@ -48,10 +48,10 @@ object PingPong extends App {
         self.state.count += 1
         println(s"Pong: ${self.state.count}")
         sleep(100.millisecond)
-        message.replyTo ! Ping(self)
+        message.replyTo send Ping(self)
     }
 
-  pong ! Pong(ping)
+  pong send Pong(ping)
 
   sleep(5.seconds)
 }

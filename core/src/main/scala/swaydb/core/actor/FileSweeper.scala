@@ -101,14 +101,14 @@ private[swaydb] object FileSweeper extends LazyLogging {
       def ec = actorConfig.ec
 
       override def close(file: FileSweeperItem): Unit =
-        queue ! Action.Close(new WeakReference[FileSweeperItem](file))
+        queue send Action.Close(new WeakReference[FileSweeperItem](file))
 
       //Delete cannot be a WeakReference because Levels can
       //remove references to the file after eventualDelete is invoked.
       //If the file gets garbage collected due to it being WeakReference before
       //delete on the file is triggered, the physical file will remain on disk.
       override def delete(file: FileSweeperItem): Unit =
-        queue ! Action.Delete(file)
+        queue send Action.Delete(file)
 
       override def terminate(): Unit =
         queue.terminateAndClear()

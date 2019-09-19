@@ -65,7 +65,7 @@ class ActorPerformanceSpec extends WordSpec with Matchers {
     Benchmark("") {
       (1 to 1000000).par foreach {
         i =>
-          actor ! i
+          actor send i
         //          queue.add(i)
       }
     }
