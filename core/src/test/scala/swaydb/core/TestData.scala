@@ -36,7 +36,7 @@ import swaydb.core.data.Transient.Range
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, IOEffect}
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
@@ -133,7 +133,7 @@ object TestData {
     def tryReopen(path: Path): IO[swaydb.Error.Segment, Segment] =
       Segment(
         path = path,
-        segmentId = IOEffect.fileId(path).get._1,
+        segmentId = Effect.fileId(path).get._1,
         mmapReads = randomBoolean(),
         mmapWrites = randomBoolean(),
         blockCacheFileId = BlockCacheFileIDGenerator.nextID,

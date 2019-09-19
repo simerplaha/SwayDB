@@ -25,8 +25,8 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
-import swaydb.core.io.file.IOEffect
-import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.Effect
+import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -77,8 +77,8 @@ class MapsStressSpec extends TestBase {
         }
       }
 
-      val dir1 = IOEffect.createDirectoryIfAbsent(testDir.resolve(1.toString))
-      val dir2 = IOEffect.createDirectoryIfAbsent(testDir.resolve(2.toString))
+      val dir1 = Effect.createDirectoryIfAbsent(testDir.resolve(1.toString))
+      val dir2 = Effect.createDirectoryIfAbsent(testDir.resolve(2.toString))
 
       val map1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = true, 1.byte, acceleration, RecoveryMode.ReportFailure).runRandomIO.right.value
       testWrite(map1)

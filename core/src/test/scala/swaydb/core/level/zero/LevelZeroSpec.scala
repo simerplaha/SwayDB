@@ -26,7 +26,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient}
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.Effect
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.compaction.Throttle
@@ -81,7 +81,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
         zero.existsOnDisk shouldBe true
         nextLevel.existsOnDisk shouldBe true
         //maps folder is initialised
-        IOEffect.exists(zero.path.resolve("0/0.log")) shouldBe true
+        Effect.exists(zero.path.resolve("0/0.log")) shouldBe true
         zero.reopen.existsOnDisk shouldBe true
       } else {
         zero.existsOnDisk shouldBe false

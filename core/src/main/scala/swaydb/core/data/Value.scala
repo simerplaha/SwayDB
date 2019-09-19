@@ -55,6 +55,7 @@ private[swaydb] object Value {
   private[swaydb] sealed trait RangeValue extends FromValue {
     def unslice: RangeValue
   }
+
   private[swaydb] sealed trait FromValue extends Value {
     def unslice: FromValue
     def toMemory(key: Slice[Byte]): Memory.Fixed

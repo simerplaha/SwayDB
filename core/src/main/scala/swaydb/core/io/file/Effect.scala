@@ -34,29 +34,29 @@ import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
 
-private[core] object IOEffect extends LazyLogging {
+private[core] object Effect extends LazyLogging {
 
   implicit class PathExtensionImplicits(path: Path) {
     def fileId =
-      IOEffect.fileId(path)
+      Effect.fileId(path)
 
     def incrementFileId =
-      IOEffect.incrementFileId(path)
+      Effect.incrementFileId(path)
 
     def incrementFolderId =
-      IOEffect.incrementFolderId(path)
+      Effect.incrementFolderId(path)
 
     def folderId =
-      IOEffect.folderId(path)
+      Effect.folderId(path)
 
     def files(extension: Extension): List[Path] =
-      IOEffect.files(path, extension)
+      Effect.files(path, extension)
 
     def folders =
-      IOEffect.folders(path)
+      Effect.folders(path)
 
     def exists =
-      IOEffect.exists(path)
+      Effect.exists(path)
   }
 
   def write(to: Path,
@@ -259,7 +259,7 @@ private[core] object IOEffect extends LazyLogging {
 
   def files(folder: Path,
             extension: Extension): List[Path] =
-    IOEffect.stream(folder) {
+    Effect.stream(folder) {
       _.iterator()
         .asScala
         .filter(isExtension(_, extension))
@@ -268,7 +268,7 @@ private[core] object IOEffect extends LazyLogging {
     }
 
   def folders(folder: Path): List[Path] =
-    IOEffect.stream(folder) {
+    Effect.stream(folder) {
       _.iterator()
         .asScala
         .filter(folder => IO(folderId(folder)).isRight)

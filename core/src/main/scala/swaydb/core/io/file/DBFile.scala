@@ -90,11 +90,11 @@ object DBFile extends LazyLogging {
 
   def write(path: Path,
             bytes: Slice[Byte]): IO[swaydb.Error.IO, Path] =
-    IOEffect.write(path, bytes)
+    Effect.write(path, bytes)
 
   def write(path: Path,
             bytes: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Path] =
-    IOEffect.write(path, bytes)
+    Effect.write(path, bytes)
 
   def channelWrite(path: Path,
                    ioStrategy: IOStrategy,
@@ -126,7 +126,7 @@ object DBFile extends LazyLogging {
                   blockCacheFileId: Long,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                                blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-    if (checkExists && IOEffect.notExists(path))
+    if (checkExists && Effect.notExists(path))
       IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
       IO {
@@ -207,7 +207,7 @@ object DBFile extends LazyLogging {
                blockCacheFileId: Long,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
                                             blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-    if (checkExists && IOEffect.notExists(path))
+    if (checkExists && Effect.notExists(path))
       IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
       IO(
@@ -265,7 +265,7 @@ class DBFile(val path: Path,
              fileCache: Cache[swaydb.Error.IO, Unit, DBFileType])(implicit blockCache: Option[BlockCache.State]) extends LazyLogging {
 
   def existsOnDisk =
-    IOEffect.exists(path)
+    Effect.exists(path)
 
   def file: IO[Error.IO, DBFileType] =
     fileCache.value()
@@ -277,7 +277,7 @@ class DBFile(val path: Path,
         //try delegating the delete to the file itself.
         //If the file is already closed, then delete it from disk.
         //memory files are never closed so the first statement will always be executed for memory files.
-        (fileCache.get().map(_.flatMap(_.delete())) getOrElse IOEffect.deleteIfExists(path)) map {
+        (fileCache.get().map(_.flatMap(_.delete())) getOrElse Effect.deleteIfExists(path)) map {
           _ =>
             fileCache.clear()
         }
@@ -296,7 +296,7 @@ class DBFile(val path: Path,
   def copyTo(toPath: Path): IO[swaydb.Error.IO, Path] =
     forceSave() flatMap {
       _ =>
-        IOEffect.copy(path, toPath) map {
+        Effect.copy(path, toPath) map {
           path =>
             logger.trace("{}: Copied: to {}", path, toPath)
             path
@@ -313,19 +313,20 @@ class DBFile(val path: Path,
     if (size == 0)
       IO.emptyBytes
     else
-      blockCache map {
-        blockCacheState =>
+      blockCache match {
+        case Some(blockCache) =>
           fileCache.value() flatMap {
             file =>
               BlockCache.getOrSeek(
                 position = position,
                 size = size,
                 file = file,
-                state = blockCacheState
+                state = blockCache
               )
           }
-      } getOrElse {
-        fileCache.value() flatMap (_.read(position, size))
+
+        case None =>
+          fileCache.value() flatMap (_.read(position, size))
       }
 
   def get(position: Int): IO[Error.IO, Byte] =

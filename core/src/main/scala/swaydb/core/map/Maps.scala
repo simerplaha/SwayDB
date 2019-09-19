@@ -29,8 +29,8 @@ import swaydb.IO._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.brake.BrakePedal
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.IOEffect
-import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.Effect
+import swaydb.core.io.file.Effect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -152,7 +152,7 @@ private[core] object Maps extends LazyLogging {
               logger.info(s"{}: Skipping files after corrupted file. Recovery mode: {}", mapPath, recovery.name)
               otherMapsPaths foreachIO { //delete Maps after the corruption.
                 mapPath =>
-                  IOEffect.walkDelete(mapPath) match {
+                  Effect.walkDelete(mapPath) match {
                     case IO.Right(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
                       IO.unit

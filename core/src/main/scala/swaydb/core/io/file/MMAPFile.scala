@@ -214,7 +214,7 @@ private[file] class MMAPFile(val path: Path,
   override def delete(): IO[swaydb.Error.IO, Unit] =
     close flatMap {
       _ =>
-        IOEffect.delete(path)
+        Effect.delete(path)
     }
 
   def isBufferEmpty: Boolean =

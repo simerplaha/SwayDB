@@ -29,14 +29,28 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 object ActorWire {
-  def apply[I, S](impl: I, state: S)(implicit scheduler: Scheduler): ActorWire[I, S] =
-    new ActorWire(impl, None, state)
+  def apply[I, S](impl: I,
+                  state: S)(implicit scheduler: Scheduler): ActorWire[I, S] =
+    new ActorWire(
+      impl = impl,
+      interval = None,
+      state = state
+    )
 
-  def apply[I, S](impl: I, interval: FiniteDuration, stashCapacity: Int, state: S)(implicit scheduler: Scheduler): ActorWire[I, S] =
-    new ActorWire(impl, Some((interval, stashCapacity)), state)
+  def timer[I, S](impl: I,
+                  interval: FiniteDuration,
+                  stashCapacity: Int,
+                  state: S)(implicit scheduler: Scheduler): ActorWire[I, S] =
+    new ActorWire(
+      impl = impl,
+      interval = Some((interval, stashCapacity)),
+      state = state
+    )
 }
 
-class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S)(implicit val scheduler: Scheduler) { self =>
+final class ActorWire[I, S](impl: I,
+                            interval: Option[(FiniteDuration, Int)],
+                            state: S)(implicit val scheduler: Scheduler) { wire =>
 
   implicit def ec = scheduler.ec
 
@@ -63,7 +77,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
         }
     }
 
-  class Ask {
+  final class Ask {
     def map[R, T[_]](function: (I, S) => R)(implicit tag: Tag.Async[T]): T[R] = {
       val promise = Promise[R]()
 
@@ -80,7 +94,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
 
       actor send {
         (impl: I, state: S) =>
-          promise.tryComplete(Try(function(impl, state, self)))
+          promise.tryComplete(Try(function(impl, state, wire)))
       }
 
       tag fromPromise promise
@@ -102,7 +116,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
 
       actor send {
         (impl: I, state: S) =>
-          tag.complete(promise, function(impl, state, self))
+          tag.complete(promise, function(impl, state, wire))
       }
 
       tag fromPromise promise
@@ -113,7 +127,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
 
       val timerTask =
         actor.send(
-          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, self))),
+          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, wire))),
           delay = delay
         )
 
@@ -125,7 +139,7 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
 
       val timerTask =
         actor.send(
-          message = (impl: I, state: S) => tag.complete(promise, function(impl, state, self)),
+          message = (impl: I, state: S) => tag.complete(promise, function(impl, state, wire)),
           delay = delay
         )
 
@@ -136,16 +150,18 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
   final val ask = new Ask
 
   def send[R](function: (I, S) => R): Unit =
-    actor send {
-      (impl: I, state: S) =>
-        function(impl, state)
-    }
+    actor
+      .send {
+        (impl: I, state: S) =>
+          function(impl, state)
+      }
 
   def send[R](function: (I, S, ActorWire[I, S]) => R): Unit =
-    actor send {
-      (impl: I, state: S) =>
-        function(impl, state, this)
-    }
+    actor
+      .send {
+        (impl: I, state: S) =>
+          function(impl, state, this)
+      }
 
   def send[R](delay: FiniteDuration)(function: (I, S) => R): TimerTask =
     actor.send(
@@ -155,10 +171,10 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
 
   def state[T[_]](implicit tag: Tag.Async[T]): T[S] =
     ask
-      .map(
+      .map {
         (_, state: S) =>
           state
-      )
+      }
 
   def terminateAndClear(): Unit = {
     scheduler.terminate()

@@ -28,8 +28,8 @@ import swaydb.IO._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.IOEffect._
-import swaydb.core.io.file.{DBFile, IOEffect}
+import swaydb.core.io.file.Effect._
+import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.{Extension, SkipList}
 import swaydb.data.config.IOStrategy
@@ -52,7 +52,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                             reader: MapEntryReader[MapEntry[K, V]],
                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                             skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, RecoveryResult[PersistentMap[K, V]]] = {
-    IOEffect.createDirectoryIfAbsent(folder)
+    Effect.createDirectoryIfAbsent(folder)
     val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V]()(keyOrder)
 
     recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries) map {
@@ -82,7 +82,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                          reader: MapEntryReader[MapEntry[K, V]],
                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                          skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, PersistentMap[K, V]] = {
-    IOEffect.createDirectoryIfAbsent(folder)
+    Effect.createDirectoryIfAbsent(folder)
     val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V]()(keyOrder)
 
     firstFile(folder, mmap, fileSize) map {
@@ -331,7 +331,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   override def delete: IO[swaydb.Error.Map, Unit] =
     currentFile.delete() flatMap {
       _ =>
-        IOEffect.delete(path) map {
+        Effect.delete(path) map {
           _ =>
             skipList.clear()
         }

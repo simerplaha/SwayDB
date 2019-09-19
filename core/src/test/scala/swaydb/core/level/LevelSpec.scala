@@ -31,8 +31,8 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
-import swaydb.core.io.file.IOEffect
-import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.Effect
+import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
@@ -102,7 +102,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         //other directories do not have locks.
         storage.otherDirs foreach {
           dir =>
-            IOEffect.exists(dir.path.resolve("LOCK")) shouldBe false
+            Effect.exists(dir.path.resolve("LOCK")) shouldBe false
         }
 
         //trying to lock again should fail
@@ -158,12 +158,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         level.put(segment).right.right.value.right.value
 
         //delete the appendix file
-        level.paths.headPath.resolve("appendix").files(Extension.Log) map IOEffect.delete
+        level.paths.headPath.resolve("appendix").files(Extension.Log) map Effect.delete
         //expect failure when file does not exists
         level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 
         //delete folder
-        IOEffect.delete(level.paths.headPath.resolve("appendix")).runRandomIO.right.value
+        Effect.delete(level.paths.headPath.resolve("appendix")).runRandomIO.right.value
         //expect failure when folder does not exist
         level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 

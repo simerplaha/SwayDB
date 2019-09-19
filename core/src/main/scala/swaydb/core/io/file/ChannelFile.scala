@@ -42,7 +42,7 @@ private[file] object ChannelFile {
 
   def read(path: Path,
            blockCacheFileId: Long): IO[swaydb.Error.IO, ChannelFile] =
-    if (IOEffect.exists(path))
+    if (Effect.exists(path))
       IO {
         val channel = FileChannel.open(path, StandardOpenOption.READ)
         new ChannelFile(
@@ -66,10 +66,10 @@ private[file] class ChannelFile(val path: Path,
     }
 
   def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit] =
-    IOEffect.writeUnclosed(channel, slice)
+    Effect.writeUnclosed(channel, slice)
 
   def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit] =
-    IOEffect.writeUnclosed(channel, slice)
+    Effect.writeUnclosed(channel, slice)
 
   def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
     IO {
@@ -106,7 +106,7 @@ private[file] class ChannelFile(val path: Path,
   override def delete(): IO[swaydb.Error.IO, Unit] =
     close flatMap {
       _ =>
-        IOEffect.delete(path)
+        Effect.delete(path)
     }
 
   override def forceSave(): IO[swaydb.Error.IO, Unit] =

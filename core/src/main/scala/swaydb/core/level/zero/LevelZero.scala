@@ -29,7 +29,7 @@ import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.Effect
 import swaydb.core.level.seek._
 import swaydb.core.level.{LevelRef, LevelSeek, NextLevel}
 import swaydb.core.map
@@ -72,7 +72,7 @@ private[core] object LevelZero extends LazyLogging {
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
           val timerDir = databaseDirectory.resolve("0").resolve("timer")
-          IOEffect createDirectoriesIfAbsent timerDir
+          Effect createDirectoriesIfAbsent timerDir
           Timer.persistent(
             path = timerDir,
             mmap = mmap,
@@ -83,7 +83,7 @@ private[core] object LevelZero extends LazyLogging {
               val path = databaseDirectory.resolve("0")
               logger.info("{}: Acquiring lock.", path)
               val lockFile = path.resolve("LOCK")
-              IOEffect createFileIfAbsent lockFile
+              Effect createFileIfAbsent lockFile
               IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
                 lock =>
                   logger.info("{}: Recovering Maps.", path)
@@ -105,7 +105,7 @@ private[core] object LevelZero extends LazyLogging {
             LevelRef.firstPersistentPath(nextLevel) match {
               case Some(persistentPath) =>
                 val timerDir = persistentPath.getParent.resolve("0").resolve("timer")
-                IOEffect createDirectoriesIfAbsent timerDir
+                Effect createDirectoriesIfAbsent timerDir
                 Timer.persistent(
                   path = timerDir,
                   mmap = LevelRef.hasMMAP(nextLevel),
@@ -149,7 +149,7 @@ private[core] object LevelZero extends LazyLogging {
           zero
             .nextLevel
             .map(_.delete)
-            .getOrElse(IOEffect.walkDelete(zero.path.getParent))
+            .getOrElse(Effect.walkDelete(zero.path.getParent))
       }
 }
 
@@ -175,7 +175,7 @@ private[core] case class LevelZero(path: Path,
     maps onNextMapCallback event
 
   def releaseLocks: IO[swaydb.Error.Close, Unit] =
-    IOEffect.release(lock) flatMap {
+    Effect.release(lock) flatMap {
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
@@ -631,7 +631,7 @@ private[core] case class LevelZero(path: Path,
     nextLevel.map(_.sizeOfSegments) getOrElse 0L
 
   def existsOnDisk: Boolean =
-    IOEffect.exists(path)
+    Effect.exists(path)
 
   def close: IO[swaydb.Error.Close, Unit] = {
     //    Delay.cancelTimer()

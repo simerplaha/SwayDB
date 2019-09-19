@@ -27,8 +27,8 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.io.file.IOEffect
-import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.Effect
+import swaydb.core.io.file.Effect._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestLimitQueues}
@@ -76,7 +76,7 @@ class AppendixRepairerSpec extends TestBase {
       val level = TestLevel(segmentSize = 1.kb)
 
       //delete appendix
-      IOEffect.walkDelete(level.appendixPath).runRandomIO.right.value
+      Effect.walkDelete(level.appendixPath).runRandomIO.right.value
       level.appendixPath.exists shouldBe false
 
       //repair appendix
@@ -102,7 +102,7 @@ class AppendixRepairerSpec extends TestBase {
         case (segmentId, segment) =>
           //create a duplicate Segment
           val duplicateSegment = segment.path.getParent.resolve(segmentId.toSegmentFileId)
-          IOEffect.copy(segment.path, duplicateSegment).runRandomIO.right.value
+          Effect.copy(segment.path, duplicateSegment).runRandomIO.right.value
           //perform repair
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[OverlappingSegmentsException]
           //perform repair with DeleteNext. This will delete the newest duplicate Segment.
@@ -111,7 +111,7 @@ class AppendixRepairerSpec extends TestBase {
           duplicateSegment.exists shouldBe false
 
           //copy again
-          IOEffect.copy(segment.path, duplicateSegment).runRandomIO.right.value
+          Effect.copy(segment.path, duplicateSegment).runRandomIO.right.value
           //now use delete previous instead
           AppendixRepairer(level.rootPath, AppendixRepairStrategy.KeepNew).runRandomIO.right.value
           //newer duplicate Segment exists
@@ -144,7 +144,7 @@ class AppendixRepairerSpec extends TestBase {
             val keyValuesToOverlap = Random.shuffle(segment.getAll().runRandomIO.right.value.toList).take(numberOfKeyValuesToOverlap)
             //create overlapping Segment
             val overlappingSegment = TestSegment(keyValuesToOverlap.toTransient).runRandomIO.right.value
-            IOEffect.copy(overlappingSegment.path, overlappingLevelSegmentPath).runRandomIO.right.value
+            Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath).runRandomIO.right.value
             overlappingSegment.close.runRandomIO.right.value //gotta close the new segment create after it's copied over.
           }
 

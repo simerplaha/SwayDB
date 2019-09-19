@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.entry.generators
 
 import java.nio.file.Paths
 
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.Effect
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.data.slice.Slice
 
@@ -52,7 +52,7 @@ object IdsGenerator extends App {
         }
 
     val content = Slice.writeString(lines.mkString("\n"))
-    IOEffect.replace(content, path).get
+    Effect.replace(content, path).get
     println(s"maxID: ${maxID - 1}")
   } finally {
     source.close()

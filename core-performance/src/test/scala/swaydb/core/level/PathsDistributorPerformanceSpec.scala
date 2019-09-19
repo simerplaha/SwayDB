@@ -21,7 +21,7 @@ package swaydb.core.level
 
 import swaydb.IOValues._
 import swaydb.core.TestBase
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.Effect
 import swaydb.core.segment.Segment
 import swaydb.core.util.Benchmark
 import swaydb.data.config.Dir
@@ -37,11 +37,11 @@ class PathsDistributorPerformanceSpec extends TestBase  {
     val path = createNextLevelPath
 
     //create 5 paths to create randomly distributed Segments in
-    val path1 = IOEffect.createDirectoriesIfAbsent(path.resolve("1"))
-    val path2 = IOEffect.createDirectoriesIfAbsent(path.resolve("2"))
-    val path3 = IOEffect.createDirectoriesIfAbsent(path.resolve("3"))
-    val path4 = IOEffect.createDirectoriesIfAbsent(path.resolve("4"))
-    val path5 = IOEffect.createDirectoriesIfAbsent(path.resolve("5"))
+    val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
+    val path2 = Effect.createDirectoriesIfAbsent(path.resolve("2"))
+    val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
+    val path4 = Effect.createDirectoriesIfAbsent(path.resolve("4"))
+    val path5 = Effect.createDirectoriesIfAbsent(path.resolve("5"))
 
     val paths = Array(path1, path2, path3, path4, path5)
 

@@ -308,7 +308,7 @@ object Actor {
   def wireTimer[T](interval: FiniteDuration,
                    stashCapacity: Int,
                    impl: T)(implicit scheduler: Scheduler): ActorWire[T, Unit] =
-    ActorWire[T, Unit](
+    ActorWire.timer[T, Unit](
       impl = impl,
       interval = interval,
       stashCapacity = stashCapacity,

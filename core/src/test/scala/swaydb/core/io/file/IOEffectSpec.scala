@@ -32,43 +32,43 @@ class IOEffectSpec extends TestBase {
   "fileId" should {
 
     "value the file id" in {
-      IOEffect.fileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe(1, Extension.Log)
-      IOEffect.fileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe(10, Extension.Log)
-      IOEffect.fileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe(1000, Extension.Seg)
+      Effect.fileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe(1, Extension.Log)
+      Effect.fileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe(10, Extension.Log)
+      Effect.fileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe(1000, Extension.Seg)
     }
 
     "fail if the file's name is not an integer" in {
       val path = Paths.get("/one/notInt.log")
-      IOEffect.fileId(path).left.runRandomIO.right.value.exception shouldBe swaydb.Exception.NotAnIntFile(path)
+      Effect.fileId(path).left.runRandomIO.right.value.exception shouldBe swaydb.Exception.NotAnIntFile(path)
     }
 
     "fail if the file has invalid extension" in {
       val path = Paths.get("/one/1.txt")
-      IOEffect.fileId(path).left.runRandomIO.right.value.exception shouldBe swaydb.Exception.UnknownExtension(path)
+      Effect.fileId(path).left.runRandomIO.right.value.exception shouldBe swaydb.Exception.UnknownExtension(path)
     }
   }
 
   "folderId" should {
     "value the folderId" in {
-      IOEffect.folderId(Paths.get("/one/1")) shouldBe 1
-      IOEffect.folderId(Paths.get("/one/two/10")) shouldBe 10
-      IOEffect.folderId(Paths.get("/one/two/three/1000")) shouldBe 1000
+      Effect.folderId(Paths.get("/one/1")) shouldBe 1
+      Effect.folderId(Paths.get("/one/two/10")) shouldBe 10
+      Effect.folderId(Paths.get("/one/two/three/1000")) shouldBe 1000
     }
   }
 
   "incrementFileId" should {
     "return a new file path with incremented file id" in {
-      IOEffect.incrementFileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe Paths.get("/one/2.log")
-      IOEffect.incrementFileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe Paths.get("/one/two/11.log")
-      IOEffect.incrementFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe Paths.get("/one/two/three/1001.seg")
+      Effect.incrementFileId(Paths.get("/one/1.log")).runRandomIO.right.value shouldBe Paths.get("/one/2.log")
+      Effect.incrementFileId(Paths.get("/one/two/10.log")).runRandomIO.right.value shouldBe Paths.get("/one/two/11.log")
+      Effect.incrementFileId(Paths.get("/one/two/three/1000.seg")).runRandomIO.right.value shouldBe Paths.get("/one/two/three/1001.seg")
     }
   }
 
   "incrementFolderId" should {
     "return a new file path with incremented folder id" in {
-      IOEffect.incrementFolderId(Paths.get("/one/1")) shouldBe Paths.get("/one/2")
-      IOEffect.incrementFolderId(Paths.get("/one/two/10")) shouldBe Paths.get("/one/two/11")
-      IOEffect.incrementFolderId(Paths.get("/one/two/three/1000")) shouldBe Paths.get("/one/two/three/1001")
+      Effect.incrementFolderId(Paths.get("/one/1")) shouldBe Paths.get("/one/2")
+      Effect.incrementFolderId(Paths.get("/one/two/10")) shouldBe Paths.get("/one/two/11")
+      Effect.incrementFolderId(Paths.get("/one/two/three/1000")) shouldBe Paths.get("/one/two/three/1001")
     }
   }
 
@@ -88,7 +88,7 @@ class IOEffectSpec extends TestBase {
         )
       actual.foreach {
         path =>
-          IOEffect.createFile(path).runRandomIO.right.value
+          Effect.createFile(path).runRandomIO.right.value
       }
 
       val expect =
@@ -103,7 +103,7 @@ class IOEffectSpec extends TestBase {
           dir.resolve(s"299.${Extension.Log}")
         )
 
-      IOEffect.files(dir, Extension.Log) shouldBe expect
+      Effect.files(dir, Extension.Log) shouldBe expect
     }
   }
 
@@ -123,7 +123,7 @@ class IOEffectSpec extends TestBase {
         )
       actual.foreach {
         path =>
-          IOEffect.createDirectoryIfAbsent(path)
+          Effect.createDirectoryIfAbsent(path)
       }
 
       val expect =
@@ -138,7 +138,7 @@ class IOEffectSpec extends TestBase {
           dir.resolve("7676")
         )
 
-      IOEffect.folders(dir) shouldBe expect
+      Effect.folders(dir) shouldBe expect
     }
   }
 
@@ -164,7 +164,7 @@ class IOEffectSpec extends TestBase {
             )
           actual.foreach {
             path =>
-              IOEffect.createFileIfAbsent(path)
+              Effect.createFileIfAbsent(path)
           }
       }
 
@@ -196,7 +196,7 @@ class IOEffectSpec extends TestBase {
           dir3.resolve("7676.seg")
         )
 
-      IOEffect.segmentFilesOnDisk(dirs) shouldBe expect
+      Effect.segmentFilesOnDisk(dirs) shouldBe expect
     }
   }
 
@@ -209,14 +209,14 @@ class IOEffectSpec extends TestBase {
     //0.067924621 seconds
     //4.mb
     //0.057647201 seconds & 0.047565694 seconds
-    val groupedPath = Benchmark("groupBytes")(IOEffect.write(randomFilePath, groupBytes)).get
-    IOEffect.readAll(groupedPath).get shouldBe flattenBytes
+    val groupedPath = Benchmark("groupBytes")(Effect.write(randomFilePath, groupBytes)).get
+    Effect.readAll(groupedPath).get shouldBe flattenBytes
 
     //20.mb
     //0.077162871 seconds
     //4.mb
     //0.05330862 seconds & 0.045989919 seconds
-    val flattenedPath = Benchmark("flattenBytes")(IOEffect.write(randomFilePath, flattenBytes)).get
-    IOEffect.readAll(flattenedPath).get shouldBe flattenBytes
+    val flattenedPath = Benchmark("flattenBytes")(Effect.write(randomFilePath, flattenBytes)).get
+    Effect.readAll(flattenedPath).get shouldBe flattenBytes
   }
 }

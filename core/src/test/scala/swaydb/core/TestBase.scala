@@ -32,7 +32,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, Time, Transient}
-import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, IOEffect}
+import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
@@ -148,12 +148,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   def createRandomIntDirectory: Path =
     if (persistent)
-      IOEffect.createDirectoriesIfAbsent(randomIntDirectory)
+      Effect.createDirectoriesIfAbsent(randomIntDirectory)
     else
       randomIntDirectory
 
   def createNextLevelPath: Path =
-    IOEffect.createDirectoriesIfAbsent(nextLevelPath)
+    Effect.createDirectoriesIfAbsent(nextLevelPath)
 
   def nextLevelPath: Path =
     testDir.resolve(nextLevelId.toString)
@@ -162,13 +162,13 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     if (memory)
       randomIntDirectory.resolve(nextSegmentId)
     else
-      IOEffect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextSegmentId)
+      Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextSegmentId)
 
   def testMapFile: Path =
     if (memory)
       randomIntDirectory.resolve(nextId.toString + ".map")
     else
-      IOEffect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
+      Effect.createDirectoriesIfAbsent(randomIntDirectory).resolve(nextId.toString + ".map")
 
   def farOut = new Exception("Far out! Something went wrong")
 
@@ -177,24 +177,24 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     if (inMemoryStorage)
       testDirPath
     else
-      IOEffect.createDirectoriesIfAbsent(testDirPath)
+      Effect.createDirectoriesIfAbsent(testDirPath)
   }
 
   def memoryTestDir =
     testFileDirectory.resolve(this.getClass.getSimpleName + "_MEMORY_DIR")
 
   def walkDeleteFolder(folder: Path): Unit =
-    if (deleteFiles && IOEffect.exists(folder))
+    if (deleteFiles && Effect.exists(folder))
       Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
         @throws[IOException]
         override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-          IOEffect.deleteIfExists(file)
+          Effect.deleteIfExists(file)
           FileVisitResult.CONTINUE
         }
 
         override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
           if (exc != null) throw exc
-          IOEffect.deleteIfExists(dir)
+          Effect.deleteIfExists(dir)
           FileVisitResult.CONTINUE
         }
       })
@@ -254,14 +254,14 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       if (levelStorage.memory)
         Segment.memory(
           path = path,
-          segmentId = IOEffect.fileId(path).get._1,
+          segmentId = Effect.fileId(path).get._1,
           keyValues = keyValues,
           createdInLevel = 0
         )
       else
         Segment.persistent(
           path = path,
-          segmentId = IOEffect.fileId(path).get._1,
+          segmentId = Effect.fileId(path).get._1,
           createdInLevel = 0,
           segmentConfig = segmentConfig,
           mmapReads = levelStorage.mmapSegmentsOnRead,
@@ -356,7 +356,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    IOEffect.write(testDir.resolve(nextSegmentId), bytes).runRandomIO.right.value
+    Effect.write(testDir.resolve(nextSegmentId), bytes).runRandomIO.right.value
 
   def createRandomFileReader(path: Path): FileReader = {
     implicit val limiter = fileSweeper

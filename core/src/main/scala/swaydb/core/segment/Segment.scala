@@ -28,7 +28,7 @@ import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, DBFile, IOEffect}
+import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block._
@@ -248,7 +248,7 @@ private[core] object Segment extends LazyLogging {
             ) onLeftSideEffect {
               exception =>
                 logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
-                IOEffect.deleteIfExists(nextPath) onLeftSideEffect {
+                Effect.deleteIfExists(nextPath) onLeftSideEffect {
                   exception =>
                     logger.error("Failed to delete copied persistent Segment {}", segment.path, exception)
                 }

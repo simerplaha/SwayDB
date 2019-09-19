@@ -31,8 +31,8 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.io.file.{BlockCache, IOEffect}
-import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.Effect._
 import swaydb.core.level.PathsDistributor
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
@@ -745,7 +745,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         (segmentId, path)
       }
 
-      IOEffect.createFile(nextPath).right.value //path already taken.
+      Effect.createFile(nextPath).right.value //path already taken.
 
       Segment.copyToPersist(
         segment = segment,
@@ -767,7 +767,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValues.last.stats.memorySegmentSize / 10
       ).left.right.value.exception shouldBe a[FileAlreadyExistsException]
 
-      IOEffect.size(nextPath).right.value shouldBe 0
+      Effect.size(nextPath).right.value shouldBe 0
       if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
 
     }
@@ -784,12 +784,12 @@ sealed trait SegmentWriteSpec extends TestBase {
         (segmentId, path)
       }
 
-      IOEffect.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))).right.value //path already taken.
+      Effect.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))).right.value //path already taken.
 
       levelStorage.dirs foreach {
         dir =>
-          IOEffect.createDirectoriesIfAbsent(dir.path)
-          IO(IOEffect.createFile(dir.path.resolve(IDGenerator.segmentId(nextSegmentId + 4)))) //path already taken.
+          Effect.createDirectoriesIfAbsent(dir.path)
+          IO(Effect.createFile(dir.path.resolve(IDGenerator.segmentId(nextSegmentId + 4)))) //path already taken.
       }
 
       val filesBeforeCopy = levelPath.files(Extension.Seg)

@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, IOEffect}
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
@@ -117,7 +117,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
         }
 
         segmentId <-
-          IOEffect.fileId(segmentPath) flatMap {
+          Effect.fileId(segmentPath) flatMap {
             case (segmentId, Extension.Seg) =>
               IO.Right(segmentId)
             case (segmentId, Extension.Log) =>

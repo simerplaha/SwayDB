@@ -24,7 +24,7 @@ import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.Effect
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
@@ -68,7 +68,7 @@ class MapsPerformanceSpec extends TestBase {
           //            maps.get(keyValue.key).runIO shouldBe ((ValueType.Add, keyValue.getOrFetchValue.runIO.value))
         }
 
-      val dir1 = IOEffect.createDirectoryIfAbsent(testDir.resolve(1.toString))
+      val dir1 = Effect.createDirectoryIfAbsent(testDir.resolve(1.toString))
 
       val map1 = Maps.persistent[Slice[Byte], Memory](dir1, mmap = true, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.right.value
       Benchmark(s"MMAP = true - writing ${keyValues.size} keys") {
@@ -78,7 +78,7 @@ class MapsPerformanceSpec extends TestBase {
         testRead(map1)
       }
 
-      val dir2 = IOEffect.createDirectoryIfAbsent(testDir.resolve(2.toString))
+      val dir2 = Effect.createDirectoryIfAbsent(testDir.resolve(2.toString))
       val map2 = Maps.persistent[Slice[Byte], Memory](dir2, mmap = false, 4.mb, Accelerator.noBrakes(), RecoveryMode.ReportFailure).runRandomIO.right.value
       Benchmark(s"MMAP = false - writing ${keyValues.size} keys") {
         testWrite(map2)

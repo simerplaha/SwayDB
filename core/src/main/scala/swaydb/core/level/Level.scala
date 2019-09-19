@@ -30,8 +30,8 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.IOEffect._
-import swaydb.core.io.file.{BlockCache, IOEffect}
+import swaydb.core.io.file.Effect._
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.seek._
 import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
@@ -62,14 +62,14 @@ private[core] object Level extends LazyLogging {
 
   def acquireLock(storage: LevelStorage.Persistent): IO[swaydb.Error.Level, Option[FileLock]] =
     IO {
-      IOEffect createDirectoriesIfAbsent storage.dir
+      Effect createDirectoriesIfAbsent storage.dir
       val lockFile = storage.dir.resolve("LOCK")
       logger.info("{}: Acquiring lock.", lockFile)
-      IOEffect createFileIfAbsent lockFile
+      Effect createFileIfAbsent lockFile
       val lock = FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()
       storage.dirs foreach {
         dir =>
-          IOEffect createDirectoriesIfAbsent dir.path
+          Effect createDirectoriesIfAbsent dir.path
       }
       Some(lock)
     }
@@ -137,11 +137,11 @@ private[core] object Level extends LazyLogging {
               logger.info("{}: Initialising appendix.", levelStorage.dir)
               val appendixFolder = levelStorage.dir.resolve("appendix")
               //check if appendix folder/file was deleted.
-              if ((!IOEffect.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && IOEffect.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
+              if ((!Effect.exists(appendixFolder) || appendixFolder.files(Extension.Log).isEmpty) && Effect.segmentFilesOnDisk(levelStorage.dirs.pathsSet.toSeq).nonEmpty) {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
                 IO.failed(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
-                IOEffect createDirectoriesIfAbsent appendixFolder
+                Effect createDirectoriesIfAbsent appendixFolder
                 Map.persistent[Slice[Byte], Segment](
                   folder = appendixFolder,
                   mmap = mmap,
@@ -249,7 +249,7 @@ private[core] object Level extends LazyLogging {
           }
         if (toDelete) {
           logger.info("SEGMENT {} not in appendix. Deleting uncommitted segment.", segmentToDelete)
-          IOEffect.delete(segmentToDelete)
+          Effect.delete(segmentToDelete)
         } else {
           IO.unit
         }
@@ -314,7 +314,7 @@ private[core] object Level extends LazyLogging {
           .getOrElse {
             level.paths.dirs foreachIO {
               path =>
-                IOEffect.walkDelete(path.path)
+                Effect.walkDelete(path.path)
             } getOrElse IO.unit
           }
     }
@@ -420,7 +420,7 @@ private[core] case class Level(dirs: Seq[Dir],
     rootPath.resolve("appendix")
 
   def releaseLocks: IO[swaydb.Error.Close, Unit] =
-    IOEffect.release(lock) flatMap {
+    Effect.release(lock) flatMap {
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
@@ -1329,7 +1329,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix.isEmpty
 
   def segmentFilesOnDisk: Seq[Path] =
-    IOEffect.segmentFilesOnDisk(dirs.map(_.path))
+    Effect.segmentFilesOnDisk(dirs.map(_.path))
 
   def segmentFilesInAppendix: Int =
     appendix

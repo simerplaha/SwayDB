@@ -30,7 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, Transient, Value}
 import swaydb.core.io.file.{BlockCache, DBFile}
-import swaydb.core.io.file.IOEffect._
+import swaydb.core.io.file.Effect._
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._

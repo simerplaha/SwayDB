@@ -26,7 +26,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
-import swaydb.core.io.file.IOEffect
+import swaydb.core.io.file.Effect
 import swaydb.core.segment.Segment
 import swaydb.data.config.Dir
 import swaydb.data.order.KeyOrder
@@ -48,9 +48,9 @@ class PathsDistributorSpec extends TestBase with MockFactory {
 
     "return distributions and total Segments count when Segments are non-empty" in {
       val path = createNextLevelPath
-      val path1 = IOEffect.createDirectoriesIfAbsent(path.resolve("1"))
-      val path2 = IOEffect.createDirectoriesIfAbsent(path.resolve("2"))
-      val path3 = IOEffect.createDirectoriesIfAbsent(path.resolve("3"))
+      val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
+      val path2 = Effect.createDirectoriesIfAbsent(path.resolve("2"))
+      val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
 
       val dirs =
         Seq(
@@ -202,9 +202,9 @@ class PathsDistributorSpec extends TestBase with MockFactory {
 
     "return paths based on the distribution ratio and update distribution when Segments are distributed unevenly" in {
       val path = createNextLevelPath
-      val path1 = IOEffect.createDirectoriesIfAbsent(path.resolve("1"))
-      val path2 = IOEffect.createDirectoriesIfAbsent(path.resolve("2"))
-      val path3 = IOEffect.createDirectoriesIfAbsent(path.resolve("3"))
+      val path1 = Effect.createDirectoriesIfAbsent(path.resolve("1"))
+      val path2 = Effect.createDirectoriesIfAbsent(path.resolve("2"))
+      val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
 
       val segments = mockFunction[Iterable[Segment]]
       segments expects() returning Seq()

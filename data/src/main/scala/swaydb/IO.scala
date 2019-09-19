@@ -49,13 +49,17 @@ sealed trait IO[+L, +R] {
 
   @inline final def withFilter(p: R => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: R => Boolean) {
-    def map[B](f: R => B): IO[L, B] = IO.this filter p map f
+    def map[B](f: R => B): IO[L, B] =
+      IO.this filter p map f
 
-    def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B] = IO.this filter p flatMap f
+    def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B] =
+      IO.this filter p flatMap f
 
-    def foreach[B](f: R => B): Unit = IO.this filter p foreach f
+    def foreach[B](f: R => B): Unit =
+      IO.this filter p foreach f
 
-    def withFilter(q: R => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
+    def withFilter(q: R => Boolean): WithFilter =
+      new WithFilter(x => p(x) && q(x))
   }
 
   def left: IO[Throwable, L]
@@ -176,6 +180,7 @@ object IO {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = Slice.create[R](iterable.size)
+
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         block(it.next()) match {
           case IO.Right(value) =>
@@ -201,6 +206,7 @@ object IO {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = ListBuffer.empty[R]
+
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         ioBlock(it.next()) match {
           case IO.Right(value) =>
@@ -227,6 +233,7 @@ object IO {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, R]] = None
       var result: R = r
+
       while ((!failFast || failure.isEmpty) && it.hasNext) {
         f(result, it.next()) match {
           case IO.Right(value) =>
