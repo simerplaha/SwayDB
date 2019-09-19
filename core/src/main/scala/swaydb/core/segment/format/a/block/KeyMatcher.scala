@@ -223,7 +223,7 @@ private[core] object KeyMatcher {
       def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Higher.MatchOnly =
         new HigherMatcher(
           key = key,
-          matchOnly = true,
+          matchOnly = true
         )(keyOrder)
     }
 
