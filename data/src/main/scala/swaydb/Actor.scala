@@ -68,10 +68,15 @@ sealed trait ActorRef[-T, S] { self =>
 
   def terminateAndClear(): Unit
 
-  def recoverError[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
+  def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
+
+  def terminateAndRecover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
 
   def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
-    recoverError[M, Throwable](f)
+    recover[M, Throwable](f)
+
+  def terminateAndRecoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
+    terminateAndRecover[M, Throwable](f)
 
   /**
    * Returns an Actor that merges both Actor and sends messages
@@ -129,7 +134,10 @@ sealed trait ActorRef[-T, S] { self =>
       def messageCount: Int =
         self.messageCount + actor.messageCount
 
-      override def recoverError[M <: T2, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T2, S]) => Unit): ActorRef[T2, S] =
+      override def recover[M <: T2, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T2, S]) => Unit): ActorRef[T2, S] =
+        throw new NotImplementedError("Recovery on merged Actors is currently not supported.")
+
+      override def terminateAndRecover[M <: T2, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T2, S]) => Unit): ActorRef[T2, S] =
         throw new NotImplementedError("Recovery on merged Actors is currently not supported.")
     }
 }
@@ -596,7 +604,14 @@ class Actor[-T, S](val state: S,
     }
   }
 
-  override def recoverError[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
+  override def terminateAndRecover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
+    recover[M, E] {
+      case (message, error, actor) =>
+        actor.terminate()
+        f(message, error, actor)
+    }
+
+  override def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     new Actor[T, S](
       state = state,
       queue = queue,
@@ -640,4 +655,5 @@ class Actor[-T, S](val state: S,
     terminate()
     clear()
   }
+
 }

@@ -168,7 +168,7 @@ class ActorSpec extends WordSpec with Matchers {
         Actor[Int, State](state) {
           case (int, self) =>
             self.state.processed add int
-        } recoverError[Int, Throwable] {
+        } recover[Int, Throwable] {
           case (message, error, actor) =>
             actor.state.failed add message
         }
