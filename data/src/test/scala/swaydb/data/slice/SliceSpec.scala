@@ -450,6 +450,13 @@ class SliceSpec extends WordSpec with Matchers {
     merged.isFull shouldBe true
   }
 
+  "++ non empty" in {
+    val merged: Slice[Int] = Slice(1, 2, 3) ++ Slice(4, 5, 6)
+    merged.isEmpty shouldBe false
+    merged.isFull shouldBe true
+    merged.toList should contain inOrderOnly(1, 2, 3, 4, 5, 6)
+  }
+
   "within" when {
     implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt(int)
 

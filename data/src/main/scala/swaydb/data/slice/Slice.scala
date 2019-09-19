@@ -30,7 +30,7 @@ import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
-import scala.collection.{IterableLike, mutable}
+import scala.collection.{GenTraversableOnce, IndexedSeqLike, IterableLike, TraversableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
@@ -353,10 +353,10 @@ object Slice {
 
   class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.create[T](sizeHint)
+    protected var slice: Slice[T] = Slice.create[T](sizeHint * 2)
 
     def extendSlice(by: Int) = {
-      val extendedSlice = Slice.create[T]((slice.size * by) max 100)
+      val extendedSlice = Slice.create[T](slice.size * by)
       extendedSlice addAll slice
       slice = extendedSlice
     }
@@ -750,6 +750,18 @@ class Slice[+T: ClassTag] private(array: Array[T],
           filtered add item
     }
     filtered.close()
+  }
+
+  def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
+    val slice = Slice.create[B](size + other.size)
+    slice addAll this
+    slice addAll other
+  }
+
+  def ++[B >: T : ClassTag](other: Array[B]): Slice[B] = {
+    val slice = Slice.create[B](size + other.length)
+    slice addAll this
+    slice addAll other
   }
 
   def underlyingArraySize =
