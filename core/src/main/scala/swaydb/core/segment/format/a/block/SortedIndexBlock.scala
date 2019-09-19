@@ -371,33 +371,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //take only the bytes required for this in entry and submit it for parsing/reading.
       val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
 
-      val readKey =
-        if (indexReader.block.enablePartialRead)
-          if (fullRead)
-            SortedIndexEntryReader.fullReadFromPartial(
-              indexEntry = indexEntry,
-              mightBeCompressed = indexReader.block.hasPrefixCompression,
-              valuesReader = valuesReader,
-              indexOffset = positionBeforeRead,
-              nextIndexOffset = nextIndexOffset,
-              nextIndexSize = nextIndexSize,
-              hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
-              isNormalised = indexReader.block.hasNormalisedBytes,
-              isPartialReadEnabled = indexReader.block.enablePartialRead,
-              previous = previous
-            )
-          else
-            SortedIndexEntryReader.partialRead(
-              indexEntry = indexEntry,
-              block = indexReader.block,
-              indexOffset = positionBeforeRead,
-              nextIndexOffset = nextIndexOffset,
-              nextIndexSize = nextIndexSize,
-              valuesReader = valuesReader,
-              previous = previous
-            )
-        else
-          SortedIndexEntryReader.fullRead(
+      if (indexReader.block.enablePartialRead)
+        if (fullRead)
+          SortedIndexEntryReader.fullReadFromPartial(
             indexEntry = indexEntry,
             mightBeCompressed = indexReader.block.hasPrefixCompression,
             valuesReader = valuesReader,
@@ -409,25 +385,29 @@ private[core] object SortedIndexBlock extends LazyLogging {
             isPartialReadEnabled = indexReader.block.enablePartialRead,
             previous = previous
           )
-
-      //println(s"readKeyValue: ${readKey.get.key.readInt()}: ${readKey.get.getClass.getSimpleName}")
-
-      readKey
-
-//      IO.Right {
-//        Persistent.Put(
-//          _key = indexEntry.take(indexSize).takeRight(4),
-//          deadline = None,
-//          valueCache = null,
-//          _time = Time.empty,
-//          nextIndexOffset = nextIndexOffset,
-//          nextIndexSize = nextIndexSize,
-//          indexOffset = positionBeforeRead,
-//          valueOffset = 0,
-//          valueLength = 0,
-//          sortedIndexAccessPosition = 0
-//        )
-//      }
+        else
+          SortedIndexEntryReader.partialRead(
+            indexEntry = indexEntry,
+            block = indexReader.block,
+            indexOffset = positionBeforeRead,
+            nextIndexOffset = nextIndexOffset,
+            nextIndexSize = nextIndexSize,
+            valuesReader = valuesReader,
+            previous = previous
+          )
+      else
+        SortedIndexEntryReader.fullRead(
+          indexEntry = indexEntry,
+          mightBeCompressed = indexReader.block.hasPrefixCompression,
+          valuesReader = valuesReader,
+          indexOffset = positionBeforeRead,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
+          isNormalised = indexReader.block.hasNormalisedBytes,
+          isPartialReadEnabled = indexReader.block.enablePartialRead,
+          previous = previous
+        )
     } catch {
       case exception: Exception =>
         IO.failed(exception)

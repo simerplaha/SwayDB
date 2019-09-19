@@ -65,7 +65,7 @@ private[block] trait BlockReaderBase extends ReaderBase[swaydb.Error.Segment] wi
     if (offset.size == 0)
       IO.none
     else
-      readFullBlock().map(Some(_))
+      readFullBlock().toOptionValue
 
   override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
     read(state.remaining)

@@ -988,7 +988,7 @@ private[core] case class Level(dirs: Seq[Dir],
             targetSegmentAndNewSegments =>
               targetSegmentAndNewSegments.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
                 case (mapEntry, (targetSegment, newSegments)) =>
-                  buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).map(Some(_))
+                  buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).toOptionValue
               } flatMap {
                 case Some(mapEntry) =>
                   //also write appendEntry to this mapEntry before committing entries to appendix.

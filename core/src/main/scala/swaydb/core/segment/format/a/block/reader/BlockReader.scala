@@ -60,10 +60,9 @@ private[reader] object BlockReader extends LazyLogging {
         reader
         .moveTo(state.offset.start + state.position)
         .get()
-        .map {
-          byte =>
+        .onRightSideEffect {
+          _ =>
             state.position += 1
-            byte
         }
     else
       IO.Left(swaydb.Error.Fatal(s"Has no more bytes. Position: ${state.position}"))
@@ -78,10 +77,9 @@ private[reader] object BlockReader extends LazyLogging {
         .reader
         .moveTo(state.offset.start + state.position)
         .read(bytesToRead)
-        .map {
-          bytes =>
+        .onRightSideEffect {
+          _ =>
             state.position += bytesToRead
-            bytes
         }
     }
   }

@@ -146,7 +146,7 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
   def getOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
   def getSomeOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =
-    get().map(_.map(Some(_))) getOrElse f
+    get().map(_.toOptionValue) getOrElse f
 
   /**
    * An adapter function that applies the map function to the input on each invocation.

@@ -37,16 +37,15 @@ import scala.util.Try
 sealed trait IO[+L, +R] {
   def isLeft: Boolean
   def isRight: Boolean
+  def get: R
   def getOrElse[B >: R](default: => B): B
   def orElse[L2 >: L : IO.ExceptionHandler, B >: R](default: => IO[L2, B]): IO[L2, B]
-  def get: R
-  def left: IO[Throwable, L]
-  def right: IO[Throwable, R]
   def foreach[B](f: R => B): Unit
   def map[B](f: R => B): IO[L, B]
   def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B]
   def exists(f: R => Boolean): Boolean
   def filter(p: R => Boolean): IO[L, R]
+
   @inline final def withFilter(p: R => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: R => Boolean) {
     def map[B](f: R => B): IO[L, B] = IO.this filter p map f
@@ -57,14 +56,20 @@ sealed trait IO[+L, +R] {
 
     def withFilter(q: R => Boolean): WithFilter = new WithFilter(x => p(x) && q(x))
   }
+
+  def left: IO[Throwable, L]
+  def right: IO[Throwable, R]
+
+  def recoverWith[L2 >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[L2, B]]): IO[L2, B]
+  def recover[B >: R](f: PartialFunction[L, B]): IO[L, B]
+  def flatten[L2, R2](implicit ev: R <:< IO[L2, R2]): IO[L2, R2]
+
   def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO[L, R]
   def onRightSideEffect(f: R => Unit): IO[L, R]
   def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R]
-  def recoverWith[L2 >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[L2, B]]): IO[L2, B]
-  def recover[B >: R](f: PartialFunction[L, B]): IO[L, B]
+
   def toOption: Option[R]
   def toOptionValue: IO[L, Option[R]]
-  def flatten[L2, R2](implicit ev: R <:< IO[L2, R2]): IO[L2, R2]
   def toEither: Either[L, R]
   def toFuture: Future[R]
   def toTry: scala.util.Try[R]
@@ -487,10 +492,20 @@ object IO {
       this.asInstanceOf[IO.Left[F, B]]
 
     override def recover[B >: R](f: PartialFunction[L, B]): IO[L, B] =
-      IO.Catch(if (f isDefinedAt value) IO.Right[L, B](f(value)) else this)
+      IO.Catch {
+        if (f isDefinedAt value)
+          IO.Right[L, B](f(value))
+        else
+          this
+      }
 
     override def recoverWith[F >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[F, B]]): IO[F, B] =
-      IO.Catch(if (f isDefinedAt value) f(value) else this)
+      IO.Catch {
+        if (f isDefinedAt value)
+          f(value)
+        else
+          this
+      }
 
     def recoverTo[F >: L : IO.ExceptionHandler, B](io: => IO.Defer[F, B]): IO.Defer[F, B] =
       if (this.isRecoverable)
@@ -507,8 +522,8 @@ object IO {
     override def toEither: Either[L, R] =
       scala.util.Left(value)
 
-    override def filter(p: R => Boolean):
-    IO.Left[L, R] = this
+    override def filter(p: R => Boolean): IO.Left[L, R] =
+      this
 
     override def toFuture: Future[R] =
       Future.failed(exception)

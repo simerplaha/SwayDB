@@ -184,7 +184,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
           closedBloomFilter =>
             Block
               .unblock[BloomFilterBlock.Offset, BloomFilterBlock](closedBloomFilter.bytes.unslice())(BloomFilterBlockOps)
-              .map(Some(_))
+              .toOptionValue
         } getOrElse IO.none
     }
 

@@ -97,7 +97,7 @@ class SegmentBlockCache(id: String,
             Block
               .readHeader(ref)
               .flatMap(blockOps.readBlock)
-              .map(Some(_))
+              .toOptionValue
         } getOrElse IO.none
     }
 
@@ -126,7 +126,7 @@ class SegmentBlockCache(id: String,
             UnblockedReader(
               blockedReader = blockedReader,
               readAllIfUncompressed = blockIO(blockedReader.block.dataType).cacheOnAccess
-            ).map(Some(_))
+            ).toOptionValue
         } getOrElse IO.none
     }
 

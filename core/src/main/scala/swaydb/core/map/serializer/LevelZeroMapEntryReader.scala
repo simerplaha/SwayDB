@@ -55,7 +55,7 @@ object LevelZeroMapEntryReader {
         timeLength <- reader.readInt()
         time <- reader.read(timeLength).map(_.unslice())
         valueLength <- reader.readInt()
-        value <- if (valueLength == 0) IO.none else reader.read(valueLength).map(Some(_))
+        value <- if (valueLength == 0) IO.none else reader.read(valueLength).toOptionValue
         deadlineLong <- reader.readLong()
       } yield {
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
@@ -72,7 +72,7 @@ object LevelZeroMapEntryReader {
         timeLength <- reader.readInt()
         time <- reader.read(timeLength).map(_.unslice())
         valueLength <- reader.readInt()
-        value <- if (valueLength == 0) IO.none else reader.read(valueLength).map(Some(_))
+        value <- if (valueLength == 0) IO.none else reader.read(valueLength).toOptionValue
         deadlineLong <- reader.readLong()
       } yield {
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))

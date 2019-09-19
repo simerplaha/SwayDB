@@ -465,7 +465,7 @@ private[core] object SegmentBlock {
                           nearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, ClosedBlocks] =
     for {
       sortedIndexClosed <- SortedIndexBlock.close(sortedIndex)
-      valuesClosed <- values.map(values => ValuesBlock.close(values).map(Some(_))) getOrElse IO.none
+      valuesClosed <- values.map(values => ValuesBlock.close(values).toOptionValue) getOrElse IO.none
       hashIndexClosed <- hashIndex.map(HashIndexBlock.close) getOrElse IO.none
       binarySearchIndexClosed <- binarySearchIndex.map(BinarySearchIndexBlock.close) getOrElse IO.none
       bloomFilterClosed <- bloomFilter.map(BloomFilterBlock.close) getOrElse IO.none

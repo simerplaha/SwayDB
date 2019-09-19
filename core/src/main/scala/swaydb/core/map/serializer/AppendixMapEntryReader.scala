@@ -111,7 +111,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                 for {
                   minId <- reader.read(minIdSize)
                   maxIdSize <- reader.readIntUnsigned()
-                  maxId <- if (maxIdSize == 0) IO.none else reader.read(maxIdSize).map(Some(_))
+                  maxId <- if (maxIdSize == 0) IO.none else reader.read(maxIdSize).toOptionValue
                 } yield Some(MinMax(minId, maxId))
           }
         }

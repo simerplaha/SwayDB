@@ -143,13 +143,13 @@ private[swaydb] class LazyIO[E: IO.ExceptionHandler, A](lazyValue: LazyValue[IO.
   def map[B](f: A => B): IO[E, Option[B]] =
     lazyValue
       .get()
-      .map(_.map(f).map(Some(_)))
+      .map(_.map(f).toOptionValue)
       .getOrElse(IO.none)
 
   def flatMap[B](f: A => IO[E, B]): IO[E, Option[B]] =
     lazyValue
       .get()
-      .map(_.flatMap(f).map(Some(_)))
+      .map(_.flatMap(f).toOptionValue)
       .getOrElse(IO.none)
 
   override def isDefined: Boolean =
