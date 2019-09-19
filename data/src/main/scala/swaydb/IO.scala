@@ -45,6 +45,7 @@ sealed trait IO[+L, +R] {
   def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B]
   def exists(f: R => Boolean): Boolean
   def filter(p: R => Boolean): IO[L, R]
+  def valueOrElse[B](f: R => B, orElse: => B): B
 
   @inline final def withFilter(p: R => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: R => Boolean) {
@@ -383,6 +384,9 @@ object IO {
     override def orElse[F >: L : IO.ExceptionHandler, B >: R](default: => IO[F, B]): IO.Right[F, B] =
       this
 
+    override def valueOrElse[B](f: R => B, orElse: => B): B =
+      f(value)
+
     override def foreach[B](f: R => B): Unit =
       f(get)
 
@@ -475,6 +479,9 @@ object IO {
 
     override def getOrElse[B >: R](default: => B): B =
       default
+
+    def valueOrElse[B](f: R => B, orElse: => B): B =
+      orElse
 
     override def orElse[L2 >: L : IO.ExceptionHandler, B >: R](default: => IO[L2, B]): IO[L2, B] =
       IO.Catch(default)
