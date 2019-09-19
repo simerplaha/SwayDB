@@ -25,7 +25,7 @@ import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -349,13 +349,24 @@ object IO {
         f
     }
 
-    object PromiseUnit extends IO.ExceptionHandler[Promise[Unit]] {
-      override def toException(f: Promise[Unit]): Throwable =
-        new Exception("Exception cannot be created from Promise.")
+    trait Promise[T] extends IO.ExceptionHandler[scala.concurrent.Promise[T]] {
+      override def toException(promise: scala.concurrent.Promise[T]): Throwable =
+        promise.future.value match {
+          case Some(scala.util.Failure(failure)) =>
+            failure
 
-      override def toError(e: Throwable): Promise[Unit] =
-        Promise.failed(e)
+          case Some(scala.util.Success(_)) =>
+            new Exception("Exception cannot be created from successful Promise.")
+
+          case scala.None =>
+            new Exception("Exception cannot be created from an incomplete Promise.")
+        }
+
+      override def toError(e: Throwable): scala.concurrent.Promise[T] =
+        scala.concurrent.Promise.failed(e)
     }
+
+    object PromiseUnit extends IO.ExceptionHandler.Promise[Unit]
   }
 
   /** *********************
