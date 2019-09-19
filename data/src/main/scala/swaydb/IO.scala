@@ -151,7 +151,7 @@ object IO {
       IO.none
     }
 
-    def untilSomeResult[R](f: A => IO[E, Option[R]]): IO[E, Option[R]] = {
+    def untilSomeValue[R](f: A => IO[E, Option[R]]): IO[E, Option[R]] = {
       iterable.iterator foreach {
         item =>
           f(item) match {
@@ -195,9 +195,9 @@ object IO {
       }
     }
 
-    def flatMapIO[R: ClassTag](ioBlock: A => IO[E, Iterable[R]],
-                               recover: (Iterable[R], IO.Left[E, Slice[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
-                               failFast: Boolean = true): IO[E, Iterable[R]] = {
+    def flatMapIO[R](ioBlock: A => IO[E, Iterable[R]],
+                     recover: (Iterable[R], IO.Left[E, Slice[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
+                     failFast: Boolean = true): IO[E, Iterable[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = ListBuffer.empty[R]
@@ -221,9 +221,9 @@ object IO {
       }
     }
 
-    def foldLeftIO[R: ClassTag](r: R,
-                                failFast: Boolean = true,
-                                recover: (R, IO.Left[E, R]) => Unit = (_: R, _: IO.Left[E, R]) => ())(f: (R, A) => IO[E, R]): IO[E, R] = {
+    def foldLeftIO[R](r: R,
+                      failFast: Boolean = true,
+                      recover: (R, IO.Left[E, R]) => Unit = (_: R, _: IO.Left[E, R]) => ())(f: (R, A) => IO[E, R]): IO[E, R] = {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, R]] = None
       var result: R = r

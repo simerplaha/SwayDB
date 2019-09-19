@@ -292,7 +292,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     val hash2 = (hash << 32) >> 32
 
     (0 until reader.block.maxProbe)
-      .untilSomeResult {
+      .untilSomeValue {
         probe =>
           val computedHash = hash1 + probe * hash2
           val hashIndex = (computedHash & Long.MaxValue) % reader.block.numberOfBits
