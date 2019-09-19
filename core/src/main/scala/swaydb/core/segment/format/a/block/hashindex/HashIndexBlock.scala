@@ -142,14 +142,14 @@ private[core] object HashIndexBlock extends LazyLogging {
 
       val headSize =
         headerSize(
-          keyCounts = last.stats.chainPosition,
+          keyCounts = last.stats.linkedPosition,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           hasCompression = hasCompression
         )
 
       val optimalBytes =
         optimalBytesRequired(
-          keyCounts = last.stats.chainPosition,
+          keyCounts = last.stats.linkedPosition,
           minimumNumberOfKeys = last.hashIndexConfig.minimumNumberOfKeys,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           allocateSpace = last.hashIndexConfig.allocateSpace,

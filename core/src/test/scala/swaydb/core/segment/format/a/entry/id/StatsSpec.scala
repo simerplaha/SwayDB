@@ -13,7 +13,7 @@ class StatsSpec extends WordSpec with Matchers {
         val stats = randomStats(indexEntry = Slice.fill(2)(1.toByte), value = Slice.emptyEmptyBytes)
         stats.valueLength shouldBe 0
         stats.segmentSize should be > 0
-        stats.chainPosition shouldBe 1
+        stats.linkedPosition shouldBe 1
         stats.segmentValueAndSortedIndexEntrySize should be > 0
         stats.segmentSortedIndexSizeWithoutHeader should be > 0
       }

@@ -22,7 +22,6 @@ package swaydb.core.data
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
@@ -51,8 +50,8 @@ private[core] object Stats {
     val hasRemoveRange =
       previousStats.exists(_.segmentHasRemoveRange) || isRemoveRange
 
-    val chainPosition =
-      previousStats.map(_.chainPosition + 1) getOrElse 1
+    val linkedPosition =
+      previousStats.map(_.linkedPosition + 1) getOrElse 1
 
     val hasPrefixCompressed =
       isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
@@ -117,11 +116,11 @@ private[core] object Stats {
       } getOrElse 1
 
     val segmentHashIndexSize =
-      if (chainPosition < hashIndex.minimumNumberOfKeys)
+      if (linkedPosition < hashIndex.minimumNumberOfKeys)
         0
       else
         HashIndexBlock.optimalBytesRequired( //just a rough calculation. This does not need to be accurate but needs to be lower than the actual
-          keyCounts = chainPosition,
+          keyCounts = linkedPosition,
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           writeAbleLargestValueSize =
             if (hashIndex.copyIndex)
@@ -187,11 +186,11 @@ private[core] object Stats {
           ValuesBlock.headerSize(false)
 
     val segmentBloomFilterSize =
-      if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange || chainPosition < bloomFilter.minimumNumberOfKeys)
+      if (bloomFilter.falsePositiveRate <= 0.0 || hasRemoveRange || linkedPosition < bloomFilter.minimumNumberOfKeys)
         0
       else
         BloomFilterBlock.optimalSize(
-          numberOfKeys = chainPosition,
+          numberOfKeys = linkedPosition,
           falsePositiveRate = bloomFilter.falsePositiveRate,
           hasCompression = false,
           minimumNumberOfKeys = bloomFilter.minimumNumberOfKeys,
@@ -215,7 +214,7 @@ private[core] object Stats {
     new Stats(
       valueLength = valueLength,
       segmentSize = segmentSize,
-      chainPosition = chainPosition,
+      linkedPosition = linkedPosition,
       segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
       segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
       segmentValuesSize = segmentValuesSize,
@@ -244,7 +243,7 @@ private[core] object Stats {
 
 private[core] case class Stats(valueLength: Int,
                                segmentSize: Int,
-                               chainPosition: Int,
+                               linkedPosition: Int,
                                segmentValueAndSortedIndexEntrySize: Int,
                                segmentSortedIndexSizeWithoutHeader: Int,
                                segmentValuesSize: Int,

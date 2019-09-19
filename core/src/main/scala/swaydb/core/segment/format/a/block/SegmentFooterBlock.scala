@@ -82,7 +82,7 @@ object SegmentFooterBlock {
       footerSize = Block.headerSize(false),
       createdInLevel = createdInLevel,
       topLevelKeyValuesCount = keyValues.size,
-      uniqueKeyValuesCount = keyValues.last.stats.chainPosition,
+      uniqueKeyValuesCount = keyValues.last.stats.linkedPosition,
       bytes = Slice.create[Byte](optimalBytesRequired),
       numberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
       hasPut = keyValues.last.stats.segmentHasPut

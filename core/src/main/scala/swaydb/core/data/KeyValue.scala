@@ -499,7 +499,7 @@ private[core] object Transient {
     keyValue.sortedIndexConfig.prefixCompressionResetCount > 0 &&
       keyValue.previous.exists {
         previous =>
-          (previous.stats.chainPosition + 1) % keyValue.sortedIndexConfig.prefixCompressionResetCount != 0
+          (previous.stats.linkedPosition + 1) % keyValue.sortedIndexConfig.prefixCompressionResetCount != 0
       }
 
   def normalise(keyValues: Iterable[Transient]): Slice[Transient] = {

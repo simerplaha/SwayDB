@@ -32,4 +32,12 @@ object Options {
       success
     else
       None
+
+  implicit class OptionsImplicits[A](option: Option[A]) {
+    @inline def valueOrElse[B](value: A => B, orElse: => B): B =
+      if (option.isDefined)
+        value(option.get)
+      else
+        orElse
+  }
 }

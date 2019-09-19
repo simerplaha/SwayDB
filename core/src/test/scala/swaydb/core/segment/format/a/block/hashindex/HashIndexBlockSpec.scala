@@ -315,7 +315,7 @@ class HashIndexBlockSpec extends TestBase {
 
         val blocks = getBlocks(keyValues).get
         blocks.hashIndexReader shouldBe defined
-        blocks.hashIndexReader.get.block.hit shouldBe keyValues.last.stats.chainPosition
+        blocks.hashIndexReader.get.block.hit shouldBe keyValues.last.stats.linkedPosition
         blocks.hashIndexReader.get.block.miss shouldBe 0
 
         keyValues foreach {
