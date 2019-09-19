@@ -462,9 +462,7 @@ class Actor[-T, S](val state: S,
 
       //skip wakeUp if it's a timerLoop. Run only if no task is scheduled for the task.
       //if eager wakeUp on overflow is required using timer instead of timerLoop.
-      if (isTimerLoop && task.nonEmpty)
-        ()
-      else
+      if (!(isTimerLoop && task.nonEmpty))
         wakeUp(currentStashed = currentStashed)
     }
 
