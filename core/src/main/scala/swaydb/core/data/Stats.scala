@@ -37,7 +37,6 @@ private[core] object Stats {
             isPut: Boolean,
             isPrefixCompressed: Boolean,
             previousKeyValueAccessIndexPosition: Option[Int],
-            thisKeyValuesNumberOfRanges: Int,
             sortedIndex: SortedIndexBlock.Config,
             bloomFilter: BloomFilterBlock.Config,
             hashIndex: HashIndexBlock.Config,
@@ -102,7 +101,10 @@ private[core] object Stats {
       previousStats.exists(_.segmentHasPut) || isPut
 
     val segmentTotalNumberOfRanges =
-      previousStats.map(_.segmentTotalNumberOfRanges + thisKeyValuesNumberOfRanges) getOrElse thisKeyValuesNumberOfRanges
+      if (isRange)
+        previousStats.map(_.segmentTotalNumberOfRanges + 1) getOrElse 1
+      else
+        previousStats.map(_.segmentTotalNumberOfRanges) getOrElse 0
 
     //unique keys that do not have prefix compressed keys.
     val segmentUniqueAccessIndexKeyCounts =
