@@ -20,7 +20,7 @@
 package swaydb.core.actor
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.{Actor, ActorWire}
+import swaydb.{Actor, ActorWire, Tag}
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -43,18 +43,22 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
 
       val actor = Actor.wire(new MyImpl(ListBuffer.empty))
 
-      actor.ask {
-        (impl, state) =>
-          (1 to 100) foreach {
-            i =>
-              impl.message(i)
-          }
-      }.await(2.seconds)
+      actor
+        .ask
+        .map {
+          (impl, state) =>
+            (1 to 100) foreach {
+              i =>
+                impl.message(i)
+            }
+        }.await(2.seconds)
 
-      actor.ask {
-        (impl, _) =>
-          impl.get()
-      }.await.toList should contain theSameElementsInOrderAs (1 to 100)
+      actor
+        .ask
+        .map {
+          (impl, _) =>
+            impl.get()
+        }.await.toList should contain theSameElementsInOrderAs (1 to 100)
     }
 
     "ask" in {
@@ -64,7 +68,8 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
       }
 
       Actor.wire(MyImpl)
-        .ask {
+        .ask
+        .map {
           (impl, state, self) =>
             impl.hello("John", self)
         }
@@ -78,7 +83,8 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
       }
 
       Actor.wire(MyImpl)
-        .askFlatMap {
+        .ask
+        .flatMap {
           (impl, _, self) =>
             impl.hello("John", self)
         }
@@ -106,7 +112,8 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
 
       eventually {
         actor
-          .askFlatMap {
+          .ask
+          .flatMap {
             (impl, state) =>
               impl.getName()
           }
@@ -125,14 +132,15 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
 
       val actor = Actor.wire(new MyImpl(invoked = false))
 
-      actor.scheduleAsk(2.second) {
+      actor.schedule(2.second) {
         (impl, _) =>
           impl.invoke()
       }
 
       def assert(expected: Boolean) =
         actor
-          .ask {
+          .ask
+          .map {
             (impl, _) =>
               impl.getInvoked()
           }
@@ -145,7 +153,8 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
       sleep(1.second)
       eventually {
         actor
-          .ask {
+          .ask
+          .map {
             (impl, _) =>
               impl.getInvoked()
           }
@@ -154,6 +163,7 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
     }
 
     "scheduleAskFlatMap" in {
+
       class MyImpl(var invoked: Boolean = false) {
         def invoke(): Future[Boolean] =
           Future {
@@ -167,14 +177,19 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
 
       val actor = Actor.wire(new MyImpl(invoked = false))
 
-      val result = actor.scheduleAskFlatMap(2.second) {
-        (impl, _) =>
-          impl.invoke()
-      }
+      val result =
+        actor
+          .ask
+          .schedule
+          .flatMap(2.second) {
+            (impl, _, _) =>
+              impl.invoke()
+          }
 
       def assert(expected: Boolean) =
         actor
-          .ask {
+          .ask
+          .map {
             (impl, _) =>
               impl.getInvoked()
           }
@@ -185,22 +200,24 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
       assert(expected = false)
 
       sleep(1.second)
-      eventually {
-        actor
-          .ask {
-            (impl, _) =>
-              impl.getInvoked()
-          }
-          .await shouldBe true
-      }
-      result._1.await shouldBe true
+
+      actor
+        .ask
+        .map {
+          (impl, _) =>
+            impl.getInvoked()
+        }
+        .await shouldBe true
+
+      result.value.await shouldBe true
     }
 
     "scheduleAskWithSelf" in {
       class MyImpl(var invoked: Boolean = false) {
         def invoke(replyTo: ActorWire[MyImpl, Unit]): Future[Boolean] =
           replyTo
-            .ask {
+            .ask
+            .map {
               (impl, _) =>
                 impl.setInvoked()
             }
@@ -218,14 +235,19 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
 
       val actor = Actor.wire(new MyImpl())
 
-      val result = actor.scheduleAskWithSelfFlatMap(2.second) {
-        (impl, state, self) =>
-          impl.invoke(self)
-      }
+      val result =
+        actor
+          .ask
+          .schedule
+          .flatMap(2.second) {
+            (impl, state, self) =>
+              impl.invoke(self)
+          }
 
       def assert(expected: Boolean) =
         actor
-          .ask {
+          .ask
+          .map {
             (impl, _) =>
               impl.getInvoked()
           }
@@ -238,13 +260,14 @@ class ActorWireSpec extends WordSpec with Matchers with TestBase {
       sleep(1.second)
       eventually {
         actor
-          .ask {
+          .ask
+          .map {
             (impl, _) =>
               impl.getInvoked()
           }
           .await shouldBe true
       }
-      result._1.await shouldBe true
+      result.value.await shouldBe true
     }
   }
 }

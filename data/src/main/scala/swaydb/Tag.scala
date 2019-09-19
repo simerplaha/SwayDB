@@ -252,6 +252,8 @@ object Tag {
   trait Async[T[_]] extends Tag[T] { self =>
     def fromPromise[A](a: Promise[A]): T[A]
     def isComplete[A](a: T[A]): Boolean
+    def complete[A](promise: Promise[A], a: T[A]): Unit
+
     def isIncomplete[A](a: T[A]): Boolean =
       !isComplete(a)
 
@@ -266,6 +268,10 @@ object Tag {
 
         override def isComplete[A](a: X[A]): Boolean =
           self.isComplete(converter.from(a))
+
+        override def complete[A](promise: Promise[A], a: X[A]): Unit =
+          self.complete(promise, converter.from(a))
+
       }
   }
 
@@ -412,6 +418,9 @@ object Tag {
       def fromPromise[A](a: Promise[A]): Future[A] =
         a.future
 
+      override def complete[A](promise: Promise[A], a: Future[A]): Unit =
+        promise tryCompleteWith a
+
       def isComplete[A](a: Future[A]): Boolean =
         a.isCompleted
 
@@ -475,6 +484,7 @@ object Tag {
         }
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] = a.toFuture
+
     }
 
   implicit val apiIO: Tag.Sync[IO.ApiIO] = throwableIO.toTag[IO.ApiIO]

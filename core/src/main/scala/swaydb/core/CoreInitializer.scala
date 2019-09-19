@@ -72,11 +72,14 @@ private[core] object CoreInitializer extends LazyLogging {
                                                                                              executionContext: ExecutionContext): Unit =
     sys.addShutdownHook {
       logger.info("Shutting down compaction.")
+
       def compactionShutdown: Future[Unit] =
-        compactor askFlatMap {
-          (impl, state, self) =>
-            impl.terminate(state, self)
-        }
+        compactor
+          .ask
+          .flatMap {
+            (impl, state, self) =>
+              impl.terminate(state, self)
+          }
 
       IO {
         Await.result(compactionShutdown, 30.seconds)
@@ -310,10 +313,12 @@ private[core] object CoreInitializer extends LazyLogging {
 
                           def onClose =
                             IO.fromFuture[swaydb.Error.Close, Unit] {
-                              compactor askFlatMap {
-                                (impl, state, actor) =>
-                                  impl.terminate(state, actor)
-                              }
+                              compactor
+                                .ask
+                                .flatMap {
+                                  (impl, state, actor) =>
+                                    impl.terminate(state, actor)
+                                }
                             }
 
                           IO {

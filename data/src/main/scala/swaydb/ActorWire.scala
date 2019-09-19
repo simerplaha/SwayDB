@@ -23,8 +23,8 @@ import java.util.TimerTask
 
 import swaydb.data.config.ActorConfig.QueueOrder
 
+import scala.concurrent.Promise
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{Future, Promise}
 import scala.util.Try
 
 object ActorWire {
@@ -35,7 +35,7 @@ object ActorWire {
     new ActorWire(impl, Some((interval, stashCapacity)), state)
 }
 
-class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S)(implicit val scheduler: Scheduler) {
+class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S)(implicit val scheduler: Scheduler) { self =>
 
   implicit def ec = scheduler.ec
 
@@ -62,49 +62,84 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
         }
     }
 
-  def ask[R](function: (I, S) => R): Future[R] = {
-    val promise = Promise[R]()
+  class Schedule {
 
-    actor ! {
-      (impl: I, state: S) =>
-        promise.tryComplete(Try(function(impl, state)))
+    class Scheduled[T[_], R](val value: T[R], val task: TimerTask)
+
+    def map[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit tag: Tag.Async[T]): Scheduled[T, R] = {
+      val promise = Promise[R]()
+
+      val timerTask =
+        actor.schedule(
+          message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, self))),
+          delay = delay
+        )
+
+      new Scheduled(tag fromPromise promise, timerTask)
     }
 
-    promise.future
+    def flatMap[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => T[R])(implicit tag: Tag.Async[T]): Scheduled[T, R] = {
+      val promise = Promise[R]()
+
+      val timerTask =
+        actor.schedule(
+          message = (impl: I, state: S) => tag.complete(promise, function(impl, state, self)),
+          delay = delay
+        )
+
+      new Scheduled(tag fromPromise promise, timerTask)
+    }
   }
 
-  def askFlatMap[R](function: (I, S) => Future[R]): Future[R] = {
-    val promise = Promise[R]()
+  class Ask {
+    def map[R, T[_]](function: (I, S) => R)(implicit tag: Tag.Async[T]): T[R] = {
+      val promise = Promise[R]()
 
-    actor ! {
-      (impl: I, state: S) =>
-        promise.tryCompleteWith(function(impl, state))
+      actor ! {
+        (impl: I, state: S) =>
+          promise.tryComplete(Try(function(impl, state)))
+      }
+
+      tag fromPromise promise
     }
 
-    promise.future
-  }
+    def map[R, T[_]](function: (I, S, ActorWire[I, S]) => R)(implicit tag: Tag.Async[T]): T[R] = {
+      val promise = Promise[R]()
 
-  def ask[R](function: (I, S, ActorWire[I, S]) => R): Future[R] = {
-    val promise = Promise[R]()
+      actor ! {
+        (impl: I, state: S) =>
+          promise.tryComplete(Try(function(impl, state, self)))
+      }
 
-    actor ! {
-      (impl: I, state: S) =>
-        promise.tryComplete(Try(function(impl, state, this)))
+      tag fromPromise promise
     }
 
-    promise.future
-  }
+    def flatMap[R, T[_]](function: (I, S) => T[R])(implicit tag: Tag.Async[T]): T[R] = {
+      val promise = Promise[R]()
 
-  def askFlatMap[R](function: (I, S, ActorWire[I, S]) => Future[R]): Future[R] = {
-    val promise = Promise[R]()
+      actor ! {
+        (impl: I, state: S) =>
+          tag.complete(promise, function(impl, state))
+      }
 
-    actor ! {
-      (impl: I, state: S) =>
-        promise.tryCompleteWith(function(impl, state, this))
+      tag fromPromise promise
     }
 
-    promise.future
+    def flatMap[R, T[_]](function: (I, S, ActorWire[I, S]) => T[R])(implicit tag: Tag.Async[T]): T[R] = {
+      val promise = Promise[R]()
+
+      actor ! {
+        (impl: I, state: S) =>
+          tag.complete(promise, function(impl, state, self))
+      }
+
+      tag fromPromise promise
+    }
+
+    final val schedule = new Schedule
   }
+
+  final val ask = new Ask
 
   def send[R](function: (I, S) => R): Unit =
     actor ! {
@@ -118,64 +153,16 @@ class ActorWire[I, S](impl: I, interval: Option[(FiniteDuration, Int)], state: S
         function(impl, state, this)
     }
 
-  def scheduleAsk[R](delay: FiniteDuration)(function: (I, S) => R): (Future[R], TimerTask) = {
-    val promise = Promise[R]()
-
-    val timerTask =
-      actor.schedule(
-        message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state))),
-        delay = delay
-      )
-
-    (promise.future, timerTask)
-  }
-
-  def scheduleAskFlatMap[R](delay: FiniteDuration)(function: (I, S) => Future[R]): (Future[R], TimerTask) = {
-    val promise = Promise[R]()
-
-    val timerTask =
-      actor.schedule(
-        message = (impl: I, state: S) => promise.completeWith(function(impl, state)),
-        delay = delay
-      )
-
-    (promise.future, timerTask)
-  }
-
-  def scheduleAskWithSelf[R](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R): (Future[R], TimerTask) = {
-    val promise = Promise[R]()
-
-    val timerTask =
-      actor.schedule(
-        message = (impl: I, state: S) => promise.tryComplete(Try(function(impl, state, this))),
-        delay = delay
-      )
-
-    (promise.future, timerTask)
-  }
-
-  def scheduleAskWithSelfFlatMap[R](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => Future[R]): (Future[R], TimerTask) = {
-    val promise = Promise[R]()
-
-    val timerTask =
-      actor.schedule(
-        message = (impl: I, state: S) => promise.completeWith(function(impl, state, this)),
-        delay = delay
-      )
-
-    (promise.future, timerTask)
-  }
-
-  def state: Future[S] =
-    ask(
-      (_, state: S) =>
-        state
-    )
-
-  def scheduleSend[R](delay: FiniteDuration)(function: (I, S) => R): TimerTask =
+  def schedule[R](delay: FiniteDuration)(function: (I, S) => R): TimerTask =
     actor.schedule(
       message = (impl: I, state: S) => function(impl, state),
       delay = delay
+    )
+
+  def state[T[_]](implicit tag: Tag.Async[T]): T[S] =
+    ask(
+      (_, state: S) =>
+        state
     )
 
   def terminateAndClear(): Unit = {

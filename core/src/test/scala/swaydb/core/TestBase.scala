@@ -563,7 +563,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     val terminate =
       compaction map {
         compaction =>
-          compaction.askFlatMap {
+          compaction.ask.flatMap {
             (impl, state, actor) =>
               impl.terminate(state, actor)
           }

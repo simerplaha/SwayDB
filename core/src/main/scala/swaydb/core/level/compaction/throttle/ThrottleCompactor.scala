@@ -29,7 +29,7 @@ import swaydb.core.util.FiniteDurations._
 import swaydb.core.util.{FiniteDurations, Futures}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
-import swaydb.{IO, ActorWire}
+import swaydb.{ActorWire, IO, Tag}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -145,7 +145,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
             state.sleepTask foreach (_._1.cancel())
 
             val newTask =
-              self.scheduleSend(newWakeUpDeadline.timeLeft) {
+              self.schedule(newWakeUpDeadline.timeLeft) {
                 (impl, state) =>
                   impl.wakeUp(
                     state = state,
@@ -271,13 +271,17 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     )(ThrottleCompaction)
 
   override def terminate(state: ThrottleState, compactor: ActorWire[Compactor[ThrottleState], ThrottleState]): Future[Unit] = {
+    implicit val tag = Tag.future(state.executionContext)
+
     val terminated =
       state.child match {
         case Some(child) =>
-          child askFlatMap {
-            (impl, childState, childActor: ActorWire[Compactor[ThrottleState], ThrottleState]) =>
-              impl.terminate(childState, childActor)
-          }
+          child
+            .ask
+            .flatMap {
+              (impl, childState, childActor: ActorWire[Compactor[ThrottleState], ThrottleState]) =>
+                impl.terminate(childState, childActor)
+            }
 
         case None =>
           Futures.unit
