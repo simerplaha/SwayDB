@@ -43,15 +43,16 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.util.{BlockCacheFileIDGenerator, Futures, IDGenerator}
+import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
+import swaydb.data.util.Futures
 import swaydb.data.util.StorageUnits._
-import swaydb.{IO, ActorWire}
+import swaydb.{ActorWire, IO}
 
 import scala.concurrent.duration._
 import scala.util.Random

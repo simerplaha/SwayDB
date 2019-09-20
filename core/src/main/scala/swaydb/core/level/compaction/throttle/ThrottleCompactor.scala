@@ -25,10 +25,11 @@ import swaydb.IO._
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.level.zero.LevelZero
+import swaydb.core.util.FiniteDurations
 import swaydb.core.util.FiniteDurations._
-import swaydb.core.util.{FiniteDurations, Futures}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
+import swaydb.data.util.Futures
 import swaydb.{Actor, ActorWire, IO, Tag}
 
 import scala.collection.mutable

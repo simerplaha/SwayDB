@@ -23,5 +23,6 @@ import scala.concurrent.Future
 
 object Futures {
 
+  val none = Future.successful(None)
   val unit: Future[Unit] = Future.successful(())
 }
