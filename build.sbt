@@ -63,10 +63,11 @@ val commonDependencies =
 
 lazy val SwayDB =
   (project in file("."))
+    .settings(name := "SwayDB.source")
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(api)
-    .aggregate(api, core, compression, data, configs, serializers)
+    .dependsOn(swaydb)
+    .aggregate(swaydb, core, compression, data, configs, serializers)
 
 lazy val core =
   project
@@ -86,7 +87,7 @@ lazy val data =
       libraryDependencies ++= commonDependencies
     ).dependsOn(macros % "compile-internal")
 
-lazy val api =
+lazy val swaydb =
   project
     .settings(commonSettings)
     .settings(publishSettings)
@@ -143,14 +144,14 @@ lazy val macros =
       libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
 
-lazy val `api-stress` =
+lazy val `swaydb-stress` =
   project
     .settings(commonSettings)
     .settings(
       libraryDependencies ++=
         commonDependencies :+ "io.suzaku" %% "boopickle" % boopickleVersion % Test
     ).dependsOn(core, configs)
-    .dependsOn(api, core % "test->test")
+    .dependsOn(swaydb, core % "test->test")
 
 lazy val benchmark =
   project
@@ -158,4 +159,4 @@ lazy val benchmark =
     .settings(
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
-    .dependsOn(api, core % "test->test")
+    .dependsOn(swaydb, core % "test->test")
