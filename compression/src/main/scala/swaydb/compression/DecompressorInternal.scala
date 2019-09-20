@@ -49,10 +49,13 @@ private[swaydb] object DecompressorInternal {
 
   def apply(instance: LZ4Instance,
             decompressor: LZ4Decompressor): DecompressorInternal.LZ4 =
-    decompressorId(instance, decompressor) ==> {
-      id =>
-        DecompressorInternal(id)
-    }
+    DecompressorInternal(
+      id =
+        decompressorId(
+          lz4Instance = instance,
+          lZ4Decompressor = decompressor
+        )
+    )
 
   private def decompressorId(lz4Instance: LZ4Instance,
                              lZ4Decompressor: LZ4Decompressor): DecompressorId.LZ4DecompressorId =
