@@ -74,7 +74,7 @@ private[extensions] object Key {
       val slices = keys map keySerializer.write
       val size = slices.foldLeft(0) {
         case (size, bytes) =>
-          size + ByteUtil.sizeOf(bytes.size) + bytes.size
+          size + ByteUtil.sizeOfUnsignedInt(bytes.size) + bytes.size
       }
       val slice = Slice.create[Byte](size)
       slices foreach {
@@ -131,7 +131,7 @@ private[extensions] object Key {
           case Key.MapStart(mapKeys) =>
             val keyBytes = writeKeys(mapKeys, keySerializer)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
@@ -140,7 +140,7 @@ private[extensions] object Key {
           case Key.MapEntriesStart(mapKeys) =>
             val keyBytes = writeKeys(mapKeys, keySerializer)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
@@ -150,7 +150,7 @@ private[extensions] object Key {
             val mapKeyBytes = writeKeys(mapKeys, keySerializer)
             val dataKeyBytes = keySerializer.write(dataKey)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
               .add(formatId)
               .addIntUnsigned(mapKeyBytes.size)
               .addAll(mapKeyBytes)
@@ -160,7 +160,7 @@ private[extensions] object Key {
           case Key.MapEntriesEnd(mapKeys) =>
             val keyBytes = writeKeys(mapKeys, keySerializer)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
@@ -169,7 +169,7 @@ private[extensions] object Key {
           case Key.SubMapsStart(mapKeys) =>
             val keyBytes = writeKeys(mapKeys, keySerializer)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
@@ -179,7 +179,7 @@ private[extensions] object Key {
             val mapKeyBytes = writeKeys(mapKeys, keySerializer)
             val dataKeyBytes = keySerializer.write(subMapKey)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
               .add(formatId)
               .addIntUnsigned(mapKeyBytes.size)
               .addAll(mapKeyBytes)
@@ -189,7 +189,7 @@ private[extensions] object Key {
           case Key.SubMapsEnd(mapKeys) =>
             val keyBytes = writeKeys(mapKeys, keySerializer)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
@@ -198,7 +198,7 @@ private[extensions] object Key {
           case Key.MapEnd(mapKeys) =>
             val keyBytes = writeKeys(mapKeys, keySerializer)
 
-            Slice.create[Byte](1 + ByteUtil.sizeOf(keyBytes.size) + keyBytes.size + 1)
+            Slice.create[Byte](1 + ByteUtil.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
               .addIntUnsigned(keyBytes.size)
               .addAll(keyBytes)
@@ -260,8 +260,8 @@ private[extensions] object Key {
           dataTypeRight == Key.mapStart || dataTypeRight == Key.mapEnd || dataTypeRight == Key.subMapsStart || dataTypeRight == Key.subMapsEnd || dataTypeRight == Key.mapEntriesStart || dataTypeRight == Key.mapEntriesEnd) {
           KeyOrder.default.compare(a, b)
         } else if (dataTypeLeft == Key.mapEntry || dataTypeLeft == Key.subMap) {
-          val tableBytesLeft = a.take(1 + ByteUtil.sizeOf(keySizeLeft) + keySizeLeft + 1)
-          val tableBytesRight = b.take(1 + ByteUtil.sizeOf(keySizeRight) + keySizeRight + 1)
+          val tableBytesLeft = a.take(1 + ByteUtil.sizeOfUnsignedInt(keySizeLeft) + keySizeLeft + 1)
+          val tableBytesRight = b.take(1 + ByteUtil.sizeOfUnsignedInt(keySizeRight) + keySizeRight + 1)
 
           val defaultOrderResult = KeyOrder.default.compare(tableBytesLeft, tableBytesRight)
           if (defaultOrderResult == 0)

@@ -136,7 +136,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             ByteSizeOf.int + //accessIndexOffset
             whenOrZero(copyWithReferences)(ByteSizeOf.boolean) //boolean for isReference.
         else
-          Bytes.sizeOf(last.stats.thisKeyValuesAccessIndexOffset + 1)
+          Bytes.sizeOfUnsignedInt(last.stats.thisKeyValuesAccessIndexOffset + 1)
 
       val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(last.stats.segmentHashIndexSize)).nonEmpty
 
@@ -193,11 +193,11 @@ private[core] object HashIndexBlock extends LazyLogging {
         ByteSizeOf.varInt + //max probe
         ByteSizeOf.boolean + //copyIndex
         ByteSizeOf.boolean + //copyIndexWithReferences
-        (Bytes.sizeOf(keyCounts) * 2) + //hit & miss rate
+        (Bytes.sizeOfUnsignedInt(keyCounts) * 2) + //hit & miss rate
         ByteSizeOf.varLong + //minimumCRC
-        Bytes.sizeOf(writeAbleLargestValueSize) //largest value size
+        Bytes.sizeOfUnsignedInt(writeAbleLargestValueSize) //largest value size
 
-    Bytes.sizeOf(headerSize) +
+    Bytes.sizeOfUnsignedInt(headerSize) +
       headerSize
   }
 

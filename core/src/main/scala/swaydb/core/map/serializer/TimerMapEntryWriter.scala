@@ -40,10 +40,10 @@ object TimerMapEntryWriter {
         .addAll(entry.value)
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Slice[Byte]]): Int =
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(entry.key.size) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size +
-        Bytes.sizeOf(entry.value.size) +
+        Bytes.sizeOfUnsignedInt(entry.value.size) +
         entry.value.size
   }
 }

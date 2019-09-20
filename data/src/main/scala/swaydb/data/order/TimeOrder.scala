@@ -28,7 +28,7 @@ private[swaydb] object TimeOrder {
       if (left.isEmpty || right.isEmpty)
         1 //if either of them are empty then favour left to be the largest.
       else
-        ByteUtil.readUnsignedLongRightAlignedUnsafe(left) compare ByteUtil.readUnsignedLongRightAlignedUnsafe(right)
+        ByteUtil.readUnsignedIntUnsafe(left) compare ByteUtil.readUnsignedIntUnsafe(right)
   }
 }
 

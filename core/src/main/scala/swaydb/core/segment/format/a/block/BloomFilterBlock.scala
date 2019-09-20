@@ -109,15 +109,15 @@ private[core] object BloomFilterBlock extends LazyLogging {
       val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
       val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe)
 
-      val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
-      val maxProbeSize = Bytes.sizeOf(maxProbe)
+      val numberOfBitsSize = Bytes.sizeOfUnsignedInt(numberOfBits)
+      val maxProbeSize = Bytes.sizeOfUnsignedInt(maxProbe)
 
       val headerByteSize =
         Block.headerSize(hasCompression) +
           numberOfBitsSize +
           maxProbeSize
 
-      Bytes.sizeOf(headerByteSize) +
+      Bytes.sizeOfUnsignedInt(headerByteSize) +
         headerByteSize +
         numberOfBits
     }
@@ -130,8 +130,8 @@ private[core] object BloomFilterBlock extends LazyLogging {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe) max 1
 
-    val numberOfBitsSize = Bytes.sizeOf(numberOfBits)
-    val maxProbeSize = Bytes.sizeOf(maxProbe)
+    val numberOfBitsSize = Bytes.sizeOfUnsignedInt(numberOfBits)
+    val maxProbeSize = Bytes.sizeOfUnsignedInt(maxProbe)
 
     val hasCompression = compressions(UncompressedBlockInfo(numberOfBits)).nonEmpty
 
@@ -141,7 +141,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
         maxProbeSize
 
     val headerSize =
-      Bytes.sizeOf(headerBytesSize) +
+      Bytes.sizeOfUnsignedInt(headerBytesSize) +
         headerBytesSize
 
     val bytes = Slice.create[Byte](headerSize + numberOfBits)

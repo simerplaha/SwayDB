@@ -32,7 +32,7 @@ private[core] object Time {
 
   def apply(time: Long): Time = {
     val slice = Slice.create[Byte](ByteSizeOf.varLong)
-    ByteUtil.writeUnsignedLongRightAligned(time, slice)
+    ByteUtil.writeUnsignedLong(time, slice)
     new Time(slice)
   }
 

@@ -82,7 +82,7 @@ sealed trait TimerSpec extends TestBase {
         range foreach {
           i =>
             val nextTime = timer.next.time
-            val nextTimeLong = ByteUtil.readUnsignedLongRightAligned(nextTime).value
+            val nextTimeLong = ByteUtil.readUnsignedLong(nextTime).value
             nextTimeLong shouldBe i
         }
 

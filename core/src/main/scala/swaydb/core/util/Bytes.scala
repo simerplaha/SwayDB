@@ -115,27 +115,41 @@ private[swaydb] object Bytes {
     Slice(fullKey)
   }
 
-  def sizeOf(int: Int): Int = {
-    var size = 0
-    var x = int
-    while ((x & 0xFFFFF80) != 0L) {
-      size += 1
-      x >>>= 7
-    }
-    size += 1
-    size
-  }
+  def sizeOfUnsignedInt(int: Int): Int =
+    if (int < 0)
+      5
+    else if (int < 0x80)
+      1
+    else if (int < 0x4000)
+      2
+    else if (int < 0x200000)
+      3
+    else if (int < 0x10000000)
+      4
+    else
+      5
 
-  def sizeOf(long: Long): Int = {
-    var size = 0
-    var x = long
-    while ((x & 0xFFFFFFFFFFFFFF80L) != 0L) {
-      size += 1
-      x >>>= 7
-    }
-    size += 1
-    size
-  }
+  def sizeOfUnsignedInt(long: Long): Int =
+    if (long < 0L)
+      10
+    else if (long < 0x80L)
+      1
+    else if (long < 0x4000L)
+      2
+    else if (long < 0x200000L)
+      3
+    else if (long < 0x10000000L)
+      4
+    else if (long < 0x800000000L)
+      5
+    else if (long < 0x40000000000L)
+      6
+    else if (long < 0x2000000000000L)
+      7
+    else if (long < 0x100000000000000L)
+      8
+    else
+      9
 
   def compressJoin(left: Slice[Byte],
                    right: Slice[Byte]): Slice[Byte] =
@@ -174,13 +188,13 @@ private[swaydb] object Bytes {
     //if right was fully compressed just store right bytes with commonBytes integer. During read commonBytes int will be checked
     //to see if its the same size as left and the same left bytes will be returned for right as well.
     if (rightWithoutCommonBytes.isEmpty) {
-      val compressedSlice = Slice.create[Byte](left.size + sizeOf(commonBytes) + sizeOf(left.size) + tail.size)
+      val compressedSlice = Slice.create[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(left.size) + tail.size)
       compressedSlice addAll left
       compressedSlice addIntUnsigned commonBytes
       compressedSlice addAll ByteUtil.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     } else {
-      val compressedSlice = Slice.create[Byte](left.size + sizeOf(commonBytes) + sizeOf(rightWithoutCommonBytes.size) + rightWithoutCommonBytes.size + sizeOf(left.size) + tail.size)
+      val compressedSlice = Slice.create[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(rightWithoutCommonBytes.size) + rightWithoutCommonBytes.size + sizeOfUnsignedInt(left.size) + tail.size)
       compressedSlice addAll left
       compressedSlice addIntUnsigned commonBytes
       compressedSlice addIntUnsigned rightWithoutCommonBytes.size

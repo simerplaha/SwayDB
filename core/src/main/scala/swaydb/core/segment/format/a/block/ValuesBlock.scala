@@ -90,13 +90,13 @@ private[core] object ValuesBlock {
 
   val hasCompressionHeaderSize = {
     val size = Block.headerSize(true)
-    Bytes.sizeOf(size) +
+    Bytes.sizeOfUnsignedInt(size) +
       size
   }
 
   val noCompressionHeaderSize = {
     val size = Block.headerSize(false)
-    Bytes.sizeOf(size) +
+    Bytes.sizeOfUnsignedInt(size) +
       size
   }
 

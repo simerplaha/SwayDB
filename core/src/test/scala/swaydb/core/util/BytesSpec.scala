@@ -203,8 +203,8 @@ class BytesSpec extends WordSpec with Matchers {
   }
 
   "sizeOf" in {
-    Bytes.sizeOf(Int.MaxValue) shouldBe Slice.writeIntUnsigned(Int.MaxValue).size
-    Bytes.sizeOf(Long.MaxValue) shouldBe Slice.writeLongUnsigned(Long.MaxValue).size
+    Bytes.sizeOfUnsignedInt(Int.MaxValue) shouldBe Slice.writeIntUnsigned(Int.MaxValue).size
+    Bytes.sizeOfUnsignedInt(Long.MaxValue) shouldBe Slice.writeLongUnsigned(Long.MaxValue).size
   }
 
   "writeUnsignedIntReversed" in {
@@ -279,30 +279,6 @@ class BytesSpec extends WordSpec with Matchers {
       reader.readIntUnsigned().get shouldBe Int.MaxValue
       val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
       deNormalisedBytes shouldBe bytes
-    }
-  }
-
-  "writeUnsignedIntRightAligned & readUnsignedIntRightAligned" in {
-    runThis(100.times) {
-      val from = randomIntMax(10000000)
-      (from to from + 100000) foreach {
-        int =>
-          val slice = Slice.create[Byte](ByteSizeOf.varInt)
-          ByteUtil.writeUnsignedIntRightAligned(int, slice)
-          ByteUtil.readUnsignedIntRightAligned(slice).get shouldBe int
-      }
-    }
-  }
-
-  "writeUnsignedLongRightAligned & readUnsignedLongRightAligned" in {
-    runThis(100.times) {
-      val from: Long = (Long.MaxValue - randomIntMax()) max 0
-      (from to from + 100000) foreach {
-        long =>
-          val slice = Slice.create[Byte](ByteSizeOf.varLong)
-          ByteUtil.writeUnsignedLongRightAligned(long, slice)
-          ByteUtil.readUnsignedLongRightAligned(slice).get shouldBe long
-      }
     }
   }
 }

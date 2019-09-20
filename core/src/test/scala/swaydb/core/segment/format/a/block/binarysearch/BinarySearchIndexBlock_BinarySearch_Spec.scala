@@ -171,7 +171,7 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 
               val decompressedBytes = Block.unblock(reader.copy()).value.readFullBlock().value
 
-              block.bytesPerValue shouldBe Bytes.sizeOf(largestValue)
+              block.bytesPerValue shouldBe Bytes.sizeOfUnsignedInt(largestValue)
 
               block.valuesCount shouldBe values.size
 

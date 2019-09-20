@@ -113,7 +113,7 @@ private[writer] object DeadlineWriter {
         deadline.baseId
 
     val bytes =
-      Slice.create[Byte](Bytes.sizeOf(id) + currentDeadlineUnsignedBytes.size + plusSize)
+      Slice.create[Byte](Bytes.sizeOfUnsignedInt(id) + currentDeadlineUnsignedBytes.size + plusSize)
         .addIntUnsigned(id)
         .addAll(currentDeadlineUnsignedBytes)
 
@@ -141,7 +141,7 @@ private[writer] object DeadlineWriter {
             deadline.baseId
 
         val bytes =
-          Slice.create[Byte](Bytes.sizeOf(id) + deadlineCompressedBytes.size + plusSize)
+          Slice.create[Byte](Bytes.sizeOfUnsignedInt(id) + deadlineCompressedBytes.size + plusSize)
             .addIntUnsigned(id)
             .addAll(deadlineCompressedBytes)
 
@@ -166,7 +166,7 @@ private[writer] object DeadlineWriter {
         deadline.baseId
 
     val bytes =
-      Slice.create[Byte](Bytes.sizeOf(id) + plusSize)
+      Slice.create[Byte](Bytes.sizeOfUnsignedInt(id) + plusSize)
         .addIntUnsigned(id)
 
     (bytes, isKeyCompressed || hasPrefixCompressed)

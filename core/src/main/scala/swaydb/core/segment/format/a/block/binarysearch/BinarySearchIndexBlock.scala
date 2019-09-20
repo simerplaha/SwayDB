@@ -185,12 +185,12 @@ private[core] object BinarySearchIndexBlock {
       )
   }
 
-  def isVarInt(varIntSizeOfLargestValue: Int) =
+  def isUnsignedInt(varIntSizeOfLargestValue: Int) =
     varIntSizeOfLargestValue < ByteSizeOf.int
 
   def bytesToAllocatePerValue(largestValue: Int): Int = {
-    val varintSizeOfLargestValue = Bytes.sizeOf(largestValue)
-    if (isVarInt(varintSizeOfLargestValue))
+    val varintSizeOfLargestValue = Bytes.sizeOfUnsignedInt(largestValue)
+    if (isUnsignedInt(varintSizeOfLargestValue))
       varintSizeOfLargestValue
     else
       ByteSizeOf.int
@@ -215,11 +215,11 @@ private[core] object BinarySearchIndexBlock {
 
     val headerSize =
       Block.headerSize(hasCompression) +
-        Bytes.sizeOf(valuesCount) + //uniqueValuesCount
+        Bytes.sizeOfUnsignedInt(valuesCount) + //uniqueValuesCount
         ByteSizeOf.varInt + //bytesPerValue
         ByteSizeOf.boolean //isFullIndex
 
-    Bytes.sizeOf(headerSize) +
+    Bytes.sizeOfUnsignedInt(headerSize) +
       headerSize
   }
 
@@ -727,6 +727,6 @@ private[core] case class BinarySearchIndexBlock(offset: BinarySearchIndexBlock.O
                                                 bytesPerValue: Int,
                                                 isFullIndex: Boolean,
                                                 compressionInfo: Option[Block.CompressionInfo]) extends Block[BinarySearchIndexBlock.Offset] {
-  val isVarInt: Boolean =
-    BinarySearchIndexBlock.isVarInt(bytesPerValue)
+  val isUnsignedInt: Boolean =
+    BinarySearchIndexBlock.isUnsignedInt(bytesPerValue)
 }

@@ -50,7 +50,7 @@ object SegmentFooterBlock {
 
   val optimalBytesRequired =
     Block.headerSize(false) +
-      Bytes.sizeOf(Block.headerSize(false)) +
+      Bytes.sizeOfUnsignedInt(Block.headerSize(false)) +
       ByteSizeOf.byte + //1 byte for format
       ByteSizeOf.varInt + //created in level
       ByteSizeOf.varInt + //numberOfRanges

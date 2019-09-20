@@ -42,8 +42,8 @@ object AppendixMapEntryWriter {
         .addAll(entry.key)
 
     override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(entry.key.size) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size
   }
 
@@ -109,22 +109,22 @@ object AppendixMapEntryWriter {
       val minMaxFunctionIdBytesRequires =
         entry.value.minMaxFunctionId map {
           minMax =>
-            Bytes.sizeOf(minMax.min.size) +
+            Bytes.sizeOfUnsignedInt(minMax.min.size) +
               minMax.min.size +
-              Bytes.sizeOf(minMax.max.map(_.size).getOrElse(0)) +
+              Bytes.sizeOfUnsignedInt(minMax.max.map(_.size).getOrElse(0)) +
               minMax.max.map(_.size).getOrElse(0)
         } getOrElse 1
 
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(segmentPath.length) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(segmentPath.length) +
         segmentPath.length +
-        Bytes.sizeOf(entry.value.segmentSize) +
-        Bytes.sizeOf(entry.key.size) +
+        Bytes.sizeOfUnsignedInt(entry.value.segmentSize) +
+        Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size +
-        Bytes.sizeOf(maxKeyId) +
-        Bytes.sizeOf(maxKeyBytes.size) +
+        Bytes.sizeOfUnsignedInt(maxKeyId) +
+        Bytes.sizeOfUnsignedInt(maxKeyBytes.size) +
         maxKeyBytes.size +
-        Bytes.sizeOf(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L)) +
+        Bytes.sizeOfUnsignedInt(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L)) +
         minMaxFunctionIdBytesRequires
     }
   }

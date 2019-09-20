@@ -212,12 +212,12 @@ private[core] object SegmentBlock {
 
   val noCompressionHeaderSize = {
     val size = Block.headerSize(false)
-    Bytes.sizeOf(size) + size
+    Bytes.sizeOfUnsignedInt(size) + size
   }
 
   val hasCompressionHeaderSize = {
     val size = Block.headerSize(true)
-    Bytes.sizeOf(size) + size
+    Bytes.sizeOfUnsignedInt(size) + size
   }
 
   def headerSize(hasCompression: Boolean): Int =

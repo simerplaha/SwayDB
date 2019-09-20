@@ -95,8 +95,8 @@ object ValueSerializer {
         .addAll(value.value.getOrElse(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Put): Int =
-      Bytes.sizeOf(value.deadline.toNanos) +
-        Bytes.sizeOf(value.time.size) +
+      Bytes.sizeOfUnsignedInt(value.deadline.toNanos) +
+        Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
@@ -120,8 +120,8 @@ object ValueSerializer {
         .addAll(value.value.getOrElse(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Update): Int =
-      Bytes.sizeOf(value.deadline.toNanos) +
-        Bytes.sizeOf(value.time.size) +
+      Bytes.sizeOfUnsignedInt(value.deadline.toNanos) +
+        Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
         value.value.map(_.size).getOrElse(0)
 
@@ -143,7 +143,7 @@ object ValueSerializer {
         .addAll(value.time.time)
 
     override def bytesRequired(value: Value.Remove): Int =
-      Bytes.sizeOf(value.deadline.toNanos) +
+      Bytes.sizeOfUnsignedInt(value.deadline.toNanos) +
         value.time.size
 
     override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Remove] =
@@ -190,20 +190,20 @@ object ValueSerializer {
 
     override def bytesRequired(value: Slice[Value.Apply]): Int =
     //also add the total number of entries.
-      value.foldLeft(Bytes.sizeOf(value.size)) {
+      value.foldLeft(Bytes.sizeOfUnsignedInt(value.size)) {
         case (total, function) =>
           function match {
             case value: Value.Update =>
               val bytesRequired = ValueSerializer.bytesRequired(value)
-              total + Bytes.sizeOf(0) + Bytes.sizeOf(bytesRequired) + bytesRequired
+              total + Bytes.sizeOfUnsignedInt(0) + Bytes.sizeOfUnsignedInt(bytesRequired) + bytesRequired
 
             case value: Value.Function =>
               val bytesRequired = ValueSerializer.bytesRequired(value)
-              total + Bytes.sizeOf(1) + Bytes.sizeOf(bytesRequired) + bytesRequired
+              total + Bytes.sizeOfUnsignedInt(1) + Bytes.sizeOfUnsignedInt(bytesRequired) + bytesRequired
 
             case value: Value.Remove =>
               val bytesRequired = ValueSerializer.bytesRequired(value)
-              total + Bytes.sizeOf(2) + Bytes.sizeOf(bytesRequired) + bytesRequired
+              total + Bytes.sizeOfUnsignedInt(2) + Bytes.sizeOfUnsignedInt(bytesRequired) + bytesRequired
           }
       }
 
@@ -270,7 +270,7 @@ object ValueSerializer {
     override def bytesRequired(values: Seq[Slice[Byte]]): Int =
       values.foldLeft(0) {
         case (size, valueBytes) =>
-          size + Bytes.sizeOf(valueBytes.size) + valueBytes.size
+          size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size
       }
 
     override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Seq[Slice[Byte]]] =
@@ -409,10 +409,10 @@ object ValueSerializer {
                              maxUncommonBytesToStore: Int,
                              rangeFilterCommonPrefixes: Iterable[Int]): Int =
       ByteSizeOf.byte + //formatId
-        rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOf(_)) + //common prefix bytes sizes
+        rangeFilterCommonPrefixes.foldLeft(0)(_ + Bytes.sizeOfUnsignedInt(_)) + //common prefix bytes sizes
         //Bytes.sizeOf(numberOfRanges) because there can only be a max of numberOfRanges per group so ByteSizeOf.int is not required.
-        (Bytes.sizeOf(numberOfRanges) * rangeFilterCommonPrefixes.size) + //tuples count per common prefix count
-        (numberOfRanges * Bytes.sizeOf(maxUncommonBytesToStore) * 2) +
+        (Bytes.sizeOfUnsignedInt(numberOfRanges) * rangeFilterCommonPrefixes.size) + //tuples count per common prefix count
+        (numberOfRanges * Bytes.sizeOfUnsignedInt(maxUncommonBytesToStore) * 2) +
         (numberOfRanges * maxUncommonBytesToStore * 2) //store the bytes itself, * 2 because it's a tuple.
 
 
@@ -424,13 +424,13 @@ object ValueSerializer {
     override def bytesRequired(map: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]]): Int =
       map.foldLeft(ByteSizeOf.byte) {
         case (totalSize, (int, tuples)) =>
-          Bytes.sizeOf(int) +
-            Bytes.sizeOf(tuples.size) +
+          Bytes.sizeOfUnsignedInt(int) +
+            Bytes.sizeOfUnsignedInt(tuples.size) +
             tuples.foldLeft(0) {
               case (totalSize, (left, right)) =>
-                Bytes.sizeOf(left.size) +
+                Bytes.sizeOfUnsignedInt(left.size) +
                   left.size +
-                  Bytes.sizeOf(right.size) +
+                  Bytes.sizeOfUnsignedInt(right.size) +
                   right.size +
                   totalSize
             } + totalSize

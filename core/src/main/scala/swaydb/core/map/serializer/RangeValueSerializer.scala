@@ -52,7 +52,7 @@ object RangeValueSerializer {
       ValueSerializer.write[Value.Remove](rangeValue)(bytes.addIntUnsigned(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Remove): Int =
-      Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
+      Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Unit, Remove)] =
       ValueSerializer.read[Value.Remove](reader).map(remove => ((), remove))
@@ -66,7 +66,7 @@ object RangeValueSerializer {
       ValueSerializer.write[Value.Update](rangeValue)(bytes.addIntUnsigned(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Update): Int =
-      Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
+      Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Unit, Value.Update)] =
       ValueSerializer.read[Value.Update](reader).map(update => ((), update))
@@ -80,7 +80,7 @@ object RangeValueSerializer {
       ValueSerializer.write[Value.Function](rangeValue)(bytes.addIntUnsigned(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Function): Int =
-      Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
+      Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Unit, Value.Function)] =
       ValueSerializer.read[Value.Function](reader).map(function => ((), function))
@@ -94,7 +94,7 @@ object RangeValueSerializer {
       ValueSerializer.write[Value.PendingApply](rangeValue)(bytes.addIntUnsigned(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.PendingApply): Int =
-      Bytes.sizeOf(id) + ValueSerializer.bytesRequired(rangeValue)
+      Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Unit, Value.PendingApply)] =
       ValueSerializer.read[Value.PendingApply](reader).map(put => ((), put))
@@ -118,8 +118,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Remove, rangeValue: Value.Remove): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -152,8 +152,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Remove, rangeValue: Value.Update): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -186,8 +186,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Remove, rangeValue: Value.Function): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -220,8 +220,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Remove, rangeValue: Value.PendingApply): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -258,8 +258,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Put, rangeValue: Value.Remove): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -292,8 +292,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Put, rangeValue: Value.Update): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -326,8 +326,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Put, rangeValue: Value.Function): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -360,8 +360,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Put, rangeValue: Value.PendingApply): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -396,8 +396,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Update, rangeValue: Value.Remove): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -430,8 +430,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Update, rangeValue: Value.Update): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -463,8 +463,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Update, rangeValue: Value.Function): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -496,8 +496,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Update, rangeValue: Value.PendingApply): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -532,8 +532,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Function, rangeValue: Value.Remove): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -565,8 +565,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Function, rangeValue: Value.Update): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -598,8 +598,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Function, rangeValue: Value.Function): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -631,8 +631,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.Function, rangeValue: Value.PendingApply): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -667,8 +667,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.PendingApply, rangeValue: Value.Remove): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -700,8 +700,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.PendingApply, rangeValue: Value.Update): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -733,8 +733,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.PendingApply, rangeValue: Value.Function): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }
@@ -766,8 +766,8 @@ object RangeValueSerializer {
 
     override def bytesRequired(fromValue: Value.PendingApply, rangeValue: Value.PendingApply): Int = {
       val fromValueBytesRequired = ValueSerializer.bytesRequired(fromValue)
-      Bytes.sizeOf(id) +
-        Bytes.sizeOf(fromValueBytesRequired) +
+      Bytes.sizeOfUnsignedInt(id) +
+        Bytes.sizeOfUnsignedInt(fromValueBytesRequired) +
         fromValueBytesRequired +
         ValueSerializer.bytesRequired(rangeValue)
     }

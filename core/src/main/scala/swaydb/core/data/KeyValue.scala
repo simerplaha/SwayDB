@@ -506,7 +506,7 @@ private[core] object Transient {
     //Bytes.sizeOf(keyValues.last.stats.segmentMaxSortedIndexEntrySize) is to account for the keySize that gets written to
     //header bytes. This should really be Bytes.sizeOf(keyValues.last.stats.maxKeySize) but that is not calculated which should not
     //make much difference. This is expected to be 1 or two bytes anyway.
-    val toSize = Some(keyValues.last.stats.segmentMaxSortedIndexEntrySize + Bytes.sizeOf(keyValues.last.stats.segmentMaxSortedIndexEntrySize))
+    val toSize = Some(keyValues.last.stats.segmentMaxSortedIndexEntrySize + Bytes.sizeOfUnsignedInt(keyValues.last.stats.segmentMaxSortedIndexEntrySize))
     val normalisedKeyValues = Slice.create[Transient](keyValues.size)
 
     keyValues foreach {

@@ -25,7 +25,7 @@ object ByteSizeOf {
   val int = java.lang.Integer.BYTES
   val varInt = int + 1
   val long = java.lang.Long.BYTES
-  val varLong = long + 1
+  val varLong = 10
   val boolean = java.lang.Byte.BYTES
   val char = java.lang.Character.BYTES
   val double = java.lang.Double.BYTES

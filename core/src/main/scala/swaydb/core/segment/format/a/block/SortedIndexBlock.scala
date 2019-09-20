@@ -164,7 +164,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //enablePartialRead
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
-    Bytes.sizeOf(size) + size
+    Bytes.sizeOfUnsignedInt(size) + size
   }
 
   val noCompressionHeaderSize = {
@@ -178,7 +178,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //enablePartialRead
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
-    Bytes.sizeOf(size) + size
+    Bytes.sizeOfUnsignedInt(size) + size
   }
 
   def headerSize(hasCompression: Boolean): Int =
@@ -336,7 +336,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       val indexSize =
       indexEntrySizeMayBe match {
         case Some(indexEntrySize) if indexEntrySize > 0 =>
-          indexReader skip Bytes.sizeOf(indexEntrySize)
+          indexReader skip Bytes.sizeOfUnsignedInt(indexEntrySize)
           indexEntrySize
 
         case None | Some(_) =>

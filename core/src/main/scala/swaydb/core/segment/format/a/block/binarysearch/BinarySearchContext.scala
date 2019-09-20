@@ -63,7 +63,7 @@ private[block] object BinarySearchContext {
       override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
         binarySearchIndex
           .moveTo(offset)
-          .readInt(unsigned = binarySearchIndex.block.isVarInt)
+          .readInt(unsigned = binarySearchIndex.block.isUnsignedInt)
           .flatMap {
             sortedIndexOffsetValue =>
               SortedIndexBlock.readAndMatch(
