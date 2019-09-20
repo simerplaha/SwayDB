@@ -31,6 +31,7 @@ import scala.io.Source
 object IdsGenerator extends App {
 
   val startId = 0
+  //  val startId = 138
   val templateClass = classOf[BaseEntryIdFormatA].getSimpleName
 
   val path = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/id/$templateClass.scala")
@@ -43,6 +44,7 @@ object IdsGenerator extends App {
         .getLines
         .foldLeft((ListBuffer.empty[String], startId)) {
           case ((lines, id), oldLine) =>
+            //            && !oldLine.contains("Deadline.NoDeadline")
             if (oldLine.matches(""".*BaseEntryIdFormatA\(\d+\).*""")) {
               val nextLine = oldLine.replaceAll("""BaseEntryIdFormatA\(\d+\)""", s"""BaseEntryIdFormatA($id)""")
               (lines += nextLine, id + 1)
