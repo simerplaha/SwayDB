@@ -298,10 +298,12 @@ private[core] object FunctionMerger {
             oldKeyValue: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
                                                 functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
     if (newKeyValue.time > oldKeyValue.time)
-      oldKeyValue.getOrFetchApplies flatMap {
-        oldApplies =>
-          FixedMerger(newKeyValue, oldApplies)
-      }
+      oldKeyValue
+        .getOrFetchApplies
+        .flatMap {
+          oldApplies =>
+            FixedMerger(newKeyValue, oldApplies)
+        }
     else
       IO.Right(oldKeyValue)
 }

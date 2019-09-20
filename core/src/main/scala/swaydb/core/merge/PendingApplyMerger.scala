@@ -41,10 +41,12 @@ private[core] object PendingApplyMerger {
           IO.Right(oldKeyValue.copyWithTime(newKeyValue.time))
 
         case _: ReadOnly.Fixed =>
-          newKeyValue.getOrFetchApplies flatMap {
-            newApplies =>
-              ApplyMerger(newApplies, oldKeyValue)
-          }
+          newKeyValue
+            .getOrFetchApplies
+            .flatMap {
+              newApplies =>
+                ApplyMerger(newApplies, oldKeyValue)
+            }
       }
     else
       IO.Right(oldKeyValue)

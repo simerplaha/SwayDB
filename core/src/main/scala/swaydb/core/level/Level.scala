@@ -188,30 +188,31 @@ private[core] object Level extends LazyLogging {
                   else
                     IO.unit
 
-                deletedUnCommittedSegments map {
-                  _ =>
-                    new Level(
-                      dirs = levelStorage.dirs,
-                      bloomFilterConfig = bloomFilterConfig,
-                      hashIndexConfig = hashIndexConfig,
-                      binarySearchIndexConfig = binarySearchIndexConfig,
-                      sortedIndexConfig = sortedIndexConfig,
-                      valuesConfig = valuesConfig,
-                      segmentConfig = segmentConfig,
-                      mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-                      mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
-                      inMemory = levelStorage.memory,
-                      segmentSize = segmentSize,
-                      pushForward = pushForward,
-                      throttle = throttle,
-                      nextLevel = nextLevel,
-                      appendix = appendix,
-                      lock = lock,
-                      deleteSegmentsEventually = deleteSegmentsEventually,
-                      paths = paths,
-                      removeDeletedRecords = Level.removeDeletes(nextLevel)
-                    )
-                }
+                deletedUnCommittedSegments
+                  .map {
+                    _ =>
+                      new Level(
+                        dirs = levelStorage.dirs,
+                        bloomFilterConfig = bloomFilterConfig,
+                        hashIndexConfig = hashIndexConfig,
+                        binarySearchIndexConfig = binarySearchIndexConfig,
+                        sortedIndexConfig = sortedIndexConfig,
+                        valuesConfig = valuesConfig,
+                        segmentConfig = segmentConfig,
+                        mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+                        mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+                        inMemory = levelStorage.memory,
+                        segmentSize = segmentSize,
+                        pushForward = pushForward,
+                        throttle = throttle,
+                        nextLevel = nextLevel,
+                        appendix = appendix,
+                        lock = lock,
+                        deleteSegmentsEventually = deleteSegmentsEventually,
+                        paths = paths,
+                        removeDeletedRecords = Level.removeDeletes(nextLevel)
+                      )
+                  }
             }
         }
     }
@@ -237,23 +238,28 @@ private[core] object Level extends LazyLogging {
     segment.segmentSize < levelSegmentSize * 0.40
 
   def deleteUncommittedSegments(dirs: Seq[Dir], appendixSegments: Iterable[Segment]): IO[swaydb.Error.Level, Unit] =
-    dirs.flatMap(_.path.files(Extension.Seg)) foreachIO {
-      segmentToDelete =>
-        val toDelete =
-          appendixSegments.foldLeft(true) {
-            case (toDelete, appendixSegment) =>
-              if (appendixSegment.path == segmentToDelete)
-                false
-              else
-                toDelete
+    dirs
+      .flatMap(_.path.files(Extension.Seg))
+      .foreachIO {
+        segmentToDelete =>
+
+          val toDelete =
+            appendixSegments.foldLeft(true) {
+              case (toDelete, appendixSegment) =>
+                if (appendixSegment.path == segmentToDelete)
+                  false
+                else
+                  toDelete
+            }
+
+          if (toDelete) {
+            logger.info("SEGMENT {} not in appendix. Deleting uncommitted segment.", segmentToDelete)
+            Effect.delete(segmentToDelete)
+          } else {
+            IO.unit
           }
-        if (toDelete) {
-          logger.info("SEGMENT {} not in appendix. Deleting uncommitted segment.", segmentToDelete)
-          Effect.delete(segmentToDelete)
-        } else {
-          IO.unit
-        }
-    } getOrElse IO.unit
+      }
+      .getOrElse(IO.unit)
 
   def optimalSegmentsToPushForward(level: NextLevel,
                                    nextLevel: NextLevel,
@@ -290,6 +296,7 @@ private[core] object Level extends LazyLogging {
                                            keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] = {
     var segmentsTaken: Int = 0
     val segmentsToCollapse = ListBuffer.empty[Segment]
+
     level
       .segmentsInLevel()
       .foreachBreak {
@@ -301,23 +308,31 @@ private[core] object Level extends LazyLogging {
 
           segmentsTaken >= take
       }
+
     segmentsToCollapse
   }
 
   def delete(level: NextLevel): IO[swaydb.Error.Delete, Unit] =
-    level.close flatMap {
-      _ =>
-        import swaydb.Error.Delete.ExceptionHandler
-        level
-          .nextLevel
-          .map(_.delete)
-          .getOrElse {
-            level.paths.dirs foreachIO {
-              path =>
-                Effect.walkDelete(path.path)
-            } getOrElse IO.unit
-          }
-    }
+    level
+      .close
+      .flatMap {
+        _ =>
+          import swaydb.Error.Delete.ExceptionHandler
+
+          level
+            .nextLevel
+            .map(_.delete)
+            .getOrElse {
+              level
+                .paths
+                .dirs
+                .foreachIO {
+                  path =>
+                    Effect.walkDelete(path.path)
+                }
+                .getOrElse(IO.unit)
+            }
+      }
 }
 
 private[core] case class Level(dirs: Seq[Dir],
@@ -577,13 +592,16 @@ private[core] case class Level(dirs: Seq[Dir],
     if (deleteSegmentsEventually)
       copiedSegments foreach (_.deleteSegmentsEventually)
     else
-      copiedSegments foreach {
-        segmentToDelete =>
-          segmentToDelete.delete onLeftSideEffect {
-            failure =>
-              logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, failure)
-          }
-      }
+      copiedSegments
+        .foreach {
+          segmentToDelete =>
+            segmentToDelete
+              .delete
+              .onLeftSideEffect {
+                failure =>
+                  logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, failure)
+              }
+        }
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
@@ -637,23 +655,27 @@ private[core] case class Level(dirs: Seq[Dir],
           appendEntry = None
         )
       else
-        copyForwardOrCopyLocal(map) flatMap {
-          newSegments =>
-            if (newSegments.nonEmpty)
-              buildNewMapEntry(newSegments, None, None) flatMap {
-                entry =>
-                  appendix write entry
-              } onLeftSideEffect {
-                failure =>
-                  logFailure(s"${paths.head}: Failed to create a log entry.", failure)
-                  deleteCopiedSegments(newSegments)
-              }
-            else
-              Segment.emptyIterableIO
-        } map {
-          _ =>
-            ()
-        }
+        copyForwardOrCopyLocal(map)
+          .flatMap {
+            newSegments =>
+              if (newSegments.nonEmpty)
+                buildNewMapEntry(newSegments, None, None)
+                  .flatMap {
+                    entry =>
+                      appendix write entry
+                  }
+                  .onLeftSideEffect {
+                    failure =>
+                      logFailure(s"${paths.head}: Failed to create a log entry.", failure)
+                      deleteCopiedSegments(newSegments)
+                  }
+              else
+                Segment.emptyIterableIO
+          }
+          .flatMap {
+            _ =>
+              IO.unit
+          }
     }
   }
 
@@ -870,34 +892,37 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace(s"{}: Removing Segments {}", paths.head, segments.map(_.path.toString))
     val segmentsToRemove = Slice.create[Segment](segments.size)
 
-    segments.foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-      case (previousEntry, segmentToRemove) =>
-        segmentsToRemove add segmentToRemove
-        val nextEntry = MapEntry.Remove[Slice[Byte]](segmentToRemove.minKey)
-        previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-    } map {
-      mapEntry =>
-        //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
-        logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
-        appendix.write(mapEntry) flatMap {
-          _ =>
-            logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
-            // If a delete fails that would be due OS permission issue.
-            // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
-            // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
-            // Segments on reboot.
-            if (deleteSegmentsEventually) {
-              segmentsToRemove foreach (_.deleteSegmentsEventually)
-              IO.zero
-            } else {
-              Segment.deleteSegments(segmentsToRemove).recoverWith[swaydb.Error.Level, Int] {
-                case exception =>
-                  logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                  IO.zero
+    segments
+      .foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+        case (previousEntry, segmentToRemove) =>
+          segmentsToRemove add segmentToRemove
+          val nextEntry = MapEntry.Remove[Slice[Byte]](segmentToRemove.minKey)
+          previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
+      }
+      .map {
+        mapEntry =>
+          //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
+          logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
+          appendix.write(mapEntry) flatMap {
+            _ =>
+              logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
+              // If a delete fails that would be due OS permission issue.
+              // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
+              // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
+              // Segments on reboot.
+              if (deleteSegmentsEventually) {
+                segmentsToRemove foreach (_.deleteSegmentsEventually)
+                IO.zero
+              } else {
+                Segment.deleteSegments(segmentsToRemove).recoverWith[swaydb.Error.Level, Int] {
+                  case exception =>
+                    logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
+                    IO.zero
+                }
               }
-            }
-        }
-    } getOrElse IO.Left[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
+          }
+      }
+      .getOrElse(IO.Left[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved))
   }
 
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
@@ -959,14 +984,16 @@ private[core] case class Level(dirs: Seq[Dir],
                     targetSegments: Iterable[Segment],
                     appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
-    Segment.getAllKeyValues(segments) flatMap {
-      keyValues =>
-        putKeyValues(
-          keyValues = keyValues,
-          targetSegments = targetSegments,
-          appendEntry = appendEntry
-        )
-    }
+    Segment
+      .getAllKeyValues(segments)
+      .flatMap {
+        keyValues =>
+          putKeyValues(
+            keyValues = keyValues,
+            targetSegments = targetSegments,
+            appendEntry = appendEntry
+          )
+      }
   }
 
   /**
@@ -1116,7 +1143,9 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def getFromNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.get(key)) getOrElse IO.Defer.none
+    nextLevel
+      .map(_.get(key))
+      .getOrElse(IO.Defer.none)
 
   override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get(key)
@@ -1132,35 +1161,47 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
     IO {
-      appendix.skipList.values().asScala exists {
-        segment =>
-          segment.minMaxFunctionId exists {
-            minMax =>
-              MinMax.contains(
-                key = functionId,
-                minMax = minMax
-              )(FunctionStore.order)
-          }
-      }
+      appendix
+        .skipList
+        .values()
+        .asScala
+        .exists {
+          segment =>
+            segment
+              .minMaxFunctionId
+              .exists {
+                minMax =>
+                  MinMax.contains(
+                    key = functionId,
+                    minMax = minMax
+                  )(FunctionStore.order)
+              }
+        }
     }
 
   override def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
-    mightContainKeyInThisLevel(key) flatMap {
-      yes =>
-        if (yes)
-          IO.`true`
-        else
-          nextLevel.map(_.mightContainKey(key)) getOrElse IO.`false`
-    }
+    mightContainKeyInThisLevel(key)
+      .flatMap {
+        yes =>
+          if (yes)
+            IO.`true`
+          else
+            nextLevel
+              .map(_.mightContainKey(key))
+              .getOrElse(IO.`false`)
+      }
 
   override def mightContainFunction(functionId: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
-    mightContainFunctionInThisLevel(functionId) flatMap {
-      yes =>
-        if (yes)
-          IO.`true`
-        else
-          nextLevel.map(_.mightContainFunction(functionId)) getOrElse IO.`false`
-    }
+    mightContainFunctionInThisLevel(functionId)
+      .flatMap {
+        yes =>
+          if (yes)
+            IO.`true`
+          else
+            nextLevel
+              .map(_.mightContainFunction(functionId))
+              .getOrElse(IO.`false`)
+      }
 
   private def lowerInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
     appendix
@@ -1168,14 +1209,17 @@ private[core] case class Level(dirs: Seq[Dir],
       .lower(key)
       .map {
         segment =>
-          segment.lower(key) map {
-            result =>
-              LevelSeek(
-                segmentId = segment.segmentId,
-                result = result
-              )
-          }
-      } getOrElse LevelSeek.none
+          segment
+            .lower(key)
+            .map {
+              result =>
+                LevelSeek(
+                  segmentId = segment.segmentId,
+                  result = result
+                )
+            }
+      }
+      .getOrElse(LevelSeek.none)
 
   private def lowerFromNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
     nextLevel.map(_.lower(key)) getOrElse IO.Defer.none
@@ -1202,14 +1246,17 @@ private[core] case class Level(dirs: Seq[Dir],
       .floor(key)
       .map {
         segment =>
-          segment.higher(key) map {
-            result =>
-              LevelSeek(
-                segmentId = segment.segmentId,
-                result = result
-              )
-          }
-      } getOrElse LevelSeek.none
+          segment
+            .higher(key)
+            .map {
+              result =>
+                LevelSeek(
+                  segmentId = segment.segmentId,
+                  result = result
+                )
+            }
+      }
+      .getOrElse(LevelSeek.none)
 
   private def higherFromHigherSegment(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
     appendix
@@ -1217,35 +1264,42 @@ private[core] case class Level(dirs: Seq[Dir],
       .higher(key)
       .map {
         segment =>
-          segment.higher(key) map {
-            result =>
-              LevelSeek(
-                segmentId = segment.segmentId,
-                result = result
-              )
-          }
-      } getOrElse LevelSeek.none
+          segment
+            .higher(key)
+            .map {
+              result =>
+                LevelSeek(
+                  segmentId = segment.segmentId,
+                  result = result
+                )
+            }
+      }
+      .getOrElse(LevelSeek.none)
 
   private[core] def higherInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]] =
-    higherFromFloorSegment(key) flatMap {
-      fromFloor =>
-        if (fromFloor.isDefined)
-          IO.Right(fromFloor)
-        else
-          higherFromHigherSegment(key)
-    }
+    higherFromFloorSegment(key)
+      .flatMap {
+        fromFloor =>
+          if (fromFloor.isDefined)
+            IO.Right(fromFloor)
+          else
+            higherFromHigherSegment(key)
+      }
 
   private def higherInNextLevel(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel.map(_.higher(key)) getOrElse IO.Defer.none
+    nextLevel
+      .map(_.higher(key))
+      .getOrElse(IO.Defer.none)
 
   def ceiling(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    get(key) flatMap {
-      case got @ Some(_) =>
-        IO.Defer(got)
+    get(key)
+      .flatMap {
+        case got @ Some(_) =>
+          IO.Defer(got)
 
-      case None =>
-        higher(key)
-    }
+        case None =>
+          higher(key)
+      }
 
   override def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher(
@@ -1259,56 +1313,75 @@ private[core] case class Level(dirs: Seq[Dir],
    * It does not check if the returned key is removed. Use [[Level.head]] instead.
    */
   override def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
-    nextLevel.map(_.headKey) getOrElse IO.Defer.none map {
-      nextLevelFirstKey =>
-        MinMax.minFavourLeft(
-          left = appendix.skipList.headKey,
-          right = nextLevelFirstKey
-        )(keyOrder)
-    }
+    nextLevel
+      .map(_.headKey)
+      .getOrElse(IO.Defer.none)
+      .map {
+        nextLevelFirstKey =>
+          MinMax.minFavourLeft(
+            left = appendix.skipList.headKey,
+            right = nextLevelFirstKey
+          )(keyOrder)
+      }
 
   /**
    * Does a quick appendix lookup.
    * It does not check if the returned key is removed. Use [[Level.last]] instead.
    */
   override def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
-    nextLevel.map(_.lastKey) getOrElse IO.Defer.none map {
-      nextLevelLastKey =>
-        MinMax.maxFavourLeft(
-          left = appendix.skipList.last().map(_.maxKey.maxKey),
-          right = nextLevelLastKey
-        )(keyOrder)
-    }
+    nextLevel
+      .map(_.lastKey)
+      .getOrElse(IO.Defer.none)
+      .map {
+        nextLevelLastKey =>
+          MinMax.maxFavourLeft(
+            left = appendix.skipList.last().map(_.maxKey.maxKey),
+            right = nextLevelLastKey
+          )(keyOrder)
+      }
 
   override def head: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    headKey flatMap {
-      firstKey =>
-        firstKey.map(ceiling) getOrElse IO.Defer.none
-    }
+    headKey
+      .flatMap {
+        firstKey =>
+          firstKey
+            .map(ceiling)
+            .getOrElse(IO.Defer.none)
+      }
 
   override def last: IO.Defer[Error.Level, Option[ReadOnly.Put]] =
-    lastKey flatMap {
-      lastKey =>
-        lastKey.map(floor) getOrElse IO.Defer.none
-    }
+    lastKey
+      .flatMap {
+        lastKey =>
+          lastKey
+            .map(floor)
+            .getOrElse(IO.Defer.none)
+      }
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
-    appendix.skipList contains minKey
+    appendix
+      .skipList
+      .contains(minKey)
 
   override def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int] =
-    appendix.skipList.foldLeft(IO[swaydb.Error.Level, Int](0)) {
-      case (currentTotal, (_, segment)) =>
-        segment.getKeyValueCount() flatMap {
-          segmentSize =>
-            currentTotal.map(_ + segmentSize)
-        }
-    } flatMap {
-      thisLevelCount =>
-        nextLevel
-          .map(_.bloomFilterKeyValueCount)
-          .getOrElse(IO.zero)
-          .map(_ + thisLevelCount)
-    }
+    appendix
+      .skipList
+      .foldLeft(IO.zero: IO[swaydb.Error.Level, Int]) {
+        case (currentTotal, (_, segment)) =>
+          segment
+            .getKeyValueCount()
+            .flatMap {
+              segmentSize =>
+                currentTotal.map(_ + segmentSize)
+            }
+      }
+      .flatMap {
+        thisLevelCount =>
+          nextLevel
+            .map(_.bloomFilterKeyValueCount)
+            .getOrElse(IO.zero)
+            .map(_ + thisLevelCount)
+      }
 
   def getSegment(minKey: Slice[Byte]): Option[Segment] =
     appendix
@@ -1362,10 +1435,12 @@ private[core] case class Level(dirs: Seq[Dir],
     levelSize + nextLevel.map(_.levelSize).getOrElse(0L)
 
   def segmentCountAndLevelSize: (Int, Long) =
-    appendix.skipList.foldLeft(0, 0L) {
-      case ((segments, size), (_, segment)) =>
-        (segments + 1, size + segment.segmentSize)
-    }
+    appendix
+      .skipList
+      .foldLeft(0, 0L) {
+        case ((segments, size), (_, segment)) =>
+          (segments + 1, size + segment.segmentSize)
+      }
 
   def meterFor(levelNumber: Int): Option[LevelMeter] =
     if (levelNumber == paths.head.path.folderId)
@@ -1374,34 +1449,40 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel.flatMap(_.meterFor(levelNumber))
 
   override def takeSegments(size: Int, condition: Segment => Boolean): Iterable[Segment] =
-    appendix.skipList.values().asScala filter {
-      segment =>
-        condition(segment)
-    } take size
+    appendix
+      .skipList
+      .values()
+      .asScala
+      .filter(condition)
+      .take(size)
 
   override def takeLargeSegments(size: Int): Iterable[Segment] =
     appendix
-      .skipList.
-      values()
+      .skipList
+      .values()
       .asScala
-      .filter(_.segmentSize > segmentSize) take size
+      .filter(_.segmentSize > segmentSize)
+      .take(size)
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
     appendix
-      .skipList.
-      values()
+      .skipList
+      .values()
       .asScala
-      .filter(Level.isSmallSegment(_, segmentSize)) take size
+      .filter(Level.isSmallSegment(_, segmentSize))
+      .take(size)
 
   override def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment]) =
-    nextLevel map {
-      nextLevel =>
-        Level.optimalSegmentsToPushForward(
-          level = self,
-          nextLevel = nextLevel,
-          take = take
-        )
-    } getOrElse Level.emptySegmentsToPush
+    nextLevel
+      .map {
+        nextLevel =>
+          Level.optimalSegmentsToPushForward(
+            level = self,
+            nextLevel = nextLevel,
+            take = take
+          )
+      }
+      .getOrElse(Level.emptySegmentsToPush)
 
   override def optimalSegmentsToCollapse(take: Int): Iterable[Segment] =
     Level.optimalSegmentsToCollapse(
@@ -1411,8 +1492,8 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def hasSmallSegments: Boolean =
     appendix
-      .skipList.
-      values()
+      .skipList
+      .values()
       .asScala
       .exists(Level.isSmallSegment(_, segmentSize))
 
@@ -1421,7 +1502,10 @@ private[core] case class Level(dirs: Seq[Dir],
       .exists {
         segment =>
           Level.shouldCollapse(self, segment) ||
-            FiniteDurations.getNearestDeadline(None, segment.nearestExpiryDeadline).exists(_.isOverdue())
+            FiniteDurations.getNearestDeadline(
+              deadline = None,
+              next = segment.nearestExpiryDeadline
+            ).exists(_.isOverdue())
       }
 
   def hasKeyValuesToExpire: Boolean =
@@ -1430,21 +1514,30 @@ private[core] case class Level(dirs: Seq[Dir],
       .isDefined
 
   def close: IO[swaydb.Error.Close, Unit] =
-    (nextLevel.map(_.close) getOrElse IO.unit) flatMap {
-      _ =>
-        appendix.close() onLeftSideEffect {
-          failure =>
-            logger.error("{}: Failed to close appendix", paths.head, failure)
-        }
-        closeSegments() onLeftSideEffect {
-          failure =>
-            logger.error("{}: Failed to close segments", paths.head, failure)
-        }
-        releaseLocks onLeftSideEffect {
-          failure =>
-            logger.error("{}: Failed to release locks", paths.head, failure)
-        }
-    }
+    nextLevel
+      .map(_.close)
+      .getOrElse(IO.unit)
+      .flatMap {
+        _ =>
+          appendix
+            .close()
+            .onLeftSideEffect {
+              failure =>
+                logger.error("{}: Failed to close appendix", paths.head, failure)
+            }
+
+          closeSegments()
+            .onLeftSideEffect {
+              failure =>
+                logger.error("{}: Failed to close segments", paths.head, failure)
+            }
+
+          releaseLocks
+            .onLeftSideEffect {
+              failure =>
+                logger.error("{}: Failed to release locks", paths.head, failure)
+            }
+      }
 
   def closeSegments(): IO[swaydb.Error.Level, Unit] = {
     segmentsInLevel()
@@ -1454,7 +1547,9 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.error("{}: Failed to close Segment file.", paths.head, failure.exception)
       }
 
-    nextLevel.map(_.closeSegments()) getOrElse IO.unit
+    nextLevel
+      .map(_.closeSegments())
+      .getOrElse(IO.unit)
   }
 
   override val isTrash: Boolean =
@@ -1464,7 +1559,10 @@ private[core] case class Level(dirs: Seq[Dir],
     false
 
   def lastSegmentId: Option[Long] =
-    appendix.skipList.last().map(_.segmentId)
+    appendix
+      .skipList
+      .last()
+      .map(_.segmentId)
 
   override def stateId: Long =
     segmentIDGenerator.currentId

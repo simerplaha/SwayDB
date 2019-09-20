@@ -28,29 +28,9 @@ import scala.concurrent.Promise
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
-object ActorWire {
-  def apply[I, S](impl: I,
-                  state: S)(implicit scheduler: Scheduler): ActorWire[I, S] =
-    new ActorWire(
-      impl = impl,
-      interval = None,
-      state = state
-    )
-
-  def timer[I, S](impl: I,
-                  interval: FiniteDuration,
-                  stashCapacity: Int,
-                  state: S)(implicit scheduler: Scheduler): ActorWire[I, S] =
-    new ActorWire(
-      impl = impl,
-      interval = Some((interval, stashCapacity)),
-      state = state
-    )
-}
-
-final class ActorWire[I, S](impl: I,
-                            interval: Option[(FiniteDuration, Int)],
-                            state: S)(implicit val scheduler: Scheduler) { wire =>
+final class ActorWire[I, S] private[swaydb](impl: I,
+                                            interval: Option[(FiniteDuration, Int)],
+                                            state: S)(implicit val scheduler: Scheduler) { wire =>
 
   implicit def ec = scheduler.ec
 

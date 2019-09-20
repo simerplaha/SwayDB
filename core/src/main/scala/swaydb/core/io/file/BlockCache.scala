@@ -50,6 +50,7 @@ private[core] object BlockCache {
     memorySweeper match {
       case MemorySweeper.Disabled =>
         None
+
       case enabled: MemorySweeper.Enabled =>
         enabled match {
           case block: MemorySweeper.BlockSweeper =>
@@ -100,6 +101,7 @@ private[core] object BlockCache {
             size
           else
             (state.blockSizeDouble * Math.ceil(Math.abs(size / state.blockSizeDouble))).toInt
+
         ((fileSize.toInt - keyPosition) min seekSize) max 0
     }
 
@@ -109,18 +111,18 @@ private[core] object BlockCache {
     else
       (state.blockSizeDouble * Math.floor(Math.abs(position / state.blockSizeDouble))).toInt
 
-  sealed trait IOEffect {
-    def readAndCache(keyPosition: Int,
-                     size: Int,
-                     file: DBFileType,
-                     state: State): IO[Error.IO, Slice[Byte]]
+  sealed trait BlockIO {
+    def seek(keyPosition: Int,
+             size: Int,
+             file: DBFileType,
+             state: State): IO[Error.IO, Slice[Byte]]
   }
 
-  implicit object IOEffect extends IOEffect {
-    def readAndCache(keyPosition: Int,
-                     size: Int,
-                     file: DBFileType,
-                     state: State): IO[Error.IO, Slice[Byte]] =
+  implicit object BlockIO extends BlockIO {
+    def seek(keyPosition: Int,
+             size: Int,
+             file: DBFileType,
+             state: State): IO[Error.IO, Slice[Byte]] =
       seekSize(
         keyPosition = keyPosition,
         size = size,
@@ -133,18 +135,18 @@ private[core] object BlockCache {
               position = keyPosition,
               size = seekSize
             )
-            .map {
+            .flatMap {
               bytes =>
                 if (state.blockSize <= 0) {
-                  bytes
+                  IO.Right(bytes)
                 } else if (bytes.isEmpty) {
-                  Slice.emptyBytes
+                  IO.emptyBytes
                 } else if (bytes.size <= state.blockSize) {
                   val key = new Key(file.blockCacheFileId, keyPosition)
                   val value = bytes.unslice()
                   state.map.put(key, value)
                   state.sweeper.add(key, value, state.map)
-                  bytes
+                  IO.Right(bytes)
                 } else {
                   var index = 0
                   var position = keyPosition
@@ -157,56 +159,55 @@ private[core] object BlockCache {
                     position = position + bytesToPut.size
                     index += 1
                   }
-                  bytes
+                  IO.Right(bytes)
                 }
             }
       }
   }
 
   @tailrec
-  private[file] def doSeek(position: Int,
-                           size: Int,
-                           bytes: Slice[Byte],
-                           file: DBFileType,
-                           state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] = {
+  private def getOrSeek(position: Int,
+                        size: Int,
+                        headBytes: Slice[Byte],
+                        file: DBFileType,
+                        state: State)(implicit blockIO: BlockIO): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
     state.map.get(new Key(file.blockCacheFileId, keyPosition)) match {
       case Some(fromCache) =>
-        val cachedBytes = fromCache.take(position - keyPosition, size)
-        val mergedBytes =
-          if (bytes.isEmpty)
-            cachedBytes
-          else
-            bytes ++ cachedBytes
+        val seekedBytes = fromCache.take(position - keyPosition, size)
 
-        if (cachedBytes.isEmpty || cachedBytes.size == size)
+        val mergedBytes =
+          if (headBytes.isEmpty)
+            seekedBytes
+          else
+            headBytes ++ seekedBytes
+
+        if (seekedBytes.isEmpty || seekedBytes.size == size)
           IO.Right(mergedBytes)
         else
-          doSeek(
-            position = position + cachedBytes.size,
-            size = size - cachedBytes.size,
-            bytes = mergedBytes,
+          getOrSeek(
+            position = position + seekedBytes.size,
+            size = size - seekedBytes.size,
+            headBytes = mergedBytes,
             file = file,
             state = state
-          )(effect)
+          )(blockIO)
 
       case None =>
-        effect.readAndCache(
+        blockIO.seek(
           keyPosition = keyPosition,
           file = file,
           size = position - keyPosition + size,
           state = state
-        ) match {
-          case IO.Right(seekedBytes) =>
+        ) flatMap {
+          seekedBytes =>
             val bytesToReturn = seekedBytes.take(position - keyPosition, size)
-            if (bytes.isEmpty)
+
+            if (headBytes.isEmpty)
               IO.Right(bytesToReturn)
             else
-              IO.Right(bytes ++ bytesToReturn)
-
-          case IO.Left(error) =>
-            IO.Left(error)
+              IO.Right(headBytes ++ bytesToReturn)
         }
     }
   }
@@ -214,12 +215,12 @@ private[core] object BlockCache {
   def getOrSeek(position: Int,
                 size: Int,
                 file: DBFileType,
-                state: State)(implicit effect: IOEffect): IO[Error.IO, Slice[Byte]] =
-    doSeek(
+                state: State)(implicit effect: BlockIO): IO[Error.IO, Slice[Byte]] =
+    getOrSeek(
       position = position,
       size = size,
       file = file,
-      bytes = Slice.emptyBytes,
+      headBytes = Slice.emptyBytes,
       state = state
     )(effect)
 }

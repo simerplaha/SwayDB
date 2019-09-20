@@ -300,19 +300,36 @@ object Actor {
     )(scheduler.ec)
 
   def wire[T](impl: T)(implicit scheduler: Scheduler): ActorWire[T, Unit] =
-    ActorWire[T, Unit](
+    new ActorWire(
       impl = impl,
+      interval = None,
       state = ()
+    )
+
+  def wire[T, S](impl: T, state: S)(implicit scheduler: Scheduler): ActorWire[T, S] =
+    new ActorWire(
+      impl = impl,
+      interval = None,
+      state = state
     )
 
   def wireTimer[T](interval: FiniteDuration,
                    stashCapacity: Int,
                    impl: T)(implicit scheduler: Scheduler): ActorWire[T, Unit] =
-    ActorWire.timer[T, Unit](
+    new ActorWire(
       impl = impl,
-      interval = interval,
-      stashCapacity = stashCapacity,
+      interval = Some((interval, stashCapacity)),
       state = ()
+    )
+
+  def wireTimer[T, S](interval: FiniteDuration,
+                      stashCapacity: Int,
+                      impl: T,
+                      state: S)(implicit scheduler: Scheduler): ActorWire[T, S] =
+    new ActorWire(
+      impl = impl,
+      interval = Some((interval, stashCapacity)),
+      state = state
     )
 
   /**

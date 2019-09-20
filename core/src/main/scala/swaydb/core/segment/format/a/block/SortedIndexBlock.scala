@@ -352,21 +352,23 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       //The above fetches another 5 bytes (unsigned int) along with previous index entry.
       //These 5 bytes contains the next index's size. Here the next key-values indexSize and indexOffset are read.
+
       val (nextIndexSize, nextIndexOffset) =
-      if (extraBytesRead <= 0) {
-        //no next key-value, next size is 0 and set offset to -1.
-        (0, overwriteNextIndexOffset.getOrElse(-1))
-      } else {
-        //if extra tail byte were read this mean that this index has a next key-value.
-        //next indexEntrySize is only read if it's required.
-        indexEntryBytesAndNextIndexEntrySize
-          .drop(indexSize)
-          .readIntUnsigned()
-          .map {
-            nextIndexEntrySize =>
-              (nextIndexEntrySize, indexReader.getPosition - extraBytesRead)
-          }.get
-      }
+        if (extraBytesRead <= 0) {
+          //no next key-value, next size is 0 and set offset to -1.
+          (0, overwriteNextIndexOffset.getOrElse(-1))
+        } else {
+          //if extra tail byte were read this mean that this index has a next key-value.
+          //next indexEntrySize is only read if it's required.
+
+          val nextIndexEntrySize =
+            indexEntryBytesAndNextIndexEntrySize
+              .drop(indexSize)
+              .readIntUnsigned()
+              .get
+
+          (nextIndexEntrySize, indexReader.getPosition - extraBytesRead)
+        }
 
       //take only the bytes required for this in entry and submit it for parsing/reading.
       val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
@@ -409,7 +411,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           previous = previous
         )
     } catch {
-      case exception: Exception =>
+      case exception: Throwable =>
         IO.failed(exception)
     }
 
@@ -417,42 +419,46 @@ private[core] object SortedIndexBlock extends LazyLogging {
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
-    try {
-      sortedIndexReader moveTo 0
-      val readSortedIndexReader = sortedIndexReader.readAllAndGetReader().get
+    sortedIndexReader
+      .moveTo(0)
+      .readAllAndGetReader()
+      .flatMap {
+        readSortedIndexReader =>
+          val keyValues = addTo getOrElse Slice.create[Persistent](keyValueCount)
 
-      val entries = addTo getOrElse Slice.create[Persistent](keyValueCount)
-      (1 to keyValueCount).foldLeftIO(Option.empty[Persistent]) {
-        case (previousMayBe, _) =>
-          val nextIndexSize =
-            previousMayBe map {
-              previous =>
-                //If previous is known, keep reading same reader
-                // and set the next position of the reader to be of the next index's offset.
-                readSortedIndexReader moveTo previous.nextIndexOffset
-                previous.nextIndexSize
-            }
+          (1 to keyValueCount).foldLeftIO(Option.empty[Persistent]) {
+            case (previousMayBe, _) =>
+              val nextIndexSize =
+                previousMayBe map {
+                  previous =>
+                    //If previous is known, keep reading same reader
+                    // and set the next position of the reader to be of the next index's offset.
+                    readSortedIndexReader moveTo previous.nextIndexOffset
+                    previous.nextIndexSize
+                }
 
-          readKeyValue(
-            indexEntrySizeMayBe = nextIndexSize,
-            indexReader = readSortedIndexReader,
-            overwriteNextIndexOffset = None,
-            fullRead = true,
-            valuesReader = valuesReader,
-            previous = previousMayBe
-          ) flatMap {
-            next =>
-              next.toPersistent map {
+              readKeyValue(
+                indexEntrySizeMayBe = nextIndexSize,
+                indexReader = readSortedIndexReader,
+                overwriteNextIndexOffset = None,
+                fullRead = true,
+                valuesReader = valuesReader,
+                previous = previousMayBe
+              ) flatMap {
                 next =>
-                  entries add next
-                  Some(next)
+                  next
+                    .toPersistent
+                    .map {
+                      next =>
+                        keyValues add next
+                        Some(next)
+                    }
               }
+          } flatMap {
+            _ =>
+              IO.Right(keyValues)
           }
-      } map (_ => entries)
-    } catch {
-      case exception: Exception =>
-        IO.failed(exception)
-    }
+      }
 
   def seekAndMatch(key: Slice[Byte],
                    startFrom: Option[Persistent.Partial],
@@ -484,12 +490,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
         next = None,
         indexReader = sortedIndexReader,
         valuesReader = valuesReader
-      ) map {
+      ) flatMap {
         case KeyMatcher.Result.Matched(_, keyValue, _) =>
-          Some(keyValue)
+          IO.Right(Some(keyValue))
 
         case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-          None
+          IO.none
       }
 
   def searchSeekOne(key: Slice[Byte],
@@ -540,12 +546,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
             next = None,
             indexReader = sortedIndexReader,
             valuesReader = valuesReader
-          ) map {
+          ) flatMap {
             case KeyMatcher.Result.Matched(_, keyValue, _) =>
-              Some(keyValue)
+              IO.Right(Some(keyValue))
 
             case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-              None
+              IO.none
           }
 
         case None =>
@@ -613,12 +619,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
             next = next,
             indexReader = sortedIndexReader,
             valuesReader = valuesReader
-          ) map {
+          ) flatMap {
             case KeyMatcher.Result.Matched(_, keyValue, _) =>
-              Some(keyValue)
+              IO.Right(Some(keyValue))
 
             case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-              None
+              IO.none
           }
 
         case None =>
@@ -631,12 +637,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
                 matcher = KeyMatcher.Lower(key),
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
-              ) map {
+              ) flatMap {
                 case KeyMatcher.Result.Matched(_, keyValue, _) =>
-                  Some(keyValue)
+                  IO.Right(Some(keyValue))
 
                 case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-                  None
+                  IO.none
               }
 
             case None =>
@@ -664,12 +670,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
           matcher = matcher,
           indexReader = indexReader,
           valuesReader = valuesReader
-        ) map {
+        ) flatMap {
           case KeyMatcher.Result.Matched(_, keyValue, _) =>
-            Some(keyValue)
+            IO.Right(Some(keyValue))
 
           case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-            None
+            IO.none
         }
 
       //No start from. Get the first index entry from the File and start from there.
@@ -762,12 +768,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
       overwriteNextIndexOffset = overwriteNextIndexOffset,
       sortedIndexReader = sortedIndexReader,
       valuesReader = valuesReader
-    ) map {
+    ) flatMap {
       case Result.Matched(_, result, _) =>
-        Some(result)
+        IO.Right(Some(result))
 
       case Result.BehindStopped(_) | Result.AheadOrNoneOrEnd | Result.BehindFetchNext(_) =>
-        None
+        IO.none
     }
 
   def readAndMatch(matcher: KeyMatcher,
@@ -949,12 +955,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
       fullRead = fullRead,
       indexReader = indexReader,
       valuesReader = valuesReader
-    ) map {
+    ) flatMap {
       case KeyMatcher.Result.Matched(_, keyValue, _) =>
-        Some(keyValue)
+        IO.Right(Some(keyValue))
 
       case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-        None
+        IO.none
     }
 
   /**

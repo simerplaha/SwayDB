@@ -29,7 +29,7 @@ import swaydb.core.util.FiniteDurations._
 import swaydb.core.util.{FiniteDurations, Futures}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
-import swaydb.{ActorWire, IO, Tag}
+import swaydb.{Actor, ActorWire, IO, Tag}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -80,7 +80,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                 case ((jobs, executionContext), child) =>
                   val statesMap = mutable.Map.empty[LevelRef, ThrottleLevelState]
 
-                  val compaction =
+                  val state =
                     ThrottleState(
                       levels = Slice(jobs.toArray),
                       compactionStates = statesMap,
@@ -89,10 +89,10 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                     )
 
                   Some(
-                    ActorWire[Compactor[ThrottleState], ThrottleState](
+                    Actor.wire[Compactor[ThrottleState], ThrottleState](
                       impl = ThrottleCompactor,
-                      state = compaction
-                    )(compaction.scheduler)
+                      state = state
+                    )(state.scheduler)
                   )
               } head
         }
@@ -279,7 +279,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
           child
             .ask
             .flatMap {
-              (impl, childState, childActor: ActorWire[Compactor[ThrottleState], ThrottleState]) =>
+              (impl, childState, childActor) =>
                 impl.terminate(childState, childActor)
             }
 

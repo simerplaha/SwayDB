@@ -58,22 +58,25 @@ private[core] object Get {
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) map {
-              nextOption =>
-                nextOption flatMap {
-                  next =>
-                    if (next.hasTimeLeft())
-                      RemoveMerger(current, next) match {
-                        case put: ReadOnly.Put if put.hasTimeLeft() =>
-                          Some(put)
+            nextGetter
+              .get(key)
+              .map {
+                nextOption =>
+                  nextOption
+                    .flatMap {
+                      next =>
+                        if (next.hasTimeLeft())
+                          RemoveMerger(current, next) match {
+                            case put: ReadOnly.Put if put.hasTimeLeft() =>
+                              Some(put)
 
-                        case _: ReadOnly.Fixed =>
+                            case _: ReadOnly.Fixed =>
+                              None
+                          }
+                        else
                           None
-                      }
-                    else
-                      None
-                }
-            }
+                    }
+              }
           else
             IO.Defer.none
 
@@ -85,22 +88,25 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
-            nextGetter.get(key) map {
-              nextOption =>
-                nextOption flatMap {
-                  next =>
-                    if (next.hasTimeLeft())
-                      UpdateMerger(current, next) match {
-                        case put: ReadOnly.Put if put.hasTimeLeft() =>
-                          Some(put)
+            nextGetter
+              .get(key)
+              .map {
+                nextOption =>
+                  nextOption
+                    .flatMap {
+                      next =>
+                        if (next.hasTimeLeft())
+                          UpdateMerger(current, next) match {
+                            case put: ReadOnly.Put if put.hasTimeLeft() =>
+                              Some(put)
 
-                        case _: ReadOnly.Fixed =>
+                            case _: ReadOnly.Fixed =>
+                              None
+                          }
+                        else
                           None
-                      }
-                    else
-                      None
-                }
-            }
+                    }
+              }
           else
             IO.Defer.none
 
@@ -117,50 +123,54 @@ private[core] object Get {
           }
 
         case current: KeyValue.ReadOnly.Function =>
-          nextGetter.get(key) flatMap {
-            nextOption =>
-              nextOption map {
-                next =>
-                  if (next.hasTimeLeft())
-                    FunctionMerger(current, next) match {
-                      case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Defer(Some(put))
+          nextGetter
+            .get(key)
+            .flatMap {
+              nextOption =>
+                nextOption
+                  .map {
+                    next =>
+                      if (next.hasTimeLeft())
+                        FunctionMerger(current, next) match {
+                          case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                            IO.Defer(Some(put))
 
-                      case IO.Right(_: ReadOnly.Fixed) =>
+                          case IO.Right(_: ReadOnly.Fixed) =>
+                            IO.Defer.none
+
+                          case failure @ IO.Left(_) =>
+                            failure recoverTo Get(key)
+                        }
+                      else
                         IO.Defer.none
-
-                      case failure @ IO.Left(_) =>
-                        failure recoverTo Get(key)
-                    }
-                  else
-                    IO.Defer.none
-              } getOrElse {
-                IO.Defer.none
-              }
-          }
+                  }
+                  .getOrElse(IO.Defer.none)
+            }
 
         case current: KeyValue.ReadOnly.PendingApply =>
-          nextGetter.get(key) flatMap {
-            nextOption =>
-              nextOption map {
-                next =>
-                  if (next.hasTimeLeft())
-                    PendingApplyMerger(current, next) match {
-                      case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                        IO.Defer(Some(put))
+          nextGetter
+            .get(key)
+            .flatMap {
+              nextOption =>
+                nextOption
+                  .map {
+                    next =>
+                      if (next.hasTimeLeft())
+                        PendingApplyMerger(current, next) match {
+                          case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
+                            IO.Defer(Some(put))
 
-                      case IO.Right(_: ReadOnly.Fixed) =>
+                          case IO.Right(_: ReadOnly.Fixed) =>
+                            IO.Defer.none
+
+                          case failure @ IO.Left(_) =>
+                            failure recoverTo Get(key)
+                        }
+                      else
                         IO.Defer.none
-
-                      case failure @ IO.Left(_) =>
-                        failure recoverTo Get(key)
-                    }
-                  else
-                    IO.Defer.none
-              } getOrElse {
-                IO.Defer.none
-              }
-          }
+                  }
+                  .getOrElse(IO.Defer.none)
+            }
       }
 
     currentGetter.get(key) match {

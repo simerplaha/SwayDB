@@ -317,7 +317,9 @@ object TestData {
       else
         keyValues.toMapEntry match {
           case Some(value) =>
-            level.put(_ => value) map (_ => ())
+            level
+              .put(_ => value)
+              .flatMap(_ => IO.unit)
 
           case None =>
             IO.unit

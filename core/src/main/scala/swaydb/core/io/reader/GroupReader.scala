@@ -37,7 +37,9 @@ private[core] class GroupReader(decompressedValuesSize: Int,
   def path = Paths.get(this.getClass.getSimpleName)
 
   override def size: IO[swaydb.Error.Segment, Long] =
-    indexReader.size map (_ + decompressedValuesSize)
+    indexReader
+      .size
+      .map(_ + decompressedValuesSize)
 
   def moveTo(newPosition: Long): ReaderBase[swaydb.Error.Segment] = {
     position = newPosition.toInt max 0
@@ -48,10 +50,11 @@ private[core] class GroupReader(decompressedValuesSize: Int,
     size.map(position < _)
 
   def hasAtLeast(atLeastSize: Long): IO[swaydb.Error.Segment, Boolean] =
-    size map {
-      size =>
-        (size - position) >= atLeastSize
-    }
+    size
+      .map {
+        size =>
+          (size - position) >= atLeastSize
+      }
 
   override def copy(): ReaderBase[swaydb.Error.Segment] =
     new GroupReader(
@@ -67,38 +70,48 @@ private[core] class GroupReader(decompressedValuesSize: Int,
 
   override def get(): IO[swaydb.Error.Segment, Int] =
     if (position >= startIndexOffset) {
-      indexReader.moveTo(position - startIndexOffset).get() map {
-        byte =>
-          position += 1
-          byte
-      }
+      indexReader
+        .moveTo(position - startIndexOffset)
+        .get()
+        .onRightSideEffect {
+          _ =>
+            position += 1
+        }
     }
     else
-      valuesDecompressor() flatMap {
-        reader =>
-          reader.moveTo(position).get() map {
-            byte =>
-              position += 1
-              byte
-          }
-      }
+      valuesDecompressor()
+        .flatMap {
+          reader =>
+            reader
+              .moveTo(position)
+              .get()
+              .onRightSideEffect {
+                _ =>
+                  position += 1
+              }
+        }
 
   override def read(size: Int) =
     if (position >= startIndexOffset)
-      indexReader.moveTo(position - startIndexOffset).read(size) map {
-        bytes =>
-          position += size
-          bytes
-      }
+      indexReader
+        .moveTo(position - startIndexOffset)
+        .read(size)
+        .onRightSideEffect {
+          _ =>
+            position += size
+        }
     else
-      valuesDecompressor() flatMap {
-        reader =>
-          reader.moveTo(position).read(size) map {
-            bytes =>
-              position += size
-              bytes
-          }
-      }
+      valuesDecompressor()
+        .flatMap {
+          reader =>
+            reader
+              .moveTo(position)
+              .read(size)
+              .onRightSideEffect {
+                _ =>
+                  position += size
+              }
+        }
 
   override def isFile: Boolean = false
 
