@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.id
 
-import swaydb.core.segment.format.a.entry.reader.SortedIndexEntryReader
+import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.macros.SealedList
 
 sealed trait KeyValueId {
@@ -85,10 +85,10 @@ sealed trait KeyValueId {
 
 object KeyValueId {
   //Last max id used in BaseEntryId.
-  val reservedKeysPerGroup = SortedIndexEntryReader.readers.last.maxID
+  val reservedKeysPerGroup = EntryReader.readers.last.maxID
 
   object Put extends KeyValueId {
-    override val minKey_Compressed_KeyValueId: Int = SortedIndexEntryReader.readers.head.minID
+    override val minKey_Compressed_KeyValueId: Int = EntryReader.readers.head.minID
     override val maxKey_Compressed_KeyValueId: Int = reservedKeysPerGroup
     override val minKey_Uncompressed_KeyValueId: Int = reservedKeysPerGroup + 1
     override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup

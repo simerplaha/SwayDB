@@ -24,7 +24,7 @@ import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.entry.reader.SortedIndexEntryReader
+import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.slice.ReaderBase
 
 private[core] trait BaseEntryReader {
@@ -43,5 +43,5 @@ private[core] trait BaseEntryReader {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent.Partial],
-              reader: SortedIndexEntryReader[T]): Option[IO[swaydb.Error.Segment, T]]
+              reader: EntryReader[T]): Option[IO[swaydb.Error.Segment, T]]
 }

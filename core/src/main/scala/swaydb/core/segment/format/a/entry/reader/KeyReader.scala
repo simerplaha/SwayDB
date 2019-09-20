@@ -33,7 +33,7 @@ object KeyReader {
                            previous: Option[Persistent.Partial]): IO[Error.Segment, Slice[Byte]] =
     keySize match {
       case Some(keySize) =>
-        indexReader.read(keySize)
+        indexReader read keySize
 
       case None =>
         indexReader.readRemaining()

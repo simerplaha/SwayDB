@@ -21,17 +21,16 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.cache.Cache
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.{Bytes, KeyCompressor}
+import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
 
-trait SortedIndexEntryReader[E] {
+trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
@@ -48,7 +47,7 @@ trait SortedIndexEntryReader[E] {
                                                                     valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, E]
 }
 
-object SortedIndexEntryReader {
+object EntryReader {
 
   val readers: List[BaseEntryReader] =
     List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4) sortBy (_.minID)
@@ -72,7 +71,7 @@ object SortedIndexEntryReader {
                        nextIndexOffset: Int,
                        nextIndexSize: Int,
                        previous: Option[Persistent.Partial],
-                       entryReader: SortedIndexEntryReader[T]): IO[swaydb.Error.Segment, T] =
+                       entryReader: EntryReader[T]): IO[swaydb.Error.Segment, T] =
     findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
       entry =>
         entry.read(
@@ -215,13 +214,13 @@ object SortedIndexEntryReader {
                              nextIndexOffset: Int,
                              nextIndexSize: Int,
                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                             entryReader: SortedIndexEntryReader[T],
+                             entryReader: EntryReader[T],
                              previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, T] = {
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
     reader.readIntUnsigned() flatMap {
       baseId =>
-        SortedIndexEntryReader.parse[T](
+        EntryReader.parse[T](
           baseId = baseId,
           keyValueId = baseId,
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -273,7 +272,7 @@ object SortedIndexEntryReader {
             reader.readIntUnsigned() flatMap {
               keyValueId =>
                 if (KeyValueId.Put hasKeyValueId keyValueId)
-                  SortedIndexEntryReader.parse(
+                  EntryReader.parse(
                     baseId = KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
                     sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -288,7 +287,7 @@ object SortedIndexEntryReader {
                     entryReader = PutReader
                   )
                 else if (KeyValueId.Range hasKeyValueId keyValueId)
-                  SortedIndexEntryReader.parse(
+                  EntryReader.parse(
                     baseId = KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
                     sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -303,7 +302,7 @@ object SortedIndexEntryReader {
                     entryReader = RangeReader
                   )
                 else if (KeyValueId.Remove hasKeyValueId keyValueId)
-                  SortedIndexEntryReader.parse(
+                  EntryReader.parse(
                     baseId = KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
                     sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -318,7 +317,7 @@ object SortedIndexEntryReader {
                     entryReader = RemoveReader
                   )
                 else if (KeyValueId.Update hasKeyValueId keyValueId)
-                  SortedIndexEntryReader.parse(
+                  EntryReader.parse(
                     baseId = KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
                     sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -333,7 +332,7 @@ object SortedIndexEntryReader {
                     entryReader = UpdateReader
                   )
                 else if (KeyValueId.Function hasKeyValueId keyValueId)
-                  SortedIndexEntryReader.parse(
+                  EntryReader.parse(
                     baseId = KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
                     sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -348,7 +347,7 @@ object SortedIndexEntryReader {
                     entryReader = FunctionReader
                   )
                 else if (KeyValueId.PendingApply hasKeyValueId keyValueId)
-                  SortedIndexEntryReader.parse(
+                  EntryReader.parse(
                     baseId = KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId),
                     keyValueId = keyValueId,
                     sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -399,7 +398,7 @@ object SortedIndexEntryReader {
                     reader.readIntUnsigned() flatMap {
                       baseId =>
                         if (id == Transient.Put.id)
-                          SortedIndexEntryReader.parse(
+                          EntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -414,7 +413,7 @@ object SortedIndexEntryReader {
                             entryReader = PutReader
                           )
                         else if (id == Transient.Remove.id)
-                          SortedIndexEntryReader.parse(
+                          EntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -429,7 +428,7 @@ object SortedIndexEntryReader {
                             entryReader = RemoveReader
                           )
                         else if (id == Transient.Update.id)
-                          SortedIndexEntryReader.parse(
+                          EntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -444,7 +443,7 @@ object SortedIndexEntryReader {
                             entryReader = UpdateReader
                           )
                         else if (id == Transient.PendingApply.id)
-                          SortedIndexEntryReader.parse(
+                          EntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -459,7 +458,7 @@ object SortedIndexEntryReader {
                             entryReader = PendingApplyReader
                           )
                         else if (id == Transient.Function.id)
-                          SortedIndexEntryReader.parse(
+                          EntryReader.parse(
                             baseId = baseId,
                             keyValueId = baseId,
                             sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -476,7 +475,7 @@ object SortedIndexEntryReader {
                         else if (id == Transient.Range.id)
                           Bytes.decompressJoin(key) flatMap {
                             case (fromKey, toKey) =>
-                              SortedIndexEntryReader.parse(
+                              EntryReader.parse(
                                 baseId = baseId,
                                 keyValueId = baseId,
                                 sortedIndexAccessPosition = sortedIndexAccessPosition,

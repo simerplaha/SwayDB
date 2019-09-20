@@ -107,7 +107,7 @@ private[writer] object TimeWriter {
                                        plusSize: Int,
                                        enablePrefixCompression: Boolean,
                                        isKeyUncompressed: Boolean,
-                                       adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[SortedIndexEntryWriter.WriteResult] =
+                                       adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[EntryWriter.WriteResult] =
     compress(
       previous = previousTime.time,
       next = currentTime.time,

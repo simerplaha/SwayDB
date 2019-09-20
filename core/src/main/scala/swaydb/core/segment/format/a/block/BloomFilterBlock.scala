@@ -305,12 +305,12 @@ private[core] object BloomFilterBlock extends LazyLogging {
             reader
               .moveTo(position)
               .readLong()
-              .map {
+              .flatMap {
                 index =>
                   if ((index & (1L << hashIndex)) == 0)
-                    Options.`false`
+                    IO.someFalse
                   else
-                    None
+                    IO.none
               }
       }
       .map(_.getOrElse(true))

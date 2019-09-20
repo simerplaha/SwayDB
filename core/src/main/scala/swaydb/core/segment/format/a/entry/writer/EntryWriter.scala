@@ -30,7 +30,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.beans.BeanProperty
 
-private[core] object SortedIndexEntryWriter {
+private[core] object EntryWriter {
 
   case class WriteResult(@BeanProperty var indexBytes: Slice[Byte],
                          valueBytes: Slice[Slice[Byte]],
@@ -63,7 +63,7 @@ private[core] object SortedIndexEntryWriter {
                             currentTime: Time,
                             normaliseToSize: Option[Int],
                             compressDuplicateValues: Boolean,
-                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): SortedIndexEntryWriter.WriteResult =
+                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): EntryWriter.WriteResult =
     when(enablePrefixCompression && !current.sortedIndexConfig.disableKeyPrefixCompression && !current.sortedIndexConfig.enablePartialRead)(current.previous) flatMap {
       previous =>
         writeCompressed(

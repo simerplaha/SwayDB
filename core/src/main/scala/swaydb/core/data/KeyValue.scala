@@ -626,7 +626,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
 
     override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      SortedIndexEntryWriter.write(
+      EntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -698,7 +698,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      SortedIndexEntryWriter.write(
+      EntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -771,7 +771,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      SortedIndexEntryWriter.write(
+      EntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -846,7 +846,7 @@ private[core] object Transient {
     override def deadline: Option[Deadline] = None
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      SortedIndexEntryWriter.write(
+      EntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -939,7 +939,7 @@ private[core] object Transient {
       true
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      SortedIndexEntryWriter.write(
+      EntryWriter.write(
         current = this,
         currentTime = time,
         normaliseToSize = normaliseToSize,
@@ -1069,7 +1069,7 @@ private[core] object Transient {
     override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
-      SortedIndexEntryWriter.write(
+      EntryWriter.write(
         current = this,
         currentTime = Time.empty,
         normaliseToSize = normaliseToSize,
@@ -1180,7 +1180,7 @@ private[core] object Persistent {
                  previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       override def toPersistent: IO[Error.Segment, Persistent.Remove] =
-        SortedIndexEntryReader.completePartialRead(
+        EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -1205,7 +1205,7 @@ private[core] object Persistent {
               previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       override def toPersistent: IO[Error.Segment, Persistent.Put] =
-        SortedIndexEntryReader.completePartialRead(
+        EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -1230,7 +1230,7 @@ private[core] object Persistent {
                  previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       override def toPersistent: IO[Error.Segment, Persistent.Update] =
-        SortedIndexEntryReader.completePartialRead(
+        EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -1255,7 +1255,7 @@ private[core] object Persistent {
                    previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       override def toPersistent: IO[Error.Segment, Persistent.Function] =
-        SortedIndexEntryReader.completePartialRead(
+        EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -1280,7 +1280,7 @@ private[core] object Persistent {
                        previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
       override def toPersistent: IO[Error.Segment, Persistent.PendingApply] =
-        SortedIndexEntryReader.completePartialRead(
+        EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -1335,7 +1335,7 @@ private[core] object Persistent {
       def key = fromKey
 
       override def toPersistent: IO[Error.Segment, Persistent.Range] =
-        SortedIndexEntryReader.completePartialRead(
+        EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Range(fromKey, toKey),
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -1407,28 +1407,34 @@ private[core] object Persistent {
 
   object Put {
     def apply(key: Slice[Byte],
-                  deadline: Option[Deadline],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                  time: Time,
-                  nextIndexOffset: Int,
-                  nextIndexSize: Int,
-                  indexOffset: Int,
-                  valueOffset: Int,
-                  valueLength: Int,
-                  sortedIndexAccessPosition: Int) =
+              deadline: Option[Deadline],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
+              nextIndexOffset: Int,
+              nextIndexSize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int) =
       new Put(
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
             offset =>
               if (offset.size == 0)
                 IO.none
               else
-                UnblockedReader.moveTo(offset, valuesReader.get)
-                  .copy()
-                  .readFullBlockOrNone()
-                  .map(_.unslice())
+                valuesReader match {
+                  case Some(valuesReader) =>
+                    UnblockedReader.moveTo(offset, valuesReader)
+                      .copy()
+                      .readFullBlockOrNone()
+                      .map(_.unslice())
+
+                  case None =>
+                    IO.failed("ValuesBlock is undefined.")
+                }
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1508,28 +1514,34 @@ private[core] object Persistent {
 
   object Update {
     def apply(key: Slice[Byte],
-                  deadline: Option[Deadline],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                  time: Time,
-                  nextIndexOffset: Int,
-                  nextIndexSize: Int,
-                  indexOffset: Int,
-                  valueOffset: Int,
-                  valueLength: Int,
-                  sortedIndexAccessPosition: Int) =
+              deadline: Option[Deadline],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
+              nextIndexOffset: Int,
+              nextIndexSize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int) =
       new Update(
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
             offset =>
               if (offset.size == 0)
                 IO.none
               else
-                UnblockedReader.moveTo(offset, valuesReader.get)
-                  .copy()
-                  .readFullBlockOrNone()
-                  .map(_.unslice())
+                valuesReader match {
+                  case Some(valuesReader) =>
+                    UnblockedReader.moveTo(offset, valuesReader)
+                      .copy()
+                      .readFullBlockOrNone()
+                      .map(_.unslice())
+
+                  case None =>
+                    IO.failed("ValuesBlock is undefined.")
+                }
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1640,23 +1652,29 @@ private[core] object Persistent {
 
   object Function {
     def apply(key: Slice[Byte],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                  time: Time,
-                  nextIndexOffset: Int,
-                  nextIndexSize: Int,
-                  indexOffset: Int,
-                  valueOffset: Int,
-                  valueLength: Int,
-                  sortedIndexAccessPosition: Int) =
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
+              nextIndexOffset: Int,
+              nextIndexSize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int) =
       new Function(
         _key = key,
         valueCache =
-          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
             offset =>
-              UnblockedReader.moveTo(offset, valuesReader.get)
-                .copy()
-                .readFullBlock()
-                .map(_.unslice())
+              valuesReader match {
+                case Some(valuesReader) =>
+                  UnblockedReader.moveTo(offset, valuesReader)
+                    .copy()
+                    .readFullBlock()
+                    .map(_.unslice())
+
+                case None =>
+                  IO.failed("ValuesBlock is undefined.")
+              }
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1724,31 +1742,36 @@ private[core] object Persistent {
 
   object PendingApply {
     def apply(key: Slice[Byte],
-                  time: Time,
-                  deadline: Option[Deadline],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                  nextIndexOffset: Int,
-                  nextIndexSize: Int,
-                  indexOffset: Int,
-                  valueOffset: Int,
-                  valueLength: Int,
-                  sortedIndexAccessPosition: Int) =
+              time: Time,
+              deadline: Option[Deadline],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              nextIndexOffset: Int,
+              nextIndexSize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int) =
       new PendingApply(
         _key = key,
         _time = time,
         deadline = deadline,
         valueCache =
-          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
+          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
             offset =>
-              UnblockedReader.moveTo(offset, valuesReader.get)
-                .copy()
-                .readFullBlock()
-                .flatMap {
-                  bytes =>
-                    ValueSerializer
-                      .read[Slice[Value.Apply]](bytes)
-                      .map(_.map(_.unslice))
-                }
+              valuesReader match {
+                case Some(valuesReader) =>
+                  UnblockedReader.moveTo(offset, valuesReader)
+                    .copy()
+                    .readFullBlock()
+                    .flatMap {
+                      bytes =>
+                        ValueSerializer
+                          .read[Slice[Value.Apply]](bytes)
+                          .map(_.map(_.unslice))
+                    }
+                case None =>
+                  IO.failed("ValuesBlock is undefined.")
+              }
           },
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,
@@ -1846,16 +1869,22 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)](synchronised = true, stored = true, initial = None) {
+          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
             offset =>
-              UnblockedReader.moveTo(offset, valuesReader.get)
-                .copy()
-                .readFullBlock()
-                .flatMap(RangeValueSerializer.read)
-                .map {
-                  case (from, range) =>
-                    (from.map(_.unslice), range.unslice)
-                }
+              valuesReader match {
+                case Some(valuesReader) =>
+                  UnblockedReader.moveTo(offset, valuesReader)
+                    .copy()
+                    .readFullBlock()
+                    .flatMap(RangeValueSerializer.read)
+                    .map {
+                      case (from, range) =>
+                        (from.map(_.unslice), range.unslice)
+                    }
+
+                case None =>
+                  IO.failed("ValuesBlock is undefined.")
+              }
           },
         nextIndexOffset = nextIndexOffset,
         nextIndexSize = nextIndexSize,

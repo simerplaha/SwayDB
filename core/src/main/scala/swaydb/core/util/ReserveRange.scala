@@ -130,7 +130,10 @@ object ReserveRange extends LazyLogging {
       .ranges
       .forall {
         range =>
-          !Slice.intersects((range.from, range.to, range.toInclusive), (from, to, toInclusive))
+          !Slice.intersects(
+            range1 = (range.from, range.to, range.toInclusive),
+            range2 = (from, to, toInclusive)
+          )
       }
 
   def isUnreserved[T](segment: Segment)(implicit state: State[T],

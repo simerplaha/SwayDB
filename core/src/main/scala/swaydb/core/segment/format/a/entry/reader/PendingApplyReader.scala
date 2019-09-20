@@ -28,7 +28,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
 import swaydb.data.slice.ReaderBase
 
-object PendingApplyReader extends SortedIndexEntryReader[Persistent.PendingApply] {
+object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,

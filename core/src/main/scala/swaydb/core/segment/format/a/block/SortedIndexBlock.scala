@@ -27,7 +27,7 @@ import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{KeyValue, Persistent, Time, Transient}
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.entry.reader.SortedIndexEntryReader
+import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
@@ -256,6 +256,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         state.bytes addBoolean state.disableKeyPrefixCompression
         state.bytes addBoolean state.enablePartialRead
         state.bytes addIntUnsigned state.segmentMaxIndexEntrySize
+
         if (state.bytes.currentWritePosition > state.headerSize)
           IO.Left(swaydb.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
         else
@@ -375,7 +376,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       if (indexReader.block.enablePartialRead)
         if (fullRead)
-          SortedIndexEntryReader.fullReadFromPartial(
+          EntryReader.fullReadFromPartial(
             indexEntry = indexEntry,
             mightBeCompressed = indexReader.block.hasPrefixCompression,
             valuesReader = valuesReader,
@@ -388,7 +389,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous = previous
           )
         else
-          SortedIndexEntryReader.partialRead(
+          EntryReader.partialRead(
             indexEntry = indexEntry,
             block = indexReader.block,
             indexOffset = positionBeforeRead,
@@ -398,7 +399,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous = previous
           )
       else
-        SortedIndexEntryReader.fullRead(
+        EntryReader.fullRead(
           indexEntry = indexEntry,
           mightBeCompressed = indexReader.block.hasPrefixCompression,
           valuesReader = valuesReader,

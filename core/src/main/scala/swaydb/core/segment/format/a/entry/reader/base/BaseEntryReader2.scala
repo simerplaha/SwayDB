@@ -25,7 +25,7 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.segment.format.a.entry.reader.SortedIndexEntryReader
+import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.MaxKey
 import swaydb.data.slice.{ReaderBase, Slice}
 
@@ -41,7 +41,7 @@ private[core] object BaseEntryReader2 extends BaseEntryReader {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent.Partial],
-              reader: SortedIndexEntryReader[T]): Option[IO[swaydb.Error.Segment, T]] =
+              reader: EntryReader[T]): Option[IO[swaydb.Error.Segment, T]] =
   //GENERATED CONDITIONS
     if (baseId == 517)
       Some(reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimePartiallyCompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous))
