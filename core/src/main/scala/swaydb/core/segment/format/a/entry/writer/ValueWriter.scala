@@ -313,7 +313,7 @@ private[writer] object ValueWriter {
                               adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): EntryWriter.WriteResult = {
     //if the values are not the same, write compressed offset, length and then deadline.
     val currentValueOffset = previous.nextStartValueOffsetPosition
-    val currentValueOffsetBytes = Slice.writeInt(currentValueOffset)
+    val currentValueOffsetBytes = Slice.writeIntUnsigned(currentValueOffset)
     compressValueOffset(
       current = current,
       previous = previous,
@@ -350,7 +350,7 @@ private[writer] object ValueWriter {
                                   hasPrefixCompressed: Boolean,
                                   adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): EntryWriter.WriteResult =
   //if unable to compress valueOffsetBytes, try compressing value length valueLength bytes.
-    Bytes.compress(Slice.writeInt(previousValue.size), Slice.writeInt(currentValue.size), 1) map {
+    Bytes.compress(Slice.writeIntUnsigned(previousValue.size), Slice.writeIntUnsigned(currentValue.size), 1) map {
       case (valueLengthCommonBytes, valueLengthRemainingBytes) =>
         val valueLengthId =
           if (valueLengthCommonBytes == 1)
@@ -428,7 +428,7 @@ private[writer] object ValueWriter {
                                   currentValueOffset: Int,
                                   isKeyUncompressed: Boolean,
                                   adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[EntryWriter.WriteResult] =
-    Bytes.compress(Slice.writeInt(previous.currentStartValueOffsetPosition), currentValueOffsetBytes, 1) map {
+    Bytes.compress(Slice.writeIntUnsigned(previous.currentStartValueOffsetPosition), currentValueOffsetBytes, 1) map {
       case (valueOffsetCommonBytes, valueOffsetRemainingBytes) =>
         val valueOffsetId =
           if (valueOffsetCommonBytes == 1)
@@ -440,7 +440,7 @@ private[writer] object ValueWriter {
           else
             throw new Exception(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
 
-        Bytes.compress(Slice.writeInt(previousValue.size), Slice.writeInt(currentValue.size), 1) map {
+        Bytes.compress(Slice.writeIntUnsigned(previousValue.size), Slice.writeIntUnsigned(currentValue.size), 1) map {
           case (valueLengthCommonBytes, valueLengthRemainingBytes) =>
             val valueLengthId =
               if (valueLengthCommonBytes == 1)

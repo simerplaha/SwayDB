@@ -100,7 +100,7 @@ private[writer] object DeadlineWriter {
                                    hasPrefixCompressed: Boolean,
                                    adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
     //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
-    val currentDeadlineUnsignedBytes = currentDeadline.toLongUnsignedBytes
+    val currentDeadlineUnsignedBytes = currentDeadline.toBytes
     val deadline = deadlineId.deadlineUncompressed
 
     val id =

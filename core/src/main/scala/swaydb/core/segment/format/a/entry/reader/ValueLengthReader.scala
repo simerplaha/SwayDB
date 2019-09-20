@@ -45,9 +45,11 @@ object ValueLengthReader {
                          commonBytes: Int): IO[swaydb.Error.Segment, Int] =
     previous map {
       case previous: Persistent =>
-        indexReader.read(ByteSizeOf.int - commonBytes) map {
+        indexReader.read(ByteSizeOf.int - commonBytes) flatMap {
           valueLengthBytes =>
-            Bytes.decompress(Slice.writeInt(previous.valueLength), valueLengthBytes, commonBytes).readInt()
+            Bytes
+              .decompress(Slice.writeIntUnsigned(previous.valueLength), valueLengthBytes, commonBytes)
+              .readIntUnsigned()
         }
       case _ =>
         IO.failed("Expected Persistent. Received Partial.")

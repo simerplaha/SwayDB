@@ -78,16 +78,14 @@ object DeadlineReader {
             val remainingDeadlineBytes = ByteSizeOf.long - commonBytes
             indexReader.read(remainingDeadlineBytes) flatMap {
               rightDeadlineBytes =>
-                IO {
-                  Bytes
-                    .decompress(
-                      previous = previousDeadlineBytes,
-                      next = rightDeadlineBytes,
-                      commonBytes = commonBytes
-                    )
-                    .readLong()
-                    .toDeadlineOption
-                }
+                Bytes
+                  .decompress(
+                    previous = previousDeadlineBytes,
+                    next = rightDeadlineBytes,
+                    commonBytes = commonBytes
+                  )
+                  .readLongUnsigned()
+                  .map(_.toDeadlineOption)
             }
         } getOrElse {
           IO.failed(EntryReaderFailure.NoPreviousDeadline)

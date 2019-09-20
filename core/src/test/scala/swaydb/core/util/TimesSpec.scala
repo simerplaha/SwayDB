@@ -41,19 +41,11 @@ class TimesSpec extends WordSpec with Matchers {
     }
   }
 
-  "toLongUnsignedBytes" should {
-    "convert deadline unsigned long" in {
-      val duration = 10.seconds
-      val deadline = Deadline(duration)
-      deadline.toLongUnsignedBytes shouldBe Slice.writeLongUnsigned(duration.toNanos)
-    }
-  }
-
   "toBytes" should {
     "convert deadline long bytes" in {
       val duration = 10.seconds
       val deadline = Deadline(duration)
-      deadline.toBytes shouldBe Slice.writeLong(duration.toNanos)
+      deadline.toBytes shouldBe Slice.writeLongUnsigned(duration.toNanos)
     }
   }
 
