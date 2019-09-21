@@ -25,9 +25,9 @@ import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
-import swaydb.data.util.ByteUtil
+import swaydb.data.util.Bytez
 
-private[swaydb] object Bytes {
+private[swaydb] object Bytes extends Bytez {
 
   val zero = 0.toByte
   val one = 1.toByte
@@ -129,7 +129,7 @@ private[swaydb] object Bytes {
     else
       5
 
-  def sizeOfUnsignedInt(long: Long): Int =
+  def sizeOfUnsignedLong(long: Long): Int =
     if (long < 0L)
       10
     else if (long < 0x80L)
@@ -191,15 +191,23 @@ private[swaydb] object Bytes {
       val compressedSlice = Slice.create[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(left.size) + tail.size)
       compressedSlice addAll left
       compressedSlice addIntUnsigned commonBytes
-      compressedSlice addAll ByteUtil.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
+      compressedSlice addAll Bytez.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     } else {
-      val compressedSlice = Slice.create[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(rightWithoutCommonBytes.size) + rightWithoutCommonBytes.size + sizeOfUnsignedInt(left.size) + tail.size)
+      val size =
+        left.size +
+          sizeOfUnsignedInt(commonBytes) +
+          sizeOfUnsignedInt(rightWithoutCommonBytes.size) +
+          rightWithoutCommonBytes.size +
+          sizeOfUnsignedInt(left.size) +
+          tail.size
+
+      val compressedSlice = Slice.create[Byte](size)
       compressedSlice addAll left
       compressedSlice addIntUnsigned commonBytes
       compressedSlice addIntUnsigned rightWithoutCommonBytes.size
       compressedSlice addAll rightWithoutCommonBytes
-      compressedSlice addAll ByteUtil.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
+      compressedSlice addAll Bytez.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     }
   }
@@ -208,7 +216,7 @@ private[swaydb] object Bytes {
     Reader(bytes) ==> {
       reader =>
         for {
-          (leftBytesSize, lastBytesRead) <- ByteUtil.readLastUnsignedInt(bytes)
+          (leftBytesSize, lastBytesRead) <- Bytez.readLastUnsignedInt(bytes)
           left <- reader.read(leftBytesSize)
           commonBytes <- reader.readIntUnsigned()
           hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.

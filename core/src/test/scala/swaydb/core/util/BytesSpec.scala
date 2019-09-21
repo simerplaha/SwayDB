@@ -27,7 +27,6 @@ import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
-import swaydb.data.util.{ByteSizeOf, ByteUtil}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -204,17 +203,17 @@ class BytesSpec extends WordSpec with Matchers {
 
   "sizeOf" in {
     Bytes.sizeOfUnsignedInt(Int.MaxValue) shouldBe Slice.writeIntUnsigned(Int.MaxValue).size
-    Bytes.sizeOfUnsignedInt(Long.MaxValue) shouldBe Slice.writeLongUnsigned(Long.MaxValue).size
+    Bytes.sizeOfUnsignedLong(Long.MaxValue) shouldBe Slice.writeLongUnsigned(Long.MaxValue).size
   }
 
   "writeUnsignedIntReversed" in {
     Seq(Int.MaxValue, 100000000, 123, 0) foreach {
       intToWrite =>
         val slice = Slice.writeIntUnsigned(intToWrite)
-        val sliceReverse = ByteUtil.writeUnsignedIntReversed(intToWrite)
+        val sliceReverse = Bytes.writeUnsignedIntReversed(intToWrite)
         sliceReverse shouldBe Slice(slice.toList.reverse.toArray)
 
-        ByteUtil.readLastUnsignedInt(sliceReverse).runRandomIO.right.value shouldBe ((intToWrite, slice.size))
+        Bytes.readLastUnsignedInt(sliceReverse).runRandomIO.right.value shouldBe ((intToWrite, slice.size))
     }
   }
 

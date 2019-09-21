@@ -95,7 +95,7 @@ object ValueSerializer {
         .addAll(value.value.getOrElse(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Put): Int =
-      Bytes.sizeOfUnsignedInt(value.deadline.toNanos) +
+      Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
         value.value.map(_.size).getOrElse(0)
@@ -120,7 +120,7 @@ object ValueSerializer {
         .addAll(value.value.getOrElse(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Update): Int =
-      Bytes.sizeOfUnsignedInt(value.deadline.toNanos) +
+      Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
         value.value.map(_.size).getOrElse(0)
@@ -143,7 +143,7 @@ object ValueSerializer {
         .addAll(value.time.time)
 
     override def bytesRequired(value: Value.Remove): Int =
-      Bytes.sizeOfUnsignedInt(value.deadline.toNanos) +
+      Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         value.time.size
 
     override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Value.Remove] =

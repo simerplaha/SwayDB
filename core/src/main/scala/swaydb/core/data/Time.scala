@@ -22,7 +22,7 @@ package swaydb.core.data
 import swaydb.IO
 import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, ByteUtil}
+import swaydb.data.util.{ByteSizeOf, Bytez}
 
 private[core] object Time {
 
@@ -32,7 +32,7 @@ private[core] object Time {
 
   def apply(time: Long): Time = {
     val slice = Slice.create[Byte](ByteSizeOf.varLong)
-    ByteUtil.writeUnsignedLong(time, slice)
+    Bytez.writeUnsignedLong(time, slice)
     new Time(slice)
   }
 

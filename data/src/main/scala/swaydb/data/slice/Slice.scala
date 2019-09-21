@@ -25,12 +25,12 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.util.{ByteSizeOf, ByteUtil}
+import swaydb.data.util.{ByteSizeOf, Bytez}
 import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
-import scala.collection.{GenTraversableOnce, IndexedSeqLike, IterableLike, TraversableLike, mutable}
+import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
@@ -235,12 +235,12 @@ object Slice {
       slice.get(0) == 1
 
     def addInt(int: Int): Slice[Byte] = {
-      ByteUtil.writeInt(int, slice)
+      Bytez.writeInt(int, slice)
       slice
     }
 
     def readInt(): Int =
-      ByteUtil.readInt(slice)
+      Bytez.readInt(slice)
 
     def dropIntUnsigned(): IO[Error.IO, Slice[Byte]] =
       readIntUnsignedWithByteSize() map {
@@ -249,50 +249,50 @@ object Slice {
       }
 
     def addIntSigned(int: Int): Slice[Byte] = {
-      ByteUtil.writeSignedInt(int, slice)
+      Bytez.writeSignedInt(int, slice)
       slice
     }
 
     def readIntSigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
-      ByteUtil.readSignedInt(slice)
+      Bytez.readSignedInt(slice)
 
     def addIntUnsigned(int: Int): Slice[Byte] = {
-      ByteUtil.writeUnsignedInt(int, slice)
+      Bytez.writeUnsignedInt(int, slice)
       slice
     }
 
     def readIntUnsigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
-      ByteUtil.readUnsignedInt(slice)
+      Bytez.readUnsignedInt(slice)
 
     def readIntUnsignedWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Int, Int)] =
-      ByteUtil.readUnsignedIntWithByteSize(slice)
+      Bytez.readUnsignedIntWithByteSize(slice)
 
     def addLong(long: Long): Slice[Byte] = {
-      ByteUtil.writeLong(long, slice)
+      Bytez.writeLong(long, slice)
       slice
     }
 
     def readLong(): Long =
-      ByteUtil.readLong(slice)
+      Bytez.readLong(slice)
 
     def addLongUnsigned(long: Long): Slice[Byte] = {
-      ByteUtil.writeUnsignedLong(long, slice)
+      Bytez.writeUnsignedLong(long, slice)
       slice
     }
 
     def readLongUnsigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
-      ByteUtil.readUnsignedLong(slice)
+      Bytez.readUnsignedLong(slice)
 
     def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Long, Int)] =
-      ByteUtil.readUnsignedLongWithByteSize(slice)
+      Bytez.readUnsignedLongWithByteSize(slice)
 
     def addLongSigned(long: Long): Slice[Byte] = {
-      ByteUtil.writeSignedLong(long, slice)
+      Bytez.writeSignedLong(long, slice)
       slice
     }
 
     def readLongSigned[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
-      ByteUtil.readSignedLong(slice)
+      Bytez.readSignedLong(slice)
 
     def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
       string.getBytes(charsets) foreach slice.add
@@ -300,7 +300,7 @@ object Slice {
     }
 
     def readString(charset: Charset = StandardCharsets.UTF_8): String =
-      ByteUtil.readString(slice, charset)
+      Bytez.readString(slice, charset)
 
     def toByteBufferWrap: ByteBuffer =
       slice.toByteBufferWrap

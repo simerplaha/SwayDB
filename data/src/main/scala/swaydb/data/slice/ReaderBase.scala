@@ -23,7 +23,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.nio.file.Path
 
 import swaydb.IO
-import swaydb.data.util.ByteUtil
+import swaydb.data.util.Bytez
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
@@ -57,10 +57,10 @@ private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ExceptionHan
     moveTo(getPosition + skip)
 
   def readBoolean(): IO[E, Boolean] =
-    ByteUtil.readBoolean(self)
+    Bytez.readBoolean(self)
 
   def readInt(): IO[E, Int] =
-    ByteUtil.readInt(self)
+    Bytez.readInt(self)
 
   def readInt(unsigned: Boolean): IO[E, Int] =
     if (unsigned)
@@ -69,31 +69,31 @@ private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ExceptionHan
       readInt()
 
   def readIntUnsigned(): IO[E, Int] =
-    ByteUtil.readUnsignedInt(self)
+    Bytez.readUnsignedInt(self)
 
   def readIntUnsignedBytes(): IO[E, Slice[Byte]] =
-    ByteUtil.readUnsignedInt(self) flatMap {
+    Bytez.readUnsignedInt(self) flatMap {
       size =>
         read(size)
     }
 
   def readIntSigned(): IO[E, Int] =
-    ByteUtil.readSignedInt(self)
+    Bytez.readSignedInt(self)
 
   def readLong(): IO[E, Long] =
-    ByteUtil.readLong(self)
+    Bytez.readLong(self)
 
   def readLongUnsigned(): IO[E, Long] =
-    ByteUtil.readUnsignedLong(self)
+    Bytez.readUnsignedLong(self)
 
   def readLongSigned(): IO[E, Long] =
-    ByteUtil.readSignedLong(self)
+    Bytez.readSignedLong(self)
 
   def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): IO[E, String] =
-    ByteUtil.readString(self, charset)
+    Bytez.readString(self, charset)
 
   def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): IO[E, String] =
-    ByteUtil.readString(size, self, charset)
+    Bytez.readString(size, self, charset)
 
   def remaining: IO[E, Long] =
     size map {
