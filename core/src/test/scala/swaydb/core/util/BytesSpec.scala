@@ -202,14 +202,14 @@ class BytesSpec extends WordSpec with Matchers {
   }
 
   "sizeOf" in {
-    Bytes.sizeOfUnsignedInt(Int.MaxValue) shouldBe Slice.writeIntUnsigned(Int.MaxValue).size
-    Bytes.sizeOfUnsignedLong(Long.MaxValue) shouldBe Slice.writeLongUnsigned(Long.MaxValue).size
+    Bytes.sizeOfUnsignedInt(Int.MaxValue) shouldBe Slice.writeUnsignedInt(Int.MaxValue).size
+    Bytes.sizeOfUnsignedLong(Long.MaxValue) shouldBe Slice.writeUnsignedLong(Long.MaxValue).size
   }
 
   "writeUnsignedIntReversed" in {
     Seq(Int.MaxValue, 100000000, 123, 0) foreach {
       intToWrite =>
-        val slice = Slice.writeIntUnsigned(intToWrite)
+        val slice = Slice.writeUnsignedInt(intToWrite)
         val sliceReverse = Bytes.writeUnsignedIntReversed(intToWrite)
         sliceReverse shouldBe Slice(slice.toList.reverse.toArray)
 
@@ -257,25 +257,25 @@ class BytesSpec extends WordSpec with Matchers {
 
   "normalise & deNormalise" when {
     "appendHeader: toSize == +1" in {
-      val header = Slice.writeIntUnsigned(Int.MaxValue)
+      val header = Slice.writeUnsignedInt(Int.MaxValue)
       val bytes = Slice.fill(10)(5.toByte)
       val normalisedBytes = Bytes.normalise(appendHeader = header, bytes = bytes, toSize = header.size + bytes.size + 1)
       normalisedBytes should have size 16
 
       val reader = Reader(normalisedBytes)
-      reader.readIntUnsigned().get shouldBe Int.MaxValue
+      reader.readUnsignedInt().get shouldBe Int.MaxValue
       val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
       deNormalisedBytes shouldBe bytes
     }
 
     "appendHeader: toSize == +5" in {
-      val header = Slice.writeIntUnsigned(Int.MaxValue)
+      val header = Slice.writeUnsignedInt(Int.MaxValue)
       val bytes = Slice.fill(10)(5.toByte)
       val normalisedBytes = Bytes.normalise(appendHeader = header, bytes = bytes, toSize = header.size + bytes.size + 5)
       normalisedBytes should have size 20
 
       val reader = Reader(normalisedBytes)
-      reader.readIntUnsigned().get shouldBe Int.MaxValue
+      reader.readUnsignedInt().get shouldBe Int.MaxValue
       val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
       deNormalisedBytes shouldBe bytes
     }

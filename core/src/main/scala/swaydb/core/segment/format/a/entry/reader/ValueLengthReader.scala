@@ -48,8 +48,8 @@ object ValueLengthReader {
         indexReader.read(ByteSizeOf.int - commonBytes) flatMap {
           valueLengthBytes =>
             Bytes
-              .decompress(Slice.writeIntUnsigned(previous.valueLength), valueLengthBytes, commonBytes)
-              .readIntUnsigned()
+              .decompress(Slice.writeUnsignedInt(previous.valueLength), valueLengthBytes, commonBytes)
+              .readUnsignedInt()
         }
       case _ =>
         IO.failed("Expected Persistent. Received Partial.")
@@ -102,7 +102,7 @@ object ValueLengthReader {
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
-      indexReader.readIntUnsigned()
+      indexReader.readUnsignedInt()
   }
 
   implicit object NoValue extends ValueLengthReader[BaseEntryId.Value.NoValue] {

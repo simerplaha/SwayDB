@@ -64,20 +64,20 @@ class SliceReaderUnsafe(slice: Slice[Byte]) {
   def readInt(): Int =
     sliceReader.readInt().get
 
-  def readIntUnsigned(): Int =
-    sliceReader.readIntUnsigned().get
+  def readUnsignedInt(): Int =
+    sliceReader.readUnsignedInt().get
 
-  def readIntSigned(): Int =
-    sliceReader.readIntSigned().get
+  def readSignedInt(): Int =
+    sliceReader.readSignedInt().get
 
   def readLong(): Long =
     sliceReader.readLong().get
 
-  def readLongUnsigned(): Long =
-    sliceReader.readLongUnsigned().get
+  def readUnsignedLong(): Long =
+    sliceReader.readUnsignedLong().get
 
-  def readLongSigned(): Long =
-    sliceReader.readLongSigned().get
+  def readSignedLong(): Long =
+    sliceReader.readSignedLong().get
 
   def remaining(): Long =
     sliceReader.remaining.get

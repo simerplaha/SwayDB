@@ -101,10 +101,10 @@ private[core] object Block extends LazyLogging {
       case Some((compressedBytes, compression)) =>
         IO {
           compressedBytes moveWritePosition 0
-          compressedBytes addIntUnsigned headerSize
+          compressedBytes addUnsignedInt headerSize
           compressedBytes add compressedBlockID
-          compressedBytes addIntUnsigned compression.decompressor.id
-          compressedBytes addIntUnsigned (bytes.size - headerSize) //decompressed bytes
+          compressedBytes addUnsignedInt compression.decompressor.id
+          compressedBytes addUnsignedInt (bytes.size - headerSize) //decompressed bytes
           if (compressedBytes.currentWritePosition > headerSize)
             throw new Exception(s"Compressed header bytes written over to data bytes for $blockName. CurrentPosition: ${compressedBytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${compressedBytes.size}")
           compressedBytes
@@ -129,7 +129,7 @@ private[core] object Block extends LazyLogging {
               blockName: String): IO[swaydb.Error.Segment, Slice[Byte]] =
     IO {
       bytes moveWritePosition 0
-      bytes addIntUnsigned headerSize
+      bytes addUnsignedInt headerSize
       bytes add uncompressedBlockId
       if (bytes.currentWritePosition > headerSize)
         throw new Exception(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
@@ -143,7 +143,7 @@ private[core] object Block extends LazyLogging {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       IO {
         openSegment.headerBytes moveWritePosition 0
-        openSegment.headerBytes addIntUnsigned openSegment.headerBytes.size
+        openSegment.headerBytes addUnsignedInt openSegment.headerBytes.size
         openSegment.headerBytes add uncompressedBlockId
         SegmentBlock.Closed(
           segmentBytes = openSegment.segmentBytes,
@@ -172,8 +172,8 @@ private[core] object Block extends LazyLogging {
                                   reader: ReaderBase[swaydb.Error.Segment]): IO[swaydb.Error.Segment, Option[CompressionInfo]] =
     if (formatID == compressedBlockID) {
       for {
-        decompressor <- reader.readIntUnsigned() flatMap (DecompressorInternal(_))
-        decompressedLength <- reader.readIntUnsigned()
+        decompressor <- reader.readUnsignedInt() flatMap (DecompressorInternal(_))
+        decompressedLength <- reader.readUnsignedInt()
       } yield
         Some(
           new CompressionInfo(
@@ -192,7 +192,7 @@ private[core] object Block extends LazyLogging {
 
   def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, Block.Header[O]] = {
     for {
-      headerSize <- reader.readIntUnsigned()
+      headerSize <- reader.readUnsignedInt()
       headerReader <- reader.read(headerSize - Bytes.sizeOfUnsignedInt(headerSize)).map(Reader[swaydb.Error.Segment](_))
       formatID <- headerReader.get()
       compressionInfo <- {

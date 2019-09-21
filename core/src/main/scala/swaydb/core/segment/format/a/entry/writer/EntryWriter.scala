@@ -111,7 +111,7 @@ private[core] object EntryWriter {
 
         writeResult
           .indexBytes
-          .addIntUnsigned(commonBytes)
+          .addUnsignedInt(commonBytes)
           .addAll(remainingBytes)
 
         close(
@@ -183,16 +183,16 @@ private[core] object EntryWriter {
 
           val normalisedBytes =
             if (current.sortedIndexConfig.enablePartialRead) {
-              bytes addIntUnsigned indexSize
-              sortedIndexAccessPosition foreach bytes.addIntUnsigned
-              bytes addIntUnsigned keySize
+              bytes addUnsignedInt indexSize
+              sortedIndexAccessPosition foreach bytes.addUnsignedInt
+              bytes addUnsignedInt keySize
               bytes addAll current.mergedKey
               bytes add current.id
               bytes addAll writeResult.indexBytes
             } else {
-              bytes addIntUnsigned indexSize
-              sortedIndexAccessPosition foreach bytes.addIntUnsigned
-              bytes addIntUnsigned keySize
+              bytes addUnsignedInt indexSize
+              sortedIndexAccessPosition foreach bytes.addUnsignedInt
+              bytes addUnsignedInt keySize
               bytes addAll writeResult.indexBytes
             }
 
@@ -203,17 +203,17 @@ private[core] object EntryWriter {
           if (current.sortedIndexConfig.enablePartialRead) {
             val indexSize = sortedIndexAccessPosition.map(Bytes.sizeOfUnsignedInt).getOrElse(0) + Bytes.sizeOfUnsignedInt(keySize) + current.mergedKey.size + ByteSizeOf.byte + writeResult.indexBytes.size
             val bytes = Slice.create[Byte](Bytes.sizeOfUnsignedInt(indexSize) + indexSize)
-            bytes addIntUnsigned indexSize
-            sortedIndexAccessPosition foreach bytes.addIntUnsigned
-            bytes addIntUnsigned current.mergedKey.size
+            bytes addUnsignedInt indexSize
+            sortedIndexAccessPosition foreach bytes.addUnsignedInt
+            bytes addUnsignedInt current.mergedKey.size
             bytes addAll current.mergedKey
             bytes add current.id
             bytes addAll writeResult.indexBytes
           } else {
             val indexSize = writeResult.indexBytes.size + sortedIndexAccessPosition.map(Bytes.sizeOfUnsignedInt).getOrElse(0)
             val bytes = Slice.create[Byte](Bytes.sizeOfUnsignedInt(indexSize) + indexSize)
-            bytes addIntUnsigned indexSize
-            sortedIndexAccessPosition foreach bytes.addIntUnsigned
+            bytes addUnsignedInt indexSize
+            sortedIndexAccessPosition foreach bytes.addUnsignedInt
             bytes addAll writeResult.indexBytes
           }
       }

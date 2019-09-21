@@ -55,7 +55,7 @@
 //
 //      val read =
 //        SortedIndexEntryReader.fullRead(
-//          indexEntry = normalisedEntry.indexEntryBytes.dropIntUnsigned().right.value,
+//          indexEntry = normalisedEntry.indexEntryBytes.dropUnsignedInt().right.value,
 //          mightBeCompressed = entry.stats.hasPrefixCompression,
 //          valuesReader = entry.valueEntryBytes.headOption.map(buildSingleValueReader),
 //          indexOffset = 0,
@@ -91,7 +91,7 @@
 //
 //      val previousRead =
 //        SortedIndexEntryReader.fullRead(
-//          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
+//          indexEntry = previous.indexEntryBytes.dropUnsignedInt().right.value,
 //          mightBeCompressed = false,
 //          valuesReader = Some(buildSingleValueReader(valueBytes)),
 //          indexOffset = 0,
@@ -107,7 +107,7 @@
 //
 //      val nextRead =
 //        SortedIndexEntryReader.fullRead(
-//          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
+//          indexEntry = next.indexEntryBytes.dropUnsignedInt().right.value,
 //          mightBeCompressed = next.stats.hasPrefixCompression,
 //          valuesReader = Some(buildSingleValueReader(valueBytes)),
 //          indexOffset = 0,

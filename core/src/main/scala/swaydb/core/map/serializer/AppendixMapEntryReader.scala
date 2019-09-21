@@ -74,14 +74,14 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
       for {
-        segmentPathLength <- reader.readIntUnsigned()
+        segmentPathLength <- reader.readUnsignedInt()
         segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
         segmentPath <- IO(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
-        segmentSize <- reader.readIntUnsigned()
-        minKeyLength <- reader.readIntUnsigned()
+        segmentSize <- reader.readUnsignedInt()
+        minKeyLength <- reader.readUnsignedInt()
         minKey <- reader.read(minKeyLength).map(_.unslice())
-        maxKeyId <- reader.readIntUnsigned()
-        maxKeyLength <- reader.readIntUnsigned()
+        maxKeyId <- reader.readUnsignedInt()
+        maxKeyLength <- reader.readUnsignedInt()
         maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
         maxKey <- {
           if (maxKeyId == 1)
@@ -94,7 +94,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
           }
         }
         nearestExpiryDeadline <- {
-          reader.readLongUnsigned() map {
+          reader.readUnsignedLong() map {
             deadlineNanos =>
               if (deadlineNanos == 0)
                 None
@@ -103,14 +103,14 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
           }
         }
         minMaxFunctionId <- {
-          reader.readIntUnsigned() flatMap {
+          reader.readUnsignedInt() flatMap {
             minIdSize =>
               if (minIdSize == 0)
                 IO.none
               else
                 for {
                   minId <- reader.read(minIdSize)
-                  maxIdSize <- reader.readIntUnsigned()
+                  maxIdSize <- reader.readUnsignedInt()
                   maxId <- if (maxIdSize == 0) IO.none else reader.read(maxIdSize).toOptionValue
                 } yield Some(MinMax(minId, maxId))
           }
@@ -179,7 +179,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
     override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
       for {
-        minKeyLength <- reader.readIntUnsigned()
+        minKeyLength <- reader.readUnsignedInt()
         minKey <- reader.read(minKeyLength).map(_.unslice())
       } yield {
         Some(MapEntry.Remove(minKey)(AppendixMapEntryWriter.AppendixRemoveWriter))
@@ -190,7 +190,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
     override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
-          reader.readIntUnsigned() flatMap {
+          reader.readUnsignedInt() flatMap {
             entryId =>
               if (entryId == AppendixMapEntryWriter.AppendixPutWriter.id)
                 AppendixPutReader.read(reader) map {

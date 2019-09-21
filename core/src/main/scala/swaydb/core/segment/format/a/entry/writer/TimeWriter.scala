@@ -128,8 +128,8 @@ private[writer] object TimeWriter {
 
         writeResult
           .indexBytes
-          .addIntUnsigned(commonBytes)
-          .addIntUnsigned(remainingBytes.size)
+          .addUnsignedInt(commonBytes)
+          .addUnsignedInt(remainingBytes.size)
           .addAll(remainingBytes)
 
         writeResult
@@ -159,7 +159,7 @@ private[writer] object TimeWriter {
 
     writeResult
       .indexBytes
-      .addIntUnsigned(currentTime.time.size)
+      .addUnsignedInt(currentTime.time.size)
       .addAll(currentTime.time)
 
     writeResult

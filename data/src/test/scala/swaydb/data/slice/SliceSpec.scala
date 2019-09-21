@@ -357,14 +357,14 @@ class SliceSpec extends WordSpec with Matchers {
 
     "write and read Unsigned Integer" in {
       val slice = Slice.create[Byte](ByteSizeOf.int + 1)
-      slice addIntUnsigned Int.MaxValue
-      slice.createReaderUnsafe().readIntUnsigned() shouldBe Int.MaxValue
+      slice addUnsignedInt Int.MaxValue
+      slice.createReaderUnsafe().readUnsignedInt() shouldBe Int.MaxValue
     }
 
     "write and read Unsigned Long" in {
       val slice = Slice.create[Byte](ByteSizeOf.long + 1)
-      slice addLongUnsigned Long.MaxValue
-      slice.createReaderUnsafe().readLongUnsigned() shouldBe Long.MaxValue
+      slice addUnsignedLong Long.MaxValue
+      slice.createReaderUnsafe().readUnsignedLong() shouldBe Long.MaxValue
     }
 
     "write and read String" in {
@@ -378,19 +378,19 @@ class SliceSpec extends WordSpec with Matchers {
 
       slice addInt 1
       slice addLong 2L
-      slice addIntUnsigned 3
-      slice addLongUnsigned 4L
-      slice addIntSigned -3
-      slice addLongSigned -4L
+      slice addUnsignedInt 3
+      slice addUnsignedLong 4L
+      slice addSignedInt -3
+      slice addSignedLong -4L
       slice addString "This is a string"
 
       val reader = slice.close().createReaderUnsafe()
       reader.readInt() shouldBe 1
       reader.readLong() shouldBe 2L
-      reader.readIntUnsigned() shouldBe 3
-      reader.readLongUnsigned() shouldBe 4L
-      reader.readIntSigned() shouldBe -3
-      reader.readLongSigned() shouldBe -4L
+      reader.readUnsignedInt() shouldBe 3
+      reader.readUnsignedLong() shouldBe 4L
+      reader.readSignedInt() shouldBe -3
+      reader.readSignedLong() shouldBe -4L
       reader.readRemainingAsString() shouldBe "This is a string"
     }
 

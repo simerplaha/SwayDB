@@ -86,8 +86,8 @@
 //    "write only the bytes written" in {
 //      val testFile = randomFilePath
 //      val bytes = Slice.create[Byte](10)
-//      bytes.addIntUnsigned(1)
-//      bytes.addIntUnsigned(2)
+//      bytes.addUnsignedInt(1)
+//      bytes.addUnsignedInt(2)
 //
 //      bytes.size shouldBe 2
 //
@@ -173,8 +173,8 @@
 //    "append if the slice is partially written" in {
 //      val testFile = randomFilePath
 //      val bytes = Slice.create[Byte](10)
-//      bytes.addIntUnsigned(1)
-//      bytes.addIntUnsigned(2)
+//      bytes.addUnsignedInt(1)
+//      bytes.addUnsignedInt(2)
 //
 //      bytes.size shouldBe 2
 //
@@ -349,8 +349,8 @@
 //    "fail write if the slice is partially written" in {
 //      val testFile = randomFilePath
 //      val bytes = Slice.create[Byte](10)
-//      bytes.addIntUnsigned(1)
-//      bytes.addIntUnsigned(2)
+//      bytes.addUnsignedInt(1)
+//      bytes.addUnsignedInt(2)
 //
 //      bytes.size shouldBe 2
 //

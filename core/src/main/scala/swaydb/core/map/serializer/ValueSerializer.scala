@@ -50,7 +50,7 @@ sealed trait ValueSerializer[T] {
 object ValueSerializer {
 
   def readDeadline(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Option[Deadline]] =
-    reader.readLongUnsigned() map {
+    reader.readUnsignedLong() map {
       deadline =>
         if (deadline == 0)
           None
@@ -59,7 +59,7 @@ object ValueSerializer {
     }
 
   def readTime(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Time] =
-    reader.readIntUnsigned() flatMap {
+    reader.readUnsignedInt() flatMap {
       timeSize =>
         if (timeSize == 0)
           Time.successEmpty
@@ -89,8 +89,8 @@ object ValueSerializer {
 
     override def write(value: Value.Put, bytes: Slice[Byte]): Unit =
       bytes
-        .addLongUnsigned(value.deadline.toNanos)
-        .addIntUnsigned(value.time.size)
+        .addUnsignedLong(value.deadline.toNanos)
+        .addUnsignedInt(value.time.size)
         .addAll(value.time.time)
         .addAll(value.value.getOrElse(Slice.emptyBytes))
 
@@ -114,8 +114,8 @@ object ValueSerializer {
 
     override def write(value: Value.Update, bytes: Slice[Byte]): Unit =
       bytes
-        .addLongUnsigned(value.deadline.toNanos)
-        .addIntUnsigned(value.time.size)
+        .addUnsignedLong(value.deadline.toNanos)
+        .addUnsignedInt(value.time.size)
         .addAll(value.time.time)
         .addAll(value.value.getOrElse(Slice.emptyBytes))
 
@@ -139,7 +139,7 @@ object ValueSerializer {
 
     override def write(value: Value.Remove, bytes: Slice[Byte]): Unit =
       bytes
-        .addLongUnsigned(value.deadline.toNanos)
+        .addUnsignedLong(value.deadline.toNanos)
         .addAll(value.time.time)
 
     override def bytesRequired(value: Value.Remove): Int =
@@ -172,19 +172,19 @@ object ValueSerializer {
   implicit object ValueSliceApplySerializer extends ValueSerializer[Slice[Value.Apply]] {
 
     override def write(applies: Slice[Value.Apply], bytes: Slice[Byte]): Unit = {
-      bytes.addIntUnsigned(applies.size)
+      bytes.addUnsignedInt(applies.size)
       applies foreach {
         case value: Value.Update =>
           val bytesRequired = ValueSerializer.bytesRequired(value)
-          ValueSerializer.write(value)(bytes.addIntUnsigned(0).addIntUnsigned(bytesRequired))
+          ValueSerializer.write(value)(bytes.addUnsignedInt(0).addUnsignedInt(bytesRequired))
 
         case value: Value.Function =>
           val bytesRequired = ValueSerializer.bytesRequired(value)
-          ValueSerializer.write(value)(bytes.addIntUnsigned(1).addIntUnsigned(bytesRequired))
+          ValueSerializer.write(value)(bytes.addUnsignedInt(1).addUnsignedInt(bytesRequired))
 
         case value: Value.Remove =>
           val bytesRequired = ValueSerializer.bytesRequired(value)
-          ValueSerializer.write(value)(bytes.addIntUnsigned(2).addIntUnsigned(bytesRequired))
+          ValueSerializer.write(value)(bytes.addUnsignedInt(2).addUnsignedInt(bytesRequired))
       }
     }
 
@@ -208,13 +208,13 @@ object ValueSerializer {
       }
 
     override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Slice[Value.Apply]] =
-      reader.readIntUnsigned() flatMap {
+      reader.readUnsignedInt() flatMap {
         count =>
           reader.foldLeftIO(Slice.create[Value.Apply](count)) {
             case (applies, reader) =>
-              reader.readIntUnsigned() flatMap {
+              reader.readUnsignedInt() flatMap {
                 id =>
-                  reader.readIntUnsignedBytes() flatMap {
+                  reader.readUnsignedIntBytes() flatMap {
                     bytes =>
                       if (id == 0)
                         ValueSerializer.read[Value.Update](Reader(bytes)) map {
@@ -263,7 +263,7 @@ object ValueSerializer {
       values foreach {
         value =>
           bytes
-            .addIntUnsigned(value.size)
+            .addUnsignedInt(value.size)
             .addAll(value)
       }
 
@@ -276,7 +276,7 @@ object ValueSerializer {
     override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, Seq[Slice[Byte]]] =
       reader.foldLeftIO(ListBuffer.empty[Slice[Byte]]) {
         case (result, reader) =>
-          reader.readIntUnsigned() flatMap {
+          reader.readUnsignedInt() flatMap {
             size =>
               reader.read(size) map {
                 bytes =>
@@ -315,10 +315,10 @@ object ValueSerializer {
     override def write(value: (Slice[Byte], Option[Slice[Byte]]), bytes: Slice[Byte]): Unit =
       value._2 match {
         case Some(second) =>
-          bytes.addIntSigned(1)
+          bytes.addSignedInt(1)
           ValueSerializer.write[(Slice[Byte], Slice[Byte])]((value._1, second))(bytes)
         case None =>
-          bytes.addIntSigned(0)
+          bytes.addSignedInt(0)
           bytes.addAll(value._1)
       }
 
@@ -333,7 +333,7 @@ object ValueSerializer {
       }
 
     override def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Slice[Byte], Option[Slice[Byte]])] =
-      reader.readIntUnsigned() flatMap {
+      reader.readUnsignedInt() flatMap {
         id =>
           if (id == 0)
             reader.readRemaining() map {
@@ -358,13 +358,13 @@ object ValueSerializer {
       bytes add formatId
       map foreach {
         case (int, tuples) =>
-          bytes addIntUnsigned int
-          bytes addIntUnsigned tuples.size
+          bytes addUnsignedInt int
+          bytes addUnsignedInt tuples.size
           tuples foreach {
             case (left, right) =>
-              bytes addIntUnsigned left.size
+              bytes addUnsignedInt left.size
               bytes addAll left
-              bytes addIntUnsigned right.size
+              bytes addUnsignedInt right.size
               bytes addAll right
           }
       }
@@ -378,16 +378,16 @@ object ValueSerializer {
           else
             reader.foldLeftIO(mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]) {
               case (map, reader) =>
-                reader.readIntUnsigned() flatMap {
+                reader.readUnsignedInt() flatMap {
                   int =>
-                    reader.readIntUnsigned() flatMap {
+                    reader.readUnsignedInt() flatMap {
                       tuplesCount =>
                         (1 to tuplesCount) mapIO {
                           _ =>
                             for {
-                              leftSize <- reader.readIntUnsigned()
+                              leftSize <- reader.readUnsignedInt()
                               left <- reader.read(leftSize)
-                              rightSize <- reader.readIntUnsigned()
+                              rightSize <- reader.readUnsignedInt()
                               right <- reader.read(rightSize)
                             } yield {
                               (left, right)

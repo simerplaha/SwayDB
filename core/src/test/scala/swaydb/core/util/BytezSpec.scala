@@ -4,12 +4,27 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 import scala.util.Random
 
-object BytezSpec extends WordSpec with Matchers {
+class BytezSpec extends WordSpec with Matchers {
+
+  val intRanges =
+    Seq(
+      Int.MinValue to Int.MinValue + 100000,
+      -1000000 to 1000000,
+      Int.MaxValue - 100000 to Int.MaxValue
+    )
+
+  val longRanges =
+    Seq(
+      Long.MinValue to Long.MinValue + 100000,
+      -1000000L to 1000000L,
+      Long.MaxValue - 100000 to Long.MaxValue
+    )
 
   "writeInt & readInt" in {
     runThis(1000.times) {
@@ -39,46 +54,113 @@ object BytezSpec extends WordSpec with Matchers {
     falseSlice.readBoolean() shouldBe false
   }
 
-  "writeSignedInt & readSignedInt & sizeOf" in {
-    ((-1000000 to 1000000) ++ (Int.MaxValue - 100000 to Int.MaxValue) ++ (Int.MinValue to Int.MinValue + 100000)) foreach {
-      i =>
-        val unsignedPositiveBytes = Slice.writeIntUnsigned(i)
-        unsignedPositiveBytes.readIntUnsigned().value shouldBe i
-        Bytes.sizeOfUnsignedInt(i) shouldBe unsignedPositiveBytes.size
+  "slice" should {
+    "writeSignedInt & readSignedInt & sizeOf" in {
+      intRanges foreach {
+        range =>
+          range foreach {
+            i =>
+              val unsignedBytes = Slice.writeUnsignedInt(i)
+              unsignedBytes.readUnsignedInt().value shouldBe i
+              Bytes.sizeOfUnsignedInt(i) shouldBe unsignedBytes.size
 
-        val unsignedNegativeBytes = Slice.writeIntUnsigned(-i)
-        unsignedNegativeBytes.readIntUnsigned().value shouldBe -i
-        Bytes.sizeOfUnsignedInt(-i) shouldBe unsignedNegativeBytes.size
+              val signedBytes = Slice.create[Byte](ByteSizeOf.varInt)
+              Bytes.writeSignedInt(i, signedBytes)
+              Bytes.readSignedInt(signedBytes).value shouldBe i
+          }
+      }
+    }
 
-        val signedNegativeBytes = Slice.create[Byte](ByteSizeOf.varInt)
-        Bytes.writeSignedInt(-i, signedNegativeBytes)
-        Bytes.readSignedInt(signedNegativeBytes).value shouldBe -i
+    "writeSignedLong & readSignedLong & sizeOf" in {
+      longRanges foreach {
+        range =>
+          range foreach {
+            i =>
+              val unsignedBytes = Slice.writeUnsignedLong(i)
+              unsignedBytes.readUnsignedLong().value shouldBe i
+              Bytes.sizeOfUnsignedLong(i) shouldBe unsignedBytes.size
 
-        val signedPositiveBytes = Slice.create[Byte](ByteSizeOf.varInt)
-        Bytes.writeSignedInt(i, signedPositiveBytes)
-        Bytes.readSignedInt(signedPositiveBytes).value shouldBe i
+              val signedBytes = Slice.create[Byte](ByteSizeOf.varLong)
+              Bytes.writeSignedLong(i, signedBytes)
+              Bytes.readSignedLong(signedBytes).value shouldBe i
+          }
+      }
     }
   }
 
-  "writeSignedLong & readSignedLong & sizeOf" in {
-    ((-1000000L to 1000000L) ++ (Long.MaxValue - 100000 to Long.MaxValue) ++ (Long.MinValue to Long.MinValue + 100000)) foreach {
-      i =>
-        val unsignedPositiveBytes = Slice.writeLongUnsigned(i)
-        unsignedPositiveBytes.readLongUnsigned().value shouldBe i
-        Bytes.sizeOfUnsignedLong(i) shouldBe unsignedPositiveBytes.size
+  "reader" should {
+    "readUnsignedInt" in {
+      intRanges foreach {
+        range =>
+          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varInt)
 
-        val unsignedNegativeBytes = Slice.writeLongUnsigned(-i)
-        unsignedNegativeBytes.readLongUnsigned().value shouldBe -i
-        Bytes.sizeOfUnsignedLong(-i) shouldBe unsignedNegativeBytes.size
+          range foreach {
+            int =>
+              Bytes.writeUnsignedInt(int, slice)
+          }
 
-        val signedNegativeBytes = Slice.create[Byte](ByteSizeOf.varLong)
-        Bytes.writeSignedLong(-i, signedNegativeBytes)
-        Bytes.readSignedLong(signedNegativeBytes).value shouldBe -i
-
-        val signedPositiveBytes = Slice.create[Byte](ByteSizeOf.varLong)
-        Bytes.writeSignedLong(i, signedPositiveBytes)
-        Bytes.readSignedLong(signedPositiveBytes).value shouldBe i
+          val reader = Reader(slice)
+          range foreach {
+            int =>
+              reader.readUnsignedInt().value shouldBe int
+          }
+      }
     }
+
+    "readSignedInt" in {
+      intRanges foreach {
+        range =>
+          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varInt)
+
+          range foreach {
+            int =>
+              Bytes.writeSignedInt(int, slice)
+          }
+
+          val reader = Reader(slice)
+          range foreach {
+            int =>
+              reader.readSignedInt().value shouldBe int
+          }
+      }
+    }
+
+    "readUnsignedLong" in {
+      longRanges foreach {
+        range =>
+          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varLong)
+
+          range foreach {
+            long =>
+              Bytes.writeUnsignedLong(long, slice)
+          }
+
+          val reader = Reader(slice)
+          range foreach {
+            int =>
+              reader.readUnsignedLong().value shouldBe int
+          }
+      }
+    }
+
+    "readSignedLong" in {
+      longRanges foreach {
+        range =>
+          val slice = Slice.create[Byte](2000000 * ByteSizeOf.varLong)
+
+          range foreach {
+            long =>
+              Bytes.writeSignedLong(long, slice)
+          }
+
+          val reader = Reader(slice)
+          range foreach {
+            int =>
+              reader.readSignedLong().value shouldBe int
+          }
+      }
+    }
+
   }
 
 }

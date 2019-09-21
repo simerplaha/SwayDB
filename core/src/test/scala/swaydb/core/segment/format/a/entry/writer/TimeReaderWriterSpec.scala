@@ -81,7 +81,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               val reader = Reader[swaydb.Error.Segment](writeResult.indexBytes)
 
               val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timePartiallyCompressed.noValue.noDeadline.baseId)
-              reader.readIntUnsigned().get shouldBe expectedEntryID
+              reader.readUnsignedInt().get shouldBe expectedEntryID
 
               val previous =
                 Persistent.Put(
@@ -137,7 +137,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
           val reader = Reader[swaydb.Error.Segment](writeResult.indexBytes)
 
           val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timeUncompressed.noValue.noDeadline.baseId)
-          reader.readIntUnsigned().get shouldBe expectedEntryID
+          reader.readUnsignedInt().get shouldBe expectedEntryID
 
           val previous =
             Persistent.Put(
@@ -189,7 +189,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               val reader = Reader[swaydb.Error.Segment](writeResult.indexBytes)
 
               val expectedEntryID = adjustedEntryId.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.noTime.noValue.noDeadline.baseId)
-              reader.readIntUnsigned().get shouldBe expectedEntryID
+              reader.readUnsignedInt().get shouldBe expectedEntryID
 
               val previous =
                 Persistent.Put(

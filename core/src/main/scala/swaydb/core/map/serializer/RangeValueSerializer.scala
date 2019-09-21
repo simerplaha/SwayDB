@@ -49,7 +49,7 @@ object RangeValueSerializer {
     val id = swaydb.core.map.serializer.RemoveRange.id
 
     override def write(fromValue: Unit, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit =
-      ValueSerializer.write[Value.Remove](rangeValue)(bytes.addIntUnsigned(id))
+      ValueSerializer.write[Value.Remove](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Remove): Int =
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
@@ -63,7 +63,7 @@ object RangeValueSerializer {
     val id = swaydb.core.map.serializer.UpdateRange.id
 
     override def write(fromValue: Unit, rangeValue: Value.Update, bytes: Slice[Byte]): Unit =
-      ValueSerializer.write[Value.Update](rangeValue)(bytes.addIntUnsigned(id))
+      ValueSerializer.write[Value.Update](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Update): Int =
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
@@ -77,7 +77,7 @@ object RangeValueSerializer {
     val id = swaydb.core.map.serializer.FunctionRange.id
 
     override def write(fromValue: Unit, rangeValue: Value.Function, bytes: Slice[Byte]): Unit =
-      ValueSerializer.write[Value.Function](rangeValue)(bytes.addIntUnsigned(id))
+      ValueSerializer.write[Value.Function](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.Function): Int =
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
@@ -91,7 +91,7 @@ object RangeValueSerializer {
     val id = swaydb.core.map.serializer.PendingApplyRange.id
 
     override def write(fromValue: Unit, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit =
-      ValueSerializer.write[Value.PendingApply](rangeValue)(bytes.addIntUnsigned(id))
+      ValueSerializer.write[Value.PendingApply](rangeValue)(bytes.addUnsignedInt(id))
 
     override def bytesRequired(fromValue: Unit, rangeValue: Value.PendingApply): Int =
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
@@ -110,8 +110,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Remove, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -125,7 +125,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Remove, Value.Remove)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -144,8 +144,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Remove, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -159,7 +159,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Remove, Value.Update)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -178,8 +178,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Remove, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -193,7 +193,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Remove, Value.Function)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -212,8 +212,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Remove, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -227,7 +227,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Remove, Value.PendingApply)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -250,8 +250,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Put, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -265,7 +265,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Put, Remove)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -284,8 +284,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Put, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -299,7 +299,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Put, Value.Update)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -318,8 +318,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Put, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -333,7 +333,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Put, Value.Function)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -352,8 +352,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Put, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -367,7 +367,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Put, Value.PendingApply)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -388,8 +388,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Update, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -403,7 +403,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Update, Value.Remove)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -422,8 +422,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Update, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -437,7 +437,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Update, Value.Update)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -455,8 +455,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Update, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -470,7 +470,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Update, Value.Function)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -488,8 +488,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Update, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -503,7 +503,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Update, Value.PendingApply)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -524,8 +524,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Function, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -539,7 +539,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Function, Value.Remove)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -557,8 +557,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Function, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -572,7 +572,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Function, Value.Update)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -590,8 +590,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Function, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -605,7 +605,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Function, Value.Function)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -623,8 +623,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.Function, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -638,7 +638,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.Function, Value.PendingApply)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -659,8 +659,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Remove, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -674,7 +674,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.PendingApply, Value.Remove)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -692,8 +692,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Update, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -707,7 +707,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.PendingApply, Value.Update)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -725,8 +725,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.PendingApply, rangeValue: Value.Function, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -740,7 +740,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.PendingApply, Value.Function)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -758,8 +758,8 @@ object RangeValueSerializer {
     override def write(fromValue: Value.PendingApply, rangeValue: Value.PendingApply, bytes: Slice[Byte]): Unit = {
       ValueSerializer.write(fromValue) {
         bytes
-          .addIntUnsigned(id)
-          .addIntUnsigned(ValueSerializer.bytesRequired(fromValue))
+          .addUnsignedInt(id)
+          .addUnsignedInt(ValueSerializer.bytesRequired(fromValue))
       }
       ValueSerializer.write(rangeValue)(bytes)
     }
@@ -773,7 +773,7 @@ object RangeValueSerializer {
     }
 
     def read(reader: ReaderBase[swaydb.Error.IO]): IO[swaydb.Error.IO, (Value.PendingApply, Value.PendingApply)] =
-      reader.readIntUnsigned().flatMap(reader.read) flatMap {
+      reader.readUnsignedInt().flatMap(reader.read) flatMap {
         fromValueBytes =>
           ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
             fromKeyValue =>
@@ -971,7 +971,7 @@ object RangeValueSerializer {
   def read(bytes: Slice[Byte]): IO[swaydb.Error.IO, (Option[Value.FromValue], Value.RangeValue)] =
     Reader(bytes) ==> {
       reader =>
-        reader.readIntUnsigned() flatMap {
+        reader.readUnsignedInt() flatMap {
           rangeId =>
             read(rangeId, reader)
         }

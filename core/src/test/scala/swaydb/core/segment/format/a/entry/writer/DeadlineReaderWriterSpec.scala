@@ -130,7 +130,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val expectedKeyValueId = binder.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineId.deadlineUncompressed.baseId, isKeyCompressed)
 
-            reader.readIntUnsigned().get shouldBe expectedKeyValueId
+            reader.readUnsignedInt().get shouldBe expectedKeyValueId
             DeadlineReader.DeadlineUncompressedReader.read(reader, None).get should contain(deadline)
           }
 
@@ -217,7 +217,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                   else
                     fail("Cannot have more than 8 common bytes")
 
-                reader.readIntUnsigned().get shouldBe expectedKeyValueId
+                reader.readUnsignedInt().get shouldBe expectedKeyValueId
 
                 val put =
                   Persistent.Put(
@@ -270,7 +270,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
                 val reader = Reader[swaydb.Error.Segment](deadlineBytes)
                 deadlineBytes.isFull shouldBe true
-                reader.readIntUnsigned().get shouldBe expectedEntryID
+                reader.readUnsignedInt().get shouldBe expectedEntryID
                 DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty
               }
 
@@ -310,7 +310,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val reader = Reader[swaydb.Error.Segment](deadlineBytes)
             deadlineBytes.isFull shouldBe true
-            reader.readIntUnsigned().get shouldBe expectedEntryID
+            reader.readUnsignedInt().get shouldBe expectedEntryID
             DeadlineReader.DeadlineUncompressedReader.read(reader, None).get shouldBe deadline
           }
 
@@ -346,7 +346,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val reader = Reader[swaydb.Error.Segment](deadlineBytes)
             deadlineBytes.isFull shouldBe true
-            reader.readIntUnsigned().get shouldBe expectedEntryID
+            reader.readUnsignedInt().get shouldBe expectedEntryID
             DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty
           }
 
@@ -386,7 +386,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val reader = Reader[swaydb.Error.Segment](deadlineBytes)
             deadlineBytes.isFull shouldBe true
-            reader.readIntUnsigned().get shouldBe expectedEntryID
+            reader.readUnsignedInt().get shouldBe expectedEntryID
 
             val previous =
               Persistent.Put(

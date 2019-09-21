@@ -84,7 +84,7 @@ object DeadlineReader {
                     next = rightDeadlineBytes,
                     commonBytes = commonBytes
                   )
-                  .readLongUnsigned()
+                  .readUnsignedLong()
                   .map(_.toDeadlineOption)
             }
         } getOrElse {
@@ -158,6 +158,6 @@ object DeadlineReader {
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Option[duration.Deadline]] =
-      indexReader.readLongUnsigned() map (_.toDeadlineOption)
+      indexReader.readUnsignedLong() map (_.toDeadlineOption)
   }
 }

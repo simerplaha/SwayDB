@@ -101,13 +101,13 @@ object EntryReader {
 
     val sortedIndexAccessPosition =
       if (block.enableAccessPositionIndex)
-        reader.readIntUnsigned()
+        reader.readUnsignedInt()
       else
         IO.zero
 
     sortedIndexAccessPosition flatMap {
       sortedIndexAccessPosition =>
-        reader.readIntUnsigned() flatMap {
+        reader.readUnsignedInt() flatMap {
           keySize =>
             reader.read(keySize) flatMap {
               key =>
@@ -218,7 +218,7 @@ object EntryReader {
                              previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, T] = {
     val reader = Reader[swaydb.Error.Segment](indexEntry)
 
-    reader.readIntUnsigned() flatMap {
+    reader.readUnsignedInt() flatMap {
       baseId =>
         EntryReader.parse[T](
           baseId = baseId,
@@ -252,13 +252,13 @@ object EntryReader {
 
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
-        reader.readIntUnsigned()
+        reader.readUnsignedInt()
       else
         IO.zero
 
     val keySize =
       if (isNormalised)
-        reader.readIntUnsigned() map {
+        reader.readUnsignedInt() map {
           keySize =>
             Some(Left(keySize))
         }
@@ -269,7 +269,7 @@ object EntryReader {
       sortedIndexAccessPosition =>
         keySize flatMap {
           keySize =>
-            reader.readIntUnsigned() flatMap {
+            reader.readUnsignedInt() flatMap {
               keyValueId =>
                 if (KeyValueId.Put hasKeyValueId keyValueId)
                   EntryReader.parse(
@@ -383,19 +383,19 @@ object EntryReader {
 
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
-        reader.readIntUnsigned()
+        reader.readUnsignedInt()
       else
         IO.zero
 
     sortedIndexAccessPosition flatMap {
       sortedIndexAccessPosition =>
-        reader.readIntUnsigned() flatMap {
+        reader.readUnsignedInt() flatMap {
           keySize =>
             reader.read(keySize) flatMap {
               key =>
                 reader.get() flatMap {
                   id =>
-                    reader.readIntUnsigned() flatMap {
+                    reader.readUnsignedInt() flatMap {
                       baseId =>
                         if (id == Transient.Put.id)
                           EntryReader.parse(

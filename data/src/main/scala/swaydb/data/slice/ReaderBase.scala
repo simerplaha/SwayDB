@@ -64,29 +64,29 @@ private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ExceptionHan
 
   def readInt(unsigned: Boolean): IO[E, Int] =
     if (unsigned)
-      readIntUnsigned()
+      readUnsignedInt()
     else
       readInt()
 
-  def readIntUnsigned(): IO[E, Int] =
+  def readUnsignedInt(): IO[E, Int] =
     Bytez.readUnsignedInt(self)
 
-  def readIntUnsignedBytes(): IO[E, Slice[Byte]] =
+  def readUnsignedIntBytes(): IO[E, Slice[Byte]] =
     Bytez.readUnsignedInt(self) flatMap {
       size =>
         read(size)
     }
 
-  def readIntSigned(): IO[E, Int] =
+  def readSignedInt(): IO[E, Int] =
     Bytez.readSignedInt(self)
 
   def readLong(): IO[E, Long] =
     Bytez.readLong(self)
 
-  def readLongUnsigned(): IO[E, Long] =
+  def readUnsignedLong(): IO[E, Long] =
     Bytez.readUnsignedLong(self)
 
-  def readLongSigned(): IO[E, Long] =
+  def readSignedLong(): IO[E, Long] =
     Bytez.readSignedLong(self)
 
   def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): IO[E, String] =

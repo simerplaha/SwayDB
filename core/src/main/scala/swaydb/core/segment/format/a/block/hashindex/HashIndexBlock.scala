@@ -255,19 +255,19 @@ private[core] object HashIndexBlock extends LazyLogging {
             val allocatedBytes = state.bytes.allocatedSize
             state.bytes = compressedOrUncompressedBytes
             state.bytes addInt allocatedBytes //allocated bytes
-            state.bytes addIntUnsigned state.maxProbe
+            state.bytes addUnsignedInt state.maxProbe
             state.bytes addBoolean state.copyIndex
             state.bytes addBoolean state.copyIndexWithReferences
-            state.bytes addIntUnsigned state.hit
-            state.bytes addIntUnsigned state.miss
-            state.bytes addLongUnsigned {
+            state.bytes addUnsignedInt state.hit
+            state.bytes addUnsignedInt state.miss
+            state.bytes addUnsignedLong {
               //CRC can be -1 when HashIndex is not fully copied.
               if (state.minimumCRC == CRC32.disabledCRC)
                 0
               else
                 state.minimumCRC
             }
-            state.bytes addIntUnsigned state.writeAbleLargestValueSize
+            state.bytes addUnsignedInt state.writeAbleLargestValueSize
             if (state.bytes.currentWritePosition > state.headerSize)
               throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition}")
             Some(state)
@@ -277,13 +277,13 @@ private[core] object HashIndexBlock extends LazyLogging {
   def read(header: Block.Header[HashIndexBlock.Offset]): IO[swaydb.Error.Segment, HashIndexBlock] =
     for {
       allocatedBytes <- header.headerReader.readInt()
-      maxProbe <- header.headerReader.readIntUnsigned()
+      maxProbe <- header.headerReader.readUnsignedInt()
       copyIndex <- header.headerReader.readBoolean()
       copyIndexWithReferences <- header.headerReader.readBoolean()
-      hit <- header.headerReader.readIntUnsigned()
-      miss <- header.headerReader.readIntUnsigned()
-      minimumCRC <- header.headerReader.readLongUnsigned()
-      largestValueSize <- header.headerReader.readIntUnsigned()
+      hit <- header.headerReader.readUnsignedInt()
+      miss <- header.headerReader.readUnsignedInt()
+      minimumCRC <- header.headerReader.readUnsignedLong()
+      largestValueSize <- header.headerReader.readUnsignedInt()
     } yield
       HashIndexBlock(
         offset = header.offset,
@@ -315,7 +315,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
     val valuePlusOne = value + 1
-    val valuePlusOneBytes = Slice.writeIntUnsigned(valuePlusOne)
+    val valuePlusOneBytes = Slice.writeUnsignedInt(valuePlusOne)
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -341,14 +341,14 @@ private[core] object HashIndexBlock extends LazyLogging {
           state.bytes moveWritePosition (hashIndex + 1)
           state.bytes addAll valuePlusOneBytes
           state.hit += 1
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = success")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeUnsignedInt(valuePlusOne)} = success")
           true
         } else if (existing.head == 0 && existing.dropHead() == valuePlusOneBytes) { //check if value already exists.
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = existing")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeUnsignedInt(valuePlusOne)} = existing")
           state.hit += 1
           true
         } else {
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeIntUnsigned(valuePlusOne)} = failure")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeUnsignedInt(valuePlusOne)} = failure")
           doWrite(key = key, probe = probe + 1)
         }
       }
@@ -400,7 +400,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                 doFind(probe + 1, checkedHashIndexes)
               } else {
                 val possibleValueWithoutHeader = possibleValueBytes.dropHead()
-                possibleValueWithoutHeader.readIntUnsignedWithByteSize() match {
+                possibleValueWithoutHeader.readUnsignedIntWithByteSize() match {
                   case IO.Right((possibleValue, bytesRead)) =>
                     //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
                     if (possibleValue == 0 || possibleValueWithoutHeader.take(bytesRead).exists(_ == 0))
@@ -452,7 +452,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                   state: State): IO[swaydb.Error.Segment, Boolean] =
     writeCopied(
       key = key,
-      value = Slice.writeIntUnsigned(indexOffset),
+      value = Slice.writeUnsignedInt(indexOffset),
       thisKeyValuesAccessOffset = -1,
       isReference = true,
       state = state
@@ -493,13 +493,13 @@ private[core] object HashIndexBlock extends LazyLogging {
           state.bytes moveWritePosition hashIndex
           val crc = CRC32.forBytes(value)
           //write as unsignedLong to avoid writing any zeroes.
-          state.bytes addLongUnsigned crc
+          state.bytes addUnsignedLong crc
 
           if (state.copyIndexWithReferences)
             state.bytes addBoolean isReference
 
           if (!isReference)
-            state.bytes addIntUnsigned thisKeyValuesAccessOffset
+            state.bytes addUnsignedInt thisKeyValuesAccessOffset
 
           state.bytes addAll value
 
@@ -512,7 +512,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             state setMinimumCRC (crc min state.minimumCRC)
 
           state.hit += 1
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, crcBytes: ${Slice.writeLongUnsigned(crc)}, value: $value, crc: $crc, isReference: $isReference = success")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, crcBytes: ${Slice.writeUnsignedLong(crc)}, value: $value, crc: $crc, isReference: $isReference = success")
           true
         } else {
           //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, isReference: $isReference = failure")
@@ -543,14 +543,14 @@ private[core] object HashIndexBlock extends LazyLogging {
         (false, valueBytesWithoutCRC)
 
     //[CRC|Option[isRef]|Option[accessOffset]|valuesBytes]
-    remainingWithoutCRCAndIsReference.readIntUnsignedWithByteSize() flatMap {
+    remainingWithoutCRCAndIsReference.readUnsignedIntWithByteSize() flatMap {
       case (entrySizeOrAccessIndexOffsetEntry, entrySizeOrAccessIndexOffsetEntryByteSize) => //this will be entrySize/sortedIndexOffset if it's a reference else it will be thisKeyValuesAccessIndexOffset.
         //it's a reference so there is no accessIndexOffset therefore this value is reference offset.
         if (isReference) {
           val valueBytes = remainingWithoutCRCAndIsReference.take(entrySizeOrAccessIndexOffsetEntryByteSize)
           IO.Right((valueBytes, isReference, -1)) //it's a reference there will be no accessIndexOffset.
         } else { //else this is accessIndexOffset and remaining is indexEntry bytes.
-          remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readIntUnsignedWithByteSize() map {
+          remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readUnsignedIntWithByteSize() map {
             case (entrySize, entryByteSize) =>
               val valueBytes =
                 remainingWithoutCRCAndIsReference
@@ -678,7 +678,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           assertValue =
             (referenceOrIndexEntry: Slice[Byte], accessIndexOffset: Int, isReference: Boolean) =>
               if (isReference)
-                referenceOrIndexEntry.readIntUnsigned() flatMap {
+                referenceOrIndexEntry.readUnsignedInt() flatMap {
                   indexOffset =>
                     SortedIndexBlock.seekAndMatchOrSeek(
                       matcher = matcher,

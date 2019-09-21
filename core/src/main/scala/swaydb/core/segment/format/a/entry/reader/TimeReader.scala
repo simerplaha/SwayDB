@@ -55,7 +55,7 @@ object TimeReader {
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
-      indexReader.readIntUnsigned() flatMap {
+      indexReader.readUnsignedInt() flatMap {
         timeSize =>
           indexReader.read(timeSize) map {
             time =>
@@ -70,9 +70,9 @@ object TimeReader {
 
     def readTime(indexReader: ReaderBase[swaydb.Error.Segment],
                  previousTime: Time): IO[swaydb.Error.Segment, Time] =
-      indexReader.readIntUnsigned() flatMap {
+      indexReader.readUnsignedInt() flatMap {
         commonBytes =>
-          indexReader.readIntUnsigned() flatMap {
+          indexReader.readUnsignedInt() flatMap {
             uncompressedBytes =>
               indexReader.read(uncompressedBytes) map {
                 rightBytes =>

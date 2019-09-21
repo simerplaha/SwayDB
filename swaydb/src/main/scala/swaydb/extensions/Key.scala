@@ -79,7 +79,7 @@ private[extensions] object Key {
       val slice = Slice.create[Byte](size)
       slices foreach {
         keySlice =>
-          slice addIntUnsigned keySlice.size
+          slice addUnsignedInt keySlice.size
           slice addAll keySlice
       }
       slice
@@ -88,7 +88,7 @@ private[extensions] object Key {
   private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[swaydb.Error.Segment, Seq[K]] = {
     def readOne(reader: ReaderBase[swaydb.Error.Segment]): IO[swaydb.Error.Segment, Option[K]] =
       reader
-        .readIntUnsigned()
+        .readUnsignedInt()
         .flatMap(reader.read)
         .map {
           bytes =>
@@ -133,7 +133,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
-              .addIntUnsigned(keyBytes.size)
+              .addUnsignedInt(keyBytes.size)
               .addAll(keyBytes)
               .add(Key.mapStart)
 
@@ -142,7 +142,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
-              .addIntUnsigned(keyBytes.size)
+              .addUnsignedInt(keyBytes.size)
               .addAll(keyBytes)
               .add(Key.mapEntriesStart)
 
@@ -152,7 +152,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
               .add(formatId)
-              .addIntUnsigned(mapKeyBytes.size)
+              .addUnsignedInt(mapKeyBytes.size)
               .addAll(mapKeyBytes)
               .add(Key.mapEntry)
               .addAll(dataKeyBytes)
@@ -162,7 +162,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
-              .addIntUnsigned(keyBytes.size)
+              .addUnsignedInt(keyBytes.size)
               .addAll(keyBytes)
               .add(Key.mapEntriesEnd)
 
@@ -171,7 +171,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
-              .addIntUnsigned(keyBytes.size)
+              .addUnsignedInt(keyBytes.size)
               .addAll(keyBytes)
               .add(Key.subMapsStart)
 
@@ -181,7 +181,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
               .add(formatId)
-              .addIntUnsigned(mapKeyBytes.size)
+              .addUnsignedInt(mapKeyBytes.size)
               .addAll(mapKeyBytes)
               .add(Key.subMap)
               .addAll(dataKeyBytes)
@@ -191,7 +191,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
-              .addIntUnsigned(keyBytes.size)
+              .addUnsignedInt(keyBytes.size)
               .addAll(keyBytes)
               .add(Key.subMapsEnd)
 
@@ -200,7 +200,7 @@ private[extensions] object Key {
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
-              .addIntUnsigned(keyBytes.size)
+              .addUnsignedInt(keyBytes.size)
               .addAll(keyBytes)
               .add(Key.mapEnd)
         }
@@ -208,7 +208,7 @@ private[extensions] object Key {
       override def read(data: Slice[Byte]): Key[K] = {
         val reader = data.createReaderUnsafe()
         reader.skip(1) //skip formatId
-        val keyBytes = reader.read(reader.readIntUnsigned())
+        val keyBytes = reader.read(reader.readUnsignedInt())
         val keys = readKeys(keyBytes, keySerializer).get
         val dataType = reader.get()
         if (dataType == Key.mapStart)
@@ -245,13 +245,13 @@ private[extensions] object Key {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
         val readerLeft = a.createReaderUnsafe()
         readerLeft.skip(1) //skip formatId
-        val keySizeLeft = readerLeft.readIntUnsigned()
+        val keySizeLeft = readerLeft.readUnsignedInt()
         readerLeft.skip(keySizeLeft)
         val dataTypeLeft = readerLeft.get()
 
         val readerRight = a.createReaderUnsafe()
         readerRight.skip(1) //skip formatId
-        val keySizeRight = readerRight.readIntUnsigned() //read the keySize integer
+        val keySizeRight = readerRight.readUnsignedInt() //read the keySize integer
         readerRight.skip(keySizeRight) //skip key size
         val dataTypeRight = readerRight.get() //read the data type to apply ordering (default or custom)
 

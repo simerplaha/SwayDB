@@ -236,7 +236,7 @@ private[core] object BinarySearchIndexBlock {
         compressedOrUncompressedBytes =>
           IO {
             state.bytes = compressedOrUncompressedBytes
-            state.bytes addIntUnsigned state.writtenValues
+            state.bytes addUnsignedInt state.writtenValues
             state.bytes addInt state.bytesPerValue
             state.bytes addBoolean state.isFullIndex
             if (state.bytes.currentWritePosition > state.headerSize)
@@ -249,7 +249,7 @@ private[core] object BinarySearchIndexBlock {
 
   def read(header: Block.Header[BinarySearchIndexBlock.Offset]): IO[swaydb.Error.Segment, BinarySearchIndexBlock] =
     for {
-      valuesCount <- header.headerReader.readIntUnsigned()
+      valuesCount <- header.headerReader.readUnsignedInt()
       bytesPerValue <- header.headerReader.readInt()
       isFullIndex <- header.headerReader.readBoolean()
     } yield
@@ -272,7 +272,7 @@ private[core] object BinarySearchIndexBlock {
         //if the size of largest value is less than 4 bytes, write them as unsigned.
         if (state.bytesPerValue < ByteSizeOf.int) {
           val writePosition = state.bytes.currentWritePosition
-          state.bytes addIntUnsigned value
+          state.bytes addUnsignedInt value
           val missedBytes = state.bytesPerValue - (state.bytes.currentWritePosition - writePosition)
           if (missedBytes > 0)
             state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes) //fill in the missing bytes to maintain fixed size for each entry.

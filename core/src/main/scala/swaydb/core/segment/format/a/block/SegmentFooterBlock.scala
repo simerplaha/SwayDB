@@ -101,47 +101,47 @@ object SegmentFooterBlock {
       //currently there is only one format. So this is hardcoded but if there are a new file format then
       //SegmentWriter and SegmentReader should be changed to be type classes with unique format types ids.
       //the following group of bytes are also used for CRC check.
-      footerBytes addIntUnsigned SegmentBlock.formatId
-      footerBytes addIntUnsigned state.createdInLevel
-      footerBytes addIntUnsigned state.numberOfRanges
+      footerBytes addUnsignedInt SegmentBlock.formatId
+      footerBytes addUnsignedInt state.createdInLevel
+      footerBytes addUnsignedInt state.numberOfRanges
       footerBytes addBoolean state.hasPut
       //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
       //are read when the Group key-value is read.
-      footerBytes addIntUnsigned state.topLevelKeyValuesCount
+      footerBytes addUnsignedInt state.topLevelKeyValuesCount
       //total number of actual key-values grouped or un-grouped
-      footerBytes addIntUnsigned state.uniqueKeyValuesCount
+      footerBytes addUnsignedInt state.uniqueKeyValuesCount
 
       var currentBlockOffset = values.map(_.bytes.size) getOrElse 0
 
-      footerBytes addIntUnsigned sortedIndex.bytes.size
-      footerBytes addIntUnsigned currentBlockOffset
+      footerBytes addUnsignedInt sortedIndex.bytes.size
+      footerBytes addUnsignedInt currentBlockOffset
       currentBlockOffset = currentBlockOffset + sortedIndex.bytes.size
 
       hashIndex map {
         hashIndex =>
-          footerBytes addIntUnsigned hashIndex.bytes.size
-          footerBytes addIntUnsigned currentBlockOffset
+          footerBytes addUnsignedInt hashIndex.bytes.size
+          footerBytes addUnsignedInt currentBlockOffset
           currentBlockOffset = currentBlockOffset + hashIndex.bytes.size
       } getOrElse {
-        footerBytes addIntUnsigned 0
+        footerBytes addUnsignedInt 0
       }
 
       binarySearchIndex map {
         binarySearchIndex =>
-          footerBytes addIntUnsigned binarySearchIndex.bytes.size
-          footerBytes addIntUnsigned currentBlockOffset
+          footerBytes addUnsignedInt binarySearchIndex.bytes.size
+          footerBytes addUnsignedInt currentBlockOffset
           currentBlockOffset = currentBlockOffset + binarySearchIndex.bytes.size
       } getOrElse {
-        footerBytes addIntUnsigned 0
+        footerBytes addUnsignedInt 0
       }
 
       bloomFilter map {
         bloomFilter =>
-          footerBytes addIntUnsigned bloomFilter.bytes.size
-          footerBytes addIntUnsigned currentBlockOffset
+          footerBytes addUnsignedInt bloomFilter.bytes.size
+          footerBytes addUnsignedInt currentBlockOffset
           currentBlockOffset = currentBlockOffset + bloomFilter.bytes.size
       } getOrElse {
-        footerBytes addIntUnsigned 0
+        footerBytes addUnsignedInt 0
       }
 
       val footerOffset =
@@ -174,55 +174,55 @@ object SegmentFooterBlock {
         IO.Left(swaydb.Error.DataAccess(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC", new Exception("CRC check failed.")): swaydb.Error.Segment)
       } else {
         val footerReader = Reader(footerBytes)
-        val formatId = footerReader.readIntUnsigned().get
+        val formatId = footerReader.readUnsignedInt().get
         if (formatId != SegmentBlock.formatId) {
           val message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}"
           IO.Left(swaydb.Error.DataAccess(message = message, new Exception(message)): swaydb.Error.Segment)
         } else {
-          val createdInLevel = footerReader.readIntUnsigned().get
-          val numberOfRanges = footerReader.readIntUnsigned().get
+          val createdInLevel = footerReader.readUnsignedInt().get
+          val numberOfRanges = footerReader.readUnsignedInt().get
           val hasPut = footerReader.readBoolean().get
-          val keyValueCount = footerReader.readIntUnsigned().get
-          val bloomFilterItemsCount = footerReader.readIntUnsigned().get
+          val keyValueCount = footerReader.readUnsignedInt().get
+          val bloomFilterItemsCount = footerReader.readUnsignedInt().get
 
           val sortedIndexOffset =
             SortedIndexBlock.Offset(
-              size = footerReader.readIntUnsigned().get,
-              start = footerReader.readIntUnsigned().get
+              size = footerReader.readUnsignedInt().get,
+              start = footerReader.readUnsignedInt().get
             )
 
-          val hashIndexSize = footerReader.readIntUnsigned().get
+          val hashIndexSize = footerReader.readUnsignedInt().get
           val hashIndexOffset =
             if (hashIndexSize == 0)
               None
             else
               Some(
                 HashIndexBlock.Offset(
-                  start = footerReader.readIntUnsigned().get,
+                  start = footerReader.readUnsignedInt().get,
                   size = hashIndexSize
                 )
               )
 
-          val binarySearchIndexSize = footerReader.readIntUnsigned().get
+          val binarySearchIndexSize = footerReader.readUnsignedInt().get
           val binarySearchIndexOffset =
             if (binarySearchIndexSize == 0)
               None
             else
               Some(
                 BinarySearchIndexBlock.Offset(
-                  start = footerReader.readIntUnsigned().get,
+                  start = footerReader.readUnsignedInt().get,
                   size = binarySearchIndexSize
                 )
               )
 
-          val bloomFilterSize = footerReader.readIntUnsigned().get
+          val bloomFilterSize = footerReader.readUnsignedInt().get
           val bloomFilterOffset =
             if (bloomFilterSize == 0)
               None
             else
               Some(
                 BloomFilterBlock.Offset(
-                  start = footerReader.readIntUnsigned().get,
+                  start = footerReader.readUnsignedInt().get,
                   size = bloomFilterSize
                 )
               )

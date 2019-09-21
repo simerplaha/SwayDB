@@ -201,8 +201,8 @@ private[core] object BloomFilterBlock extends LazyLogging {
         compressedOrUncompressedBytes =>
           IO {
             state.bytes = compressedOrUncompressedBytes
-            state.bytes addIntUnsigned state.numberOfBits
-            state.bytes addIntUnsigned state.maxProbe
+            state.bytes addUnsignedInt state.numberOfBits
+            state.bytes addUnsignedInt state.maxProbe
             if (state.bytes.currentWritePosition > state.headerSize) {
               throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
             } else {
@@ -214,8 +214,8 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   def read(header: Block.Header[BloomFilterBlock.Offset]): IO[swaydb.Error.Segment, BloomFilterBlock] =
     for {
-      numberOfBits <- header.headerReader.readIntUnsigned()
-      maxProbe <- header.headerReader.readIntUnsigned()
+      numberOfBits <- header.headerReader.readUnsignedInt()
+      maxProbe <- header.headerReader.readUnsignedInt()
     } yield
       BloomFilterBlock(
         offset = header.offset,

@@ -49,7 +49,7 @@ object KeyReader {
             indexReader.read(keySize) flatMap {
               key =>
                 val keyReader = key.createReaderSafe()
-                keyReader.readIntUnsigned() flatMap {
+                keyReader.readUnsignedInt() flatMap {
                   commonBytes =>
                     keyReader.readRemaining() map {
                       rightBytes =>
@@ -59,7 +59,7 @@ object KeyReader {
             }
 
           case None =>
-            indexReader.readIntUnsigned() flatMap {
+            indexReader.readUnsignedInt() flatMap {
               commonBytes =>
                 indexReader.readRemaining() map {
                   rightBytes =>

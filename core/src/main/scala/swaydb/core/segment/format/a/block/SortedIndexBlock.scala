@@ -255,7 +255,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         state.bytes addBoolean state.isPreNormalised
         state.bytes addBoolean state.disableKeyPrefixCompression
         state.bytes addBoolean state.enablePartialRead
-        state.bytes addIntUnsigned state.segmentMaxIndexEntrySize
+        state.bytes addUnsignedInt state.segmentMaxIndexEntrySize
 
         if (state.bytes.currentWritePosition > state.headerSize)
           IO.Left(swaydb.Error.Fatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}"))
@@ -271,7 +271,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       isPreNormalised <- header.headerReader.readBoolean()
       disableKeyPrefixCompression <- header.headerReader.readBoolean()
       enablePartialRead <- header.headerReader.readBoolean()
-      segmentMaxIndexEntrySize <- header.headerReader.readIntUnsigned()
+      segmentMaxIndexEntrySize <- header.headerReader.readUnsignedInt()
     } yield {
       SortedIndexBlock(
         offset = header.offset,
@@ -340,7 +340,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           indexEntrySize
 
         case None | Some(_) =>
-          indexReader.readIntUnsigned().get
+          indexReader.readUnsignedInt().get
       }
 
       //5 extra bytes are read for each entry to fetch the next index's size.
@@ -365,7 +365,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           val nextIndexEntrySize =
             indexEntryBytesAndNextIndexEntrySize
               .drop(indexSize)
-              .readIntUnsigned()
+              .readUnsignedInt()
               .get
 
           (nextIndexEntrySize, indexReader.getPosition - extraBytesRead)

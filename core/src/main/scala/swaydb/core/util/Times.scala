@@ -37,7 +37,7 @@ object Times {
       deadline.time.toNanos
 
     @inline def toBytes: Slice[Byte] =
-      Slice.writeLongUnsigned(toNanos)
+      Slice.writeUnsignedLong(toNanos)
   }
 
   implicit class LongImplicits(deadline: Long) {

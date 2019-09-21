@@ -71,7 +71,7 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
                 if (bytesPerValue == 4)
                   bytes.take(offset, bytesPerValue).readInt()
                 else
-                  bytes.take(offset, bytesPerValue).readIntUnsigned().value
+                  bytes.take(offset, bytesPerValue).readUnsignedInt().value
 
               matcher(valueToFind, foundValue)
             }

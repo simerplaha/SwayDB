@@ -68,7 +68,7 @@
 //
 //    //HEAD KEY-VALUE
 //    keyValues.head.valueEntryBytes.headOption shouldBe defined
-//    var readKeyValueId = keyValues.head.indexEntryBytes.readIntUnsigned().get
+//    var readKeyValueId = keyValues.head.indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.PutBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    var baseId = TransientToKeyValueIdBinder.PutBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -95,7 +95,7 @@
 //
 //    //SECOND KEY-VALUE
 //    keyValues(1).valueEntryBytes shouldBe empty
-//    readKeyValueId = keyValues(1).indexEntryBytes.readIntUnsigned().get
+//    readKeyValueId = keyValues(1).indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.UpdateBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    baseId = TransientToKeyValueIdBinder.UpdateBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -122,7 +122,7 @@
 //
 //    //THIRD KEY-VALUE
 //    keyValues(2).valueEntryBytes shouldBe empty
-//    readKeyValueId = keyValues(2).indexEntryBytes.readIntUnsigned().get
+//    readKeyValueId = keyValues(2).indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.FunctionBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    baseId = TransientToKeyValueIdBinder.FunctionBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -170,7 +170,7 @@
 //
 //    //HEAD KEY-VALUE
 //    keyValues.head.valueEntryBytes.headOption shouldBe defined
-//    var readKeyValueId = keyValues.head.indexEntryBytes.readIntUnsigned().get
+//    var readKeyValueId = keyValues.head.indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.PutBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    var baseId = TransientToKeyValueIdBinder.PutBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -197,7 +197,7 @@
 //
 //    //SECOND KEY-VALUE
 //    keyValues(1).valueEntryBytes shouldBe empty
-//    readKeyValueId = keyValues(1).indexEntryBytes.readIntUnsigned().get
+//    readKeyValueId = keyValues(1).indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.UpdateBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    baseId = TransientToKeyValueIdBinder.UpdateBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -224,7 +224,7 @@
 //
 //    //THIRD KEY-VALUE
 //    keyValues(2).valueEntryBytes shouldBe empty
-//    readKeyValueId = keyValues(2).indexEntryBytes.readIntUnsigned().get
+//    readKeyValueId = keyValues(2).indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.FunctionBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    baseId = TransientToKeyValueIdBinder.FunctionBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -272,7 +272,7 @@
 //
 //    //HEAD KEY-VALUE
 //    keyValues.head.valueEntryBytes.headOption shouldBe empty
-//    var readKeyValueId = keyValues.head.indexEntryBytes.readIntUnsigned().get
+//    var readKeyValueId = keyValues.head.indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.PutBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    var baseId = TransientToKeyValueIdBinder.PutBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -299,7 +299,7 @@
 //
 //    //SECOND KEY-VALUE
 //    keyValues(1).valueEntryBytes shouldBe empty
-//    readKeyValueId = keyValues(1).indexEntryBytes.readIntUnsigned().get
+//    readKeyValueId = keyValues(1).indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.UpdateBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    baseId = TransientToKeyValueIdBinder.UpdateBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -326,7 +326,7 @@
 //
 //    //THIRD KEY-VALUE
 //    keyValues(2).valueEntryBytes shouldBe empty
-//    readKeyValueId = keyValues(2).indexEntryBytes.readIntUnsigned().get
+//    readKeyValueId = keyValues(2).indexEntryBytes.readUnsignedInt().get
 //    TransientToKeyValueIdBinder.RemoveBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
 //    baseId = TransientToKeyValueIdBinder.RemoveBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
 //    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get

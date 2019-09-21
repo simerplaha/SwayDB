@@ -190,7 +190,7 @@ private[swaydb] object Bytes extends Bytez {
     if (rightWithoutCommonBytes.isEmpty) {
       val compressedSlice = Slice.create[Byte](left.size + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(left.size) + tail.size)
       compressedSlice addAll left
-      compressedSlice addIntUnsigned commonBytes
+      compressedSlice addUnsignedInt commonBytes
       compressedSlice addAll Bytez.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
     } else {
@@ -204,8 +204,8 @@ private[swaydb] object Bytes extends Bytez {
 
       val compressedSlice = Slice.create[Byte](size)
       compressedSlice addAll left
-      compressedSlice addIntUnsigned commonBytes
-      compressedSlice addIntUnsigned rightWithoutCommonBytes.size
+      compressedSlice addUnsignedInt commonBytes
+      compressedSlice addUnsignedInt rightWithoutCommonBytes.size
       compressedSlice addAll rightWithoutCommonBytes
       compressedSlice addAll Bytez.writeUnsignedIntReversed(left.size) //store key1's byte size to the end to allow further merges with other keys.
       compressedSlice addAll tail
@@ -218,13 +218,13 @@ private[swaydb] object Bytes extends Bytez {
         for {
           (leftBytesSize, lastBytesRead) <- Bytez.readLastUnsignedInt(bytes)
           left <- reader.read(leftBytesSize)
-          commonBytes <- reader.readIntUnsigned()
+          commonBytes <- reader.readUnsignedInt()
           hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
           right <-
             if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
               IO.Right(left)
             else
-              reader.readIntUnsigned() flatMap {
+              reader.readUnsignedInt() flatMap {
                 rightSize =>
                   reader.read(rightSize) map {
                     right =>

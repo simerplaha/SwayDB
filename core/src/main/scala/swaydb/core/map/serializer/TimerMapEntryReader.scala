@@ -28,14 +28,14 @@ object TimerMapEntryReader {
   implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
     override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Slice[Byte]]]] =
       for {
-        id <- reader.readIntUnsigned()
-        keySize <- reader.readIntUnsigned()
+        id <- reader.readUnsignedInt()
+        keySize <- reader.readUnsignedInt()
         key <-
           if (keySize == 0)
             IO.emptyBytes
           else
             reader.read(keySize)
-        valueSize <- reader.readIntUnsigned()
+        valueSize <- reader.readUnsignedInt()
         value <-
           if (valueSize == 0)
             IO.emptyBytes

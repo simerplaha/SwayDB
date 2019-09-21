@@ -48,8 +48,8 @@ object ValueOffsetReader {
         indexReader.read(ByteSizeOf.int - commonBytes) flatMap {
           valueOffsetBytes =>
             Bytes
-              .decompress(Slice.writeIntUnsigned(previous.valueOffset), valueOffsetBytes, commonBytes)
-              .readIntUnsigned()
+              .decompress(Slice.writeUnsignedInt(previous.valueOffset), valueOffsetBytes, commonBytes)
+              .readUnsignedInt()
         }
 
       case _ =>
@@ -87,7 +87,7 @@ object ValueOffsetReader {
 
     override def read(indexReader: ReaderBase[swaydb.Error.Segment],
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
-      indexReader.readIntUnsigned()
+      indexReader.readUnsignedInt()
   }
 
   implicit object ValueOffsetReaderValueOffsetFullyCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.FullyCompressed] {

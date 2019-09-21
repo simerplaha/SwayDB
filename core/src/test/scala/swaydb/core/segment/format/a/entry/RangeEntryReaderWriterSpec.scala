@@ -47,7 +47,7 @@
 //
 //      val read =
 //        EntryReader.fullRead(
-//          indexEntry = entry.indexEntryBytes.dropIntUnsigned().right.value,
+//          indexEntry = entry.indexEntryBytes.dropUnsignedInt().right.value,
 //          mightBeCompressed = entry.stats.hasPrefixCompression,
 //          valueCache = entry.valueEntryBytes.headOption.map(buildSingleValueCache),
 //          indexOffset = 0,
@@ -91,7 +91,7 @@
 //
 //      val previousRead =
 //        EntryReader.fullRead(
-//          indexEntry = previous.indexEntryBytes.dropIntUnsigned().right.value,
+//          indexEntry = previous.indexEntryBytes.dropUnsignedInt().right.value,
 //          mightBeCompressed = false,
 //          isNormalised = false,
 //          valueCache = Some(buildSingleValueCache(valueBytes)),
@@ -106,7 +106,7 @@
 //
 //      val nextRead =
 //        EntryReader.fullRead(
-//          indexEntry = next.indexEntryBytes.dropIntUnsigned().right.value,
+//          indexEntry = next.indexEntryBytes.dropUnsignedInt().right.value,
 //          mightBeCompressed = next.stats.hasPrefixCompression,
 //          isNormalised = false,
 //          valueCache = Some(buildSingleValueCache(valueBytes)),
