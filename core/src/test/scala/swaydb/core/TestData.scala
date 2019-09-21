@@ -575,11 +575,11 @@ object TestData {
                     value = value,
                     deadline = deadline,
                     time = time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig,
                     previous = previous
                   )
 
@@ -590,11 +590,11 @@ object TestData {
                     value = value,
                     deadline = deadline,
                     time = time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig,
                     previous = previous
                   )
 
@@ -604,11 +604,11 @@ object TestData {
                     normaliseToSize = None,
                     deadline = deadline,
                     time = time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig,
                     previous = previous
                   )
 
@@ -618,11 +618,11 @@ object TestData {
                     normaliseToSize = None,
                     function = function,
                     time = time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig,
                     previous = previous
                   )
 
@@ -631,11 +631,11 @@ object TestData {
                     key = key,
                     normaliseToSize = None,
                     applies = applies,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig,
                     previous = previous
                   )
               }
@@ -645,11 +645,11 @@ object TestData {
                 toKey = toKey,
                 fromValue = fromValue,
                 rangeValue = rangeValue,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
+                valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig,
                 previous = previous
               )
           }
@@ -666,11 +666,11 @@ object TestData {
                     deadline = deadline,
                     time = time,
                     previous = previous,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig
                   )
 
                 case put @ Persistent.Update(key, deadline, valueReader, time, _, _, _, _, _, _) =>
@@ -681,11 +681,11 @@ object TestData {
                     deadline = deadline,
                     time = time,
                     previous = previous,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig
                   )
 
                 case function @ Persistent.Function(key, lazyFunctionReader, time, _, _, _, _, _, _) =>
@@ -695,11 +695,11 @@ object TestData {
                     function = lazyFunctionReader.value(ValuesBlock.Offset(function.valueOffset, function.valueLength)).runRandomIO.right.value,
                     time = time,
                     previous = previous,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig
                   )
 
                 case pendingApply: Persistent.PendingApply =>
@@ -708,11 +708,11 @@ object TestData {
                     normaliseToSize = None,
                     applies = pendingApply.getOrFetchApplies.runRandomIO.right.value,
                     previous = previous,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig
                   )
 
                 case Persistent.Remove(_key, deadline, time, _, _, _, _) =>
@@ -722,11 +722,11 @@ object TestData {
                     deadline = deadline,
                     time = time,
                     previous = previous,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig
+                    valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                    sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                    binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                    hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                    bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig
                   )
               }
 
@@ -737,11 +737,11 @@ object TestData {
                 toKey = _toKey,
                 fromValue = fromValue,
                 rangeValue = rangeValue,
-                valuesConfig = valuesConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                hashIndexConfig = hashIndexConfig,
-                bloomFilterConfig = bloomFilterConfig,
+                valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
+                sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
+                binarySearchIndexConfig = previous.map(_.binarySearchIndexConfig) getOrElse binarySearchIndexConfig,
+                hashIndexConfig = previous.map(_.hashIndexConfig) getOrElse hashIndexConfig,
+                bloomFilterConfig = previous.map(_.bloomFilterConfig) getOrElse bloomFilterConfig,
                 previous = previous
               )
           }

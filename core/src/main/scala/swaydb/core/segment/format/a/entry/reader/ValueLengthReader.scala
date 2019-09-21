@@ -45,6 +45,7 @@ object ValueLengthReader {
                          commonBytes: Int): IO[swaydb.Error.Segment, Int] =
     previous map {
       case previous: Persistent =>
+        val positionBeforeRead = indexReader.getPosition
         indexReader.read(ByteSizeOf.varInt) flatMap {
           valueLengthBytes =>
             Bytes
@@ -53,7 +54,12 @@ object ValueLengthReader {
                 next = valueLengthBytes,
                 commonBytes = commonBytes
               )
-              .readUnsignedInt()
+              .readUnsignedIntWithByteSize()
+              .flatMap {
+                case (length, byteSize) =>
+                  indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
+                  IO.Right(length)
+              }
         }
       case _ =>
         IO.failed("Expected Persistent. Received Partial.")

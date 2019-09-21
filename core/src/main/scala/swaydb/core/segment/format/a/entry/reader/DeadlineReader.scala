@@ -74,6 +74,7 @@ object DeadlineReader {
       case previous: Persistent =>
         previous.indexEntryDeadline map {
           previousDeadline =>
+            val positionBeforeRead = indexReader.getPosition
             indexReader.read(ByteSizeOf.varLong) flatMap {
               rightDeadlineBytes =>
                 Bytes
@@ -82,8 +83,13 @@ object DeadlineReader {
                     next = rightDeadlineBytes,
                     commonBytes = commonBytes
                   )
-                  .readUnsignedLong()
-                  .map(_.toDeadlineOption)
+                  .readUnsignedLongWithByteSize()
+                  .flatMap {
+                    case (deadline, byteSize) =>
+                      indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
+                      IO.Right(deadline.toDeadlineOption)
+                  }
+
             }
         } getOrElse {
           IO.failed(EntryReaderFailure.NoPreviousDeadline)

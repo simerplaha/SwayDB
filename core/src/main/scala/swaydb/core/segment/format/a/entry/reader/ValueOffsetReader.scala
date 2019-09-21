@@ -45,6 +45,7 @@ object ValueOffsetReader {
                          commonBytes: Int): IO[swaydb.Error.Segment, Int] =
     previous map {
       case previous: Persistent =>
+        val positionBeforeRead = indexReader.getPosition
         indexReader.read(ByteSizeOf.varInt) flatMap {
           valueOffsetBytes =>
             Bytes
@@ -53,7 +54,12 @@ object ValueOffsetReader {
                 next = valueOffsetBytes,
                 commonBytes = commonBytes
               )
-              .readUnsignedInt()
+              .readUnsignedIntWithByteSize()
+              .flatMap {
+                case (offset, byteSize) =>
+                  indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
+                  IO.Right(offset)
+              }
         }
 
       case _ =>

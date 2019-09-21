@@ -385,7 +385,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
             nextIndexSize = nextIndexSize,
             hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
             isNormalised = indexReader.block.hasNormalisedBytes,
-            isPartialReadEnabled = indexReader.block.enablePartialRead,
             previous = previous
           )
         else
@@ -408,7 +407,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
           nextIndexSize = nextIndexSize,
           hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
           isNormalised = indexReader.block.hasNormalisedBytes,
-          isPartialReadEnabled = indexReader.block.enablePartialRead,
           previous = previous
         )
     } catch {

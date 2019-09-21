@@ -111,7 +111,7 @@ private[writer] object TimeWriter {
     compress(
       previous = previousTime.time,
       next = currentTime.time,
-      minimumCommonBytes = 1
+      minimumCommonBytes = 2
     ) map {
       case (commonBytes, remainingBytes) =>
         val writeResult =

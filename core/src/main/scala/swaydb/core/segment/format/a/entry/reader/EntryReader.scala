@@ -242,6 +242,41 @@ object EntryReader {
     }
   }
 
+  def fullRead(isPartialReadEnabled: Boolean,
+               indexEntry: Slice[Byte],
+               mightBeCompressed: Boolean,
+               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+               indexOffset: Int,
+               nextIndexOffset: Int,
+               nextIndexSize: Int,
+               hasAccessPositionIndex: Boolean,
+               isNormalised: Boolean,
+               previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] =
+    if (isPartialReadEnabled)
+      fullReadFromPartial(
+        indexEntry = indexEntry,
+        mightBeCompressed = mightBeCompressed,
+        valuesReader = valuesReader,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        hasAccessPositionIndex = hasAccessPositionIndex,
+        isNormalised = isNormalised,
+        previous = previous
+      )
+    else
+      fullRead(
+        indexEntry = indexEntry,
+        mightBeCompressed = mightBeCompressed,
+        valuesReader = valuesReader,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        hasAccessPositionIndex = hasAccessPositionIndex,
+        isNormalised = isNormalised,
+        previous = previous
+      )
+
   def fullRead(indexEntry: Slice[Byte],
                mightBeCompressed: Boolean,
                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -250,7 +285,6 @@ object EntryReader {
                nextIndexSize: Int,
                hasAccessPositionIndex: Boolean,
                isNormalised: Boolean,
-               isPartialReadEnabled: Boolean,
                previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
     //check if de-normalising is required.
     val reader = Reader[swaydb.Error.Segment](indexEntry)
@@ -381,7 +415,6 @@ object EntryReader {
                           nextIndexSize: Int,
                           hasAccessPositionIndex: Boolean,
                           isNormalised: Boolean,
-                          isPartialReadEnabled: Boolean,
                           previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
     //check if de-normalising is required.
     val reader = Reader[swaydb.Error.Segment](indexEntry)
