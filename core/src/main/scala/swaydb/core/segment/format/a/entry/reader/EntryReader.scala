@@ -50,7 +50,12 @@ trait EntryReader[E] {
 object EntryReader {
 
   val readers: List[BaseEntryReader] =
-    List(BaseEntryReader1, BaseEntryReader2, BaseEntryReader3, BaseEntryReader4) sortBy (_.minID)
+    List(
+      BaseEntryReader1,
+      BaseEntryReader2,
+      BaseEntryReader3,
+      BaseEntryReader4
+    ) sortBy (_.minID)
 
   val someUncompressedReader = Some(BaseEntryReaderUncompressed)
 

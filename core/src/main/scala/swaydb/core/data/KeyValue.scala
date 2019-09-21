@@ -464,26 +464,6 @@ private[core] object Transient {
       case (left: Transient.Range, right: Transient.Range) => left.fromValue == right.fromValue && left.rangeValue == right.rangeValue
     }
 
-  //do not fetch the value itself as it will be serialised if it is a range.
-  //Here we just check the types to determine if a key-value has value.
-  def hasValue(keyValue: Transient): Boolean =
-    keyValue match {
-      case transient: Transient.Put =>
-        transient.value.exists(_.nonEmpty)
-
-      case transient: Transient.Update =>
-        transient.value.exists(_.nonEmpty)
-
-      case _: Transient.Remove =>
-        false
-
-      case _: Transient.Range | _: Transient.PendingApply | _: Transient.Function =>
-        true
-    }
-
-  def hasNoValue(keyValue: Transient): Boolean =
-    !hasValue(keyValue)
-
   def compressibleValue(keyValue: Transient): Option[Slice[Byte]] =
     keyValue match {
       case transient: Transient =>

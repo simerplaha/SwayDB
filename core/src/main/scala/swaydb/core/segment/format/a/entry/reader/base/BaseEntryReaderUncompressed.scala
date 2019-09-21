@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.entry.reader.base
 
 import swaydb.IO
-import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
