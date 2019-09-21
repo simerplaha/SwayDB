@@ -90,9 +90,9 @@ private[swaydb] trait Bytez {
   def readString(slice: Slice[Byte], charset: Charset): String =
     new String(slice.toArray, charset)
 
-  def addString(string: String,
-                bytes: Slice[Byte],
-                charsets: Charset): Slice[Byte] =
+  def writeString(string: String,
+                  bytes: Slice[Byte],
+                  charsets: Charset): Slice[Byte] =
     bytes addAll string.getBytes(charsets)
 
   /** **************************************************
@@ -188,41 +188,45 @@ private[swaydb] trait Bytez {
   }
 
   def readUnsignedIntWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
-    IO {
-      var index = 0
-      var byte = slice(index)
-      var int: Int = byte & 0x7F
+    IO(readUnsignedIntWithByteSizeUnsafe(slice))
 
-      while ((byte & 0x80) != 0) {
-        index += 1
-        byte = slice(index)
+  def readUnsignedIntWithByteSizeUnsafe[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): (Int, Int) = {
+    var index = 0
+    var byte = slice(index)
+    var int: Int = byte & 0x7F
 
-        int <<= 7
-        int |= (byte & 0x7F)
-      }
+    while ((byte & 0x80) != 0) {
+      index += 1
+      byte = slice(index)
 
-      (int, index)
+      int <<= 7
+      int |= (byte & 0x7F)
     }
+
+    (int, index + 1)
+  }
 
   /**
    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
    */
   def readLastUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
-    IO {
-      var index = slice.size - 1
-      var byte = slice(index)
-      var int: Int = byte & 0x7F
+    IO(readLastUnsignedIntUnsafe(slice))
 
-      while ((byte & 0x80) != 0) {
-        index -= 1
-        byte = slice(index)
+  def readLastUnsignedIntUnsafe(slice: Slice[Byte]): (Int, Int) = {
+    var index = slice.size - 1
+    var byte = slice(index)
+    var int: Int = byte & 0x7F
 
-        int <<= 7
-        int |= (byte & 0x7F)
-      }
+    while ((byte & 0x80) != 0) {
+      index -= 1
+      byte = slice(index)
 
-      (int, slice.size - index)
+      int <<= 7
+      int |= (byte & 0x7F)
     }
+
+    (int, slice.size - index)
+  }
 
   def writeSignedLong(long: Long, slice: Slice[Byte]): Unit =
     writeUnsignedLong((long << 1) ^ (long >> 63), slice)
@@ -281,38 +285,42 @@ private[swaydb] trait Bytez {
   }
 
   def readUnsignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Long] =
-    IO {
-      var index = 0
-      var byte = slice(index)
-      var long: Long = byte & 0x7F
+    IO(readUnsignedLongUnsafe(slice))
 
-      while ((byte & 0x80) != 0) {
-        index += 1
-        byte = slice(index)
+  def readUnsignedLongUnsafe(slice: Slice[Byte]): Long = {
+    var index = 0
+    var byte = slice(index)
+    var long: Long = byte & 0x7F
 
-        long <<= 7
-        long |= (byte & 0x7F)
-      }
+    while ((byte & 0x80) != 0) {
+      index += 1
+      byte = slice(index)
 
-      long
+      long <<= 7
+      long |= (byte & 0x7F)
     }
+
+    long
+  }
 
   def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Long, Int)] =
-    IO {
-      var index = 0
-      var byte = slice(index)
-      var long: Long = byte & 0x7F
+    IO(readUnsignedLongWithByteSizeUnsafe(slice))
 
-      while ((byte & 0x80) != 0) {
-        index += 1
-        byte = slice(index)
+  def readUnsignedLongWithByteSizeUnsafe(slice: Slice[Byte]): (Long, Int) = {
+    var index = 0
+    var byte = slice(index)
+    var long: Long = byte & 0x7F
 
-        long <<= 7
-        long |= (byte & 0x7F)
-      }
+    while ((byte & 0x80) != 0) {
+      index += 1
+      byte = slice(index)
 
-      (long, index)
+      long <<= 7
+      long |= (byte & 0x7F)
     }
+
+    (long, index + 1)
+  }
 }
 
 private[swaydb] object Bytez extends Bytez
