@@ -353,7 +353,7 @@ object Slice {
 
   class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.create[T](sizeHint * 2)
+    protected var slice: Slice[T] = Slice.create[T]((sizeHint * 2) max 100)
 
     def extendSlice(by: Int) = {
       val extendedSlice = Slice.create[T](slice.size * by)
@@ -361,6 +361,7 @@ object Slice {
       slice = extendedSlice
     }
 
+    @tailrec
     final def +=(x: T): this.type =
       try {
         slice add x

@@ -29,9 +29,12 @@ import swaydb.core.data.{Persistent, Time}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.DeadlineReader
+import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.util.Times._
+import swaydb.core.CommonAssertions._
 
 import scala.concurrent.duration._
 
@@ -160,89 +163,94 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
           ) shouldBe empty
 
           //Test for when there are compressed bytes.
-          (1 to 8) foreach { //for some or all deadline bytes compressed.
-            commonBytes =>
-              val currentDeadlineBytes =
-                Slice.fill[Byte](commonBytes)(0.toByte) ++ Slice.fill[Byte](8 - commonBytes)(1.toByte)
+          val currentDeadline = 10.seconds.fromNow
 
-              val previousDeadlineBytes =
-                Slice.fill[Byte](commonBytes)(0.toByte) ++ Slice.fill[Byte](8 - commonBytes)(2.toByte)
+          val previousDeadline =
+            eitherOne(
+              10.seconds.fromNow,
+              10.minutes.fromNow,
+              10.hours.fromNow,
+              currentDeadline,
+            )
 
-              val currentDeadline = Deadline(currentDeadlineBytes)
-              val previousDeadline = Deadline(previousDeadlineBytes)
+          val previousDeadlineBytes = previousDeadline.toBytes
+          val currentDeadlineBytes = currentDeadline.toBytes
 
-              //test with both when the key is compressed and uncompressed.
-              def doAssert(compressedKey: Boolean) = {
-                val deadlineBytesOption =
-                  DeadlineWriter.compress(
-                    currentDeadline = currentDeadline,
-                    previousDeadline = previousDeadline,
-                    deadlineId = deadlineId,
-                    plusSize = 0,
-                    isKeyCompressed = compressedKey,
-                    adjustBaseIdToKeyValueId = true
-                  )
+          val commonBytes = Bytes.commonPrefixBytesCount(previousDeadlineBytes, currentDeadlineBytes)
 
-                deadlineBytesOption shouldBe defined
+          commonBytes should be > 0
 
-                val (deadlineBytes, isPrefixCompressed) = deadlineBytesOption.get
-                deadlineBytes.isFull shouldBe true
-                isPrefixCompressed shouldBe true
+          //test with both when the key is compressed and uncompressed.
+          def doAssert(compressedKey: Boolean) = {
+            val deadlineBytesOption =
+              DeadlineWriter.compress(
+                currentDeadline = currentDeadline,
+                previousDeadline = previousDeadline,
+                deadlineId = deadlineId,
+                plusSize = 0,
+                isKeyCompressed = compressedKey,
+                adjustBaseIdToKeyValueId = true
+              )
 
-                val reader = Reader[swaydb.Error.Segment](deadlineBytes)
+            deadlineBytesOption shouldBe defined
 
-                def keyValueIdAdjuster(baseId: Int) =
-                  if (compressedKey)
-                    binder.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(baseId)
-                  else
-                    binder.keyValueId.adjustBaseIdToKeyValueIdKey_UnCompressed(baseId)
+            val (deadlineBytes, isPrefixCompressed) = deadlineBytesOption.get
+            deadlineBytes.isFull shouldBe true
+            isPrefixCompressed shouldBe true
 
-                val (expectedKeyValueId: Int, deadlineReader: DeadlineReader[_]) =
-                  if (commonBytes == 1)
-                    (keyValueIdAdjuster(deadlineId.deadlineOneCompressed.baseId), DeadlineReader.DeadlineOneCompressedReader)
-                  else if (commonBytes == 2)
-                    (keyValueIdAdjuster(deadlineId.deadlineTwoCompressed.baseId), DeadlineReader.DeadlineTwoCompressedReader)
-                  else if (commonBytes == 3)
-                    (keyValueIdAdjuster(deadlineId.deadlineThreeCompressed.baseId), DeadlineReader.DeadlineThreeCompressedReader)
-                  else if (commonBytes == 4)
-                    (keyValueIdAdjuster(deadlineId.deadlineFourCompressed.baseId), DeadlineReader.DeadlineFourCompressedReader)
-                  else if (commonBytes == 5)
-                    (keyValueIdAdjuster(deadlineId.deadlineFiveCompressed.baseId), DeadlineReader.DeadlineFiveCompressedReader)
-                  else if (commonBytes == 6)
-                    (keyValueIdAdjuster(deadlineId.deadlineSixCompressed.baseId), DeadlineReader.DeadlineSixCompressedReader)
-                  else if (commonBytes == 7)
-                    (keyValueIdAdjuster(deadlineId.deadlineSevenCompressed.baseId), DeadlineReader.DeadlineSevenCompressedReader)
-                  else if (commonBytes == 8)
-                    (keyValueIdAdjuster(deadlineId.deadlineFullyCompressed.baseId), DeadlineReader.DeadlineFullyCompressedReader)
-                  else
-                    fail("Cannot have more than 8 common bytes")
+            val reader = Reader[swaydb.Error.Segment](deadlineBytes)
 
-                reader.readUnsignedInt().get shouldBe expectedKeyValueId
+            def keyValueIdAdjuster(baseId: Int) =
+              if (compressedKey)
+                binder.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(baseId)
+              else
+                binder.keyValueId.adjustBaseIdToKeyValueIdKey_UnCompressed(baseId)
 
-                val put =
-                  Persistent.Put(
-                    _key = 1,
-                    deadline = Some(previousDeadline),
-                    valueCache = null,
-                    _time = Time.empty,
-                    nextIndexOffset = 0,
-                    nextIndexSize = 0,
-                    indexOffset = 0,
-                    valueOffset = 0,
-                    valueLength = 0,
-                    sortedIndexAccessPosition = 0
-                  )
+            val (expectedKeyValueId: Int, deadlineReader: DeadlineReader[_]) =
+              if (commonBytes == 1)
+                (keyValueIdAdjuster(deadlineId.deadlineOneCompressed.baseId), DeadlineReader.DeadlineOneCompressedReader)
+              else if (commonBytes == 2)
+                (keyValueIdAdjuster(deadlineId.deadlineTwoCompressed.baseId), DeadlineReader.DeadlineTwoCompressedReader)
+              else if (commonBytes == 3)
+                (keyValueIdAdjuster(deadlineId.deadlineThreeCompressed.baseId), DeadlineReader.DeadlineThreeCompressedReader)
+              else if (commonBytes == 4)
+                (keyValueIdAdjuster(deadlineId.deadlineFourCompressed.baseId), DeadlineReader.DeadlineFourCompressedReader)
+              else if (commonBytes == 5)
+                (keyValueIdAdjuster(deadlineId.deadlineFiveCompressed.baseId), DeadlineReader.DeadlineFiveCompressedReader)
+              else if (commonBytes == 6)
+                (keyValueIdAdjuster(deadlineId.deadlineSixCompressed.baseId), DeadlineReader.DeadlineSixCompressedReader)
+              else if (commonBytes == 7)
+                (keyValueIdAdjuster(deadlineId.deadlineSevenCompressed.baseId), DeadlineReader.DeadlineSevenCompressedReader)
+              else if (commonBytes == 8)
+                (keyValueIdAdjuster(deadlineId.deadlineFullyCompressed.baseId), DeadlineReader.DeadlineFullyCompressedReader)
+              else
+                fail(s"Invalid common bytes: $commonBytes")
 
-                deadlineReader
-                  .read(
-                    indexReader = reader,
-                    previous = Some(put)
-                  ).get should contain(currentDeadline)
-              }
+            reader.readUnsignedInt().get shouldBe expectedKeyValueId
 
-              doAssert(compressedKey = true)
-              doAssert(compressedKey = false)
+            val put =
+              Persistent.Put(
+                _key = 1,
+                deadline = Some(previousDeadline),
+                valueCache = null,
+                _time = Time.empty,
+                nextIndexOffset = 0,
+                nextIndexSize = 0,
+                indexOffset = 0,
+                valueOffset = 0,
+                valueLength = 0,
+                sortedIndexAccessPosition = 0
+              )
+
+            deadlineReader
+              .read(
+                indexReader = reader,
+                previous = Some(put)
+              ).get should contain(currentDeadline)
           }
+
+          doAssert(compressedKey = true)
+          doAssert(compressedKey = false)
       }
     }
   }
@@ -402,7 +410,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 sortedIndexAccessPosition = 0
               )
 
-//            val previous = randomFixedKeyValue(key = 1, deadline = deadline, includeFunctions = false)
+            //            val previous = randomFixedKeyValue(key = 1, deadline = deadline, includeFunctions = false)
             DeadlineReader.DeadlineFullyCompressedReader.read(reader, Some(previous)).get shouldBe deadline
           }
 

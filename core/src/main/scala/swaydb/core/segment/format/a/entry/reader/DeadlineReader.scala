@@ -74,13 +74,11 @@ object DeadlineReader {
       case previous: Persistent =>
         previous.indexEntryDeadline map {
           previousDeadline =>
-            val previousDeadlineBytes = previousDeadline.toBytes
-            val remainingDeadlineBytes = ByteSizeOf.long - commonBytes
-            indexReader.read(remainingDeadlineBytes) flatMap {
+            indexReader.read(ByteSizeOf.varLong) flatMap {
               rightDeadlineBytes =>
                 Bytes
                   .decompress(
-                    previous = previousDeadlineBytes,
+                    previous = previousDeadline.toBytes,
                     next = rightDeadlineBytes,
                     commonBytes = commonBytes
                   )

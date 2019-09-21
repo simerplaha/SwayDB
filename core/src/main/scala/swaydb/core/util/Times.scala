@@ -29,7 +29,13 @@ object Times {
 
   implicit class OptionDeadlineImplicits(deadline: Option[Deadline]) {
     @inline def toNanos: Long =
-      deadline.map(_.time.toNanos).getOrElse(0L)
+      deadline match {
+        case Some(deadline) =>
+          deadline.time.toNanos
+
+        case None =>
+          0L
+      }
   }
 
   implicit class DeadlineImplicits(deadline: Deadline) {

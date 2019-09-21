@@ -45,10 +45,14 @@ object ValueLengthReader {
                          commonBytes: Int): IO[swaydb.Error.Segment, Int] =
     previous map {
       case previous: Persistent =>
-        indexReader.read(ByteSizeOf.int - commonBytes) flatMap {
+        indexReader.read(ByteSizeOf.varInt) flatMap {
           valueLengthBytes =>
             Bytes
-              .decompress(Slice.writeUnsignedInt(previous.valueLength), valueLengthBytes, commonBytes)
+              .decompress(
+                previous = Slice.writeUnsignedInt(previous.valueLength),
+                next = valueLengthBytes,
+                commonBytes = commonBytes
+              )
               .readUnsignedInt()
         }
       case _ =>
