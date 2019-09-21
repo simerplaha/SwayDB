@@ -61,7 +61,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
         persistent.indexOffset shouldBe thisKeyValueRealIndexOffset
 
-        if (transient.values.isEmpty)
+        if (transient.value.isEmpty)
           persistent.valueOffset shouldBe -1
         else
           persistent.valueOffset shouldBe transient.currentStartValueOffsetPosition

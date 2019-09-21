@@ -35,6 +35,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 class SegmentBlockSpec extends TestBase {
 
@@ -388,8 +389,8 @@ class SegmentBlockSpec extends TestBase {
 
         //value the first value for either fixed or range.
         //this value is only expected to be written ones.
-        keyValues.head.valueEntryBytes should have size 1
-        val value = keyValues.head.valueEntryBytes.head
+        keyValues.head.valueEntryBytes shouldBe defined
+        val value = keyValues.head.valueEntryBytes.value
 
         val blocks = getBlocks(keyValues).get
 

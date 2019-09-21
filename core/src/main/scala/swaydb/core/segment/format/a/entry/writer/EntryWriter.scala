@@ -33,7 +33,7 @@ import scala.beans.BeanProperty
 private[core] object EntryWriter {
 
   case class WriteResult(@BeanProperty var indexBytes: Slice[Byte],
-                         valueBytes: Slice[Slice[Byte]],
+                         valueBytes: Option[Slice[Byte]],
                          valueStartOffset: Int,
                          valueEndOffset: Int,
                          @BeanProperty var thisKeyValueAccessIndexPosition: Int,

@@ -83,7 +83,7 @@ class ValuesBlockSpec extends TestBase {
 
         keyValues.foldLeft(0) {
           case (offset, keyValue) =>
-            val valueBytes = keyValue.valueEntryBytes.flatten[Byte].toSlice
+            val valueBytes = keyValue.valueEntryBytes
             if (valueBytes.isEmpty) {
               offset
             } else {

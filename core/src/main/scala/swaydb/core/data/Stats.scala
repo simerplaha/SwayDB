@@ -30,7 +30,7 @@ private[core] object Stats {
 
   def apply(keySize: Int,
             indexEntry: Slice[Byte],
-            value: Slice[Slice[Byte]],
+            value: Option[Slice[Byte]],
             isRemoveRange: Boolean,
             isRange: Boolean,
             isPut: Boolean,

@@ -25,7 +25,7 @@
 //import swaydb.core.io.reader.Reader
 //import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 //import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
-//import swaydb.core.segment.format.a.entry.reader.{EntryReader, SortedIndexEntryReader}
+//import swaydb.core.segment.format.a.entry.reader.{EntryReader, EntryReader}
 //import swaydb.core.{TestBase, TestTimer}
 //import swaydb.data.slice.Slice
 //import swaydb.serializers.Default._
@@ -78,15 +78,16 @@
 //    typedBaseId shouldBe a[BaseEntryId.ValueLength.Uncompressed]
 //    //read key-value using the persistent information.
 //    val readHeadKeyValue =
-//      SortedIndexEntryReader.fullRead(
+//      EntryReader.fullRead(
 //        indexReader = Reader(keyValues.head.indexEntryBytes),
 //        mightBeCompressed = randomBoolean(),
 //        isNormalised = false,
-//        valueCache = Some(buildSingleValueCache(keyValues.head.valueEntryBytes.head)),
+//        valueCache = Some(buildSingleValueReader(keyValues.head.valueEntryBytes.head)),
 //        indexOffset = 0,
 //        nextIndexOffset = keyValues.head.indexEntryBytes.size,
 //        nextIndexSize = keyValues(1).indexEntryBytes.size,
 //        hasAccessPositionIndex = 0,
+//        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
 //        previous = None
 //      ).get
 //    readHeadKeyValue shouldBe a[Persistent.Put]

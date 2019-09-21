@@ -61,7 +61,7 @@ private[writer] object ValueWriter {
       } getOrElse {
         uncompressed(
           current = current,
-          currentValues = current.values,
+          currentValue = current.value,
           entryId = entryId,
           plusSize = plusSize,
           enablePrefixCompression = enablePrefixCompression,
@@ -140,7 +140,7 @@ private[writer] object ValueWriter {
         case (Some(_), None) =>
           uncompressed(
             current = current,
-            currentValues = current.values,
+            currentValue = current.value,
             entryId = entryId,
             plusSize = plusSize,
             enablePrefixCompression = enablePrefixCompression,
@@ -163,7 +163,7 @@ private[writer] object ValueWriter {
     else
       uncompressed(
         current = current,
-        currentValues = current.values,
+        currentValue = current.value,
         entryId = entryId,
         plusSize = plusSize,
         enablePrefixCompression = enablePrefixCompression,
@@ -173,7 +173,7 @@ private[writer] object ValueWriter {
       )
 
   private def uncompressed(current: Transient,
-                           currentValues: Slice[Slice[Byte]],
+                           currentValue: Option[Slice[Byte]],
                            entryId: BaseEntryId.Time,
                            plusSize: Int,
                            enablePrefixCompression: Boolean,
@@ -181,7 +181,7 @@ private[writer] object ValueWriter {
                            hasPrefixCompressed: Boolean,
                            adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): EntryWriter.WriteResult = {
     //if previous does not exists write full offsets and then write deadline.
-    val currentValueSize = currentValues.foldLeft(0)(_ + _.size)
+    val currentValueSize = currentValue.foldLeft(0)(_ + _.size)
     val currentValueOffset = current.previous.map(_.nextStartValueOffsetPosition) getOrElse 0
     val currentValueOffsetUnsignedBytes = Slice.writeUnsignedInt(currentValueOffset)
     val currentValueLengthUnsignedBytes = Slice.writeUnsignedInt(currentValueSize)
@@ -204,7 +204,7 @@ private[writer] object ValueWriter {
 
     EntryWriter.WriteResult(
       indexBytes = indexEntryBytes,
-      valueBytes = currentValues,
+      valueBytes = currentValue,
       valueStartOffset = currentValueOffset,
       valueEndOffset = currentValueOffset + currentValueSize - 1,
       thisKeyValueAccessIndexPosition = 0,
@@ -234,7 +234,7 @@ private[writer] object ValueWriter {
     //since there is no value, offsets will continue from previous key-values offset.
     EntryWriter.WriteResult(
       indexBytes = indexEntryBytes,
-      valueBytes = Slice.emptyEmptyBytes,
+      valueBytes = None,
       valueStartOffset = current.previous.map(_.currentStartValueOffsetPosition).getOrElse(0),
       valueEndOffset = current.previous.map(_.currentEndValueOffsetPosition).getOrElse(0),
       thisKeyValueAccessIndexPosition = 0,
@@ -291,7 +291,7 @@ private[writer] object ValueWriter {
       Some(
         EntryWriter.WriteResult(
           indexBytes = indexEntry,
-          valueBytes = Slice.emptyEmptyBytes,
+          valueBytes = None,
           valueStartOffset = previous.currentStartValueOffsetPosition,
           valueEndOffset = previous.currentEndValueOffsetPosition,
           thisKeyValueAccessIndexPosition = 0,
@@ -382,7 +382,7 @@ private[writer] object ValueWriter {
 
         EntryWriter.WriteResult(
           indexBytes = indexEntryBytes,
-          valueBytes = Slice(currentValue),
+          valueBytes = Some(currentValue),
           valueStartOffset = currentValueOffset,
           valueEndOffset = currentValueOffset + currentValue.size - 1,
           thisKeyValueAccessIndexPosition = 0,
@@ -410,7 +410,7 @@ private[writer] object ValueWriter {
 
       EntryWriter.WriteResult(
         indexBytes = indexEntryBytes,
-        valueBytes = Slice(currentValue),
+        valueBytes = Some(currentValue),
         valueStartOffset = currentValueOffset,
         valueEndOffset = currentValueOffset + currentValue.size - 1,
         thisKeyValueAccessIndexPosition = 0,
@@ -472,7 +472,7 @@ private[writer] object ValueWriter {
 
             EntryWriter.WriteResult(
               indexBytes = indexEntryBytes,
-              valueBytes = Slice(currentValue),
+              valueBytes = Some(currentValue),
               valueStartOffset = currentValueOffset,
               valueEndOffset = currentValueOffset + currentValue.size - 1,
               thisKeyValueAccessIndexPosition = 0,
@@ -499,7 +499,7 @@ private[writer] object ValueWriter {
 
           EntryWriter.WriteResult(
             indexBytes = indexEntryBytes,
-            valueBytes = Slice(currentValue),
+            valueBytes = Some(currentValue),
             valueStartOffset = currentValueOffset,
             valueEndOffset = currentValueOffset + currentValue.size - 1,
             thisKeyValueAccessIndexPosition = 0,

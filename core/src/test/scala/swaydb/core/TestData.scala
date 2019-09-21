@@ -2446,7 +2446,7 @@ object TestData {
 
   def randomStats(keySize: Int = randomIntMax(10000000),
                   indexEntry: Slice[Byte] = randomBytesSlice(),
-                  value: Slice[Slice[Byte]] = Slice(randomBytesSlice()),
+                  value: Option[Slice[Byte]] = randomBytesSliceOption(),
                   isRemoveRange: Boolean = randomBoolean(),
                   isRange: Boolean = randomBoolean(),
                   isPut: Boolean = randomBoolean(),

@@ -10,7 +10,7 @@ class StatsSpec extends WordSpec with Matchers {
   "it" should {
     "update stats" when {
       "value length is empty" in {
-        val stats = randomStats(indexEntry = Slice.fill(2)(1.toByte), value = Slice.emptyEmptyBytes)
+        val stats = randomStats(indexEntry = Slice.fill(2)(1.toByte), value = None)
         stats.valueLength shouldBe 0
         stats.segmentSize should be > 0
         stats.linkedPosition shouldBe 1

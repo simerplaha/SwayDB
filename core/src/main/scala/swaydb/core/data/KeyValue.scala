@@ -351,7 +351,6 @@ private[core] sealed trait Transient extends KeyValue { self =>
 
   def mergedKey: Slice[Byte]
   def value: Option[Slice[Byte]]
-  def values: Slice[Slice[Byte]]
   def valuesConfig: ValuesBlock.Config
   def sortedIndexConfig: SortedIndexBlock.Config
   def binarySearchIndexConfig: BinarySearchIndexBlock.Config
@@ -361,7 +360,7 @@ private[core] sealed trait Transient extends KeyValue { self =>
   def stats: Stats
   def deadline: Option[Deadline]
   def indexEntryBytes: Slice[Byte]
-  def valueEntryBytes: Slice[Slice[Byte]]
+  def valueEntryBytes: Option[Slice[Byte]]
   //a flag that returns true if valueBytes are created for this or any of it's previous key-values indicating value slice is required.
   def hasValueEntryBytes: Boolean
   //start value offset is carried current value offset position.
@@ -623,8 +622,6 @@ private[core] object Transient {
 
     override def value: Option[Slice[Byte]] = None
 
-    override def values: Slice[Slice[Byte]] = Slice.emptyEmptyBytes
-
     override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
@@ -694,8 +691,6 @@ private[core] object Transient {
     override val isRange: Boolean = false
 
     override def mergedKey = key
-
-    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
@@ -768,8 +763,6 @@ private[core] object Transient {
 
     override def mergedKey = key
 
-    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
-
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
@@ -840,8 +833,6 @@ private[core] object Transient {
     override def mergedKey = key
 
     override def value: Option[Slice[Byte]] = Some(function)
-
-    override def values: Slice[Slice[Byte]] = Slice(function)
 
     override def deadline: Option[Deadline] = None
 
@@ -915,8 +906,6 @@ private[core] object Transient {
 
     override val deadline: Option[Deadline] = Segment.getNearestDeadline(None, applies)
     override val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
-
-    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     override def time = Time.fromApplies(applies)
 
@@ -1065,8 +1054,6 @@ private[core] object Transient {
     override def key = fromKey
 
     override def value = valueSerialiser()
-
-    override def values: Slice[Slice[Byte]] = value.map(Slice(_)) getOrElse Slice.emptyEmptyBytes
 
     val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
