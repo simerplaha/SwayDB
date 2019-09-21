@@ -47,40 +47,6 @@ class HashIndexBlockSpec extends TestBase {
 
   import keyOrder._
 
-  /**
-   * Asserts that both HashIndexes will eventually result in the same index.
-   */
-  def assertHashIndexes(keyValues: Iterable[Transient],
-                        hashIndex1: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                        hashIndex2: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock])(implicit order: KeyOrder[Slice[Byte]]) = {
-    keyValues foreach {
-      keyValue =>
-        val uncompressedIndexes = ListBuffer.empty[Int]
-        HashIndexBlock.search(
-          key = keyValue.key,
-          reader = hashIndex1,
-          assertValue =
-            index => {
-              uncompressedIndexes += index
-              IO.none
-            }
-        ).get
-
-        val compressedIndexes = ListBuffer.empty[Int]
-        HashIndexBlock.search(
-          key = keyValue.key,
-          reader = hashIndex2,
-          assertValue =
-            index => {
-              compressedIndexes += index
-              IO.none
-            }
-        ).get
-
-        uncompressedIndexes should contain atLeastOneElementOf compressedIndexes
-    }
-  }
-
   "optimalBytesRequired" should {
     "allocate optimal byte" in {
       HashIndexBlock.optimalBytesRequired(
@@ -101,7 +67,7 @@ class HashIndexBlockSpec extends TestBase {
 
   "it" should {
     "write compressed HashIndex and result in the same as uncompressed HashIndex" in {
-      runThis(20.times) {
+      runThis(100.times, log = true) {
         val maxProbe = 10
 
         def allocateMoreSpace(requiredSpace: RequiredSpace) = requiredSpace.requiredSpace * 10
@@ -111,17 +77,21 @@ class HashIndexBlockSpec extends TestBase {
         val uncompressedKeyValues =
           randomKeyValues(
             count = 1000,
+            startId = Some(1),
             addRemoves = true,
             addFunctions = true,
             addRemoveDeadlines = true,
             addUpdates = true,
             addPendingApply = true,
             hashIndexConfig =
-              HashIndexBlock.Config.random.copy(
+              HashIndexBlock.Config(
                 allocateSpace = allocateMoreSpace,
                 compressions = _ => Seq.empty,
                 copyIndex = copyIndex,
-                maxProbe = maxProbe
+                maxProbe = maxProbe,
+                minimumNumberOfKeys = 0,
+                minimumNumberOfHits = 0,
+                blockIO = _ => randomIOAccess()
               )
           )
 
@@ -182,11 +152,41 @@ class HashIndexBlockSpec extends TestBase {
         uncompressedHashIndex.block.maxProbe shouldBe compressedHashIndex.block.maxProbe
         uncompressedHashIndex.block.writeAbleLargestValueSize shouldBe compressedHashIndex.block.writeAbleLargestValueSize
 
+        //        println(s"hit: ${uncompressedHashIndex.block.hit}")
+        //        println(s"miss: ${uncompressedHashIndex.block.miss}")
+        //        println(s"prefixCompressionResetCount: ${uncompressedKeyValues.last.sortedIndexConfig.prefixCompressionResetCount}")
+
         //        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean()).get
         //        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean()).get
 
         //assert that both compressed and uncompressed HashIndexes should result in the same value eventually.
-        assertHashIndexes(uncompressedKeyValues, uncompressedHashIndex, compressedHashIndex)
+        uncompressedKeyValues foreach {
+          keyValue =>
+            val uncompressedIndexes = ListBuffer.empty[Int]
+
+            HashIndexBlock.search(
+              key = keyValue.key,
+              reader = uncompressedHashIndex,
+              assertValue =
+                index => {
+                  uncompressedIndexes += index
+                  IO.none
+                }
+            ).get
+
+            val compressedIndexes = ListBuffer.empty[Int]
+            HashIndexBlock.search(
+              key = keyValue.key,
+              reader = compressedHashIndex,
+              assertValue =
+                index => {
+                  compressedIndexes += index
+                  IO.none
+                }
+            ).get
+
+            uncompressedIndexes should contain atLeastOneElementOf compressedIndexes
+        }
       }
     }
   }
@@ -201,7 +201,7 @@ class HashIndexBlockSpec extends TestBase {
 
         val keyValues =
           randomizedKeyValues(
-            count = randomIntMax(1000) max 1,
+            count = randomIntMax(10000) max 1,
             startId = startId,
             addPut = true,
             hashIndexConfig =

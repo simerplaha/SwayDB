@@ -315,7 +315,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
     val valuePlusOne = value + 1
-    val valuePlusOneBytes = Slice.writeUnsignedInt(valuePlusOne)
+    val valuePlusOneBytes = Bytes.writeUnsignedIntNonZero(valuePlusOne)
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -341,14 +341,14 @@ private[core] object HashIndexBlock extends LazyLogging {
           state.bytes moveWritePosition (hashIndex + 1)
           state.bytes addAll valuePlusOneBytes
           state.hit += 1
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeUnsignedInt(valuePlusOne)} = success")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Bytes.writeUnsignedIntNonZero(valuePlusOne)} = success")
           true
         } else if (existing.head == 0 && existing.dropHead() == valuePlusOneBytes) { //check if value already exists.
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeUnsignedInt(valuePlusOne)} = existing")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Bytes.writeUnsignedIntNonZero(valuePlusOne)} = existing")
           state.hit += 1
           true
         } else {
-          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Slice.writeUnsignedInt(valuePlusOne)} = failure")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, value: $value, valueBytes: ${Bytes.writeUnsignedIntNonZero(valuePlusOne)} = failure")
           doWrite(key = key, probe = probe + 1)
         }
       }
@@ -400,7 +400,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                 doFind(probe + 1, checkedHashIndexes)
               } else {
                 val possibleValueWithoutHeader = possibleValueBytes.dropHead()
-                possibleValueWithoutHeader.readUnsignedIntWithByteSize() match {
+                Bytes.readUnsignedIntNonZeroWithByteSize(possibleValueWithoutHeader) match {
                   case IO.Right((possibleValue, bytesRead)) =>
                     //println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
                     if (possibleValue == 0 || possibleValueWithoutHeader.take(bytesRead).exists(_ == 0))
@@ -678,7 +678,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           assertValue =
             (referenceOrIndexEntry: Slice[Byte], accessIndexOffset: Int, isReference: Boolean) =>
               if (isReference)
-                referenceOrIndexEntry.readUnsignedInt() flatMap {
+                Bytes.readUnsignedInt(referenceOrIndexEntry) flatMap {
                   indexOffset =>
                     SortedIndexBlock.seekAndMatchOrSeek(
                       matcher = matcher,

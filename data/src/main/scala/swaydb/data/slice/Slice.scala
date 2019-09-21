@@ -216,120 +216,120 @@ object Slice {
    */
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 
-    def addByte(value: Byte): Slice[Byte] = {
+    @inline def addByte(value: Byte): Slice[Byte] = {
       slice insert value
       slice
     }
 
-    def addBytes(anotherSlice: Slice[Byte]): Slice[Byte] = {
+    @inline def addBytes(anotherSlice: Slice[Byte]): Slice[Byte] = {
       slice.addAll(anotherSlice)
       slice
     }
 
-    def addBoolean(boolean: Boolean): Slice[Byte] = {
+    @inline def addBoolean(boolean: Boolean): Slice[Byte] = {
       slice insert (if (boolean) 1.toByte else 0.toByte)
       slice
     }
 
-    def readBoolean(): Boolean =
+    @inline def readBoolean(): Boolean =
       slice.get(0) == 1
 
-    def addInt(int: Int): Slice[Byte] = {
+    @inline def addInt(int: Int): Slice[Byte] = {
       Bytez.writeInt(int, slice)
       slice
     }
 
-    def readInt(): Int =
+    @inline def readInt(): Int =
       Bytez.readInt(slice)
 
-    def dropUnsignedInt(): IO[Error.IO, Slice[Byte]] =
+    @inline def dropUnsignedInt(): IO[Error.IO, Slice[Byte]] =
       readUnsignedIntWithByteSize() map {
         case (_, byteSize) =>
           slice drop byteSize
       }
 
-    def addSignedInt(int: Int): Slice[Byte] = {
+    @inline def addSignedInt(int: Int): Slice[Byte] = {
       Bytez.writeSignedInt(int, slice)
       slice
     }
 
-    def readSignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
+    @inline def readSignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
       Bytez.readSignedInt(slice)
 
-    def addUnsignedInt(int: Int): Slice[Byte] = {
+    @inline def addUnsignedInt(int: Int): Slice[Byte] = {
       Bytez.writeUnsignedInt(int, slice)
       slice
     }
 
-    def readUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
+    @inline def readUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
       Bytez.readUnsignedInt(slice)
 
-    def readUnsignedIntWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Int, Int)] =
+    @inline def readUnsignedIntWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Int, Int)] =
       Bytez.readUnsignedIntWithByteSize(slice)
 
-    def addLong(long: Long): Slice[Byte] = {
+    @inline def addLong(long: Long): Slice[Byte] = {
       Bytez.writeLong(long, slice)
       slice
     }
 
-    def readLong(): Long =
+    @inline def readLong(): Long =
       Bytez.readLong(slice)
 
-    def addUnsignedLong(long: Long): Slice[Byte] = {
+    @inline def addUnsignedLong(long: Long): Slice[Byte] = {
       Bytez.writeUnsignedLong(long, slice)
       slice
     }
 
-    def readUnsignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
+    @inline def readUnsignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
       Bytez.readUnsignedLong(slice)
 
-    def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Long, Int)] =
+    @inline def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Long, Int)] =
       Bytez.readUnsignedLongWithByteSize(slice)
 
-    def addSignedLong(long: Long): Slice[Byte] = {
+    @inline def addSignedLong(long: Long): Slice[Byte] = {
       Bytez.writeSignedLong(long, slice)
       slice
     }
 
-    def readSignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
+    @inline def readSignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
       Bytez.readSignedLong(slice)
 
-    def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
+    @inline def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
       string.getBytes(charsets) foreach slice.add
       slice
     }
 
-    def readString(charset: Charset = StandardCharsets.UTF_8): String =
+    @inline def readString(charset: Charset = StandardCharsets.UTF_8): String =
       Bytez.readString(slice, charset)
 
-    def toByteBufferWrap: ByteBuffer =
+    @inline def toByteBufferWrap: ByteBuffer =
       slice.toByteBufferWrap
 
-    def toByteBufferDirect: ByteBuffer =
+    @inline def toByteBufferDirect: ByteBuffer =
       slice.toByteBufferDirect
 
-    def toByteArrayOutputStream =
+    @inline def toByteArrayOutputStream =
       slice.toByteArrayInputStream
 
-    def createReaderUnsafe() =
+    @inline def createReaderUnsafe() =
       new SliceReaderUnsafe(slice)
 
-    def createReaderSafe[E >: swaydb.Error.IO : IO.ExceptionHandler]() =
+    @inline def createReaderSafe[E >: swaydb.Error.IO : IO.ExceptionHandler]() =
       SliceReader(slice)
   }
 
   implicit class SliceImplicit[T](slice: Slice[T]) {
-    def add(value: T): Slice[T] = {
+    @inline def add(value: T): Slice[T] = {
       slice.insert(value)
       slice
     }
 
-    def addAll(values: Slice[T]): Slice[T] = {
+    @inline def addAll(values: Slice[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
 
-    def addAll(values: Array[T]): Slice[T] = {
+    @inline def addAll(values: Array[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
