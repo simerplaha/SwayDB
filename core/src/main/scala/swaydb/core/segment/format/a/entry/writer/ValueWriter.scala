@@ -45,8 +45,8 @@ private[writer] object ValueWriter {
         adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
       )
     else
-      current.previous map {
-        previous =>
+      current.previous match {
+        case Some(previous) =>
           compress(
             current = current,
             previous = previous,
@@ -58,17 +58,18 @@ private[writer] object ValueWriter {
             hasPrefixCompressed = hasPrefixCompressed,
             adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
           )
-      } getOrElse {
-        uncompressed(
-          current = current,
-          currentValue = current.value,
-          entryId = entryId,
-          plusSize = plusSize,
-          enablePrefixCompression = enablePrefixCompression,
-          isKeyUncompressed = isKeyUncompressed,
-          hasPrefixCompressed = hasPrefixCompressed,
-          adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
-        )
+
+        case None =>
+          uncompressed(
+            current = current,
+            currentValue = current.value,
+            entryId = entryId,
+            plusSize = plusSize,
+            enablePrefixCompression = enablePrefixCompression,
+            isKeyUncompressed = isKeyUncompressed,
+            hasPrefixCompressed = hasPrefixCompressed,
+            adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
+          )
       }
 
   private def compress[T](current: Transient,
@@ -350,8 +351,8 @@ private[writer] object ValueWriter {
                                   hasPrefixCompressed: Boolean,
                                   adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): EntryWriter.WriteResult =
   //if unable to compress valueOffsetBytes, try compressing value length valueLength bytes.
-    Bytes.compress(Slice.writeUnsignedInt(previousValue.size), Slice.writeUnsignedInt(currentValue.size), 1) map {
-      case (valueLengthCommonBytes, valueLengthRemainingBytes) =>
+    Bytes.compress(Slice.writeUnsignedInt(previousValue.size), Slice.writeUnsignedInt(currentValue.size), 1) match {
+      case Some((valueLengthCommonBytes, valueLengthRemainingBytes)) =>
         val valueLengthId =
           if (valueLengthCommonBytes == 1)
             entryId.valueUncompressed.valueOffsetUncompressed.valueLengthOneCompressed
@@ -388,34 +389,35 @@ private[writer] object ValueWriter {
           thisKeyValueAccessIndexPosition = 0,
           isPrefixCompressed = isPrefixCompressed
         )
-    } getOrElse {
-      //unable to compress valueOffset and valueLength bytes, write them as full bytes.
-      val currentUnsignedValueOffsetBytes = Slice.writeUnsignedInt(currentValueOffset)
-      val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt(currentValue.size)
-      val (indexEntryBytes, isPrefixCompressed) =
-        DeadlineWriter.write(
-          currentDeadline = current.deadline,
-          previousDeadline = current.previous.flatMap(_.deadline),
-          deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
-          plusSize = plusSize + currentUnsignedValueOffsetBytes.size + currentUnsignedValueLengthBytes.size,
-          enablePrefixCompression = true,
-          isKeyCompressed = isKeyUncompressed,
-          hasPrefixCompressed = hasPrefixCompressed,
-          adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
+
+      case None =>
+        //unable to compress valueOffset and valueLength bytes, write them as full bytes.
+        val currentUnsignedValueOffsetBytes = Slice.writeUnsignedInt(currentValueOffset)
+        val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt(currentValue.size)
+        val (indexEntryBytes, isPrefixCompressed) =
+          DeadlineWriter.write(
+            currentDeadline = current.deadline,
+            previousDeadline = current.previous.flatMap(_.deadline),
+            deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
+            plusSize = plusSize + currentUnsignedValueOffsetBytes.size + currentUnsignedValueLengthBytes.size,
+            enablePrefixCompression = true,
+            isKeyCompressed = isKeyUncompressed,
+            hasPrefixCompressed = hasPrefixCompressed,
+            adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
+          )
+
+        indexEntryBytes
+          .addAll(currentUnsignedValueOffsetBytes)
+          .addAll(currentUnsignedValueLengthBytes)
+
+        EntryWriter.WriteResult(
+          indexBytes = indexEntryBytes,
+          valueBytes = Some(currentValue),
+          valueStartOffset = currentValueOffset,
+          valueEndOffset = currentValueOffset + currentValue.size - 1,
+          thisKeyValueAccessIndexPosition = 0,
+          isPrefixCompressed = isPrefixCompressed
         )
-
-      indexEntryBytes
-        .addAll(currentUnsignedValueOffsetBytes)
-        .addAll(currentUnsignedValueLengthBytes)
-
-      EntryWriter.WriteResult(
-        indexBytes = indexEntryBytes,
-        valueBytes = Some(currentValue),
-        valueStartOffset = currentValueOffset,
-        valueEndOffset = currentValueOffset + currentValue.size - 1,
-        thisKeyValueAccessIndexPosition = 0,
-        isPrefixCompressed = isPrefixCompressed
-      )
     }
 
   private def compressValueOffset(current: Transient,
@@ -440,8 +442,8 @@ private[writer] object ValueWriter {
           else
             throw new Exception(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
 
-        Bytes.compress(Slice.writeUnsignedInt(previousValue.size), Slice.writeUnsignedInt(currentValue.size), 1) map {
-          case (valueLengthCommonBytes, valueLengthRemainingBytes) =>
+        Bytes.compress(Slice.writeUnsignedInt(previousValue.size), Slice.writeUnsignedInt(currentValue.size), 1) match {
+          case Some((valueLengthCommonBytes, valueLengthRemainingBytes)) =>
             val valueLengthId =
               if (valueLengthCommonBytes == 1)
                 valueOffsetId.valueLengthOneCompressed
@@ -478,33 +480,34 @@ private[writer] object ValueWriter {
               thisKeyValueAccessIndexPosition = 0,
               isPrefixCompressed = true
             )
-        } getOrElse {
-          //if unable to compress valueLengthBytes then write compressed valueOffset with fully valueLength bytes.
-          val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt(currentValue.size)
-          val (indexEntryBytes, isPrefixCompressed) =
-            DeadlineWriter.write(
-              currentDeadline = current.deadline,
-              previousDeadline = current.previous.flatMap(_.deadline),
-              deadlineId = valueOffsetId.valueLengthUncompressed,
-              plusSize = plusSize + valueOffsetRemainingBytes.size + currentUnsignedValueLengthBytes.size,
-              enablePrefixCompression = true,
-              isKeyCompressed = isKeyUncompressed,
-              hasPrefixCompressed = true,
-              adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
+
+          case None =>
+            //if unable to compress valueLengthBytes then write compressed valueOffset with fully valueLength bytes.
+            val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt(currentValue.size)
+            val (indexEntryBytes, isPrefixCompressed) =
+              DeadlineWriter.write(
+                currentDeadline = current.deadline,
+                previousDeadline = current.previous.flatMap(_.deadline),
+                deadlineId = valueOffsetId.valueLengthUncompressed,
+                plusSize = plusSize + valueOffsetRemainingBytes.size + currentUnsignedValueLengthBytes.size,
+                enablePrefixCompression = true,
+                isKeyCompressed = isKeyUncompressed,
+                hasPrefixCompressed = true,
+                adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
+              )
+
+            indexEntryBytes
+              .addAll(valueOffsetRemainingBytes)
+              .addAll(currentUnsignedValueLengthBytes)
+
+            EntryWriter.WriteResult(
+              indexBytes = indexEntryBytes,
+              valueBytes = Some(currentValue),
+              valueStartOffset = currentValueOffset,
+              valueEndOffset = currentValueOffset + currentValue.size - 1,
+              thisKeyValueAccessIndexPosition = 0,
+              isPrefixCompressed = isPrefixCompressed
             )
-
-          indexEntryBytes
-            .addAll(valueOffsetRemainingBytes)
-            .addAll(currentUnsignedValueLengthBytes)
-
-          EntryWriter.WriteResult(
-            indexBytes = indexEntryBytes,
-            valueBytes = Some(currentValue),
-            valueStartOffset = currentValueOffset,
-            valueEndOffset = currentValueOffset + currentValue.size - 1,
-            thisKeyValueAccessIndexPosition = 0,
-            isPrefixCompressed = isPrefixCompressed
-          )
         }
     }
 }
