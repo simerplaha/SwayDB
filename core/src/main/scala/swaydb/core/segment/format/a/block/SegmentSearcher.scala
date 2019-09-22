@@ -53,10 +53,12 @@ private[core] object SegmentSearcher extends LazyLogging {
           valuesReader = valuesReader
         ) flatMap {
           found =>
-            if (found.isDefined) {
-              threadState.notifySuccessfulSequentialRead()
-              IO.Right(found)
-            } else {
+            if (found.isDefined)
+              IO.Right {
+                threadState.notifySuccessfulSequentialRead()
+                found
+              }
+            else
               hashIndexSearch(
                 key = key,
                 start = start,
@@ -68,7 +70,6 @@ private[core] object SegmentSearcher extends LazyLogging {
                 valuesReader = valuesReader,
                 hasRange = hasRange
               )
-            }
         }
 
       case None =>

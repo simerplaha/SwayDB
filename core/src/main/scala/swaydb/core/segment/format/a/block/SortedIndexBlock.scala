@@ -213,7 +213,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     bytes moveWritePosition headSize
 
-    (
+    val state =
       State(
         _bytes = bytes,
         headerSize = headSize,
@@ -230,9 +230,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
             normalisedKeyValues.last.sortedIndexConfig.compressions
           else
             _ => Seq.empty
-      ),
-      normalisedKeyValues
-    )
+      )
+
+    (state, normalisedKeyValues)
   }
 
   def write(keyValue: Transient, state: SortedIndexBlock.State): IO[swaydb.Error.Segment, Unit] =
@@ -464,196 +464,196 @@ private[core] object SortedIndexBlock extends LazyLogging {
                    fullRead: Boolean,
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
-    else
-      seekAndMatchToPersistent(
-        matcher = KeyMatcher.Get(key),
-        startFrom = startFrom,
-        fullRead = fullRead,
-        indexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+  //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    seekAndMatchToPersistent(
+      matcher = KeyMatcher.Get(key),
+      startFrom = startFrom,
+      fullRead = fullRead,
+      indexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    )
 
   def matchOrSeek(key: Slice[Byte],
                   startFrom: Persistent.Partial,
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[Error.Segment, Option[Persistent.Partial]] =
-    if (ordering.gteq(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
-    else
-      SortedIndexBlock.matchOrSeek(
-        matcher = KeyMatcher.Get(key),
-        previous = startFrom,
-        fullRead = sortedIndexReader.block.hasPrefixCompression,
-        next = None,
-        indexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      ) flatMap {
-        case KeyMatcher.Result.Matched(_, keyValue, _) =>
-          IO.Right(Some(keyValue))
+  //    if (ordering.gteq(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    SortedIndexBlock.matchOrSeek(
+      matcher = KeyMatcher.Get(key),
+      previous = startFrom,
+      fullRead = sortedIndexReader.block.hasPrefixCompression,
+      next = None,
+      indexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    ) flatMap {
+      case KeyMatcher.Result.Matched(_, keyValue, _) =>
+        IO.Right(Some(keyValue))
 
-        case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-          IO.none
-      }
+      case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+        IO.none
+    }
 
   def searchSeekOne(key: Slice[Byte],
                     start: Persistent.Partial,
                     fullRead: Boolean,
                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                     valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
-    else
-      seekAndMatchToPersistent(
-        matcher = KeyMatcher.Get.MatchOnly(key),
-        startFrom = Some(start),
-        fullRead = fullRead,
-        indexReader = indexReader,
-        valuesReader = valuesReader
-      )
+  //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    seekAndMatchToPersistent(
+      matcher = KeyMatcher.Get.MatchOnly(key),
+      startFrom = Some(start),
+      fullRead = fullRead,
+      indexReader = indexReader,
+      valuesReader = valuesReader
+    )
 
   def searchHigher(key: Slice[Byte],
                    startFrom: Option[Persistent.Partial],
                    fullRead: Boolean,
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
-    else
-      seekAndMatchToPersistent(
-        matcher = KeyMatcher.Higher(key),
-        startFrom = startFrom,
-        fullRead = fullRead,
-        indexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+  //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    seekAndMatchToPersistent(
+      matcher = KeyMatcher.Higher(key),
+      startFrom = startFrom,
+      fullRead = fullRead,
+      indexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    )
 
   def matchOrSeekHigher(key: Slice[Byte],
                         startFrom: Option[Persistent.Partial],
                         sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                         valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
-    else
-      startFrom match {
-        case Some(lower) =>
-          SortedIndexBlock.matchOrSeek(
-            matcher = KeyMatcher.Higher(key),
-            previous = lower,
-            fullRead = sortedIndexReader.block.hasPrefixCompression,
-            next = None,
-            indexReader = sortedIndexReader,
-            valuesReader = valuesReader
-          ) flatMap {
-            case KeyMatcher.Result.Matched(_, keyValue, _) =>
-              IO.Right(Some(keyValue))
+  //    if (startFrom.exists(from => order.gt(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    startFrom match {
+      case Some(lower) =>
+        SortedIndexBlock.matchOrSeek(
+          matcher = KeyMatcher.Higher(key),
+          previous = lower,
+          fullRead = sortedIndexReader.block.hasPrefixCompression,
+          next = None,
+          indexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        ) flatMap {
+          case KeyMatcher.Result.Matched(_, keyValue, _) =>
+            IO.Right(Some(keyValue))
 
-            case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-              IO.none
-          }
+          case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+            IO.none
+        }
 
-        case None =>
-          seekAndMatchToPersistent(
-            matcher = KeyMatcher.Higher(key),
-            startFrom = startFrom,
-            fullRead = sortedIndexReader.block.hasPrefixCompression,
-            indexReader = sortedIndexReader,
-            valuesReader = valuesReader
-          )
-      }
+      case None =>
+        seekAndMatchToPersistent(
+          matcher = KeyMatcher.Higher(key),
+          startFrom = startFrom,
+          fullRead = sortedIndexReader.block.hasPrefixCompression,
+          indexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        )
+    }
 
   def searchHigherMatchOnly(key: Slice[Byte],
                             startFrom: Persistent.Partial,
                             fullRead: Boolean,
                             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
-    else
-      seekAndMatchToPersistent(
-        matcher = KeyMatcher.Higher.MatchOnly(key),
-        startFrom = Some(startFrom),
-        fullRead = fullRead,
-        indexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+  //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    seekAndMatchToPersistent(
+      matcher = KeyMatcher.Higher.MatchOnly(key),
+      startFrom = Some(startFrom),
+      fullRead = fullRead,
+      indexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    )
 
   def seekLowerAndMatch(key: Slice[Byte],
                         startFrom: Option[Persistent.Partial],
                         fullRead: Boolean,
                         sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                         valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
-    else
-      seekAndMatchToPersistent(
-        matcher = KeyMatcher.Lower(key),
-        startFrom = startFrom,
-        fullRead = fullRead,
-        indexReader = sortedIndexReader,
-        valuesReader = valuesReader
-      )
+  //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    seekAndMatchToPersistent(
+      matcher = KeyMatcher.Lower(key),
+      startFrom = startFrom,
+      fullRead = fullRead,
+      indexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    )
 
   def matchOrSeekLower(key: Slice[Byte],
                        startFrom: Option[Persistent.Partial],
                        next: Option[Persistent.Partial],
                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit order: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    if (startFrom.exists(from => order.gteq(from.key, key)) ||
-      next.exists(next => next match {
-        case range: Partial.RangeT => order.lt(range.toKey, key)
-        case fixed: Partial.Fixed => order.lt(fixed.key, key)
-      }
-      )
-    ) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
-      IO.Left(swaydb.Error.Fatal("invalid startFrom or next."))
-    else
-      startFrom match {
-        case Some(lower) =>
-          SortedIndexBlock.matchOrSeek(
-            matcher = KeyMatcher.Lower(key),
-            previous = lower,
-            fullRead = sortedIndexReader.block.hasPrefixCompression,
-            next = next,
-            indexReader = sortedIndexReader,
-            valuesReader = valuesReader
-          ) flatMap {
-            case KeyMatcher.Result.Matched(_, keyValue, _) =>
-              IO.Right(Some(keyValue))
+  //    if (startFrom.exists(from => order.gteq(from.key, key)) ||
+  //      next.exists(next => next match {
+  //        case range: Partial.RangeT => order.lt(range.toKey, key)
+  //        case fixed: Partial.Fixed => order.lt(fixed.key, key)
+  //      }
+  //      )
+  //    ) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("invalid startFrom or next."))
+  //    else
+    startFrom match {
+      case Some(lower) =>
+        SortedIndexBlock.matchOrSeek(
+          matcher = KeyMatcher.Lower(key),
+          previous = lower,
+          fullRead = sortedIndexReader.block.hasPrefixCompression,
+          next = next,
+          indexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        ) flatMap {
+          case KeyMatcher.Result.Matched(_, keyValue, _) =>
+            IO.Right(Some(keyValue))
 
-            case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-              IO.none
-          }
+          case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+            IO.none
+        }
 
-        case None =>
-          next match {
-            case Some(next) =>
-              SortedIndexBlock.matchOrSeek(
-                previous = next,
-                next = None,
-                fullRead = sortedIndexReader.block.hasPrefixCompression,
-                matcher = KeyMatcher.Lower(key),
-                indexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              ) flatMap {
-                case KeyMatcher.Result.Matched(_, keyValue, _) =>
-                  IO.Right(Some(keyValue))
+      case None =>
+        next match {
+          case Some(next) =>
+            SortedIndexBlock.matchOrSeek(
+              previous = next,
+              next = None,
+              fullRead = sortedIndexReader.block.hasPrefixCompression,
+              matcher = KeyMatcher.Lower(key),
+              indexReader = sortedIndexReader,
+              valuesReader = valuesReader
+            ) flatMap {
+              case KeyMatcher.Result.Matched(_, keyValue, _) =>
+                IO.Right(Some(keyValue))
 
-                case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
-                  IO.none
-              }
+              case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+                IO.none
+            }
 
-            case None =>
-              seekAndMatchToPersistent(
-                matcher = KeyMatcher.Lower(key),
-                startFrom = startFrom,
-                fullRead = sortedIndexReader.block.hasPrefixCompression,
-                indexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              )
-          }
-      }
+          case None =>
+            seekAndMatchToPersistent(
+              matcher = KeyMatcher.Lower(key),
+              startFrom = startFrom,
+              fullRead = sortedIndexReader.block.hasPrefixCompression,
+              indexReader = sortedIndexReader,
+              valuesReader = valuesReader
+            )
+        }
+    }
 
   private def seekAndMatchToPersistent(matcher: KeyMatcher,
                                        startFrom: Option[Persistent.Partial],
@@ -918,15 +918,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
                          fullRead: Boolean,
                          matcher: KeyMatcher,
                          indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                         valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, KeyMatcher.Result.Complete] = {
-    val from = next getOrElse previous
+                         valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): IO[swaydb.Error.Segment, KeyMatcher.Result.Complete] =
     readKeyValue(
-      previous = from,
+      previous = next getOrElse previous,
       fullRead = fullRead,
       indexReader = indexReader,
       valuesReader = valuesReader
-    ) match {
-      case IO.Right(nextNextKeyValue) =>
+    ) flatMap {
+      nextNextKeyValue =>
         matchOrSeek(
           previous = next getOrElse previous,
           next = Some(nextNextKeyValue),
@@ -935,11 +934,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           indexReader = indexReader,
           valuesReader = valuesReader
         )
-
-      case IO.Left(error) =>
-        IO.Left(error)
     }
-  }
 
   def matchOrSeekToPersistent(previous: Persistent.Partial,
                               next: Option[Persistent.Partial],
