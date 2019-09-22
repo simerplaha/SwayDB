@@ -579,7 +579,8 @@ class MapSpec extends TestBase {
       val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).runRandomIO.right.value
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
-      recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
+      //count instead of size because skipList's actual size can be higher.
+      recoveredMapWith0LogCorrupted.item.skipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
       //checking the recovered entries
       recoveredMapWith0LogCorrupted.item.skipList.get(1).value shouldBe Memory.put(1, 1)
@@ -629,7 +630,8 @@ class MapSpec extends TestBase {
       val recoveredMapWith0LogCorrupted = Map.persistent[Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true).runRandomIO.right.value
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
-      recoveredMapWith0LogCorrupted.item.size shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
+      //count instead of size because skipList's actual size can be higher.
+      recoveredMapWith0LogCorrupted.item.skipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
       //checking the recovered entries
       recoveredMapWith0LogCorrupted.item.skipList.get(1).value shouldBe Memory.put(1, 1)
