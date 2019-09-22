@@ -46,7 +46,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
     "write compressed time" in {
       keyIds foreach {
         keyId =>
-          (1 to 8) foreach { //for some or all deadline bytes compressed.
+          (3 to 8) foreach { //for some or all deadline bytes compressed.
             commonBytes =>
               val currentTimeBytes =
                 Slice.fill[Byte](commonBytes)(0.toByte) ++ Slice.fill[Byte](8 - commonBytes)(1.toByte)
@@ -55,7 +55,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                 Slice.fill[Byte](commonBytes)(0.toByte) ++ Slice.fill[Byte](8 - commonBytes)(2.toByte)
 
               val current: Transient.Put =
-                randomPutKeyValue(1, None, None)(TestTimer.single(Time(currentTimeBytes)))
+                randomPutKeyValue(key = 1, value = None, deadline = None)(TestTimer.single(Time(currentTimeBytes)))
                   .toTransient(
                     previous =
                       Some(randomFixedKeyValue(0)(TestTimer.single(Time(previousTimeBytes))).toTransient)
