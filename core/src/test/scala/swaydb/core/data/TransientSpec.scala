@@ -86,7 +86,11 @@ class TransientSpec extends TestBase {
             randomFixedKeyValue(4)
           ).toTransient(
             sortedIndexConfig =
-              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 2)
+              SortedIndexBlock.Config.random.copy(
+                prefixCompressionResetCount = 2,
+                enablePartialRead = false,
+                normaliseIndex = false
+              )
           )
 
         Transient.enablePrefixCompression(keyValues.head) shouldBe false //there is no previous

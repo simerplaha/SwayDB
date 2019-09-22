@@ -78,13 +78,14 @@ object DBFile extends LazyLogging {
             else
               ChannelFile.read(filePath, blockCacheFileId)
 
-          if (autoClose) fileSweeper.foreach(_.close(closer))
+          if (autoClose)
+            fileSweeper.close(closer)
           openResult
       }
 
     self = cache
 
-    if (autoClose && file.isDefined) fileSweeper.foreach(_.close(closer))
+    if (autoClose && file.isDefined) fileSweeper.close(closer)
     cache
   }
 

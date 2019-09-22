@@ -27,7 +27,6 @@ import swaydb.{Actor, ActorRef, IO, Tagged}
 import scala.concurrent.ExecutionContext
 import scala.ref.WeakReference
 
-
 private[core] trait FileSweeperItem {
   def path: Path
   def delete(): IO[swaydb.Error.Segment, Unit]
@@ -35,14 +34,16 @@ private[core] trait FileSweeperItem {
   def isOpen: Boolean
 }
 
-private[swaydb] trait FileSweeper extends Tagged[FileSweeper.Enabled, Option]
+private[swaydb] trait FileSweeper {
+  def close(file: FileSweeperItem): Unit
+}
 private[swaydb] object FileSweeper extends LazyLogging {
 
   case object Disabled extends FileSweeper {
-    override def get: Option[Enabled] = None
+    def close(file: FileSweeperItem): Unit = ()
   }
+
   sealed trait Enabled extends FileSweeper {
-    override def get: Option[Enabled] = Some(this)
     def ec: ExecutionContext
     def close(file: FileSweeperItem): Unit
     def delete(file: FileSweeperItem): Unit
