@@ -685,27 +685,27 @@ private[core] object HashIndexBlock extends LazyLogging {
                   indexOffset =>
                     SortedIndexBlock.seekAndMatchOrSeek(
                       matcher = matcher,
-                      fullRead = false,
+                      fullRead = true,
                       fromOffset = indexOffset,
                       indexReader = sortedIndexReader,
                       valuesReader = valuesReader
-                    ) map {
+                    ) flatMap {
                       case Result.Matched(_, result, _) =>
-                        Some(result)
+                        IO.Right(Some(result))
 
                       case Result.BehindStopped(previous) =>
                         lowerKeyValues += previous
-                        None
+                        IO.none
 
                       case Result.AheadOrNoneOrEnd =>
-                        None
+                        IO.none
                     }
                 }
               else
                 SortedIndexBlock.readAndMatch( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
                   matcher = matcher,
                   fromOffset = 0,
-                  fullRead = false,
+                  fullRead = true,
                   overwriteNextIndexOffset = {
                     val nextIndexOffset = accessIndexOffset + referenceOrIndexEntry.size
                     //if it's the last key-value, nextIndexOffset is None.
@@ -716,36 +716,36 @@ private[core] object HashIndexBlock extends LazyLogging {
                   },
                   sortedIndexReader =
                     UnblockedReader(
+                      bytes = referenceOrIndexEntry,
                       block =
                         SortedIndexBlock(
                           offset = SortedIndexBlock.Offset(0, referenceOrIndexEntry.size),
                           enableAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
-                          hasPrefixCompression = false,
+                          hasPrefixCompression = sortedIndexReader.block.hasPrefixCompression,
                           normaliseForBinarySearch = sortedIndexReader.block.normaliseForBinarySearch,
-                          isPreNormalised = sortedIndexReader.block.isPreNormalised,
-                          enablePartialRead = sortedIndexReader.block.enablePartialRead,
                           disableKeyPrefixCompression = sortedIndexReader.block.disableKeyPrefixCompression,
+                          enablePartialRead = sortedIndexReader.block.enablePartialRead,
+                          isPreNormalised = sortedIndexReader.block.isPreNormalised,
                           headerSize = 0,
                           segmentMaxIndexEntrySize = sortedIndexReader.block.segmentMaxIndexEntrySize,
                           compressionInfo = None
-                        ),
-                      bytes = referenceOrIndexEntry
+                        )
                     ),
                   valuesReader = valuesReader
-                ) map {
+                ) flatMap {
                   case Result.Matched(_, result, _) =>
-                    Some(result)
+                    IO.Right(Some(result))
 
                   case Result.BehindStopped(previous) =>
                     lowerKeyValues += previous
-                    None
+                    IO.none
 
                   case Result.BehindFetchNext(previous) =>
                     lowerKeyValues += previous
-                    None
+                    IO.none
 
                   case Result.AheadOrNoneOrEnd =>
-                    None
+                    IO.none
                 }
         )
       else
@@ -757,33 +757,33 @@ private[core] object HashIndexBlock extends LazyLogging {
               SortedIndexBlock.seekAndMatchOrSeek(
                 matcher = matcher,
                 fromOffset = sortedIndexOffsetValue,
-                fullRead = false,
+                fullRead = true,
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
-              ) map {
+              ) flatMap {
                 case Result.Matched(_, result, _) =>
-                  Some(result)
+                  IO.Right(Some(result))
 
                 case Result.BehindStopped(previous) =>
                   lowerKeyValues += previous
-                  None
+                  IO.none
 
                 case Result.AheadOrNoneOrEnd =>
-                  None
+                  IO.none
               }
         )
 
-    result map {
+    result flatMap  {
       case Some(got) =>
-        HashIndexSearchResult.Found(got)
+        IO.Right(HashIndexSearchResult.Found(got))
 
       case None =>
         //if hashIndex did not successfully return a valid key-value then return the nearest lowest from the currently read
         //key-value from hashIndex.
         if (lowerKeyValues.isEmpty)
-          HashIndexSearchResult.None
+          IO.Right(HashIndexSearchResult.None)
         else if (lowerKeyValues.size == 1)
-          HashIndexSearchResult.Lower(lowerKeyValues.head)
+          IO.Right(HashIndexSearchResult.Lower(lowerKeyValues.head))
         else {
           implicit val keyValueOrdering = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)
 
@@ -793,7 +793,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                 keyValueOrdering.max(left, right)
             }
 
-          HashIndexSearchResult.Lower(nearest)
+          IO.Right(HashIndexSearchResult.Lower(nearest))
         }
     }
   }
