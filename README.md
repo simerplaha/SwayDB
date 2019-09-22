@@ -17,7 +17,7 @@ and easy data management with simple collections API.
 
 [Documentation - SwayDB.io](http://swaydb.io).
 
-## Performance (v0.2: outdated - [#119](https://github.com/simerplaha/SwayDB/issues/119))
+## Performance (old benchmark for v0.2 - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
 | Storage  type   | Performance                               
 |:---------------:|:------------------------------------------------------
