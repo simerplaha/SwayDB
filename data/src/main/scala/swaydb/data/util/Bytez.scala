@@ -136,7 +136,7 @@ private[swaydb] trait Bytez {
     slice.add((int & 0x7F).asInstanceOf[Byte])
   }
 
-  def writeUnsignedIntNonZero(int: Int): Slice[Byte] = {
+  private[swaydb] def writeUnsignedIntNonZero(int: Int): Slice[Byte] = {
     val slice = Slice.create[Byte](ByteSizeOf.varInt)
     var x = int
     while ((x & 0xFFFFF80) != 0L) {
@@ -147,7 +147,7 @@ private[swaydb] trait Bytez {
     slice.close()
   }
 
-  def readUnsignedIntNonZero[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Int] =
+  private[swaydb] def readUnsignedIntNonZero[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Int] =
     IO {
       var index = 0
       var i = 0
@@ -164,7 +164,7 @@ private[swaydb] trait Bytez {
       int
     }
 
-  def readUnsignedIntNonZeroWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
+  private[swaydb] def readUnsignedIntNonZeroWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, (Int, Int)] =
     IO {
       var index = 0
       var i = 0

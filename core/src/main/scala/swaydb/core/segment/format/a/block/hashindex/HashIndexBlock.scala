@@ -773,7 +773,7 @@ private[core] object HashIndexBlock extends LazyLogging {
               }
         )
 
-    result flatMap  {
+    result flatMap {
       case Some(got) =>
         IO.Right(HashIndexSearchResult.Found(got))
 
