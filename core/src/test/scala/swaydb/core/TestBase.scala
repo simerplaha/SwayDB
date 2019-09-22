@@ -31,7 +31,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestLimitQueues.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{Memory, Time, Transient}
+import swaydb.core.data.{Memory, Persistent, Time, Transient}
 import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -39,7 +39,7 @@ import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{Segment, SegmentThreadState}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock

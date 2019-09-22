@@ -550,14 +550,14 @@ private[core] object HashIndexBlock extends LazyLogging {
           val valueBytes = remainingWithoutCRCAndIsReference.take(entrySizeOrAccessIndexOffsetEntryByteSize)
           IO.Right((valueBytes, isReference, -1)) //it's a reference there will be no accessIndexOffset.
         } else { //else this is accessIndexOffset and remaining is indexEntry bytes.
-          remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readUnsignedIntWithByteSize() map {
+          remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readUnsignedIntWithByteSize() flatMap {
             case (entrySize, entryByteSize) =>
               val valueBytes =
                 remainingWithoutCRCAndIsReference
                   .drop(entrySizeOrAccessIndexOffsetEntryByteSize)
                   .take(entrySize + entryByteSize)
 
-              (valueBytes, isReference, entrySizeOrAccessIndexOffsetEntry)
+              IO.Right(valueBytes, isReference, entrySizeOrAccessIndexOffsetEntry)
           }
         }
     }
@@ -703,7 +703,14 @@ private[core] object HashIndexBlock extends LazyLogging {
                   matcher = matcher,
                   fromOffset = 0,
                   fullRead = false,
-                  overwriteNextIndexOffset = Some(accessIndexOffset + referenceOrIndexEntry.size),
+                  overwriteNextIndexOffset = {
+                    val nextIndexOffset = accessIndexOffset + referenceOrIndexEntry.size
+                    //if it's the last key-value, nextIndexOffset is None.
+                    if(nextIndexOffset == sortedIndexReader.offset.size)
+                      None
+                    else
+                      Some(nextIndexOffset)
+                  },
                   sortedIndexReader =
                     UnblockedReader(
                       block =

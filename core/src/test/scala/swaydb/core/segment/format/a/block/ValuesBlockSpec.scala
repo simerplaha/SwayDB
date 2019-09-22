@@ -27,6 +27,7 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.collection.mutable.ListBuffer
 
@@ -88,7 +89,7 @@ class ValuesBlockSpec extends TestBase {
               offset
             } else {
               keyValuesOffset += ((offset, valueBytes))
-              ValuesBlock.read(offset, valueBytes.size, unblocked).get should contain(valueBytes)
+              ValuesBlock.read(offset, valueBytes.size, unblocked).get.value shouldBe valueBytes.value
               offset + valueBytes.size
             }
         }

@@ -842,7 +842,7 @@ object CommonAssertions {
     readAll(segmentReader.copy()).runRandomIO.right.value shouldBe keyValues
     //    //find each KeyValue using all Matchers
     assertGet(keyValues, segmentReader.copy())
-    assertLower(keyValues, segmentReader.copy())
+//    assertLower(keyValues, segmentReader.copy())
     assertHigher(keyValues, segmentReader.copy())
   }
 
