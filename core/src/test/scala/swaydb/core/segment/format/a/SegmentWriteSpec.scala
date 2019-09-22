@@ -412,7 +412,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                 segment.isFileDefined shouldBe false
                 segment.isKeyValueCacheEmpty shouldBe true
 
-                assertReads(keyValues, segment)
+                assertHigher(keyValues, segment)
 
                 segment.skipList.isConcurrent shouldBe true
 
@@ -1235,7 +1235,6 @@ sealed trait SegmentWriteSpec extends TestBase {
         val deleteKeyValues = Slice.create[Memory](keyValues.size)
         (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
         deleteKeyValues add Memory.Range(5, 10, None, Value.remove(None))
-        deleteKeyValues add Memory.Range(11, 15, None, Value.remove(None))
 
         segment.put(
           newKeyValues = deleteKeyValues,

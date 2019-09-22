@@ -34,7 +34,7 @@ private[writer] object ValueWriter {
                isKeyUncompressed: Boolean,
                hasPrefixCompressed: Boolean,
                adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): EntryWriter.WriteResult =
-    if (current.value.isEmpty)
+    if (current.value.forall(_.isEmpty))
       noValue(
         current = current,
         entryId = entryId,

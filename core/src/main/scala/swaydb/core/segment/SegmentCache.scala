@@ -363,44 +363,35 @@ private[core] class SegmentCache(id: String,
       sortedIndexReader =>
         blockCache.createValuesReader() flatMap {
           valuesReader =>
-            val startFrom =
-              if (start.isDefined)
-                IO.Right(start)
-              else
-                get(key)
+            SegmentSearcher.searchHigher(
+              key = key,
+              start = start,
+              end = end,
+              keyValueCount = keyValueCount,
+              binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+              sortedIndexReader = sortedIndexReader,
+              valuesReader = valuesReader
+            ) flatMap {
+              case Some(response: Persistent) =>
+                addToCache(response)
+                IO.Right(Some(response))
 
-            startFrom flatMap {
-              startFrom =>
-                SegmentSearcher.searchHigher(
-                  key = key,
-                  start = startFrom,
-                  end = end,
-                  keyValueCount = keyValueCount,
-                  binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
-                  sortedIndexReader = sortedIndexReader,
-                  valuesReader = valuesReader
-                ) flatMap {
-                  case Some(response: Persistent) =>
-                    addToCache(response)
-                    IO.Right(Some(response))
-
-                  case Some(fixed: Persistent.Partial.Fixed) =>
-                    fixed.toPersistent map {
-                      persistent =>
-                        addToCache(persistent)
-                        Some(persistent)
-                    }
-
-                  case Some(fixed: Persistent.Partial.Range) =>
-                    fixed.toPersistent map {
-                      range =>
-                        addToCache(range)
-                        Some(range)
-                    }
-
-                  case None =>
-                    IO.none
+              case Some(fixed: Persistent.Partial.Fixed) =>
+                fixed.toPersistent map {
+                  persistent =>
+                    addToCache(persistent)
+                    Some(persistent)
                 }
+
+              case Some(fixed: Persistent.Partial.Range) =>
+                fixed.toPersistent map {
+                  range =>
+                    addToCache(range)
+                    Some(range)
+                }
+
+              case None =>
+                IO.none
             }
         }
     }
@@ -450,12 +441,18 @@ private[core] class SegmentCache(id: String,
             }
 
           case None =>
-            higher(
-              key = key,
-              start = None,
-              end = skipList.higher(key),
-              keyValueCount = getFooter().map(_.keyValueCount)
-            )
+            get(key) flatMap {
+              case some @ Some(floor: Persistent.Range) if floor contains key =>
+                IO.Right(some)
+
+              case start =>
+                higher(
+                  key = key,
+                  start = start,
+                  end = skipList.higher(key),
+                  keyValueCount = getFooter().map(_.keyValueCount)
+                )
+            }
         }
     }
 
