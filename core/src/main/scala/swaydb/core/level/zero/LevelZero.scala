@@ -450,12 +450,12 @@ private[core] case class LevelZero(path: Path,
     ceiling(
       key = key,
       currentMap = maps.map,
-      otherMaps = maps.iterator.asScala.toList
+      otherMaps = Slice.from(maps.iterator.asScala)
     )
 
   def ceiling(key: Slice[Byte],
               currentMap: map.Map[Slice[Byte], Memory],
-              otherMaps: List[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+              otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     find(
       key = key,
       currentMap = currentMap,
@@ -469,11 +469,11 @@ private[core] case class LevelZero(path: Path,
     }
 
   def floor(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    floor(key, maps.map, maps.iterator.asScala.toList)
+    floor(key, maps.map, Slice.from(maps.iterator.asScala))
 
   def floor(key: Slice[Byte],
             currentMap: map.Map[Slice[Byte], Memory],
-            otherMaps: List[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+            otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     find(
       key = key,
       currentMap = currentMap,
@@ -504,7 +504,7 @@ private[core] case class LevelZero(path: Path,
         .higher(key)
 
   def findHigherInNextLevel(key: Slice[Byte],
-                            otherMaps: List[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                            otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //        println(s"Finding higher for key: ${key.readInt()} in Map: ${nextMap.pathOption}. Remaining map: ${otherMaps.size}")
@@ -517,7 +517,7 @@ private[core] case class LevelZero(path: Path,
     }
 
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory],
-                    otherMaps: List[map.Map[Slice[Byte], Memory]]) =
+                    otherMaps: Slice[map.Map[Slice[Byte], Memory]]) =
     new CurrentWalker {
       override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
@@ -542,7 +542,7 @@ private[core] case class LevelZero(path: Path,
         "current"
     }
 
-  def nextWalker(otherMaps: List[map.Map[Slice[Byte], Memory]]) =
+  def nextWalker(otherMaps: Slice[map.Map[Slice[Byte], Memory]]) =
     new NextWalker {
       override def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         findHigherInNextLevel(key, otherMaps)
@@ -559,7 +559,7 @@ private[core] case class LevelZero(path: Path,
 
   def findHigher(key: Slice[Byte],
                  currentMap: map.Map[Slice[Byte], Memory],
-                 otherMaps: List[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                 otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher.seek(
       key = key,
       currentSeek = Seek.Current.Read(Int.MinValue),
@@ -581,7 +581,7 @@ private[core] case class LevelZero(path: Path,
     findHigher(
       key = key,
       currentMap = maps.map,
-      otherMaps = maps.queuedMaps.toList
+      otherMaps = Slice.from(maps.queuedMaps)
     )
 
   private def lowerFromMap(key: Slice[Byte],
@@ -598,7 +598,7 @@ private[core] case class LevelZero(path: Path,
       currentMap.skipList.lower(key)
 
   def findLowerInNextLevel(key: Slice[Byte],
-                           otherMaps: List[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                           otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextMap.pathOption}")
@@ -612,7 +612,7 @@ private[core] case class LevelZero(path: Path,
 
   def findLower(key: Slice[Byte],
                 currentMap: map.Map[Slice[Byte], Memory],
-                otherMaps: List[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Lower.seek(
       key = key,
       currentSeek = Seek.Current.Read(Int.MinValue),
@@ -634,7 +634,7 @@ private[core] case class LevelZero(path: Path,
     findLower(
       key = key,
       currentMap = maps.map,
-      otherMaps = maps.queuedMaps.toList
+      otherMaps = Slice.from(maps.queuedMaps)
     )
 
   def contains(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Boolean] =
