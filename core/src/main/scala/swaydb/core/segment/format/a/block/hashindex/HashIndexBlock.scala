@@ -536,29 +536,32 @@ private[core] object HashIndexBlock extends LazyLogging {
   private def parseCopiedValuesBytes(valueBytesWithoutCRC: Slice[Byte],
                                      copyIndexWithReferences: Boolean): IO[Error.Segment, (Slice[Byte], Boolean, Int)] = {
     //if references were also being written then check if the current is reference or fullCopy.
-    val (isReference, remainingWithoutCRCAndIsReference) =
+    val indexEntry =
       if (copyIndexWithReferences) //if references is enabled then it should also contain a boolean value which indicates if this entry is reference or copy.
-        (valueBytesWithoutCRC.readBoolean(), valueBytesWithoutCRC.drop(ByteSizeOf.boolean))
+        IO(valueBytesWithoutCRC.readBoolean(), valueBytesWithoutCRC drop ByteSizeOf.boolean)
       else
-        (false, valueBytesWithoutCRC)
+        IO.Right(false, valueBytesWithoutCRC)
 
-    //[CRC|Option[isRef]|Option[accessOffset]|valuesBytes]
-    remainingWithoutCRCAndIsReference.readUnsignedIntWithByteSize() flatMap {
-      case (entrySizeOrAccessIndexOffsetEntry, entrySizeOrAccessIndexOffsetEntryByteSize) => //this will be entrySize/sortedIndexOffset if it's a reference else it will be thisKeyValuesAccessIndexOffset.
-        //it's a reference so there is no accessIndexOffset therefore this value is reference offset.
-        if (isReference) {
-          val valueBytes = remainingWithoutCRCAndIsReference.take(entrySizeOrAccessIndexOffsetEntryByteSize)
-          IO.Right((valueBytes, isReference, -1)) //it's a reference there will be no accessIndexOffset.
-        } else { //else this is accessIndexOffset and remaining is indexEntry bytes.
-          remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readUnsignedIntWithByteSize() flatMap {
-            case (entrySize, entryByteSize) =>
-              val valueBytes =
-                remainingWithoutCRCAndIsReference
-                  .drop(entrySizeOrAccessIndexOffsetEntryByteSize)
-                  .take(entrySize + entryByteSize)
+    indexEntry flatMap {
+      case (isReference, remainingWithoutCRCAndIsReference) =>
+        //[CRC|Option[isRef]|Option[accessOffset]|valuesBytes]
+        remainingWithoutCRCAndIsReference.readUnsignedIntWithByteSize() flatMap {
+          case (entrySizeOrAccessIndexOffsetEntry, entrySizeOrAccessIndexOffsetEntryByteSize) => //this will be entrySize/sortedIndexOffset if it's a reference else it will be thisKeyValuesAccessIndexOffset.
+            //it's a reference so there is no accessIndexOffset therefore this value is reference offset.
+            if (isReference) {
+              val valueBytes = remainingWithoutCRCAndIsReference.take(entrySizeOrAccessIndexOffsetEntryByteSize)
+              IO.Right((valueBytes, isReference, -1)) //it's a reference there will be no accessIndexOffset.
+            } else { //else this is accessIndexOffset and remaining is indexEntry bytes.
+              remainingWithoutCRCAndIsReference.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readUnsignedIntWithByteSize() flatMap {
+                case (entrySize, entryByteSize) =>
+                  val valueBytes =
+                    remainingWithoutCRCAndIsReference
+                      .drop(entrySizeOrAccessIndexOffsetEntryByteSize)
+                      .take(entrySize + entryByteSize)
 
-              IO.Right(valueBytes, isReference, entrySizeOrAccessIndexOffsetEntry)
-          }
+                  IO.Right(valueBytes, isReference, entrySizeOrAccessIndexOffsetEntry)
+              }
+            }
         }
     }
   }
@@ -706,7 +709,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                   overwriteNextIndexOffset = {
                     val nextIndexOffset = accessIndexOffset + referenceOrIndexEntry.size
                     //if it's the last key-value, nextIndexOffset is None.
-                    if(nextIndexOffset == sortedIndexReader.offset.size)
+                    if (nextIndexOffset == sortedIndexReader.offset.size)
                       None
                     else
                       Some(nextIndexOffset)

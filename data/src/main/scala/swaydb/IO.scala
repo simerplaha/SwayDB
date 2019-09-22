@@ -270,6 +270,12 @@ object IO {
     else
       f(onFalse)
 
+  @inline def when[E: IO.ExceptionHandler, T](condition: => Boolean, onTrue: => IO[E, T], onFalse: => IO[E, T]): IO[E, T] =
+    if (condition)
+      onTrue
+    else
+      onFalse
+
   @inline final def apply[E: IO.ExceptionHandler, A](f: => A): IO[E, A] =
     try IO.Right[E, A](f) catch {
       case ex: Throwable =>
