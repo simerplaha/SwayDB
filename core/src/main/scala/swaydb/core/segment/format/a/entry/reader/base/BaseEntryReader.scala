@@ -42,5 +42,5 @@ private[core] trait BaseEntryReader {
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent.Partial],
-              reader: EntryReader[T]): Option[IO[swaydb.Error.Segment, T]]
+              reader: EntryReader[T]): IO[swaydb.Error.Segment, T]
 }

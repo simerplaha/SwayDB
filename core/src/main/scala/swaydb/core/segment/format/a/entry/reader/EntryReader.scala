@@ -77,9 +77,9 @@ object EntryReader {
                        nextIndexSize: Int,
                        previous: Option[Persistent.Partial],
                        entryReader: EntryReader[T]): IO[swaydb.Error.Segment, T] =
-    findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) flatMap {
-      entry =>
-        entry.read(
+    findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) match {
+      case Some(baseEntryReader) =>
+        baseEntryReader.read(
           baseId = baseId,
           keyValueId = keyValueId,
           sortedIndexAccessPosition = sortedIndexAccessPosition,
@@ -92,7 +92,10 @@ object EntryReader {
           previous = previous,
           reader = entryReader
         )
-    } getOrElse IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+
+      case None =>
+        IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+    }
 
   def partialRead(indexEntry: Slice[Byte],
                   block: SortedIndexBlock,

@@ -26,6 +26,7 @@ import swaydb.core.data.Transient
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
@@ -187,7 +188,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
       //          compressions = _ => Seq.empty
       //        ),
-      //      hashIndexConfig = HashIndexBlock.Config.disabled,
+      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(
@@ -309,9 +310,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //      segment.getAll().get
     }
 
-    //    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-    //      assertGet(segment)
-    //    }
+        Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+          assertGet(segment)
+        }
 
     //    println("totalReads: " + SegmentSearcher.totalReads)
     //    println("sequentialRead: " + SegmentSearcher.sequentialRead)

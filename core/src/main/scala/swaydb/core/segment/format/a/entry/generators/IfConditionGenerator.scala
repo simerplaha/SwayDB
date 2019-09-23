@@ -36,30 +36,32 @@ object IfConditionGenerator extends App {
       entryId.getClass.getName.dropRight(1).replaceAll("swaydb.core.segment.format.a.entry.id.", "").replaceAll("\\$", ".")
   }
 
+  val failed = "IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))"
+
   def generateBinarySearchConditions(ids: List[BaseEntryId]): String = {
     if (ids.size == 1) {
       val typedId = ids.head
 
       val targetFunction =
-        s"Some(reader(${typedId.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"reader(${typedId.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)"
 
       val ifCondition = s"if (baseId == ${typedId.baseId}) \n$targetFunction"
 
-      s"$ifCondition \nelse \nNone"
+      s"$ifCondition \nelse \n$failed"
     } else if (ids.size == 2) {
       val typedId1 = ids.head
       val typedId2 = ids.last
 
       val targetFunction1 =
-        s"Some(reader(${typedId1.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"reader(${typedId1.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)"
 
       val targetFunction2 =
-        s"Some(reader(${typedId2.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"reader(${typedId2.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)"
 
       val ifCondition = s"if (baseId == ${typedId1.baseId}) \n$targetFunction1"
       val elseIfCondition = s"else if (baseId == ${typedId2.baseId}) \n$targetFunction2"
 
-      s"$ifCondition \n$elseIfCondition \nelse \nNone"
+      s"$ifCondition \n$elseIfCondition \nelse \n$failed"
     } else {
       val mid = ids(ids.size / 2)
 
@@ -67,7 +69,7 @@ object IfConditionGenerator extends App {
       //      println("Mid:" + mid.id)
 
       s"if(baseId == ${mid.baseId})" + {
-        s"\nSome(reader(${mid.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous))"
+        s"\nreader(${mid.name}, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)"
       } + {
         s"\nelse if(baseId < ${mid.baseId})\n" +
           generateBinarySearchConditions(ids.takeWhile(_.baseId < mid.baseId))
@@ -75,7 +77,7 @@ object IfConditionGenerator extends App {
         s"\nelse if(baseId > ${mid.baseId})\n" +
           generateBinarySearchConditions(ids.dropWhile(_.baseId <= mid.baseId))
       } + {
-        s"\nelse \nNone"
+        s"\nelse \n$failed"
       }
     }
   }
