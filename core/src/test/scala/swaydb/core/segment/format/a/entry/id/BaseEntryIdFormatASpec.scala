@@ -25,6 +25,14 @@ class BaseEntryIdFormatASpec extends FlatSpec with Matchers {
 
   it should "contain unique ids" in {
     val baseIds = BaseEntryIdFormatA.baseIds
-    baseIds should have size baseIds.map(_.baseId).distinct.size
+    val distinct = baseIds.map(_.baseId).distinct
+    baseIds should have size distinct.size
+
+    baseIds.map(_.baseId).foldLeft(-1) {
+      case (previousId, nextId) =>
+        //        println(s"previousId: $previousId -> nextId: $nextId")
+        (nextId - previousId) shouldBe 1
+        nextId
+    }
   }
 }

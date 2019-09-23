@@ -30,33 +30,38 @@ import scala.io.Source
 
 object IdsGenerator extends App {
 
-  //  val startId = 0
-  val startId = 138
   val templateClass = classOf[BaseEntryIdFormatA].getSimpleName
 
   val path = Paths.get(s"${System.getProperty("user.dir")}/core/src/main/scala/swaydb/core/segment/format/a/entry/id/$templateClass.scala")
 
-  val source = Source.fromFile(path.toString)
+  val matches =
+    Seq(
+      (line: String) => line.matches(""".*BaseEntryIdFormatA\(\d+\).*""") && line.contains("Deadline.NoDeadline") && !line.contains("Compressed"),
+      (line: String) => line.matches(""".*BaseEntryIdFormatA\(\d+\).*""") && line.contains("Deadline.Uncompressed"),
+      (line: String) => line.matches(""".*BaseEntryIdFormatA\(\d+\).*""") && line.contains("Deadline.NoDeadline") && line.contains("Compressed"),
+      (line: String) => line.matches(""".*BaseEntryIdFormatA\(\d+\).*""") && !line.contains("Deadline.NoDeadline") && !line.contains("Deadline.Uncompressed")
+    )
 
-  try {
-    val (lines, maxID) =
-      source
-        .getLines
-        .foldLeft((ListBuffer.empty[String], startId)) {
-          case ((lines, id), oldLine) =>
-            //            if (oldLine.matches(""".*BaseEntryIdFormatA\(\d+\).*""") && oldLine.contains("Deadline.NoDeadline")) {
-            if (oldLine.matches(""".*BaseEntryIdFormatA\(\d+\).*""") && !oldLine.contains("Deadline.NoDeadline")) {
-              val nextLine = oldLine.replaceAll("""BaseEntryIdFormatA\(\d+\)""", s"""BaseEntryIdFormatA($id)""")
-              (lines += nextLine, id + 1)
-            } else {
-              (lines += oldLine, id)
-            }
-        }
+  matches.foldLeft(0) {
+    case (startId, lineMatcher) =>
+      val source = Source.fromFile(path.toString)
+      val (lines, maxID) =
+        source
+          .getLines
+          .foldLeft((ListBuffer.empty[String], startId)) {
+            case ((lines, id), oldLine) =>
+              if (lineMatcher(oldLine)) {
+                val nextLine = oldLine.replaceAll("""BaseEntryIdFormatA\(\d+\)""", s"""BaseEntryIdFormatA($id)""")
+                (lines += nextLine, id + 1)
+              } else {
+                (lines += oldLine, id)
+              }
+          }
 
-    val content = Slice.writeString(lines.mkString("\n"))
-    Effect.replace(content, path).get
-    println(s"maxID: ${maxID - 1}")
-  } finally {
-    source.close()
+      val content = Slice.writeString(lines.mkString("\n"))
+      Effect.replace(content, path).get
+      source.close()
+      println(s"maxID: ${maxID - 1}")
+      maxID
   }
 }
