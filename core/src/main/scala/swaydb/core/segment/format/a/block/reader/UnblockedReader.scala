@@ -21,9 +21,9 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.io.reader.Reader
+import swaydb.core.io.reader.{FileReader, Reader}
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
-import swaydb.data.slice.{Reader, Slice}
+import swaydb.data.slice.{Reader, Slice, SliceReader}
 
 /**
  * A typed object that indicates that block is already decompressed and now is reading data bytes.
@@ -74,6 +74,18 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
 
   override val state: BlockReader.State =
     BlockReader(offset, reader)
+
+  def readBlock(position: Int) =
+    reader.readBlock(position)
+
+  def blockSize: Option[Int] =
+    reader match {
+      case reader: FileReader =>
+        reader.file.blockSize
+
+      case SliceReader(_) =>
+        None
+    }
 
   override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
     state moveTo newPosition.toInt

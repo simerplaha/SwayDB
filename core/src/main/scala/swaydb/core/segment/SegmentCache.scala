@@ -180,7 +180,7 @@ private[core] class SegmentCache(id: String,
 
       case _ =>
         val threadState = thisThreadState
-        val skipList = threadState.skipList
+        val skipList = _skipList getOrElse threadState.skipList
 
         skipList.floor(key) match {
           case Some(floor: Persistent) if floor.key equiv key =>
@@ -198,7 +198,7 @@ private[core] class SegmentCache(id: String,
                     start = floorValue,
                     keyValueCount = footer.keyValueCount,
                     end = skipList.higher(key),
-                    threadState = thisThreadState,
+                    threadState = threadState,
                     hasRange = footer.hasRange
                   )
                 else
@@ -209,7 +209,7 @@ private[core] class SegmentCache(id: String,
                           key = key,
                           start = floorValue,
                           keyValueCount = footer.keyValueCount,
-                          threadState = thisThreadState,
+                          threadState = threadState,
                           end = skipList.higher(key),
                           hasRange = footer.hasRange
                         )
@@ -457,26 +457,7 @@ private[core] class SegmentCache(id: String,
     }
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
-    blockCache.getFooter() flatMap {
-      footer =>
-        blockCache.createSortedIndexReader() flatMap {
-          sortedIndexReader =>
-            blockCache.createValuesReader() flatMap {
-              valuesReader =>
-                SortedIndexBlock
-                  .readAll(
-                    keyValueCount = footer.keyValueCount,
-                    sortedIndexReader = sortedIndexReader,
-                    valuesReader = valuesReader,
-                    addTo = addTo
-                  )
-                  .onLeftSideEffect {
-                    _ =>
-                      logger.trace("{}: Reading sorted index block failed.", id)
-                  }
-            }
-        }
-    }
+    blockCache readAll addTo
 
   def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
     blockCache.getFooter().map(_.keyValueCount)

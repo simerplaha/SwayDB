@@ -46,7 +46,7 @@ private[core] object BinarySearchIndexBlock {
         minimumNumberOfKeys = 0,
         fullIndex = false,
         searchSortedIndexDirectlyIfPossible = true,
-        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+        ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -58,7 +58,7 @@ private[core] object BinarySearchIndexBlock {
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
             searchSortedIndexDirectlyIfPossible = searchSortedIndexDirectly,
-            blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+            ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
 
@@ -68,7 +68,7 @@ private[core] object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
             fullIndex = true,
-            blockIO = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+            ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -82,7 +82,7 @@ private[core] object BinarySearchIndexBlock {
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
-            blockIO = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+            ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -96,7 +96,7 @@ private[core] object BinarySearchIndexBlock {
                     minimumNumberOfKeys: Int,
                     searchSortedIndexDirectlyIfPossible: Boolean,
                     fullIndex: Boolean,
-                    blockIO: IOAction => IOStrategy,
+                    ioStrategy: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -312,6 +312,14 @@ private[core] object BinarySearchIndexBlock {
         context.valuesCount - 1
     }
 
+  var totalHops = 0
+  var maxHop = 0
+  var minHop = 0
+  var currentHops = 0
+  var binarySeeks = 0
+  var binarySuccessfulSeeks = 0
+  var binaryFailedSeeks = 0
+
   private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
 
@@ -320,6 +328,9 @@ private[core] object BinarySearchIndexBlock {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end")
+
+      totalHops += 1
+      currentHops += 1
 
       val valueOffset = mid * context.bytesPerValue
 
@@ -375,7 +386,7 @@ private[core] object BinarySearchIndexBlock {
     def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinarySearchLowerResult.Some[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
-      //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
+      //      //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
 
       val valueOffset = mid * context.bytesPerValue
 
@@ -391,11 +402,11 @@ private[core] object BinarySearchIndexBlock {
        */
       if (start > end || mid < 0)
         if (fetchLeft && knownLowest.isEmpty) {
-          //println("Restart")
+          ////println("Restart")
           binarySearchLower(fetchLeft = false, context = context)
         } else {
           IO.Right {
-            //println("End")
+            ////println("End")
             implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
             BinarySearchLowerResult.Some(
               lower =
@@ -440,7 +451,7 @@ private[core] object BinarySearchIndexBlock {
         }
     }
 
-    //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
+    ////println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
 
     val end = getEndPosition(context)
 
@@ -458,7 +469,8 @@ private[core] object BinarySearchIndexBlock {
              keyValuesCount: => IO[swaydb.Error.Segment, Int],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] =
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
+    binarySeeks += 1
     if (sortedIndexReader.block.isNormalisedBinarySearchable)
       keyValuesCount flatMap {
         keyValuesCount =>
@@ -476,6 +488,14 @@ private[core] object BinarySearchIndexBlock {
     else
       binarySearchIndexReader match {
         case Some(binarySearchIndexReader) =>
+          //println
+          //println(s"Key: ${key.readInt()}")
+          //          hops = 0
+
+          maxHop = maxHop max currentHops
+          minHop = minHop min currentHops
+          currentHops = 0
+
           binarySearch(
             BinarySearchContext(
               key = key,
@@ -487,9 +507,11 @@ private[core] object BinarySearchIndexBlock {
             )
           ) flatMap {
             case some: BinarySearchGetResult.Some[Persistent.Partial] =>
+              binarySuccessfulSeeks += 1
               IO.Right(some)
 
             case none @ BinarySearchGetResult.None(lower) =>
+              binaryFailedSeeks += 1
               if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
                 IO.Right(none)
               else
@@ -543,6 +565,7 @@ private[core] object BinarySearchIndexBlock {
               BinarySearchGetResult.noneIO
           }
       }
+  }
 
   //it's assumed that input param start will not be a higher value of key.
   def searchHigher(key: Slice[Byte],

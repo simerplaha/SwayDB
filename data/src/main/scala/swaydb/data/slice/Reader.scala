@@ -19,11 +19,13 @@
 
 package swaydb.data.slice
 
-import swaydb.IO
+import swaydb.{Error, IO}
 
 abstract class Reader[E >: swaydb.Error.IO : IO.ExceptionHandler] extends ReaderBase[E] {
 
   def moveTo(position: Long): Reader[E]
+
+  def readBlock(position: Int): Option[IO[Error.IO, Slice[Byte]]]
 
   override def copy(): Reader[E]
 

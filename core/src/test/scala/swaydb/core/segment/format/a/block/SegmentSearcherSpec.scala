@@ -282,7 +282,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               minimumNumberOfKeys = 0,
               fullIndex = fullIndex,
               searchSortedIndexDirectlyIfPossible = randomBoolean(),
-              blockIO = _ => randomIOAccess(),
+              ioStrategy = _ => randomIOAccess(),
               compressions = _ => binarySearchCompressions
             ),
           hashIndexConfig =
@@ -292,7 +292,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               minimumNumberOfHits = 0,
               copyIndex = randomBoolean(),
               allocateSpace = _.requiredSpace * 10,
-              blockIO = _ => randomIOAccess(),
+              ioStrategy = _ => randomIOAccess(),
               compressions = _ => hashIndexCompressions
             )
         )

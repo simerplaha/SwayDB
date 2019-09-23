@@ -28,9 +28,10 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
+import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.{PersistentSegment, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
-import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -69,10 +70,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   val keyValuesCount = 1000000
 
-  //  override def deleteFiles = false
+  //    override def deleteFiles = false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
+    implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeper
+//  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
   implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
 
   def strategy(action: IOAction): IOStrategy =
@@ -103,7 +105,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         case IOAction.ReadDataOverview =>
           IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DataAction =>
-          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
       },
       bloomFilterBlockIO = {
         case IOAction.OpenResource =>
@@ -147,6 +149,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       }
     )
 
+  implicit val timer = TestTimer.Empty
+
   val keyValues: Slice[Transient] =
     randomKeyValues(
       keyValuesCount,
@@ -155,9 +159,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       sortedIndexConfig =
         SortedIndexBlock.Config(
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-          prefixCompressionResetCount = 0,
+          prefixCompressionResetCount = 10,
           enableAccessPositionIndex = true,
-          enablePartialRead = true,
+          enablePartialRead = false,
           disableKeyPrefixCompression = false,
           normaliseIndex = false,
           compressions = _ => Seq.empty
@@ -168,27 +172,29 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           minimumNumberOfKeys = 1,
           searchSortedIndexDirectlyIfPossible = false,
           fullIndex = true,
-          blockIO = strategy,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
           compressions = _ => Seq.empty
         ),
+      //      binarySearchIndexConfig =
+      //        BinarySearchIndexBlock.Config.disabled,
       valuesConfig =
         ValuesBlock.Config(
           compressDuplicateValues = true,
           compressDuplicateRangeValues = true,
-          blockIO = strategy,
+          ioStrategy = strategy,
           compressions = _ => Seq.empty
         ),
-      //      hashIndexConfig =
-      //        HashIndexBlock.Config(
-      //          maxProbe = 5,
-      //          copyIndex = false,
-      //          minimumNumberOfKeys = 5,
-      //          minimumNumberOfHits = 5,
-      //          allocateSpace = _.requiredSpace * 2,
-      //          blockIO = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      //          compressions = _ => Seq.empty
-      //        ),
-      hashIndexConfig = HashIndexBlock.Config.disabled,
+      hashIndexConfig =
+        HashIndexBlock.Config(
+          maxProbe = 10,
+          copyIndex = true,
+          minimumNumberOfKeys = 5,
+          minimumNumberOfHits = 5,
+          allocateSpace = _.requiredSpace * 2,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+          compressions = _ => Seq.empty
+        ),
+      //      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(
@@ -200,14 +206,13 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //        )
     )
 
-  lazy val shuffledKeyValues = Random.shuffle(keyValues)
+  val shuffledKeyValues = Random.shuffle(keyValues)
 
   def assertGet(segment: Segment) = {
-    keyValues foreach {
+    shuffledKeyValues foreach {
       keyValue =>
-        //        if (index % 1000 == 0)
-        //          segment.get(shuffledUnGroupedKeyValues.head.key)
-
+        //        if (index % 10000 == 0)
+        //          segment.get(shuffledKeyValues.head.key)
         //
         //        val key = keyValue.key.readInt()
         ////        if (key % 1000 == 0)
@@ -281,6 +286,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     //    val all = segment.getAll()
 
+
+    println(s"PrefixedCompressed     count: ${keyValues.count(_.isPrefixCompressed)}")
+    println(s"not PrefixedCompressed count: ${keyValues.count(!_.isPrefixCompressed)}")
+    println
+
     segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getHashIndex().get foreach {
       hashIndex =>
         println(s"hashIndex.hit: ${hashIndex.hit}")
@@ -288,6 +298,24 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         println(s"hashIndex.size: ${hashIndex.offset.size}")
         println
     }
+
+    segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getBinarySearchIndex().get foreach {
+      binarySearch =>
+        println(s"binarySearch.valuesCount: ${binarySearch.valuesCount}")
+        println(s"binarySearch.bytesPerValue: ${binarySearch.bytesPerValue}")
+        println(s"binarySearch.isFullIndex: ${binarySearch.isFullIndex}")
+        println(s"binarySearch.size: ${binarySearch.offset.size}")
+        println
+    }
+
+    //    (0 to EntryReader.readers.last.maxID) foreach {
+    //      id =>
+    //        try
+    //          EntryReader.readers.foreach(_.read(id, id, id, None, null, None, 0, 0, 0, None, null).get)
+    //        catch {
+    //          case exception: Throwable =>
+    //        }
+    //    }
 
     //
     //    val file = DBFile.mmapRead(segment.path, randomIOStrategy(false), true).get
@@ -307,12 +335,75 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
-      //      segment.getAll().get
+      //            segment.getAll().get
     }
 
-        Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-          assertGet(segment)
-        }
+    println("seqSeeks: " + SegmentSearcher.seqSeeks)
+    println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
+    println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
+    println
+
+    println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
+    println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
+    println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
+    println
+
+    println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
+    println("binarySuccessfulSeeks: " + BinarySearchIndexBlock.binarySuccessfulSeeks)
+    println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
+    println("Hops: " + BinarySearchIndexBlock.totalHops)
+    println("maxHops: " + BinarySearchIndexBlock.maxHop)
+    println("minHop: " + BinarySearchIndexBlock.minHop)
+    println
+
+    println("diskSeeks: " + BlockCache.diskSeeks)
+    println("memorySeeks: " + BlockCache.memorySeeks)
+    println("splitsCount: " + BlockCache.splitsCount)
+    println
+
+    BlockCache.diskSeeks = 0
+    BlockCache.memorySeeks = 0
+    BlockCache.splitsCount = 0
+    BinarySearchIndexBlock.totalHops = 0
+    BinarySearchIndexBlock.minHop = 0
+    BinarySearchIndexBlock.maxHop = 0
+    BinarySearchIndexBlock.binarySeeks = 0
+    BinarySearchIndexBlock.binarySuccessfulSeeks = 0
+    BinarySearchIndexBlock.binaryFailedSeeks = 0
+    SegmentSearcher.hashIndexSeeks = 0
+    SegmentSearcher.successfulHashIndexSeeks = 0
+    SegmentSearcher.failedHashIndexSeeks = 0
+
+    //    blockCache.foreach(_.clear())
+
+    //todo - TOO MANY BINARY HOPS BUT SUCCESSES ARE LESS.
+//
+//    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+//      assertGet(segment)
+//      //      segment.getAll().get
+//    }
+//
+//    println
+//    println("seqSeeks: " + SegmentSearcher.seqSeeks)
+//    println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
+//    println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
+//    println
+//
+//    println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
+//    println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
+//    println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
+//    println
+//
+//    println("hops: " + BinarySearchIndexBlock.totalHops)
+//    println("maxHops: " + BinarySearchIndexBlock.maxHop)
+//    println("minHop: " + BinarySearchIndexBlock.minHop)
+//    println
+//
+//    println("diskSeeks: " + BlockCache.diskSeeks)
+//    println("memorySeeks: " + BlockCache.memorySeeks)
+//    println("splitsCount: " + BlockCache.splitsCount)
+//    println
+
 
     //    println("totalReads: " + SegmentSearcher.totalReads)
     //    println("sequentialRead: " + SegmentSearcher.sequentialRead)

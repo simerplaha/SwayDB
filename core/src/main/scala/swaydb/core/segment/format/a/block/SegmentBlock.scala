@@ -244,24 +244,21 @@ private[core] object SegmentBlock {
           bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
           hashIndex map {
-            hashIndexState =>
-              if (hashIndexState.copyIndex)
+            hashIndexState: HashIndexBlock.State =>
+              if (keyValue.isPrefixCompressed) {
+                //fix me - this should be managed by HashIndex itself.
+                hashIndexState.miss += 1
+                IO.`false`
+              } else if (hashIndexState.copyIndex)
               //Cannot copy HashIndex from a child Group key-values or prefixCompressed key-values because a Group's valueOffset
               //is embedded within that's Group's values block and the block might be compressed or prefix-compressed key-values.
               //Instead a reference entry is inserted into the HashIndex.
-                if (!keyValue.isPrefixCompressed)
-                  HashIndexBlock.writeCopied(
-                    key = keyValue.key,
-                    thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
-                    indexEntry = keyValue.indexEntryBytes,
-                    state = hashIndexState
-                  )
-                else
-                  HashIndexBlock.writeCopied(
-                    key = keyValue.key,
-                    indexOffset = thisKeyValuesAccessOffset,
-                    state = hashIndexState
-                  )
+                HashIndexBlock.writeCopied(
+                  key = keyValue.key,
+                  thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
+                  value = keyValue.indexEntryBytes,
+                  state = hashIndexState
+                )
               else //else build a reference hashIndex only.
                 HashIndexBlock.write(
                   key = keyValue.key,

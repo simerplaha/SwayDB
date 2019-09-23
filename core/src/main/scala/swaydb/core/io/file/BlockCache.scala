@@ -29,22 +29,11 @@ import scala.annotation.tailrec
 
 private[core] object BlockCache {
 
-  class Key(val fileId: Long, val position: Int) {
-    override def equals(that: Any): Boolean =
-      that match {
-        case other: Key =>
-          this.fileId == other.fileId &&
-            this.position == other.position
+  var diskSeeks = 0
+  var memorySeeks = 0
+  var splitsCount = 0
 
-        case _ =>
-          false
-      }
-
-    override def hashCode(): Int = {
-      val code = fileId + position
-      (code ^ (code >>> 32)).toInt
-    }
-  }
+  final case class Key(fileId: Long, position: Int)
 
   def init(memorySweeper: MemorySweeper): Option[BlockCache.State] =
     memorySweeper match {
@@ -137,23 +126,25 @@ private[core] object BlockCache {
             )
             .flatMap {
               bytes =>
+                diskSeeks += 1
                 if (state.blockSize <= 0) {
                   IO.Right(bytes)
                 } else if (bytes.isEmpty) {
                   IO.emptyBytes
                 } else if (bytes.size <= state.blockSize) {
-                  val key = new Key(file.blockCacheFileId, keyPosition)
+                  val key = Key(file.blockCacheFileId, keyPosition)
                   val value = bytes.unslice()
                   state.map.put(key, value)
                   state.sweeper.add(key, value, state.map)
                   IO.Right(bytes)
                 } else {
+                  splitsCount += 1
                   var index = 0
                   var position = keyPosition
                   val splits = Math.ceil(bytes.size / state.blockSizeDouble)
                   while (index < splits) {
                     val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-                    val key = new Key(file.blockCacheFileId, position)
+                    val key = Key(file.blockCacheFileId, position)
                     state.map.put(key, bytesToPut)
                     state.sweeper.add(key, bytesToPut, state.map)
                     position = position + bytesToPut.size
@@ -173,8 +164,9 @@ private[core] object BlockCache {
                         state: State)(implicit blockIO: BlockIO): IO[Error.IO, Slice[Byte]] = {
     val keyPosition = seekPosition(position, state)
 
-    state.map.get(new Key(file.blockCacheFileId, keyPosition)) match {
+    state.map.get(Key(file.blockCacheFileId, keyPosition)) match {
       case Some(fromCache) =>
+        memorySeeks += 1
         val seekedBytes = fromCache.take(position - keyPosition, size)
 
         val mergedBytes =

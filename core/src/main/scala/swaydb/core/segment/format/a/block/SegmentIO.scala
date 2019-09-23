@@ -77,11 +77,11 @@ object SegmentIO {
             segmentConfig: SegmentBlock.Config): SegmentIO =
     new SegmentIO(
       segmentBlockIO = segmentConfig.blockIO,
-      hashIndexBlockIO = hashIndexConfig.blockIO,
+      hashIndexBlockIO = hashIndexConfig.ioStrategy,
       bloomFilterBlockIO = bloomFilterConfig.blockIO,
-      binarySearchIndexBlockIO = binarySearchIndexConfig.blockIO,
+      binarySearchIndexBlockIO = binarySearchIndexConfig.ioStrategy,
       sortedIndexBlockIO = sortedIndexConfig.ioStrategy,
-      valuesBlockIO = valuesConfig.blockIO,
+      valuesBlockIO = valuesConfig.ioStrategy,
       segmentFooterBlockIO = segmentConfig.blockIO
     )
 }

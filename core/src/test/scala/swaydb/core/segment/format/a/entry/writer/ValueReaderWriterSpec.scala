@@ -57,7 +57,7 @@ class ValueReaderWriterSpec extends TestBase {
           ValuesBlock.Config(
             compressDuplicateValues = true,
             compressDuplicateRangeValues = true,
-            blockIO = _ => randomIOAccess(),
+            ioStrategy = _ => randomIOAccess(),
             compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
@@ -168,7 +168,7 @@ class ValueReaderWriterSpec extends TestBase {
           ValuesBlock.Config(
             compressDuplicateValues = true,
             compressDuplicateRangeValues = true,
-            blockIO = _ => randomIOAccess(),
+            ioStrategy = _ => randomIOAccess(),
             compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =
@@ -276,7 +276,7 @@ class ValueReaderWriterSpec extends TestBase {
           ValuesBlock.Config(
             compressDuplicateValues = randomBoolean(),
             compressDuplicateRangeValues = randomBoolean(),
-            blockIO = _ => randomIOAccess(),
+            ioStrategy = _ => randomIOAccess(),
             compressions = _ => randomCompressionsOrEmpty()
           ),
         sortedIndexConfig =

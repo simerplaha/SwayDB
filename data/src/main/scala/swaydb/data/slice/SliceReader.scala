@@ -21,7 +21,7 @@ package swaydb.data.slice
 
 import java.nio.file.Paths
 
-import swaydb.IO
+import swaydb.{Error, IO}
 
 /**
  * http://www.swaydb.io/slice/byte-slice
@@ -74,4 +74,7 @@ private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ExceptionHandle
     remaining flatMap read
 
   override def isFile: Boolean = false
+
+  override def readBlock(position: Int): Option[IO[Error.IO, Slice[Byte]]] =
+    None
 }

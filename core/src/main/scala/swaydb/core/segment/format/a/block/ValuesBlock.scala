@@ -48,7 +48,7 @@ private[core] object ValuesBlock {
       ValuesBlock.Config(
         compressDuplicateValues = false,
         compressDuplicateRangeValues = false,
-        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+        ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -56,7 +56,7 @@ private[core] object ValuesBlock {
       Config(
         compressDuplicateValues = enable.compressDuplicateValues,
         compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        blockIO = Functions.safe(IOStrategy.concurrentStoredIfCompressed, enable.ioStrategy),
+        ioStrategy = Functions.safe(IOStrategy.concurrentStoredIfCompressed, enable.ioStrategy),
         compressions =
           Functions.safe(
             default = _ => Seq.empty[CompressionInternal],
@@ -67,7 +67,7 @@ private[core] object ValuesBlock {
 
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
-                    blockIO: IOAction => IOStrategy,
+                    ioStrategy: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =

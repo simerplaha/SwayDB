@@ -474,7 +474,7 @@ object TestData {
       ValuesBlock.Config(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
-        blockIO = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -505,7 +505,7 @@ object TestData {
         minimumNumberOfKeys = randomIntMax(5),
         searchSortedIndexDirectlyIfPossible = randomBoolean(),
         fullIndex = randomBoolean(),
-        blockIO = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -521,7 +521,7 @@ object TestData {
         minimumNumberOfHits = randomIntMax(5),
         copyIndex = randomBoolean(),
         allocateSpace = _.requiredSpace * randomIntMax(3),
-        blockIO = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }

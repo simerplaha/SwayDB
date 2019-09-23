@@ -268,6 +268,9 @@ class DBFile(val path: Path,
   def existsOnDisk =
     Effect.exists(path)
 
+  def blockSize: Option[Int] =
+    blockCache.map(_.blockSize)
+
   def file: IO[Error.IO, DBFileType] =
     fileCache.value()
 
@@ -310,24 +313,46 @@ class DBFile(val path: Path,
   def append(slice: Iterable[Slice[Byte]]) =
     fileCache.value() flatMap (_.append(slice))
 
+  def readBlock(position: Int): Option[IO[swaydb.Error.IO, Slice[Byte]]] =
+    blockCache map {
+      blockCache =>
+        read(
+          position = position,
+          size = blockCache.blockSize,
+          blockCache = blockCache
+        )
+    }
+
   def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
     if (size == 0)
       IO.emptyBytes
     else
       blockCache match {
         case Some(blockCache) =>
-          fileCache.value() flatMap {
-            file =>
-              BlockCache.getOrSeek(
-                position = position,
-                size = size,
-                file = file,
-                state = blockCache
-              )
-          }
+          read(
+            position = position,
+            size = size,
+            blockCache = blockCache
+          )
 
         case None =>
           fileCache.value() flatMap (_.read(position, size))
+      }
+
+  def read(position: Int,
+           size: Int,
+           blockCache: BlockCache.State): IO[swaydb.Error.IO, Slice[Byte]] =
+    if (size == 0)
+      IO.emptyBytes
+    else
+      fileCache.value() flatMap {
+        file =>
+          BlockCache.getOrSeek(
+            position = position,
+            size = size,
+            file = file,
+            state = blockCache
+          )
       }
 
   def get(position: Int): IO[Error.IO, Byte] =

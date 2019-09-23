@@ -59,7 +59,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
-                  blockIO = _ => IOStrategy.defaultBlockReadersStored,
+                  ioStrategy = _ => IOStrategy.defaultBlockReadersStored,
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             )
@@ -90,7 +90,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     searchSortedIndexDirectlyIfPossible = randomBoolean(),
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     fullIndex = randomBoolean(),
-                    blockIO = _ => randomIOAccess(),
+                    ioStrategy = _ => randomIOAccess(),
                     compressions = _ => randomCompressionsOrEmpty()
                   )
               )
@@ -123,7 +123,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
-                  blockIO = _ => randomIOAccess(),
+                  ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
                 ),
               hashIndexConfig =
@@ -133,7 +133,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   copyIndex = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
-                  blockIO = _ => randomIOAccess(),
+                  ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
                 )
             )
@@ -180,7 +180,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = true,
-                  blockIO = _ => randomIOAccess(),
+                  ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
                 ),
               hashIndexConfig =
@@ -190,7 +190,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfHits = 0,
                   copyIndex = randomBoolean(),
                   allocateSpace = _.requiredSpace * 20,
-                  blockIO = _ => randomIOAccess(),
+                  ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
                 )
             )
@@ -230,7 +230,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
-                  blockIO = _ => randomIOAccess(),
+                  ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
                 ),
               hashIndexConfig =
@@ -240,7 +240,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfHits = 0,
                   copyIndex = randomBoolean(),
                   allocateSpace = _.requiredSpace * 0,
-                  blockIO = _ => randomIOAccess(),
+                  ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
                 )
             )
@@ -395,7 +395,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                       copyIndex = randomBoolean(),
                       allocateSpace = _.requiredSpace
                     ),
-                  blockIO = _ => randomIOAccess(),
+                  ioStrategy = _ => randomIOAccess(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             )
@@ -420,7 +420,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             ValuesBlock.Config(
               compressDuplicateValues = randomBoolean(),
               compressDuplicateRangeValues = randomBoolean(),
-              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
               compressions = _ => compressions.head
             ),
           sortedIndexConfig =
@@ -439,7 +439,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               searchSortedIndexDirectlyIfPossible = randomBoolean(),
               minimumNumberOfKeys = 1,
               fullIndex = true,
-              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
               compressions = _ => compressions(2)
             ),
           hashIndexConfig =
@@ -449,7 +449,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               minimumNumberOfHits = 2,
               copyIndex = randomBoolean(),
               allocateSpace = _.requiredSpace * 10,
-              blockIO = _ => randomIOAccess(cacheOnAccess = true),
+              ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
               compressions = _ => compressions(3)
             ),
           bloomFilterConfig =

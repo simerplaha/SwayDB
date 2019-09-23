@@ -91,7 +91,7 @@ class HashIndexBlockSpec extends TestBase {
                 maxProbe = maxProbe,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
-                blockIO = _ => randomIOAccess()
+                ioStrategy = _ => randomIOAccess()
               )
           )
 
@@ -113,7 +113,7 @@ class HashIndexBlockSpec extends TestBase {
                       maxProbe = maxProbe,
                       minimumNumberOfKeys = 0,
                       minimumNumberOfHits = 0,
-                      blockIO = _ => randomIOAccess()
+                      ioStrategy = _ => randomIOAccess()
                     )
                 )
           ).get
@@ -212,7 +212,7 @@ class HashIndexBlockSpec extends TestBase {
                 copyIndex = false,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
-                blockIO = _ => randomIOAccess()
+                ioStrategy = _ => randomIOAccess()
               )
           )
 
@@ -298,13 +298,13 @@ class HashIndexBlockSpec extends TestBase {
                 minimumNumberOfHits = 0,
                 copyIndex = randomBoolean(),
                 allocateSpace = _.requiredSpace * 2,
-                blockIO = _ => randomIOStrategy(),
+                ioStrategy = _ => randomIOStrategy(),
                 compressions = _ => compressions
               ),
             sortedIndexConfig =
               SortedIndexBlock.Config(
                 ioStrategy = _ => randomIOStrategy(),
-                prefixCompressionResetCount = randomIntMax(10),
+                prefixCompressionResetCount = 0,
                 enableAccessPositionIndex = randomBoolean(),
                 enablePartialRead = randomBoolean(),
                 disableKeyPrefixCompression = randomBoolean(),
@@ -326,33 +326,34 @@ class HashIndexBlockSpec extends TestBase {
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).get match {
-              case notFound: HashIndexSearchResult.NotFound =>
-                //if it's not found then the index must be prefix compressed.
-                blocks.sortedIndexReader.block.hasPrefixCompression shouldBe true
+              case _: HashIndexSearchResult.NotFound =>
+                fail("None on perfect hash.")
 
-                notFound match {
-                  case HashIndexSearchResult.None =>
-                    fail("Expected Lower.")
-
-                  case HashIndexSearchResult.Lower(lower) =>
-                    SortedIndexBlock.seekAndMatchOrSeek(
-                      matcher = KeyMatcher.Get(keyValue.key),
-                      previous = lower.toPersistent.get,
-                      next = None,
-                      fullRead = true,
-                      indexReader = blocks.sortedIndexReader,
-                      valuesReader = blocks.valuesReader
-                    ).value match {
-                      case Result.Matched(previous, result, next) =>
-                        result shouldBe keyValue
-
-                      case Result.BehindStopped(_) =>
-                        fail()
-
-                      case Result.AheadOrNoneOrEnd =>
-                        fail()
-                    }
-                }
+              //                blocks.sortedIndexReader.block.hasPrefixCompression shouldBe (keyValues.last.sortedIndexConfig.prefixCompressionResetCount > 0)
+              //
+              //                notFound match {
+              //                  case HashIndexSearchResult.None =>
+              //                    fail("Expected Lower.")
+              //
+              //                  case HashIndexSearchResult.Lower(lower) =>
+              //                    SortedIndexBlock.seekAndMatchOrSeek(
+              //                      matcher = KeyMatcher.Get(keyValue.key),
+              //                      previous = lower.toPersistent.get,
+              //                      next = None,
+              //                      fullRead = true,
+              //                      indexReader = blocks.sortedIndexReader,
+              //                      valuesReader = blocks.valuesReader
+              //                    ).value match {
+              //                      case Result.Matched(previous, result, next) =>
+              //                        result shouldBe keyValue
+              //
+              //                      case Result.BehindStopped(_) =>
+              //                        fail()
+              //
+              //                      case Result.AheadOrNoneOrEnd =>
+              //                        fail()
+              //                    }
+              //                }
 
               case HashIndexSearchResult.Found(found) =>
                 found shouldBe keyValue

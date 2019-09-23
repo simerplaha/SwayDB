@@ -190,7 +190,7 @@ private[core] object Block extends LazyLogging {
         swaydb.Error.DataAccess(message, new Exception(message)): swaydb.Error.Segment
       }
 
-  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, Block.Header[O]] = {
+  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, Block.Header[O]] =
     for {
       headerSize <- reader.readUnsignedInt()
       headerReader <- reader.read(headerSize - Bytes.sizeOfUnsignedInt(headerSize)).map(Reader[swaydb.Error.Segment](_))
@@ -210,7 +210,6 @@ private[core] object Block extends LazyLogging {
         offset = blockOps.createOffset(reader.offset.start + headerSize, reader.offset.size - headerSize)
       )
     }
-  }
 
   def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
     unblock(BlockRefReader(bytes))

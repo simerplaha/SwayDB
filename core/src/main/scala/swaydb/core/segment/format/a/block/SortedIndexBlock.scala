@@ -374,9 +374,32 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //take only the bytes required for this in entry and submit it for parsing/reading.
       val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
 
-      if (indexReader.block.enablePartialRead)
-        if (fullRead)
-          EntryReader.fullReadFromPartial(
+      val read =
+        if (indexReader.block.enablePartialRead)
+          if (fullRead)
+            EntryReader.fullReadFromPartial(
+              indexEntry = indexEntry,
+              mightBeCompressed = indexReader.block.hasPrefixCompression,
+              valuesReader = valuesReader,
+              indexOffset = positionBeforeRead,
+              nextIndexOffset = nextIndexOffset,
+              nextIndexSize = nextIndexSize,
+              hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
+              isNormalised = indexReader.block.hasNormalisedBytes,
+              previous = previous
+            )
+          else
+            EntryReader.partialRead(
+              indexEntry = indexEntry,
+              block = indexReader.block,
+              indexOffset = positionBeforeRead,
+              nextIndexOffset = nextIndexOffset,
+              nextIndexSize = nextIndexSize,
+              valuesReader = valuesReader,
+              previous = previous
+            )
+        else
+          EntryReader.fullRead(
             indexEntry = indexEntry,
             mightBeCompressed = indexReader.block.hasPrefixCompression,
             valuesReader = valuesReader,
@@ -387,28 +410,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
             isNormalised = indexReader.block.hasNormalisedBytes,
             previous = previous
           )
-        else
-          EntryReader.partialRead(
-            indexEntry = indexEntry,
-            block = indexReader.block,
-            indexOffset = positionBeforeRead,
-            nextIndexOffset = nextIndexOffset,
-            nextIndexSize = nextIndexSize,
-            valuesReader = valuesReader,
-            previous = previous
-          )
-      else
-        EntryReader.fullRead(
-          indexEntry = indexEntry,
-          mightBeCompressed = indexReader.block.hasPrefixCompression,
-          valuesReader = valuesReader,
-          indexOffset = positionBeforeRead,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
-          isNormalised = indexReader.block.hasNormalisedBytes,
-          previous = previous
-        )
+      //println(s"readKeyValue: ${read.get.key.readInt()}")
+
+      read
+
     } catch {
       case exception: Throwable =>
         IO.failed(exception)
@@ -711,7 +716,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        println("matchOrSeekAndPersistent")
+        //        //println("matchOrSeekAndPersistent")
         matchOrSeek(
           previous = persistent,
           next = None,
@@ -735,7 +740,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        println("matchOrSeekAndPersistent")
+        //        //println("matchOrSeekAndPersistent")
         matchOrSeekToPersistent(
           previous = persistent,
           next = None,

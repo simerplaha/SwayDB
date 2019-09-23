@@ -31,7 +31,17 @@ import swaydb.core.util.Options._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import scala.util.Random
+
 private[core] object SegmentSearcher extends LazyLogging {
+
+  var seqSeeks = 0
+  var successfulSeqSeeks = 0
+  var failedSeqSeeks = 0
+
+  var hashIndexSeeks = 0
+  var successfulHashIndexSeeks = 0
+  var failedHashIndexSeeks = 0
 
   def search(key: Slice[Byte],
              start: Option[Persistent.Partial],
@@ -43,47 +53,85 @@ private[core] object SegmentSearcher extends LazyLogging {
              hasRange: Boolean,
              keyValueCount: => IO[swaydb.Error.Segment, Int],
              threadState: SegmentReadThreadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    when(start.isDefined && threadState.isSequentialRead())(start) match {
-      case Some(startFrom) =>
-        SortedIndexBlock.searchSeekOne(
-          key = key,
-          start = startFrom,
-          indexReader = sortedIndexReader,
-          fullRead = true,
-          valuesReader = valuesReader
-        ) flatMap {
-          found =>
-            if (found.isDefined)
-              IO.Right {
-                threadState.notifySuccessfulSequentialRead()
-                found
-              }
-            else
-              hashIndexSearch(
-                key = key,
-                start = start,
-                end = end,
-                keyValueCount = keyValueCount,
-                hashIndexReader = hashIndexReader,
-                binarySearchIndexReader = binarySearchIndexReader,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader,
-                hasRange = hasRange
-              )
-        }
+  //    when(start.isDefined && threadState.isSequentialRead)(start) match {
+  //      case Some(startFrom) =>
+  //        seqSeeks += 1
+  //        SortedIndexBlock.searchSeekOne(
+  //          key = key,
+  //          start = startFrom,
+  //          indexReader = sortedIndexReader,
+  //          fullRead = true,
+  //          valuesReader = valuesReader
+  //        ) flatMap {
+  //          found =>
+  //            if (found.isDefined)
+  //              IO.Right {
+  //                successfulSeqSeeks += 1
+  //                found
+  //              }
+  //            else {
+  //              failedSeqSeeks += 1
+  //              hashIndexSearch(
+  //                key = key,
+  //                start = start,
+  //                end = end,
+  //                keyValueCount = keyValueCount,
+  //                hashIndexReader = hashIndexReader,
+  //                binarySearchIndexReader = binarySearchIndexReader,
+  //                sortedIndexReader = sortedIndexReader,
+  //                valuesReader = valuesReader,
+  //                hasRange = hasRange
+  //              ) onRightSideEffect {
+  //                result =>
+  //                  threadState setSequentialRead result.exists(_.indexOffset == startFrom.nextIndexOffset)
+  //              }
+  //            }
+  //        }
+  //
+  //      case None =>
+  //        hashIndexSearch(
+  //          key = key,
+  //          start = start,
+  //          end = end,
+  //          keyValueCount = keyValueCount,
+  //          hashIndexReader = hashIndexReader,
+  //          binarySearchIndexReader = binarySearchIndexReader,
+  //          sortedIndexReader = sortedIndexReader,
+  //          valuesReader = valuesReader,
+  //          hasRange = hasRange
+  //        ) onRightSideEffect {
+  //          result =>
+  //            threadState setSequentialRead {
+  //              result exists {
+  //                result =>
+  //                  start.exists(_.nextIndexOffset == result.indexOffset)
+  //              }
+  //            }
+  //        }
+  //    }
+//    hashIndexSearch(
+//      key = key,
+//      start = start,
+//      end = end,
+//      keyValueCount = keyValueCount,
+//      hashIndexReader = hashIndexReader,
+//      binarySearchIndexReader = binarySearchIndexReader,
+//      sortedIndexReader = sortedIndexReader,
+//      valuesReader = valuesReader,
+//      hasRange = hasRange
+//    )
 
-      case None =>
-        hashIndexSearch(
+    binarySearchIndexReader flatMap {
+      binarySearchIndexReader =>
+        BinarySearchIndexBlock.search(
           key = key,
-          start = start,
-          end = end,
-          keyValueCount = keyValueCount,
-          hashIndexReader = hashIndexReader,
+          lowest = start,
+          highest = end,
+          keyValuesCount = keyValueCount,
           binarySearchIndexReader = binarySearchIndexReader,
           sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader,
-          hasRange = hasRange
-        )
+          valuesReader = valuesReader
+        ).map(_.toOption)
     }
 
   def hashIndexSearch(key: Slice[Byte],
@@ -97,6 +145,9 @@ private[core] object SegmentSearcher extends LazyLogging {
                       keyValueCount: => IO[swaydb.Error.Segment, Int])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
     hashIndexReader flatMap {
       case Some(hashIndexReader) =>
+        hashIndexSeeks += 1
+        //println
+        //println(s"Search key: ${key.readInt()}")
         HashIndexBlock.search(
           key = key,
           hashIndexReader = hashIndexReader,
@@ -109,6 +160,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             else
               binarySearchIndexReader flatMap {
                 binarySearchIndexReader =>
+                  failedHashIndexSeeks += 1
                   BinarySearchIndexBlock.search(
                     key = key,
                     lowest =
@@ -125,6 +177,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               }
 
           case HashIndexSearchResult.Found(keyValue) =>
+            successfulHashIndexSeeks += 1
             IO.Right(Some(keyValue))
         }
 

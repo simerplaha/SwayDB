@@ -382,7 +382,7 @@ class SegmentBlockSpec extends TestBase {
               ValuesBlock.Config(
                 compressDuplicateValues = true,
                 compressDuplicateRangeValues = randomBoolean(),
-                blockIO = _ => randomIOAccess(),
+                ioStrategy = _ => randomIOAccess(),
                 compressions = _ => Seq.empty
               )
           )
