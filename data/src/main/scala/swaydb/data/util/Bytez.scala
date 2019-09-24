@@ -37,10 +37,10 @@ private[swaydb] trait Bytez {
     reader.read(ByteSizeOf.int) map readInt
 
   def readInt(bytes: Slice[Byte]): Int =
-    bytes(0).toInt << 24 |
-      (bytes(1) & 0xff) << 16 |
-      (bytes(2) & 0xff) << 8 |
-      bytes(3) & 0xff
+    bytes.get(0).toInt << 24 |
+      (bytes.get(1) & 0xff) << 16 |
+      (bytes.get(2) & 0xff) << 8 |
+      bytes.get(3) & 0xff
 
   def writeLong(long: Long, slice: Slice[Byte]): Unit = {
     slice add (long >>> 56).toByte
@@ -54,14 +54,14 @@ private[swaydb] trait Bytez {
   }
 
   def readLong(bytes: Slice[Byte]): Long =
-    (bytes(0).toLong << 56) |
-      ((bytes(1) & 0xffL) << 48) |
-      ((bytes(2) & 0xffL) << 40) |
-      ((bytes(3) & 0xffL) << 32) |
-      ((bytes(4) & 0xffL) << 24) |
-      ((bytes(5) & 0xffL) << 16) |
-      ((bytes(6) & 0xffL) << 8) |
-      bytes(7) & 0xffL
+    (bytes.get(0).toLong << 56) |
+      ((bytes.get(1) & 0xffL) << 48) |
+      ((bytes.get(2) & 0xffL) << 40) |
+      ((bytes.get(3) & 0xffL) << 32) |
+      ((bytes.get(4) & 0xffL) << 24) |
+      ((bytes.get(5) & 0xffL) << 16) |
+      ((bytes.get(6) & 0xffL) << 8) |
+      bytes.get(7) & 0xffL
 
   def readLong[E >: swaydb.Error.IO : IO.ExceptionHandler](reader: ReaderBase[E]): IO[E, Long] =
     reader.read(ByteSizeOf.long) map readLong
@@ -154,7 +154,7 @@ private[swaydb] trait Bytez {
       var int = 0
       var read = 0
       do {
-        read = slice(index)
+        read = slice.get(index)
         int |= (read & 0x7F) << i
         i += 7
         index += 1
@@ -171,7 +171,7 @@ private[swaydb] trait Bytez {
       var int = 0
       var read = 0
       do {
-        read = slice(index)
+        read = slice.get(index)
         int |= (read & 0x7F) << i
         i += 7
         index += 1
@@ -199,12 +199,12 @@ private[swaydb] trait Bytez {
     reader.read(ByteSizeOf.varInt) map {
       slice =>
         var index = 0
-        var byte = slice(index)
+        var byte = slice.get(index)
         var int: Int = byte & 0x7F
 
         while ((byte & 0x80) != 0) {
           index += 1
-          byte = slice(index)
+          byte = slice.get(index)
 
           int <<= 7
           int |= (byte & 0x7F)
@@ -216,15 +216,20 @@ private[swaydb] trait Bytez {
   }
 
   def readUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): IO[E, Int] =
-    IO(readUnsignedIntUnsafe(slice))
+    try
+      IO.Right(readUnsignedIntUnsafe(slice))
+    catch {
+      case exception: Throwable =>
+        IO.Left(IO.ExceptionHandler.toError(exception))
+    }
 
   def readUnsignedIntUnsafe[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): Int = {
     var index = 0
-    var byte = slice(index)
+    var byte = slice.get(index)
     var int: Int = byte & 0x7F
     while ((byte & 0x80) != 0) {
       index += 1
-      byte = slice(index)
+      byte = slice.get(index)
 
       int <<= 7
       int |= (byte & 0x7F)
@@ -237,12 +242,12 @@ private[swaydb] trait Bytez {
 
   def readUnsignedIntWithByteSizeUnsafe[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): (Int, Int) = {
     var index = 0
-    var byte = slice(index)
+    var byte = slice.get(index)
     var int: Int = byte & 0x7F
 
     while ((byte & 0x80) != 0) {
       index += 1
-      byte = slice(index)
+      byte = slice.get(index)
 
       int <<= 7
       int |= (byte & 0x7F)
@@ -259,12 +264,12 @@ private[swaydb] trait Bytez {
 
   def readLastUnsignedIntUnsafe(slice: Slice[Byte]): (Int, Int) = {
     var index = slice.size - 1
-    var byte = slice(index)
+    var byte = slice.get(index)
     var int: Int = byte & 0x7F
 
     while ((byte & 0x80) != 0) {
       index -= 1
-      byte = slice(index)
+      byte = slice.get(index)
 
       int <<= 7
       int |= (byte & 0x7F)
@@ -313,12 +318,12 @@ private[swaydb] trait Bytez {
     reader.read(ByteSizeOf.varLong) map {
       slice =>
         var index = 0
-        var byte = slice(index)
+        var byte = slice.get(index)
         var long: Long = byte & 0x7F
 
         while ((byte & 0x80) != 0) {
           index += 1
-          byte = slice(index)
+          byte = slice.get(index)
 
           long <<= 7
           long |= (byte & 0x7F)
@@ -334,12 +339,12 @@ private[swaydb] trait Bytez {
 
   def readUnsignedLongUnsafe(slice: Slice[Byte]): Long = {
     var index = 0
-    var byte = slice(index)
+    var byte = slice.get(index)
     var long: Long = byte & 0x7F
 
     while ((byte & 0x80) != 0) {
       index += 1
-      byte = slice(index)
+      byte = slice.get(index)
 
       long <<= 7
       long |= (byte & 0x7F)
@@ -353,12 +358,12 @@ private[swaydb] trait Bytez {
 
   def readUnsignedLongWithByteSizeUnsafe(slice: Slice[Byte]): (Long, Int) = {
     var index = 0
-    var byte = slice(index)
+    var byte = slice.get(index)
     var long: Long = byte & 0x7F
 
     while ((byte & 0x80) != 0) {
       index += 1
-      byte = slice(index)
+      byte = slice.get(index)
 
       long <<= 7
       long |= (byte & 0x7F)

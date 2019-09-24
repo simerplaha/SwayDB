@@ -29,7 +29,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
+import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator, Bytes}
 import swaydb.core.{TestBase, TestLimitQueues}
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
@@ -62,25 +62,48 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
     val bytesToRead = 15
 
+    case class SomeKey(int: Int)
+    val map = new ConcurrentHashMap[SomeKey, Int]()
+    (1 to 1000000) foreach {
+      i =>
+        map.put(SomeKey(i), i)
+    }
+
+    val write = Slice.writeUnsignedInt(1000000)
+
     Benchmark("") {
       (1 to 1000000) foreach {
         i =>
-          val index = Random.nextInt(bytes.size - bytesToRead + 1)
-//          println(index)
-          val readBytes = reader.moveTo(index).read(bytesToRead).get
-//          println(readBytes)
-        //                  channelFile.read(index, bytesToRead).get
+          (1 to 20) foreach {
+            _ =>
+              val index = Random.nextInt(bytes.size - bytesToRead + 1)
+              //              //          println(index)
+              val readBytes = reader.moveTo(index).read(bytesToRead).get
+              //              map.get(SomeKey(i))
+              //              map.get(SomeKey(i))
+              //              map.get(SomeKey(i))
 
-        //                                  mmapFile.read(index, bytesToRead).get
+//              val write = Slice.writeUnsignedInt(i)
+              Bytes.readUnsignedIntUnsafe(write)
+//              write.readUnsignedInt().get
 
-        //          reader.moveTo(i * 4).read(4).get
+            //              val write = Slice.writeInt(i)
+            //              write.readInt()
+            //              Thread.sleep(1)
+            //          println(readBytes)
+            //                  channelFile.read(index, bytesToRead).get
+
+            //                                  mmapFile.read(index, bytesToRead).get
+
+            //          reader.moveTo(i * 4).read(4).get
+          }
+
       }
     }
 
     //    println("reader.totalMiss: " + reader.totalMissed)
     //    println("reader.totalHit: " + reader.totalHit)
   }
-
 
   //  "hash test" in {
   //    val bytes = (1 to 10000000) map {

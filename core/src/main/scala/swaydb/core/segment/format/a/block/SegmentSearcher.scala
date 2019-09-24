@@ -53,61 +53,17 @@ private[core] object SegmentSearcher extends LazyLogging {
              hasRange: Boolean,
              keyValueCount: => IO[swaydb.Error.Segment, Int],
              threadState: SegmentReadThreadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-    when(start.isDefined && threadState.isSequentialRead)(start) match {
-      case Some(startFrom) =>
-        seqSeeks += 1
-        SortedIndexBlock.searchSeekOne(
+    binarySearchIndexReader flatMap {
+      binarySearchIndexReader =>
+        BinarySearchIndexBlock.search(
           key = key,
-          start = startFrom,
-          indexReader = sortedIndexReader,
-          fullRead = true,
-          valuesReader = valuesReader
-        ) flatMap {
-          found =>
-            if (found.isDefined)
-              IO.Right {
-                successfulSeqSeeks += 1
-                found
-              }
-            else {
-              failedSeqSeeks += 1
-              hashIndexSearch(
-                key = key,
-                start = start,
-                end = end,
-                keyValueCount = keyValueCount,
-                hashIndexReader = hashIndexReader,
-                binarySearchIndexReader = binarySearchIndexReader,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader,
-                hasRange = hasRange
-              ) onRightSideEffect {
-                result =>
-                  threadState setSequentialRead result.exists(_.indexOffset == startFrom.nextIndexOffset)
-              }
-            }
-        }
-
-      case None =>
-        hashIndexSearch(
-          key = key,
-          start = start,
-          end = end,
-          keyValueCount = keyValueCount,
-          hashIndexReader = hashIndexReader,
+          lowest = start,
+          highest = end,
+          keyValuesCount = keyValueCount,
           binarySearchIndexReader = binarySearchIndexReader,
           sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader,
-          hasRange = hasRange
-        ) onRightSideEffect {
-          result =>
-            threadState setSequentialRead {
-              result exists {
-                result =>
-                  start.exists(_.nextIndexOffset == result.indexOffset)
-              }
-            }
-        }
+          valuesReader = valuesReader
+        ).map(_.toOption)
     }
 
   def hashIndexSearch(key: Slice[Byte],
@@ -136,21 +92,24 @@ private[core] object SegmentSearcher extends LazyLogging {
             else
               binarySearchIndexReader flatMap {
                 binarySearchIndexReader =>
-                  implicit val ordering = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)
                   failedHashIndexSeeks += 1
+
+                  val lowest =
+                    if (none.lower.isEmpty || start.isEmpty)
+                      start orElse none.lower
+                    else
+                      MinMax.maxFavourLeft(start, none.lower)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
+
+                  val highest =
+                    if (none.higher.isEmpty || end.isEmpty)
+                      none.higher orElse end
+                    else
+                      MinMax.minFavourLeft(end, none.higher)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
 
                   BinarySearchIndexBlock.search(
                     key = key,
-                    lowest =
-                      if (none.lower.isEmpty)
-                        start
-                      else
-                        MinMax.maxFavourLeft(start, none.lower),
-                    highest =
-                      if (none.higher.isEmpty)
-                        end
-                      else
-                        MinMax.minFavourLeft(end, none.higher),
+                    lowest = lowest,
+                    highest = highest,
                     keyValuesCount = keyValueCount,
                     binarySearchIndexReader = binarySearchIndexReader,
                     sortedIndexReader = sortedIndexReader,

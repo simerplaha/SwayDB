@@ -53,6 +53,11 @@ private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ExceptionHandle
     this
   }
 
+  def moveTo(newPosition: Int): SliceReader[E] = {
+    position = newPosition max 0
+    this
+  }
+
   def get() =
     IO {
       val byte = slice get position

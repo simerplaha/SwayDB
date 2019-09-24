@@ -35,15 +35,15 @@ object TestLimitQueues {
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
   val memorySweeper: Option[MemorySweeper.Both] =
-    MemorySweeper(MemoryCache.EnableBoth(4098, 200.mb, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
+    MemorySweeper(MemoryCache.EnableBoth(4098, 600.mb, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.Both])
 
   val memorySweeperBlock: Option[MemorySweeper.BlockSweeper] =
-    MemorySweeper(MemoryCache.EnableBlockCache(4098, 200.mb, ActorConfig.Basic(level0PushDownPool)))
+    MemorySweeper(MemoryCache.EnableBlockCache(4098, 600.mb, ActorConfig.Basic(level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
   val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
-    MemorySweeper(MemoryCache.EnableKeyValueCache(200.mb, ActorConfig.Basic(level0PushDownPool)))
+    MemorySweeper(MemoryCache.EnableKeyValueCache(600.mb, ActorConfig.Basic(level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
   val someMemorySweeper = memorySweeper

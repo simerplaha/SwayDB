@@ -51,7 +51,7 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
             if (valueToFind == valueFound)
               KeyMatcher.Result.Matched(None, null, None)
             else if (valueToFind < valueFound)
-              KeyMatcher.Result.AheadOrNoneOrEnd
+              KeyMatcher.Result.aheadOrNoneOrEndNone
             else
               KeyMatcher.Result.BehindFetchNext(null)
           }

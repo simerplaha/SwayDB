@@ -43,21 +43,21 @@ private[core] object MinMax {
     else
       right
 
-  private def pickOne[T](key1: Option[T],
-                         key2: Option[T],
+  private def pickOne[T](someKey1: Option[T],
+                         someKey2: Option[T],
                          condition: (T, T) => T): Option[T] =
-    (key1, key2) match {
-      case (Some(key1), Some(key2)) =>
-        Some(condition(key1, key2))
+    someKey1 match {
+      case Some(key1) =>
+        someKey2 match {
+          case Some(key2) =>
+            Some(condition(key1, key2))
 
-      case (left @ Some(_), None) =>
-        left
+          case None =>
+            someKey1
+        }
 
-      case (None, right @ Some(_)) =>
-        right
-
-      case (None, None) =>
-        None
+      case None =>
+        someKey2
     }
 
   /**
@@ -76,25 +76,33 @@ private[core] object MinMax {
 
   def maxFavourLeft[T](left: T,
                        right: Option[T])(implicit ordering: Ordering[T]): T =
-    right map {
-      right =>
+    right match {
+      case Some(right) =>
         maximum[T](left, right)
-    } getOrElse left
+
+      case None =>
+        left
+    }
 
   def maxFavourLeft[T](left: Option[T],
                        right: T)(implicit ordering: Ordering[T]): T =
-    left map {
-      left =>
+    left match {
+      case Some(left) =>
         maximum[T](left, right)
-    } getOrElse right
 
-  def contains[T](key: T, minMax: MinMax[T])(implicit order: Ordering[T]): Boolean = {
-    import order._
-    minMax.max map {
-      max =>
-        key >= minMax.min && key <= max
-    } getOrElse key.equiv(minMax.min)
-  }
+      case None =>
+        right
+    }
+
+  def contains[T](key: T, minMax: MinMax[T])(implicit order: Ordering[T]): Boolean =
+    minMax.max match {
+      case Some(maxValue) =>
+        import order._
+        key >= minMax.min && key <= maxValue
+
+      case None =>
+        order.equiv(key, minMax.min)
+    }
 
   def minMaxFunction(function: Option[Value],
                      current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
@@ -220,10 +228,13 @@ private[core] object MinMax {
 
   def minMax[T](current: Option[MinMax[T]],
                 next: T)(implicit order: Ordering[T]): MinMax[T] =
-    current map {
-      currentMinMax =>
+    current match {
+      case Some(currentMinMax) =>
         minMax(currentMinMax, next)
-    } getOrElse MinMax(min = next, None)
+
+      case None =>
+        MinMax(min = next, None)
+    }
 
   def minMax[T](current: MinMax[T],
                 next: T)(implicit order: Ordering[T]): MinMax[T] = {

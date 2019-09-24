@@ -26,6 +26,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
+import swaydb.core.segment.format.a.block.KeyMatcher.Result.AheadOrNoneOrEnd
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.Bytes
@@ -332,42 +333,42 @@ private[core] object SortedIndexBlock extends LazyLogging {
                            previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] =
     try {
       val positionBeforeRead = indexReader.getPosition
-      //size of the index entry to read
-      //todo read indexReader.block.segmentMaxIndexEntrySize in one seek.
+
+      //try reading entry bytes within one seek.
       val (indexSize, blockReader, isBlockReader) =
-      indexEntrySizeMayBe match {
-        case Some(indexEntrySize) if indexEntrySize > 0 =>
-          indexReader skip Bytes.sizeOfUnsignedInt(indexEntrySize)
-          (indexEntrySize, indexReader, false)
-
-        case _ =>
-          //if the reader has a block cache try fetching the bytes required within one seek.
-          if (indexReader.hasBlockCache) {
-            //read the minimum number of bytes required for parse this indexEntry.
-            val bytes = indexReader.read(ByteSizeOf.varInt).get
-            val (indexEntrySize, indexEntrySizeByteSize) = bytes.readUnsignedIntWithByteSize().get
-            //open the slice if it's a subslice,
-            val openBytes = bytes.openEnd()
-
-            //check if the read bytes are enough to parse the entry.
-            val expectedSize =
-              if (overwriteNextIndexOffset.isDefined) //if overwrite is defined then next index's offset is not required.
-                indexEntrySize + indexEntrySizeByteSize
-              else //else next indexes's offset is required.
-                indexEntrySize + indexEntrySizeByteSize + ByteSizeOf.varInt
-
-            //if openBytes results in enough bytes to then read the open bytes only.
-            if (openBytes.size >= expectedSize)
-              (indexEntrySize, Reader(openBytes, indexEntrySizeByteSize), true)
-            else {
-              ends += 1
-              (indexEntrySize, indexReader.moveTo(positionBeforeRead + indexEntrySizeByteSize), false)
-            }
-          } else {
-            val indexEntrySize = indexReader.readUnsignedInt().get
+        indexEntrySizeMayBe match {
+          case Some(indexEntrySize) if indexEntrySize > 0 =>
+            indexReader skip Bytes.sizeOfUnsignedInt(indexEntrySize)
             (indexEntrySize, indexReader, false)
-          }
-      }
+
+          case _ =>
+            //if the reader has a block cache try fetching the bytes required within one seek.
+            if (indexReader.hasBlockCache) {
+              //read the minimum number of bytes required for parse this indexEntry.
+              val bytes = indexReader.read(ByteSizeOf.varInt).get
+              val (indexEntrySize, indexEntrySizeByteSize) = bytes.readUnsignedIntWithByteSize().get
+              //open the slice if it's a subslice,
+              val openBytes = bytes.openEnd()
+
+              //check if the read bytes are enough to parse the entry.
+              val expectedSize =
+                if (overwriteNextIndexOffset.isDefined) //if overwrite is defined then next index's offset is not required.
+                  indexEntrySize + indexEntrySizeByteSize
+                else //else next indexes's offset is required.
+                  indexEntrySize + indexEntrySizeByteSize + ByteSizeOf.varInt
+
+              //if openBytes results in enough bytes to then read the open bytes only.
+              if (openBytes.size >= expectedSize)
+                (indexEntrySize, Reader(openBytes, indexEntrySizeByteSize), true)
+              else {
+                ends += 1
+                (indexEntrySize, indexReader.moveTo(positionBeforeRead + indexEntrySizeByteSize), false)
+              }
+            } else {
+              val indexEntrySize = indexReader.readUnsignedInt().get
+              (indexEntrySize, indexReader, false)
+            }
+        }
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntryBytesAndNextIndexEntrySize = (blockReader read (indexSize + ByteSizeOf.varInt)).get
@@ -440,7 +441,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
           )
 
       //println(s"readKeyValue: ${read.get.key.readInt()}")
-
       read
 
     } catch {
@@ -527,7 +527,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case KeyMatcher.Result.Matched(_, keyValue, _) =>
         IO.Right(Some(keyValue))
 
-      case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+      case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
         IO.none
     }
 
@@ -583,7 +583,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           case KeyMatcher.Result.Matched(_, keyValue, _) =>
             IO.Right(Some(keyValue))
 
-          case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+          case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
             IO.none
         }
 
@@ -656,7 +656,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           case KeyMatcher.Result.Matched(_, keyValue, _) =>
             IO.Right(Some(keyValue))
 
-          case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+          case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
             IO.none
         }
 
@@ -674,7 +674,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
               case KeyMatcher.Result.Matched(_, keyValue, _) =>
                 IO.Right(Some(keyValue))
 
-              case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+              case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
                 IO.none
             }
 
@@ -707,7 +707,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           case KeyMatcher.Result.Matched(_, keyValue, _) =>
             IO.Right(Some(keyValue))
 
-          case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+          case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
             IO.none
         }
 
@@ -745,7 +745,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        //////println("matchOrSeekAndPersistent")
+        //        ////////println("matchOrSeekAndPersistent")
         matchOrSeek(
           previous = persistent,
           next = None,
@@ -769,7 +769,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        //////println("matchOrSeekAndPersistent")
+        //        ////////println("matchOrSeekAndPersistent")
         matchOrSeekToPersistent(
           previous = persistent,
           next = None,
@@ -805,7 +805,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case Result.Matched(_, result, _) =>
         IO.Right(Some(result))
 
-      case Result.BehindStopped(_) | Result.AheadOrNoneOrEnd | Result.BehindFetchNext(_) =>
+      case _: Result.BehindStopped | _: Result.AheadOrNoneOrEnd | _: Result.BehindFetchNext =>
         IO.none
     }
 
@@ -987,7 +987,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case KeyMatcher.Result.Matched(_, keyValue, _) =>
         IO.Right(Some(keyValue))
 
-      case KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
+      case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
         IO.none
     }
 

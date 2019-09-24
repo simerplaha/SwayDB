@@ -25,6 +25,8 @@ abstract class Reader[E >: swaydb.Error.IO : IO.ExceptionHandler] extends Reader
 
   def moveTo(position: Long): Reader[E]
 
+  def moveTo(position: Int): Reader[E]
+
   def readBlock(position: Int): Option[IO[Error.IO, Slice[Byte]]]
 
   override def copy(): Reader[E]

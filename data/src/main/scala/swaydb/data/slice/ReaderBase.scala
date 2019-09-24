@@ -49,6 +49,8 @@ private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ExceptionHan
 
   def moveTo(position: Long): ReaderBase[E]
 
+  def moveTo(position: Int): ReaderBase[E]
+
   def readRemaining(): IO[E, Slice[Byte]]
 
   def isFile: Boolean

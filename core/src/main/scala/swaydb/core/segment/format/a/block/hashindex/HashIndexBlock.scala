@@ -365,7 +365,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val hashIndex = reader.block
 
     @tailrec
-    def doFind(probe: Int, checkedHashIndexes: mutable.HashSet[Int]): IO[swaydb.Error.Segment, Option[R]] =
+    def doFind(probe: Int): IO[swaydb.Error.Segment, Option[R]] =
       if (probe >= hashIndex.maxProbe) {
         IO.none
       } else {
@@ -377,25 +377,22 @@ private[core] object HashIndexBlock extends LazyLogging {
             writeAbleLargestValueSize = hashIndex.writeAbleLargestValueSize
           ) - hashIndex.headerSize
 
-        if (checkedHashIndexes contains index) //do not check the same index again.
-          doFind(probe + 1, checkedHashIndexes)
-        else
           reader
             .moveTo(index)
             .read(hashIndex.bytesToReadPerIndex) match {
             case IO.Right(possibleValueBytes) =>
               ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
-              if (possibleValueBytes.isEmpty || possibleValueBytes.head != 0) {
+              if (possibleValueBytes.isEmpty || possibleValueBytes.head != Bytes.zero) {
                 ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe = failure - invalid start offset.")
-                doFind(probe + 1, checkedHashIndexes)
+                doFind(probe + 1)
               } else {
                 val possibleValueWithoutHeader = possibleValueBytes.dropHead()
                 Bytes.readUnsignedIntNonZeroWithByteSize(possibleValueWithoutHeader) match {
                   case IO.Right((possibleValue, bytesRead)) =>
                     ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
-                    if (possibleValue == 0 || possibleValueWithoutHeader.take(bytesRead).exists(_ == 0)) {
+                    if (possibleValue == 0 || possibleValueWithoutHeader.take(bytesRead).exists(_ == Bytes.zero)) {
                       ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1}, possibleValue: $possibleValue, containsZero: ${possibleValueWithoutHeader.take(bytesRead).exists(_ == 0)} = failed")
-                      doFind(probe + 1, checkedHashIndexes)
+                      doFind(probe + 1)
                     } else {
                       assertValue(possibleValue - 1) match { //assert value removing the 1 added on write.
                         case success @ IO.Right(Some(_)) =>
@@ -404,7 +401,7 @@ private[core] object HashIndexBlock extends LazyLogging {
 
                         case IO.Right(None) =>
                           ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe: sortedIndex: ${possibleValue - 1} = not found")
-                          doFind(probe + 1, checkedHashIndexes += index)
+                          doFind(probe + 1)
 
                         case IO.Left(error) =>
                           IO.Left(error)
@@ -421,10 +418,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           }
       }
 
-    doFind(
-      probe = 0,
-      checkedHashIndexes = mutable.HashSet.empty
-    )
+    doFind(probe = 0)
   }
 
   /**
@@ -663,7 +657,11 @@ private[core] object HashIndexBlock extends LazyLogging {
                   collisions += keyValue
                   IO.none
 
-                case Result.AheadOrNoneOrEnd =>
+                case Result.AheadOrNoneOrEnd(higher) =>
+                  higher foreach {
+                    higher =>
+                      collisions += higher
+                  }
                   IO.none
               }
         )
@@ -687,7 +685,11 @@ private[core] object HashIndexBlock extends LazyLogging {
                   collisions += previous
                   IO.none
 
-                case Result.AheadOrNoneOrEnd =>
+                case Result.AheadOrNoneOrEnd(higher) =>
+                  higher foreach {
+                    higher =>
+                      collisions += higher
+                  }
                   IO.none
               }
         )
@@ -712,20 +714,19 @@ private[core] object HashIndexBlock extends LazyLogging {
               HashIndexSearchResult.noneIO
           }
         } else {
-          val keyValueOrdering = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)
           val (lower, higher) = collisions.partition(keyValue => keyOrder.lt(keyValue.key, key))
 
           val lowest =
             if (lower.size <= 1)
               lower.headOption
             else
-              lower.sorted(keyValueOrdering).lastOption
+              lower.sorted(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)).lastOption
 
           val highest =
             if (higher.size <= 1)
               higher.headOption
             else
-              higher.sorted(keyValueOrdering).headOption
+              higher.sorted(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)).headOption
 
           //println(s"Hash index's lowest 2: ${nearest.key.readInt()}")
           IO.Right(HashIndexSearchResult.None(lowest, highest))

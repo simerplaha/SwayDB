@@ -66,6 +66,11 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
     this
   }
 
+  override def moveTo(newPosition: Int): BlockedReader[O, B] = {
+    state moveTo newPosition
+    this
+  }
+
   def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, BlockedReader[O, B]] =
     readFullBlock()
       .map {

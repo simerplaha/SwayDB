@@ -51,7 +51,8 @@ private[core] object KeyMatcher {
     }
     case class BehindFetchNext(previous: Persistent.Partial) extends InComplete with Behind
     case class BehindStopped(previous: Persistent.Partial) extends Complete with Behind
-    case object AheadOrNoneOrEnd extends Complete
+    val aheadOrNoneOrEndNone = AheadOrNoneOrEnd(None)
+    case class AheadOrNoneOrEnd(ahead: Option[Persistent.Partial]) extends Complete
   }
 
   sealed trait Bounded extends KeyMatcher
@@ -104,7 +105,7 @@ private[core] object KeyMatcher {
             else
               BehindFetchNext(fixed)
           else
-            AheadOrNoneOrEnd
+            AheadOrNoneOrEnd(next orElse Some(previous))
 
         case range: Persistent.Partial.RangeT =>
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
@@ -117,7 +118,7 @@ private[core] object KeyMatcher {
             else
               BehindFetchNext(range)
           else
-            AheadOrNoneOrEnd
+            AheadOrNoneOrEnd(next orElse Some(previous))
       }
   }
 
@@ -164,7 +165,7 @@ private[core] object KeyMatcher {
             if (keyOrder.compare(previous.key, key) < 0)
               Matched(None, previous, someNext)
             else
-              AheadOrNoneOrEnd
+              AheadOrNoneOrEnd(someNext)
           else if (nextCompare < 0)
             if (hasMore)
               next match {
@@ -180,12 +181,12 @@ private[core] object KeyMatcher {
             else
               Matched(Some(previous), next, None)
           else
-            AheadOrNoneOrEnd
+            AheadOrNoneOrEnd(someNext)
 
         case None =>
           val previousCompare = keyOrder.compare(previous.key, key)
           if (previousCompare == 0)
-            AheadOrNoneOrEnd
+            AheadOrNoneOrEnd(Some(previous))
           else if (previousCompare < 0)
             if (hasMore)
               previous match {
@@ -198,7 +199,7 @@ private[core] object KeyMatcher {
             else
               Matched(None, previous, next)
           else
-            AheadOrNoneOrEnd
+            AheadOrNoneOrEnd(Some(previous))
       }
   }
 
@@ -254,10 +255,10 @@ private[core] object KeyMatcher {
               else
                 BehindFetchNext(keyValue)
             else
-              AheadOrNoneOrEnd
+              AheadOrNoneOrEnd(next orElse Some(previous))
         }
       else
-        AheadOrNoneOrEnd
+        AheadOrNoneOrEnd(next orElse Some(previous))
     }
   }
 }

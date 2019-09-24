@@ -358,7 +358,7 @@ private[core] object BinarySearchIndexBlock {
               case behind: KeyMatcher.Result.Behind =>
                 hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)
 
-              case KeyMatcher.Result.AheadOrNoneOrEnd =>
+              case KeyMatcher.Result.AheadOrNoneOrEnd(_) =>
                 hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
             }
 
@@ -436,7 +436,7 @@ private[core] object BinarySearchIndexBlock {
               case behind: KeyMatcher.Result.Behind =>
                 hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)
 
-              case KeyMatcher.Result.AheadOrNoneOrEnd =>
+              case KeyMatcher.Result.AheadOrNoneOrEnd(_) =>
                 hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
             }
 
@@ -509,45 +509,46 @@ private[core] object BinarySearchIndexBlock {
               if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
                 IO.Right(none)
               else
-                lower match {
-                  case Some(lower) =>
-                    failedWithLower += 1
-                    if (lowest.exists(lowest => ordering.gt(lower.key, lowest.key)))
-                      greaterLower += 1
-                    else if (lowest.exists(lowest => ordering.equiv(lower.key, lowest.key)))
-                      sameLower += 1
-
-                    IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.toPersistent, onFalse = lower) {
-                      lower =>
-                        SortedIndexBlock.matchOrSeek(
-                          key = key,
-                          startFrom = lower,
-                          sortedIndexReader = sortedIndexReader,
-                          valuesReader = valuesReader
-                        ) flatMap {
-                          case Some(got) =>
-                            IO.Right(BinarySearchGetResult.Some(got))
-
-                          case None =>
-                            IO.Right(BinarySearchGetResult.None(Some(lower)))
-                        }
-                    }
-
-                  case None =>
-                    SortedIndexBlock.seekAndMatch(
-                      key = key,
-                      startFrom = None,
-                      fullRead = sortedIndexReader.block.hasPrefixCompression,
-                      sortedIndexReader = sortedIndexReader,
-                      valuesReader = valuesReader
-                    ) flatMap {
-                      case Some(got) =>
-                        IO.Right(BinarySearchGetResult.Some(got))
-
-                      case None =>
-                        BinarySearchGetResult.noneIO
-                    }
-                }
+              //                lower match {
+              //                  case Some(lower) =>
+              //                    failedWithLower += 1
+              //                    if (lowest.exists(lowest => ordering.gt(lower.key, lowest.key)))
+              //                      greaterLower += 1
+              //                    else if (lowest.exists(lowest => ordering.equiv(lower.key, lowest.key)))
+              //                      sameLower += 1
+              //
+              //                    IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.toPersistent, onFalse = lower) {
+              //                      lower =>
+              //                        SortedIndexBlock.matchOrSeek(
+              //                          key = key,
+              //                          startFrom = lower,
+              //                          sortedIndexReader = sortedIndexReader,
+              //                          valuesReader = valuesReader
+              //                        ) flatMap {
+              //                          case Some(got) =>
+              //                            IO.Right(BinarySearchGetResult.Some(got))
+              //
+              //                          case None =>
+              //                            IO.Right(BinarySearchGetResult.None(Some(lower)))
+              //                        }
+              //                    }
+              //
+              //                  case None =>
+              //                    SortedIndexBlock.seekAndMatch(
+              //                      key = key,
+              //                      startFrom = None,
+              //                      fullRead = sortedIndexReader.block.hasPrefixCompression,
+              //                      sortedIndexReader = sortedIndexReader,
+              //                      valuesReader = valuesReader
+              //                    ) flatMap {
+              //                      case Some(got) =>
+              //                        IO.Right(BinarySearchGetResult.Some(got))
+              //
+              //                      case None =>
+              //                        BinarySearchGetResult.noneIO
+              //                    }
+              //                }
+                BinarySearchGetResult.noneIO
           }
 
         case None =>

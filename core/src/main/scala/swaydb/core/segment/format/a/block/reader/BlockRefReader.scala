@@ -85,6 +85,11 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
     this
   }
 
+  override def moveTo(newPosition: Int): BlockRefReader[O] = {
+    state moveTo newPosition
+    this
+  }
+
   def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, BlockRefReader[O]] =
     readFullBlock() map (BlockRefReader(_))
 

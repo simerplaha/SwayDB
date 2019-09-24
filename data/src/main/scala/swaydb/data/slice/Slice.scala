@@ -621,7 +621,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
   @throws[ArrayIndexOutOfBoundsException]
   def get(index: Int): T = {
     val adjustedIndex = fromOffset + index
-    if (adjustedIndex < fromOffset || adjustedIndex > toOffset) throw new ArrayIndexOutOfBoundsException(index)
+//    if (adjustedIndex < fromOffset || adjustedIndex > toOffset) throw new ArrayIndexOutOfBoundsException(index)
     array(adjustedIndex)
   }
 

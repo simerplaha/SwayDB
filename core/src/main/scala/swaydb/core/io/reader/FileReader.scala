@@ -39,6 +39,11 @@ private[core] class FileReader(val file: DBFile) extends Reader[swaydb.Error.Seg
     this
   }
 
+  def moveTo(newPosition: Int): FileReader = {
+    position = newPosition.toInt max 0
+    this
+  }
+
   def hasMore: IO[swaydb.Error.IO, Boolean] =
     size.map(position < _)
 

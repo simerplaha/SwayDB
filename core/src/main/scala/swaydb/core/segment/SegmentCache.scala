@@ -167,58 +167,14 @@ private[core] class SegmentCache(id: String,
     }
 
   def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
-    maxKey match {
-      case MaxKey.Fixed(maxKey) if key > maxKey =>
-        IO.none
-
-      case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-        IO.none
-
-      //check for minKey inside the Segment is not required since Levels already do minKey check.
-      //      case _ if key < minKey =>
-      //        IO.none
-
-      case _ =>
-        val threadState = thisThreadState
-        val skipList = _skipList getOrElse threadState.skipList
-
-        skipList.floor(key) match {
-          case Some(floor: Persistent) if floor.key equiv key =>
-            IO.Right(Some(floor))
-
-          case Some(floorRange: Persistent.Range) if floorRange contains key =>
-            IO.Right(Some(floorRange))
-
-          case floorValue =>
-            blockCache.getFooter() flatMap {
-              footer =>
-                if (footer.hasRange)
-                  get(
-                    key = key,
-                    start = floorValue,
-                    keyValueCount = footer.keyValueCount,
-                    end = skipList.higher(key),
-                    threadState = threadState,
-                    hasRange = footer.hasRange
-                  )
-                else
-                  mightContain(key) flatMap {
-                    mightContain =>
-                      if (mightContain)
-                        get(
-                          key = key,
-                          start = floorValue,
-                          keyValueCount = footer.keyValueCount,
-                          threadState = threadState,
-                          end = skipList.higher(key),
-                          hasRange = footer.hasRange
-                        )
-                      else
-                        IO.none
-                  }
-            }
-        }
-    }
+    get(
+      key = key,
+      start = None,
+      keyValueCount = 1000000,
+      end = skipList.higher(key),
+      threadState = thisThreadState,
+      hasRange = false
+    )
 
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],

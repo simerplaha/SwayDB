@@ -166,6 +166,7 @@ private[core] object BlockCache {
 
     state.map.get(Key(file.blockCacheFileId, keyPosition)) match {
       case Some(fromCache) =>
+        //println(s"Memory seek size: $size")
         memorySeeks += 1
         val seekedBytes = fromCache.take(position - keyPosition, size)
 
@@ -187,6 +188,7 @@ private[core] object BlockCache {
           )(blockIO)
 
       case None =>
+        //println(s"Disk seek size: $size")
         blockIO.seek(
           keyPosition = keyPosition,
           file = file,
