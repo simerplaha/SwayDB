@@ -30,6 +30,9 @@ private[swaydb] object Reader {
   def apply(file: DBFile): FileReader =
     new FileReader(file)
 
-  def apply[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]): SliceReader[E] =
-    SliceReader(slice)
+  def apply[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte], position: Int = 0): SliceReader[E] =
+    SliceReader(
+      slice = slice,
+      position = position
+    )
 }

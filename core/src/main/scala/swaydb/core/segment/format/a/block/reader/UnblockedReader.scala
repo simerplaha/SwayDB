@@ -75,6 +75,9 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
   override val state: BlockReader.State =
     BlockReader(offset, reader)
 
+  val hasBlockCache =
+    blockSize.isDefined
+
   def readBlock(position: Int) =
     reader.readBlock(position)
 
@@ -83,12 +86,17 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
       case reader: FileReader =>
         reader.file.blockSize
 
-      case SliceReader(_) =>
+      case SliceReader(_, _) =>
         None
     }
 
   override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
     state moveTo newPosition.toInt
+    this
+  }
+
+  def moveTo(newPosition: Int): UnblockedReader[O, B] = {
+    state moveTo newPosition
     this
   }
 

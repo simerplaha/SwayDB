@@ -1,5 +1,6 @@
 package swaydb.core.segment.format.a.block.hashindex
 
+import swaydb.IO
 import swaydb.core.data.Persistent
 
 sealed trait HashIndexSearchResult {
@@ -8,20 +9,15 @@ sealed trait HashIndexSearchResult {
 
 object HashIndexSearchResult {
 
-  sealed trait NotFound extends HashIndexSearchResult {
-    def lower: Option[Persistent.Partial]
-    def matched: Option[Persistent.Partial] = Option.empty
+  val none = None(scala.None, scala.None)
+
+  val noneIO = IO.Right[Nothing, HashIndexSearchResult.None](None(scala.None, scala.None))(IO.ExceptionHandler.Nothing)
+
+  case class None(lower: Option[Persistent.Partial], higher: Option[Persistent.Partial]) extends HashIndexSearchResult {
+    def matched: Option[Persistent.Partial] = scala.None
   }
 
-  case object None extends NotFound {
-    override final val lower = Option.empty
-  }
-
-  case class Lower(keyValue: Persistent.Partial) extends NotFound {
-    override def lower: Option[Persistent.Partial] = Some(keyValue)
-  }
-
-  case class Found(keyValue: Persistent.Partial) extends HashIndexSearchResult {
-    def matched: Option[Persistent.Partial] = Some(keyValue)
+  case class Some(keyValue: Persistent.Partial) extends HashIndexSearchResult {
+    def matched: Option[Persistent.Partial] = scala.Some(keyValue)
   }
 }

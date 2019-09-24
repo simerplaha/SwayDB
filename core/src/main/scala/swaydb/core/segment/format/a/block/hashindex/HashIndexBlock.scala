@@ -612,7 +612,7 @@ private[core] object HashIndexBlock extends LazyLogging {
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, HashIndexSearchResult] = {
     val matcher = KeyMatcher.Get.MatchOnly(key)
 
-    val lowerKeyValues = ListBuffer.empty[Persistent.Partial]
+    val collisions = ListBuffer.empty[Persistent.Partial]
 
     val result =
       if (hashIndexReader.block.copyIndex)
@@ -624,7 +624,7 @@ private[core] object HashIndexBlock extends LazyLogging {
               SortedIndexBlock.readAndMatch( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
                 matcher = matcher,
                 fromOffset = 0,
-                fullRead = true,
+                fullRead = false,
                 overwriteNextIndexOffset = {
                   val nextIndexOffset = accessIndexOffset + indexEntry.size
                   //if it's the last key-value, nextIndexOffset is None.
@@ -655,12 +655,12 @@ private[core] object HashIndexBlock extends LazyLogging {
                 case Result.Matched(_, result, _) =>
                   IO.Right(Some(result))
 
-                case Result.BehindStopped(previous) =>
-                  lowerKeyValues += previous
+                case Result.BehindStopped(keyValue) =>
+                  collisions += keyValue
                   IO.none
 
-                case Result.BehindFetchNext(previous) =>
-                  lowerKeyValues += previous
+                case Result.BehindFetchNext(keyValue) =>
+                  collisions += keyValue
                   IO.none
 
                 case Result.AheadOrNoneOrEnd =>
@@ -676,7 +676,7 @@ private[core] object HashIndexBlock extends LazyLogging {
               SortedIndexBlock.seekAndMatchOrSeek(
                 matcher = matcher,
                 fromOffset = sortedIndexOffsetValue,
-                fullRead = true,
+                fullRead = false,
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               ) flatMap {
@@ -684,7 +684,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                   IO.Right(Some(result))
 
                 case Result.BehindStopped(previous) =>
-                  lowerKeyValues += previous
+                  collisions += previous
                   IO.none
 
                 case Result.AheadOrNoneOrEnd =>
@@ -694,27 +694,41 @@ private[core] object HashIndexBlock extends LazyLogging {
 
     result flatMap {
       case Some(got) =>
-        IO.Right(HashIndexSearchResult.Found(got))
+        IO.Right(HashIndexSearchResult.Some(got))
 
       case None =>
         //if hashIndex did not successfully return a valid key-value then return the nearest lowest from the currently read
         //key-value from hashIndex.
-        if (lowerKeyValues.isEmpty) {
-          IO.Right(HashIndexSearchResult.None)
-        } else if (lowerKeyValues.size == 1) {
-          //println(s"Hash index's lowest 1: ${lowerKeyValues.head.key.readInt()}")
-          IO.Right(HashIndexSearchResult.Lower(lowerKeyValues.head))
+        if (collisions.size <= 1) {
+          collisions.headOption match {
+            case Some(head) =>
+              //println(s"Hash index's lowest 1: ${lowerKeyValues.head.key.readInt()}")
+              if (keyOrder.gt(head.key, key))
+                IO.Right(HashIndexSearchResult.None(None, Some(head)))
+              else
+                IO.Right(HashIndexSearchResult.None(Some(head), None))
+
+            case None =>
+              HashIndexSearchResult.noneIO
+          }
         } else {
           val keyValueOrdering = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)
+          val (lower, higher) = collisions.partition(keyValue => keyOrder.lt(keyValue.key, key))
 
-          val lowestOfAll =
-            lowerKeyValues.reduce[Persistent.Partial] {
-              case (left, right) =>
-                keyValueOrdering.max(left, right)
-            }
+          val lowest =
+            if (lower.size <= 1)
+              lower.headOption
+            else
+              lower.sorted(keyValueOrdering).lastOption
+
+          val highest =
+            if (higher.size <= 1)
+              higher.headOption
+            else
+              higher.sorted(keyValueOrdering).headOption
 
           //println(s"Hash index's lowest 2: ${nearest.key.readInt()}")
-          IO.Right(HashIndexSearchResult.Lower(lowestOfAll))
+          IO.Right(HashIndexSearchResult.None(lowest, highest))
         }
     }
   }

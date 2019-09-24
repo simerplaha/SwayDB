@@ -531,6 +531,14 @@ class Slice[+T: ClassTag] private(array: Array[T],
     written = adjustedPosition max written
   }
 
+  private[swaydb] def openEnd(): Slice[T] =
+    new Slice[T](
+      array = array,
+      fromOffset = fromOffset,
+      toOffset = array.length - 1,
+      written = array.length - fromOffset
+    )
+
   override def drop(count: Int): Slice[T] =
     if (count <= 0)
       this

@@ -328,7 +328,7 @@ class HashIndexBlockSpec extends TestBase {
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).get match {
-              case _: HashIndexSearchResult.NotFound =>
+              case _: HashIndexSearchResult.None =>
                 fail("None on perfect hash.")
 
               //                blocks.sortedIndexReader.block.hasPrefixCompression shouldBe (keyValues.last.sortedIndexConfig.prefixCompressionResetCount > 0)
@@ -357,7 +357,7 @@ class HashIndexBlockSpec extends TestBase {
               //                    }
               //                }
 
-              case HashIndexSearchResult.Found(found) =>
+              case HashIndexSearchResult.Some(found) =>
                 found shouldBe keyValue
             }
         }

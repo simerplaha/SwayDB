@@ -26,9 +26,8 @@ import swaydb.{Error, IO}
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte]) extends Reader[E] {
-
-  private var position: Int = 0
+private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte],
+                                                                                   private var position: Int = 0) extends Reader[E] {
 
   def path = Paths.get(this.getClass.getSimpleName)
 

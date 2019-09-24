@@ -53,85 +53,61 @@ private[core] object SegmentSearcher extends LazyLogging {
              hasRange: Boolean,
              keyValueCount: => IO[swaydb.Error.Segment, Int],
              threadState: SegmentReadThreadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
-  //    when(start.isDefined && threadState.isSequentialRead)(start) match {
-  //      case Some(startFrom) =>
-  //        seqSeeks += 1
-  //        SortedIndexBlock.searchSeekOne(
-  //          key = key,
-  //          start = startFrom,
-  //          indexReader = sortedIndexReader,
-  //          fullRead = true,
-  //          valuesReader = valuesReader
-  //        ) flatMap {
-  //          found =>
-  //            if (found.isDefined)
-  //              IO.Right {
-  //                successfulSeqSeeks += 1
-  //                found
-  //              }
-  //            else {
-  //              failedSeqSeeks += 1
-  //              hashIndexSearch(
-  //                key = key,
-  //                start = start,
-  //                end = end,
-  //                keyValueCount = keyValueCount,
-  //                hashIndexReader = hashIndexReader,
-  //                binarySearchIndexReader = binarySearchIndexReader,
-  //                sortedIndexReader = sortedIndexReader,
-  //                valuesReader = valuesReader,
-  //                hasRange = hasRange
-  //              ) onRightSideEffect {
-  //                result =>
-  //                  threadState setSequentialRead result.exists(_.indexOffset == startFrom.nextIndexOffset)
-  //              }
-  //            }
-  //        }
-  //
-  //      case None =>
-  //        hashIndexSearch(
-  //          key = key,
-  //          start = start,
-  //          end = end,
-  //          keyValueCount = keyValueCount,
-  //          hashIndexReader = hashIndexReader,
-  //          binarySearchIndexReader = binarySearchIndexReader,
-  //          sortedIndexReader = sortedIndexReader,
-  //          valuesReader = valuesReader,
-  //          hasRange = hasRange
-  //        ) onRightSideEffect {
-  //          result =>
-  //            threadState setSequentialRead {
-  //              result exists {
-  //                result =>
-  //                  start.exists(_.nextIndexOffset == result.indexOffset)
-  //              }
-  //            }
-  //        }
-  //    }
-//    hashIndexSearch(
-//      key = key,
-//      start = start,
-//      end = end,
-//      keyValueCount = keyValueCount,
-//      hashIndexReader = hashIndexReader,
-//      binarySearchIndexReader = binarySearchIndexReader,
-//      sortedIndexReader = sortedIndexReader,
-//      valuesReader = valuesReader,
-//      hasRange = hasRange
-//    )
-
-    binarySearchIndexReader flatMap {
-      binarySearchIndexReader =>
-        BinarySearchIndexBlock.search(
+    when(start.isDefined && threadState.isSequentialRead)(start) match {
+      case Some(startFrom) =>
+        seqSeeks += 1
+        SortedIndexBlock.searchSeekOne(
           key = key,
-          lowest = start,
-          highest = end,
-          keyValuesCount = keyValueCount,
+          start = startFrom,
+          indexReader = sortedIndexReader,
+          fullRead = true,
+          valuesReader = valuesReader
+        ) flatMap {
+          found =>
+            if (found.isDefined)
+              IO.Right {
+                successfulSeqSeeks += 1
+                found
+              }
+            else {
+              failedSeqSeeks += 1
+              hashIndexSearch(
+                key = key,
+                start = start,
+                end = end,
+                keyValueCount = keyValueCount,
+                hashIndexReader = hashIndexReader,
+                binarySearchIndexReader = binarySearchIndexReader,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader,
+                hasRange = hasRange
+              ) onRightSideEffect {
+                result =>
+                  threadState setSequentialRead result.exists(_.indexOffset == startFrom.nextIndexOffset)
+              }
+            }
+        }
+
+      case None =>
+        hashIndexSearch(
+          key = key,
+          start = start,
+          end = end,
+          keyValueCount = keyValueCount,
+          hashIndexReader = hashIndexReader,
           binarySearchIndexReader = binarySearchIndexReader,
           sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader
-        ).map(_.toOption)
+          valuesReader = valuesReader,
+          hasRange = hasRange
+        ) onRightSideEffect {
+          result =>
+            threadState setSequentialRead {
+              result exists {
+                result =>
+                  start.exists(_.nextIndexOffset == result.indexOffset)
+              }
+            }
+        }
     }
 
   def hashIndexSearch(key: Slice[Byte],
@@ -154,21 +130,27 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) flatMap {
-          case notFound: HashIndexSearchResult.NotFound =>
+          case none: HashIndexSearchResult.None =>
             if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange)
               IO.none
             else
               binarySearchIndexReader flatMap {
                 binarySearchIndexReader =>
+                  implicit val ordering = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)
                   failedHashIndexSeeks += 1
+
                   BinarySearchIndexBlock.search(
                     key = key,
                     lowest =
-                      if (notFound.lower.isEmpty)
+                      if (none.lower.isEmpty)
                         start
                       else
-                        MinMax.maxFavourLeft(start, notFound.lower)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)),
-                    highest = end,
+                        MinMax.maxFavourLeft(start, none.lower),
+                    highest =
+                      if (none.higher.isEmpty)
+                        end
+                      else
+                        MinMax.minFavourLeft(end, none.higher),
                     keyValuesCount = keyValueCount,
                     binarySearchIndexReader = binarySearchIndexReader,
                     sortedIndexReader = sortedIndexReader,
@@ -176,7 +158,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                   ).map(_.toOption)
               }
 
-          case HashIndexSearchResult.Found(keyValue) =>
+          case HashIndexSearchResult.Some(keyValue) =>
             successfulHashIndexSeeks += 1
             IO.Right(Some(keyValue))
         }

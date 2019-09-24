@@ -146,21 +146,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                   //all keys are known to exist.
                   fail("Expected success")
 
-                case BinarySearchGetResult.Some(lower, value) =>
-                  if (start.isDefined) lower shouldBe defined
-
-                  lower foreach {
-                    lower =>
-                      //                      //println(s"Lower: ${lower.key.readInt()}, startFrom: ${start.map(_.key.readInt())}")
-                      //lower should always be less than keyValue's key.
-                      lower.key.readInt() should be < keyValue.key.readInt()
-                      start foreach {
-                        from =>
-                          //lower should be greater than the supplied lower or should be equals.
-                          //seek should not result in another lower key-value which is smaller than the input start key-value.
-                          lower.key.readInt() should be >= from.key.readInt()
-                      }
-                  }
+                case BinarySearchGetResult.Some(value) =>
                   value.key shouldBe keyValue.key
                   Some(value)
               }

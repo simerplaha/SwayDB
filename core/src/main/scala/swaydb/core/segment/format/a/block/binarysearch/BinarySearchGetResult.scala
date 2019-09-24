@@ -24,7 +24,6 @@ import swaydb.IO.ExceptionHandler
 
 private[block] sealed trait BinarySearchGetResult[+T] {
   def toOption: Option[T]
-  def lower: Option[T]
   def toIO[E: ExceptionHandler]: IO[E, Option[T]]
 }
 
@@ -43,7 +42,7 @@ private[block] object BinarySearchGetResult {
       IO.none
   }
 
-  case class Some[T](lower: Option[T], value: T) extends BinarySearchGetResult[T] {
+  case class Some[T](value: T) extends BinarySearchGetResult[T] {
     override def toOption: Option[T] = scala.Some(value)
 
     override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =

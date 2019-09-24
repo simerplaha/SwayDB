@@ -23,8 +23,8 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO._
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{KeyValue, Persistent, Time, Transient}
+import swaydb.core.data.{KeyValue, Persistent, Transient}
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
@@ -314,6 +314,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       previous = None
     )
 
+  var ends = 0
   /**
    * Pre-requisite: The position of the index on the reader should be set.
    *
@@ -333,21 +334,43 @@ private[core] object SortedIndexBlock extends LazyLogging {
       val positionBeforeRead = indexReader.getPosition
       //size of the index entry to read
       //todo read indexReader.block.segmentMaxIndexEntrySize in one seek.
-      val indexSize =
+      val (indexSize, blockReader, isBlockReader) =
       indexEntrySizeMayBe match {
         case Some(indexEntrySize) if indexEntrySize > 0 =>
           indexReader skip Bytes.sizeOfUnsignedInt(indexEntrySize)
-          indexEntrySize
+          (indexEntrySize, indexReader, false)
 
-        case None | Some(_) =>
-          indexReader.readUnsignedInt().get
+        case _ =>
+          //if the reader has a block cache try fetching the bytes required within one seek.
+          if (indexReader.hasBlockCache) {
+            //read the minimum number of bytes required for parse this indexEntry.
+            val bytes = indexReader.read(ByteSizeOf.varInt).get
+            val (indexEntrySize, indexEntrySizeByteSize) = bytes.readUnsignedIntWithByteSize().get
+            //open the slice if it's a subslice,
+            val openBytes = bytes.openEnd()
+
+            //check if the read bytes are enough to parse the entry.
+            val expectedSize =
+              if (overwriteNextIndexOffset.isDefined) //if overwrite is defined then next index's offset is not required.
+                indexEntrySize + indexEntrySizeByteSize
+              else //else next indexes's offset is required.
+                indexEntrySize + indexEntrySizeByteSize + ByteSizeOf.varInt
+
+            //if openBytes results in enough bytes to then read the open bytes only.
+            if (openBytes.size >= expectedSize)
+              (indexEntrySize, Reader(openBytes, indexEntrySizeByteSize), true)
+            else {
+              ends += 1
+              (indexEntrySize, indexReader.moveTo(positionBeforeRead + indexEntrySizeByteSize), false)
+            }
+          } else {
+            val indexEntrySize = indexReader.readUnsignedInt().get
+            (indexEntrySize, indexReader, false)
+          }
       }
 
-      //5 extra bytes are read for each entry to fetch the next index's size.
-      val bytesToRead = indexSize + ByteSizeOf.varInt
-
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
-      val indexEntryBytesAndNextIndexEntrySize = (indexReader read bytesToRead).get
+      val indexEntryBytesAndNextIndexEntrySize = (blockReader read (indexSize + ByteSizeOf.varInt)).get
 
       val extraBytesRead = indexEntryBytesAndNextIndexEntrySize.size - indexSize
 
@@ -368,30 +391,35 @@ private[core] object SortedIndexBlock extends LazyLogging {
               .readUnsignedInt()
               .get
 
-          (nextIndexEntrySize, indexReader.getPosition - extraBytesRead)
+          if (isBlockReader)
+            (nextIndexEntrySize, positionBeforeRead + blockReader.getPosition - extraBytesRead)
+          else
+            (nextIndexEntrySize, blockReader.getPosition - extraBytesRead)
         }
 
       //take only the bytes required for this in entry and submit it for parsing/reading.
       val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
 
+      val block = indexReader.block
+
       val read =
-        if (indexReader.block.enablePartialRead)
+        if (block.enablePartialRead)
           if (fullRead)
             EntryReader.fullReadFromPartial(
               indexEntry = indexEntry,
-              mightBeCompressed = indexReader.block.hasPrefixCompression,
+              mightBeCompressed = block.hasPrefixCompression,
               valuesReader = valuesReader,
               indexOffset = positionBeforeRead,
               nextIndexOffset = nextIndexOffset,
               nextIndexSize = nextIndexSize,
-              hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
-              isNormalised = indexReader.block.hasNormalisedBytes,
+              hasAccessPositionIndex = block.enableAccessPositionIndex,
+              isNormalised = block.hasNormalisedBytes,
               previous = previous
             )
           else
             EntryReader.partialRead(
               indexEntry = indexEntry,
-              block = indexReader.block,
+              block = block,
               indexOffset = positionBeforeRead,
               nextIndexOffset = nextIndexOffset,
               nextIndexSize = nextIndexSize,
@@ -401,15 +429,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
         else
           EntryReader.fullRead(
             indexEntry = indexEntry,
-            mightBeCompressed = indexReader.block.hasPrefixCompression,
+            mightBeCompressed = block.hasPrefixCompression,
             valuesReader = valuesReader,
             indexOffset = positionBeforeRead,
             nextIndexOffset = nextIndexOffset,
             nextIndexSize = nextIndexSize,
-            hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
-            isNormalised = indexReader.block.hasNormalisedBytes,
+            hasAccessPositionIndex = block.enableAccessPositionIndex,
+            isNormalised = block.hasNormalisedBytes,
             previous = previous
           )
+
       //println(s"readKeyValue: ${read.get.key.readInt()}")
 
       read
@@ -716,7 +745,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        //println("matchOrSeekAndPersistent")
+        //        //////println("matchOrSeekAndPersistent")
         matchOrSeek(
           previous = persistent,
           next = None,
@@ -740,7 +769,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReader = valuesReader
     ) flatMap {
       persistent =>
-        //        //println("matchOrSeekAndPersistent")
+        //        //////println("matchOrSeekAndPersistent")
         matchOrSeekToPersistent(
           previous = persistent,
           next = None,

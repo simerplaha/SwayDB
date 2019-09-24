@@ -178,7 +178,7 @@ private[core] object BinarySearchIndexBlock {
       BinarySearchIndexBlock.State(
         largestValue = normalisedLast.stats.thisKeyValuesAccessIndexOffset,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
-        uniqueValuesCount = normalisedLast.stats.linkedPosition,
+        uniqueValuesCount = normalisedLast.stats.uncompressedKeyCounts,
         isFullIndex = normalisedLast.binarySearchIndexConfig.fullIndex,
         minimumNumberOfKeys = normalisedLast.binarySearchIndexConfig.minimumNumberOfKeys,
         compressions = normalisedLast.binarySearchIndexConfig.compressions
@@ -351,17 +351,8 @@ private[core] object BinarySearchIndexBlock {
           case IO.Right(entry) =>
             entry match {
               case matched: KeyMatcher.Result.Matched =>
-                val lower =
-                  MinMax.maxFavourLeft(
-                    left = knownLowest orElse context.lowestKeyValue,
-                    right = matched.previous orElse context.lowestKeyValue
-                  )
-
                 IO.Right {
-                  BinarySearchGetResult.Some(
-                    lower = lower,
-                    value = matched.result
-                  )
+                  BinarySearchGetResult.Some(value = matched.result)
                 }
 
               case behind: KeyMatcher.Result.Behind =>
@@ -389,7 +380,7 @@ private[core] object BinarySearchIndexBlock {
     def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinarySearchLowerResult.Some[Persistent.Partial]] = {
       val mid = start + (end - start) / 2
 
-      //      //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
+      //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
 
       val valueOffset = mid * context.bytesPerValue
 
@@ -405,11 +396,11 @@ private[core] object BinarySearchIndexBlock {
        */
       if (start > end || mid < 0)
         if (fetchLeft && knownLowest.isEmpty) {
-          ////println("Restart")
+          //println("Restart")
           binarySearchLower(fetchLeft = false, context = context)
         } else {
           IO.Right {
-            ////println("End")
+            //println("End")
             implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
             BinarySearchLowerResult.Some(
               lower =
@@ -454,7 +445,7 @@ private[core] object BinarySearchIndexBlock {
         }
     }
 
-    ////println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
+    //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
 
     val end = getEndPosition(context)
 
@@ -472,11 +463,11 @@ private[core] object BinarySearchIndexBlock {
              keyValuesCount: => IO[swaydb.Error.Segment, Int],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
-    binarySeeks += 1
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable)
       keyValuesCount flatMap {
         keyValuesCount =>
+          binarySeeks += 1
           binarySearch(
             BinarySearchContext(
               key = key,
@@ -494,7 +485,7 @@ private[core] object BinarySearchIndexBlock {
           //println
           //println(s"Key: ${key.readInt()}")
           //          hops = 0
-
+          binarySeeks += 1
           maxHop = maxHop max currentHops
           minHop = minHop min currentHops
           currentHops = 0
@@ -535,7 +526,7 @@ private[core] object BinarySearchIndexBlock {
                           valuesReader = valuesReader
                         ) flatMap {
                           case Some(got) =>
-                            IO.Right(BinarySearchGetResult.Some(Some(lower), got))
+                            IO.Right(BinarySearchGetResult.Some(got))
 
                           case None =>
                             IO.Right(BinarySearchGetResult.None(Some(lower)))
@@ -551,7 +542,7 @@ private[core] object BinarySearchIndexBlock {
                       valuesReader = valuesReader
                     ) flatMap {
                       case Some(got) =>
-                        IO.Right(BinarySearchGetResult.Some(lowest, got))
+                        IO.Right(BinarySearchGetResult.Some(got))
 
                       case None =>
                         BinarySearchGetResult.noneIO
@@ -568,13 +559,12 @@ private[core] object BinarySearchIndexBlock {
             valuesReader = valuesReader
           ) flatMap {
             case Some(got) =>
-              IO.Right(BinarySearchGetResult.Some(lowest, got))
+              IO.Right(BinarySearchGetResult.Some(got))
 
             case None =>
               BinarySearchGetResult.noneIO
           }
       }
-  }
 
   //it's assumed that input param start will not be a higher value of key.
   def searchHigher(key: Slice[Byte],
@@ -617,7 +607,7 @@ private[core] object BinarySearchIndexBlock {
                 )
             }
 
-          case BinarySearchGetResult.Some(_, got) =>
+          case BinarySearchGetResult.Some(got) =>
             IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = got.toPersistent, onFalse = got) {
               got =>
                 SortedIndexBlock.matchOrSeekHigher(
