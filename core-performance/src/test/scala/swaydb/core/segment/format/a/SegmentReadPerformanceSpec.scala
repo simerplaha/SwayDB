@@ -172,7 +172,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           minimumNumberOfKeys = 1,
           searchSortedIndexDirectlyIfPossible = false,
           fullIndex = true,
-          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           compressions = _ => Seq.empty
         ),
       //      binarySearchIndexConfig =
@@ -187,10 +187,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       hashIndexConfig =
         HashIndexBlock.Config(
           maxProbe = 10,
-          copyIndex = true,
+          copyIndex = false,
           minimumNumberOfKeys = 5,
           minimumNumberOfHits = 5,
-          allocateSpace = _.requiredSpace * 2,
+          allocateSpace = _.requiredSpace,
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           compressions = _ => Seq.empty
         ),
@@ -351,6 +351,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
     println("binarySuccessfulSeeks: " + BinarySearchIndexBlock.binarySuccessfulSeeks)
     println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
+    println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
+    println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
+    println("sameLower: " + BinarySearchIndexBlock.sameLower)
     println("Hops: " + BinarySearchIndexBlock.totalHops)
     println("maxHops: " + BinarySearchIndexBlock.maxHop)
     println("minHop: " + BinarySearchIndexBlock.minHop)
@@ -370,6 +373,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     BinarySearchIndexBlock.binarySeeks = 0
     BinarySearchIndexBlock.binarySuccessfulSeeks = 0
     BinarySearchIndexBlock.binaryFailedSeeks = 0
+    BinarySearchIndexBlock.failedWithLower = 0
+    BinarySearchIndexBlock.greaterLower = 0
+    BinarySearchIndexBlock.sameLower = 0
     SegmentSearcher.hashIndexSeeks = 0
     SegmentSearcher.successfulHashIndexSeeks = 0
     SegmentSearcher.failedHashIndexSeeks = 0

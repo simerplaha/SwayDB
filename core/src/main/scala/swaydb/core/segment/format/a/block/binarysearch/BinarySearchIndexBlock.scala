@@ -319,6 +319,9 @@ private[core] object BinarySearchIndexBlock {
   var binarySeeks = 0
   var binarySuccessfulSeeks = 0
   var binaryFailedSeeks = 0
+  var failedWithLower = 0
+  var sameLower = 0
+  var greaterLower = 0
 
   private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
@@ -517,6 +520,12 @@ private[core] object BinarySearchIndexBlock {
               else
                 lower match {
                   case Some(lower) =>
+                    failedWithLower += 1
+                    if (lowest.exists(lowest => ordering.gt(lower.key, lowest.key)))
+                      greaterLower += 1
+                    else if (lowest.exists(lowest => ordering.equiv(lower.key, lowest.key)))
+                      sameLower += 1
+
                     IO.when(condition = sortedIndexReader.block.hasPrefixCompression, onTrue = lower.toPersistent, onFalse = lower) {
                       lower =>
                         SortedIndexBlock.matchOrSeek(

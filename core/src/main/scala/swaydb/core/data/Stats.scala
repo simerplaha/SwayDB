@@ -106,21 +106,20 @@ private[core] object Stats {
         previousStats.map(_.segmentTotalNumberOfRanges) getOrElse 0
 
     //unique keys that do not have prefix compressed keys.
-    val segmentUniqueAccessIndexKeyCounts =
-      previousStats map {
-        previous =>
-          if (previous.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
-            previousKeyValueAccessIndexPosition.get
-          else
-            previousKeyValueAccessIndexPosition.get + 1
-      } getOrElse 1
+    val uncompressedKeyCounts =
+      if (isPrefixCompressed)
+        previousStats.map(_.uncompressedKeyCounts) getOrElse 0
+      else
+        previousStats.map(_.uncompressedKeyCounts + 1) getOrElse 1
 
     val segmentHashIndexSize =
-      if (linkedPosition < hashIndex.minimumNumberOfKeys)
+      if (uncompressedKeyCounts < hashIndex.minimumNumberOfKeys)
         0
+      else if (isPrefixCompressed)
+        previousStats.map(_.segmentHashIndexSize) getOrElse 0
       else
         HashIndexBlock.optimalBytesRequired( //just a rough calculation. This does not need to be accurate but needs to be lower than the actual
-          keyCounts = linkedPosition,
+          keyCounts = uncompressedKeyCounts,
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           writeAbleLargestValueSize =
             if (hashIndex.copyIndex)
@@ -133,7 +132,9 @@ private[core] object Stats {
         )
 
     val segmentBinarySearchIndexSize =
-      if (binarySearch.enabled && !sortedIndex.normaliseIndex)
+      if (isPrefixCompressed)
+        previousStats.map(_.segmentHashIndexSize) getOrElse 0
+      else if (binarySearch.enabled && !sortedIndex.normaliseIndex)
         previousStats flatMap {
           previousStats =>
             if (previousStats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
@@ -147,7 +148,7 @@ private[core] object Stats {
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
             //binary search indexes are only created for non-prefix compressed or reset point keys.
             //size calculation should only account for those entries because duplicates are not allowed.
-            valuesCount = segmentUniqueAccessIndexKeyCounts
+            valuesCount = uncompressedKeyCounts
           )
         }
       else
@@ -222,7 +223,7 @@ private[core] object Stats {
       segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
-      segmentUniqueAccessIndexKeyCounts = segmentUniqueAccessIndexKeyCounts,
+      uncompressedKeyCounts = uncompressedKeyCounts,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
       thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
@@ -251,7 +252,7 @@ private[core] case class Stats(valueLength: Int,
                                segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
-                               segmentUniqueAccessIndexKeyCounts: Int,
+                               uncompressedKeyCounts: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesSortedIndexSize: Int,
                                thisKeyValuesAccessIndexOffset: Int,

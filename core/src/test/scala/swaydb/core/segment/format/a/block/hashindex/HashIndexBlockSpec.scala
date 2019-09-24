@@ -213,7 +213,9 @@ class HashIndexBlockSpec extends TestBase {
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
                 ioStrategy = _ => randomIOAccess()
-              )
+              ),
+            sortedIndexConfig =
+              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
           )
 
         keyValues should not be empty
