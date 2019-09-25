@@ -141,27 +141,23 @@ private[core] class SegmentCache(id: String,
               valuesReader = valuesReader,
               hasRange = hasRange,
               threadState = threadState
-            ) flatMap {
+            ) map {
               case Some(response: Persistent) =>
                 addToCache(response)
-                IO.Right(Some(response))
+                Some(response)
 
-              case Some(fixed: Persistent.Partial.Fixed) =>
-                fixed.toPersistent map {
-                  fixed =>
-                    addToCache(fixed)
-                    Some(fixed)
-                }
+              case Some(partial: Persistent.Partial.Fixed) =>
+                val fixed = partial.toPersistent
+                addToCache(fixed)
+                Some(fixed)
 
-              case Some(response: Persistent.Partial.Range) =>
-                response.toPersistent map {
-                  range =>
-                    addToCache(range)
-                    Some(range)
-                }
+              case Some(partial: Persistent.Partial.Range) =>
+                val range = partial.toPersistent
+                addToCache(range)
+                Some(range)
 
               case None =>
-                IO.none
+                None
             }
         }
     }
@@ -192,27 +188,23 @@ private[core] class SegmentCache(id: String,
               binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
               sortedIndexReader = sortedIndexReader,
               valuesReader
-            ) flatMap {
+            ) map {
               case Some(response: Persistent) =>
                 addToCache(response)
-                IO.Right(Some(response))
+                Some(response)
 
-              case Some(fixed: Persistent.Partial.Fixed) =>
-                fixed.toPersistent map {
-                  persistent =>
-                    addToCache(persistent)
-                    Some(persistent)
-                }
+              case Some(partial: Persistent.Partial.Fixed) =>
+                val fixed = partial.toPersistent
+                addToCache(fixed)
+                Some(fixed)
 
-              case Some(fixed: Persistent.Partial.Range) =>
-                fixed.toPersistent map {
-                  range =>
-                    addToCache(range)
-                    Some(range)
-                }
+              case Some(partial: Persistent.Partial.Range) =>
+                val range = partial.toPersistent
+                addToCache(range)
+                Some(range)
 
               case None =>
-                IO.none
+                None
             }
         }
     }
@@ -327,27 +319,23 @@ private[core] class SegmentCache(id: String,
               binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
-            ) flatMap {
+            ) map {
               case Some(response: Persistent) =>
                 addToCache(response)
-                IO.Right(Some(response))
+                Some(response)
 
-              case Some(fixed: Persistent.Partial.Fixed) =>
-                fixed.toPersistent map {
-                  persistent =>
-                    addToCache(persistent)
-                    Some(persistent)
-                }
+              case Some(partial: Persistent.Partial.Fixed) =>
+                val fixed = partial.toPersistent
+                addToCache(fixed)
+                Some(fixed)
 
-              case Some(fixed: Persistent.Partial.Range) =>
-                fixed.toPersistent map {
-                  range =>
-                    addToCache(range)
-                    Some(range)
-                }
+              case Some(partial: Persistent.Partial.Range) =>
+                val range = partial.toPersistent
+                addToCache(range)
+                Some(range)
 
               case None =>
-                IO.none
+                None
             }
         }
     }

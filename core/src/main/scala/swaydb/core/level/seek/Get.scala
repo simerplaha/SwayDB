@@ -131,7 +131,7 @@ private[core] object Get {
                   .map {
                     next =>
                       if (next.hasTimeLeft())
-                        FunctionMerger(current, next) match {
+                        IO(FunctionMerger(current, next)) match {
                           case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
                             IO.Defer(Some(put))
 
@@ -156,7 +156,7 @@ private[core] object Get {
                   .map {
                     next =>
                       if (next.hasTimeLeft())
-                        PendingApplyMerger(current, next) match {
+                        IO(PendingApplyMerger(current, next)) match {
                           case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
                             IO.Defer(Some(put))
 

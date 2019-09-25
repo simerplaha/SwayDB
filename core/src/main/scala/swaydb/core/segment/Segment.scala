@@ -520,29 +520,27 @@ private[core] object Segment extends LazyLogging {
                           valuesReader = valuesReader
                         ) flatMap {
                           keyValues =>
-                            file.close flatMap {
+                            file.close map {
                               _ =>
-                                DeadlineAndFunctionId(keyValues) map {
-                                  deadlineMinMaxFunctionId =>
-                                    PersistentSegment(
-                                      file = file,
-                                      segmentId = segmentId,
-                                      mmapReads = mmapReads,
-                                      mmapWrites = mmapWrites,
-                                      minKey = keyValues.head.key.unslice(),
-                                      maxKey =
-                                        keyValues.last match {
-                                          case fixed: KeyValue.ReadOnly.Fixed =>
-                                            MaxKey.Fixed(fixed.key.unslice())
+                                val deadlineMinMaxFunctionId = DeadlineAndFunctionId(keyValues)
+                                PersistentSegment(
+                                  file = file,
+                                  segmentId = segmentId,
+                                  mmapReads = mmapReads,
+                                  mmapWrites = mmapWrites,
+                                  minKey = keyValues.head.key.unslice(),
+                                  maxKey =
+                                    keyValues.last match {
+                                      case fixed: KeyValue.ReadOnly.Fixed =>
+                                        MaxKey.Fixed(fixed.key.unslice())
 
-                                          case range: KeyValue.ReadOnly.Range =>
-                                            MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-                                        },
-                                      minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
-                                      segmentSize = refReader.offset.size,
-                                      nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
-                                    )
-                                }
+                                      case range: KeyValue.ReadOnly.Range =>
+                                        MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+                                    },
+                                  minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
+                                  segmentSize = refReader.offset.size,
+                                  nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
+                                )
                             }
                         }
                     }

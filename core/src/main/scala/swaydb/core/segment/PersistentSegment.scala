@@ -247,7 +247,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
 
   def getSegmentBlockOffset(): IO[swaydb.Error.Segment, SegmentBlock.Offset] =
-    file.fileSize map (fileSize => SegmentBlock.Offset(0, fileSize.toInt))
+    IO(file.fileSize) map (fileSize => SegmentBlock.Offset(0, fileSize.toInt))
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     segmentCache getFromCache key

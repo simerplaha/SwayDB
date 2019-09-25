@@ -215,7 +215,7 @@ private[core] object Lower {
                 //    2
                 //    2
                 if (next.key equiv current.key)
-                  FixedMerger(current, next) match {
+                  IO(FixedMerger(current, next)) match {
                     case IO.Right(merged) =>
                       merged match {
                         case put: ReadOnly.Put if put.hasTimeLeft() =>
@@ -264,7 +264,7 @@ private[core] object Lower {
                 else if (next.key > current.fromKey)
                   IO(current.fetchRangeValueUnsafe) match {
                     case IO.Right(rangeValue) =>
-                      FixedMerger(rangeValue.toMemory(next.key), next) match {
+                      IO(FixedMerger(rangeValue.toMemory(next.key), next)) match {
                         case IO.Right(mergedCurrent) =>
                           mergedCurrent match {
                             case put: ReadOnly.Put if put.hasTimeLeft() =>
@@ -297,7 +297,7 @@ private[core] object Lower {
 
                         //fromValue is not put, check if merging is required else return next.
                         case None =>
-                          FixedMerger(rangeValue.toMemory(next.key), next) match {
+                          IO(FixedMerger(rangeValue.toMemory(next.key), next)) match {
                             case IO.Right(mergedValue) =>
                               mergedValue match { //return applied value with next key-value as the current value.
                                 case put: Memory.Put if put.hasTimeLeft() =>

@@ -48,7 +48,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
     FixedMerger(
       newKeyValue = newKeyValue,
       oldKeyValue = oldKeyValue
-    ).get.asInstanceOf[Memory.Fixed]
+    ).asInstanceOf[Memory.Fixed]
 
   /**
    * Inserts a [[Memory.Fixed]] key-value into skipList.

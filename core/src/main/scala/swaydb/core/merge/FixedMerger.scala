@@ -19,9 +19,6 @@
 
 package swaydb.core.merge
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
-import swaydb.IO._
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
@@ -32,60 +29,52 @@ private[core] object FixedMerger {
 
   def apply(newer: ReadOnly.Fixed,
             older: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
-    older.getOrFetchApplies flatMap {
-      oldApplies =>
-        FixedMerger(newer, oldApplies)
-    }
+                                          functionStore: FunctionStore): ReadOnly.Fixed =
+    FixedMerger(
+      newer = newer,
+      oldApplies = older.getOrFetchApplies
+    )
 
   def apply(newer: ReadOnly.Fixed,
             oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
-    oldApplies.reverse.toIterable.foldLeftIO((newer, 0)) {
+                                            functionStore: FunctionStore): ReadOnly.Fixed =
+    oldApplies.reverse.toIterable.foldLeft((newer, 0)) {
       case ((newerMerged, count), olderApply) =>
         newerMerged match {
           case newer: ReadOnly.Put =>
-            IO(PutMerger(newer, olderApply)) map {
-              merged =>
-                (merged, count + 1)
-            }
+            val merged = PutMerger(newer, olderApply)
+            (merged, count + 1)
 
           case newer: ReadOnly.Function =>
-            FunctionMerger(newer, olderApply) map {
-              merged =>
-                (merged, count + 1)
-            }
+            val merged = FunctionMerger(newer, olderApply)
+            (merged, count + 1)
 
           case newer: ReadOnly.Remove =>
-            RemoveMerger(newer, olderApply) map {
-              merged =>
-                (merged, count + 1)
-            }
+            val merged = RemoveMerger(newer, olderApply)
+            (merged, count + 1)
 
           case newer: ReadOnly.Update =>
-            UpdateMerger(newer, olderApply) map {
-              merged =>
-                (merged, count + 1)
-            }
+            val merged = UpdateMerger(newer, olderApply)
+            (merged, count + 1)
 
           case newer: ReadOnly.PendingApply =>
-            return newer.getOrFetchApplies map {
-              newerApplies =>
-                val newMergedApplies = oldApplies.dropRight(count) ++ newerApplies
-                if (newMergedApplies.size == 1)
-                  newMergedApplies.head.toMemory(newer.key)
-                else
-                  Memory.PendingApply(newer.key, newMergedApplies)
+            return {
+              val newerApplies = newer.getOrFetchApplies
+              val newMergedApplies = oldApplies.dropRight(count) ++ newerApplies
+              if (newMergedApplies.size == 1)
+                newMergedApplies.head.toMemory(newer.key)
+              else
+                Memory.PendingApply(newer.key, newMergedApplies)
             }
         }
-    } map (_._1)
+    }._1
 
   def apply(newKeyValue: ReadOnly.Fixed,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): ReadOnly.Fixed =
     newKeyValue match {
       case newKeyValue: ReadOnly.Put =>
-        IO(PutMerger(newKeyValue, oldKeyValue))
+        PutMerger(newKeyValue, oldKeyValue)
 
       case newKeyValue: ReadOnly.Remove =>
         RemoveMerger(newKeyValue, oldKeyValue)

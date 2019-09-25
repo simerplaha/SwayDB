@@ -19,9 +19,6 @@
 
 package swaydb.core.segment
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
-import swaydb.IO._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.Segment.getNearestDeadline
@@ -45,8 +42,8 @@ private[core] object DeadlineAndFunctionId {
 
   def apply(keyValues: Iterable[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     memorySweeper: Option[MemorySweeper.KeyValue],
-                                                    segmentIO: SegmentIO): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
-    keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
+                                                    segmentIO: SegmentIO): DeadlineAndFunctionId =
+    keyValues.foldLeft(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
         apply(
           deadline = minMax.nearestDeadline,
@@ -59,52 +56,41 @@ private[core] object DeadlineAndFunctionId {
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                      memorySweeper: Option[MemorySweeper.KeyValue],
-                                     segmentIO: SegmentIO): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
+                                     segmentIO: SegmentIO): DeadlineAndFunctionId =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>
-        IO {
-          DeadlineAndFunctionId(
-            deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
-            minMaxFunctionId = minMaxFunctionId
-          )
-        }
+        DeadlineAndFunctionId(
+          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          minMaxFunctionId = minMaxFunctionId
+        )
 
       case readOnly: KeyValue.ReadOnly.Remove =>
-        IO {
-          DeadlineAndFunctionId(
-            deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
-            minMaxFunctionId = minMaxFunctionId
-          )
-        }
+        DeadlineAndFunctionId(
+          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          minMaxFunctionId = minMaxFunctionId
+        )
 
       case readOnly: KeyValue.ReadOnly.Update =>
-        IO {
-          DeadlineAndFunctionId(
-            deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
-            minMaxFunctionId = minMaxFunctionId
-          )
-        }
+        DeadlineAndFunctionId(
+          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          minMaxFunctionId = minMaxFunctionId
+        )
 
       case readOnly: KeyValue.ReadOnly.PendingApply =>
-        readOnly.getOrFetchApplies map {
-          applies =>
-            DeadlineAndFunctionId(
-              deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
-              minMaxFunctionId = MinMax.minMaxFunction(applies, minMaxFunctionId)
-            )
-        }
+        val applies = readOnly.getOrFetchApplies
+        DeadlineAndFunctionId(
+          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          minMaxFunctionId = MinMax.minMaxFunction(applies, minMaxFunctionId)
+        )
 
       case readOnly: KeyValue.ReadOnly.Function =>
-        MinMax.minMaxFunction(readOnly, minMaxFunctionId) map {
-          minMaxFunctionId =>
-            DeadlineAndFunctionId(
-              deadline = deadline,
-              minMaxFunctionId = Some(minMaxFunctionId)
-            )
-        }
+        DeadlineAndFunctionId(
+          deadline = deadline,
+          minMaxFunctionId = Some(MinMax.minMaxFunction(readOnly, minMaxFunctionId))
+        )
 
       case range: KeyValue.ReadOnly.Range =>
-        range.fetchFromAndRangeValueUnsafe map {
+        range.fetchFromAndRangeValueUnsafe match {
           case (someFromValue @ Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             DeadlineAndFunctionId(

@@ -150,14 +150,11 @@ private[core] object MinMax {
     )(FunctionStore.order)
 
   def minMaxFunction(function: ReadOnly.Function,
-                     current: Option[MinMax[Slice[Byte]]]): IO[swaydb.Error.Segment, MinMax[Slice[Byte]]] =
-    function.getOrFetchFunction map {
-      function =>
-        minMax(
-          current = current,
-          next = function
-        )(FunctionStore.order)
-    }
+                     current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
+    minMax(
+      current = current,
+      next = function.getOrFetchFunction
+    )(FunctionStore.order)
 
   def minMaxFunction(range: Transient.Range,
                      current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
@@ -180,15 +177,14 @@ private[core] object MinMax {
     )
 
   def minMaxFunction(range: KeyValue.ReadOnly.Range,
-                     current: Option[MinMax[Slice[Byte]]]): IO[swaydb.Error.Segment, Option[MinMax[Slice[Byte]]]] =
-    range.fetchFromAndRangeValueUnsafe map {
-      case (fromValue, rangeValue) =>
-        minMaxFunction(
-          fromValue = fromValue,
-          rangeValue = rangeValue,
-          current = current
-        )
-    }
+                     current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] = {
+    val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
+    minMaxFunction(
+      fromValue = fromValue,
+      rangeValue = rangeValue,
+      current = current
+    )
+  }
 
   @tailrec
   def minMaxFunction(functions: Slice[Value],

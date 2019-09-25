@@ -19,8 +19,6 @@
 
 package swaydb.core.merge
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, SwayFunction, SwayFunctionOutput, Value}
 import swaydb.core.function.FunctionStore
@@ -31,7 +29,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Put)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                       functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] = {
+                                       functionStore: FunctionStore): ReadOnly.Fixed = {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
@@ -48,58 +46,53 @@ private[core] object FunctionMerger {
           Memory.Put(oldKeyValue.key, value, deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
-    if (newKeyValue.time > oldKeyValue.time)
-      newKeyValue.getOrFetchFunction flatMap {
-        function =>
-          functionStore.get(function) match {
-            case Some(functionId) =>
-              functionId match {
-                case SwayFunction.Value(f) =>
-                  oldKeyValue
-                    .getOrFetchValue
-                    .flatMap(value => IO(f(value)))
-                    .map(applyOutput)
+    if (newKeyValue.time > oldKeyValue.time) {
+      val function = newKeyValue.getOrFetchFunction
+      functionStore.get(function) match {
+        case Some(functionId) =>
+          functionId match {
+            case SwayFunction.Value(f) =>
+              val output = f(oldKeyValue.getOrFetchValue)
+              applyOutput(output)
 
-                case SwayFunction.ValueDeadline(f) =>
-                  oldKeyValue
-                    .getOrFetchValue
-                    .flatMap(value => IO(f(value, oldKeyValue.deadline)))
-                    .map(applyOutput)
+            case SwayFunction.ValueDeadline(f) =>
+              val value = oldKeyValue.getOrFetchValue
+              val output = f(value, oldKeyValue.deadline)
+              applyOutput(output)
 
-                case function: SwayFunction.RequiresKey =>
-                  function match {
-                    case SwayFunction.Key(f) =>
-                      IO(applyOutput(f(oldKeyValue.key)))
+            case function: SwayFunction.RequiresKey =>
+              function match {
+                case SwayFunction.Key(f) =>
+                  applyOutput(f(oldKeyValue.key))
 
-                    case SwayFunction.KeyValue(f) =>
-                      oldKeyValue
-                        .getOrFetchValue
-                        .flatMap(oldValue => IO(f(oldKeyValue.key, oldValue)))
-                        .map(applyOutput)
+                case SwayFunction.KeyValue(f) =>
+                  val oldValue = oldKeyValue.getOrFetchValue
+                  val output = f(oldKeyValue.key, oldValue)
+                  applyOutput(output)
 
-                    case SwayFunction.KeyDeadline(f) =>
-                      IO(applyOutput(f(oldKeyValue.key, oldKeyValue.deadline)))
+                case SwayFunction.KeyDeadline(f) =>
+                  val output = f(oldKeyValue.key, oldKeyValue.deadline)
+                  applyOutput(output)
 
-                    case SwayFunction.KeyValueDeadline(f) =>
-                      oldKeyValue
-                        .getOrFetchValue
-                        .flatMap(oldValue => IO(f(oldKeyValue.key, oldValue, oldKeyValue.deadline)))
-                        .map(applyOutput)
-                  }
+                case SwayFunction.KeyValueDeadline(f) =>
+                  val oldValue = oldKeyValue.getOrFetchValue
+                  val output = f(oldKeyValue.key, oldValue, oldKeyValue.deadline)
+                  applyOutput(output)
               }
-
-            case None =>
-              IO.Left[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
           }
+
+        case None =>
+          throw swaydb.Exception.FunctionNotFound(function)
       }
+    }
 
     else
-      IO.Right(oldKeyValue)
+      oldKeyValue
   }
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Update)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] = {
+                                          functionStore: FunctionStore): ReadOnly.Fixed = {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
@@ -116,79 +109,73 @@ private[core] object FunctionMerger {
           Memory.Update(oldKeyValue.key, value, deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
-    def toPendingApply(): IO[swaydb.Error.Segment, Memory.PendingApply] =
-      for {
-        oldValue <- oldKeyValue.toFromValue()
-        newValue <- newKeyValue.toFromValue()
-      } yield {
-        Memory.PendingApply(oldKeyValue.key, Slice(oldValue, newValue))
-      }
+    def toPendingApply(): Memory.PendingApply = {
+      val oldValue = oldKeyValue.toFromValue()
+      val newValue = newKeyValue.toFromValue()
+      Memory.PendingApply(oldKeyValue.key, Slice(oldValue, newValue))
+    }
 
-    if (newKeyValue.time > oldKeyValue.time)
-      newKeyValue.getOrFetchFunction flatMap {
-        function =>
-          functionStore.get(function) match {
-            case Some(functionId) =>
-              functionId match {
-                case SwayFunction.Value(f) =>
-                  oldKeyValue
-                    .getOrFetchValue
-                    .flatMap(value => IO(f(value)))
-                    .map(applyOutput)
+    if (newKeyValue.time > oldKeyValue.time) {
+      val function = newKeyValue.getOrFetchFunction
+      functionStore.get(function) match {
+        case Some(functionId) =>
+          functionId match {
+            case SwayFunction.Value(f) =>
+              val value = oldKeyValue.getOrFetchValue
+              applyOutput(f(value))
 
-                case SwayFunction.ValueDeadline(f) =>
-                  //if deadline is not set, then the deadline of this key might have another update in lower levels.
-                  //so stash update.
-                  if (oldKeyValue.deadline.isEmpty)
-                    toPendingApply()
-                  else
-                    oldKeyValue
-                      .getOrFetchValue
-                      .flatMap(value => IO(f(value, oldKeyValue.deadline)))
-                      .map(applyOutput)
-
-                case function: SwayFunction.RequiresKey =>
-                  if (oldKeyValue.key.isEmpty)
-                    toPendingApply()
-                  else
-                    function match {
-                      case SwayFunction.Key(f) =>
-                        IO(applyOutput(f(oldKeyValue.key)))
-
-                      case SwayFunction.KeyValue(f) =>
-                        oldKeyValue
-                          .getOrFetchValue
-                          .flatMap(oldValue => IO(f(oldKeyValue.key, oldValue)))
-                          .map(applyOutput)
-
-                      case SwayFunction.KeyDeadline(f) =>
-                        if (oldKeyValue.deadline.isEmpty)
-                          toPendingApply()
-                        else
-                          IO(applyOutput(f(oldKeyValue.key, oldKeyValue.deadline)))
-
-                      case SwayFunction.KeyValueDeadline(f) =>
-                        if (oldKeyValue.deadline.isEmpty)
-                          toPendingApply()
-                        else
-                          oldKeyValue
-                            .getOrFetchValue
-                            .flatMap(oldValue => IO(f(oldKeyValue.key, oldValue, oldKeyValue.deadline)))
-                            .map(applyOutput)
-                    }
+            case SwayFunction.ValueDeadline(f) =>
+              //if deadline is not set, then the deadline of this key might have another update in lower levels.
+              //so stash update.
+              if (oldKeyValue.deadline.isEmpty) {
+                toPendingApply()
+              } else {
+                val value = oldKeyValue.getOrFetchValue
+                val output = f(value, oldKeyValue.deadline)
+                applyOutput(output)
               }
 
-            case None =>
-              IO.Left[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
+            case function: SwayFunction.RequiresKey =>
+              if (oldKeyValue.key.isEmpty)
+                toPendingApply()
+              else
+                function match {
+                  case SwayFunction.Key(f) =>
+                    applyOutput(f(oldKeyValue.key))
+
+                  case SwayFunction.KeyValue(f) =>
+                    val oldValue = oldKeyValue.getOrFetchValue
+                    val output = f(oldKeyValue.key, oldValue)
+                    applyOutput(output)
+
+                  case SwayFunction.KeyDeadline(f) =>
+                    if (oldKeyValue.deadline.isEmpty)
+                      toPendingApply()
+                    else
+                      applyOutput(f(oldKeyValue.key, oldKeyValue.deadline))
+
+                  case SwayFunction.KeyValueDeadline(f) =>
+                    if (oldKeyValue.deadline.isEmpty) {
+                      toPendingApply()
+                    } else {
+                      val oldValue = oldKeyValue.getOrFetchValue
+                      val output = f(oldKeyValue.key, oldValue, oldKeyValue.deadline)
+                      applyOutput(output)
+                    }
+                }
           }
+
+        case None =>
+          throw swaydb.Exception.FunctionNotFound(function)
       }
+    }
     else
-      IO.Right(oldKeyValue)
+      oldKeyValue
   }
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] = {
+                                          functionStore: FunctionStore): ReadOnly.Fixed = {
 
     def applyOutput(output: SwayFunctionOutput) =
       output match {
@@ -206,63 +193,60 @@ private[core] object FunctionMerger {
       }
 
     def toPendingApply() =
-      newKeyValue.toFromValue() map {
-        newValue =>
-          Memory.PendingApply(oldKeyValue.key, Slice(oldKeyValue.toRemoveValue(), newValue))
-      }
+      Memory.PendingApply(
+        key = oldKeyValue.key,
+        applies = Slice(oldKeyValue.toRemoveValue(), newKeyValue.toFromValue())
+      )
 
-    if (newKeyValue.time > oldKeyValue.time)
-      newKeyValue.getOrFetchFunction flatMap {
-        function =>
-          oldKeyValue.deadline match {
-            case None =>
-              IO.Right(oldKeyValue.copyWithTime(newKeyValue.time))
+    if (newKeyValue.time > oldKeyValue.time) {
+      val function = newKeyValue.getOrFetchFunction
+      oldKeyValue.deadline match {
+        case None =>
+          oldKeyValue.copyWithTime(newKeyValue.time)
 
-            case Some(_) =>
-              functionStore.get(function) match {
-                case Some(function) =>
-                  function match {
-                    case _: SwayFunction.RequiresKey if oldKeyValue.key.isEmpty =>
-                      //key is unknown since it's empty. Stash the merge.
-                      toPendingApply()
+        case Some(_) =>
+          functionStore.get(function) match {
+            case Some(function) =>
+              function match {
+                case _: SwayFunction.RequiresKey if oldKeyValue.key.isEmpty =>
+                  //key is unknown since it's empty. Stash the merge.
+                  toPendingApply()
 
-                    case _: SwayFunction.RequiresValue =>
-                      //value is not known since remove has deadline set - PendingApply!
-                      toPendingApply()
+                case _: SwayFunction.RequiresValue =>
+                  //value is not known since remove has deadline set - PendingApply!
+                  toPendingApply()
 
-                    case SwayFunction.Key(f) =>
-                      IO(applyOutput(f(oldKeyValue.key)))
+                case SwayFunction.Key(f) =>
+                  applyOutput(f(oldKeyValue.key))
 
-                    case SwayFunction.KeyDeadline(f) =>
-                      IO(applyOutput(f(oldKeyValue.key, oldKeyValue.deadline)))
-                  }
-
-                case None =>
-                  IO.Left[swaydb.Error.Segment, ReadOnly.Fixed](swaydb.Error.FunctionNotFound(function))
+                case SwayFunction.KeyDeadline(f) =>
+                  applyOutput(f(oldKeyValue.key, oldKeyValue.deadline))
               }
+
+            case None =>
+              throw swaydb.Exception.FunctionNotFound(function)
           }
       }
+    }
 
     else
-      IO.Right(oldKeyValue)
+      oldKeyValue
   }
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
+                                            functionStore: FunctionStore): ReadOnly.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
-      for {
-        oldValue <- oldKeyValue.toFromValue()
-        newValue <- newKeyValue.toFromValue()
-      } yield {
-        Memory.PendingApply(newKeyValue.key, Slice(oldValue, newValue))
-      }
+      Memory.PendingApply(
+        key = newKeyValue.key,
+        applies = Slice(oldKeyValue.toFromValue(), newKeyValue.toFromValue())
+      )
     else
-      IO.Right(oldKeyValue)
+      oldKeyValue
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
+                                         functionStore: FunctionStore): ReadOnly.Fixed =
     oldKeyValue match {
       case oldKeyValue: ReadOnly.Put =>
         FunctionMerger(newKeyValue, oldKeyValue)
@@ -282,7 +266,7 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
+                                      functionStore: FunctionStore): ReadOnly.Fixed =
     oldKeyValue match {
       case oldKeyValue: Value.Remove =>
         FunctionMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key): ReadOnly.Fixed)
@@ -296,14 +280,12 @@ private[core] object FunctionMerger {
 
   def apply(newKeyValue: ReadOnly.Function,
             oldKeyValue: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[swaydb.Error.Segment, ReadOnly.Fixed] =
+                                                functionStore: FunctionStore): ReadOnly.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
-      oldKeyValue
-        .getOrFetchApplies
-        .flatMap {
-          oldApplies =>
-            FixedMerger(newKeyValue, oldApplies)
-        }
+      FixedMerger(
+        newer = newKeyValue,
+        oldApplies = oldKeyValue.getOrFetchApplies
+      )
     else
-      IO.Right(oldKeyValue)
+      oldKeyValue
 }

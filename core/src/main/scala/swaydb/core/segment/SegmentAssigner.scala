@@ -98,7 +98,7 @@ private[core] object SegmentAssigner {
             case keyValue: KeyValue.ReadOnly.Range =>
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
-                  keyValue.fetchFromAndRangeValueUnsafe match {
+                  IO(keyValue.fetchFromAndRangeValueUnsafe) match {
                     case IO.Right((fromValue, rangeValue)) =>
                       val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
                       val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue)
