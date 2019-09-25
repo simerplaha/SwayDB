@@ -231,12 +231,10 @@ private[map] object PersistentMap extends LazyLogging {
 
         newFile flatMap {
           newFile =>
-            newFile.append(bytes) flatMap {
+            newFile.append(bytes)
+            currentFile.delete() flatMap {
               _ =>
-                currentFile.delete() flatMap {
-                  _ =>
-                    IO.Right(newFile)
-                }
+                IO.Right(newFile)
             }
         }
     }
@@ -272,7 +270,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
   def currentFilePath =
     currentFile.path
 
-  override def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
+  override def write(mapEntry: MapEntry[K, V]): Boolean =
     synchronized(persist(mapEntry))
 
   /**
@@ -287,26 +285,25 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
    * Range, Update or key-values with deadline.
    */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
-    if ((bytesWritten + entry.totalByteSize) <= actualFileSize)
-      currentFile.append(MapCodec.write(entry)) map {
-        _ =>
-          //if this main contains range then use skipListMerge.
-          if (entry.hasRange) {
-            _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
-            skipListMerger.insert(entry, skipList)
-          } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
-            skipListMerger.insert(entry, skipList)
-          } else {
-            entry applyTo skipList
-          }
-          bytesWritten += entry.totalByteSize
-          //          println("bytesWritten: " + bytesWritten)
-          true
+  private def persist(entry: MapEntry[K, V]): Boolean =
+    if ((bytesWritten + entry.totalByteSize) <= actualFileSize) {
+      currentFile.append(MapCodec.write(entry))
+      //if this main contains range then use skipListMerge.
+      if (entry.hasRange) {
+        _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
+        skipListMerger.insert(entry, skipList)
+      } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
+        skipListMerger.insert(entry, skipList)
+      } else {
+        entry applyTo skipList
       }
+      bytesWritten += entry.totalByteSize
+      //          println("bytesWritten: " + bytesWritten)
+      true
+    }
     //flushOnOverflow is executed if the current file is empty, even if flushOnOverflow = false.
     else if (!flushOnOverflow && bytesWritten != 0)
-      IO.`false`
+      false
     else {
       val nextFilesSize = entry.totalByteSize.toLong max fileSize
       PersistentMap.nextFile(currentFile, mmap, nextFilesSize, skipList) match {
@@ -318,7 +315,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
 
         case IO.Left(error) =>
           logger.error("{}: Failed to replace with new file", currentFile.path, error.exception)
-          IO.Left(error)
+          throw error.exception
       }
     }
 

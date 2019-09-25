@@ -345,7 +345,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 IO.Left(error)
             }
           else //is in-range key
-            oldRangeKeyValue.fetchFromAndRangeValue match {
+            oldRangeKeyValue.fetchFromAndRangeValueUnsafe match {
               case IO.Right((oldFromValue, oldRangeRangeValue)) if newKeyValue.key equiv oldRangeKeyValue.fromKey =>
                 FixedMerger(
                   newKeyValue = newKeyValue,
@@ -407,7 +407,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 IO.Left(error)
             }
           else //is in-range key
-            newRangeKeyValue.fetchFromAndRangeValue match {
+            newRangeKeyValue.fetchFromAndRangeValueUnsafe match {
               case IO.Right((newRangeFromValue, newRangeRangeValue)) if newRangeKeyValue.fromKey equiv oldKeyValue.key =>
                 val fromOrRange = newRangeFromValue.getOrElse(newRangeRangeValue)
                 fromOrRange match {
@@ -486,9 +486,9 @@ private[core] object SegmentMerger extends LazyLogging {
                 IO.Left(error)
             }
           else
-            newRangeKeyValue.fetchFromAndRangeValue match {
+            newRangeKeyValue.fetchFromAndRangeValueUnsafe match {
               case IO.Right((newRangeFromValue, newRangeRangeValue)) =>
-                oldRangeKeyValue.fetchFromAndRangeValue match {
+                oldRangeKeyValue.fetchFromAndRangeValueUnsafe match {
                   case IO.Right((oldRangeFromValue, oldRangeRangeValue)) =>
                     val newRangeFromKey = newRangeKeyValue.fromKey
                     val newRangeToKey = newRangeKeyValue.toKey

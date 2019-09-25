@@ -111,7 +111,7 @@ private[core] object Get {
             IO.Defer.none
 
         case current: KeyValue.ReadOnly.Range =>
-          IO(if (current.key equiv key) current.fetchFromOrElseRangeValue else current.fetchRangeValue) match {
+          IO(if (current.key equiv key) current.fetchFromOrElseRangeValueUnsafe else current.fetchRangeValueUnsafe) match {
             case IO.Right(currentValue) =>
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))

@@ -74,7 +74,7 @@ object CommonAssertions {
           Some(keyValue.toMemory.asInstanceOf[Memory.Put])
 
         case range: KeyValue.ReadOnly.Range =>
-          range.fetchFromValue.right.value flatMap {
+          range.fetchFromValueUnsafe.right.value flatMap {
             case put: Value.Put =>
               Some(put.toMemory(range.fromKey))
             case _ =>
@@ -1539,8 +1539,8 @@ object CommonAssertions {
           case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _fromKey.shouldBeSliced()
             _toKey.shouldBeSliced()
-            range.fetchFromValue.runRandomIO.right.value foreach assertSliced
-            assertSliced(range.fetchRangeValue.runRandomIO.right.value)
+            range.fetchFromValueUnsafe.runRandomIO.right.value foreach assertSliced
+            assertSliced(range.fetchRangeValueUnsafe.runRandomIO.right.value)
         }
     }
 

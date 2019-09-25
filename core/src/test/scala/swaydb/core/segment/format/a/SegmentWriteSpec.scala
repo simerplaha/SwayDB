@@ -945,7 +945,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValue.getOrFetchValue.runRandomIO.right.value shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Range =>
-            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValue.right.value
+            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe.right.value
             Seq(fromValue, Some(rangeValue)).flatten foreach valuesValueShouldBeNone
 
           case apply: KeyValue.ReadOnly.PendingApply =>

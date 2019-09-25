@@ -93,7 +93,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
 
         //if fromValue is defined it will be merged with lower else lower is returned
         val expected =
-          upperLevel.fetchFromOrElseRangeValue
+          upperLevel.fetchFromOrElseRangeValueUnsafe
             .map(currentFromValue => FixedMerger(currentFromValue.toMemory(0), lowerLevel).runRandomIO.right.value)
             .getOrElse(lowerLevel)
 

@@ -66,19 +66,19 @@ private[core] object MapCodec extends LazyLogging {
                  dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[swaydb.Error.Map, RecoveryResult[Option[MapEntry[K, V]]]] =
     Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
-        reader.hasAtLeast(ByteSizeOf.long) match {
+        IO(reader.hasAtLeast(ByteSizeOf.long)) match {
           case IO.Right(hasMore) =>
             if (hasMore) {
               val result =
-                reader.readLong() match {
+                IO(reader.readLong()) match {
                   case IO.Right(crc) =>
                     // An unfilled MemoryMapped file can have trailing empty bytes which indicates EOF.
                     if (crc == 0)
                       return IO.Right(recovery)
                     else
                       try {
-                        val length = reader.readInt().get
-                        val payload = (reader read length).get
+                        val length = reader.readInt()
+                        val payload = reader read length
                         val checkCRC = CRC32 forBytes payload
                         //crc check.
                         if (crc == checkCRC) {

@@ -73,7 +73,7 @@ private[core] object PersistentTimer extends LazyLogging {
         map.skipList.head() match {
           case Some(usedID) =>
             val startId = usedID.readLong()
-            map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(startId + mod))) flatMap {
+            map.writeSafe(MapEntry.Put(Timer.defaultKey, Slice.writeLong(startId + mod))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
@@ -88,7 +88,7 @@ private[core] object PersistentTimer extends LazyLogging {
             }
 
           case None =>
-            map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(mod))) flatMap {
+            map.writeSafe(MapEntry.Put(Timer.defaultKey, Slice.writeLong(mod))) flatMap {
               wrote =>
                 if (wrote)
                   IO {
@@ -122,7 +122,7 @@ private[core] object PersistentTimer extends LazyLogging {
   private[timer] def checkpoint(nextTime: Long,
                                 mod: Long,
                                 map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) =
-    map.write(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod))) onLeftSideEffect {
+    map.writeSafe(MapEntry.Put(Timer.defaultKey, Slice.writeLong(nextTime + mod))) onLeftSideEffect {
       failed =>
         val message = s"Failed to write timer entry: $nextTime"
         logger.error(message, failed.exception)

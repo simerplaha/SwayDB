@@ -92,7 +92,10 @@ private[core] trait Map[K, V] {
 
   val fileSize: Long
 
-  def write(mapEntry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean]
+  def write(mapEntry: MapEntry[K, V]): Boolean
+
+  def writeSafe[E: IO.ExceptionHandler](mapEntry: MapEntry[K, V]): IO[E, Boolean] =
+    IO[E, Boolean](write(mapEntry))
 
   def delete: IO[swaydb.Error.Map, Unit]
 

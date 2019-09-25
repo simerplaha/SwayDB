@@ -620,7 +620,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       appendEntry = Some(copiedSegmentsEntry)
                     )
                   else
-                    appendix.write(copiedSegmentsEntry) map (_ => ())
+                    appendix.writeSafe(copiedSegmentsEntry) map (_ => ())
 
                 putResult onLeftSideEffect {
                   failure =>
@@ -662,7 +662,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 buildNewMapEntry(newSegments, None, None)
                   .flatMap {
                     entry =>
-                      appendix write entry
+                      appendix writeSafe entry
                   }
                   .onLeftSideEffect {
                     failure =>
@@ -862,7 +862,7 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
           buildNewMapEntry(newSegments, Some(segment), None) flatMap {
             entry =>
-              appendix.write(entry).map(_ => ()) onRightSideEffect {
+              appendix.writeSafe(entry).map(_ => ()) onRightSideEffect {
                 _ =>
                   if (deleteSegmentsEventually)
                     segment.deleteSegmentsEventually
@@ -903,7 +903,7 @@ private[core] case class Level(dirs: Seq[Dir],
         mapEntry =>
           //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
           logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
-          appendix.write(mapEntry) flatMap {
+          appendix.writeSafe(mapEntry) flatMap {
             _ =>
               logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
               // If a delete fails that would be due OS permission issue.
@@ -1022,7 +1022,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
                   //which will remove oldEntries with duplicates with newer keys.
                   val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
-                  appendix.write(mapEntryToWrite) map {
+                  appendix.writeSafe(mapEntryToWrite) map {
                     _ =>
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
                       //delete assigned segments as they are replaced with new segments.

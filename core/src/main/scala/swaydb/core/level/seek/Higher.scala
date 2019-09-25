@@ -161,7 +161,7 @@ private[core] object Higher {
               //10->19  (input keys)
               //10 - 20 (higher range from current Level)
               case currentRange: ReadOnly.Range if key >= currentRange.fromKey =>
-                IO(currentRange.fetchRangeValue) match {
+                IO(currentRange.fetchRangeValueUnsafe) match {
                   case IO.Right(rangeValue) =>
                     //if the current range is active fetch the highest from next Level and return highest from both Levels.
                     if (Value.hasTimeLeft(rangeValue)) //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
@@ -228,7 +228,7 @@ private[core] object Higher {
                 Higher(current.key, Seek.Current.Read(segmentId), nextSeek)
 
               case current: KeyValue.ReadOnly.Range =>
-                IO(current.fetchFromValue) match {
+                IO(current.fetchFromValueUnsafe) match {
                   case IO.Right(fromValue) =>
                     higherFromValue(key, current.fromKey, fromValue) match {
                       case somePut @ Some(_) =>
@@ -312,7 +312,7 @@ private[core] object Higher {
                 //10 - 20
                 //10
                 else if (next.key equiv current.fromKey)
-                  IO(current.fetchFromOrElseRangeValue) match {
+                  IO(current.fetchFromOrElseRangeValueUnsafe) match {
                     case IO.Right(fromOrElseRangeValue) =>
                       FixedMerger(fromOrElseRangeValue.toMemory(current.fromKey), next) match {
                         case IO.Right(mergedCurrent) =>
@@ -336,7 +336,7 @@ private[core] object Higher {
                 //10  -  20
                 //  11-19
                 else if (next.key < current.toKey) //if the higher in next Level falls within the range.
-                  IO(current.fetchFromAndRangeValue) match {
+                  IO(current.fetchFromAndRangeValueUnsafe) match {
                     //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
                     case IO.Right((fromValue, rangeValue)) =>
                       higherFromValue(key, current.fromKey, fromValue) match {
@@ -368,7 +368,7 @@ private[core] object Higher {
                 //10 - 20
                 //     20 ----to----> ∞
                 else //else if the higher in next Level does not fall within the range.
-                  IO(current.fetchFromValue) match {
+                  IO(current.fetchFromValueUnsafe) match {
                     //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
                     case IO.Right(fromValue) =>
                       higherFromValue(key, current.fromKey, fromValue) match {

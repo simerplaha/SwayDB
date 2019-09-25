@@ -114,7 +114,7 @@ private[core] object Lower {
               //   19   (input key - exclusive)
               //10 - 20 (lower range from current Level)
               case currentRange: ReadOnly.Range if key < currentRange.toKey =>
-                IO(currentRange.fetchRangeValue) match {
+                IO(currentRange.fetchRangeValueUnsafe) match {
                   case IO.Right(rangeValue) =>
                     //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
                     if (Value.hasTimeLeft(rangeValue))
@@ -131,7 +131,7 @@ private[core] object Lower {
 
                     //if the rangeValue is expired then check if fromValue is valid put else fetch from lower and merge.
                     else
-                      IO(currentRange.fetchFromValue) match {
+                      IO(currentRange.fetchFromValueUnsafe) match {
                         case IO.Right(maybeFromValue) =>
                           //check if from value is a put before reading the next Level.
                           lowerFromValue(key, currentRange.fromKey, maybeFromValue) match {
@@ -262,7 +262,7 @@ private[core] object Lower {
                 //10   -    20 (lower range)
                 //  11 -> 19   (lower possible keys from next)
                 else if (next.key > current.fromKey)
-                  IO(current.fetchRangeValue) match {
+                  IO(current.fetchRangeValueUnsafe) match {
                     case IO.Right(rangeValue) =>
                       FixedMerger(rangeValue.toMemory(next.key), next) match {
                         case IO.Right(mergedCurrent) =>
@@ -288,7 +288,7 @@ private[core] object Lower {
                 //10   -    20 (lower range)
                 //10
                 else if (next.key equiv current.fromKey) //if the lower in next Level falls within the range.
-                  IO(current.fetchFromOrElseRangeValue) match {
+                  IO(current.fetchFromOrElseRangeValueUnsafe) match {
                     //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
                     case IO.Right(rangeValue) =>
                       lowerFromValue(key, current.fromKey, Some(rangeValue)) match {
@@ -320,7 +320,7 @@ private[core] object Lower {
                 //     10   -    20 (lower range)
                 //0->9
                 else //else if the lower in next Level does not fall within the range.
-                  IO(current.fetchFromValue) match {
+                  IO(current.fetchFromValueUnsafe) match {
                     //if fromValue is set check if it qualifies as the next highest orElse return lower of fromKey
                     case IO.Right(fromValue) =>
                       lowerFromValue(key, current.fromKey, fromValue) match {
@@ -357,7 +357,7 @@ private[core] object Lower {
                 Lower(current.key, Seek.Current.Read(segmentId), nextSeek)
 
               case current: KeyValue.ReadOnly.Range =>
-                IO(current.fetchFromValue) match {
+                IO(current.fetchFromValueUnsafe) match {
                   case IO.Right(fromValue) =>
                     lowerFromValue(key, current.fromKey, fromValue) match {
                       case somePut @ Some(_) =>

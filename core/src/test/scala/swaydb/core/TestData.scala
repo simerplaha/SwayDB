@@ -731,7 +731,7 @@ object TestData {
               }
 
             case range @ Persistent.Range(_fromKey, _toKey, _, _, _, _, _, _, _) =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.runRandomIO.right.value
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe.runRandomIO.right.value
               Transient.Range(
                 fromKey = _fromKey,
                 toKey = _toKey,
@@ -784,7 +784,7 @@ object TestData {
               }
 
             case range @ Persistent.Range(_fromKey, _toKey, _, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
-              val (fromValue, rangeValue) = range.fetchFromAndRangeValue.runRandomIO.right.value
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe.runRandomIO.right.value
               Memory.Range(_fromKey, _toKey, fromValue, rangeValue)
           }
       }

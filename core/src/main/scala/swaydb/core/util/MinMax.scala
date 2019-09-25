@@ -181,7 +181,7 @@ private[core] object MinMax {
 
   def minMaxFunction(range: KeyValue.ReadOnly.Range,
                      current: Option[MinMax[Slice[Byte]]]): IO[swaydb.Error.Segment, Option[MinMax[Slice[Byte]]]] =
-    range.fetchFromAndRangeValue map {
+    range.fetchFromAndRangeValueUnsafe map {
       case (fromValue, rangeValue) =>
         minMaxFunction(
           fromValue = fromValue,

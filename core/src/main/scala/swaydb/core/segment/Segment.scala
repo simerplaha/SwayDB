@@ -796,7 +796,7 @@ private[core] object Segment extends LazyLogging {
         IO(deadline)
 
       case range: KeyValue.ReadOnly.Range =>
-        range.fetchFromAndRangeValue map {
+        IO(range.fetchFromAndRangeValueUnsafe) map {
           case (Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             getNearestDeadline(fromValueDeadline, rangeValue)

@@ -312,7 +312,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
         case range: KeyValue.ReadOnly.Range =>
           if (isLastLevel)
-            range.fetchFromValue match {
+            range.fetchFromValueUnsafe match {
               case IO.Right(fromValue) =>
                 fromValue match {
                   case Some(fromValue) =>
@@ -347,7 +347,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 IO.Left(error)
             }
           else
-            range.fetchFromAndRangeValue flatMap {
+            range.fetchFromAndRangeValueUnsafe flatMap {
               case (fromValue, rangeValue) =>
                 doAdd(
                   Transient.Range(

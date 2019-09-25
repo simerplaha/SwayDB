@@ -73,115 +73,111 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
-      for {
-        segmentPathLength <- reader.readUnsignedInt()
-        segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
-        segmentPath <- IO(Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8)))
-        segmentSize <- reader.readUnsignedInt()
-        minKeyLength <- reader.readUnsignedInt()
-        minKey <- reader.read(minKeyLength).map(_.unslice())
-        maxKeyId <- reader.readUnsignedInt()
-        maxKeyLength <- reader.readUnsignedInt()
-        maxKeyBytes <- reader.read(maxKeyLength).map(_.unslice())
-        maxKey <- {
-          if (maxKeyId == 1)
-            IO.Right(MaxKey.Fixed(maxKeyBytes))
+      IO {
+        val segmentPathLength = reader.readUnsignedInt()
+        val segmentPathBytes = reader.read(segmentPathLength).unslice()
+        val segmentPath = Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8))
+        val segmentSize = reader.readUnsignedInt()
+        val minKeyLength = reader.readUnsignedInt()
+        val minKey = reader.read(minKeyLength).unslice()
+        val maxKeyId = reader.readUnsignedInt()
+        val maxKeyLength = reader.readUnsignedInt()
+        val maxKeyBytes = reader.read(maxKeyLength).unslice()
+
+        val maxKey =
+          if (maxKeyId == 1) {
+            MaxKey.Fixed(maxKeyBytes)
+          } else {
+            val (fromKey, toKey) = Bytes.decompressJoin(maxKeyBytes)
+            MaxKey.Range(fromKey, toKey)
+          }
+
+        val nearestExpiryDeadline = {
+          val deadlineNanos = reader.readUnsignedLong()
+          if (deadlineNanos == 0)
+            None
+          else
+            Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
+        }
+
+        val minMaxFunctionId = {
+          val minIdSize = reader.readUnsignedInt()
+          if (minIdSize == 0)
+            None
           else {
-            Bytes.decompressJoin(maxKeyBytes) map {
-              case (fromKey, toKey) =>
-                MaxKey.Range(fromKey, toKey)
-            }
-          }
-        }
-        nearestExpiryDeadline <- {
-          reader.readUnsignedLong() map {
-            deadlineNanos =>
-              if (deadlineNanos == 0)
-                None
-              else
-                Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
-          }
-        }
-        minMaxFunctionId <- {
-          reader.readUnsignedInt() flatMap {
-            minIdSize =>
-              if (minIdSize == 0)
-                IO.none
-              else
-                for {
-                  minId <- reader.read(minIdSize)
-                  maxIdSize <- reader.readUnsignedInt()
-                  maxId <- if (maxIdSize == 0) IO.none else reader.read(maxIdSize).toOptionValue
-                } yield Some(MinMax(minId, maxId))
+            val minId = reader.read(minIdSize)
+            val maxIdSize = reader.readUnsignedInt()
+            val maxId = if (maxIdSize == 0) None else Some(reader.read(maxIdSize))
+            Some(MinMax(minId, maxId))
           }
         }
 
-        segmentId <-
+        val segmentResult =
           Effect.fileId(segmentPath) flatMap {
             case (segmentId, Extension.Seg) =>
-              IO.Right(segmentId)
+
+              /**
+               * Not a very nice way of converting [[Segment]] initialisation errors into [[swaydb.Error.Segment]]
+               * as Map readers only know about [[swaydb.Error.Map]].
+               *
+               * If an error is Segment specific it gets wrapped as [[swaydb.Error.Fatal]] which get reopened
+               * and converted back to [[swaydb.Error.Level]] when the Level initialises.
+               *
+               * A needs to be a design update on how MapReader read data. MapReader should simply read the data
+               * parse it to a type and without knowing about [[Segment]] or any other data type this way Map can
+               * initialise and handle errors within themselves without having to know about the outside.
+               */
+
+              Segment(
+                path = segmentPath,
+                segmentId = segmentId,
+                mmapReads = mmapSegmentsOnRead,
+                mmapWrites = mmapSegmentsOnWrite,
+                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                minKey = minKey,
+                maxKey = maxKey,
+                segmentSize = segmentSize,
+                minMaxFunctionId = minMaxFunctionId,
+                nearestExpiryDeadline = nearestExpiryDeadline,
+                checkExists = false
+              ) match {
+                case IO.Right(segment) =>
+                  IO.Right {
+                    Some(
+                      MapEntry.Put(
+                        key = minKey,
+                        value = segment
+                      )(AppendixMapEntryWriter.AppendixPutWriter)
+                    )
+                  }
+
+                case IO.Left(error) =>
+                  error match {
+                    case Error.Fatal(exception) =>
+                      IO.Left(Error.Fatal(exception))
+
+                    case io: Error.IO =>
+                      IO.Left(io)
+
+                    case other: swaydb.Error.Segment =>
+                      //convert Segment error to fatal.
+                      IO.Left(Error.Fatal(other.exception))
+                  }
+              }
+
             case (segmentId, Extension.Log) =>
               IO.failed(s"Invalid segment extension: $segmentPath")
           }
 
-        segment <-
-
-          /**
-           * Not a very nice way of converting [[Segment]] initialisation errors into [[swaydb.Error.Segment]]
-           * as Map readers only know about [[swaydb.Error.Map]].
-           *
-           * If an error is Segment specific it gets wrapped as [[swaydb.Error.Fatal]] which get reopened
-           * and converted back to [[swaydb.Error.Level]] when the Level initialises.
-           *
-           * A needs to be a design update on how MapReader read data. MapReader should simply read the data
-           * parse it to a type and without knowing about [[Segment]] or any other data type this way Map can
-           * initialise and handle errors within themselves without having to know about the outside.
-           */
-          Segment(
-            path = segmentPath,
-            segmentId = segmentId,
-            mmapReads = mmapSegmentsOnRead,
-            mmapWrites = mmapSegmentsOnWrite,
-            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-            minKey = minKey,
-            maxKey = maxKey,
-            segmentSize = segmentSize,
-            minMaxFunctionId = minMaxFunctionId,
-            nearestExpiryDeadline = nearestExpiryDeadline,
-            checkExists = false
-          ) match {
-            case IO.Right(value) =>
-              IO.Right(value)
-
-            case IO.Left(error) =>
-              error match {
-                case Error.Fatal(exception) =>
-                  IO.Left(Error.Fatal(exception))
-
-                case io: Error.IO =>
-                  IO.Left(io)
-
-                case other: swaydb.Error.Segment =>
-                  //convert Segment error to fatal.
-                  IO.Left(Error.Fatal(other.exception))
-              }
-          }
-      } yield {
-        Some(
-          MapEntry.Put(
-            key = minKey,
-            value = segment
-          )(AppendixMapEntryWriter.AppendixPutWriter)
-        )
+        segmentResult.get
       }
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
     override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
-      for {
-        minKeyLength <- reader.readUnsignedInt()
-        minKey <- reader.read(minKeyLength).map(_.unslice())
-      } yield {
+      IO {
+        val minKeyLength = reader.readUnsignedInt()
+        val minKey = reader.read(minKeyLength).unslice()
         Some(MapEntry.Remove(minKey)(AppendixMapEntryWriter.AppendixRemoveWriter))
       }
   }
@@ -190,7 +186,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
     override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
-          reader.readUnsignedInt() flatMap {
+          IO(reader.readUnsignedInt()) flatMap {
             entryId =>
               if (entryId == AppendixMapEntryWriter.AppendixPutWriter.id)
                 AppendixPutReader.read(reader) map {

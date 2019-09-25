@@ -20,6 +20,7 @@
 package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.{Error, IO}
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
 
@@ -27,7 +28,7 @@ private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging
 
   private var position: Int = 0
 
-  def isLoaded: Boolean =
+  def isLoaded: IO[Error.IO, Boolean] =
     file.isLoaded
 
   override def size: Long =

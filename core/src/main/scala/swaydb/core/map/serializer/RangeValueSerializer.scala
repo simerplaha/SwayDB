@@ -19,13 +19,10 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.Error.IO.ExceptionHandler
-import swaydb.IO
 import swaydb.core.data.Value
 import swaydb.core.data.Value.{Put, Remove, Update}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
-import swaydb.core.util.PipeOps._
 import swaydb.data.slice.{ReaderBase, Slice}
 
 import scala.annotation.implicitNotFound
@@ -55,7 +52,7 @@ object RangeValueSerializer {
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase): (Unit, Remove) =
-      ValueSerializer.read[Value.Remove](reader).map(remove => ((), remove))
+      ((), ValueSerializer.read[Value.Remove](reader))
   }
 
   implicit object UnitUpdateSerializer extends RangeValueSerializer[Unit, Value.Update] {
@@ -69,7 +66,7 @@ object RangeValueSerializer {
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase): (Unit, Value.Update) =
-      ValueSerializer.read[Value.Update](reader).map(update => ((), update))
+      ((), ValueSerializer.read[Value.Update](reader))
   }
 
   implicit object UnitFunctionSerializer extends RangeValueSerializer[Unit, Value.Function] {
@@ -83,7 +80,7 @@ object RangeValueSerializer {
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase): (Unit, Value.Function) =
-      ValueSerializer.read[Value.Function](reader).map(function => ((), function))
+      ((), ValueSerializer.read[Value.Function](reader))
   }
 
   implicit object UnitPendingApplySerializer extends RangeValueSerializer[Unit, Value.PendingApply] {
@@ -97,7 +94,7 @@ object RangeValueSerializer {
       Bytes.sizeOfUnsignedInt(id) + ValueSerializer.bytesRequired(rangeValue)
 
     def read(reader: ReaderBase): (Unit, Value.PendingApply) =
-      ValueSerializer.read[Value.PendingApply](reader).map(put => ((), put))
+      ((), ValueSerializer.read[Value.PendingApply](reader))
   }
 
   /**
@@ -124,17 +121,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Remove, Value.Remove) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Remove](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Remove, Value.Remove) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Remove](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Remove](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object RemoveUpdateSerializer extends RangeValueSerializer[Value.Remove, Value.Update] {
@@ -158,17 +150,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Remove, Value.Update) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Update](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Remove, Value.Update) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Remove](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Update](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object RemoveFunctionSerializer extends RangeValueSerializer[Value.Remove, Value.Function] {
@@ -192,17 +179,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Remove, Value.Function) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Function](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Remove, Value.Function) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Remove](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Function](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object RemovePendingApplySerializer extends RangeValueSerializer[Value.Remove, Value.PendingApply] {
@@ -226,17 +208,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Remove, Value.PendingApply) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Remove](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.PendingApply](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Remove, Value.PendingApply) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Remove](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.PendingApply](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   /**
@@ -264,17 +241,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Put, Remove) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Remove](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Put, Remove) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Put](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Remove](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object PutUpdateSerializer extends RangeValueSerializer[Value.Put, Value.Update] {
@@ -298,17 +270,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Put, Value.Update) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Update](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Put, Value.Update) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Put](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Update](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object PutFunctionSerializer extends RangeValueSerializer[Value.Put, Value.Function] {
@@ -332,17 +299,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Put, Value.Function) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Function](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Put, Value.Function) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Put](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Function](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object PutPendingApplySerializer extends RangeValueSerializer[Value.Put, Value.PendingApply] {
@@ -366,17 +328,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Put, Value.PendingApply) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Put](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.PendingApply](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Put, Value.PendingApply) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Put](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.PendingApply](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   /**
@@ -402,17 +359,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Update, Value.Remove) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Remove](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Update, Value.Remove) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Update](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Remove](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object UpdateUpdateSerializer extends RangeValueSerializer[Value.Update, Value.Update] {
@@ -436,17 +388,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Update, Value.Update) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Update](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Update, Value.Update) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Update](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Update](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object UpdateFunctionSerializer extends RangeValueSerializer[Value.Update, Value.Function] {
@@ -469,17 +416,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Update, Value.Function) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Function](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Update, Value.Function) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Update](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Function](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object UpdatePendingApplySerializer extends RangeValueSerializer[Value.Update, Value.PendingApply] {
@@ -502,17 +444,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Update, Value.PendingApply) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Update](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.PendingApply](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Update, Value.PendingApply) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Update](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.PendingApply](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   /**
@@ -538,17 +475,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Function, Value.Remove) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Remove](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Function, Value.Remove) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Function](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Remove](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object FunctionUpdateSerializer extends RangeValueSerializer[Value.Function, Value.Update] {
@@ -571,17 +503,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Function, Value.Update) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Update](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Function, Value.Update) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Function](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Update](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object FunctionFunctionSerializer extends RangeValueSerializer[Value.Function, Value.Function] {
@@ -604,17 +531,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Function, Value.Function) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Function](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Function, Value.Function) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Function](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Function](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object FunctionPendingApplySerializer extends RangeValueSerializer[Value.Function, Value.PendingApply] {
@@ -637,19 +559,13 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.Function, Value.PendingApply) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.Function](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.PendingApply](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.Function, Value.PendingApply) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.Function](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.PendingApply](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
-
   /**
    * Function
    */
@@ -673,17 +589,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.PendingApply, Value.Remove) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Remove](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.PendingApply, Value.Remove) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.PendingApply](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Remove](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object PendingApplyUpdateSerializer extends RangeValueSerializer[Value.PendingApply, Value.Update] {
@@ -706,17 +617,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.PendingApply, Value.Update) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Update](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.PendingApply, Value.Update) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.PendingApply](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Update](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object PendingApplyFunctionSerializer extends RangeValueSerializer[Value.PendingApply, Value.Function] {
@@ -739,17 +645,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.PendingApply, Value.Function) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.Function](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.PendingApply, Value.Function) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.PendingApply](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.Function](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   implicit object PendingApplyPendingApplySerializer extends RangeValueSerializer[Value.PendingApply, Value.PendingApply] {
@@ -772,17 +673,12 @@ object RangeValueSerializer {
         ValueSerializer.bytesRequired(rangeValue)
     }
 
-    def read(reader: ReaderBase): (Value.PendingApply, Value.PendingApply) =
-      reader.readUnsignedInt().flatMap(reader.read) flatMap {
-        fromValueBytes =>
-          ValueSerializer.read[Value.PendingApply](fromValueBytes) flatMap {
-            fromKeyValue =>
-              ValueSerializer.read[Value.PendingApply](reader) map {
-                rangeValue =>
-                  (fromKeyValue, rangeValue)
-              }
-          }
-      }
+    def read(reader: ReaderBase): (Value.PendingApply, Value.PendingApply) = {
+      val fromValueBytes = reader.read(reader.readUnsignedInt())
+      val fromKeyValue = ValueSerializer.read[Value.PendingApply](fromValueBytes)
+      val rangeValue = ValueSerializer.read[Value.PendingApply](reader)
+      (fromKeyValue, rangeValue)
+    }
   }
 
   def write[F, R](fromValue: F, rangeValue: R)(bytes: Slice[Byte])(implicit serializer: RangeValueSerializer[F, R]): Unit =
@@ -910,70 +806,73 @@ object RangeValueSerializer {
       }
   }
 
+  @inline private implicit def optionTuple_1[L, R](tuple: (L, R)): (Option[L], R) =
+    (Some(tuple._1), tuple._2)
+
+  @inline private implicit def optionTuple_1[R](tuple: (Unit, R)): (None.type, R) =
+    (None, tuple._2)
+
   private def read(rangeId: Int,
                    reader: ReaderBase): (Option[Value.FromValue], Value.RangeValue) =
     rangeId match {
       case RemoveRemoveSerializer.id =>
-        RemoveRemoveSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        RemoveRemoveSerializer.read(reader)
       case RemoveUpdateSerializer.id =>
-        RemoveUpdateSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        RemoveUpdateSerializer.read(reader)
       case RemoveFunctionSerializer.id =>
-        RemoveFunctionSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        RemoveFunctionSerializer.read(reader)
       case RemovePendingApplySerializer.id =>
-        RemovePendingApplySerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        RemovePendingApplySerializer.read(reader)
 
       case PutRemoveSerializer.id =>
-        PutRemoveSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PutRemoveSerializer.read(reader)
       case PutUpdateSerializer.id =>
-        PutUpdateSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PutUpdateSerializer.read(reader)
       case PutFunctionSerializer.id =>
-        PutFunctionSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PutFunctionSerializer.read(reader)
       case PutPendingApplySerializer.id =>
-        PutPendingApplySerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PutPendingApplySerializer.read(reader)
 
       case UpdateRemoveSerializer.id =>
-        UpdateRemoveSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        UpdateRemoveSerializer.read(reader)
       case UpdateUpdateSerializer.id =>
-        UpdateUpdateSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        UpdateUpdateSerializer.read(reader)
       case UpdateFunctionSerializer.id =>
-        UpdateFunctionSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        UpdateFunctionSerializer.read(reader)
       case UpdatePendingApplySerializer.id =>
-        UpdatePendingApplySerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        UpdatePendingApplySerializer.read(reader)
 
       case FunctionRemoveSerializer.id =>
-        FunctionRemoveSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        FunctionRemoveSerializer.read(reader)
       case FunctionUpdateSerializer.id =>
-        FunctionUpdateSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        FunctionUpdateSerializer.read(reader)
       case FunctionFunctionSerializer.id =>
-        FunctionFunctionSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        FunctionFunctionSerializer.read(reader)
       case FunctionPendingApplySerializer.id =>
-        FunctionPendingApplySerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        FunctionPendingApplySerializer.read(reader)
 
       case PendingApplyRemoveSerializer.id =>
-        PendingApplyRemoveSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PendingApplyRemoveSerializer.read(reader)
       case PendingApplyUpdateSerializer.id =>
-        PendingApplyUpdateSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PendingApplyUpdateSerializer.read(reader)
       case PendingApplyFunctionSerializer.id =>
-        PendingApplyFunctionSerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PendingApplyFunctionSerializer.read(reader)
       case PendingApplyPendingApplySerializer.id =>
-        PendingApplyPendingApplySerializer.read(reader) map { case (fromValue, rangeValue) => (Some(fromValue), rangeValue) }
+        PendingApplyPendingApplySerializer.read(reader)
 
       case UnitRemoveSerializer.id =>
-        UnitRemoveSerializer.read(reader) map { case (_, rangeValue) => (None, rangeValue) }
+        UnitRemoveSerializer.read(reader)
       case UnitUpdateSerializer.id =>
-        UnitUpdateSerializer.read(reader) map { case (_, rangeValue) => (None, rangeValue) }
+        UnitUpdateSerializer.read(reader)
       case UnitFunctionSerializer.id =>
-        UnitFunctionSerializer.read(reader) map { case (_, rangeValue) => (None, rangeValue) }
+        UnitFunctionSerializer.read(reader)
       case UnitPendingApplySerializer.id =>
-        UnitPendingApplySerializer.read(reader) map { case (_, rangeValue) => (None, rangeValue) }
+        UnitPendingApplySerializer.read(reader)
     }
 
-  def read(bytes: Slice[Byte]): (Option[Value.FromValue], Value.RangeValue) =
-    Reader(bytes) ==> {
-      reader =>
-        reader.readUnsignedInt() flatMap {
-          rangeId =>
-            read(rangeId, reader)
-        }
-    }
+  def read(bytes: Slice[Byte]): (Option[Value.FromValue], Value.RangeValue) = {
+    val reader = Reader(bytes)
+    val rangeId = reader.readUnsignedInt()
+    read(rangeId, reader)
+  }
 }

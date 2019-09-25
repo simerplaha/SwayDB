@@ -296,7 +296,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
 
-  def write(mapEntry: Timer => MapEntry[K, V]): IO[swaydb.Error.Map, IO.Done] =
+  def write(mapEntry: Timer => MapEntry[K, V]): Unit =
     synchronized {
       if (brakePedal != null && brakePedal.applyBrakes()) brakePedal = null
       persist(mapEntry(timer))
@@ -304,63 +304,36 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
 
   /**
    * @param entry entry to add
-   *
    * @return IO.Right(true) when new map gets added to maps. This return value is currently used
    *         in LevelZero to determine if there is a map that should be converted Segment.
    */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): IO[swaydb.Error.Map, IO.Done] =
-    currentMap.write(entry) match {
-      case IO.Right(writeSuccessful) =>
-        if (writeSuccessful)
-          IO.done
-        else
-          IO(acceleration(meter)) match {
-            case IO.Right(accelerate) =>
-              accelerate.brake match {
-                case Some(brake) =>
-                  brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
+  private def persist(entry: MapEntry[K, V]): Unit =
+    if (!currentMap.write(entry)) {
+      val accelerate = acceleration(meter)
 
-                case None =>
-                  brakePedal = null
-              }
+      accelerate.brake match {
+        case Some(brake) =>
+          brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
 
-              val nextMapSize = accelerate.nextMapSize max entry.totalByteSize
-              logger.debug(s"Next map size: {}.bytes", nextMapSize)
-              Maps.nextMap(nextMapSize, currentMap) match {
-                case IO.Right(nextMap) =>
-                  maps addFirst currentMap
-                  currentMap = nextMap
-                  totalMapsCount += 1
-                  currentMapsCount += 1
-                  onNextMapListener()
-                  persist(entry)
+        case None =>
+          brakePedal = null
+      }
 
-                case IO.Left(error) =>
-                  IO.Left(error)
-              }
-            case IO.Left(error) =>
-              IO.Left(error)
-          }
+      val nextMapSize = accelerate.nextMapSize max entry.totalByteSize
+      logger.debug(s"Next map size: {}.bytes", nextMapSize)
+      Maps.nextMap(nextMapSize, currentMap) match {
+        case IO.Right(nextMap) =>
+          maps addFirst currentMap
+          currentMap = nextMap
+          totalMapsCount += 1
+          currentMapsCount += 1
+          onNextMapListener()
+          persist(entry)
 
-      //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that
-      //if the failure was due to a corruption in the current Map, all the new Entries do not value submitted
-      //to the same Map file. They SHOULD be added to a new Map file that is not already unreadable.
-      case IO.Left(writeException) =>
-        logger.error("IO.Left to write Map entry. Starting a new Map.", writeException.exception)
-        Maps.nextMap(fileSize, currentMap) match {
-          case IO.Right(nextMap) =>
-            maps addFirst currentMap
-            currentMap = nextMap
-            totalMapsCount += 1
-            currentMapsCount += 1
-            onNextMapListener()
-            IO.Left(writeException)
-
-          case IO.Left(newMapException) =>
-            logger.error("Failed to create a new map on failure to write", newMapException.exception)
-            IO.Left(writeException)
-        }
+        case IO.Left(error) =>
+          throw error.exception
+      }
     }
 
   private def findFirst[R](f: Map[K, V] => Option[R]): Option[R] = {

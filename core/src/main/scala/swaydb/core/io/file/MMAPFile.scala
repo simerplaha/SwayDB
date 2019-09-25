@@ -109,6 +109,14 @@ private[file] class MMAPFile(val path: Path,
         IO.Left(other)
     }
 
+  def watchNullPointer[T](f: => T): T =
+    try
+      f
+    catch {
+      case ex: NullPointerException =>
+        throw swaydb.Exception.NullMappedByteBuffer(ex, Reserve.free(name = s"${this.getClass.getSimpleName}: $path"))
+    }
+
   def close(): IO[swaydb.Error.IO, Unit] =
   //    logger.info(s"$path: Closing channel")
     if (open.compareAndSet(true, false)) {
@@ -142,8 +150,8 @@ private[file] class MMAPFile(val path: Path,
       BufferCleaner.clean(swapBuffer, path)
     }
 
-  private def extendBuffer(bufferSize: Long): IO[swaydb.Error.IO, Unit] =
-    recoverFromNullPointer {
+  private def extendBuffer(bufferSize: Long): Unit =
+    watchNullPointer {
       val positionBeforeClear = buffer.position()
       buffer.force()
       clearBuffer()
@@ -151,34 +159,27 @@ private[file] class MMAPFile(val path: Path,
       buffer.position(positionBeforeClear)
     }
 
-  override def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit] =
-    (slice foreachIO append) getOrElse IO.unit
+  override def append(slice: Iterable[Slice[Byte]]): Unit =
+    slice foreach append
 
   @tailrec
-  final def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit] =
-    recoverFromNullPointer[Unit](buffer.put(slice.toByteBufferWrap)) match {
-      case success: IO.Right[_, _] =>
-        success
-
-      //Although this code extends the buffer, currently there is no implementation that requires this feature.
-      //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
-      case IO.Left(swaydb.Error.Fatal(ex: BufferOverflowException)) =>
+  final def append(slice: Slice[Byte]): Unit =
+    try
+      watchNullPointer[Unit](buffer.put(slice.toByteBufferWrap))
+    catch {
+      case ex: BufferOverflowException =>
+        //Although this code extends the buffer, currently there is no implementation that requires this feature.
+        //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
         val requiredByteSize = slice.size.toLong
         logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
           path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
 
-        val result = extendBuffer(requiredByteSize)
-        if (result.isRight)
-          append(slice)
-        else
-          result
-
-      case failure: IO.Left[_, _] =>
-        failure
+        extendBuffer(requiredByteSize)
+        append(slice)
     }
 
-  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
-    recoverFromNullPointer {
+  def read(position: Int, size: Int): Slice[Byte] =
+    watchNullPointer {
       val array = new Array[Byte](size)
       var i = 0
       while (i < size) {
@@ -188,16 +189,16 @@ private[file] class MMAPFile(val path: Path,
       Slice(array)
     }
 
-  def get(position: Int): IO[swaydb.Error.IO, Byte] =
-    recoverFromNullPointer {
+  def get(position: Int): Byte =
+    watchNullPointer {
       buffer.get(position)
     }
 
   override def fileSize =
-    recoverFromNullPointer(channel.size())
+    watchNullPointer(channel.size())
 
   override def readAll: IO[swaydb.Error.IO, Slice[Byte]] =
-    read(0, channel.size().toInt)
+    IO(read(0, channel.size().toInt))
 
   override def isOpen =
     channel.isOpen

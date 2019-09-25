@@ -61,74 +61,57 @@ private[core] object Effect extends LazyLogging {
 
   def write(to: Path,
             bytes: Slice[Byte]): IO[swaydb.Error.IO, Path] =
-    IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
-      channel =>
-        try {
-          writeUnclosed(channel, bytes) map {
-            _ =>
-              to
-          }
-        } finally {
-          channel.close()
-        }
+    IO {
+      val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+      try {
+        writeUnclosed(channel, bytes)
+        to
+      } finally {
+        channel.close()
+      }
     }
 
   def write(to: Path,
             bytes: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Path] =
-    IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
-      channel =>
-        try {
-          writeUnclosed(channel, bytes) map {
-            _ =>
-              to
-          }
-        } finally {
-          channel.close()
-        }
+    IO {
+      val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+      try {
+        writeUnclosed(channel, bytes)
+        to
+      } finally {
+        channel.close()
+      }
     }
 
   def replace(bytes: Slice[Byte],
               to: Path): IO[swaydb.Error.IO, Path] =
-    IO(Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)) flatMap {
-      channel =>
-        try {
-          writeUnclosed(channel, bytes) map {
-            _ =>
-              to
-          }
-        } finally {
-          channel.close()
-        }
+    IO {
+      val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
+      try {
+        writeUnclosed(channel, bytes)
+        to
+      } finally {
+        channel.close()
+      }
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit] =
-    try
-      bytes foreachIO {
-        bytes =>
-          writeUnclosed(channel, bytes)
-      } getOrElse IO.unit
-    catch {
-      case exception: Exception =>
-        IO.failed(exception)
+                    bytes: Iterable[Slice[Byte]]): Unit =
+    bytes foreach {
+      bytes =>
+        writeUnclosed(channel, bytes)
     }
 
   def writeUnclosed(channel: WritableByteChannel,
-                    bytes: Slice[Byte]): IO[swaydb.Error.IO, Unit] =
-    try {
-      val written = channel write bytes.toByteBufferWrap
+                    bytes: Slice[Byte]): Unit = {
+    val written = channel write bytes.toByteBufferWrap
 
-      // toByteBuffer uses size of Slice instead of written,
-      // but here the check on written ensures that only the actually written bytes find written.
-      // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
-      if (written != bytes.size)
-        IO.failed(swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size))
-      else
-        IO.unit
-    } catch {
-      case exception: Exception =>
-        IO.failed(exception)
-    }
+    // toByteBuffer uses size of Slice instead of written,
+    // but here the check on written ensures that only the actually written bytes find written.
+    // All the client code invoking writes to Disk using Slice should ensure that no Slice contains empty bytes.
+    if (written != bytes.size)
+      throw swaydb.Exception.FailedToWriteAllBytes(written, bytes.size, bytes.size)
+  }
 
   def copy(copyFrom: Path,
            copyTo: Path): IO[swaydb.Error.IO, Path] =

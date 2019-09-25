@@ -180,86 +180,99 @@ private[core] case class LevelZero(path: Path,
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
-  def assertKey(key: Slice[Byte])(block: => IO[swaydb.Error.Level, IO.Done]): IO[swaydb.Error.Level, IO.Done] =
+  def assertRun(key: Slice[Byte])(block: => Unit): IO[swaydb.Error.Level, IO.Done] =
     if (key.isEmpty)
       IO.failed(new IllegalArgumentException("Input key(s) cannot be empty."))
     else
-      block
+      IO[swaydb.Error.Level, IO.Done] {
+        block
+        IO.Done
+      }
 
-  def put(key: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): IO[swaydb.Error.Level, IO.Done] =
+    if (fromKey.isEmpty)
+      IO.failed(new IllegalArgumentException("Input fromKey cannot be empty."))
+    else if (toKey.isEmpty)
+      IO.failed(new IllegalArgumentException("Input toKey cannot be empty."))
+    else
+      IO[swaydb.Error.Level, IO.Done] {
+        block
+        IO.Done
+      }
+
+  def put(key: Slice[Byte]): IO[Error.Level, IO.Done] =
+    assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, None, None, timer.next)))
     }
 
   def put(key: Slice[Byte], value: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+    assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, Some(value), None, timer.next)))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+    assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), timer.next)))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+    assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
     }
 
   def put(entry: Timer => MapEntry[Slice[Byte], Memory]): IO[swaydb.Error.Level, IO.Done] =
-    maps write entry
+    IO {
+      maps write entry
+      IO.Done
+    }
 
   def remove(key: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+    assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
     }
 
   def remove(key: Slice[Byte], at: Deadline): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+    assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     }
 
   def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(fromKey) {
-      assertKey(toKey) {
-        if (fromKey equiv toKey)
-          remove(fromKey)
-        else if (fromKey > toKey)
-          IO.failed("fromKey should be less than or equal to toKey")
-        else
-          maps
-            .write {
-              timer =>
-                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                  MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
-            }
-      }
+    assertRun(fromKey, toKey) {
+      if (fromKey equiv toKey)
+        remove(fromKey)
+      else if (fromKey > toKey)
+        IO.failed("fromKey should be less than or equal to toKey")
+      else
+        maps
+          .write {
+            timer =>
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
+          }
     }
 
   def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(fromKey) {
-      assertKey(toKey) {
-        if (fromKey equiv toKey)
-          remove(fromKey)
-        else if (fromKey > toKey)
-          IO.failed("fromKey should be less than or equal to toKey")
-        else
-          maps
-            .write {
-              timer =>
-                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                  MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
-            }
-      }
+    assertRun(fromKey, toKey) {
+      if (fromKey equiv toKey)
+        remove(fromKey)
+      else if (fromKey > toKey)
+        IO.failed("fromKey should be less than or equal to toKey")
+      else
+        maps
+          .write {
+            timer =>
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
+                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
+          }
     }
 
   def update(key: Slice[Byte], value: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+    assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, Some(value), None, timer.next)))
     }
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(key) {
+    assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     }
 
@@ -267,27 +280,25 @@ private[core] case class LevelZero(path: Path,
     update(fromKey, toKey, Some(value))
 
   def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO[swaydb.Error.Level, IO.Done] =
-    assertKey(fromKey) {
-      assertKey(toKey) {
-        if (fromKey equiv toKey)
-          update(fromKey, value)
-        else if (fromKey >= toKey)
-          IO.failed("fromKey should be less than or equal to toKey")
-        else
-          maps
-            .write {
-              timer =>
-                (MapEntry.Put[Slice[Byte], Memory.Range](
-                  key = fromKey,
-                  value = Memory.Range(
-                    fromKey = fromKey,
-                    toKey = toKey,
-                    fromValue = None,
-                    rangeValue = Value.Update(value, None, timer.next)
-                  )
-                ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
-            }
-      }
+    assertRun(fromKey, toKey) {
+      if (fromKey equiv toKey)
+        update(fromKey, value)
+      else if (fromKey >= toKey)
+        IO.failed("fromKey should be less than or equal to toKey")
+      else
+        maps
+          .write {
+            timer =>
+              (MapEntry.Put[Slice[Byte], Memory.Range](
+                key = fromKey,
+                value = Memory.Range(
+                  fromKey = fromKey,
+                  toKey = toKey,
+                  fromValue = None,
+                  rangeValue = Value.Update(value, None, timer.next)
+                )
+              ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
+          }
     }
 
   def clear(): IO.Defer[swaydb.Error.Level, IO.Done] =
@@ -314,7 +325,7 @@ private[core] case class LevelZero(path: Path,
     if (!functionStore.exists(function))
       IO.failed("Function does not exists in function store.")
     else
-      assertKey(key) {
+      assertRun(key) {
         maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next)))
       }
 
@@ -322,19 +333,17 @@ private[core] case class LevelZero(path: Path,
     if (!functionStore.exists(function))
       IO.failed("Function does not exists in function store.")
     else
-      assertKey(fromKey) {
-        assertKey(toKey) {
-          if (fromKey equiv toKey)
-            applyFunction(fromKey, function)
-          else if (fromKey >= toKey)
-            IO.failed("fromKey should be less than or equal to toKey")
-          else
-            maps.write {
-              timer =>
-                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                  MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
-            }
-        }
+      assertRun(fromKey, toKey) {
+        if (fromKey equiv toKey)
+          applyFunction(fromKey, function)
+        else if (fromKey >= toKey)
+          IO.failed("fromKey should be less than or equal to toKey")
+        else
+          maps.write {
+            timer =>
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+                MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
+          }
       }
 
   private def getFromMap(key: Slice[Byte],
@@ -806,8 +815,7 @@ private[core] case class LevelZero(path: Path,
           case Some(put) =>
 
             val value =
-              put
-                .getOrFetchValue
+              IO(put.getOrFetchValue)
                 .flatMap {
                   value =>
                     IO.Right(Some(put.key, value))

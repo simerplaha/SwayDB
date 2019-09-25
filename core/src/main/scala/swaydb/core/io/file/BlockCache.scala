@@ -19,11 +19,9 @@
 
 package swaydb.core.io.file
 
-import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
 import swaydb.data.slice.Slice
-import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 
@@ -82,17 +80,16 @@ private[core] object BlockCache {
   def seekSize(keyPosition: Int,
                size: Int,
                file: DBFileType,
-               state: State): IO[Error.IO, Int] =
-    file.fileSize map {
-      fileSize =>
-        val seekSize =
-          if (state.blockSize <= 0)
-            size
-          else
-            (state.blockSizeDouble * Math.ceil(Math.abs(size / state.blockSizeDouble))).toInt
+               state: State): Int = {
+    val fileSize = file.fileSize
+    val seekSize =
+      if (state.blockSize <= 0)
+        size
+      else
+        (state.blockSizeDouble * Math.ceil(Math.abs(size / state.blockSizeDouble))).toInt
 
-        ((fileSize.toInt - keyPosition) min seekSize) max 0
-    }
+    ((fileSize.toInt - keyPosition) min seekSize) max 0
+  }
 
   def seekPosition(position: Int, state: State): Int =
     if (state.blockSize <= 0)
@@ -104,56 +101,56 @@ private[core] object BlockCache {
     def seek(keyPosition: Int,
              size: Int,
              file: DBFileType,
-             state: State): IO[Error.IO, Slice[Byte]]
+             state: State): Slice[Byte]
   }
 
   implicit object BlockIO extends BlockIO {
     def seek(keyPosition: Int,
              size: Int,
              file: DBFileType,
-             state: State): IO[Error.IO, Slice[Byte]] =
-      seekSize(
-        keyPosition = keyPosition,
-        size = size,
-        file = file,
-        state = state
-      ) flatMap {
-        seekSize =>
-          file
-            .read(
-              position = keyPosition,
-              size = seekSize
-            )
-            .flatMap {
-              bytes =>
-                diskSeeks += 1
-                if (state.blockSize <= 0) {
-                  IO.Right(bytes)
-                } else if (bytes.isEmpty) {
-                  IO.emptyBytes
-                } else if (bytes.size <= state.blockSize) {
-                  val key = Key(file.blockCacheFileId, keyPosition)
-                  val value = bytes.unslice()
-                  state.map.put(key, value)
-                  state.sweeper.add(key, value, state.map)
-                  IO.Right(bytes)
-                } else {
-                  splitsCount += 1
-                  var index = 0
-                  var position = keyPosition
-                  val splits = Math.ceil(bytes.size / state.blockSizeDouble)
-                  while (index < splits) {
-                    val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
-                    val key = Key(file.blockCacheFileId, position)
-                    state.map.put(key, bytesToPut)
-                    state.sweeper.add(key, bytesToPut, state.map)
-                    position = position + bytesToPut.size
-                    index += 1
-                  }
-                  IO.Right(bytes)
-                }
-            }
+             state: State): Slice[Byte] = {
+      val seekedSize =
+        seekSize(
+          keyPosition = keyPosition,
+          size = size,
+          file = file,
+          state = state
+        )
+
+      val bytes =
+        file
+          .read(
+            position = keyPosition,
+            size = seekedSize
+          )
+
+      diskSeeks += 1
+      if (state.blockSize <= 0) {
+        bytes
+      } else if (bytes.isEmpty) {
+        Slice.emptyBytes
+      } else if (bytes.size <= state.blockSize) {
+        val key = Key(file.blockCacheFileId, keyPosition)
+        val value = bytes.unslice()
+        state.map.put(key, value)
+        state.sweeper.add(key, value, state.map)
+        bytes
+      } else {
+        splitsCount += 1
+        var index = 0
+        var position = keyPosition
+        val splits = Math.ceil(bytes.size / state.blockSizeDouble)
+        while (index < splits) {
+          val bytesToPut = bytes.take(index * state.blockSize, state.blockSize)
+          val key = Key(file.blockCacheFileId, position)
+          state.map.put(key, bytesToPut)
+          state.sweeper.add(key, bytesToPut, state.map)
+          position = position + bytesToPut.size
+          index += 1
+        }
+        bytes
       }
+    }
   }
 
   @tailrec
@@ -161,7 +158,7 @@ private[core] object BlockCache {
                         size: Int,
                         headBytes: Slice[Byte],
                         file: DBFileType,
-                        state: State)(implicit blockIO: BlockIO): IO[Error.IO, Slice[Byte]] = {
+                        state: State)(implicit blockIO: BlockIO): Slice[Byte] = {
     val keyPosition = seekPosition(position, state)
 
     state.map.get(Key(file.blockCacheFileId, keyPosition)) match {
@@ -177,7 +174,7 @@ private[core] object BlockCache {
             headBytes ++ seekedBytes
 
         if (seekedBytes.isEmpty || seekedBytes.size == size)
-          IO.Right(mergedBytes)
+          mergedBytes
         else
           getOrSeek(
             position = position + seekedBytes.size,
@@ -189,27 +186,28 @@ private[core] object BlockCache {
 
       case None =>
         //println(s"Disk seek size: $size")
-        blockIO.seek(
-          keyPosition = keyPosition,
-          file = file,
-          size = position - keyPosition + size,
-          state = state
-        ) flatMap {
-          seekedBytes =>
-            val bytesToReturn = seekedBytes.take(position - keyPosition, size)
+        val seekedBytes =
+          blockIO.seek(
+            keyPosition = keyPosition,
+            file = file,
+            size = position - keyPosition + size,
+            state = state
+          )
 
-            if (headBytes.isEmpty)
-              IO.Right(bytesToReturn)
-            else
-              IO.Right(headBytes ++ bytesToReturn)
-        }
+        val bytesToReturn =
+          seekedBytes.take(position - keyPosition, size)
+
+        if (headBytes.isEmpty)
+          bytesToReturn
+        else
+          headBytes ++ bytesToReturn
     }
   }
 
   def getOrSeek(position: Int,
                 size: Int,
                 file: DBFileType,
-                state: State)(implicit effect: BlockIO): IO[Error.IO, Slice[Byte]] =
+                state: State)(implicit effect: BlockIO): Slice[Byte] =
     getOrSeek(
       position = position,
       size = size,

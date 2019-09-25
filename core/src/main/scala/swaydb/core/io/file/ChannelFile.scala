@@ -65,21 +65,20 @@ private[file] class ChannelFile(val path: Path,
       channel.close()
     }
 
-  def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit] =
+  def append(slice: Slice[Byte]): Unit =
     Effect.writeUnclosed(channel, slice)
 
-  def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit] =
+  def append(slice: Iterable[Slice[Byte]]): Unit =
     Effect.writeUnclosed(channel, slice)
 
-  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
-    IO {
-      val buffer = ByteBuffer.allocate(size)
-      channel.read(buffer, position)
-      Slice(buffer.array())
-    }
+  def read(position: Int, size: Int): Slice[Byte] = {
+    val buffer = ByteBuffer.allocate(size)
+    channel.read(buffer, position)
+    Slice(buffer.array())
+  }
 
-  def get(position: Int): IO[swaydb.Error.IO, Byte] =
-    read(position, 1).map(_.head)
+  def get(position: Int): Byte =
+    read(position, 1).head
 
   def readAll: IO[swaydb.Error.IO, Slice[Byte]] =
     IO {
@@ -88,8 +87,8 @@ private[file] class ChannelFile(val path: Path,
       Slice(bytes)
     }
 
-  def fileSize: IO[swaydb.Error.IO, Long] =
-    IO(channel.size())
+  def fileSize: Long =
+    channel.size()
 
   override def isOpen =
     channel.isOpen

@@ -35,18 +35,6 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def close(): IO[swaydb.Error.IO, Unit]
 
-  def append(slice: Slice[Byte]): IO[swaydb.Error.IO, Unit]
-
-  def append(slice: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Unit]
-
-  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]]
-
-  def get(position: Int): IO[swaydb.Error.IO, Byte]
-
-  def readAll: IO[swaydb.Error.IO, Slice[Byte]]
-
-  def fileSize: IO[swaydb.Error.IO, Long]
-
   def isMemoryMapped: IO[swaydb.Error.IO, Boolean]
 
   def isLoaded: IO[swaydb.Error.IO, Boolean]
@@ -56,4 +44,16 @@ private[file] trait DBFileType extends FileSweeperItem {
   def isFull: IO[swaydb.Error.IO, Boolean]
 
   def forceSave(): IO[swaydb.Error.IO, Unit]
+
+  def readAll: IO[swaydb.Error.IO, Slice[Byte]]
+
+  def fileSize: Long
+
+  def append(slice: Slice[Byte]): Unit
+
+  def append(slice: Iterable[Slice[Byte]]): Unit
+
+  def read(position: Int, size: Int): Slice[Byte]
+
+  def get(position: Int): Byte
 }

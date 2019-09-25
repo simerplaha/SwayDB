@@ -104,7 +104,7 @@ private[core] object DeadlineAndFunctionId {
         }
 
       case range: KeyValue.ReadOnly.Range =>
-        range.fetchFromAndRangeValue map {
+        range.fetchFromAndRangeValueUnsafe map {
           case (someFromValue @ Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             DeadlineAndFunctionId(

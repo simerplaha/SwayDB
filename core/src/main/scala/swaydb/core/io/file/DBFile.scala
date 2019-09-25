@@ -169,12 +169,10 @@ object DBFile extends LazyLogging {
           ioStrategy = ioStrategy,
           autoClose = autoClose,
           blockCacheFileId = blockCacheFileId
-        ) flatMap {
+        ) map {
           file =>
-            file.append(bytes) map {
-              _ =>
-                file
-            }
+            file.append(bytes)
+            file
         }
     }
 
@@ -194,12 +192,10 @@ object DBFile extends LazyLogging {
         ioStrategy = ioStrategy,
         blockCacheFileId = blockCacheFileId,
         autoClose = autoClose
-      ) flatMap {
+      ) map {
         file =>
-          file.append(bytes) map {
-            _ =>
-              file
-          }
+          file.append(bytes)
+          file
       }
 
   def mmapRead(path: Path,
@@ -211,7 +207,7 @@ object DBFile extends LazyLogging {
     if (checkExists && Effect.notExists(path))
       IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
     else
-      IO(
+      IO {
         new DBFile(
           path = path,
           memoryMapped = true,
@@ -227,7 +223,7 @@ object DBFile extends LazyLogging {
               autoClose = autoClose
             )
         )
-      )
+      }
 
   def mmapInit(path: Path,
                ioStrategy: IOStrategy,
@@ -308,12 +304,12 @@ class DBFile(val path: Path,
     }
 
   def append(slice: Slice[Byte]) =
-    fileCache.value() flatMap (_.append(slice))
+    fileCache.value().get.append(slice)
 
   def append(slice: Iterable[Slice[Byte]]) =
-    fileCache.value() flatMap (_.append(slice))
+    fileCache.value().get.append(slice)
 
-  def readBlock(position: Int): Option[IO[swaydb.Error.IO, Slice[Byte]]] =
+  def readBlock(position: Int): Option[Slice[Byte]] =
     blockCache map {
       blockCache =>
         read(
@@ -323,9 +319,9 @@ class DBFile(val path: Path,
         )
     }
 
-  def read(position: Int, size: Int): IO[swaydb.Error.IO, Slice[Byte]] =
+  def read(position: Int, size: Int): Slice[Byte] =
     if (size == 0)
-      IO.emptyBytes
+      Slice.emptyBytes
     else
       blockCache match {
         case Some(blockCache) =>
@@ -336,36 +332,33 @@ class DBFile(val path: Path,
           )
 
         case None =>
-          fileCache.value() flatMap (_.read(position, size))
+          fileCache.value().get.read(position, size)
       }
 
   def read(position: Int,
            size: Int,
-           blockCache: BlockCache.State): IO[swaydb.Error.IO, Slice[Byte]] =
+           blockCache: BlockCache.State): Slice[Byte] =
     if (size == 0)
-      IO.emptyBytes
+      Slice.emptyBytes
     else
-      fileCache.value() flatMap {
-        file =>
-          BlockCache.getOrSeek(
-            position = position,
-            size = size,
-            file = file,
-            state = blockCache
-          )
-      }
+      BlockCache.getOrSeek(
+        position = position,
+        size = size,
+        file = fileCache.value().get,
+        state = blockCache
+      )
 
-  def get(position: Int): IO[Error.IO, Byte] =
+  def get(position: Int): Byte =
     if (blockCache.isDefined)
-      read(position, 1).map(_.head)
+      read(position, 1).head
     else
-      fileCache.value() flatMap (_.get(position))
+      fileCache.value().get.get(position)
 
   def readAll: IO[Error.IO, Slice[Byte]] =
     fileCache.value() flatMap (_.readAll)
 
-  def fileSize: IO[Error.IO, Long] =
-    fileCache.value() flatMap (_.fileSize)
+  def fileSize: Long =
+    fileCache.value().get.fileSize
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =

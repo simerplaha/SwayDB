@@ -145,11 +145,11 @@ private[core] object KeyValue {
     sealed trait Range extends KeyValue.ReadOnly {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
-      def fetchFromValue: Option[Value.FromValue]
-      def fetchRangeValue: Value.RangeValue
-      def fetchFromAndRangeValue: (Option[Value.FromValue], Value.RangeValue)
-      def fetchFromOrElseRangeValue: Value.FromValue = {
-        val (fromValue, rangeValue) = fetchFromAndRangeValue
+      def fetchFromValueUnsafe: Option[Value.FromValue]
+      def fetchRangeValueUnsafe: Value.RangeValue
+      def fetchFromAndRangeValueUnsafe: (Option[Value.FromValue], Value.RangeValue)
+      def fetchFromOrElseRangeValueUnsafe: Value.FromValue = {
+        val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
         fromValue getOrElse rangeValue
       }
     }
@@ -328,13 +328,13 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def fetchFromValue: Option[Value.FromValue] =
+    override def fetchFromValueUnsafe: Option[Value.FromValue] =
       fromValue
 
-    override def fetchRangeValue: Value.RangeValue =
+    override def fetchRangeValueUnsafe: Value.RangeValue =
       rangeValue
 
-    override def fetchFromAndRangeValue: (Option[Value.FromValue], Value.RangeValue) =
+    override def fetchFromAndRangeValueUnsafe: (Option[Value.FromValue], Value.RangeValue) =
       (fromValue, rangeValue)
   }
 }
@@ -1866,17 +1866,17 @@ private[core] object Persistent {
     override def key: Slice[Byte] =
       _fromKey
 
-    def fetchRangeValue: Value.RangeValue =
-      fetchFromAndRangeValue._2
+    def fetchRangeValueUnsafe: Value.RangeValue =
+      fetchFromAndRangeValueUnsafe._2
 
-    def fetchFromValue: Option[Value.FromValue] =
-      fetchFromAndRangeValue._1
+    def fetchFromValueUnsafe: Option[Value.FromValue] =
+      fetchFromAndRangeValueUnsafe._1
 
-    def fetchFromAndRangeValue: (Option[Value.FromValue], Value.RangeValue) =
+    def fetchFromAndRangeValueUnsafe: (Option[Value.FromValue], Value.RangeValue) =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toMemory(): Memory.Range = {
-      val (fromValue, rangeValue) = fetchFromAndRangeValue
+      val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
       Memory.Range(
         fromKey = fromKey,
         toKey = toKey,
