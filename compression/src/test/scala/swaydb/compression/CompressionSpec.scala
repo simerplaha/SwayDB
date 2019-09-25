@@ -35,7 +35,7 @@ class CompressionSpec extends WordSpec {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
     val bytes: Slice[Byte] = string
     val compressedBytes: Slice[Byte] = compression.compressor.compress(bytes).get
-    val decompressedBytes = compression.decompressor.decompress(compressedBytes, bytes.size).get
+    val decompressedBytes = compression.decompressor.decompress(compressedBytes, bytes.size)
     val decompressedString = decompressedBytes.readString()
     decompressedString shouldBe string
   }
@@ -43,7 +43,7 @@ class CompressionSpec extends WordSpec {
   def assertUnsuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
     val bytes: Slice[Byte] = string
-    compression.compressor.compress(bytes).get.value shouldBe empty
+    compression.compressor.compress(bytes).get shouldBe empty
   }
 
   "Compression" should {
@@ -117,10 +117,10 @@ class CompressionSpec extends WordSpec {
       "lz4" in {
         (1 to 100) foreach {
           _ =>
-            val compressed = CompressorInternal.randomLZ4().compress(10, bytes).get.get
+            val compressed = CompressorInternal.randomLZ4().compress(10, bytes).get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.randomLZ4().decompress(compressed.drop(10), bytes.size).get
+            val decompressedBytes = DecompressorInternal.randomLZ4().decompress(compressed.drop(10), bytes.size)
             decompressedBytes shouldBe bytes
         }
       }
@@ -128,10 +128,10 @@ class CompressionSpec extends WordSpec {
       "snappy" in {
         (1 to 100) foreach {
           _ =>
-            val compressed = CompressorInternal.Snappy(Int.MinValue).compress(10, bytes).get.get
+            val compressed = CompressorInternal.Snappy(Int.MinValue).compress(10, bytes).get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.Snappy.decompress(compressed.drop(10), bytes.size).get
+            val decompressedBytes = DecompressorInternal.Snappy.decompress(compressed.drop(10), bytes.size)
             decompressedBytes shouldBe bytes
         }
       }
@@ -139,10 +139,10 @@ class CompressionSpec extends WordSpec {
       "UnCompressed" in {
         (1 to 100) foreach {
           _ =>
-            val compressed = CompressorInternal.UnCompressed.compress(10, bytes).get.get
+            val compressed = CompressorInternal.UnCompressed.compress(10, bytes).get
             compressed.take(10) foreach (_ shouldBe 0.toByte)
 
-            val decompressedBytes = DecompressorInternal.UnCompressed.decompress(compressed.drop(10), bytes.size).get
+            val decompressedBytes = DecompressorInternal.UnCompressed.decompress(compressed.drop(10), bytes.size)
             decompressedBytes shouldBe bytes
         }
       }

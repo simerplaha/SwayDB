@@ -64,7 +64,7 @@ private[core] object MapCodec extends LazyLogging {
    */
   def read[K, V](bytes: Slice[Byte],
                  dropCorruptedTailEntries: Boolean)(implicit mapReader: MapEntryReader[MapEntry[K, V]]): IO[swaydb.Error.Map, RecoveryResult[Option[MapEntry[K, V]]]] =
-    Reader[swaydb.Error.Map](bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
+    Reader(bytes).foldLeftIO(RecoveryResult(Option.empty[MapEntry[K, V]], IO.unit)) {
       case (recovery, reader) =>
         reader.hasAtLeast(ByteSizeOf.long) match {
           case IO.Right(hasMore) =>

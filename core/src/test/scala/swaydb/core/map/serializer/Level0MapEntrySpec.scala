@@ -55,7 +55,7 @@ class Level0MapEntrySpec extends TestBase {
         reader.read(Reader(slice.drop(ByteSizeOf.int))).runRandomIO.right.value.value shouldBe addEntry
 
         import LevelZeroMapEntryReader.Level0Reader
-        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
+        val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe addEntry
 
         val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
@@ -160,7 +160,7 @@ class Level0MapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import LevelZeroMapEntryReader.Level0Reader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)

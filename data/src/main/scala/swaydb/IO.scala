@@ -469,6 +469,9 @@ object IO {
     }
   }
 
+  @inline final def throwable(message: String): Throwable =
+    new Exception(message)
+
   @inline final def failed[E: IO.ExceptionHandler, A](exception: Throwable): IO.Left[E, A] =
     new IO.Left[E, A](IO.ExceptionHandler.toError[E](exception))
 

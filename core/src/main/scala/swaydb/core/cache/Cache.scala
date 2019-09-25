@@ -82,8 +82,8 @@ private[core] object Cache {
 
   def noIO[I, O](synchronised: Boolean,
                  stored: Boolean,
-                 initial: Option[O])(fetch: I => O): NoIO[I, O] =
-    new NoIO[I, O](
+                 initial: Option[O])(fetch: I => O): CacheNoIO[I, O] =
+    new CacheNoIO[I, O](
       fetch = fetch,
       lazyValue =
         Lazy.value(
@@ -221,7 +221,7 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
     }
 }
 
-private class BlockIOCache[E: IO.ExceptionHandler, -I, +B](cache: NoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
+private class BlockIOCache[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
 
   override def value(i: => I): IO[E, B] =
     cache.value(i).value(i)
@@ -296,7 +296,7 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private[swaydb] class NoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) {
+private[swaydb] class CacheNoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) {
 
   def value(input: => I): O =
     lazyValue getOrSet fetch(input)

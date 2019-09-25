@@ -19,9 +19,8 @@
 
 package swaydb.core.data
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.actor.MemorySweeper
-import swaydb.core.cache.Cache
+import swaydb.IO
+import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.Segment
@@ -35,7 +34,6 @@ import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.{Error, IO}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -70,9 +68,9 @@ private[core] object KeyValue {
      * An API response type expected from a [[swaydb.core.map.Map]] or [[swaydb.core.segment.Segment]].
      */
     sealed trait Fixed extends KeyValue with ReadOnly {
-      def toFromValue(): IO[swaydb.Error.Segment, Value.FromValue]
+      def toFromValue(): Value.FromValue
 
-      def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue]
+      def toRangeValue(): Value.RangeValue
 
       def time: Time
     }
@@ -83,9 +81,9 @@ private[core] object KeyValue {
       def hasTimeLeft(): Boolean
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-      def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]]
+      def getOrFetchValue: Option[Slice[Byte]]
       def time: Time
-      def toFromValue(): IO[swaydb.Error.Segment, Value.Put]
+      def toFromValue(): Value.Put
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Put
       def copyWithTime(time: Time): KeyValue.ReadOnly.Put
     }
@@ -96,7 +94,7 @@ private[core] object KeyValue {
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
       def time: Time
-      def toFromValue(): IO[swaydb.Error.Segment, Value.Remove]
+      def toFromValue(): Value.Remove
       def toRemoveValue(): Value.Remove
       def copyWithTime(time: Time): KeyValue.ReadOnly.Remove
     }
@@ -107,8 +105,8 @@ private[core] object KeyValue {
       def isOverdue(): Boolean = !hasTimeLeft()
       def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
       def time: Time
-      def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]]
-      def toFromValue(): IO[swaydb.Error.Segment, Value.Update]
+      def getOrFetchValue: Option[Slice[Byte]]
+      def toFromValue(): Value.Update
       def toPut(): KeyValue.ReadOnly.Put
       def toPut(deadline: Option[Deadline]): KeyValue.ReadOnly.Put
       def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.ReadOnly.Update
@@ -118,14 +116,14 @@ private[core] object KeyValue {
 
     sealed trait Function extends KeyValue.ReadOnly.Fixed {
       def time: Time
-      def getOrFetchFunction: IO[swaydb.Error.Segment, Slice[Byte]]
-      def toFromValue(): IO[swaydb.Error.Segment, Value.Function]
+      def getOrFetchFunction: Slice[Byte]
+      def toFromValue(): Value.Function
       def copyWithTime(time: Time): Function
     }
 
     sealed trait PendingApply extends KeyValue.ReadOnly.Fixed {
-      def getOrFetchApplies: IO[swaydb.Error.Segment, Slice[Value.Apply]]
-      def toFromValue(): IO[swaydb.Error.Segment, Value.PendingApply]
+      def getOrFetchApplies: Slice[Value.Apply]
+      def toFromValue(): Value.PendingApply
       def time: Time
       def deadline: Option[Deadline]
     }
@@ -147,14 +145,13 @@ private[core] object KeyValue {
     sealed trait Range extends KeyValue.ReadOnly {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
-      def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]]
-      def fetchRangeValue: IO[swaydb.Error.Segment, Value.RangeValue]
-      def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)]
-      def fetchFromOrElseRangeValue: IO[swaydb.Error.Segment, Value.FromValue] =
-        fetchFromAndRangeValue map {
-          case (fromValue, rangeValue) =>
-            fromValue getOrElse rangeValue
-        }
+      def fetchFromValue: Option[Value.FromValue]
+      def fetchRangeValue: Value.RangeValue
+      def fetchFromAndRangeValue: (Option[Value.FromValue], Value.RangeValue)
+      def fetchFromOrElseRangeValue: Value.FromValue = {
+        val (fromValue, rangeValue) = fetchFromAndRangeValue
+        fromValue getOrElse rangeValue
+      }
     }
   }
 
@@ -183,11 +180,11 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-      IO.Right(value)
+    override def getOrFetchValue: Option[Slice[Byte]] =
+      value
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Put] =
-      IO.Right(Value.Put(value, deadline, time))
+    override def toFromValue(): Value.Put =
+      Value.Put(value, deadline, time)
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Put =
@@ -197,8 +194,8 @@ private[swaydb] object Memory {
       copy(time = time)
 
     //to do - make type-safe.
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.failed("Put cannot be converted to RangeValue")
+    override def toRangeValue(): Value.RangeValue =
+      throw new Exception("Put cannot be converted to RangeValue")
   }
 
   case class Update(key: Slice[Byte],
@@ -214,11 +211,11 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-      IO.Right(value)
+    override def getOrFetchValue: Option[Slice[Byte]] =
+      value
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Update] =
-      IO.Right(Value.Update(value, deadline, time))
+    override def toFromValue(): Value.Update =
+      Value.Update(value, deadline, time)
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Update =
@@ -246,7 +243,7 @@ private[swaydb] object Memory {
         time = time
       )
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Update] =
+    override def toRangeValue(): Value.Update =
       toFromValue()
   }
 
@@ -256,16 +253,16 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def getOrFetchFunction: IO[swaydb.Error.Segment, Slice[Byte]] =
-      IO.Right(function)
+    override def getOrFetchFunction: Slice[Byte] =
+      function
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Function] =
-      IO.Right(Value.Function(function, time))
+    override def toFromValue(): Value.Function =
+      Value.Function(function, time)
 
     override def copyWithTime(time: Time): Function =
       copy(time = time)
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Function] =
+    override def toRangeValue(): Value.Function =
       toFromValue()
   }
 
@@ -279,13 +276,13 @@ private[swaydb] object Memory {
 
     def time = Time.fromApplies(applies)
 
-    override def getOrFetchApplies: IO[swaydb.Error.Segment, Slice[Value.Apply]] =
-      IO.Right(applies)
+    override def getOrFetchApplies: Slice[Value.Apply] =
+      applies
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
-      IO.Right(Value.PendingApply(applies))
+    override def toFromValue(): Value.PendingApply =
+      Value.PendingApply(applies)
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
+    override def toRangeValue(): Value.PendingApply =
       toFromValue()
   }
 
@@ -307,10 +304,10 @@ private[swaydb] object Memory {
     override def copyWithTime(time: Time): ReadOnly.Remove =
       copy(time = time)
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Remove] =
-      IO.Right(toRemoveValue())
+    override def toFromValue(): Value.Remove =
+      toRemoveValue()
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Remove] =
+    override def toRangeValue(): Value.Remove =
       toFromValue()
   }
 
@@ -331,14 +328,14 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]] =
-      IO.Right(fromValue)
+    override def fetchFromValue: Option[Value.FromValue] =
+      fromValue
 
-    override def fetchRangeValue: IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.Right(rangeValue)
+    override def fetchRangeValue: Value.RangeValue =
+      rangeValue
 
-    override def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)] =
-      IO.Right(fromValue, rangeValue)
+    override def fetchFromAndRangeValue: (Option[Value.FromValue], Value.RangeValue) =
+      (fromValue, rangeValue)
   }
 }
 
@@ -1094,12 +1091,12 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
   def valueOffset: Int
 
-  def toMemory(): IO[swaydb.Error.Segment, Memory]
+  def toMemory(): Memory
 
   def isValueCached: Boolean
 
-  def toMemoryResponseOption(): IO[swaydb.Error.Segment, Option[Memory]] =
-    toMemory() map (Some(_))
+  def toMemoryResponseOption(): Option[Memory] =
+    Some(toMemory())
 
   /**
    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
@@ -1116,7 +1113,7 @@ private[core] object Persistent {
     def nextIndexOffset: Int
     def nextIndexSize: Int
     def sortedIndexAccessPosition: Int
-    def toPersistent: IO[Error.Segment, Persistent]
+    def toPersistent: Persistent
   }
 
   object Partial {
@@ -1127,13 +1124,13 @@ private[core] object Persistent {
     }
 
     sealed trait Fixed extends Persistent.Partial {
-      def toPersistent: IO[Error.Segment, Persistent.Fixed]
+      def toPersistent: Persistent.Fixed
     }
 
     sealed trait RangeT extends Persistent.Partial {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
-      def toPersistent: IO[Error.Segment, Persistent.Range]
+      def toPersistent: Persistent.Range
     }
 
     class Remove(val key: Slice[Byte],
@@ -1146,7 +1143,7 @@ private[core] object Persistent {
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
-      override def toPersistent: IO[Error.Segment, Persistent.Remove] =
+      override def toPersistent: Persistent.Remove =
         EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
@@ -1171,7 +1168,7 @@ private[core] object Persistent {
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
-      override def toPersistent: IO[Error.Segment, Persistent.Put] =
+      override def toPersistent: Persistent.Put =
         EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
@@ -1196,7 +1193,7 @@ private[core] object Persistent {
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
-      override def toPersistent: IO[Error.Segment, Persistent.Update] =
+      override def toPersistent: Persistent.Update =
         EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
@@ -1221,7 +1218,7 @@ private[core] object Persistent {
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                    previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
-      override def toPersistent: IO[Error.Segment, Persistent.Function] =
+      override def toPersistent: Persistent.Function =
         EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
@@ -1246,7 +1243,7 @@ private[core] object Persistent {
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                        previous: Option[Persistent.Partial]) extends Partial.Fixed {
 
-      override def toPersistent: IO[Error.Segment, Persistent.PendingApply] =
+      override def toPersistent: Persistent.PendingApply =
         EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Fixed(key),
@@ -1270,22 +1267,21 @@ private[core] object Persistent {
                 sortedIndexAccessPosition: Int,
                 block: SortedIndexBlock,
                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent.Partial]): IO[Error.IO, Partial.Range] =
-        Bytes.decompressJoin(key) map {
-          case (fromKey, toKey) =>
-            new Range(
-              fromKey = fromKey,
-              toKey = toKey,
-              indexOffset = indexOffset,
-              nextIndexOffset = nextIndexOffset,
-              nextIndexSize = nextIndexSize,
-              sortedIndexAccessPosition = sortedIndexAccessPosition,
-              indexBytes = indexBytes,
-              block = block,
-              valuesReader = valuesReader,
-              previous = previous
-            )
-        }
+                previous: Option[Persistent.Partial]): Partial.Range = {
+        val (fromKey, toKey) = Bytes.decompressJoin(key)
+        new Range(
+          fromKey = fromKey,
+          toKey = toKey,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          sortedIndexAccessPosition = sortedIndexAccessPosition,
+          indexBytes = indexBytes,
+          block = block,
+          valuesReader = valuesReader,
+          previous = previous
+        )
+      }
     }
 
     class Range(val fromKey: Slice[Byte],
@@ -1301,7 +1297,7 @@ private[core] object Persistent {
 
       def key = fromKey
 
-      override def toPersistent: IO[Error.Segment, Persistent.Range] =
+      override def toPersistent: Persistent.Range =
         EntryReader.completePartialRead(
           indexEntry = indexBytes,
           key = new Persistent.Partial.Key.Range(fromKey, toKey),
@@ -1347,29 +1343,27 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.exists(deadline => (deadline - minus).hasTimeLeft())
 
-    override def toMemory(): IO[swaydb.Error.Segment, Memory.Remove] =
-      IO.Right {
-        Memory.Remove(
-          key = key,
-          deadline = deadline,
-          time = time
-        )
-      }
+    override def toMemory(): Memory.Remove =
+      Memory.Remove(
+        key = key,
+        deadline = deadline,
+        time = time
+      )
 
     override def copyWithTime(time: Time): ReadOnly.Remove =
       copy(_time = time)
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Remove] =
-      IO.Right(toRemoveValue())
+    override def toFromValue(): Value.Remove =
+      toRemoveValue()
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Remove] =
+    override def toRangeValue(): Value.Remove =
       toFromValue()
 
     override def toRemoveValue(): Value.Remove =
       Value.Remove(deadline, time)
 
-    override def toPersistent: IO[Error.Segment, Persistent.Remove] =
-      IO.Right(this)
+    override def toPersistent: Persistent.Remove =
+      this
   }
 
   object Put {
@@ -1387,20 +1381,20 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
+          Cache.noIO(synchronised = true, stored = true, initial = None) {
             offset =>
               if (offset.size == 0)
-                IO.none
+                None
               else
                 valuesReader match {
                   case Some(valuesReader) =>
                     UnblockedReader.moveTo(offset, valuesReader)
                       .copy()
                       .readFullBlockOrNone()
-                      .map(_.unslice())
+                      .unslice()
 
                   case None =>
-                    IO.failed("ValuesBlock is undefined.")
+                    throw IO.throwable("ValuesBlock is undefined.")
                 }
           },
         _time = time,
@@ -1415,7 +1409,7 @@ private[core] object Persistent {
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]],
+                 private val valueCache: CacheNoIO[ValuesBlock.Offset, Option[Slice[Byte]]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextIndexSize: Int,
@@ -1442,31 +1436,25 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+    override def getOrFetchValue: Option[Slice[Byte]] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Put] =
-      getOrFetchValue map {
-        value =>
-          Value.Put(value, deadline, time)
-      }
+    override def toFromValue(): Value.Put =
+      Value.Put(getOrFetchValue, deadline, time)
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.RangeValue] =
-      IO.failed("Put cannot be converted to RangeValue")
+    override def toRangeValue(): Value.RangeValue =
+      throw IO.throwable("Put cannot be converted to RangeValue")
 
-    override def toMemory(): IO[swaydb.Error.Segment, Memory.Put] =
-      getOrFetchValue map {
-        value =>
-          Memory.Put(
-            key = key,
-            value = value,
-            deadline = deadline,
-            time = time
-          )
-      }
+    override def toMemory(): Memory.Put =
+      Memory.Put(
+        key = key,
+        value = getOrFetchValue,
+        deadline = deadline,
+        time = time
+      )
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Put =
@@ -1475,8 +1463,8 @@ private[core] object Persistent {
     override def copyWithTime(time: Time): Put =
       copy(_time = time)
 
-    override def toPersistent: IO[Error.Segment, Persistent.Put] =
-      IO.Right(this)
+    override def toPersistent: Persistent.Put =
+      this
   }
 
   object Update {
@@ -1494,20 +1482,20 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
+          Cache.noIO(synchronised = true, stored = true, initial = None) {
             offset =>
               if (offset.size == 0)
-                IO.none
+                None
               else
                 valuesReader match {
                   case Some(valuesReader) =>
                     UnblockedReader.moveTo(offset, valuesReader)
                       .copy()
                       .readFullBlockOrNone()
-                      .map(_.unslice())
+                      .unslice()
 
                   case None =>
-                    IO.failed("ValuesBlock is undefined.")
+                    throw IO.throwable("ValuesBlock is undefined.")
                 }
           },
         _time = time,
@@ -1522,7 +1510,7 @@ private[core] object Persistent {
 
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Option[Slice[Byte]]],
+                    private val valueCache: CacheNoIO[ValuesBlock.Offset, Option[Slice[Byte]]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextIndexSize: Int,
@@ -1552,28 +1540,26 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchValue: IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+    def getOrFetchValue: Option[Slice[Byte]] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Update] =
-      getOrFetchValue map {
-        value =>
-          Value.Update(value, deadline, time)
-      }
+    override def toFromValue(): Value.Update =
+      Value.Update(
+        value = getOrFetchValue,
+        deadline = deadline,
+        time = time
+      )
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Update] =
+    override def toRangeValue(): Value.Update =
       toFromValue()
 
-    override def toMemory(): IO[swaydb.Error.Segment, Memory.Update] =
-      getOrFetchValue map {
-        value =>
-          Memory.Update(
-            key = key,
-            value = value,
-            deadline = deadline,
-            time = time
-          )
-      }
+    override def toMemory(): Memory.Update =
+      Memory.Update(
+        key = key,
+        value = getOrFetchValue,
+        deadline = deadline,
+        time = time
+      )
 
     override def copyWithDeadlineAndTime(deadline: Option[Deadline],
                                          time: Time): Update =
@@ -1613,8 +1599,8 @@ private[core] object Persistent {
         sortedIndexAccessPosition = sortedIndexAccessPosition
       )
 
-    override def toPersistent: IO[Error.Segment, Persistent.Update] =
-      IO.Right(this)
+    override def toPersistent: Persistent.Update =
+      this
   }
 
   object Function {
@@ -1630,17 +1616,17 @@ private[core] object Persistent {
       new Function(
         _key = key,
         valueCache =
-          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
+          Cache.noIO(synchronised = true, stored = true, initial = None) {
             offset =>
               valuesReader match {
                 case Some(valuesReader) =>
                   UnblockedReader.moveTo(offset, valuesReader)
                     .copy()
                     .readFullBlock()
-                    .map(_.unslice())
+                    .unslice()
 
                 case None =>
-                  IO.failed("ValuesBlock is undefined.")
+                  throw IO.throwable("ValuesBlock is undefined.")
               }
           },
         _time = time,
@@ -1654,7 +1640,7 @@ private[core] object Persistent {
   }
 
   case class Function(private var _key: Slice[Byte],
-                      private val valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Byte]],
+                      private val valueCache: CacheNoIO[ValuesBlock.Offset, Slice[Byte]],
                       private var _time: Time,
                       nextIndexOffset: Int,
                       nextIndexSize: Int,
@@ -1678,33 +1664,30 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchFunction: IO[swaydb.Error.Segment, Slice[Byte]] =
+    def getOrFetchFunction: Slice[Byte] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.Function] =
-      getOrFetchFunction map {
-        value =>
-          Value.Function(value, time)
-      }
+    override def toFromValue(): Value.Function =
+      Value.Function(
+        function = getOrFetchFunction,
+        time = time
+      )
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.Function] =
+    override def toRangeValue(): Value.Function =
       toFromValue()
 
-    override def toMemory(): IO[swaydb.Error.Segment, Memory.Function] =
-      getOrFetchFunction map {
-        function =>
-          Memory.Function(
-            key = key,
-            function = function,
-            time = time
-          )
-      }
+    override def toMemory(): Memory.Function =
+      Memory.Function(
+        key = key,
+        function = getOrFetchFunction,
+        time = time
+      )
 
     override def copyWithTime(time: Time): Function =
       copy(_time = time)
 
-    override def toPersistent: IO[Error.Segment, Persistent.Function] =
-      IO.Right(this)
+    override def toPersistent: Persistent.Function =
+      this
   }
 
   object PendingApply {
@@ -1723,21 +1706,21 @@ private[core] object Persistent {
         _time = time,
         deadline = deadline,
         valueCache =
-          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
+          Cache.noIO(synchronised = true, stored = true, initial = None) {
             offset =>
               valuesReader match {
                 case Some(valuesReader) =>
-                  UnblockedReader.moveTo(offset, valuesReader)
-                    .copy()
-                    .readFullBlock()
-                    .flatMap {
-                      bytes =>
-                        ValueSerializer
-                          .read[Slice[Value.Apply]](bytes)
-                          .map(_.map(_.unslice))
-                    }
+                  val bytes =
+                    UnblockedReader.moveTo(offset, valuesReader)
+                      .copy()
+                      .readFullBlock()
+
+                  ValueSerializer
+                    .read[Slice[Value.Apply]](bytes)
+                    .map(_.unslice)
+
                 case None =>
-                  IO.failed("ValuesBlock is undefined.")
+                  throw IO.throwable("ValuesBlock is undefined.")
               }
           },
         nextIndexOffset = nextIndexOffset,
@@ -1752,7 +1735,7 @@ private[core] object Persistent {
   case class PendingApply(private var _key: Slice[Byte],
                           private var _time: Time,
                           deadline: Option[Deadline],
-                          valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, Slice[Value.Apply]],
+                          valueCache: CacheNoIO[ValuesBlock.Offset, Slice[Value.Apply]],
                           nextIndexOffset: Int,
                           nextIndexSize: Int,
                           indexOffset: Int,
@@ -1775,28 +1758,25 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def getOrFetchApplies: IO[swaydb.Error.Segment, Slice[Value.Apply]] =
+    override def getOrFetchApplies: Slice[Value.Apply] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toFromValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
-      valueCache
-        .value(ValuesBlock.Offset(valueOffset, valueLength))
-        .map(Value.PendingApply)
+    override def toFromValue(): Value.PendingApply = {
+      val applies = valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
+      Value.PendingApply(applies)
+    }
 
-    override def toRangeValue(): IO[swaydb.Error.Segment, Value.PendingApply] =
+    override def toRangeValue(): Value.PendingApply =
       toFromValue()
 
-    override def toMemory(): IO[swaydb.Error.Segment, Memory.PendingApply] =
-      getOrFetchApplies map {
-        applies =>
-          Memory.PendingApply(
-            key = key,
-            applies = applies
-          )
-      }
+    override def toMemory(): Memory.PendingApply =
+      Memory.PendingApply(
+        key = key,
+        applies = getOrFetchApplies
+      )
 
-    override def toPersistent: IO[Error.Segment, Persistent.PendingApply] =
-      IO.Right(this)
+    override def toPersistent: Persistent.PendingApply =
+      this
   }
 
   object Range {
@@ -1807,21 +1787,20 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int): IO[swaydb.Error.Segment, Persistent.Range] =
-      Bytes.decompressJoin(key) map {
-        case (fromKey, toKey) =>
-          Range.parsedKey(
-            fromKey = fromKey,
-            toKey = toKey,
-            valuesReader = valuesReader,
-            nextIndexOffset = nextIndexOffset,
-            nextIndexSize = nextIndexSize,
-            indexOffset = indexOffset,
-            valueOffset = valueOffset,
-            valueLength = valueLength,
-            sortedIndexAccessPosition = sortedIndexAccessPosition
-          )
-      }
+              sortedIndexAccessPosition: Int): Range = {
+      val (fromKey, toKey) = Bytes.decompressJoin(key)
+      Range.parsedKey(
+        fromKey = fromKey,
+        toKey = toKey,
+        valuesReader = valuesReader,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        sortedIndexAccessPosition = sortedIndexAccessPosition
+      )
+    }
 
     def parsedKey(fromKey: Slice[Byte],
                   toKey: Slice[Byte],
@@ -1836,21 +1815,22 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          Cache.concurrentIO(synchronised = true, stored = true, initial = None) {
+          Cache.noIO(synchronised = true, stored = true, initial = None) {
             offset =>
               valuesReader match {
                 case Some(valuesReader) =>
-                  UnblockedReader.moveTo(offset, valuesReader)
-                    .copy()
-                    .readFullBlock()
-                    .flatMap(RangeValueSerializer.read)
-                    .map {
-                      case (from, range) =>
-                        (from.map(_.unslice), range.unslice)
-                    }
+                  val bytes =
+                    UnblockedReader.moveTo(offset, valuesReader)
+                      .copy()
+                      .readFullBlock()
+
+                  val (from, range) =
+                    RangeValueSerializer.read(bytes)
+
+                  (from.map(_.unslice), range.unslice)
 
                 case None =>
-                  IO.failed("ValuesBlock is undefined.")
+                  throw IO.throwable("ValuesBlock is undefined.")
               }
           },
         nextIndexOffset = nextIndexOffset,
@@ -1864,7 +1844,7 @@ private[core] object Persistent {
 
   case class Range private(private var _fromKey: Slice[Byte],
                            private var _toKey: Slice[Byte],
-                           valueCache: Cache[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
+                           valueCache: CacheNoIO[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
                            nextIndexOffset: Int,
                            nextIndexSize: Int,
                            indexOffset: Int,
@@ -1886,30 +1866,29 @@ private[core] object Persistent {
     override def key: Slice[Byte] =
       _fromKey
 
-    def fetchRangeValue: IO[swaydb.Error.Segment, Value.RangeValue] =
-      fetchFromAndRangeValue.map(_._2)
+    def fetchRangeValue: Value.RangeValue =
+      fetchFromAndRangeValue._2
 
-    def fetchFromValue: IO[swaydb.Error.Segment, Option[Value.FromValue]] =
-      fetchFromAndRangeValue.map(_._1)
+    def fetchFromValue: Option[Value.FromValue] =
+      fetchFromAndRangeValue._1
 
-    def fetchFromAndRangeValue: IO[swaydb.Error.Segment, (Option[Value.FromValue], Value.RangeValue)] =
+    def fetchFromAndRangeValue: (Option[Value.FromValue], Value.RangeValue) =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
-    override def toMemory(): IO[swaydb.Error.Segment, Memory.Range] =
-      fetchFromAndRangeValue map {
-        case (fromValue, rangeValue) =>
-          Memory.Range(
-            fromKey = fromKey,
-            toKey = toKey,
-            fromValue = fromValue,
-            rangeValue = rangeValue
-          )
-      }
+    override def toMemory(): Memory.Range = {
+      val (fromValue, rangeValue) = fetchFromAndRangeValue
+      Memory.Range(
+        fromKey = fromKey,
+        toKey = toKey,
+        fromValue = fromValue,
+        rangeValue = rangeValue
+      )
+    }
 
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    override def toPersistent: IO[Error.Segment, Persistent.Range] =
-      IO.Right(this)
+    override def toPersistent: Persistent.Range =
+      this
   }
 }

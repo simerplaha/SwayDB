@@ -47,6 +47,21 @@ object Collections {
       }
       result
     }
+
+    def untilSome[R](f: T => Option[R]): Option[(R, T)] = {
+      items foreach {
+        item =>
+          f(item) match {
+            case Some(value) =>
+              //Not a good idea to break out with return. Needs improvement.
+              return Some(value, item)
+
+            case None =>
+            //continue reading
+          }
+      }
+      None
+    }
   }
 
   /**

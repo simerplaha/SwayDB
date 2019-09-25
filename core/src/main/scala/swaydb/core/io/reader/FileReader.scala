@@ -20,18 +20,17 @@
 package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Error, IO}
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
 
-private[core] class FileReader(val file: DBFile) extends Reader[swaydb.Error.Segment] with LazyLogging {
+private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging {
 
   private var position: Int = 0
 
-  def isLoaded: IO[swaydb.Error.IO, Boolean] =
+  def isLoaded: Boolean =
     file.isLoaded
 
-  override def size: IO[swaydb.Error.IO, Long] =
+  override def size: Long =
     file.fileSize
 
   def moveTo(newPosition: Long): FileReader = {
@@ -44,46 +43,39 @@ private[core] class FileReader(val file: DBFile) extends Reader[swaydb.Error.Seg
     this
   }
 
-  def hasMore: IO[swaydb.Error.IO, Boolean] =
-    size.map(position < _)
+  def hasMore: Boolean =
+    position < size
 
-  def hasAtLeast(size: Long): IO[swaydb.Error.IO, Boolean] =
-    file.fileSize map {
-      fileSize =>
-        (fileSize - position) >= size
-    }
+  def hasAtLeast(size: Long): Boolean =
+    (file.fileSize - position) >= size
 
   override def copy(): FileReader =
     new FileReader(file)
 
   override def getPosition: Int = position
 
-  override def get() =
-    (file get position) map {
-      byte =>
-        position += 1
-        byte
-    }
+  override def get() = {
+    val byte = (file get position)
+    position += 1
+    byte
+  }
 
   override def read(size: Int) =
-    if (size == 0)
-      IO.emptyBytes
-    else
-      file.read(position, size) map {
-        bytes =>
-          position += size
-          bytes
-      }
+    if (size == 0) {
+      Slice.emptyBytes
+    }
+    else {
+      val bytes = file.read(position, size)
+      position += size
+      bytes
+    }
 
   def path =
     file.path
 
-  override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
-    remaining flatMap read
+  override def readRemaining(): Slice[Byte] =
+    read(remaining)
 
   final override val isFile: Boolean =
     true
-
-  override def readBlock(position: Int): Option[IO[Error.IO, Slice[Byte]]] =
-    file.readBlock(position)
 }

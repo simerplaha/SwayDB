@@ -28,89 +28,83 @@ import swaydb.data.util.Bytez
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ExceptionHandler] { self =>
+private[swaydb] abstract class ReaderBase { self =>
 
   def path: Path
 
-  def get(): IO[E, Int]
+  def get(): Int
 
-  def read(size: Long): IO[E, Slice[Byte]] =
+  def read(size: Long): Slice[Byte] =
     read(size.toInt)
 
-  def read(size: Int): IO[E, Slice[Byte]]
+  def read(size: Int): Slice[Byte]
 
-  def size: IO[E, Long]
+  def size: Long
 
-  def hasMore: IO[E, Boolean]
+  def hasMore: Boolean
 
-  def hasAtLeast(size: Long): IO[E, Boolean]
+  def hasAtLeast(size: Long): Boolean
 
   def getPosition: Int
 
-  def moveTo(position: Long): ReaderBase[E]
+  def moveTo(position: Long): ReaderBase
 
-  def moveTo(position: Int): ReaderBase[E]
+  def moveTo(position: Int): ReaderBase
 
-  def readRemaining(): IO[E, Slice[Byte]]
+  def readRemaining(): Slice[Byte]
 
   def isFile: Boolean
 
-  def skip(skip: Long): ReaderBase[E] =
+  def skip(skip: Long): ReaderBase =
     moveTo(getPosition + skip)
 
-  def readBoolean(): IO[E, Boolean] =
+  def readBoolean(): Boolean =
     Bytez.readBoolean(self)
 
-  def readInt(): IO[E, Int] =
+  def readInt(): Int =
     Bytez.readInt(self)
 
-  def readInt(unsigned: Boolean): IO[E, Int] =
+  def readInt(unsigned: Boolean): Int =
     if (unsigned)
       readUnsignedInt()
     else
       readInt()
 
-  def readUnsignedInt(): IO[E, Int] =
+  def readUnsignedInt(): Int =
     Bytez.readUnsignedInt(self)
 
-  def readUnsignedIntBytes(): IO[E, Slice[Byte]] =
-    Bytez.readUnsignedInt(self) flatMap {
-      size =>
-        read(size)
-    }
+  def readUnsignedIntBytes(): Slice[Byte] =
+    Slice.writeUnsignedInt(Bytez.readUnsignedInt(self))
 
-  def readSignedInt(): IO[E, Int] =
+  def readSignedInt(): Int =
     Bytez.readSignedInt(self)
 
-  def readLong(): IO[E, Long] =
+  def readLong(): Long =
     Bytez.readLong(self)
 
-  def readUnsignedLong(): IO[E, Long] =
+  def readUnsignedLong(): Long =
     Bytez.readUnsignedLong(self)
 
-  def readSignedLong(): IO[E, Long] =
+  def readSignedLong(): Long =
     Bytez.readSignedLong(self)
 
-  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): IO[E, String] =
+  def readRemainingAsString(charset: Charset = StandardCharsets.UTF_8): String =
     Bytez.readString(self, charset)
 
-  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): IO[E, String] =
+  def readString(size: Int, charset: Charset = StandardCharsets.UTF_8): String =
     Bytez.readString(size, self, charset)
 
-  def remaining: IO[E, Long] =
-    size map {
-      size =>
-        size - getPosition
-    }
+  def remaining: Long =
+    size - getPosition
 
-  def copy(): ReaderBase[E]
+  def copy(): ReaderBase
 
-  def reset(): ReaderBase[E] =
+  def reset(): ReaderBase =
     this moveTo 0
 
   @tailrec
-  final def foldLeftIO[R: ClassTag](result: R)(f: (R, ReaderBase[E]) => IO[E, R]): IO[E, R] =
-    hasMore match {
+  final def foldLeftIO[E: IO.ExceptionHandler, R: ClassTag](result: R)(f: (R, ReaderBase) => IO[E, R]): IO[E, R] =
+    IO(hasMore) match {
       case IO.Left(error) =>
         IO.Left(error)
 
@@ -126,4 +120,11 @@ private[swaydb] abstract class ReaderBase[E >: swaydb.Error.IO : IO.ExceptionHan
       case _ =>
         IO.Right(result)
     }
+
+  @tailrec
+  final def foldLeft[R: ClassTag](result: R)(f: (R, ReaderBase) => R): R =
+    if (hasMore)
+      foldLeft(f(result, self))(f)
+    else
+      result
 }

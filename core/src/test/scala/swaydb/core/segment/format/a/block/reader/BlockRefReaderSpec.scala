@@ -43,9 +43,9 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
       BlockRefReader[SegmentBlock.Offset](bytes).readRemaining().right.value shouldBe bytes
 
       //Reader: FileReader
-      BlockRefReader[SegmentBlock.Offset](fileReader: Reader[swaydb.Error.Segment]).get.readRemaining().right.value shouldBe bytes
+      BlockRefReader[SegmentBlock.Offset](fileReader: Reader).get.readRemaining().right.value shouldBe bytes
       //Reader: SliceReader
-      BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader[swaydb.Error.Segment]).get.readRemaining().right.value shouldBe bytes
+      BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader).get.readRemaining().right.value shouldBe bytes
     }
   }
 

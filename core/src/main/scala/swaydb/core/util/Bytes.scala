@@ -20,10 +20,8 @@
 package swaydb.core.util
 
 import swaydb.Error.IO.ExceptionHandler
-import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
-import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 import swaydb.data.util.Bytez
 
@@ -212,29 +210,25 @@ private[swaydb] object Bytes extends Bytez {
     }
   }
 
-  def decompressJoin(bytes: Slice[Byte]): IO[swaydb.Error.IO, (Slice[Byte], Slice[Byte])] =
-    Reader(bytes) ==> {
-      reader =>
-        for {
-          (leftBytesSize, lastBytesRead) <- Bytez.readLastUnsignedInt(bytes)
-          left <- reader.read(leftBytesSize)
-          commonBytes <- reader.readUnsignedInt()
-          hasMore <- reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
-          right <-
-            if (!hasMore && commonBytes == leftBytesSize) //if right was fully compressed then right == left, return left.
-              IO.Right(left)
-            else
-              reader.readUnsignedInt() flatMap {
-                rightSize =>
-                  reader.read(rightSize) map {
-                    right =>
-                      decompress(left, right, commonBytes)
-                  }
-              }
-        } yield {
-          (left, right)
-        }
-    }
+  def decompressJoin(bytes: Slice[Byte]): (Slice[Byte], Slice[Byte]) = {
+
+    val reader = Reader(bytes)
+    val (leftBytesSize, lastBytesRead) = Bytez.readLastUnsignedInt(bytes)
+    val left = reader.read(leftBytesSize)
+    val commonBytes = reader.readUnsignedInt()
+    val hasMore = reader.hasAtLeast(lastBytesRead + 1) //if there are more bytes to read.
+
+    val right =
+      if (!hasMore && commonBytes == leftBytesSize) { //if right was fully compressed then right == left, return left.
+        left
+      } else {
+        val rightSize = reader.readUnsignedInt()
+        val right = reader.read(rightSize)
+        decompress(left, right, commonBytes)
+      }
+
+    (left, right)
+  }
 
   def normalise(bytes: Slice[Byte], toSize: Int): Slice[Byte] = {
     assert(bytes.size < toSize, s"bytes.size(${bytes.size}) >= toSize($toSize)")

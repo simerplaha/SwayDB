@@ -64,10 +64,10 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixPutReader
-      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.right.value.value shouldBe entry
+      MapEntryReader.read[MapEntry.Put[Slice[Byte], Segment]](Reader(slice.drop(1))).runRandomIO.right.value.value shouldBe entry
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
@@ -90,10 +90,10 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixRemoveReader
-      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader[swaydb.Error.Map](slice.drop(1))).runRandomIO.right.value.value.key shouldBe entry.key
+      MapEntryReader.read[MapEntry.Remove[Slice[Byte]]](Reader(slice.drop(1))).runRandomIO.right.value.value.key shouldBe entry.key
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
@@ -125,7 +125,7 @@ class AppendixMapEntrySpec extends TestBase {
       slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
       import appendixReader.AppendixReader
-      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](slice)).runRandomIO.right.value.value
+      val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)

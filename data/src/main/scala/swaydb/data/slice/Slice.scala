@@ -26,7 +26,6 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, Bytez}
-import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
@@ -260,18 +259,17 @@ object Slice {
     @inline def readInt(): Int =
       Bytez.readInt(slice)
 
-    @inline def dropUnsignedInt(): IO[Error.IO, Slice[Byte]] =
-      readUnsignedIntWithByteSize() map {
-        case (_, byteSize) =>
-          slice drop byteSize
-      }
+    @inline def dropUnsignedInt(): Slice[Byte] = {
+      val (_, byteSize) = readUnsignedIntWithByteSize()
+      slice drop byteSize
+    }
 
     @inline def addSignedInt(int: Int): Slice[Byte] = {
       Bytez.writeSignedInt(int, slice)
       slice
     }
 
-    @inline def readSignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
+    @inline def readSignedInt(): Int =
       Bytez.readSignedInt(slice)
 
     @inline def addUnsignedInt(int: Int): Slice[Byte] = {
@@ -279,10 +277,10 @@ object Slice {
       slice
     }
 
-    @inline def readUnsignedInt[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Int] =
+    @inline def readUnsignedInt(): Int =
       Bytez.readUnsignedInt(slice)
 
-    @inline def readUnsignedIntWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Int, Int)] =
+    @inline def readUnsignedIntWithByteSize(): (Int, Int) =
       Bytez.readUnsignedIntWithByteSize(slice)
 
     @inline def addLong(long: Long): Slice[Byte] = {
@@ -298,10 +296,10 @@ object Slice {
       slice
     }
 
-    @inline def readUnsignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
+    @inline def readUnsignedLong(): Long =
       Bytez.readUnsignedLong(slice)
 
-    @inline def readUnsignedLongWithByteSize[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, (Long, Int)] =
+    @inline def readUnsignedLongWithByteSize(): (Long, Int) =
       Bytez.readUnsignedLongWithByteSize(slice)
 
     @inline def addSignedLong(long: Long): Slice[Byte] = {
@@ -309,7 +307,7 @@ object Slice {
       slice
     }
 
-    @inline def readSignedLong[E >: swaydb.Error.IO : IO.ExceptionHandler](): IO[E, Long] =
+    @inline def readSignedLong(): Long =
       Bytez.readSignedLong(slice)
 
     @inline def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
@@ -329,10 +327,7 @@ object Slice {
     @inline def toByteArrayOutputStream =
       slice.toByteArrayInputStream
 
-    @inline def createReaderUnsafe() =
-      new SliceReaderUnsafe(slice)
-
-    @inline def createReaderSafe[E >: swaydb.Error.IO : IO.ExceptionHandler]() =
+    @inline def createReader() =
       SliceReader(slice)
   }
 
@@ -621,7 +616,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
   @throws[ArrayIndexOutOfBoundsException]
   def get(index: Int): T = {
     val adjustedIndex = fromOffset + index
-//    if (adjustedIndex < fromOffset || adjustedIndex > toOffset) throw new ArrayIndexOutOfBoundsException(index)
+    //    if (adjustedIndex < fromOffset || adjustedIndex > toOffset) throw new ArrayIndexOutOfBoundsException(index)
     array(adjustedIndex)
   }
 

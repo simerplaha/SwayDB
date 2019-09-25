@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps, SegmentBlock}
 import swaydb.data.slice.{Reader, Slice}
@@ -34,17 +33,14 @@ private[core] object BlockedReader {
       block = block
     )
 
-  def apply[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, BlockedReader[O, B]] =
-    Block.readHeader(ref) flatMap {
-      header =>
-        blockOps.readBlock(header) map {
-          block =>
-            new BlockedReader[O, B](
-              reader = ref.reader,
-              block = block
-            )
-        }
-    }
+  def apply[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O])(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] = {
+    val header = Block.readHeader(ref)
+    val block = blockOps.readBlock(header)
+    new BlockedReader[O, B](
+      reader = ref.reader,
+      block = block
+    )
+  }
 
   def apply[O <: BlockOffset, B <: Block[O]](block: B, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock])(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] =
     new BlockedReader[O, B](
@@ -53,7 +49,7 @@ private[core] object BlockedReader {
     )
 }
 
-private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader[swaydb.Error.Segment],
+private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader,
                                                                            val block: B) extends BlockReaderBase with LazyLogging {
 
   val offset = block.offset
@@ -71,15 +67,13 @@ private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(priva
     this
   }
 
-  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, BlockedReader[O, B]] =
-    readFullBlock()
-      .map {
-        bytes =>
-          BlockedReader[O, B](
-            bytes = bytes,
-            block = blockOps.updateBlockOffset(block, 0, bytes.size)
-          )
-      }
+  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] = {
+    val bytes = readFullBlock()
+    BlockedReader[O, B](
+      bytes = bytes,
+      block = blockOps.updateBlockOffset(block, 0, bytes.size)
+    )
+  }
 
   override def copy(): BlockedReader[O, B] =
     new BlockedReader(

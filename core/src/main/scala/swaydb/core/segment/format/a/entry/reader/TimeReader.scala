@@ -32,7 +32,7 @@ import scala.annotation.implicitNotFound
 sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: ReaderBase[swaydb.Error.Segment],
+  def read(indexReader: ReaderBase,
            previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time]
 }
 
@@ -45,7 +45,7 @@ object TimeReader {
   implicit object NoTimeReader extends TimeReader[BaseEntryId.Time.NoTime] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
       Time.successEmpty
   }
@@ -53,7 +53,7 @@ object TimeReader {
   implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
       indexReader.readUnsignedInt() flatMap {
         timeSize =>
@@ -68,7 +68,7 @@ object TimeReader {
 
     override def isPrefixCompressed: Boolean = true
 
-    def readTime(indexReader: ReaderBase[swaydb.Error.Segment],
+    def readTime(indexReader: ReaderBase,
                  previousTime: Time): IO[swaydb.Error.Segment, Time] =
       indexReader.readUnsignedInt() flatMap {
         commonBytes =>
@@ -82,7 +82,7 @@ object TimeReader {
           }
       }
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
       previous map {
         case previous: Persistent.Put =>

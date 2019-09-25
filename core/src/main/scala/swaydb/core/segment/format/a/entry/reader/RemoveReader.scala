@@ -35,7 +35,7 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
-                              indexReader: ReaderBase[swaydb.Error.Segment],
+                              indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,

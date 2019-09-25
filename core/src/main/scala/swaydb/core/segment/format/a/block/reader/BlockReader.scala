@@ -27,7 +27,7 @@ import swaydb.data.slice.{Reader, Slice}
 private[reader] object BlockReader extends LazyLogging {
 
   def apply(offset: BlockOffset,
-            reader: Reader[swaydb.Error.Segment]): BlockReader.State =
+            reader: Reader): BlockReader.State =
     new State(
       offset = offset,
       position = 0,
@@ -35,7 +35,7 @@ private[reader] object BlockReader extends LazyLogging {
     )
 
   class State(val offset: BlockOffset,
-              val reader: Reader[swaydb.Error.Segment],
+              val reader: Reader,
               var position: Int) {
 
     def remaining: Int =
@@ -54,37 +54,39 @@ private[reader] object BlockReader extends LazyLogging {
       (offset.size - fromPosition) >= atLeastSize
   }
 
-  def get(state: State): IO[swaydb.Error.Segment, Int] =
-    if (state.hasMore)
-      state.
-        reader
-        .moveTo(state.offset.start + state.position)
-        .get()
-        .onRightSideEffect {
-          _ =>
-            state.position += 1
-        }
-    else
-      IO.Left(swaydb.Error.Fatal(s"Has no more bytes. Position: ${state.position}"))
+  def get(state: State): Int =
+    if (state.hasMore) {
+      val byte =
+        state.
+          reader
+          .moveTo(state.offset.start + state.position)
+          .get()
 
-  def read(size: Int, state: State): IO[swaydb.Error.Segment, Slice[Byte]] = {
+      state.position += 1
+      byte
+    } else {
+      throw IO.throwable(s"Has no more bytes. Position: ${state.position}")
+    }
+
+  def read(size: Int, state: State): Slice[Byte] = {
     val remaining = state.remaining
     if (remaining <= 0) {
-      IO.emptyBytes
+      Slice.emptyBytes
     } else {
       val bytesToRead = size min remaining
-      state
-        .reader
-        .moveTo(state.offset.start + state.position)
-        .read(bytesToRead)
-        .onRightSideEffect {
-          _ =>
-            state.position += bytesToRead
-        }
+
+      val bytes =
+        state
+          .reader
+          .moveTo(state.offset.start + state.position)
+          .read(bytesToRead)
+
+      state.position += bytesToRead
+      bytes
     }
   }
 
-  def readFullBlock(state: State): IO[swaydb.Error.Segment, Slice[Byte]] =
+  def readFullBlock(state: State): Slice[Byte] =
     state.
       reader
       .moveTo(state.offset.start)

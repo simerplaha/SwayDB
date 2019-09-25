@@ -372,7 +372,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader[swaydb.Error.Map](bytes)).runRandomIO.right.value.value
+      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(bytes)).runRandomIO.right.value.value
 
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
       readMapEntry applyTo skipList
@@ -408,7 +408,7 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader[swaydb.Error.Map](bytes)).runRandomIO.right.value.value
+      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes)).runRandomIO.right.value.value
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readMapEntry applyTo skipList

@@ -46,17 +46,14 @@ private[core] object BlockRefReader {
   def apply[O <: BlockOffset](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(0, bytes.size),
-      reader = Reader[swaydb.Error.Segment](bytes)
+      reader = Reader(bytes)
     )
 
-  def apply[O <: BlockOffset](reader: Reader[swaydb.Error.Segment])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, BlockRefReader[O]] =
-    reader.size map {
-      readerSize =>
-        new BlockRefReader(
-          offset = blockOps.createOffset(0, readerSize.toInt),
-          reader = reader
-        )
-    }
+  def apply[O <: BlockOffset](reader: Reader)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+    new BlockRefReader(
+      offset = blockOps.createOffset(0, reader.size.toInt),
+      reader = reader
+    )
 
   /**
    * @note these readers are required to be nested because [[UnblockedReader]] might have a header size which is not current read.
@@ -75,7 +72,7 @@ private[core] object BlockRefReader {
 }
 
 private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
-                                                             private[reader] val reader: Reader[swaydb.Error.Segment]) extends BlockReaderBase with LazyLogging {
+                                                             private[reader] val reader: Reader) extends BlockReaderBase with LazyLogging {
 
   override val state: BlockReader.State =
     BlockReader(offset, reader)
@@ -90,8 +87,8 @@ private[core] class BlockRefReader[O <: BlockOffset] private(val offset: O,
     this
   }
 
-  def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, BlockRefReader[O]] =
-    readFullBlock() map (BlockRefReader(_))
+  def readFullBlockAndGetReader()(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+    BlockRefReader(readFullBlock())
 
   def copy(): BlockRefReader[O] =
     new BlockRefReader(

@@ -28,7 +28,7 @@ import swaydb.{Error, IO}
 
 object KeyReader {
 
-  private def uncompressed(indexReader: ReaderBase[swaydb.Error.Segment],
+  private def uncompressed(indexReader: ReaderBase,
                            keySize: Option[Int],
                            previous: Option[Persistent.Partial]): IO[Error.Segment, Slice[Byte]] =
     keySize match {
@@ -39,7 +39,7 @@ object KeyReader {
         indexReader.readRemaining()
     }
 
-  private def compressed(indexReader: ReaderBase[swaydb.Error.Segment],
+  private def compressed(indexReader: ReaderBase,
                          keySize: Option[Int],
                          previous: Option[Persistent.Partial]): IO[Error.Segment, Slice[Byte]] =
     previous map {
@@ -73,7 +73,7 @@ object KeyReader {
 
   def read(keyValueIdInt: Int,
            keySize: Option[Int],
-           indexReader: ReaderBase[swaydb.Error.Segment],
+           indexReader: ReaderBase,
            previous: Option[Persistent.Partial],
            keyValueId: KeyValueId): IO[swaydb.Error.Segment, Slice[Byte]] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))

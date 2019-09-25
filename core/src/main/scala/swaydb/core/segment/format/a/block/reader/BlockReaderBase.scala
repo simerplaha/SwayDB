@@ -20,17 +20,15 @@
 package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, ReaderBase, Slice}
 
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].
  */
-private[block] trait BlockReaderBase extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
+private[block] trait BlockReaderBase extends ReaderBase with LazyLogging {
 
-  private[reader] val reader: Reader[swaydb.Error.Segment]
+  private[reader] val reader: Reader
 
   override val isFile: Boolean = reader.isFile
 
@@ -40,33 +38,33 @@ private[block] trait BlockReaderBase extends ReaderBase[swaydb.Error.Segment] wi
 
   def state: BlockReader.State
 
-  override def size: IO[swaydb.Error.Segment, Long] =
-    IO(state.offset.size)
+  override def size: Long =
+    state.offset.size
 
-  def hasMore: IO[swaydb.Error.Segment, Boolean] =
-    IO(state.hasMore)
+  def hasMore: Boolean =
+    state.hasMore
 
-  def hasAtLeast(atLeastSize: Long): IO[swaydb.Error.Segment, Boolean] =
-    IO(state.hasAtLeast(atLeastSize))
+  def hasAtLeast(atLeastSize: Long): Boolean =
+    state.hasAtLeast(atLeastSize)
 
   override def getPosition: Int =
     state.position
 
-  override def get(): IO[swaydb.Error.Segment, Int] =
+  override def get(): Int =
     BlockReader get state
 
-  override def read(size: Int): IO[swaydb.Error.Segment, Slice[Byte]] =
+  override def read(size: Int): Slice[Byte] =
     BlockReader.read(size, state)
 
-  def readFullBlock(): IO[swaydb.Error.Segment, Slice[Byte]] =
+  def readFullBlock(): Slice[Byte] =
     BlockReader readFullBlock state
 
-  def readFullBlockOrNone(): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  def readFullBlockOrNone(): Option[Slice[Byte]] =
     if (offset.size == 0)
-      IO.none
+      None
     else
-      readFullBlock().toOptionValue
+      Some(readFullBlock())
 
-  override def readRemaining(): IO[swaydb.Error.Segment, Slice[Byte]] =
+  override def readRemaining(): Slice[Byte] =
     read(state.remaining)
 }

@@ -42,7 +42,7 @@ object MurmurHash3Generic {
   }
 
   def murmurhash3_x64_64(key: Slice[Byte], offset: Int, len: Int, seed: Int): Long = {
-    val reader = key.createReaderUnsafe()
+    val reader = key.createReader()
     var h1: Long = seed & 0x00000000FFFFFFFFL
     var h2: Long = seed & 0x00000000FFFFFFFFL
 

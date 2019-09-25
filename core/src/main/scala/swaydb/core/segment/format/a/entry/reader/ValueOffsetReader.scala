@@ -34,13 +34,13 @@ import scala.annotation.implicitNotFound
 sealed trait ValueOffsetReader[-T] {
   def isPrefixCompressed: Boolean
 
-  def read(indexReader: ReaderBase[swaydb.Error.Segment],
+  def read(indexReader: ReaderBase,
            previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int]
 }
 
 object ValueOffsetReader {
 
-  private def readOffset(indexReader: ReaderBase[swaydb.Error.Segment],
+  private def readOffset(indexReader: ReaderBase,
                          previous: Option[Persistent.Partial],
                          commonBytes: Int): IO[swaydb.Error.Segment, Int] =
     previous map {
@@ -71,7 +71,7 @@ object ValueOffsetReader {
   implicit object ValueOffsetOneCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       readOffset(indexReader, previous, 1)
   }
@@ -79,7 +79,7 @@ object ValueOffsetReader {
   implicit object ValueOffsetTwoCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.TwoCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       readOffset(indexReader, previous, 2)
   }
@@ -87,7 +87,7 @@ object ValueOffsetReader {
   implicit object ValueOffsetThreeCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.ThreeCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       readOffset(indexReader, previous, 3)
   }
@@ -95,7 +95,7 @@ object ValueOffsetReader {
   implicit object ValueOffsetUncompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       indexReader.readUnsignedInt()
   }
@@ -103,7 +103,7 @@ object ValueOffsetReader {
   implicit object ValueOffsetReaderValueOffsetFullyCompressed extends ValueOffsetReader[BaseEntryId.ValueOffset.FullyCompressed] {
     override def isPrefixCompressed: Boolean = true
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       previous map {
         case previous: Persistent =>
@@ -117,7 +117,7 @@ object ValueOffsetReader {
   implicit object ValueOffsetReaderNoValue extends ValueOffsetReader[BaseEntryId.Value.NoValue] {
     override def isPrefixCompressed: Boolean = false
 
-    override def read(indexReader: ReaderBase[swaydb.Error.Segment],
+    override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
       IO.zero
   }

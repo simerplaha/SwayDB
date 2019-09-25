@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.IO._
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
@@ -30,6 +29,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.config.IOAction
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
+import swaydb.core.util.Collections._
 
 /**
  * A block is a group of compressed or uncompressed bytes.
@@ -65,7 +65,7 @@ private[core] object Block extends LazyLogging {
                         val decompressedLength: Int)
 
   case class Header[O](compressionInfo: Option[CompressionInfo],
-                       headerReader: ReaderBase[swaydb.Error.Segment],
+                       headerReader: ReaderBase,
                        headerSize: Int,
                        offset: O)
 
@@ -96,19 +96,17 @@ private[core] object Block extends LazyLogging {
   def block(headerSize: Int,
             bytes: Slice[Byte],
             compressions: Seq[CompressionInternal],
-            blockName: String): IO[swaydb.Error.Segment, Slice[Byte]] =
-    compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) flatMap {
+            blockName: String): Slice[Byte] =
+    compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) match {
       case Some((compressedBytes, compression)) =>
-        IO {
-          compressedBytes moveWritePosition 0
-          compressedBytes addUnsignedInt headerSize
-          compressedBytes add compressedBlockID
-          compressedBytes addUnsignedInt compression.decompressor.id
-          compressedBytes addUnsignedInt (bytes.size - headerSize) //decompressed bytes
-          if (compressedBytes.currentWritePosition > headerSize)
-            throw new Exception(s"Compressed header bytes written over to data bytes for $blockName. CurrentPosition: ${compressedBytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${compressedBytes.size}")
-          compressedBytes
-        }
+        compressedBytes moveWritePosition 0
+        compressedBytes addUnsignedInt headerSize
+        compressedBytes add compressedBlockID
+        compressedBytes addUnsignedInt compression.decompressor.id
+        compressedBytes addUnsignedInt (bytes.size - headerSize) //decompressed bytes
+        if (compressedBytes.currentWritePosition > headerSize)
+          throw new Exception(s"Compressed header bytes written over to data bytes for $blockName. CurrentPosition: ${compressedBytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${compressedBytes.size}")
+        compressedBytes
 
       case None =>
         logger.trace {
@@ -117,6 +115,7 @@ private[core] object Block extends LazyLogging {
           else
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
+
         unblock(
           headerSize = headerSize,
           bytes = bytes,
@@ -126,96 +125,89 @@ private[core] object Block extends LazyLogging {
 
   def unblock(headerSize: Int,
               bytes: Slice[Byte],
-              blockName: String): IO[swaydb.Error.Segment, Slice[Byte]] =
-    IO {
-      bytes moveWritePosition 0
-      bytes addUnsignedInt headerSize
-      bytes add uncompressedBlockId
-      if (bytes.currentWritePosition > headerSize)
-        throw new Exception(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
-      bytes
-    }
+              blockName: String): Slice[Byte] = {
+    bytes moveWritePosition 0
+    bytes addUnsignedInt headerSize
+    bytes add uncompressedBlockId
+    if (bytes.currentWritePosition > headerSize)
+      throw new Exception(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
+    bytes
+  }
 
   def block(openSegment: SegmentBlock.Open,
             compressions: Seq[CompressionInternal],
-            blockName: String): IO[swaydb.Error.Segment, SegmentBlock.Closed] =
+            blockName: String): SegmentBlock.Closed =
     if (compressions.isEmpty) {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
-      IO {
-        openSegment.headerBytes moveWritePosition 0
-        openSegment.headerBytes addUnsignedInt openSegment.headerBytes.size
-        openSegment.headerBytes add uncompressedBlockId
-        SegmentBlock.Closed(
-          segmentBytes = openSegment.segmentBytes,
-          minMaxFunctionId = openSegment.functionMinMax,
-          nearestDeadline = openSegment.nearestDeadline
-        )
-      }
+      openSegment.headerBytes moveWritePosition 0
+      openSegment.headerBytes addUnsignedInt openSegment.headerBytes.size
+      openSegment.headerBytes add uncompressedBlockId
+      SegmentBlock.Closed(
+        segmentBytes = openSegment.segmentBytes,
+        minMaxFunctionId = openSegment.functionMinMax,
+        nearestDeadline = openSegment.nearestDeadline
+      )
     } else {
-      Block.block(
-        headerSize = openSegment.headerBytes.size,
-        bytes = openSegment.flattenSegmentBytes,
-        compressions = compressions,
-        blockName = blockName
-      ) map {
-        bytes =>
-          SegmentBlock.Closed(
-            segmentBytes = Slice(bytes),
-            minMaxFunctionId = openSegment.functionMinMax,
-            nearestDeadline = openSegment.nearestDeadline
-          )
-      }
+      val bytes =
+        Block.block(
+          headerSize = openSegment.headerBytes.size,
+          bytes = openSegment.flattenSegmentBytes,
+          compressions = compressions,
+          blockName = blockName
+        )
+
+      SegmentBlock.Closed(
+        segmentBytes = Slice(bytes),
+        minMaxFunctionId = openSegment.functionMinMax,
+        nearestDeadline = openSegment.nearestDeadline
+      )
     }
 
   private def readCompressionInfo(formatID: Int,
                                   headerSize: Int,
-                                  reader: ReaderBase[swaydb.Error.Segment]): IO[swaydb.Error.Segment, Option[CompressionInfo]] =
+                                  reader: ReaderBase): Option[CompressionInfo] =
     if (formatID == compressedBlockID) {
-      for {
-        decompressor <- reader.readUnsignedInt() flatMap (DecompressorInternal(_))
-        decompressedLength <- reader.readUnsignedInt()
-      } yield
-        Some(
-          new CompressionInfo(
-            decompressor = decompressor,
-            decompressedLength = decompressedLength
-          )
+      val decompressor = DecompressorInternal(reader.readUnsignedInt())
+      val decompressedLength = reader.readUnsignedInt()
+      Some(
+        new CompressionInfo(
+          decompressor = decompressor,
+          decompressedLength = decompressedLength
         )
-    }
-    else if (formatID == Block.uncompressedBlockId)
-      IO.none
-    else
-      IO.Left {
-        val message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
-        swaydb.Error.DataAccess(message, new Exception(message)): swaydb.Error.Segment
-      }
-
-  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): IO[swaydb.Error.Segment, Block.Header[O]] =
-    for {
-      headerSize <- reader.readUnsignedInt()
-      headerReader <- reader.read(headerSize - Bytes.sizeOfUnsignedInt(headerSize)).map(Reader[swaydb.Error.Segment](_))
-      formatID <- headerReader.get()
-      compressionInfo <- {
-        Block.readCompressionInfo(
-          formatID = formatID,
-          headerSize = headerSize,
-          reader = headerReader
-        )
-      }
-    } yield {
-      Header(
-        compressionInfo = compressionInfo,
-        headerReader = headerReader,
-        headerSize = headerSize,
-        offset = blockOps.createOffset(reader.offset.start + headerSize, reader.offset.size - headerSize)
       )
     }
+    else if (formatID == Block.uncompressedBlockId)
+      None
+    else {
+      val message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
+      throw swaydb.Exception.InvalidDataId(formatID, message)
+    }
 
-  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
+  def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): Block.Header[O] = {
+    val headerSize = reader.readUnsignedInt()
+    val headerReader = Reader(reader.read(headerSize - Bytes.sizeOfUnsignedInt(headerSize)))
+    val formatID = headerReader.get()
+
+    val compressionInfo =
+      Block.readCompressionInfo(
+        formatID = formatID,
+        headerSize = headerSize,
+        reader = headerReader
+      )
+
+    Header(
+      compressionInfo = compressionInfo,
+      headerReader = headerReader,
+      headerSize = headerSize,
+      offset = blockOps.createOffset(reader.offset.start + headerSize, reader.offset.size - headerSize)
+    )
+  }
+
+  def unblock[O <: BlockOffset, B <: Block[O]](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     unblock(BlockRefReader(bytes))
 
   def unblock[O <: BlockOffset, B <: Block[O]](ref: BlockRefReader[O],
-                                               readAllIfUncompressed: Boolean = false)(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
+                                               readAllIfUncompressed: Boolean = false)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     BlockedReader(ref) flatMap {
       blockedReader =>
         Block.unblock[O, B](
@@ -225,7 +217,7 @@ private[core] object Block extends LazyLogging {
     }
 
   def unblock[O <: BlockOffset, B <: Block[O]](reader: BlockedReader[O, B],
-                                               readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
+                                               readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     reader.block.compressionInfo match {
       case Some(compressionInfo) =>
         reader

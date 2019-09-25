@@ -24,8 +24,6 @@ import java.nio.ByteBuffer
 import com.typesafe.scalalogging.LazyLogging
 import net.jpountz.lz4.{LZ4Compressor, LZ4Factory}
 import org.xerial.snappy
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.data.compression.LZ4Compressor.{Fast, High}
 import swaydb.data.compression.LZ4Instance
 import swaydb.data.compression.LZ4Instance._
@@ -34,9 +32,9 @@ import swaydb.data.slice.Slice
 private[swaydb] sealed trait CompressorInternal {
   val minCompressionPercentage: Double
 
-  def compress(slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]]
+  def compress(slice: Slice[Byte]): Option[Slice[Byte]]
 
-  def compress(emptyHeadSpace: Int, slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]]
+  def compress(emptyHeadSpace: Int, slice: Slice[Byte]): Option[Slice[Byte]]
 }
 
 private[swaydb] object CompressorInternal extends LazyLogging {
@@ -96,29 +94,28 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     final val compressionName = this.getClass.getSimpleName
 
-    override def compress(slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+    override def compress(slice: Slice[Byte]): Option[Slice[Byte]] =
       compress(
         emptyHeadSpace = 0,
         slice = slice
       )
 
-    def compress(emptyHeadSpace: Int, slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-      IO {
-        val maxCompressLength = compressor.maxCompressedLength(slice.size)
-        val compressedBuffer = ByteBuffer.allocate(maxCompressLength + emptyHeadSpace)
-        val compressedBytes = compressor.compress(slice.toByteBufferWrap, slice.fromOffset, slice.size, compressedBuffer, emptyHeadSpace, maxCompressLength)
+    def compress(emptyHeadSpace: Int, slice: Slice[Byte]): Option[Slice[Byte]] = {
+      val maxCompressLength = compressor.maxCompressedLength(slice.size)
+      val compressedBuffer = ByteBuffer.allocate(maxCompressLength + emptyHeadSpace)
+      val compressedBytes = compressor.compress(slice.toByteBufferWrap, slice.fromOffset, slice.size, compressedBuffer, emptyHeadSpace, maxCompressLength)
 
-        if (isCompressionSatisfied(minCompressionPercentage, compressedBytes, slice.size, compressionName))
-          Some(
-            Slice.from(
-              byteBuffer = compressedBuffer,
-              from = 0,
-              to = emptyHeadSpace + compressedBytes - 1
-            )
+      if (isCompressionSatisfied(minCompressionPercentage, compressedBytes, slice.size, compressionName))
+        Some(
+          Slice.from(
+            byteBuffer = compressedBuffer,
+            from = 0,
+            to = emptyHeadSpace + compressedBytes - 1
           )
-        else
-          None
-      }
+        )
+      else
+        None
+    }
   }
 
   private[swaydb] case object UnCompressed extends CompressorInternal {
@@ -127,12 +124,12 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     override final val minCompressionPercentage: Double = Double.MinValue
 
-    override def compress(emptyHeadSpace: Int, slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-      IO(Some(Slice.fill[Byte](emptyHeadSpace)(0) ++ slice))
+    override def compress(emptyHeadSpace: Int, slice: Slice[Byte]): Option[Slice[Byte]] =
+      Some(Slice.fill[Byte](emptyHeadSpace)(0) ++ slice)
 
-    override def compress(slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] = {
+    override def compress(slice: Slice[Byte]): Option[Slice[Byte]] = {
       logger.debug(s"Uncompressed {}.bytes with {}", slice.size, compressionName)
-      IO.Right(Some(slice))
+      Some(slice)
     }
   }
 
@@ -140,19 +137,18 @@ private[swaydb] object CompressorInternal extends LazyLogging {
 
     final val compressionName = this.getClass.getSimpleName
 
-    override def compress(slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+    override def compress(slice: Slice[Byte]): Option[Slice[Byte]] =
       compress(emptyHeadSpace = 0, slice = slice)
 
-    override def compress(emptyHeadSpace: Int, slice: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
-      IO {
-        val compressedArray = new Array[Byte](snappy.Snappy.maxCompressedLength(slice.size) + emptyHeadSpace)
-        val (bytes, fromOffset, written) = slice.underlyingWrittenArrayUnsafe
-        val compressedSize = snappy.Snappy.compress(bytes, fromOffset, written, compressedArray, emptyHeadSpace)
-        if (isCompressionSatisfied(minCompressionPercentage, compressedSize, slice.size, this.getClass.getSimpleName))
-          Some(Slice(compressedArray).slice(0, emptyHeadSpace + compressedSize - 1))
-        else
-          None
-      }
+    override def compress(emptyHeadSpace: Int, slice: Slice[Byte]): Option[Slice[Byte]] = {
+      val compressedArray = new Array[Byte](snappy.Snappy.maxCompressedLength(slice.size) + emptyHeadSpace)
+      val (bytes, fromOffset, written) = slice.underlyingWrittenArrayUnsafe
+      val compressedSize = snappy.Snappy.compress(bytes, fromOffset, written, compressedArray, emptyHeadSpace)
+      if (isCompressionSatisfied(minCompressionPercentage, compressedSize, slice.size, this.getClass.getSimpleName))
+        Some(Slice(compressedArray).slice(0, emptyHeadSpace + compressedSize - 1))
+      else
+        None
+    }
   }
 
   def randomLZ4(minCompressionSavingsPercent: Double = Double.MinValue): CompressorInternal.LZ4 =

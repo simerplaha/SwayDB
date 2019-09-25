@@ -54,7 +54,7 @@ private[core] object UnblockedReader {
     )
 
   def apply[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B],
-                                             readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
+                                             readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     Block.unblock(
       reader = blockedReader,
       readAllIfUncompressed = readAllIfUncompressed
@@ -68,7 +68,7 @@ private[core] object UnblockedReader {
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
-                                                                             private[reader] val reader: Reader[swaydb.Error.Segment]) extends BlockReaderBase with LazyLogging {
+                                                                             private[reader] val reader: Reader) extends BlockReaderBase with LazyLogging {
 
   val offset = block.offset
 
@@ -77,9 +77,6 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
 
   val hasBlockCache =
     blockSize.isDefined
-
-  def readBlock(position: Int) =
-    reader.readBlock(position)
 
   def blockSize: Option[Int] =
     reader match {
@@ -100,15 +97,13 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
     this
   }
 
-  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): IO[swaydb.Error.Segment, UnblockedReader[O, B]] =
-    readFullBlock()
-      .map {
-        bytes =>
-          UnblockedReader[O, B](
-            bytes = bytes,
-            block = blockOps.updateBlockOffset(block, 0, bytes.size)
-          )
-      }
+  def readAllAndGetReader()(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] = {
+    val bytes = readFullBlock()
+    UnblockedReader[O, B](
+      bytes = bytes,
+      block = blockOps.updateBlockOffset(block, 0, bytes.size)
+    )
+  }
 
   def copy(): UnblockedReader[O, B] =
     new UnblockedReader(

@@ -35,7 +35,7 @@ trait EntryReader[E] {
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
                               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
-                              indexReader: ReaderBase[swaydb.Error.Segment],
+                              indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
@@ -44,7 +44,7 @@ trait EntryReader[E] {
                                                                     deadlineReader: DeadlineReader[T],
                                                                     valueOffsetReader: ValueOffsetReader[T],
                                                                     valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, E]
+                                                                    valueBytesReader: ValueReader[T]): E
 }
 
 object EntryReader {
@@ -70,13 +70,13 @@ object EntryReader {
                        sortedIndexAccessPosition: Int,
                        keyInfo: Option[Either[Int, Persistent.Partial.Key]],
                        mightBeCompressed: Boolean,
-                       indexReader: ReaderBase[swaydb.Error.Segment],
+                       indexReader: ReaderBase,
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                        indexOffset: Int,
                        nextIndexOffset: Int,
                        nextIndexSize: Int,
                        previous: Option[Persistent.Partial],
-                       entryReader: EntryReader[T]): IO[swaydb.Error.Segment, T] =
+                       entryReader: EntryReader[T]): T =
     findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) match {
       case Some(baseEntryReader) =>
         baseEntryReader.read(
@@ -94,7 +94,7 @@ object EntryReader {
         )
 
       case None =>
-        IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+        throw swaydb.Exception.InvalidKeyValueId(baseId)
     }
 
   def partialRead(indexEntry: Slice[Byte],
@@ -103,115 +103,95 @@ object EntryReader {
                   nextIndexOffset: Int,
                   nextIndexSize: Int,
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                  previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
+                  previous: Option[Persistent.Partial]): Persistent.Partial = {
 
-    val reader = Reader[swaydb.Error.Segment](indexEntry)
+    val reader = Reader(indexEntry)
 
     val sortedIndexAccessPosition =
       if (block.enableAccessPositionIndex)
         reader.readUnsignedInt()
       else
-        IO.zero
+        0
 
-    sortedIndexAccessPosition flatMap {
-      sortedIndexAccessPosition =>
-        reader.readUnsignedInt() flatMap {
-          keySize =>
-            reader.read(keySize) flatMap {
-              key =>
-                reader.get() flatMap {
-                  id =>
-                    reader.readRemaining() flatMap {
-                      tailIndexBytes =>
-                        if (id == Transient.Put.id)
-                          IO.Right {
-                            new Persistent.Partial.Put(
-                              key = key,
-                              indexOffset = indexOffset,
-                              nextIndexOffset = nextIndexOffset,
-                              nextIndexSize = nextIndexSize,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              indexBytes = tailIndexBytes,
-                              block = block,
-                              valuesReader = valuesReader,
-                              previous = previous
-                            )
-                          }
-                        else if (id == Transient.Remove.id)
-                          IO.Right {
-                            new Persistent.Partial.Remove(
-                              key = key,
-                              indexOffset = indexOffset,
-                              nextIndexOffset = nextIndexOffset,
-                              nextIndexSize = nextIndexSize,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              indexBytes = tailIndexBytes,
-                              block = block,
-                              valuesReader = valuesReader,
-                              previous = previous
-                            )
-                          }
-                        else if (id == Transient.Update.id)
-                          IO.Right {
-                            new Persistent.Partial.Update(
-                              key = key,
-                              indexOffset = indexOffset,
-                              nextIndexOffset = nextIndexOffset,
-                              nextIndexSize = nextIndexSize,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              indexBytes = tailIndexBytes,
-                              block = block,
-                              valuesReader = valuesReader,
-                              previous = previous
-                            )
-                          }
-                        else if (id == Transient.PendingApply.id)
-                          IO.Right {
-                            new Persistent.Partial.PendingApply(
-                              key = key,
-                              indexOffset = indexOffset,
-                              nextIndexOffset = nextIndexOffset,
-                              nextIndexSize = nextIndexSize,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              indexBytes = tailIndexBytes,
-                              block = block,
-                              valuesReader = valuesReader,
-                              previous = previous
-                            )
-                          }
-                        else if (id == Transient.Function.id)
-                          IO.Right {
-                            new Persistent.Partial.Function(
-                              key = key,
-                              indexOffset = indexOffset,
-                              nextIndexOffset = nextIndexOffset,
-                              nextIndexSize = nextIndexSize,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition,
-                              indexBytes = tailIndexBytes,
-                              block = block,
-                              valuesReader = valuesReader,
-                              previous = previous
-                            )
-                          }
-                        else if (id == Transient.Range.id)
-                          Persistent.Partial.Range(
-                            key = key,
-                            indexBytes = tailIndexBytes,
-                            indexOffset = indexOffset,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition,
-                            block = block,
-                            valuesReader = valuesReader,
-                            previous = previous
-                          )
-                        else
-                          IO.failed(s"Invalid partialRead entryId: $id")
-                    }
-                }
-            }
-        }
-    }
+    val keySize = reader.readUnsignedInt()
+    val key = reader.read(keySize)
+    val id = reader.get()
+    val tailIndexBytes = reader.readRemaining()
+
+    if (id == Transient.Put.id)
+      new Persistent.Partial.Put(
+        key = key,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        indexBytes = tailIndexBytes,
+        block = block,
+        valuesReader = valuesReader,
+        previous = previous
+      )
+    else if (id == Transient.Remove.id)
+      new Persistent.Partial.Remove(
+        key = key,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        indexBytes = tailIndexBytes,
+        block = block,
+        valuesReader = valuesReader,
+        previous = previous
+      )
+    else if (id == Transient.Update.id)
+      new Persistent.Partial.Update(
+        key = key,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        indexBytes = tailIndexBytes,
+        block = block,
+        valuesReader = valuesReader,
+        previous = previous
+      )
+    else if (id == Transient.PendingApply.id)
+      new Persistent.Partial.PendingApply(
+        key = key,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        indexBytes = tailIndexBytes,
+        block = block,
+        valuesReader = valuesReader,
+        previous = previous
+      )
+    else if (id == Transient.Function.id)
+      new Persistent.Partial.Function(
+        key = key,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        indexBytes = tailIndexBytes,
+        block = block,
+        valuesReader = valuesReader,
+        previous = previous
+      )
+    else if (id == Transient.Range.id)
+      Persistent.Partial.Range(
+        key = key,
+        indexBytes = tailIndexBytes,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        block = block,
+        valuesReader = valuesReader,
+        previous = previous
+      )
+    else
+      IO.failed(s"Invalid partialRead entryId: $id")
   }
 
   def completePartialRead[T](indexEntry: Slice[Byte],
@@ -223,8 +203,8 @@ object EntryReader {
                              nextIndexSize: Int,
                              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                              entryReader: EntryReader[T],
-                             previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, T] = {
-    val reader = Reader[swaydb.Error.Segment](indexEntry)
+                             previous: Option[Persistent.Partial]): T = {
+    val reader = Reader(indexEntry)
 
     reader.readUnsignedInt() flatMap {
       baseId =>
@@ -254,7 +234,7 @@ object EntryReader {
                nextIndexSize: Int,
                hasAccessPositionIndex: Boolean,
                isNormalised: Boolean,
-               previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] =
+               previous: Option[Persistent.Partial]): Persistent.Partial =
     if (isPartialReadEnabled)
       fullReadFromPartial(
         indexEntry = indexEntry,
@@ -288,9 +268,9 @@ object EntryReader {
                nextIndexSize: Int,
                hasAccessPositionIndex: Boolean,
                isNormalised: Boolean,
-               previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
+               previous: Option[Persistent.Partial]): Persistent.Partial = {
     //check if de-normalising is required.
-    val reader = Reader[swaydb.Error.Segment](indexEntry)
+    val reader = Reader(indexEntry)
 
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
@@ -418,9 +398,9 @@ object EntryReader {
                           nextIndexSize: Int,
                           hasAccessPositionIndex: Boolean,
                           isNormalised: Boolean,
-                          previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Persistent.Partial] = {
+                          previous: Option[Persistent.Partial]): Persistent.Partial = {
     //check if de-normalising is required.
-    val reader = Reader[swaydb.Error.Segment](indexEntry)
+    val reader = Reader(indexEntry)
 
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)

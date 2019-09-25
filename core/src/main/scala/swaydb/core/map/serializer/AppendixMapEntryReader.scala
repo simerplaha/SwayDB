@@ -72,7 +72,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            segmentIO: SegmentIO) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
       for {
         segmentPathLength <- reader.readUnsignedInt()
         segmentPathBytes <- reader.read(segmentPathLength).map(_.unslice())
@@ -177,7 +177,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
       for {
         minKeyLength <- reader.readUnsignedInt()
         minKey <- reader.read(minKeyLength).map(_.unslice())
@@ -187,7 +187,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
           reader.readUnsignedInt() flatMap {

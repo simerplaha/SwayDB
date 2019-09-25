@@ -36,7 +36,7 @@ object IfConditionGenerator extends App {
       entryId.getClass.getName.dropRight(1).replaceAll("swaydb.core.segment.format.a.entry.id.", "").replaceAll("\\$", ".")
   }
 
-  val failed = "IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))"
+  val failed = "throw swaydb.Exception.InvalidKeyValueId(baseId)"
 
   def generateBinarySearchConditions(ids: List[BaseEntryId]): String = {
     if (ids.size == 1) {

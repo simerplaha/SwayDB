@@ -86,7 +86,7 @@ private[extensions] object Key {
     }
 
   private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[swaydb.Error.Segment, Seq[K]] = {
-    def readOne(reader: ReaderBase[swaydb.Error.Segment]): IO[swaydb.Error.Segment, Option[K]] =
+    def readOne(reader: ReaderBase): IO[swaydb.Error.Segment, Option[K]] =
       reader
         .readUnsignedInt()
         .flatMap(reader.read)
@@ -98,7 +98,7 @@ private[extensions] object Key {
               Some(keySerializer.read(bytes))
         }
 
-    Reader[swaydb.Error.Segment](keys).foldLeftIO(Seq.empty[K]) {
+    Reader(keys).foldLeftIO(Seq.empty[K]) {
       case (keys, reader) =>
         readOne(reader) map {
           key =>
@@ -206,7 +206,7 @@ private[extensions] object Key {
         }
 
       override def read(data: Slice[Byte]): Key[K] = {
-        val reader = data.createReaderUnsafe()
+        val reader = data.createReader()
         reader.skip(1) //skip formatId
         val keyBytes = reader.read(reader.readUnsignedInt())
         val keys = readKeys(keyBytes, keySerializer).get
@@ -243,13 +243,13 @@ private[extensions] object Key {
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
-        val readerLeft = a.createReaderUnsafe()
+        val readerLeft = a.createReader()
         readerLeft.skip(1) //skip formatId
         val keySizeLeft = readerLeft.readUnsignedInt()
         readerLeft.skip(keySizeLeft)
         val dataTypeLeft = readerLeft.get()
 
-        val readerRight = a.createReaderUnsafe()
+        val readerRight = a.createReader()
         readerRight.skip(1) //skip formatId
         val keySizeRight = readerRight.readUnsignedInt() //read the keySize integer
         readerRight.skip(keySizeRight) //skip key size

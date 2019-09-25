@@ -33,7 +33,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Remove]] {
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Remove]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Remove]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -48,7 +48,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0PutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Put]] {
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Put]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Put]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -65,7 +65,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0UpdateReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Update]] {
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Update]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Update]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -82,7 +82,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0FunctionReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Function]] {
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Function]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Function]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -97,7 +97,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Range]] {
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Range]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Range]]] =
       for {
         fromKeyLength <- reader.readInt()
         fromKey <- reader.read(fromKeyLength).map(_.unslice())
@@ -113,7 +113,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0PendingApplyReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.PendingApply]] {
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.PendingApply]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.PendingApply]]] =
       for {
         keyLength <- reader.readInt()
         key <- reader.read(keyLength).map(_.unslice())
@@ -133,7 +133,7 @@ object LevelZeroMapEntryReader {
           previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
       }
 
-    override def read(reader: ReaderBase[swaydb.Error.Map]): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Memory]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Memory]]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Memory]]) {
         case (previousEntry, reader) =>
           reader.readInt() flatMap {

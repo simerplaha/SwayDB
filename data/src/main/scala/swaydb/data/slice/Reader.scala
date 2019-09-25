@@ -19,21 +19,17 @@
 
 package swaydb.data.slice
 
-import swaydb.{Error, IO}
+abstract class Reader extends ReaderBase {
 
-abstract class Reader[E >: swaydb.Error.IO : IO.ExceptionHandler] extends ReaderBase[E] {
+  def moveTo(position: Long): Reader
 
-  def moveTo(position: Long): Reader[E]
+  def moveTo(position: Int): Reader
 
-  def moveTo(position: Int): Reader[E]
+  override def copy(): Reader
 
-  def readBlock(position: Int): Option[IO[Error.IO, Slice[Byte]]]
-
-  override def copy(): Reader[E]
-
-  override def skip(skip: Long): Reader[E] =
+  override def skip(skip: Long): Reader =
     moveTo(getPosition + skip)
 
-  override def reset(): Reader[E] =
+  override def reset(): Reader =
     this moveTo 0
 }

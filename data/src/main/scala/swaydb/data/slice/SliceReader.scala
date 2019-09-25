@@ -21,64 +21,57 @@ package swaydb.data.slice
 
 import java.nio.file.Paths
 
-import swaydb.{Error, IO}
-
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
-private[swaydb] case class SliceReader[E >: swaydb.Error.IO : IO.ExceptionHandler](slice: Slice[Byte],
-                                                                                   private var position: Int = 0) extends Reader[E] {
+private[swaydb] case class SliceReader(slice: Slice[Byte],
+                                       private var position: Int = 0) extends Reader {
 
   def path = Paths.get(this.getClass.getSimpleName)
 
-  override val size: IO[E, Long] =
-    IO(slice.size.toLong)
+  override val size: Long =
+    slice.size.toLong
 
-  def hasAtLeast(size: Long): IO[E, Boolean] =
-    IO((slice.size - position) >= size)
+  def hasAtLeast(size: Long): Boolean =
+    (slice.size - position) >= size
 
-  def read(size: Int): IO[E, Slice[Byte]] =
-    IO {
-      if (size == 0)
-        Slice.emptyBytes
-      else {
-        val bytes = slice.take(position, size)
-        position += size
-        bytes
-      }
+  def read(size: Int): Slice[Byte] = {
+    if (size == 0)
+      Slice.emptyBytes
+    else {
+      val bytes = slice.take(position, size)
+      position += size
+      bytes
     }
+  }
 
-  def moveTo(newPosition: Long): SliceReader[E] = {
+  def moveTo(newPosition: Long): SliceReader = {
     position = newPosition.toInt max 0
     this
   }
 
-  def moveTo(newPosition: Int): SliceReader[E] = {
+  def moveTo(newPosition: Int): SliceReader = {
     position = newPosition max 0
     this
   }
 
-  def get() =
-    IO {
-      val byte = slice get position
-      position += 1
-      byte
-    }
+  def get() = {
+    val byte = slice get position
+    position += 1
+    byte
+  }
 
   def hasMore =
-    IO.Right(position < slice.size)
+    position < slice.size
 
   override def getPosition: Int =
     position
 
-  override def copy(): SliceReader[E] =
+  override def copy(): SliceReader =
     SliceReader(slice)
 
-  override def readRemaining(): IO[E, Slice[Byte]] =
-    remaining flatMap read
+  override def readRemaining(): Slice[Byte] =
+    read(remaining)
 
   override def isFile: Boolean = false
-
-  override def readBlock(position: Int): Option[IO[Error.IO, Slice[Byte]]] =
-    None
 }

@@ -58,7 +58,7 @@ object Exception {
   case class SegmentFileMissing(path: Path) extends Exception(s"$path: Segment file missing.")
   case class InvalidKeyValueId(id: Int) extends Exception(s"Invalid keyValueId: $id.")
 
-  case class InvalidDecompressorId(id: Int) extends Exception(s"Invalid decompressor id: $id")
+  case class InvalidDataId(id: Int, message: String = "") extends Exception(s"Invalid data id: $id. $message")
 
   case class NotAnIntFile(path: Path) extends Exception
   case class UnknownExtension(path: Path) extends Exception

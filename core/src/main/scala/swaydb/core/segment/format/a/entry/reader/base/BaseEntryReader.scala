@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
-import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -36,11 +35,11 @@ private[core] trait BaseEntryReader {
               keyValueId: Int,
               sortedIndexAccessPosition: Int,
               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
-              indexReader: ReaderBase[swaydb.Error.Segment],
+              indexReader: ReaderBase,
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent.Partial],
-              reader: EntryReader[T]): IO[swaydb.Error.Segment, T]
+              reader: EntryReader[T]): T
 }

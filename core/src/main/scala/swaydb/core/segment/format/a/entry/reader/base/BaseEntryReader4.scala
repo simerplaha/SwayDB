@@ -19,14 +19,12 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
-import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.data.slice.ReaderBase
-import swaydb.Error.Segment.ExceptionHandler
 
 private[core] object BaseEntryReader4 extends BaseEntryReader {
 
@@ -34,13 +32,13 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
               keyValueId: Int,
               sortedIndexAccessPosition: Int,
               keyInfo: Option[Either[Int, Persistent.Partial.Key]],
-              indexReader: ReaderBase[swaydb.Error.Segment],
+              indexReader: ReaderBase,
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
               previous: Option[Persistent.Partial],
-              reader: EntryReader[T]): IO[swaydb.Error.Segment, T] =
+              reader: EntryReader[T]): T =
   //GENERATED CONDITIONS
     if (baseId == 1207)
       reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -68,16 +66,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1036)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1037)
                   if (baseId == 1038)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1039)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1040)
                 if (baseId == 1043)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -87,16 +85,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1042)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1043)
                   if (baseId == 1044)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1045)
               if (baseId == 1051)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -109,16 +107,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1047)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1048)
                   if (baseId == 1049)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1050)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1051)
                 if (baseId == 1054)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -128,18 +126,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1053)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1054)
                   if (baseId == 1055)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1056)
             if (baseId == 1067)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -155,16 +153,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1058)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1059)
                   if (baseId == 1060)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1061)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1062)
                 if (baseId == 1065)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -174,16 +172,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1064)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1065)
                   if (baseId == 1066)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1067)
               if (baseId == 1073)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -196,16 +194,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1069)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1070)
                   if (baseId == 1071)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1072)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1073)
                 if (baseId == 1076)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -215,20 +213,20 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1075)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1076)
                   if (baseId == 1077)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else if (baseId > 1078)
           if (baseId == 1100)
             reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -247,16 +245,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1080)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1081)
                   if (baseId == 1082)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1083)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1084)
                 if (baseId == 1087)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -266,16 +264,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1086)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1087)
                   if (baseId == 1088)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1089)
               if (baseId == 1095)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -288,16 +286,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1091)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1092)
                   if (baseId == 1093)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1094)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1095)
                 if (baseId == 1098)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -307,18 +305,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1097)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1098)
                   if (baseId == 1099)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1100)
             if (baseId == 1111)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -334,16 +332,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1102)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1103)
                   if (baseId == 1104)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1105)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1106)
                 if (baseId == 1109)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -353,16 +351,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1108)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1109)
                   if (baseId == 1110)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1111)
               if (baseId == 1116)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -375,14 +373,14 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1113)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1114)
                   if (baseId == 1115)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1116)
                 if (baseId == 1119)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -392,22 +390,22 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1118)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1119)
                   if (baseId == 1120)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else
-          IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+          throw swaydb.Exception.InvalidKeyValueId(baseId)
       else if (baseId > 1121)
         if (baseId == 1164)
           reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -429,16 +427,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1123)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1124)
                   if (baseId == 1125)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1126)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1127)
                 if (baseId == 1130)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -448,16 +446,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1129)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1130)
                   if (baseId == 1131)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1132)
               if (baseId == 1138)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -470,16 +468,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1134)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1135)
                   if (baseId == 1136)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1137)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1138)
                 if (baseId == 1141)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -489,18 +487,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1140)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1141)
                   if (baseId == 1142)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1143)
             if (baseId == 1154)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -516,16 +514,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1145)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1146)
                   if (baseId == 1147)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1148)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1149)
                 if (baseId == 1152)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -535,16 +533,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1151)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1152)
                   if (baseId == 1153)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1154)
               if (baseId == 1159)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -557,14 +555,14 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1156)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1157)
                   if (baseId == 1158)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1159)
                 if (baseId == 1162)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -574,20 +572,20 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1161)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1162)
                   if (baseId == 1163)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else if (baseId > 1164)
           if (baseId == 1186)
             reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -606,16 +604,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1166)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1167)
                   if (baseId == 1168)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1169)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1170)
                 if (baseId == 1173)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -625,16 +623,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1172)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1173)
                   if (baseId == 1174)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1175)
               if (baseId == 1181)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -647,16 +645,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1177)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1178)
                   if (baseId == 1179)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1180)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1181)
                 if (baseId == 1184)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -666,18 +664,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1183)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1184)
                   if (baseId == 1185)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthOneCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1186)
             if (baseId == 1197)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthThreeCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -693,16 +691,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1188)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthTwoCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1189)
                   if (baseId == 1190)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthTwoCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1191)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthTwoCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1192)
                 if (baseId == 1195)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthTwoCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -712,16 +710,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1194)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthTwoCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1195)
                   if (baseId == 1196)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthThreeCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1197)
               if (baseId == 1202)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthThreeCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -734,14 +732,14 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1199)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthThreeCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1200)
                   if (baseId == 1201)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthThreeCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1202)
                 if (baseId == 1205)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -751,24 +749,24 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1204)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1205)
                   if (baseId == 1206)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else
-          IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+          throw swaydb.Exception.InvalidKeyValueId(baseId)
       else
-        IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+        throw swaydb.Exception.InvalidKeyValueId(baseId)
     else if (baseId > 1207)
       if (baseId == 1294)
         reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -793,16 +791,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1209)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1210)
                   if (baseId == 1211)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthFullyCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1212)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1213)
                 if (baseId == 1216)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -812,16 +810,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1215)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1216)
                   if (baseId == 1217)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetOneCompressed.ValueLengthUncompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1218)
               if (baseId == 1224)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -834,16 +832,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1220)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1221)
                   if (baseId == 1222)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1223)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1224)
                 if (baseId == 1227)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -853,18 +851,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1226)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthOneCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1227)
                   if (baseId == 1228)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1229)
             if (baseId == 1240)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -880,16 +878,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1231)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1232)
                   if (baseId == 1233)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1234)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthTwoCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1235)
                 if (baseId == 1238)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -899,16 +897,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1237)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1238)
                   if (baseId == 1239)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1240)
               if (baseId == 1246)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -921,16 +919,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1242)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthThreeCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1243)
                   if (baseId == 1244)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1245)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1246)
                 if (baseId == 1249)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -940,20 +938,20 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1248)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1249)
                   if (baseId == 1250)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthFullyCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else if (baseId > 1251)
           if (baseId == 1273)
             reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -972,16 +970,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1253)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1254)
                   if (baseId == 1255)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1256)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1257)
                 if (baseId == 1260)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -991,16 +989,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1259)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetTwoCompressed.ValueLengthUncompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1260)
                   if (baseId == 1261)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1262)
               if (baseId == 1268)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1013,16 +1011,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1264)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1265)
                   if (baseId == 1266)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1267)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthOneCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1268)
                 if (baseId == 1271)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1032,18 +1030,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1270)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1271)
                   if (baseId == 1272)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1273)
             if (baseId == 1284)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1059,16 +1057,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1275)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthTwoCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1276)
                   if (baseId == 1277)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1278)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1279)
                 if (baseId == 1282)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1078,16 +1076,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1281)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1282)
                   if (baseId == 1283)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthThreeCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1284)
               if (baseId == 1289)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1100,14 +1098,14 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1286)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1287)
                   if (baseId == 1288)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1289)
                 if (baseId == 1292)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1117,22 +1115,22 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1291)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthFullyCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1292)
                   if (baseId == 1293)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else
-          IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+          throw swaydb.Exception.InvalidKeyValueId(baseId)
       else if (baseId > 1294)
         if (baseId == 1337)
           reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1154,16 +1152,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1296)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1297)
                   if (baseId == 1298)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1299)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetThreeCompressed.ValueLengthUncompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1300)
                 if (baseId == 1303)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthOneCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1173,16 +1171,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1302)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthOneCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1303)
                   if (baseId == 1304)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthOneCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1305)
               if (baseId == 1311)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthTwoCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1195,16 +1193,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1307)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthOneCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1308)
                   if (baseId == 1309)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthTwoCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1310)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthTwoCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1311)
                 if (baseId == 1314)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthTwoCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1214,18 +1212,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1313)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthTwoCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1314)
                   if (baseId == 1315)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthTwoCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1316)
             if (baseId == 1327)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthFullyCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1241,16 +1239,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1318)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthThreeCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1319)
                   if (baseId == 1320)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthThreeCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1321)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthThreeCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1322)
                 if (baseId == 1325)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthFullyCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1260,16 +1258,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1324)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1325)
                   if (baseId == 1326)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthFullyCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1327)
               if (baseId == 1332)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1282,14 +1280,14 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1329)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthFullyCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1330)
                   if (baseId == 1331)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthFullyCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1332)
                 if (baseId == 1335)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1299,20 +1297,20 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1334)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1335)
                   if (baseId == 1336)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else if (baseId > 1337)
           if (baseId == 1359)
             reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1331,16 +1329,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1339)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetFullyCompressed.ValueLengthUncompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1340)
                   if (baseId == 1341)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1342)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1343)
                 if (baseId == 1346)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1350,16 +1348,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1345)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1346)
                   if (baseId == 1347)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthOneCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1348)
               if (baseId == 1354)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1372,16 +1370,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1350)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1351)
                   if (baseId == 1352)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1353)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthTwoCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1354)
                 if (baseId == 1357)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineTwoCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1391,18 +1389,18 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1356)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1357)
                   if (baseId == 1358)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else if (baseId > 1359)
             if (baseId == 1370)
               reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1418,16 +1416,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1361)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1362)
                   if (baseId == 1363)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthThreeCompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else if (baseId == 1364)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1365)
                 if (baseId == 1368)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineFiveCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1437,16 +1435,16 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1367)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1368)
                   if (baseId == 1369)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthFullyCompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else if (baseId > 1370)
               if (baseId == 1375)
                 reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineFourCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1459,14 +1457,14 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1372)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineOneCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1373)
                   if (baseId == 1374)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineThreeCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else if (baseId > 1375)
                 if (baseId == 1378)
                   reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineSevenCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
@@ -1476,26 +1474,26 @@ private[core] object BaseEntryReader4 extends BaseEntryReader {
                   else if (baseId == 1377)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineSixCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else if (baseId > 1378)
                   if (baseId == 1379)
                     reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineFullyCompressed, keyValueId, sortedIndexAccessPosition, keyInfo, indexReader, valuesReader, indexOffset, nextIndexOffset, nextIndexSize, previous)
                   else
-                    IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                    throw swaydb.Exception.InvalidKeyValueId(baseId)
                 else
-                  IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                  throw swaydb.Exception.InvalidKeyValueId(baseId)
               else
-                IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+                throw swaydb.Exception.InvalidKeyValueId(baseId)
             else
-              IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+              throw swaydb.Exception.InvalidKeyValueId(baseId)
           else
-            IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+            throw swaydb.Exception.InvalidKeyValueId(baseId)
         else
-          IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+          throw swaydb.Exception.InvalidKeyValueId(baseId)
       else
-        IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+        throw swaydb.Exception.InvalidKeyValueId(baseId)
     else
-      IO.failed(swaydb.Exception.InvalidKeyValueId(baseId))
+      throw swaydb.Exception.InvalidKeyValueId(baseId)
 
   val minID = 1035
   val maxID = 1379

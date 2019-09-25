@@ -29,8 +29,8 @@
 //private[core] class GroupReader(decompressedValuesSize: Int,
 //                                startIndexOffset: Int,
 //                                endIndexOffset: Int,
-//                                valuesDecompressor: () => IO[swaydb.Error.Segment, ReaderBase[swaydb.Error.Segment]],
-//                                indexReader: ReaderBase[swaydb.Error.Segment]) extends ReaderBase[swaydb.Error.Segment] with LazyLogging {
+//                                valuesDecompressor: () => IO[swaydb.Error.Segment, ReaderBase],
+//                                indexReader: ReaderBase) extends ReaderBase with LazyLogging {
 //
 //  private var position: Int = 0
 //
@@ -41,12 +41,12 @@
 //      .size
 //      .map(_ + decompressedValuesSize)
 //
-//  def moveTo(newPosition: Long): ReaderBase[swaydb.Error.Segment] = {
+//  def moveTo(newPosition: Long): ReaderBase = {
 //    position = newPosition.toInt max 0
 //    this
 //  }
 //
-//  def moveTo(newPosition: Int): ReaderBase[swaydb.Error.Segment] = {
+//  def moveTo(newPosition: Int): ReaderBase = {
 //    position = newPosition max 0
 //    this
 //  }
@@ -61,7 +61,7 @@
 //          (size - position) >= atLeastSize
 //      }
 //
-//  override def copy(): ReaderBase[swaydb.Error.Segment] =
+//  override def copy(): ReaderBase =
 //    new GroupReader(
 //      decompressedValuesSize = decompressedValuesSize,
 //      startIndexOffset = startIndexOffset,

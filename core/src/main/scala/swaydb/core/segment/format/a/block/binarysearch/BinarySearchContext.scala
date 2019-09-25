@@ -78,7 +78,7 @@ private[block] object BinarySearchContext {
 
 //        buffer.getInt(0)
 
-        Bytes.readUnsignedIntUnsafe(intUnSigned)
+        Bytes.readUnsignedInt(intUnSigned)
 //        Bytes.readUnsignedInt(intUnSigned)
 //        Bytes.readInt(int)
 
