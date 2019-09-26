@@ -233,7 +233,7 @@ private[core] object HashIndexBlock extends LazyLogging {
       }
     }
 
-  def close(state: State): IO[swaydb.Error.Segment, Option[State]] =
+  def close(state: State): Option[State] =
     if (state.bytes.isEmpty || !state.hasMinimumHits)
       IO.none
     else
@@ -266,7 +266,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           }
       }
 
-  def read(header: Block.Header[HashIndexBlock.Offset]): IO[swaydb.Error.Segment, HashIndexBlock] =
+  def read(header: Block.Header[HashIndexBlock.Offset]): HashIndexBlock =
     for {
       allocatedBytes <- header.headerReader.readInt()
       maxProbe <- header.headerReader.readUnsignedInt()
@@ -300,7 +300,7 @@ private[core] object HashIndexBlock extends LazyLogging {
    */
   def write(key: Slice[Byte],
             value: Int,
-            state: State): IO[swaydb.Error.Segment, Boolean] = {
+            state: State): Boolean = {
 
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
@@ -356,7 +356,7 @@ private[core] object HashIndexBlock extends LazyLogging {
    */
   private[block] def search[R](key: Slice[Byte],
                                reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                               assertValue: Int => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
+                               assertValue: Int => IO[swaydb.Error.Segment, Option[R]]): Option[R] = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -365,7 +365,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val hashIndex = reader.block
 
     @tailrec
-    def doFind(probe: Int): IO[swaydb.Error.Segment, Option[R]] =
+    def doFind(probe: Int): Option[R] =
       if (probe >= hashIndex.maxProbe) {
         IO.none
       } else {
@@ -427,7 +427,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   def writeCopied(key: Slice[Byte],
                   value: Slice[Byte],
                   thisKeyValuesAccessOffset: Int,
-                  state: State): IO[swaydb.Error.Segment, Boolean] = {
+                  state: State): Boolean = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -489,7 +489,7 @@ private[core] object HashIndexBlock extends LazyLogging {
    *
    * @return valueBytes, isReference and accessIndexOffset.
    */
-  private def parseCopiedValuesBytes(valueBytesWithoutCRC: Slice[Byte]): IO[Error.Segment, (Slice[Byte], Int)] =
+  private def parseCopiedValuesBytes(valueBytesWithoutCRC: Slice[Byte]): (Slice[Byte], Int) =
   //[CRC|Option[accessOffset]|valuesBytes]
     valueBytesWithoutCRC.readUnsignedIntWithByteSize() flatMap {
       case (entrySizeOrAccessIndexOffsetEntry, entrySizeOrAccessIndexOffsetEntryByteSize) => //this will be entrySize/sortedIndexOffset if it's a reference else it will be thisKeyValuesAccessIndexOffset.
@@ -511,7 +511,7 @@ private[core] object HashIndexBlock extends LazyLogging {
    */
   private[block] def searchCopied[R](key: Slice[Byte],
                                      reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                                     assertValue: (Slice[Byte], Int) => IO[swaydb.Error.Segment, Option[R]]): IO[swaydb.Error.Segment, Option[R]] = {
+                                     assertValue: (Slice[Byte], Int) => IO[swaydb.Error.Segment, Option[R]]): Option[R] = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -520,7 +520,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val block = reader.block
 
     @tailrec
-    def doFind(probe: Int): IO[swaydb.Error.Segment, Option[R]] =
+    def doFind(probe: Int): Option[R] =
       if (probe >= block.maxProbe) {
         IO.none
       } else {
@@ -603,7 +603,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, HashIndexSearchResult] = {
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): HashIndexSearchResult = {
     val matcher = KeyMatcher.Get.MatchOnly(key)
 
     val collisions = ListBuffer.empty[Persistent.Partial]
@@ -741,7 +741,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       HashIndexBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[swaydb.Error.Segment, HashIndexBlock] =
+    override def readBlock(header: Block.Header[Offset]): HashIndexBlock =
       HashIndexBlock.read(header)
   }
 }

@@ -20,10 +20,6 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
-import swaydb.IO._
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.function.FunctionStore
@@ -47,40 +43,30 @@ private[core] object SegmentMerger extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] =
+                    bloomFilterConfig: BloomFilterBlock.Config): ListBuffer[SegmentBuffer] =
   //if there are any small Segments, merge them into previous Segment.
     if (buffers.length >= 2 && ((forMemory && buffers.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || buffers.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
       val newBuffers = buffers dropRight 1
       val newBuffersLast = newBuffers.last
       val newBuffersLastKeyValue = newBuffersLast.last
-      val result =
-        newBuffersLast match {
-          case flattened: SegmentBuffer.Flattened =>
-            buffers.last foreachIO {
-              transient =>
-                IO {
-                  flattened add
-                    transient.updatePrevious(
-                      valuesConfig = newBuffersLastKeyValue.valuesConfig,
-                      sortedIndexConfig = newBuffersLastKeyValue.sortedIndexConfig,
-                      binarySearchIndexConfig = newBuffersLastKeyValue.binarySearchIndexConfig,
-                      hashIndexConfig = newBuffersLastKeyValue.hashIndexConfig,
-                      bloomFilterConfig = newBuffersLastKeyValue.bloomFilterConfig,
-                      previous = flattened.lastOption
-                    )
-                }
-            }
-        }
-
-      result match {
-        case Some(failure) =>
-          IO.Left(failure.value)
-
-        case None =>
-          IO(newBuffers.filter(_.nonEmpty))
+      newBuffersLast match {
+        case flattened: SegmentBuffer.Flattened =>
+          buffers.last foreach {
+            transient =>
+              flattened add
+                transient.updatePrevious(
+                  valuesConfig = newBuffersLastKeyValue.valuesConfig,
+                  sortedIndexConfig = newBuffersLastKeyValue.sortedIndexConfig,
+                  binarySearchIndexConfig = newBuffersLastKeyValue.binarySearchIndexConfig,
+                  hashIndexConfig = newBuffersLastKeyValue.hashIndexConfig,
+                  bloomFilterConfig = newBuffersLastKeyValue.bloomFilterConfig,
+                  previous = flattened.lastOption
+                )
+          }
       }
+      newBuffers.filter(_.nonEmpty)
     } else {
-      IO(buffers.filter(_.nonEmpty))
+      buffers.filter(_.nonEmpty)
     }
 
   /**
@@ -94,7 +80,7 @@ private[core] object SegmentMerger extends LazyLogging {
             sortedIndexConfig: SortedIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] =
+            bloomFilterConfig: BloomFilterBlock.Config): ListBuffer[SegmentBuffer] =
     transferSmall(
       buffers = buffers,
       minSegmentSize = minSegmentSize,
@@ -105,22 +91,7 @@ private[core] object SegmentMerger extends LazyLogging {
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig
-    ) match {
-      case transferredBuffersIO @ IO.Right(transferredBuffers) =>
-        transferredBuffers.lastOption match {
-          case Some(last) =>
-            last match {
-              case _: SegmentBuffer.Flattened =>
-                transferredBuffersIO
-            }
-
-          case None =>
-            transferredBuffersIO
-        }
-
-      case failure @ IO.Left(_) =>
-        failure
-    }
+    )
 
   def split(keyValues: Iterable[KeyValue.ReadOnly],
             minSegmentSize: Long,
@@ -131,10 +102,10 @@ private[core] object SegmentMerger extends LazyLogging {
             sortedIndexConfig: SortedIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] = {
+            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Iterable[Transient]] = {
     val splits = ListBuffer(SegmentBuffer())
 
-    keyValues foreachIO {
+    keyValues foreach {
       keyValue =>
         SegmentGrouper.addKeyValue(
           keyValueToAdd = keyValue,
@@ -149,30 +120,21 @@ private[core] object SegmentMerger extends LazyLogging {
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig
         )
-    } match {
-      case None =>
-        close(
-          buffers = splits,
-          minSegmentSize = minSegmentSize,
-          forMemory = forInMemory,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
-        )
-
-      case Some(IO.Left(failure)) =>
-        IO.Left(failure)
     }
+
+    close(
+      buffers = splits,
+      minSegmentSize = minSegmentSize,
+      forMemory = forInMemory,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig
+    )
   }
 
-  /**
-   * TODO: Both inputs are Memory so temporarily it's OK to call .find because Memory key-values do not do IO. But this should be fixed and .find should not be invoked.
-   *
-   * Need a type class implementation on executing side effects of merging key-values, one for [[Memory]] key-values and other for [[Persistent]] key-value types.
-   */
   def merge(newKeyValues: Slice[Memory],
             oldKeyValues: Slice[Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
@@ -190,7 +152,6 @@ private[core] object SegmentMerger extends LazyLogging {
       hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig = BloomFilterBlock.Config.disabled
     )(keyOrder, timeOrder, functionStore)
-      .get
       .flatten
       .asInstanceOf[ListBuffer[Transient]]
 
@@ -211,7 +172,6 @@ private[core] object SegmentMerger extends LazyLogging {
       hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig = BloomFilterBlock.Config.disabled
     )(keyOrder, timeOrder, functionStore)
-      .get
       .flatten
       .asInstanceOf[ListBuffer[Transient]]
 
@@ -227,34 +187,35 @@ private[core] object SegmentMerger extends LazyLogging {
             hashIndexConfig: HashIndexBlock.Config,
             bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore): IO[swaydb.Error.Segment, Iterable[Iterable[Transient]]] =
-    merge(
-      newKeyValues = MergeList(newKeyValues),
-      oldKeyValues = MergeList(oldKeyValues),
-      splits = ListBuffer(SegmentBuffer()),
+                                                        functionStore: FunctionStore): Iterable[Iterable[Transient]] = {
+    val segments =
+      merge(
+        newKeyValues = MergeList(newKeyValues),
+        oldKeyValues = MergeList(oldKeyValues),
+        splits = ListBuffer(SegmentBuffer()),
+        minSegmentSize = minSegmentSize,
+        isLastLevel = isLastLevel,
+        forInMemory = forInMemory,
+        valuesConfig = valuesConfig,
+        createdInLevel = createdInLevel,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
+
+    close(
+      buffers = segments,
       minSegmentSize = minSegmentSize,
-      isLastLevel = isLastLevel,
-      forInMemory = forInMemory,
-      valuesConfig = valuesConfig,
+      forMemory = forInMemory,
       createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
       sortedIndexConfig = sortedIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       hashIndexConfig = hashIndexConfig,
       bloomFilterConfig = bloomFilterConfig
-    ) flatMap {
-      segments =>
-        close(
-          buffers = segments,
-          minSegmentSize = minSegmentSize,
-          forMemory = forInMemory,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
-        )
-    }
+    )
+  }
 
   private def merge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
                     oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
@@ -269,11 +230,11 @@ private[core] object SegmentMerger extends LazyLogging {
                     hashIndexConfig: HashIndexBlock.Config,
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] = {
+                                                                functionStore: FunctionStore): ListBuffer[SegmentBuffer] = {
 
     import keyOrder._
 
-    def add(nextKeyValue: KeyValue.ReadOnly): IO[swaydb.Error.Segment, Unit] =
+    def add(nextKeyValue: KeyValue.ReadOnly): Unit =
       SegmentGrouper.addKeyValue(
         keyValueToAdd = nextKeyValue,
         splits = splits,
@@ -290,437 +251,319 @@ private[core] object SegmentMerger extends LazyLogging {
 
     @tailrec
     def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): IO[swaydb.Error.Segment, ListBuffer[SegmentBuffer]] =
+                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): ListBuffer[SegmentBuffer] =
       (newKeyValues.headOption, oldKeyValues.headOption) match {
 
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
-          if (oldKeyValue.key < newKeyValue.key)
-            add(oldKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else if (newKeyValue.key < oldKeyValue.key)
-            add(newKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else
-            FixedMerger(
-              newKeyValue = newKeyValue,
-              oldKeyValue = oldKeyValue
-            ) match {
-              case IO.Right(mergedKeyValue) =>
-                add(mergedKeyValue) match {
-                  case IO.Right(_) =>
-                    doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
-
-                  case IO.Left(error) =>
-                    IO.Left(error)
-                }
-
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
+          if (oldKeyValue.key < newKeyValue.key) {
+            add(oldKeyValue)
+            doMerge(newKeyValues, oldKeyValues.dropHead())
+          } else if (newKeyValue.key < oldKeyValue.key) {
+            add(newKeyValue)
+            doMerge(newKeyValues.dropHead(), oldKeyValues)
+          } else {
+            val mergedKeyValue =
+              FixedMerger(
+                newKeyValue = newKeyValue,
+                oldKeyValue = oldKeyValue
+              )
+            add(mergedKeyValue)
+            doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
+          }
 
         /**
          * When the input is an overwrite key-value and the existing is a range key-value.
          */
         case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldRangeKeyValue: ReadOnly.Range)) =>
-          if (newKeyValue.key < oldRangeKeyValue.fromKey)
-            add(newKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else if (newKeyValue.key >= oldRangeKeyValue.toKey)
-            add(oldRangeKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else //is in-range key
-            oldRangeKeyValue.fetchFromAndRangeValueUnsafe match {
-              case IO.Right((oldFromValue, oldRangeRangeValue)) if newKeyValue.key equiv oldRangeKeyValue.fromKey =>
+          if (newKeyValue.key < oldRangeKeyValue.fromKey) {
+            add(newKeyValue)
+            doMerge(newKeyValues.dropHead(), oldKeyValues)
+          } else if (newKeyValue.key >= oldRangeKeyValue.toKey) {
+            add(oldRangeKeyValue)
+            doMerge(newKeyValues, oldKeyValues.dropHead())
+          } else { //is in-range key
+            val (oldFromValue, oldRangeValue) = oldRangeKeyValue.fetchFromAndRangeValueUnsafe
+            if (newKeyValue.key equiv oldRangeKeyValue.fromKey) {
+              val newFromValue =
                 FixedMerger(
                   newKeyValue = newKeyValue,
-                  oldKeyValue = oldFromValue.getOrElse(oldRangeRangeValue).toMemory(newKeyValue.key)
-                ).flatMap(_.toFromValue()) match {
-                  case IO.Right(newFromValue) =>
-                    val toPrepend =
-                      Memory.Range(
-                        fromKey = oldRangeKeyValue.fromKey,
-                        toKey = oldRangeKeyValue.toKey,
-                        fromValue = Some(newFromValue),
-                        rangeValue = oldRangeRangeValue
-                      )
-                    doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(toPrepend))
+                  oldKeyValue = oldFromValue.getOrElse(oldRangeValue).toMemory(newKeyValue.key)
+                ).toFromValue()
 
-                  case IO.Left(error) =>
-                    IO.Left(error)
-                }
+              val toPrepend =
+                Memory.Range(
+                  fromKey = oldRangeKeyValue.fromKey,
+                  toKey = oldRangeKeyValue.toKey,
+                  fromValue = Some(newFromValue),
+                  rangeValue = oldRangeValue
+                )
 
-              case IO.Right((oldFromValue, oldRangeValue)) => //else it's a mid range value - split required.
+              doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(toPrepend))
+            } else { //else it's a mid range value - split required.
+              val newFromValue =
                 FixedMerger(
                   newKeyValue = newKeyValue,
                   oldKeyValue = oldRangeValue.toMemory(newKeyValue.key)
-                ).flatMap(_.toFromValue()) match {
-                  case IO.Right(newFromValue) =>
-                    val lowerSplit = Memory.Range(oldRangeKeyValue.fromKey, newKeyValue.key, oldFromValue, oldRangeValue)
-                    val upperSplit = Memory.Range(newKeyValue.key, oldRangeKeyValue.toKey, Some(newFromValue), oldRangeValue)
-                    add(lowerSplit) match {
-                      case IO.Right(_) =>
-                        doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(upperSplit))
+                ).toFromValue()
 
-                      case IO.Left(error) =>
-                        IO.Left(error)
-                    }
-                  case IO.Left(error) =>
-                    IO.Left(error)
-                }
-
-              case IO.Left(error) =>
-                IO.Left(error)
+              val lowerSplit = Memory.Range(oldRangeKeyValue.fromKey, newKeyValue.key, oldFromValue, oldRangeValue)
+              val upperSplit = Memory.Range(newKeyValue.key, oldRangeKeyValue.toKey, Some(newFromValue), oldRangeValue)
+              add(lowerSplit)
+              doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(upperSplit))
             }
+          }
 
         /**
          * When the input is a range and the existing is a fixed key-value.
          */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
-          if (oldKeyValue.key >= newRangeKeyValue.toKey)
-            add(newRangeKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else if (oldKeyValue.key < newRangeKeyValue.fromKey)
-            add(oldKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else //is in-range key
-            newRangeKeyValue.fetchFromAndRangeValueUnsafe match {
-              case IO.Right((newRangeFromValue, newRangeRangeValue)) if newRangeKeyValue.fromKey equiv oldKeyValue.key =>
-                val fromOrRange = newRangeFromValue.getOrElse(newRangeRangeValue)
-                fromOrRange match {
-                  //the range is remove or put simply drop old key-value. No need to merge! Important! do a time check.
-                  case Value.Remove(None, _) | _: Value.Put if fromOrRange.time > oldKeyValue.time =>
-                    doMerge(newKeyValues, oldKeyValues.dropHead())
+          if (oldKeyValue.key >= newRangeKeyValue.toKey) {
+            add(newRangeKeyValue)
+            doMerge(newKeyValues.dropHead(), oldKeyValues)
+          } else if (oldKeyValue.key < newRangeKeyValue.fromKey) {
+            add(oldKeyValue)
+            doMerge(newKeyValues, oldKeyValues.dropHead())
+          } else { //is in-range key
+            val (newRangeFromValue, newRangeRangeValue) = newRangeKeyValue.fetchFromAndRangeValueUnsafe
+            if (newRangeKeyValue.fromKey equiv oldKeyValue.key) {
+              val fromOrRange = newRangeFromValue.getOrElse(newRangeRangeValue)
+              fromOrRange match {
+                //the range is remove or put simply drop old key-value. No need to merge! Important! do a time check.
+                case Value.Remove(None, _) | _: Value.Put if fromOrRange.time > oldKeyValue.time =>
+                  doMerge(newKeyValues, oldKeyValues.dropHead())
 
-                  case _ =>
-                    //if not then do a merge.
+                case _ =>
+                  //if not then do a merge.
+                  val newFromValue =
                     FixedMerger(
                       newKeyValue = newRangeFromValue.getOrElse(newRangeRangeValue).toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
-                    ).flatMap(_.toFromValue()) match {
-                      case IO.Right(newFromValue) =>
-                        val newKeyValue =
-                          Memory.Range(
-                            fromKey = newRangeKeyValue.fromKey,
-                            toKey = newRangeKeyValue.toKey,
-                            fromValue = Some(newFromValue),
-                            rangeValue = newRangeRangeValue
-                          )
-                        doMerge(newKeyValues.dropPrepend(newKeyValue), oldKeyValues.dropHead())
+                    ).toFromValue()
 
-                      case IO.Left(error) =>
-                        IO.Left(error)
-                    }
-                }
+                  val newKeyValue =
+                    Memory.Range(
+                      fromKey = newRangeKeyValue.fromKey,
+                      toKey = newRangeKeyValue.toKey,
+                      fromValue = Some(newFromValue),
+                      rangeValue = newRangeRangeValue
+                    )
+                  doMerge(newKeyValues.dropPrepend(newKeyValue), oldKeyValues.dropHead())
+              }
+            } else {
+              newRangeRangeValue match {
+                //the range is remove or put simply remove all old key-values. No need to merge! Important! do a time check.
+                case Value.Remove(None, rangeTime) if rangeTime > oldKeyValue.time =>
+                  doMerge(newKeyValues, oldKeyValues.dropHead())
 
-              case IO.Right((newRangeFromValue, newRangeRangeValue)) => //split required.
-                newRangeRangeValue match {
-                  //the range is remove or put simply remove all old key-values. No need to merge! Important! do a time check.
-                  case Value.Remove(None, rangeTime) if rangeTime > oldKeyValue.time =>
-                    doMerge(newKeyValues, oldKeyValues.dropHead())
-
-                  case _ =>
+                case _ =>
+                  val newFromValue =
                     FixedMerger(
                       newKeyValue = newRangeRangeValue.toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
-                    ).flatMap(_.toFromValue()) match {
-                      case IO.Right(newFromValue) =>
-                        val lowerSplit = Memory.Range(newRangeKeyValue.fromKey, oldKeyValue.key, newRangeFromValue, newRangeRangeValue)
-                        val upperSplit = Memory.Range(oldKeyValue.key, newRangeKeyValue.toKey, Some(newFromValue), newRangeRangeValue)
-                        add(lowerSplit) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropPrepend(upperSplit), oldKeyValues.dropHead())
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
+                    ).toFromValue()
 
-                      case IO.Left(error) =>
-                        IO.Left(error)
-                    }
-                }
-
-              case IO.Left(error) =>
-                IO.Left(error)
+                  val lowerSplit = Memory.Range(newRangeKeyValue.fromKey, oldKeyValue.key, newRangeFromValue, newRangeRangeValue)
+                  val upperSplit = Memory.Range(oldKeyValue.key, newRangeKeyValue.toKey, Some(newFromValue), newRangeRangeValue)
+                  add(lowerSplit)
+                  doMerge(newKeyValues.dropPrepend(upperSplit), oldKeyValues.dropHead())
+              }
             }
+          }
 
         /**
          * When both the key-values are ranges.
          */
         case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldRangeKeyValue: ReadOnly.Range)) =>
-          if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey)
-            add(newRangeKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues.dropHead(), oldKeyValues)
-              case IO.Left(error) =>
-                IO.Left(error)
+          if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey) {
+            add(newRangeKeyValue)
+            doMerge(newKeyValues.dropHead(), oldKeyValues)
+          } else if (oldRangeKeyValue.toKey <= newRangeKeyValue.fromKey) {
+            add(oldRangeKeyValue)
+            doMerge(newKeyValues, oldKeyValues.dropHead())
+          } else {
+            val (newRangeFromValue, newRangeRangeValue) = newRangeKeyValue.fetchFromAndRangeValueUnsafe
+            val (oldRangeFromValue, oldRangeRangeValue) = oldRangeKeyValue.fetchFromAndRangeValueUnsafe
+            val newRangeFromKey = newRangeKeyValue.fromKey
+            val newRangeToKey = newRangeKeyValue.toKey
+            val oldRangeFromKey = oldRangeKeyValue.fromKey
+            val oldRangeToKey = oldRangeKeyValue.toKey
+
+            if (newRangeFromKey < oldRangeFromKey) {
+              //1   -     15
+              //      10   -  20
+              if (newRangeToKey < oldRangeToKey) {
+                val upperSplit = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
+                val middleSplit =
+                  Memory.Range(
+                    fromKey = oldRangeFromKey,
+                    toKey = newRangeToKey,
+                    fromValue = oldRangeFromValue.map(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
+                    rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                  )
+                val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
+
+                add(upperSplit)
+                add(middleSplit)
+                doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
+
+              } else if (newRangeToKey equiv oldRangeToKey) {
+                //1      -      20
+                //      10   -  20
+                val upperSplit = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
+
+                val lowerSplit =
+                  Memory.Range(
+                    fromKey = oldRangeFromKey,
+                    toKey = oldRangeToKey,
+                    fromValue = oldRangeFromValue.map(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
+                    rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                  )
+
+                add(upperSplit)
+                add(lowerSplit)
+                doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
+
+              } else {
+                //1      -         21
+                //      10   -  20
+                val upperSplit = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
+                val middleSplit =
+                  Memory.Range(
+                    fromKey = oldRangeFromKey,
+                    toKey = oldRangeToKey,
+                    fromValue = oldRangeFromValue.map(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
+                    rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                  )
+
+                val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
+
+                add(upperSplit)
+                add(middleSplit)
+                doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
+              }
+            } else if (newRangeFromKey equiv oldRangeFromKey) {
+              //      10 - 15
+              //      10   -  20
+              if (newRangeToKey < oldRangeToKey) {
+                val upperSplit = Memory.Range(
+                  fromKey = newRangeFromKey,
+                  toKey = newRangeToKey,
+                  fromValue =
+                    oldRangeFromValue.map(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _)) orElse {
+                      newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
+                    },
+                  rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                )
+                val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
+
+                add(upperSplit)
+                doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
+
+              } else if (newRangeToKey equiv oldRangeToKey) {
+                //      10   -  20
+                //      10   -  20
+                val update = Memory.Range(
+                  fromKey = newRangeFromKey,
+                  toKey = newRangeToKey,
+                  fromValue =
+                    oldRangeFromValue.map(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _)) orElse {
+                      newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
+                    },
+                  rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                )
+
+                add(update)
+                doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
+
+              } else {
+                //      10   -     21
+                //      10   -  20
+                val upperSplit = Memory.Range(
+                  fromKey = newRangeFromKey,
+                  toKey = oldRangeToKey,
+                  fromValue =
+                    oldRangeFromValue.map(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _)) orElse {
+                      newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
+                    },
+                  rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                )
+                val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
+
+                add(upperSplit)
+                doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
+              }
+            } else {
+              //        11 - 15
+              //      10   -   20
+              if (newRangeToKey < oldRangeToKey) {
+                val upperSplit = Memory.Range(oldRangeFromKey, newRangeFromKey, oldRangeFromValue, oldRangeRangeValue)
+
+                val middleSplit =
+                  Memory.Range(
+                    fromKey = newRangeFromKey,
+                    toKey = newRangeToKey,
+                    fromValue = newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
+                    rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                  )
+
+                val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
+
+                add(upperSplit)
+                add(middleSplit)
+                doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
+
+              } else if (newRangeToKey equiv oldRangeToKey) {
+                //        11 -   20
+                //      10   -   20
+                val upperSplit = Memory.Range(oldRangeFromKey, newRangeFromKey, oldRangeFromValue, oldRangeRangeValue)
+
+                val lowerSplit = Memory.Range(
+                  fromKey = newRangeFromKey,
+                  toKey = newRangeToKey,
+                  fromValue = newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
+                  rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                )
+
+                add(upperSplit)
+                add(lowerSplit)
+                doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
+
+              } else {
+                //        11 -     21
+                //      10   -   20
+                val upperSplit = Memory.Range(oldRangeFromKey, newRangeFromKey, oldRangeFromValue, oldRangeRangeValue)
+
+                val middleSplit =
+                  Memory.Range(
+                    fromKey = newRangeFromKey,
+                    toKey = oldRangeToKey,
+                    fromValue = newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
+                    rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
+                  )
+
+                val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
+
+                add(upperSplit)
+                add(middleSplit)
+                doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
+              }
             }
-
-          else if (oldRangeKeyValue.toKey <= newRangeKeyValue.fromKey)
-            add(oldRangeKeyValue) match {
-              case IO.Right(_) =>
-                doMerge(newKeyValues, oldKeyValues.dropHead())
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else
-            newRangeKeyValue.fetchFromAndRangeValueUnsafe match {
-              case IO.Right((newRangeFromValue, newRangeRangeValue)) =>
-                oldRangeKeyValue.fetchFromAndRangeValueUnsafe match {
-                  case IO.Right((oldRangeFromValue, oldRangeRangeValue)) =>
-                    val newRangeFromKey = newRangeKeyValue.fromKey
-                    val newRangeToKey = newRangeKeyValue.toKey
-                    val oldRangeFromKey = oldRangeKeyValue.fromKey
-                    val oldRangeToKey = oldRangeKeyValue.toKey
-
-                    if (newRangeFromKey < oldRangeFromKey) {
-                      //1   -     15
-                      //      10   -  20
-                      if (newRangeToKey < oldRangeToKey) {
-                        val upperSplit = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
-                        val middleSplit =
-                          Memory.Range(
-                            fromKey = oldRangeFromKey,
-                            toKey = newRangeToKey,
-                            fromValue = oldRangeFromValue.map(ValueMerger(oldRangeFromKey, newRangeRangeValue, _).get),
-                            rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                          )
-                        val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
-
-                        add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      } else if (newRangeToKey equiv oldRangeToKey) {
-                        //1      -      20
-                        //      10   -  20
-                        val upperSplit = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
-
-                        val lowerSplit =
-                          Memory.Range(
-                            fromKey = oldRangeFromKey,
-                            toKey = oldRangeToKey,
-                            fromValue = oldRangeFromValue.map(ValueMerger(oldRangeFromKey, newRangeRangeValue, _).get),
-                            rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                          )
-
-                        add(upperSplit).flatMap(_ => add(lowerSplit)) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      } else {
-                        //1      -         21
-                        //      10   -  20
-                        val upperSplit = Memory.Range(newRangeFromKey, oldRangeFromKey, newRangeFromValue, newRangeRangeValue)
-                        val middleSplit =
-                          Memory.Range(
-                            fromKey = oldRangeFromKey,
-                            toKey = oldRangeToKey,
-                            fromValue = oldRangeFromValue.map(ValueMerger(oldRangeFromKey, newRangeRangeValue, _).get),
-                            rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                          )
-
-                        val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
-
-                        add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      }
-                    } else if (newRangeFromKey equiv oldRangeFromKey) {
-                      //      10 - 15
-                      //      10   -  20
-                      if (newRangeToKey < oldRangeToKey) {
-                        val upperSplit = Memory.Range(
-                          fromKey = newRangeFromKey,
-                          toKey = newRangeToKey,
-                          fromValue =
-                            oldRangeFromValue.map(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _).get) orElse {
-                              newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue).get)
-                            },
-                          rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                        )
-                        val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
-
-                        add(upperSplit) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      } else if (newRangeToKey equiv oldRangeToKey) {
-                        //      10   -  20
-                        //      10   -  20
-                        val update = Memory.Range(
-                          fromKey = newRangeFromKey,
-                          toKey = newRangeToKey,
-                          fromValue =
-                            oldRangeFromValue.map(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _).get) orElse {
-                              newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue).get)
-                            },
-                          rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                        )
-
-                        add(update) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      } else {
-                        //      10   -     21
-                        //      10   -  20
-                        val upperSplit = Memory.Range(
-                          fromKey = newRangeFromKey,
-                          toKey = oldRangeToKey,
-                          fromValue =
-                            oldRangeFromValue.map(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _).get) orElse {
-                              newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue).get)
-                            },
-                          rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                        )
-                        val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
-
-                        add(upperSplit) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      }
-                    } else {
-                      //        11 - 15
-                      //      10   -   20
-                      if (newRangeToKey < oldRangeToKey) {
-                        val upperSplit = Memory.Range(oldRangeFromKey, newRangeFromKey, oldRangeFromValue, oldRangeRangeValue)
-
-                        val middleSplit =
-                          Memory.Range(
-                            fromKey = newRangeFromKey,
-                            toKey = newRangeToKey,
-                            fromValue = newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue).get),
-                            rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                          )
-
-                        val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, None, oldRangeRangeValue)
-
-                        add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropHead(), oldKeyValues.dropPrepend(lowerSplit))
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      } else if (newRangeToKey equiv oldRangeToKey) {
-                        //        11 -   20
-                        //      10   -   20
-                        val upperSplit = Memory.Range(oldRangeFromKey, newRangeFromKey, oldRangeFromValue, oldRangeRangeValue)
-
-                        val lowerSplit = Memory.Range(
-                          fromKey = newRangeFromKey,
-                          toKey = newRangeToKey,
-                          fromValue = newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue).get),
-                          rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                        )
-
-                        add(upperSplit).flatMap(_ => add(lowerSplit)) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      } else {
-                        //        11 -     21
-                        //      10   -   20
-                        val upperSplit = Memory.Range(oldRangeFromKey, newRangeFromKey, oldRangeFromValue, oldRangeRangeValue)
-
-                        val middleSplit =
-                          Memory.Range(
-                            fromKey = newRangeFromKey,
-                            toKey = oldRangeToKey,
-                            fromValue = newRangeFromValue.map(ValueMerger(newRangeFromKey, _, oldRangeRangeValue).get),
-                            rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue).get
-                          )
-
-                        val lowerSplit = Memory.Range(oldRangeToKey, newRangeToKey, None, newRangeRangeValue)
-
-                        add(upperSplit).flatMap(_ => add(middleSplit)) match {
-                          case IO.Right(_) =>
-                            doMerge(newKeyValues.dropPrepend(lowerSplit), oldKeyValues.dropHead())
-
-                          case IO.Left(error) =>
-                            IO.Left(error)
-                        }
-                      }
-                    }
-
-                  case IO.Left(error) =>
-                    IO.Left(error)
-                }
-
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
+          }
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(_), None) =>
-          newKeyValues.foreachIO(add) match {
-            case Some(IO.Left(error)) =>
-              IO.Left(error)
-
-            case None =>
-              IO.Right(splits)
-          }
+          newKeyValues.foreach(add)
+          splits
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
         case (None, Some(_)) =>
-          oldKeyValues.foreachIO(add) match {
-            case Some(IO.Left(error)) =>
-              IO.Left(error)
-
-            case None =>
-              IO.Right(splits)
-          }
+          oldKeyValues.foreach(add)
+          splits
 
         case (None, None) =>
-          IO.Right(splits)
+          splits
       }
 
-    IO.Catch(doMerge(newKeyValues, oldKeyValues))
+    doMerge(newKeyValues, oldKeyValues)
   }
 }

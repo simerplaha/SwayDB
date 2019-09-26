@@ -22,7 +22,6 @@ package swaydb.core.segment.merge
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -30,7 +29,6 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
-import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -49,9 +47,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
                   sortedIndexConfig: SortedIndexBlock.Config,
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                   hashIndexConfig: HashIndexBlock.Config,
-                  bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Unit] = {
+                  bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
 
-    def doAdd(keyValueToAdd: Option[Transient] => Transient): IO[swaydb.Error.Segment, Unit] = {
+    def doAdd(keyValueToAdd: Option[Transient] => Transient): Unit = {
 
       /**
        * Tries adding key-value to the current split/Segment. If force is true then the key-value will value added to
@@ -101,43 +99,196 @@ private[merge] object SegmentGrouper extends LazyLogging {
       }
     }
 
-    IO.Catch {
-      keyValueToAdd match {
-        case fixed: KeyValue.ReadOnly.Fixed =>
-          fixed match {
-            case put @ Memory.Put(key, value, deadline, time) =>
-              if (isLastLevel && !put.hasTimeLeft())
-                IO.unit
-              else
-                doAdd(
-                  Transient.Put(
-                    key = key,
-                    normaliseToSize = None,
-                    value = value,
-                    deadline = deadline,
-                    time = time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
-                    _
-                  )
+    keyValueToAdd match {
+      case fixed: KeyValue.ReadOnly.Fixed =>
+        fixed match {
+          case put @ Memory.Put(key, value, deadline, time) =>
+            if (!isLastLevel && put.hasTimeLeft())
+              doAdd(
+                Transient.Put(
+                  key = key,
+                  normaliseToSize = None,
+                  value = value,
+                  deadline = deadline,
+                  time = time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
                 )
+              )
 
-            case put: Persistent.Put =>
-              if (isLastLevel && !put.hasTimeLeft())
-                IO.unit
-              else
-                put.getOrFetchValue flatMap {
-                  value =>
+          case put: Persistent.Put =>
+            if (!isLastLevel && put.hasTimeLeft())
+              doAdd(
+                Transient.Put(
+                  key = put.key,
+                  normaliseToSize = None,
+                  value = put.getOrFetchValue,
+                  deadline = put.deadline,
+                  time = put.time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case remove: Memory.Remove =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.Remove(
+                  key = keyValueToAdd.key,
+                  normaliseToSize = None,
+                  deadline = remove.deadline,
+                  time = remove.time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case remove: Persistent.Remove =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.Remove(
+                  key = keyValueToAdd.key,
+                  normaliseToSize = None,
+                  deadline = remove.deadline,
+                  time = remove.time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case Memory.Update(key, value, deadline, time) =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.Update(
+                  key = key,
+                  normaliseToSize = None,
+                  value = value,
+                  deadline = deadline,
+                  time = time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case update: Persistent.Update =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.Update(
+                  key = update.key,
+                  normaliseToSize = None,
+                  value = update.getOrFetchValue,
+                  deadline = update.deadline,
+                  time = update.time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case Memory.Function(key, function, time) =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.Function(
+                  key = key,
+                  normaliseToSize = None,
+                  function = function,
+                  time = time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case function: Persistent.Function =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.Function(
+                  key = function.key,
+                  normaliseToSize = None,
+                  function = function.getOrFetchFunction,
+                  time = function.time,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case Memory.PendingApply(key, applies) =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.PendingApply(
+                  key = key,
+                  normaliseToSize = None,
+                  applies = applies,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+
+          case pendingApply: Persistent.PendingApply =>
+            if (!isLastLevel)
+              doAdd(
+                Transient.PendingApply(
+                  key = pendingApply.key,
+                  normaliseToSize = None,
+                  applies = pendingApply.getOrFetchApplies,
+                  valuesConfig = valuesConfig,
+                  sortedIndexConfig = sortedIndexConfig,
+                  binarySearchIndexConfig = binarySearchIndexConfig,
+                  hashIndexConfig = hashIndexConfig,
+                  bloomFilterConfig = bloomFilterConfig,
+                  _
+                )
+              )
+        }
+
+      case range: KeyValue.ReadOnly.Range =>
+        if (isLastLevel)
+          range.fetchFromValueUnsafe match {
+            case Some(fromValue) =>
+              fromValue match {
+                case put @ Value.Put(fromValue, deadline, time) =>
+                  if (put.hasTimeLeft())
                     doAdd(
                       Transient.Put(
-                        key = put.key,
+                        key = range.fromKey,
                         normaliseToSize = None,
-                        value = value,
-                        deadline = put.deadline,
-                        time = put.time,
+                        value = fromValue,
+                        deadline = deadline,
+                        time = time,
                         valuesConfig = valuesConfig,
                         sortedIndexConfig = sortedIndexConfig,
                         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -146,225 +297,32 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         _
                       )
                     )
-                }
-
-            case remove: Memory.Remove =>
-              if (isLastLevel)
-                IO.unit
-              else
-                doAdd(
-                  Transient.Remove(
-                    key = keyValueToAdd.key,
-                    normaliseToSize = None,
-                    deadline = remove.deadline,
-                    time = remove.time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
-                    _
-                  )
-                )
-
-            case remove: Persistent.Remove =>
-              if (isLastLevel)
-                IO.unit
-              else
-                doAdd(
-                  Transient.Remove(
-                    key = keyValueToAdd.key,
-                    normaliseToSize = None,
-                    deadline = remove.deadline,
-                    time = remove.time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
-                    _
-                  )
-                )
-
-            case Memory.Update(key, value, deadline, time) =>
-              if (isLastLevel)
-                IO.unit
-              else
-                doAdd(
-                  Transient.Update(
-                    key = key,
-                    normaliseToSize = None,
-                    value = value,
-                    deadline = deadline,
-                    time = time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
-                    _
-                  )
-                )
-
-            case update: Persistent.Update =>
-              if (isLastLevel)
-                IO.unit
-              else
-                update.getOrFetchValue flatMap {
-                  value =>
-                    doAdd(
-                      Transient.Update(
-                        key = update.key,
-                        normaliseToSize = None,
-                        value = value,
-                        deadline = update.deadline,
-                        time = update.time,
-                        valuesConfig = valuesConfig,
-                        sortedIndexConfig = sortedIndexConfig,
-                        binarySearchIndexConfig = binarySearchIndexConfig,
-                        hashIndexConfig = hashIndexConfig,
-                        bloomFilterConfig = bloomFilterConfig,
-                        _
-                      )
-                    )
-                }
-
-            case Memory.Function(key, function, time) =>
-              if (isLastLevel)
-                IO.unit
-              else
-                doAdd(
-                  Transient.Function(
-                    key = key,
-                    normaliseToSize = None,
-                    function = function,
-                    time = time,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
-                    _
-                  )
-                )
-
-            case function: Persistent.Function =>
-              if (isLastLevel)
-                IO.unit
-              else
-                function.getOrFetchFunction flatMap {
-                  functionId =>
-                    doAdd(
-                      Transient.Function(
-                        key = function.key,
-                        normaliseToSize = None,
-                        function = functionId,
-                        time = function.time,
-                        valuesConfig = valuesConfig,
-                        sortedIndexConfig = sortedIndexConfig,
-                        binarySearchIndexConfig = binarySearchIndexConfig,
-                        hashIndexConfig = hashIndexConfig,
-                        bloomFilterConfig = bloomFilterConfig,
-                        _
-                      )
-                    )
-                }
-
-            case Memory.PendingApply(key, applies) =>
-              if (isLastLevel)
-                IO.unit
-              else
-                doAdd(
-                  Transient.PendingApply(
-                    key = key,
-                    normaliseToSize = None,
-                    applies = applies,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
-                    _
-                  )
-                )
-
-            case pendingApply: Persistent.PendingApply =>
-              if (isLastLevel)
-                IO.unit
-              else
-                pendingApply.getOrFetchApplies flatMap {
-                  applies =>
-                    doAdd(
-                      Transient.PendingApply(
-                        key = pendingApply.key,
-                        normaliseToSize = None,
-                        applies = applies,
-                        valuesConfig = valuesConfig,
-                        sortedIndexConfig = sortedIndexConfig,
-                        binarySearchIndexConfig = binarySearchIndexConfig,
-                        hashIndexConfig = hashIndexConfig,
-                        bloomFilterConfig = bloomFilterConfig,
-                        _
-                      )
-                    )
-                }
-          }
-
-        case range: KeyValue.ReadOnly.Range =>
-          if (isLastLevel)
-            range.fetchFromValueUnsafe match {
-              case IO.Right(fromValue) =>
-                fromValue match {
-                  case Some(fromValue) =>
-                    fromValue match {
-                      case put @ Value.Put(fromValue, deadline, time) =>
-                        if (put.hasTimeLeft())
-                          doAdd(
-                            Transient.Put(
-                              key = range.fromKey,
-                              normaliseToSize = None,
-                              value = fromValue,
-                              deadline = deadline,
-                              time = time,
-                              valuesConfig = valuesConfig,
-                              sortedIndexConfig = sortedIndexConfig,
-                              binarySearchIndexConfig = binarySearchIndexConfig,
-                              hashIndexConfig = hashIndexConfig,
-                              bloomFilterConfig = bloomFilterConfig,
-                              _
-                            )
-                          )
-                        else
-                          IO.unit
-
-                      case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
-                        IO.unit
-                    }
-                  case None =>
+                  else
                     IO.unit
-                }
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-          else
-            range.fetchFromAndRangeValueUnsafe flatMap {
-              case (fromValue, rangeValue) =>
-                doAdd(
-                  Transient.Range(
-                    fromKey = range.fromKey,
-                    toKey = range.toKey,
-                    fromValue = fromValue,
-                    rangeValue = rangeValue,
-                    valuesConfig = valuesConfig,
-                    sortedIndexConfig = sortedIndexConfig,
-                    binarySearchIndexConfig = binarySearchIndexConfig,
-                    hashIndexConfig = hashIndexConfig,
-                    bloomFilterConfig = bloomFilterConfig,
-                    _
-                  )
-                )
-            }
-      }
+
+                case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
+                  IO.unit
+              }
+            case None =>
+              IO.unit
+          }
+        else {
+          val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
+          doAdd(
+            Transient.Range(
+              fromKey = range.fromKey,
+              toKey = range.toKey,
+              fromValue = fromValue,
+              rangeValue = rangeValue,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              _
+            )
+          )
+        }
     }
   }
 }

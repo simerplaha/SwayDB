@@ -139,21 +139,21 @@ private[core] object ValuesBlock {
       keyValue.valueEntryBytes foreach state.bytes.addAll
     }
 
-  def close(state: State): IO[swaydb.Error.Segment, State] =
-    Block.block(
-      headerSize = state.headerSize,
-      bytes = state.bytes,
-      compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
-      blockName = blockName
-    ) flatMap {
-      compressedOrUncompressedBytes =>
-        IO {
-          state.bytes = compressedOrUncompressedBytes
-          if (state.bytes.currentWritePosition > state.headerSize)
-            throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-          state
-        }
-    }
+  def close(state: State): State = {
+    val compressedOrUncompressedBytes =
+      Block.block(
+        headerSize = state.headerSize,
+        bytes = state.bytes,
+        compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
+        blockName = blockName
+      )
+
+    state.bytes = compressedOrUncompressedBytes
+    if (state.bytes.currentWritePosition > state.headerSize)
+      throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+
+    state
+  }
 
   def read(header: Block.Header[ValuesBlock.Offset]): ValuesBlock =
     ValuesBlock(
@@ -162,27 +162,27 @@ private[core] object ValuesBlock {
       compressionInfo = header.compressionInfo
     )
 
-  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  def read(fromOffset: Int, length: Int, reader: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Option[Slice[Byte]] =
   //    reader
   //      .moveTo(fromOffset)
   //      .read(length)
   //      .map(_.getOrNone())
   //TODO - replace this with above. This code does error check which is used for testing only and not required when deployed.
     if (length == 0)
-      IO.none
-    else if (fromOffset < 0)
-      IO.failed(s"Cannot read from negative offset '$fromOffset'.")
-    else
-      reader
-        .moveTo(fromOffset)
-        .read(length)
-        .flatMap {
-          slice =>
-            if (slice.size != length)
-              IO.failed(s"Read value bytes != expected. ${slice.size} != $length.")
-            else
-              IO.Right(Some(slice))
-        }
+      None
+    else if (fromOffset < 0) {
+      throw IO.throwable(s"Cannot read from negative offset '$fromOffset'.")
+    } else {
+      val slice =
+        reader
+          .moveTo(fromOffset)
+          .read(length)
+
+      if (slice.size != length)
+        throw IO.throwable(s"Read value bytes != expected. ${slice.size} != $length.")
+      else
+        Some(slice)
+    }
 
   implicit object ValuesBlockOps extends BlockOps[ValuesBlock.Offset, ValuesBlock] {
     override def updateBlockOffset(block: ValuesBlock, start: Int, size: Int): ValuesBlock =
@@ -191,8 +191,8 @@ private[core] object ValuesBlock {
     override def createOffset(start: Int, size: Int): Offset =
       ValuesBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[swaydb.Error.Segment, ValuesBlock] =
-      IO(ValuesBlock.read(header))
+    override def readBlock(header: Block.Header[Offset]): ValuesBlock =
+      ValuesBlock.read(header)
   }
 }
 

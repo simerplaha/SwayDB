@@ -57,7 +57,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     else
       levels
         .zip(executionContexts)
-        .foldLeftIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
+        .foldLeftRecoverIO(ListBuffer.empty[(ListBuffer[LevelRef], ExecutionContext)]) {
           case (jobs, (level, CompactionExecutionContext.Create(executionContext))) => //new thread pool.
             jobs += ((ListBuffer(level), executionContext))
             IO.Right(jobs)

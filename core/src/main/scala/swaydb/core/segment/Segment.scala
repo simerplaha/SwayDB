@@ -58,55 +58,50 @@ private[core] object Segment extends LazyLogging {
              keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                              timeOrder: TimeOrder[Slice[Byte]],
                                              functionStore: FunctionStore,
-                                             fileSweeper: FileSweeper.Enabled): IO[swaydb.Error.Segment, Segment] =
+                                             fileSweeper: FileSweeper.Enabled): Segment =
     if (keyValues.isEmpty) {
-      IO.failed("Empty key-values submitted to memory Segment.")
+      throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
-      val bloomFilter: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
+      val bloomFilterOption: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
       //Note: Transient key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
-      keyValues.foldLeftIO(DeadlineAndFunctionId.empty) {
+      val minMaxDeadline =
+      keyValues.foldLeft(DeadlineAndFunctionId.empty) {
         case (deadline, keyValue) =>
           SegmentBlock.writeIndexBlocks(
             keyValue = keyValue,
             memoryMap = Some(skipList),
             hashIndex = None,
             binarySearchIndex = None,
-            bloomFilter = bloomFilter,
+            bloomFilter = bloomFilterOption,
             currentMinMaxFunction = deadline.minMaxFunctionId,
             currentNearestDeadline = deadline.nearestDeadline
           )
-      } flatMap {
-        minMaxDeadline =>
-          bloomFilter
-            .map(BloomFilterBlock.closeForMemory)
-            .getOrElse(IO.none)
-            .map {
-              bloomFilter =>
-                MemorySegment(
-                  path = path,
-                  segmentId = segmentId,
-                  minKey = keyValues.head.key.unslice(),
-                  maxKey =
-                    keyValues.last match {
-                      case range: Transient.Range =>
-                        MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-
-                      case keyValue: Transient.Fixed =>
-                        MaxKey.Fixed(keyValue.key.unslice())
-                    },
-                  minMaxFunctionId = minMaxDeadline.minMaxFunctionId,
-                  segmentSize = keyValues.last.stats.memorySegmentSize,
-                  _hasRange = keyValues.last.stats.segmentHasRange,
-                  _hasPut = keyValues.last.stats.segmentHasPut,
-                  _createdInLevel = createdInLevel.toInt,
-                  skipList = skipList,
-                  bloomFilterReader = bloomFilter,
-                  nearestExpiryDeadline = minMaxDeadline.nearestDeadline
-                )
-            }
       }
+      val bloomFilter = bloomFilterOption.flatMap(BloomFilterBlock.closeForMemory)
+
+      MemorySegment(
+        path = path,
+        segmentId = segmentId,
+        minKey = keyValues.head.key.unslice(),
+        maxKey =
+          keyValues.last match {
+            case range: Transient.Range =>
+              MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+
+            case keyValue: Transient.Fixed =>
+              MaxKey.Fixed(keyValue.key.unslice())
+          },
+        minMaxFunctionId = minMaxDeadline.minMaxFunctionId,
+        segmentSize = keyValues.last.stats.memorySegmentSize,
+        hasRange = keyValues.last.stats.segmentHasRange,
+        hasPut = keyValues.last.stats.segmentHasPut,
+        createdInLevel = createdInLevel.toInt,
+        skipList = skipList,
+        bloomFilterReader = bloomFilter,
+        nearestExpiryDeadline = minMaxDeadline.nearestDeadline
+      )
     }
 
   def persistent(path: Path,
@@ -121,94 +116,96 @@ private[core] object Segment extends LazyLogging {
                                                  fileSweeper: FileSweeper.Enabled,
                                                  memorySweeper: Option[MemorySweeper.KeyValue],
                                                  blockCache: Option[BlockCache.State],
-                                                 segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] =
-    SegmentBlock.writeClosed(
-      keyValues = keyValues,
-      createdInLevel = createdInLevel,
-      segmentConfig = segmentConfig
-    ) flatMap {
-      result =>
-        if (result.isEmpty) {
-          //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
-          //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
-          IO.Left(swaydb.Error.Fatal(new Exception("Empty key-values submitted to persistent Segment.")))
-        } else {
-          val writeResult =
-          //if both read and writes are mmaped. Keep the file open.
-            if (mmapWrites && mmapReads)
-              DBFile.mmapWriteAndRead(
-                path = path,
-                autoClose = true,
+                                                 segmentIO: SegmentIO): Segment = {
+    val result =
+      SegmentBlock.writeClosed(
+        keyValues = keyValues,
+        createdInLevel = createdInLevel,
+        segmentConfig = segmentConfig
+      )
+
+    if (result.isEmpty) {
+      //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
+      //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
+      throw IO.throwable("Empty key-values submitted to persistent Segment.")
+    } else {
+      val writeResult =
+      //if both read and writes are mmaped. Keep the file open.
+        if (mmapWrites && mmapReads)
+          DBFile.mmapWriteAndRead(
+            path = path,
+            autoClose = true,
+            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+            bytes = result.segmentBytes
+          )
+        //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
+        else if (mmapWrites && !mmapReads) {
+          val file =
+            DBFile.mmapWriteAndRead(
+              path = path,
+              autoClose = true,
+              ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+              blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+              bytes = result.segmentBytes
+            )
+
+          //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
+          //is probably not the most efficient and should be advised not to used.
+          file.close flatMap {
+            _ =>
+              DBFile.channelRead(
+                path = file.path,
                 ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
                 blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                bytes = result.segmentBytes
-              )
-            //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
-            else if (mmapWrites && !mmapReads)
-              DBFile.mmapWriteAndRead(
-                path = path,
-                autoClose = true,
-                ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                bytes = result.segmentBytes
-              ) flatMap {
-                file =>
-                  //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
-                  //is probably not the most efficient and should be advised not to used.
-                  file.close flatMap {
-                    _ =>
-                      DBFile.channelRead(
-                        path = file.path,
-                        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                        autoClose = true
-                      )
-                  }
-              }
-            else if (!mmapWrites && mmapReads)
-              DBFile.write(path, result.segmentBytes) flatMap {
-                path =>
-                  DBFile.mmapRead(
-                    path = path,
-                    ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                    blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                    autoClose = true
-                  )
-              }
-            else
-              DBFile.write(path, result.segmentBytes) flatMap {
-                path =>
-                  DBFile.channelRead(
-                    path = path,
-                    ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                    blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                    autoClose = true
-                  )
-              }
-
-          writeResult map {
-            file =>
-              PersistentSegment(
-                file = file,
-                segmentId = segmentId,
-                mmapReads = mmapReads,
-                mmapWrites = mmapWrites,
-                minKey = keyValues.head.key.unslice(),
-                maxKey =
-                  keyValues.last match {
-                    case range: Transient.Range =>
-                      MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-
-                    case keyValue: Transient.Fixed =>
-                      MaxKey.Fixed(keyValue.key.unslice())
-                  },
-                segmentSize = result.segmentSize,
-                minMaxFunctionId = result.minMaxFunctionId,
-                nearestExpiryDeadline = result.nearestDeadline
+                autoClose = true
               )
           }
         }
+        else if (!mmapWrites && mmapReads)
+          DBFile.write(path, result.segmentBytes) flatMap {
+            path =>
+              DBFile.mmapRead(
+                path = path,
+                ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                autoClose = true
+              )
+          }
+        else
+          DBFile.write(path, result.segmentBytes) flatMap {
+            path =>
+              DBFile.channelRead(
+                path = path,
+                ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                autoClose = true
+              )
+          }
+
+      writeResult map {
+        file =>
+          PersistentSegment(
+            file = file,
+            segmentId = segmentId,
+            mmapReads = mmapReads,
+            mmapWrites = mmapWrites,
+            minKey = keyValues.head.key.unslice(),
+            maxKey =
+              keyValues.last match {
+                case range: Transient.Range =>
+                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+
+                case keyValue: Transient.Fixed =>
+                  MaxKey.Fixed(keyValue.key.unslice())
+              },
+            segmentSize = result.segmentSize,
+            minMaxFunctionId = result.minMaxFunctionId,
+            nearestExpiryDeadline = result.nearestDeadline
+          )
+      }
     }
+  }
 
   def copyToPersist(segment: Segment,
                     segmentConfig: SegmentBlock.Config,
@@ -228,7 +225,7 @@ private[core] object Segment extends LazyLogging {
                                                                 memorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
-                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
+                                                                segmentIO: SegmentIO): Slice[Segment] =
     segment match {
       case segment: PersistentSegment =>
         val (segmentId, nextPath) = fetchNextPath
@@ -294,7 +291,7 @@ private[core] object Segment extends LazyLogging {
                                                                 memorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
-                                                                segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
+                                                                segmentIO: SegmentIO): Slice[Segment] =
     SegmentMerger.split(
       keyValues = keyValues,
       minSegmentSize = minSegmentSize,
@@ -308,7 +305,7 @@ private[core] object Segment extends LazyLogging {
       bloomFilterConfig = bloomFilterConfig
     ) flatMap {
       splits =>
-        splits.mapIO(
+        splits.mapRecoverIO(
           block =
             keyValues => {
               val (segmentId, path) = fetchNextPath
@@ -349,7 +346,7 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper.Enabled,
                                                                memorySweeper: Option[MemorySweeper.KeyValue],
-                                                               segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
+                                                               segmentIO: SegmentIO): Slice[Segment] =
     segment.getAll() flatMap {
       keyValues =>
         copyToMemory(
@@ -380,31 +377,33 @@ private[core] object Segment extends LazyLogging {
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper.Enabled,
                                                                memorySweeper: Option[MemorySweeper.KeyValue],
-                                                               segmentIO: SegmentIO): IO[swaydb.Error.Segment, Slice[Segment]] =
-    SegmentMerger.split(
-      keyValues = keyValues,
-      minSegmentSize = minSegmentSize,
-      isLastLevel = removeDeletes,
-      forInMemory = true,
-      valuesConfig = valuesConfig,
-      createdInLevel = createdInLevel,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
-    ) flatMap { //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
+                                                               segmentIO: SegmentIO): Slice[Segment] = {
+    val keyValues =
+      SegmentMerger.split(
+        keyValues = keyValues,
+        minSegmentSize = minSegmentSize,
+        isLastLevel = removeDeletes,
+        forInMemory = true,
+        valuesConfig = valuesConfig,
+        createdInLevel = createdInLevel,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
+
+    //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
+    keyValues map {
       keyValues =>
-        keyValues mapIO {
-          keyValues =>
-            val (segmentId, path) = fetchNextPath
-            Segment.memory(
-              path = path,
-              segmentId = segmentId,
-              createdInLevel = createdInLevel,
-              keyValues = keyValues
-            )
-        }
+        val (segmentId, path) = fetchNextPath
+        Segment.memory(
+          path = path,
+          segmentId = segmentId,
+          createdInLevel = createdInLevel,
+          keyValues = keyValues
+        )
     }
+  }
 
   def apply(path: Path,
             segmentId: Long,
@@ -422,7 +421,7 @@ private[core] object Segment extends LazyLogging {
                                          memorySweeper: Option[MemorySweeper.KeyValue],
                                          fileSweeper: FileSweeper.Enabled,
                                          blockCache: Option[BlockCache.State],
-                                         segmentIO: SegmentIO): IO[swaydb.Error.Segment, Segment] = {
+                                         segmentIO: SegmentIO): Segment = {
 
     val fileIO =
       if (mmapReads)
@@ -475,7 +474,7 @@ private[core] object Segment extends LazyLogging {
                                   functionStore: FunctionStore,
                                   blockCache: Option[BlockCache.State],
                                   memorySweeper: Option[MemorySweeper.KeyValue],
-                                  fileSweeper: FileSweeper.Enabled): IO[swaydb.Error.Segment, Segment] = {
+                                  fileSweeper: FileSweeper.Enabled): Segment = {
 
     implicit val segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
 
@@ -635,25 +634,25 @@ private[core] object Segment extends LazyLogging {
   /**
    * Pre condition: Segments should be sorted with their minKey in ascending order.
    */
-  def getAllKeyValues(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
+  def getAllKeyValues(segments: Iterable[Segment]): Slice[KeyValue.ReadOnly] =
     if (segments.isEmpty)
       IO.Right(Slice.create[KeyValue.ReadOnly](0))
     else if (segments.size == 1)
       segments.head.getAll()
     else
-      segments.foldLeftIO(0) {
+      segments.foldLeftRecoverIO(0) {
         case (total, segment) =>
           segment.getKeyValueCount().map(_ + total)
       } flatMap {
         totalKeyValues =>
-          segments.foldLeftIO(Slice.create[KeyValue.ReadOnly](totalKeyValues)) {
+          segments.foldLeftRecoverIO(Slice.create[KeyValue.ReadOnly](totalKeyValues)) {
             case (allKeyValues, segment) =>
               segment getAll Some(allKeyValues)
           }
       }
 
-  def deleteSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
-    segments.foldLeftIO(0, failFast = false) {
+  def deleteSegments(segments: Iterable[Segment]): Int =
+    segments.foldLeftRecoverIO(0, failFast = false) {
       case (deleteCount, segment) =>
         segment.delete map {
           _ =>
@@ -725,7 +724,7 @@ private[core] object Segment extends LazyLogging {
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    segmentIO: SegmentIO): IO[swaydb.Error.Segment, Boolean] =
+                                                                    segmentIO: SegmentIO): Boolean =
     if (busySegments.isEmpty)
       IO.`false`
     else
@@ -742,7 +741,7 @@ private[core] object Segment extends LazyLogging {
 
   def overlapsWithBusySegments(map: Map[Slice[Byte], Memory],
                                busySegments: Iterable[Segment],
-                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Boolean] =
+                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     if (busySegments.isEmpty)
       IO.`false`
     else {
@@ -766,7 +765,7 @@ private[core] object Segment extends LazyLogging {
     } getOrElse IO.`false`
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: KeyValue): IO[swaydb.Error.Segment, Option[Deadline]] =
+                         keyValue: KeyValue): Option[Deadline] =
     keyValue match {
       case readOnly: KeyValue.ReadOnly =>
         getNearestDeadline(deadline, readOnly)
@@ -776,7 +775,7 @@ private[core] object Segment extends LazyLogging {
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         next: KeyValue.ReadOnly): IO[swaydb.Error.Segment, Option[Deadline]] =
+                         next: KeyValue.ReadOnly): Option[Deadline] =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>
         IO(FiniteDurations.getNearestDeadline(deadline, readOnly.deadline))
@@ -854,8 +853,8 @@ private[core] object Segment extends LazyLogging {
         )
     }
 
-  def getNearestDeadline(keyValues: Iterable[KeyValue]): IO[swaydb.Error.Segment, Option[Deadline]] =
-    keyValues.foldLeftIO(Option.empty[Deadline])(getNearestDeadline)
+  def getNearestDeadline(keyValues: Iterable[KeyValue]): Option[Deadline] =
+    keyValues.foldLeftRecoverIO(Option.empty[Deadline])(getNearestDeadline)
 
   def getNearestDeadlineSegment(previous: Segment,
                                 next: Segment): Option[Segment] =
@@ -894,7 +893,7 @@ private[core] trait Segment extends FileSweeperItem {
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
   private[segment] def skipList: SkipList[Slice[Byte], _ <: KeyValue.ReadOnly]
 
-  def createdInLevel: IO[swaydb.Error.Segment, Int]
+  def createdInLevel: Int
 
   def path: Path
 
@@ -908,7 +907,7 @@ private[core] trait Segment extends FileSweeperItem {
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[swaydb.Error.Segment, Slice[Segment]]
+          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
   def refresh(minSegmentSize: Long,
               removeDeletes: Boolean,
@@ -919,31 +918,31 @@ private[core] trait Segment extends FileSweeperItem {
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[swaydb.Error.Segment, Slice[Segment]]
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
   def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 
-  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean]
+  def mightContainKey(key: Slice[Byte]): Boolean
 
-  def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean]
+  def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[KeyValue.ReadOnly]]
+  def get(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 
-  def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[KeyValue.ReadOnly]]
+  def lower(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 
-  def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[KeyValue.ReadOnly]]
+  def higher(key: Slice[Byte]): Option[KeyValue.ReadOnly]
 
-  def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]]
+  def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]]
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly]
 
-  def delete: IO[swaydb.Error.Segment, Unit]
+  def delete: IO[swaydb.Error.IO, Unit]
 
   def deleteSegmentsEventually: Unit
 
-  def close: IO[swaydb.Error.Segment, Unit]
+  def close: IO[swaydb.Error.IO, Unit]
 
-  def getKeyValueCount(): IO[swaydb.Error.Segment, Int]
+  def getKeyValueCount(): Int
 
   def clearCachedKeyValues(): Unit
 
@@ -957,13 +956,13 @@ private[core] trait Segment extends FileSweeperItem {
 
   def cachedKeyValueSize: Int
 
-  def hasRange: IO[swaydb.Error.Segment, Boolean]
+  def hasRange: Boolean
 
-  def hasPut: IO[swaydb.Error.Segment, Boolean]
+  def hasPut: Boolean
 
   def isFooterDefined: Boolean
 
-  def hasBloomFilter: IO[swaydb.Error.Segment, Boolean]
+  def hasBloomFilter: Boolean
 
   def isOpen: Boolean
 

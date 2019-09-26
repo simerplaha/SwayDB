@@ -38,48 +38,43 @@ import scala.annotation.tailrec
 private[file] object MMAPFile {
 
   def read(path: Path,
-           blockCacheFileId: Long): IO[swaydb.Error.IO, MMAPFile] =
-    IO(FileChannel.open(path, StandardOpenOption.READ)) flatMap {
-      channel =>
-        MMAPFile(
-          path = path,
-          channel = channel,
-          mode = MapMode.READ_ONLY,
-          bufferSize = channel.size(),
-          blockCacheFileId = blockCacheFileId
-        )
-    }
+           blockCacheFileId: Long): MMAPFile = {
+    val channel = FileChannel.open(path, StandardOpenOption.READ)
+    MMAPFile(
+      path = path,
+      channel = FileChannel.open(path, StandardOpenOption.READ),
+      mode = MapMode.READ_ONLY,
+      bufferSize = channel.size(),
+      blockCacheFileId = blockCacheFileId
+    )
+  }
 
   def write(path: Path,
             bufferSize: Long,
-            blockCacheFileId: Long): IO[swaydb.Error.IO, MMAPFile] =
-    IO(FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)) flatMap {
-      channel =>
-        MMAPFile(
-          path = path,
-          channel = channel,
-          mode = MapMode.READ_WRITE,
-          bufferSize = bufferSize,
-          blockCacheFileId = blockCacheFileId
-        )
-    }
+            blockCacheFileId: Long): MMAPFile =
+    MMAPFile(
+      path = path,
+      channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
+      mode = MapMode.READ_WRITE,
+      bufferSize = bufferSize,
+      blockCacheFileId = blockCacheFileId
+    )
 
   private def apply(path: Path,
                     channel: FileChannel,
                     mode: MapMode,
                     bufferSize: Long,
-                    blockCacheFileId: Long): IO[swaydb.Error.IO, MMAPFile] =
-    IO {
-      val buff = channel.map(mode, 0, bufferSize)
-      new MMAPFile(
-        path = path,
-        channel = channel,
-        mode = mode,
-        bufferSize = bufferSize,
-        buffer = buff,
-        blockCacheFileId = blockCacheFileId
-      )
-    }
+                    blockCacheFileId: Long): MMAPFile = {
+    val buff = channel.map(mode, 0, bufferSize)
+    new MMAPFile(
+      path = path,
+      channel = channel,
+      mode = mode,
+      bufferSize = bufferSize,
+      buffer = buff,
+      blockCacheFileId = blockCacheFileId
+    )
+  }
 }
 
 private[file] class MMAPFile(val path: Path,

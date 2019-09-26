@@ -120,7 +120,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                     functionStore: FunctionStore): IO[swaydb.Error.Map, (RecoveryResult[DBFile], Boolean)] = {
     //read all existing logs and populate skipList
     var hasRange: Boolean = false
-    folder.files(Extension.Log) mapIO {
+    folder.files(Extension.Log) mapRecoverIO {
       path =>
         logger.info("{}: Recovering with dropCorruptedTailEntries = {}.", path, dropCorruptedTailEntries)
         DBFile.channelRead(path, IOStrategy.SynchronisedIO(true), autoClose = false, blockCacheFileId = 0)(fileSweeper, None) flatMap {

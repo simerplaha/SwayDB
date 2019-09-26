@@ -104,7 +104,7 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Throwable, Slice[Int]] =
-        slice.mapIO {
+        slice.mapRecoverIO {
           item =>
             IO.Right(item + 1)
         }
@@ -118,7 +118,7 @@ class IOSpec extends WordSpec with Matchers {
       val intsCleanedUp = ListBuffer.empty[Int]
 
       val result: IO[Throwable, Slice[Int]] =
-        slice.mapIO(
+        slice.mapRecoverIO(
           block = item => if (item == 3) IO.failed(s"Failed at $item") else IO.Right(item),
           recover = (ints: Slice[Int], _: IO.Left[Throwable, Slice[Int]]) => ints.foreach(intsCleanedUp += _)
         )
@@ -136,7 +136,7 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Throwable, Iterable[String]] =
-        slice flatMapIO {
+        slice flatMapRecoverIO {
           item =>
             IO(Seq(item.toString))
         }
@@ -148,7 +148,7 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice(1, 2, 3, 4, 5)
 
       val result: IO[Throwable, Iterable[String]] =
-        slice flatMapIO {
+        slice flatMapRecoverIO {
           item =>
             if (item < 3) {
               IO(List(item.toString))
@@ -166,7 +166,7 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice("one", "two", "three")
 
       val result: IO[Throwable, Int] =
-        slice.foldLeftIO(0) {
+        slice.foldLeftRecoverIO(0) {
           case (count, item) =>
             if (item == "two")
               IO.failed(s"Failed at $item")
@@ -182,7 +182,7 @@ class IOSpec extends WordSpec with Matchers {
       val slice = Slice("one", "two", "three")
 
       val result: IO[Throwable, Int] =
-        slice.foldLeftIO(0) {
+        slice.foldLeftRecoverIO(0) {
           case (count, _) =>
             IO.Right(count + 1)
         }

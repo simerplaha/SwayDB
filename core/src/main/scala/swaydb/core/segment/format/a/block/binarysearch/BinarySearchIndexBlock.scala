@@ -223,7 +223,7 @@ private[core] object BinarySearchIndexBlock {
       headerSize
   }
 
-  def close(state: State): IO[swaydb.Error.Segment, Option[State]] =
+  def close(state: State): Option[State] =
     if (state.bytes.isEmpty)
       IO.none
     else if (state.hasMinimumKeys)
@@ -247,7 +247,7 @@ private[core] object BinarySearchIndexBlock {
     else
       IO.none
 
-  def read(header: Block.Header[BinarySearchIndexBlock.Offset]): IO[swaydb.Error.Segment, BinarySearchIndexBlock] =
+  def read(header: Block.Header[BinarySearchIndexBlock.Offset]): BinarySearchIndexBlock =
     for {
       valuesCount <- header.headerReader.readUnsignedInt()
       bytesPerValue <- header.headerReader.readInt()
@@ -263,7 +263,7 @@ private[core] object BinarySearchIndexBlock {
       )
 
   def write(value: Int,
-            state: State): IO[swaydb.Error.Segment, Unit] =
+            state: State): Unit =
     if (value == state.previouslyWritten) { //do not write duplicate entries.
       IO.unit
     } else
@@ -323,11 +323,11 @@ private[core] object BinarySearchIndexBlock {
   var sameLower = 0
   var greaterLower = 0
 
-  private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
+  private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchGetResult[Persistent.Partial] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end")
@@ -374,10 +374,10 @@ private[core] object BinarySearchIndexBlock {
     hop(start = start, end = end, context.lowestKeyValue, None)
   }
 
-  private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchLowerResult.Some[Persistent.Partial]] = {
+  private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchLowerResult.Some[Persistent.Partial] = {
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): IO[swaydb.Error.Segment, BinarySearchLowerResult.Some[Persistent.Partial]] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchLowerResult.Some[Persistent.Partial] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
@@ -463,7 +463,7 @@ private[core] object BinarySearchIndexBlock {
              keyValuesCount: => IO[swaydb.Error.Segment, Int],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, BinarySearchGetResult[Persistent.Partial]] =
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchGetResult[Persistent.Partial] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable)
       keyValuesCount flatMap {
         keyValuesCount =>
@@ -574,7 +574,7 @@ private[core] object BinarySearchIndexBlock {
                    keyValuesCount: => IO[swaydb.Error.Segment, Int],
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
     when(start.exists(start => ordering.equiv(start.key, key)))(start) match {
       case Some(start) =>
         IO.when(sortedIndexReader.block.hasPrefixCompression, start.toPersistent, start) {
@@ -656,7 +656,7 @@ private[core] object BinarySearchIndexBlock {
                   keyValuesCount: => IO[swaydb.Error.Segment, Int],
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Segment, Option[Persistent.Partial]] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable)
       keyValuesCount flatMap {
         keyValuesCount =>
@@ -738,7 +738,7 @@ private[core] object BinarySearchIndexBlock {
     override def createOffset(start: Int, size: Int): Offset =
       BinarySearchIndexBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[swaydb.Error.Segment, BinarySearchIndexBlock] =
+    override def readBlock(header: Block.Header[Offset]): BinarySearchIndexBlock =
       BinarySearchIndexBlock.read(header)
   }
 

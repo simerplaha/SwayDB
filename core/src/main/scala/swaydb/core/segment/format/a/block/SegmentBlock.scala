@@ -20,17 +20,15 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Compression, IO}
-import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Memory, Transient}
-import swaydb.core.function.FunctionStore
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.{DeadlineAndFunctionId, Segment}
 import swaydb.core.util.{Bytes, MinMax, SkipList}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
+import swaydb.{Compression, IO}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Deadline
@@ -201,14 +199,12 @@ private[core] object SegmentBlock {
                                          minMaxFunction: Option[MinMax[Slice[Byte]]],
                                          nearestDeadline: Option[Deadline])
 
-  def read(header: Block.Header[Offset]): IO[swaydb.Error.Segment, SegmentBlock] =
-    IO {
-      SegmentBlock(
-        offset = header.offset,
-        headerSize = header.headerSize,
-        compressionInfo = header.compressionInfo
-      )
-    }
+  def read(header: Block.Header[Offset]): SegmentBlock =
+    SegmentBlock(
+      offset = header.offset,
+      headerSize = header.headerSize,
+      compressionInfo = header.compressionInfo
+    )
 
   val noCompressionHeaderSize = {
     val size = Block.headerSize(false)
@@ -232,9 +228,9 @@ private[core] object SegmentBlock {
                        binarySearchIndex: Option[BinarySearchIndexBlock.State],
                        bloomFilter: Option[BloomFilterBlock.State],
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                       currentNearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, DeadlineAndFunctionId] = {
+                       currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId = {
 
-    def writeOne(keyValue: Transient): IO[swaydb.Error.Segment, Unit] =
+    def writeOne(keyValue: Transient): Unit =
       keyValue match {
 
         case keyValue @ (_: Transient.Range | _: Transient.Fixed) =>
@@ -248,7 +244,7 @@ private[core] object SegmentBlock {
               if (keyValue.isPrefixCompressed) {
                 //fix me - this should be managed by HashIndex itself.
                 hashIndexState.miss += 1
-                IO.`false`
+                false
               } else if (hashIndexState.copyIndex)
               //Cannot copy HashIndex from a child Group key-values or prefixCompressed key-values because a Group's valueOffset
               //is embedded within that's Group's values block and the block might be compressed or prefix-compressed key-values.
@@ -268,23 +264,18 @@ private[core] object SegmentBlock {
           } match {
             //if it's a hit and binary search is not configured to be full.
             //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-            case Some(IO.Right(hit)) if binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
-              IO.unit
+            case Some(hit) if binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
+              ()
 
-            case None | Some(IO.Right(_)) =>
-              if (keyValue.isPrefixCompressed)
-                IO.unit
-              else
-                binarySearchIndex map {
+            case None | Some(_) =>
+              if (!keyValue.isPrefixCompressed)
+                binarySearchIndex foreach {
                   state =>
                     BinarySearchIndexBlock.write(
                       value = thisKeyValuesAccessOffset,
                       state = state
                     )
-                } getOrElse IO.unit
-
-            case Some(IO.Left(error)) =>
-              IO.Left(error)
+                }
           }
       }
 
@@ -302,7 +293,7 @@ private[core] object SegmentBlock {
               nextMinMaxFunctionId = MinMax.minMaxFunction(range, currentMinMaxFunction)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(keyValue = range).get
+                writeOne(keyValue = range)
 
               memoryMap foreach {
                 skipList =>
@@ -322,7 +313,7 @@ private[core] object SegmentBlock {
               nextMinMaxFunctionId = Some(MinMax.minMaxFunction(function, currentMinMaxFunction))
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(keyValue = function).get
+                writeOne(keyValue = function)
 
               memoryMap foreach {
                 skipList =>
@@ -341,7 +332,7 @@ private[core] object SegmentBlock {
               nextMinMaxFunctionId = MinMax.minMaxFunction(pendingApply.applies, currentMinMaxFunction)
 
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(keyValue = pendingApply).get
+                writeOne(keyValue = pendingApply)
 
               memoryMap foreach {
                 skipList =>
@@ -357,7 +348,7 @@ private[core] object SegmentBlock {
 
             case put: Transient.Put =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(keyValue = put).get
+                writeOne(keyValue = put)
 
               memoryMap foreach {
                 skipList =>
@@ -377,7 +368,7 @@ private[core] object SegmentBlock {
 
             case remove: Transient.Remove =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(keyValue = remove).get
+                writeOne(keyValue = remove)
 
               memoryMap foreach {
                 skipList =>
@@ -395,7 +386,7 @@ private[core] object SegmentBlock {
 
             case update: Transient.Update =>
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
-                writeOne(keyValue = update).get
+                writeOne(keyValue = update)
 
               memoryMap foreach {
                 skipList =>
@@ -420,13 +411,11 @@ private[core] object SegmentBlock {
           DeadlineAndFunctionId(currentNearestDeadline, currentMinMaxFunction)
       }
 
-    IO {
-      writeRoot(
-        keyValues = Slice(keyValue),
-        currentMinMaxFunction = currentMinMaxFunction,
-        currentNearestDeadline = currentNearestDeadline
-      )
-    }
+    writeRoot(
+      keyValues = Slice(keyValue),
+      currentMinMaxFunction = currentMinMaxFunction,
+      currentNearestDeadline = currentNearestDeadline
+    )
   }
 
   private def writeBlocks(keyValue: Transient,
@@ -436,22 +425,19 @@ private[core] object SegmentBlock {
                           binarySearchIndex: Option[BinarySearchIndexBlock.State],
                           bloomFilter: Option[BloomFilterBlock.State],
                           currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
-                          currentNearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, DeadlineAndFunctionId] =
-    SortedIndexBlock
-      .write(keyValue = keyValue, state = sortedIndex)
-      .flatMap(_ => values.map(ValuesBlock.write(keyValue, _)) getOrElse IO.unit)
-      .flatMap {
-        _ =>
-          writeIndexBlocks(
-            keyValue = keyValue,
-            memoryMap = None,
-            hashIndex = hashIndex,
-            bloomFilter = bloomFilter,
-            binarySearchIndex = binarySearchIndex,
-            currentMinMaxFunction = currentMinMaxFunction,
-            currentNearestDeadline = currentNearestDeadline
-          )
-      }
+                          currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId = {
+    SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
+    values.foreach(ValuesBlock.write(keyValue, _))
+    writeIndexBlocks(
+      keyValue = keyValue,
+      memoryMap = None,
+      hashIndex = hashIndex,
+      bloomFilter = bloomFilter,
+      binarySearchIndex = binarySearchIndex,
+      currentMinMaxFunction = currentMinMaxFunction,
+      currentNearestDeadline = currentNearestDeadline
+    )
+  }
 
   private def closeBlocks(sortedIndex: SortedIndexBlock.State,
                           values: Option[ValuesBlock.State],
@@ -459,88 +445,90 @@ private[core] object SegmentBlock {
                           binarySearchIndex: Option[BinarySearchIndexBlock.State],
                           bloomFilter: Option[BloomFilterBlock.State],
                           minMaxFunction: Option[MinMax[Slice[Byte]]],
-                          nearestDeadline: Option[Deadline]): IO[swaydb.Error.Segment, ClosedBlocks] =
-    for {
-      sortedIndexClosed <- SortedIndexBlock.close(sortedIndex)
-      valuesClosed <- values.map(values => ValuesBlock.close(values).toOptionValue) getOrElse IO.none
-      hashIndexClosed <- hashIndex.map(HashIndexBlock.close) getOrElse IO.none
-      binarySearchIndexClosed <- binarySearchIndex.map(BinarySearchIndexBlock.close) getOrElse IO.none
-      bloomFilterClosed <- bloomFilter.map(BloomFilterBlock.close) getOrElse IO.none
-    } yield
-      ClosedBlocks(
-        sortedIndex = sortedIndexClosed,
-        values = valuesClosed,
-        hashIndex = hashIndexClosed,
-        binarySearchIndex = binarySearchIndexClosed,
-        bloomFilter = bloomFilterClosed,
-        minMaxFunction = minMaxFunction,
-        nearestDeadline = nearestDeadline
-      )
+                          nearestDeadline: Option[Deadline]): ClosedBlocks = {
+    val sortedIndexClosed = SortedIndexBlock.close(sortedIndex)
+    val valuesClosed = values.map(ValuesBlock.close)
+    val hashIndexClosed = hashIndex.flatMap(HashIndexBlock.close)
+    val binarySearchIndexClosed = binarySearchIndex.flatMap(BinarySearchIndexBlock.close)
+    val bloomFilterClosed = bloomFilter.flatMap(BloomFilterBlock.close)
+
+    ClosedBlocks(
+      sortedIndex = sortedIndexClosed,
+      values = valuesClosed,
+      hashIndex = hashIndexClosed,
+      binarySearchIndex = binarySearchIndexClosed,
+      bloomFilter = bloomFilterClosed,
+      minMaxFunction = minMaxFunction,
+      nearestDeadline = nearestDeadline
+    )
+  }
 
   private def write(keyValues: Iterable[Transient],
                     sortedIndexBlock: SortedIndexBlock.State,
                     valuesBlock: Option[ValuesBlock.State],
                     hashIndexBlock: Option[HashIndexBlock.State],
                     binarySearchIndexBlock: Option[BinarySearchIndexBlock.State],
-                    bloomFilterBlock: Option[BloomFilterBlock.State]): IO[swaydb.Error.Segment, ClosedBlocks] =
-    keyValues.foldLeftIO(DeadlineAndFunctionId(None, None)) {
-      case (nearestDeadlineMinMaxFunctionId, keyValue) =>
-        writeBlocks(
-          keyValue = keyValue,
-          sortedIndex = sortedIndexBlock,
-          values = valuesBlock,
-          hashIndex = hashIndexBlock,
-          bloomFilter = bloomFilterBlock,
-          binarySearchIndex = binarySearchIndexBlock,
-          currentMinMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
-          currentNearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
-        )
-    } flatMap {
-      nearestDeadlineMinMaxFunctionId =>
-        closeBlocks(
-          sortedIndex = sortedIndexBlock,
-          values = valuesBlock,
-          hashIndex = hashIndexBlock,
-          bloomFilter = bloomFilterBlock,
-          binarySearchIndex = binarySearchIndexBlock,
-          minMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
-          nearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
-        )
-    } flatMap {
-      result =>
-        //ensure that all the slices are full.
-        if (!sortedIndexBlock.bytes.isFull)
-          IO.failed(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
-        else if (valuesBlock.exists(!_.bytes.isFull))
-          IO.failed(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
-        else
-          IO.Right(result)
-    }
-
-  def writeClosed(keyValues: Iterable[Transient],
-                  createdInLevel: Int,
-                  segmentConfig: SegmentBlock.Config): IO[swaydb.Error.Segment, SegmentBlock.Closed] =
-    if (keyValues.isEmpty)
-      SegmentBlock.Closed.emptyIO
-    else
-      writeOpen(
-        keyValues = keyValues,
-        createdInLevel = createdInLevel,
-        segmentConfig = segmentConfig
-      ) flatMap {
-        openSegment =>
-          Block.block(
-            openSegment = openSegment,
-            compressions = segmentConfig.compressions(UncompressedBlockInfo(openSegment.segmentSize)),
-            blockName = blockName
+                    bloomFilterBlock: Option[BloomFilterBlock.State]): ClosedBlocks = {
+    val nearestDeadlineMinMaxFunctionId =
+      keyValues.foldLeft(DeadlineAndFunctionId(None, None)) {
+        case (nearestDeadlineMinMaxFunctionId, keyValue) =>
+          writeBlocks(
+            keyValue = keyValue,
+            sortedIndex = sortedIndexBlock,
+            values = valuesBlock,
+            hashIndex = hashIndexBlock,
+            bloomFilter = bloomFilterBlock,
+            binarySearchIndex = binarySearchIndexBlock,
+            currentMinMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
+            currentNearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
           )
       }
 
+    val closedBlocks =
+      closeBlocks(
+        sortedIndex = sortedIndexBlock,
+        values = valuesBlock,
+        hashIndex = hashIndexBlock,
+        bloomFilter = bloomFilterBlock,
+        binarySearchIndex = binarySearchIndexBlock,
+        minMaxFunction = nearestDeadlineMinMaxFunctionId.minMaxFunctionId,
+        nearestDeadline = nearestDeadlineMinMaxFunctionId.nearestDeadline
+      )
+
+    //ensure that all the slices are full.
+    if (!sortedIndexBlock.bytes.isFull)
+      throw IO.throwable(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
+    else if (valuesBlock.exists(!_.bytes.isFull))
+      throw IO.throwable(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
+    else
+      closedBlocks
+  }
+
+  def writeClosed(keyValues: Iterable[Transient],
+                  createdInLevel: Int,
+                  segmentConfig: SegmentBlock.Config): SegmentBlock.Closed =
+    if (keyValues.isEmpty) {
+      SegmentBlock.Closed.empty
+    } else {
+      val openSegment =
+        writeOpen(
+          keyValues = keyValues,
+          createdInLevel = createdInLevel,
+          segmentConfig = segmentConfig
+        )
+
+      Block.block(
+        openSegment = openSegment,
+        compressions = segmentConfig.compressions(UncompressedBlockInfo(openSegment.segmentSize)),
+        blockName = blockName
+      )
+    }
+
   def writeOpen(keyValues: Iterable[Transient],
                 createdInLevel: Int,
-                segmentConfig: SegmentBlock.Config): IO[swaydb.Error.Segment, SegmentBlock.Open] =
+                segmentConfig: SegmentBlock.Config): SegmentBlock.Open =
     if (keyValues.isEmpty)
-      Open.emptyIO
+      Open.empty
     else {
       val (sortedIndexBlock, normalisedKeyValues) = SortedIndexBlock.init(keyValues = keyValues)
       val footerBlock = SegmentFooterBlock.init(keyValues = normalisedKeyValues, createdInLevel = createdInLevel)
@@ -559,29 +547,29 @@ private[core] object SegmentBlock {
       //          )
       //      }
 
-      write(
-        keyValues = normalisedKeyValues,
-        sortedIndexBlock = sortedIndexBlock,
-        valuesBlock = valuesBlock,
-        hashIndexBlock = hashIndexBlock,
-        binarySearchIndexBlock = binarySearchIndexBlock,
-        bloomFilterBlock = bloomFilterBlock
-      ) flatMap {
-        closedBlocks =>
-          SegmentFooterBlock
-            .writeAndClose(footerBlock, closedBlocks)
-            .flatMap(close(_, closedBlocks))
-      }
+      val closedBlocks =
+        write(
+          keyValues = normalisedKeyValues,
+          sortedIndexBlock = sortedIndexBlock,
+          valuesBlock = valuesBlock,
+          hashIndexBlock = hashIndexBlock,
+          binarySearchIndexBlock = binarySearchIndexBlock,
+          bloomFilterBlock = bloomFilterBlock
+        )
+
+      val closedFooterBlock = SegmentFooterBlock.writeAndClose(footerBlock, closedBlocks)
+
+      close(closedFooterBlock, closedBlocks)
     }
 
   private def close(footerBlock: SegmentFooterBlock.State,
-                    closedBlocks: ClosedBlocks): IO[swaydb.Error.Segment, SegmentBlock.Open] =
-    IO {
-      val headerSize = SegmentBlock.headerSize(true)
-      val headerBytes = Slice.create[Byte](headerSize)
-      //set header bytes to be fully written so that it does not closed when compression.
-      headerBytes moveWritePosition headerBytes.allocatedSize
+                    closedBlocks: ClosedBlocks): SegmentBlock.Open = {
+    val headerSize = SegmentBlock.headerSize(true)
+    val headerBytes = Slice.create[Byte](headerSize)
+    //set header bytes to be fully written so that it does not closed when compression.
+    headerBytes moveWritePosition headerBytes.allocatedSize
 
+    val open =
       Open(
         headerBytes = headerBytes,
         footerBlock = footerBlock.bytes.close(),
@@ -593,17 +581,15 @@ private[core] object SegmentBlock {
         functionMinMax = closedBlocks.minMaxFunction,
         nearestDeadline = closedBlocks.nearestDeadline
       )
-    } flatMap {
-      open =>
-        Block.unblock(
-          headerSize = open.headerBytes.size,
-          bytes = open.headerBytes,
-          blockName = blockName
-        ) map {
-          _ =>
-            open
-        }
-    }
+
+    Block.unblock(
+      headerSize = open.headerBytes.size,
+      bytes = open.headerBytes,
+      blockName = blockName
+    )
+
+    open
+  }
 
   implicit object SegmentBlockOps extends BlockOps[SegmentBlock.Offset, SegmentBlock] {
     override def updateBlockOffset(block: SegmentBlock, start: Int, size: Int): SegmentBlock =
@@ -612,7 +598,7 @@ private[core] object SegmentBlock {
     override def createOffset(start: Int, size: Int): Offset =
       SegmentBlock.Offset(start, size)
 
-    override def readBlock(header: Block.Header[SegmentBlock.Offset]): IO[swaydb.Error.Segment, SegmentBlock] =
+    override def readBlock(header: Block.Header[SegmentBlock.Offset]): SegmentBlock =
       SegmentBlock.read(header)
   }
 

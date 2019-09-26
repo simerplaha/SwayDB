@@ -92,7 +92,7 @@ private[core] class SegmentCache(id: String,
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     skipList.get(key)
 
-  def mightContain(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
+  def mightContain(key: Slice[Byte]): Boolean =
     blockCache.createBloomFilterReader() flatMap {
       bloomFilterReaderOption =>
         bloomFilterReaderOption map {
@@ -104,7 +104,7 @@ private[core] class SegmentCache(id: String,
         } getOrElse IO.`true`
     }
 
-  def createSortedIndexReader(threadState: SegmentReadThreadState): IO[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
+  def createSortedIndexReader(threadState: SegmentReadThreadState): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
     thisThreadState.getSortedIndexReader getOrElse {
       blockCache.createSortedIndexReader() onRightSideEffect {
         reader =>
@@ -112,7 +112,7 @@ private[core] class SegmentCache(id: String,
       }
     }
 
-  def createValuesReader(threadState: SegmentReadThreadState): IO[Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
+  def createValuesReader(threadState: SegmentReadThreadState): Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
     thisThreadState.getValuesReader getOrElse {
       blockCache.createValuesReader() onRightSideEffect {
         reader =>
@@ -125,7 +125,7 @@ private[core] class SegmentCache(id: String,
                   end: => Option[Persistent],
                   hasRange: Boolean,
                   keyValueCount: Int,
-                  threadState: SegmentReadThreadState): IO[swaydb.Error.Segment, Option[Persistent]] =
+                  threadState: SegmentReadThreadState): Option[Persistent] =
     createSortedIndexReader(threadState) flatMap {
       sortedIndexReader =>
         createValuesReader(threadState) flatMap {
@@ -162,7 +162,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+  def get(key: Slice[Byte]): Option[Persistent] =
     get(
       key = key,
       start = None,
@@ -175,7 +175,7 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: => Option[Persistent],
-                    keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent]] =
+                    keyValueCount: => IO[swaydb.Error.Segment, Int]): Option[Persistent] =
     blockCache.createSortedIndexReader() flatMap {
       sortedIndexReader =>
         blockCache.createValuesReader flatMap {
@@ -209,7 +209,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  private def getForLower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+  private def getForLower(key: Slice[Byte]): Option[Persistent] =
     skipList.get(key) match {
       case some @ Some(_) =>
         IO(some)
@@ -218,7 +218,7 @@ private[core] class SegmentCache(id: String,
         get(key = key)
     }
 
-  def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+  def lower(key: Slice[Byte]): Option[Persistent] =
     if (key <= minKey)
       IO.none
     else
@@ -289,7 +289,7 @@ private[core] class SegmentCache(id: String,
           }
       }
 
-  def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
     hasPut map {
       hasPut =>
         if (hasPut)
@@ -306,7 +306,7 @@ private[core] class SegmentCache(id: String,
   private def higher(key: Slice[Byte],
                      start: Option[Persistent],
                      end: => Option[Persistent],
-                     keyValueCount: => IO[swaydb.Error.Segment, Int]): IO[swaydb.Error.Segment, Option[Persistent]] =
+                     keyValueCount: => IO[swaydb.Error.Segment, Int]): Option[Persistent] =
     blockCache.createSortedIndexReader() flatMap {
       sortedIndexReader =>
         blockCache.createValuesReader() flatMap {
@@ -340,7 +340,7 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+  def higher(key: Slice[Byte]): Option[Persistent] =
     maxKey match {
       case MaxKey.Fixed(maxKey) if key >= maxKey =>
         IO.none
@@ -400,22 +400,22 @@ private[core] class SegmentCache(id: String,
         }
     }
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
     blockCache readAll addTo
 
-  def getHeadKeyValueCount(): IO[swaydb.Error.Segment, Int] =
+  def getHeadKeyValueCount(): Int =
     blockCache.getFooter().map(_.keyValueCount)
 
-  def getBloomFilterKeyValueCount(): IO[swaydb.Error.Segment, Int] =
+  def getBloomFilterKeyValueCount(): Int =
     blockCache.getFooter().map(_.bloomFilterItemsCount)
 
-  def getFooter(): IO[swaydb.Error.Segment, SegmentFooterBlock] =
+  def getFooter(): SegmentFooterBlock =
     blockCache.getFooter()
 
-  def hasRange: IO[swaydb.Error.Segment, Boolean] =
+  def hasRange: Boolean =
     blockCache.getFooter().map(_.hasRange)
 
-  def hasPut: IO[swaydb.Error.Segment, Boolean] =
+  def hasPut: Boolean =
     blockCache.getFooter().map(_.hasPut)
 
   def isKeyValueCacheEmpty =
@@ -427,10 +427,10 @@ private[core] class SegmentCache(id: String,
   def isFooterDefined: Boolean =
     blockCache.isFooterDefined
 
-  def hasBloomFilter: IO[swaydb.Error.Segment, Boolean] =
+  def hasBloomFilter: Boolean =
     blockCache.getFooter().map(_.bloomFilterOffset.isDefined)
 
-  def createdInLevel: IO[swaydb.Error.Segment, Int] =
+  def createdInLevel: Int =
     blockCache.getFooter().map(_.createdInLevel)
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
@@ -450,7 +450,7 @@ private[core] class SegmentCache(id: String,
   def areAllCachesEmpty =
     isKeyValueCacheEmpty && !blockCache.isCached
 
-  def readAllBytes(): IO[swaydb.Error.Segment, Slice[Byte]] =
+  def readAllBytes(): Slice[Byte] =
     blockCache.readAllBytes()
 
   def isInitialised() =

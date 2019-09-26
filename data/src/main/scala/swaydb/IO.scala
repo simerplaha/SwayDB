@@ -174,9 +174,9 @@ object IO {
       IO.none
     }
 
-    def mapIO[R: ClassTag](block: A => IO[E, R],
-                           recover: (Slice[R], IO.Left[E, Slice[R]]) => Unit = (_: Slice[R], _: IO.Left[E, Slice[R]]) => (),
-                           failFast: Boolean = true): IO[E, Slice[R]] = {
+    def mapRecoverIO[R: ClassTag](block: A => IO[E, R],
+                                  recover: (Slice[R], IO.Left[E, Slice[R]]) => Unit = (_: Slice[R], _: IO.Left[E, Slice[R]]) => (),
+                                  failFast: Boolean = true): IO[E, Slice[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = Slice.create[R](iterable.size)
@@ -200,9 +200,35 @@ object IO {
       }
     }
 
-    def flatMapIO[R](ioBlock: A => IO[E, Iterable[R]],
-                     recover: (Iterable[R], IO.Left[E, Slice[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
-                     failFast: Boolean = true): IO[E, Iterable[R]] = {
+    def mapRecover[R: ClassTag](block: A => R,
+                                recover: (Slice[R], Throwable) => Unit = (_: Slice[R], _: Throwable) => (),
+                                failFast: Boolean = true): Slice[R] = {
+      val it = iterable.iterator
+      var failure: Option[Throwable] = None
+      val successes = Slice.create[R](iterable.size)
+
+      while ((!failFast || failure.isEmpty) && it.hasNext) {
+        try
+          successes add block(it.next())
+        catch {
+          case exception: Throwable =>
+            failure = Some(exception)
+        }
+      }
+
+      failure match {
+        case Some(throwable) =>
+          recover(successes, throwable)
+          throw throwable
+
+        case None =>
+          successes
+      }
+    }
+
+    def flatMapRecoverIO[R](ioBlock: A => IO[E, Iterable[R]],
+                            recover: (Iterable[R], IO.Left[E, Slice[R]]) => Unit = (_: Iterable[R], _: IO.Left[E, Iterable[R]]) => (),
+                            failFast: Boolean = true): IO[E, Iterable[R]] = {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, Slice[R]]] = None
       val results = ListBuffer.empty[R]
@@ -227,9 +253,9 @@ object IO {
       }
     }
 
-    def foldLeftIO[R](r: R,
-                      failFast: Boolean = true,
-                      recover: (R, IO.Left[E, R]) => Unit = (_: R, _: IO.Left[E, R]) => ())(f: (R, A) => IO[E, R]): IO[E, R] = {
+    def foldLeftRecoverIO[R](r: R,
+                             failFast: Boolean = true,
+                             recover: (R, IO.Left[E, R]) => Unit = (_: R, _: IO.Left[E, R]) => ())(f: (R, A) => IO[E, R]): IO[E, R] = {
       val it = iterable.iterator
       var failure: Option[IO.Left[E, R]] = None
       var result: R = r

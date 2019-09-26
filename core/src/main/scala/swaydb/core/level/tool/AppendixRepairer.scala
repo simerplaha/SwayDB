@@ -61,7 +61,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
     IO(Effect.files(levelPath, Extension.Seg)) flatMap {
       files =>
         files
-          .mapIO {
+          .mapRecoverIO {
             segmentPath =>
               Effect.fileId(segmentPath) flatMap {
                 case (segmentId, Extension.Seg) =>
@@ -138,7 +138,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
 
   def checkOverlappingSegments(segments: Slice[Segment],
                                strategy: AppendixRepairStrategy)(implicit keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Level, Int] =
-    segments.foldLeftIO(1) {
+    segments.foldLeftRecoverIO(1) {
       case (position, segment) =>
         logger.info("Checking for overlapping Segments for Segment {}", segment.path)
         segments.drop(position) find {

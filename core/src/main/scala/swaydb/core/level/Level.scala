@@ -21,7 +21,6 @@ package swaydb.core.level
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, StandardOpenOption}
-import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
@@ -288,7 +287,7 @@ private[core] object Level extends LazyLogging {
     ReserveRange.isUnreserved(segment) && {
       isSmallSegment(segment, level.segmentSize) ||
         //if the Segment was not created in this level.
-        segment.createdInLevel.getOrElse(0) != level.levelNumber
+        segment.createdInLevel != level.levelNumber
     }
 
   def optimalSegmentsToCollapse(level: NextLevel,
@@ -710,47 +709,48 @@ private[core] case class Level(dirs: Seq[Dir],
       IO.`false`
   }
 
-  private[level] def copy(map: Map[Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
-    logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
+  private[level] def copy(map: Map[Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
+    IO {
+      logger.trace(s"{}: Copying {} Map", paths.head, map.pathOption)
 
-    def targetSegmentPath: (Long, Path) = {
-      val segmentId = segmentIDGenerator.nextID
-      val path = paths.next.resolve(IDGenerator.segmentId(segmentId))
-      (segmentId, path)
+      def targetSegmentPath: (Long, Path) = {
+        val segmentId = segmentIDGenerator.nextID
+        val path = paths.next.resolve(IDGenerator.segmentId(segmentId))
+        (segmentId, path)
+      }
+
+      val keyValues = map.skipList.toSlice()
+
+      if (inMemory)
+        Segment.copyToMemory(
+          keyValues = keyValues,
+          fetchNextPath = targetSegmentPath,
+          removeDeletes = removeDeletedRecords,
+          minSegmentSize = segmentSize,
+          createdInLevel = levelNumber,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
+        )
+      else
+        Segment.copyToPersist(
+          keyValues = keyValues,
+          segmentConfig = segmentConfig,
+          createdInLevel = levelNumber,
+          fetchNextPath = targetSegmentPath,
+          mmapSegmentsOnRead = mmapSegmentsOnRead,
+          mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+          removeDeletes = removeDeletedRecords,
+          minSegmentSize = segmentSize,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig
+        )
     }
-
-    val keyValues = map.skipList.toSlice()
-
-    if (inMemory)
-      Segment.copyToMemory(
-        keyValues = keyValues,
-        fetchNextPath = targetSegmentPath,
-        removeDeletes = removeDeletedRecords,
-        minSegmentSize = segmentSize,
-        createdInLevel = levelNumber,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
-    else
-      Segment.copyToPersist(
-        keyValues = keyValues,
-        segmentConfig = segmentConfig,
-        createdInLevel = levelNumber,
-        fetchNextPath = targetSegmentPath,
-        mmapSegmentsOnRead = mmapSegmentsOnRead,
-        mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-        removeDeletes = removeDeletedRecords,
-        minSegmentSize = segmentSize,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
-  }
 
   /**
    * Returns newly created Segments.
@@ -790,7 +790,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private[level] def copy(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segments.map(_.path.toString))
-    segments.flatMapIO[Segment](
+    segments.flatMapRecoverIO[Segment](
       ioBlock =
         segment => {
           def targetSegmentPath: (Long, Path) = {
@@ -1013,7 +1013,7 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.debug(s"{}: Assigned segments {}. Merging {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
           putAssignedKeyValues(assignments) flatMap {
             targetSegmentAndNewSegments =>
-              targetSegmentAndNewSegments.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+              targetSegmentAndNewSegments.foldLeftRecoverIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
                 case (mapEntry, (targetSegment, newSegments)) =>
                   buildNewMapEntry(newSegments, Some(targetSegment), mapEntry).toOptionValue
               } flatMap {
@@ -1060,7 +1060,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): IO[swaydb.Error.Level, Slice[(Segment, Slice[Segment])]] =
-    assignedSegments.mapIO[(Segment, Slice[Segment])](
+    assignedSegments.mapRecoverIO[(Segment, Slice[Segment])](
       block = {
         case (targetSegment, assignedKeyValues) =>
           targetSegment.put(

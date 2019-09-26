@@ -36,6 +36,7 @@ import swaydb.data.slice.Slice
 object Exception {
   case class Busy(error: Error.Recoverable) extends Exception("Is busy")
   case class OpeningFile(file: Path, reserve: Reserve[Unit]) extends Exception(s"Failed to open file $file")
+  case class NoSuchFile(file: Path) extends Exception(s"No such file $file")
 
   case class ReservedResource(reserve: Reserve[Unit]) extends Exception("ReservedResource is busy.")
   case class NullMappedByteBuffer(exception: Exception, reserve: Reserve[Unit]) extends Exception(exception)

@@ -72,15 +72,17 @@ object DBFile extends LazyLogging {
         _ =>
           logger.debug(s"{}: Opening closed file.", filePath)
 
-          val openResult =
-            if (memoryMapped)
-              MMAPFile.read(filePath, blockCacheFileId)
-            else
-              ChannelFile.read(filePath, blockCacheFileId)
+          IO {
+            val openResult =
+              if (memoryMapped)
+                MMAPFile.read(filePath, blockCacheFileId)
+              else
+                ChannelFile.read(filePath, blockCacheFileId)
 
-          if (autoClose)
-            fileSweeper.close(closer)
-          openResult
+            if (autoClose)
+              fileSweeper.close(closer)
+            openResult
+          }
       }
 
     self = cache
@@ -101,154 +103,151 @@ object DBFile extends LazyLogging {
                    ioStrategy: IOStrategy,
                    blockCacheFileId: Long,
                    autoClose: Boolean)(implicit fileSweeper: FileSweeper,
-                                       blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-    ChannelFile.write(path, blockCacheFileId) map {
-      file =>
-        new DBFile(
-          path = path,
+                                       blockCache: Option[BlockCache.State]): DBFile = {
+    val file = ChannelFile.write(path, blockCacheFileId)
+    new DBFile(
+      path = path,
+      memoryMapped = false,
+      autoClose = autoClose,
+      blockCacheFileId = blockCacheFileId,
+      fileCache =
+        fileCache(
+          filePath = path,
           memoryMapped = false,
+          file = Some(file),
+          ioStrategy = ioStrategy,
           autoClose = autoClose,
-          blockCacheFileId = blockCacheFileId,
-          fileCache =
-            fileCache(
-              filePath = path,
-              memoryMapped = false,
-              file = Some(file),
-              ioStrategy = ioStrategy,
-              autoClose = autoClose,
-              blockCacheFileId = blockCacheFileId
-            )
+          blockCacheFileId = blockCacheFileId
         )
-    }
+    )
+  }
 
   def channelRead(path: Path,
                   ioStrategy: IOStrategy,
                   autoClose: Boolean,
                   blockCacheFileId: Long,
                   checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
-                                               blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
+                                               blockCache: Option[BlockCache.State]): DBFile =
     if (checkExists && Effect.notExists(path))
-      IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
-    else
-      IO {
-        new DBFile(
-          path = path,
-          memoryMapped = false,
-          autoClose = autoClose,
-          blockCacheFileId = blockCacheFileId,
-          fileCache =
-            fileCache(
-              filePath = path,
-              memoryMapped = false,
-              file = None,
-              ioStrategy = ioStrategy,
-              autoClose = autoClose,
-              blockCacheFileId = blockCacheFileId
-            )
-        )
-      }
+      throw swaydb.Exception.NoSuchFile(path)
+    else {
+      new DBFile(
+        path = path,
+        memoryMapped = false,
+        autoClose = autoClose,
+        blockCacheFileId = blockCacheFileId,
+        fileCache =
+          fileCache(
+            filePath = path,
+            memoryMapped = false,
+            file = None,
+            ioStrategy = ioStrategy,
+            autoClose = autoClose,
+            blockCacheFileId = blockCacheFileId
+          )
+      )
+    }
 
   def mmapWriteAndRead(path: Path,
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
                        blockCacheFileId: Long,
                        bytes: Iterable[Slice[Byte]])(implicit fileSweeper: FileSweeper,
-                                                     blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-  //do not write bytes if the Slice has empty bytes.
-    bytes.foldLeftIO(0) {
-      case (written, bytes) =>
-        if (!bytes.isFull)
-          IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
-        else
-          IO.Right(written + bytes.size)
-    } flatMap {
-      totalWritten =>
-        mmapInit(
-          path = path,
-          bufferSize = totalWritten,
-          ioStrategy = ioStrategy,
-          autoClose = autoClose,
-          blockCacheFileId = blockCacheFileId
-        ) map {
-          file =>
-            file.append(bytes)
-            file
-        }
-    }
+                                                     blockCache: Option[BlockCache.State]): DBFile = {
+    val totalWritten =
+      bytes.foldLeft(0) { //do not write bytes if the Slice has empty bytes.
+        case (written, bytes) =>
+          if (!bytes.isFull)
+            throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
+          else
+            written + bytes.size
+      }
+
+    val file =
+      mmapInit(
+        path = path,
+        bufferSize = totalWritten,
+        ioStrategy = ioStrategy,
+        autoClose = autoClose,
+        blockCacheFileId = blockCacheFileId
+      )
+
+    file.append(bytes)
+    file
+  }
 
   def mmapWriteAndRead(path: Path,
                        ioStrategy: IOStrategy,
                        autoClose: Boolean,
                        blockCacheFileId: Long,
                        bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
-                                           blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
+                                           blockCache: Option[BlockCache.State]): DBFile =
   //do not write bytes if the Slice has empty bytes.
-    if (!bytes.isFull)
-      IO.failed(swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size))
-    else
-      mmapInit(
-        path = path,
-        bufferSize = bytes.size,
-        ioStrategy = ioStrategy,
-        blockCacheFileId = blockCacheFileId,
-        autoClose = autoClose
-      ) map {
-        file =>
-          file.append(bytes)
-          file
-      }
+    if (!bytes.isFull) {
+      throw swaydb.Exception.FailedToWriteAllBytes(0, bytes.size, bytes.size)
+    } else {
+      val file =
+        mmapInit(
+          path = path,
+          bufferSize = bytes.size,
+          ioStrategy = ioStrategy,
+          blockCacheFileId = blockCacheFileId,
+          autoClose = autoClose
+        )
+
+      file.append(bytes)
+      file
+    }
 
   def mmapRead(path: Path,
                ioStrategy: IOStrategy,
                autoClose: Boolean,
                blockCacheFileId: Long,
                checkExists: Boolean = true)(implicit fileSweeper: FileSweeper,
-                                            blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-    if (checkExists && Effect.notExists(path))
-      IO.Left[swaydb.Error.IO, DBFile](swaydb.Error.NoSuchFile(path))
-    else
-      IO {
-        new DBFile(
-          path = path,
-          memoryMapped = true,
-          autoClose = autoClose,
-          blockCacheFileId = blockCacheFileId,
-          fileCache =
-            fileCache(
-              filePath = path,
-              memoryMapped = true,
-              blockCacheFileId = blockCacheFileId,
-              ioStrategy = ioStrategy,
-              file = None,
-              autoClose = autoClose
-            )
-        )
-      }
+                                            blockCache: Option[BlockCache.State]): DBFile =
+    if (checkExists && Effect.notExists(path)) {
+      throw swaydb.Exception.NoSuchFile(path)
+    } else {
+      new DBFile(
+        path = path,
+        memoryMapped = true,
+        autoClose = autoClose,
+        blockCacheFileId = blockCacheFileId,
+        fileCache =
+          fileCache(
+            filePath = path,
+            memoryMapped = true,
+            blockCacheFileId = blockCacheFileId,
+            ioStrategy = ioStrategy,
+            file = None,
+            autoClose = autoClose
+          )
+      )
+    }
 
   def mmapInit(path: Path,
                ioStrategy: IOStrategy,
                bufferSize: Long,
                blockCacheFileId: Long,
                autoClose: Boolean)(implicit fileSweeper: FileSweeper,
-                                   blockCache: Option[BlockCache.State]): IO[swaydb.Error.IO, DBFile] =
-    MMAPFile.write(path, bufferSize, blockCacheFileId) map {
-      file =>
-        new DBFile(
-          path = path,
+                                   blockCache: Option[BlockCache.State]): DBFile = {
+    val file = MMAPFile.write(path, bufferSize, blockCacheFileId)
+    new DBFile(
+      path = path,
+      memoryMapped = true,
+      autoClose = autoClose,
+      blockCacheFileId = blockCacheFileId,
+      fileCache =
+        fileCache(
+          filePath = path,
           memoryMapped = true,
-          autoClose = autoClose,
+          file = Some(file),
           blockCacheFileId = blockCacheFileId,
-          fileCache =
-            fileCache(
-              filePath = path,
-              memoryMapped = true,
-              file = Some(file),
-              blockCacheFileId = blockCacheFileId,
-              ioStrategy = ioStrategy,
-              autoClose = autoClose
-            )
+          ioStrategy = ioStrategy,
+          autoClose = autoClose
         )
-    }
+    )
+  }
 }
 /**
  * Wrapper class for different file types of [[DBFileType]].

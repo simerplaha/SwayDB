@@ -23,7 +23,6 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent}
@@ -40,6 +39,7 @@ import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.{Error, IO}
 
 import scala.concurrent.duration.Deadline
 
@@ -106,7 +106,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def skipList: SkipList[Slice[Byte], Persistent] =
     segmentCache.skipList
 
-  def close: IO[swaydb.Error.Segment, Unit] =
+  override def close: IO[Error.IO, Unit] =
     file.close map {
       _ =>
         segmentCache.clearLocalAndBlockCache()
@@ -121,7 +121,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def deleteSegmentsEventually =
     fileSweeper.delete(this)
 
-  def delete: IO[swaydb.Error.Segment, Unit] = {
+  def delete: IO[swaydb.Error.IO, Unit] = {
     logger.trace(s"{}: DELETING FILE", path)
     file.delete() onLeftSideEffect {
       failure =>
@@ -132,7 +132,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
   }
 
-  def copyTo(toPath: Path): IO[swaydb.Error.Segment, Path] =
+  def copyTo(toPath: Path): IO[Error.IO, Path] =
     file copyTo toPath
 
   /**
@@ -148,50 +148,50 @@ private[segment] case class PersistentSegment(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[swaydb.Error.Segment, Slice[Segment]] =
-    getAll() flatMap {
-      currentKeyValues =>
-        SegmentMerger.merge(
-          newKeyValues = newKeyValues,
-          oldKeyValues = currentKeyValues,
-          minSegmentSize = minSegmentSize,
-          isLastLevel = removeDeletes,
-          forInMemory = false,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
-        ) flatMap {
-          splits =>
-            splits.mapIO(
-              block =
-                keyValues => {
-                  val segmentId = idGenerator.nextID
-                  Segment.persistent(
-                    path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
-                    segmentId = segmentId,
-                    segmentConfig = segmentConfig,
-                    createdInLevel = createdInLevel,
-                    mmapReads = mmapReads,
-                    mmapWrites = mmapWrites,
-                    keyValues = keyValues
-                  )
-                },
+          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+    val currentKeyValues = getAll()
 
-              recover =
-                (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
-                  segments foreach {
-                    segmentToDelete =>
-                      segmentToDelete.delete onLeftSideEffect {
-                        exception =>
-                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
-                      }
-                  }
-            )
-        }
-    }
+    val splits =
+      SegmentMerger.merge(
+        newKeyValues = newKeyValues,
+        oldKeyValues = currentKeyValues,
+        minSegmentSize = minSegmentSize,
+        isLastLevel = removeDeletes,
+        forInMemory = false,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
+
+    splits.mapRecover(
+      block =
+        keyValues => {
+          val segmentId = idGenerator.nextID
+          Segment.persistent(
+            path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+            segmentId = segmentId,
+            segmentConfig = segmentConfig,
+            createdInLevel = createdInLevel,
+            mmapReads = mmapReads,
+            mmapWrites = mmapWrites,
+            keyValues = keyValues
+          )
+        },
+
+      recover =
+        (segments: Slice[Segment], _: Throwable) =>
+          segments foreach {
+            segmentToDelete =>
+              segmentToDelete.delete onLeftSideEffect {
+                exception =>
+                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+              }
+          }
+    )
+  }
 
   def refresh(minSegmentSize: Long,
               removeDeletes: Boolean,
@@ -202,95 +202,92 @@ private[segment] case class PersistentSegment(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): IO[swaydb.Error.Segment, Slice[Segment]] =
-    getAll() flatMap {
-      currentKeyValues =>
-        SegmentMerger.split(
-          keyValues = currentKeyValues,
-          minSegmentSize = minSegmentSize,
-          isLastLevel = removeDeletes,
-          forInMemory = false,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
-        ) flatMap {
-          splits =>
-            splits.mapIO(
-              block =
-                keyValues => {
-                  val segmentId = idGenerator.nextID
-                  Segment.persistent(
-                    path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
-                    segmentId = segmentId,
-                    createdInLevel = createdInLevel,
-                    segmentConfig = segmentConfig,
-                    mmapReads = mmapReads,
-                    mmapWrites = mmapWrites,
-                    keyValues = keyValues
-                  )
-                },
+              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+    val currentKeyValues = getAll()
+    val splits =
+      SegmentMerger.split(
+        keyValues = currentKeyValues,
+        minSegmentSize = minSegmentSize,
+        isLastLevel = removeDeletes,
+        forInMemory = false,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig
+      )
 
-              recover =
-                (segments: Slice[Segment], _: IO.Left[swaydb.Error.Segment, Slice[Segment]]) =>
-                  segments foreach {
-                    segmentToDelete =>
-                      segmentToDelete.delete onLeftSideEffect {
-                        exception =>
-                          logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
-                      }
-                  }
-            )
-        }
-    }
+    splits.mapRecover(
+      block =
+        keyValues => {
+          val segmentId = idGenerator.nextID
+          Segment.persistent(
+            path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+            segmentId = segmentId,
+            createdInLevel = createdInLevel,
+            segmentConfig = segmentConfig,
+            mmapReads = mmapReads,
+            mmapWrites = mmapWrites,
+            keyValues = keyValues
+          )
+        },
 
-  def getSegmentBlockOffset(): IO[swaydb.Error.Segment, SegmentBlock.Offset] =
-    IO(file.fileSize) map (fileSize => SegmentBlock.Offset(0, fileSize.toInt))
+      recover =
+        (segments: Slice[Segment], _: Throwable) =>
+          segments foreach {
+            segmentToDelete =>
+              segmentToDelete.delete onLeftSideEffect {
+                exception =>
+                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
+              }
+          }
+    )
+  }
+
+  def getSegmentBlockOffset(): SegmentBlock.Offset =
+    SegmentBlock.Offset(0, file.fileSize.toInt)
 
   def getFromCache(key: Slice[Byte]): Option[Persistent] =
     segmentCache getFromCache key
 
-  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
+  def mightContainKey(key: Slice[Byte]): Boolean =
     segmentCache mightContain key
 
-  override def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
-    IO {
-      minMaxFunctionId.exists {
-        minMaxFunctionId =>
-          MinMax.contains(
-            key = key,
-            minMax = minMaxFunctionId
-          )(FunctionStore.order)
-      }
+  override def mightContainFunction(key: Slice[Byte]): Boolean =
+    minMaxFunctionId.exists {
+      minMaxFunctionId =>
+        MinMax.contains(
+          key = key,
+          minMax = minMaxFunctionId
+        )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+  def get(key: Slice[Byte]): Option[Persistent] =
     segmentCache get key
 
-  def lower(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+  def lower(key: Slice[Byte]): Option[Persistent] =
     segmentCache lower key
 
-  def floorHigherHint(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
     segmentCache floorHigherHint key
 
-  def higher(key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Persistent]] =
+  def higher(key: Slice[Byte]): Option[Persistent] =
     segmentCache higher key
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
+  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
     segmentCache getAll addTo
 
-  override def hasRange: IO[swaydb.Error.Segment, Boolean] =
+  override def hasRange: Boolean =
     segmentCache.hasRange
 
-  override def hasPut: IO[swaydb.Error.Segment, Boolean] =
+  override def hasPut: Boolean =
     segmentCache.hasPut
 
-  def getKeyValueCount(): IO[swaydb.Error.Segment, Int] =
+  def getKeyValueCount(): Int =
     segmentCache.getBloomFilterKeyValueCount()
 
-  def getFooter(): IO[swaydb.Error.Segment, SegmentFooterBlock] =
+  def getFooter(): SegmentFooterBlock =
     segmentCache.getFooter()
 
   override def isFooterDefined: Boolean =
@@ -308,10 +305,10 @@ private[segment] case class PersistentSegment(file: DBFile,
   def notExistsOnDisk: Boolean =
     !file.existsOnDisk
 
-  override def createdInLevel: IO[swaydb.Error.Segment, Int] =
+  override def createdInLevel: Int =
     segmentCache.createdInLevel
 
-  override def hasBloomFilter: IO[swaydb.Error.Segment, Boolean] =
+  override def hasBloomFilter: Boolean =
     segmentCache.hasBloomFilter
 
   def clearCachedKeyValues(): Unit =

@@ -20,13 +20,10 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
-import swaydb.IO._
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.{Bytes, MurmurHash3Generic, Options}
+import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
@@ -177,53 +174,46 @@ private[core] object BloomFilterBlock extends LazyLogging {
     update(optimal)
   }
 
-  def closeForMemory(state: BloomFilterBlock.State): IO[swaydb.Error.Segment, Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]]] =
-    BloomFilterBlock.close(state) flatMap {
+  def closeForMemory(state: BloomFilterBlock.State): Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
+    BloomFilterBlock.close(state) map {
       closedBloomFilter =>
-        closedBloomFilter map {
-          closedBloomFilter =>
-            Block
-              .unblock[BloomFilterBlock.Offset, BloomFilterBlock](closedBloomFilter.bytes.unslice())(BloomFilterBlockOps)
-              .toOptionValue
-        } getOrElse IO.none
+        Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](closedBloomFilter.bytes.unslice())(BloomFilterBlockOps)
     }
 
-  def close(state: State): IO[swaydb.Error.Segment, Option[BloomFilterBlock.State]] =
-    if (state.bytes.isEmpty)
-      IO.none
-    else
-      Block.block(
-        headerSize = state.headerSize,
-        bytes = state.bytes,
-        compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
-        blockName = blockName
-      ) flatMap {
-        compressedOrUncompressedBytes =>
-          IO {
-            state.bytes = compressedOrUncompressedBytes
-            state.bytes addUnsignedInt state.numberOfBits
-            state.bytes addUnsignedInt state.maxProbe
-            if (state.bytes.currentWritePosition > state.headerSize) {
-              throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-            } else {
-              logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
-              Some(state)
-            }
-          }
-      }
+  def close(state: State): Option[BloomFilterBlock.State] =
+    if (state.bytes.isEmpty) {
+      None
+    } else {
+      val compressedOrUncompressedBytes =
+        Block.block(
+          headerSize = state.headerSize,
+          bytes = state.bytes,
+          compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
+          blockName = blockName
+        )
 
-  def read(header: Block.Header[BloomFilterBlock.Offset]): IO[swaydb.Error.Segment, BloomFilterBlock] =
-    for {
-      numberOfBits <- header.headerReader.readUnsignedInt()
-      maxProbe <- header.headerReader.readUnsignedInt()
-    } yield
-      BloomFilterBlock(
-        offset = header.offset,
-        headerSize = header.headerSize,
-        maxProbe = maxProbe,
-        numberOfBits = numberOfBits,
-        compressionInfo = header.compressionInfo
-      )
+      state.bytes = compressedOrUncompressedBytes
+      state.bytes addUnsignedInt state.numberOfBits
+      state.bytes addUnsignedInt state.maxProbe
+      if (state.bytes.currentWritePosition > state.headerSize) {
+        throw new Exception(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+      } else {
+        logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
+        Some(state)
+      }
+    }
+
+  def read(header: Block.Header[BloomFilterBlock.Offset]): BloomFilterBlock = {
+    val numberOfBits = header.headerReader.readUnsignedInt()
+    val maxProbe = header.headerReader.readUnsignedInt()
+    BloomFilterBlock(
+      offset = header.offset,
+      headerSize = header.headerSize,
+      maxProbe = maxProbe,
+      numberOfBits = numberOfBits,
+      compressionInfo = header.compressionInfo
+    )
+  }
 
   def shouldNotCreateBloomFilter(keyValues: Iterable[Transient]): Boolean =
     keyValues.last.stats.segmentHasRemoveRange ||
@@ -286,34 +276,32 @@ private[core] object BloomFilterBlock extends LazyLogging {
   }
 
   def mightContain(key: Slice[Byte],
-                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): IO[swaydb.Error.Segment, Boolean] = {
+                   reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): Boolean = {
     val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
-    (0 until reader.block.maxProbe)
-      .untilSomeValue {
-        probe =>
-          val computedHash = hash1 + probe * hash2
-          val hashIndex = (computedHash & Long.MaxValue) % reader.block.numberOfBits
-          val position = ((hashIndex >>> 6) * 8L).toInt
-          //hash for invalid key could result in a position that is outside of the actual index bounds which
-          //means that key does not exist.
-          if (reader.block.offset.size - position < ByteSizeOf.long)
-            IO.someFalse
-          else
-            reader
-              .moveTo(position)
-              .readLong()
-              .flatMap {
-                index =>
-                  if ((index & (1L << hashIndex)) == 0)
-                    IO.someFalse
-                  else
-                    IO.none
-              }
+    var probe = 0
+    while (probe < reader.block.maxProbe) {
+      val computedHash = hash1 + probe * hash2
+      val hashIndex = (computedHash & Long.MaxValue) % reader.block.numberOfBits
+      val position = ((hashIndex >>> 6) * 8L).toInt
+      //hash for invalid key could result in a position that is outside of the actual index bounds which
+      //means that key does not exist.
+      if (reader.block.offset.size - position < ByteSizeOf.long) {
+        return false
+      } else {
+        val index =
+          reader
+            .moveTo(position)
+            .readLong()
+
+        if ((index & (1L << hashIndex)) == 0)
+          return false
       }
-      .map(_.getOrElse(true))
+      probe += 1
+    }
+    true
   }
 
   implicit object BloomFilterBlockOps extends BlockOps[BloomFilterBlock.Offset, BloomFilterBlock] {
@@ -323,7 +311,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     override def createOffset(start: Int, size: Int): Offset =
       BloomFilterBlock.Offset(start = start, size = size)
 
-    override def readBlock(header: Block.Header[Offset]): IO[swaydb.Error.Segment, BloomFilterBlock] =
+    override def readBlock(header: Block.Header[Offset]): BloomFilterBlock =
       BloomFilterBlock.read(header)
   }
 }

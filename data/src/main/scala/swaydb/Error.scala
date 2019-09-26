@@ -252,6 +252,7 @@ object Error {
       case exception: Exception.ReservedResource => Error.ReservedResource(exception.reserve)
       case exception: Exception.MergeKeyValuesWithoutTargetSegment => Error.MergeKeyValuesWithoutTargetSegment(exception.keyValueCount)
       case exception: Exception.NullMappedByteBuffer => Error.NullMappedByteBuffer(exception)
+      case exception: Exception.NoSuchFile => Error.NoSuchFile(exception.file)
 
       //the following Exceptions will occur when a file was being read but
       //it was closed or deleted when it was being read. There is no AtomicBoolean busy
