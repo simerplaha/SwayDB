@@ -102,5 +102,5 @@ private[file] class ChannelFile(val path: Path,
   }
 
   override def forceSave(): Unit =
-    IO.unit
+    ()
 }

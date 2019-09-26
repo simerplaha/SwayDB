@@ -19,18 +19,18 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.{Error, IO}
 
 object KeyReader {
 
   private def uncompressed(indexReader: ReaderBase,
                            keySize: Option[Int],
-                           previous: Option[Persistent.Partial]): IO[Error.Segment, Slice[Byte]] =
+                           previous: Option[Persistent.Partial]): Slice[Byte] =
     keySize match {
       case Some(keySize) =>
         indexReader read keySize
@@ -41,41 +41,32 @@ object KeyReader {
 
   private def compressed(indexReader: ReaderBase,
                          keySize: Option[Int],
-                         previous: Option[Persistent.Partial]): IO[Error.Segment, Slice[Byte]] =
-    previous map {
-      previous =>
+                         previous: Option[Persistent.Partial]): Slice[Byte] =
+    previous match {
+      case Some(previous) =>
         keySize match {
           case Some(keySize) =>
-            indexReader.read(keySize) flatMap {
-              key =>
-                val keyReader = key.createReaderSafe()
-                keyReader.readUnsignedInt() flatMap {
-                  commonBytes =>
-                    keyReader.readRemaining() map {
-                      rightBytes =>
-                        Bytes.decompress(previous.key, rightBytes, commonBytes)
-                    }
-                }
-            }
+            val key = indexReader.read(keySize)
+            val keyReader = Reader(key)
+            val commonBytes = keyReader.readUnsignedInt()
+            val rightBytes = keyReader.readRemaining()
+            Bytes.decompress(previous.key, rightBytes, commonBytes)
 
           case None =>
-            indexReader.readUnsignedInt() flatMap {
-              commonBytes =>
-                indexReader.readRemaining() map {
-                  rightBytes =>
-                    Bytes.decompress(previous.key, rightBytes, commonBytes)
-                }
-            }
+            val commonBytes = indexReader.readUnsignedInt()
+            val rightBytes = indexReader.readRemaining()
+            Bytes.decompress(previous.key, rightBytes, commonBytes)
         }
-    } getOrElse {
-      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+
+      case None =>
+        throw EntryReaderFailure.NoPreviousKeyValue
     }
 
   def read(keyValueIdInt: Int,
            keySize: Option[Int],
            indexReader: ReaderBase,
            previous: Option[Persistent.Partial],
-           keyValueId: KeyValueId): IO[swaydb.Error.Segment, Slice[Byte]] =
+           keyValueId: KeyValueId): Slice[Byte] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(
         indexReader = indexReader,
@@ -89,5 +80,5 @@ object KeyReader {
         previous = previous
       )
     else
-      IO.Left(swaydb.Error.Fatal(new Exception(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")))
+      throw IO.throwable(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")
 }

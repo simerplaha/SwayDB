@@ -939,10 +939,10 @@ sealed trait SegmentWriteSpec extends TestBase {
 
         segment.getAll().right.value foreach {
           case keyValue: KeyValue.ReadOnly.Put =>
-            keyValue.getOrFetchValue.runRandomIO.right.value shouldBe None
+            keyValue.getOrFetchValue shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Update =>
-            keyValue.getOrFetchValue.runRandomIO.right.value shouldBe None
+            keyValue.getOrFetchValue shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Range =>
             val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe.right.value

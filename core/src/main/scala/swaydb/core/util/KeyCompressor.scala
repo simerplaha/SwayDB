@@ -30,35 +30,27 @@ private[core] object KeyCompressor {
         (range.fromKey, MaxKey.Range(range.fromKey, range.toKey), mergedKey)
     }
 
-  def decompress(key: Slice[Byte]): IO[swaydb.Error.Segment, (Slice[Byte], MaxKey[Slice[Byte]])] =
+  def decompress(key: Slice[Byte]): (Slice[Byte], MaxKey[Slice[Byte]]) =
     key.lastOption match {
       case Some(byte) =>
-        if (byte == 0)
-          Bytes.decompressJoin(key.dropRight(1)) map {
-            case (minKey, maxKey) =>
-              (minKey, MaxKey.Fixed(maxKey))
-          }
-        else if (byte == 1)
-          Bytes.decompressJoin(key.dropRight(1)) flatMap {
-            case (minKey, rangeMaxKey) =>
-              Bytes.decompressJoin(rangeMaxKey) map {
-                case (fromKey, toKey) =>
-                  (minKey, MaxKey.Range(fromKey, toKey))
-              }
-          }
-        else if (byte == 2) {
+        if (byte == 0) {
+          val (minKey, maxKey) = Bytes.decompressJoin(key.dropRight(1))
+          (minKey, MaxKey.Fixed(maxKey))
+        } else if (byte == 1) {
+          val (minKey, rangeMaxKey) = Bytes.decompressJoin(key.dropRight(1))
+          val (fromKey, toKey) = Bytes.decompressJoin(rangeMaxKey)
+          (minKey, MaxKey.Range(fromKey, toKey))
+        } else if (byte == 2) {
           val keyWithoutId = key.dropRight(1)
-          IO.Right[swaydb.Error.Segment, (Slice[Byte], MaxKey[Slice[Byte]])](keyWithoutId, MaxKey.Fixed(keyWithoutId))
+          (keyWithoutId, MaxKey.Fixed(keyWithoutId))
+        } else if (byte == 3) {
+          val (minKey, maxKey) = Bytes.decompressJoin(key.dropRight(1))
+          (minKey, MaxKey.Range(minKey, maxKey))
+        } else {
+          throw IO.throwable(s"Invalid byte: $byte")
         }
-        else if (byte == 3)
-          Bytes.decompressJoin(key.dropRight(1)) map {
-            case (minKey, maxKey) =>
-              (minKey, MaxKey.Range(minKey, maxKey))
-          }
-        else
-          IO.failed[swaydb.Error.Segment, (Slice[Byte], MaxKey[Slice[Byte]])](s"Invalid byte: $byte")
 
       case None =>
-        IO.failed[swaydb.Error.Segment, (Slice[Byte], MaxKey[Slice[Byte]])]("Key is empty")
+        throw IO.throwable("Key is empty")
     }
 }

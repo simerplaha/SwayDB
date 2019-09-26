@@ -19,9 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
 import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
@@ -44,101 +42,95 @@ object PutReader extends EntryReader[Persistent.Put] {
                                                                     deadlineReader: DeadlineReader[T],
                                                                     valueOffsetReader: ValueOffsetReader[T],
                                                                     valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Put] =
-    deadlineReader.read(indexReader, previous) flatMap {
-      deadline =>
-        valueBytesReader.read(indexReader, previous) flatMap {
-          valueOffsetAndLength =>
-            timeReader.read(indexReader, previous) flatMap {
-              time =>
-                keyInfo match {
-                  case Some(keyInfo) =>
-                    keyInfo match {
-                      case Left(keySize) =>
-                        KeyReader.read(
-                          keyValueIdInt = keyValueId,
-                          indexReader = indexReader,
-                          keySize = Some(keySize),
-                          previous = previous,
-                          keyValueId = KeyValueId.Put
-                        ) map {
-                          key =>
-                            //                    if (valueLength > 0 && valueCache.isEmpty)
-                            //                      ValuesBlock.valuesBlockNotInitialised
-                            //                    else
-                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                                                                    valueBytesReader: ValueReader[T]): Persistent.Put = {
+    val deadline = deadlineReader.read(indexReader, previous)
+    val valueOffsetAndLength = valueBytesReader.read(indexReader, previous)
+    val time = timeReader.read(indexReader, previous)
 
-                            Persistent.Put(
-                              key = key,
-                              deadline = deadline,
-                              valuesReader = valuesReader,
-                              time = time,
-                              nextIndexOffset = nextIndexOffset,
-                              nextIndexSize = nextIndexSize,
-                              indexOffset = indexOffset,
-                              valueOffset = valueOffset,
-                              valueLength = valueLength,
-                              sortedIndexAccessPosition = sortedIndexAccessPosition
-                            )
-                        }
+    keyInfo match {
+      case Some(keyInfo) =>
+        keyInfo match {
+          case Left(keySize) =>
+            val key =
+              KeyReader.read(
+                keyValueIdInt = keyValueId,
+                indexReader = indexReader,
+                keySize = Some(keySize),
+                previous = previous,
+                keyValueId = KeyValueId.Put
+              )
 
-                      case Right(key) =>
-                        key match {
-                          case fixed: Key.Fixed =>
-                            //                    if (valueLength > 0 && valueCache.isEmpty)
-                            //                      ValuesBlock.valuesBlockNotInitialised
-                            //                    else
-                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+            //                    if (valueLength > 0 && valueCache.isEmpty)
+            //                      ValuesBlock.valuesBlockNotInitialised
+            //                    else
+            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
 
-                            IO.Right {
-                              Persistent.Put(
-                                key = fixed.key,
-                                deadline = deadline,
-                                valuesReader = valuesReader,
-                                time = time,
-                                nextIndexOffset = nextIndexOffset,
-                                nextIndexSize = nextIndexSize,
-                                indexOffset = indexOffset,
-                                valueOffset = valueOffset,
-                                valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition
-                              )
-                            }
+            Persistent.Put(
+              key = key,
+              deadline = deadline,
+              valuesReader = valuesReader,
+              time = time,
+              nextIndexOffset = nextIndexOffset,
+              nextIndexSize = nextIndexSize,
+              indexOffset = indexOffset,
+              valueOffset = valueOffset,
+              valueLength = valueLength,
+              sortedIndexAccessPosition = sortedIndexAccessPosition
+            )
 
-                          case key: Key.Range =>
-                            IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
-                        }
-                    }
+          case Right(key) =>
+            key match {
+              case fixed: Key.Fixed =>
+                //                    if (valueLength > 0 && valueCache.isEmpty)
+                //                      ValuesBlock.valuesBlockNotInitialised
+                //                    else
+                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
 
-                  case None =>
-                    KeyReader.read(
-                      keyValueIdInt = keyValueId,
-                      indexReader = indexReader,
-                      keySize = None,
-                      previous = previous,
-                      keyValueId = KeyValueId.Put
-                    ) map {
-                      key =>
-                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                Persistent.Put(
+                  key = fixed.key,
+                  deadline = deadline,
+                  valuesReader = valuesReader,
+                  time = time,
+                  nextIndexOffset = nextIndexOffset,
+                  nextIndexSize = nextIndexSize,
+                  indexOffset = indexOffset,
+                  valueOffset = valueOffset,
+                  valueLength = valueLength,
+                  sortedIndexAccessPosition = sortedIndexAccessPosition
+                )
 
-                        Persistent.Put(
-                          key = key,
-                          deadline = deadline,
-                          valuesReader = valuesReader,
-                          time = time,
-                          nextIndexOffset = nextIndexOffset,
-                          nextIndexSize = nextIndexSize,
-                          indexOffset = indexOffset,
-                          valueOffset = valueOffset,
-                          valueLength = valueLength,
-                          sortedIndexAccessPosition = sortedIndexAccessPosition
-                        )
-                    }
-                }
+              case key: Key.Range =>
+                throw IO.throwable(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
             }
         }
+
+      case None =>
+        val key =
+          KeyReader.read(
+            keyValueIdInt = keyValueId,
+            indexReader = indexReader,
+            keySize = None,
+            previous = previous,
+            keyValueId = KeyValueId.Put
+          )
+
+        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+
+        Persistent.Put(
+          key = key,
+          deadline = deadline,
+          valuesReader = valuesReader,
+          time = time,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          indexOffset = indexOffset,
+          valueOffset = valueOffset,
+          valueLength = valueLength,
+          sortedIndexAccessPosition = sortedIndexAccessPosition
+        )
     }
+  }
 }

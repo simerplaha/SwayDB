@@ -19,9 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
 import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
@@ -44,72 +42,68 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
                                                                     deadlineReader: DeadlineReader[T],
                                                                     valueOffsetReader: ValueOffsetReader[T],
                                                                     valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Remove] =
-    deadlineReader.read(indexReader, previous) flatMap {
-      deadline =>
-        timeReader.read(indexReader, previous) flatMap {
-          time =>
-            keyInfo match {
-              case Some(keyInfo) =>
-                keyInfo match {
-                  case Left(keySize) =>
-                    KeyReader.read(
-                      keyValueIdInt = keyValueId,
-                      indexReader = indexReader,
-                      keySize = Some(keySize),
-                      previous = previous,
-                      keyValueId = KeyValueId.Remove
-                    ) map {
-                      key =>
-                        Persistent.Remove(
-                          _key = key,
-                          indexOffset = indexOffset,
-                          nextIndexOffset = nextIndexOffset,
-                          nextIndexSize = nextIndexSize,
-                          deadline = deadline,
-                          sortedIndexAccessPosition = sortedIndexAccessPosition,
-                          _time = time
-                        )
-                    }
+                                                                    valueBytesReader: ValueReader[T]): Persistent.Remove = {
+    val deadline = deadlineReader.read(indexReader, previous)
+    val time = timeReader.read(indexReader, previous)
+    keyInfo match {
+      case Some(keyInfo) =>
+        keyInfo match {
+          case Left(keySize) =>
+            val key =
+              KeyReader.read(
+                keyValueIdInt = keyValueId,
+                indexReader = indexReader,
+                keySize = Some(keySize),
+                previous = previous,
+                keyValueId = KeyValueId.Remove
+              )
 
-                  case Right(key) =>
-                    key match {
-                      case fixed: Key.Fixed =>
-                        IO.Right {
-                          Persistent.Remove(
-                            _key = fixed.key,
-                            indexOffset = indexOffset,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            deadline = deadline,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition,
-                            _time = time
-                          )
-                        }
-                      case key: Key.Range =>
-                        IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
-                    }
-                }
-              case None =>
-                KeyReader.read(
-                  keyValueIdInt = keyValueId,
-                  indexReader = indexReader,
-                  keySize = None,
-                  previous = previous,
-                  keyValueId = KeyValueId.Remove
-                ) map {
-                  key =>
-                    Persistent.Remove(
-                      _key = key,
-                      indexOffset = indexOffset,
-                      nextIndexOffset = nextIndexOffset,
-                      nextIndexSize = nextIndexSize,
-                      deadline = deadline,
-                      sortedIndexAccessPosition = sortedIndexAccessPosition,
-                      _time = time
-                    )
-                }
+            Persistent.Remove(
+              _key = key,
+              indexOffset = indexOffset,
+              nextIndexOffset = nextIndexOffset,
+              nextIndexSize = nextIndexSize,
+              deadline = deadline,
+              sortedIndexAccessPosition = sortedIndexAccessPosition,
+              _time = time
+            )
+
+          case Right(key) =>
+            key match {
+              case fixed: Key.Fixed =>
+                Persistent.Remove(
+                  _key = fixed.key,
+                  indexOffset = indexOffset,
+                  nextIndexOffset = nextIndexOffset,
+                  nextIndexSize = nextIndexSize,
+                  deadline = deadline,
+                  sortedIndexAccessPosition = sortedIndexAccessPosition,
+                  _time = time
+                )
+
+              case key: Key.Range =>
+                throw IO.throwable(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
             }
         }
+      case None =>
+        val key =
+          KeyReader.read(
+            keyValueIdInt = keyValueId,
+            indexReader = indexReader,
+            keySize = None,
+            previous = previous,
+            keyValueId = KeyValueId.Remove
+          )
+
+        Persistent.Remove(
+          _key = key,
+          indexOffset = indexOffset,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          deadline = deadline,
+          sortedIndexAccessPosition = sortedIndexAccessPosition,
+          _time = time
+        )
     }
+  }
 }

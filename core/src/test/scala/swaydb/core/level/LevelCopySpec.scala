@@ -139,6 +139,6 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
     assertReads(keyValues, level1)
 
-    level1.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level2.levelNumber)
+    level1.segmentsInLevel() foreach (_.createdInLevel shouldBe level2.levelNumber)
   }
 }

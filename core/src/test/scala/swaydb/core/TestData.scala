@@ -662,7 +662,7 @@ object TestData {
                   Transient.Put(
                     key = key,
                     normaliseToSize = None,
-                    value = put.getOrFetchValue.runRandomIO.right.value,
+                    value = put.getOrFetchValue,
                     deadline = deadline,
                     time = time,
                     previous = previous,
@@ -677,7 +677,7 @@ object TestData {
                   Transient.Update(
                     key = key,
                     normaliseToSize = None,
-                    value = put.getOrFetchValue.runRandomIO.right.value,
+                    value = put.getOrFetchValue,
                     deadline = deadline,
                     time = time,
                     previous = previous,
@@ -706,7 +706,7 @@ object TestData {
                   Transient.PendingApply(
                     key = pendingApply.key,
                     normaliseToSize = None,
-                    applies = pendingApply.getOrFetchApplies.runRandomIO.right.value,
+                    applies = pendingApply.getOrFetchApplies,
                     previous = previous,
                     valuesConfig = previous.map(_.valuesConfig) getOrElse valuesConfig,
                     sortedIndexConfig = previous.map(_.sortedIndexConfig) getOrElse sortedIndexConfig,
@@ -768,16 +768,16 @@ object TestData {
             case persistent: Persistent.Fixed =>
               persistent match {
                 case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
-                  Memory.Put(key, put.getOrFetchValue.runRandomIO.right.value, deadline, time)
+                  Memory.Put(key, put.getOrFetchValue, deadline, time)
 
                 case update @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
-                  Memory.Update(key, update.getOrFetchValue.runRandomIO.right.value, deadline, time)
+                  Memory.Update(key, update.getOrFetchValue, deadline, time)
 
                 case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.Function(key, function.getOrFetchFunction.runRandomIO.right.value, time)
 
                 case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
-                  Memory.PendingApply(key, pendingApply.getOrFetchApplies.runRandomIO.right.value)
+                  Memory.PendingApply(key, pendingApply.getOrFetchApplies)
 
                 case Persistent.Remove(_key, deadline, time, indexOffset, nextIndexOffset, nextIndexSize, _) =>
                   Memory.Remove(_key, deadline, time)

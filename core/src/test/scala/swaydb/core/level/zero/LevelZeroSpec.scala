@@ -94,10 +94,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "write key-value" in {
       def assert(zero: LevelZero): Unit = {
         zero.put(1, "one").runRandomIO
-        zero.get(1).runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("one": Slice[Byte])
+        zero.get(1).runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
 
         zero.put("2", "two").runRandomIO
-        zero.get("2").runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("two": Slice[Byte])
+        zero.get("2").runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))))
@@ -112,7 +112,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
       zero.put(one, one).runRandomIO
 
-      val gotFromLevelZero = zero.get(one).runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value
+      val gotFromLevelZero = zero.get(one).runRandomIO.right.value.value.getOrFetchValue.value
       gotFromLevelZero shouldBe one
       //ensure that key-values are not unsliced in LevelZero.
       gotFromLevelZero.underlyingArraySize shouldBe 10
@@ -123,9 +123,9 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
         //put the same key-value to Level1 and expect the key-values to be sliced
         level.putKeyValuesTest(Slice(Memory.put(one, one))).runRandomIO
         val gotFromLevelOne = level.get(one).runRandomIO.right.value.value
-        gotFromLevelOne.getOrFetchValue.runRandomIO.right.value.value shouldBe one
+        gotFromLevelOne.getOrFetchValue.value shouldBe one
         //ensure that key-values are not unsliced in LevelOne.
-        gotFromLevelOne.getOrFetchValue.runRandomIO.right.value.underlyingArraySize shouldBe 4
+        gotFromLevelOne.getOrFetchValue.underlyingArraySize shouldBe 4
       }
     }
 
@@ -137,7 +137,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "write empty values" in {
       val zero = TestLevelZero(Some(TestLevel()))
       zero.put(1, Slice.empty).runRandomIO
-      zero.get(1).runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe Slice.empty
+      zero.get(1).runRandomIO.right.value.value.getOrFetchValue.value shouldBe Slice.empty
     }
 
     "write large keys and values and reopen the database and re-read key-values" in {
@@ -155,8 +155,8 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       }
 
       def assertRead(zero: LevelZero): Unit = {
-        zero.get(key1).runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe value1
-        zero.get(key2).runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe value2
+        zero.get(key1).runRandomIO.right.value.value.getOrFetchValue.value shouldBe value1
+        zero.get(key2).runRandomIO.right.value.value.getOrFetchValue.value shouldBe value2
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = _ => Throttle(10.seconds, 0))))
@@ -175,8 +175,8 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.put("one").runRandomIO
       zero.put("two").runRandomIO
 
-      zero.get("one").runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value shouldBe empty
-      zero.get("two").runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value shouldBe empty
+      zero.get("one").runRandomIO.right.value.value.getOrFetchValue shouldBe empty
+      zero.get("two").runRandomIO.right.value.value.getOrFetchValue shouldBe empty
 
       zero.contains("one").runRandomIO.right.value shouldBe true
       zero.contains("two").runRandomIO.right.value shouldBe true
@@ -289,18 +289,18 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.put(4, "four").runRandomIO
       zero.put(5, "five").runRandomIO
 
-      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("one": Slice[Byte])
+      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
 
       //remove 1
       zero.remove(1).runRandomIO
       println
-      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("two": Slice[Byte])
+      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
 
       zero.remove(2).runRandomIO
       zero.remove(3).runRandomIO
       zero.remove(4).runRandomIO
 
-      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("five": Slice[Byte])
+      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
 
       zero.remove(5).runRandomIO
       zero.head.runRandomIO.right.value shouldBe empty
@@ -318,18 +318,18 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.put(4, "four").runRandomIO
       zero.put(5, "five").runRandomIO
 
-      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("five": Slice[Byte])
+      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
 
       //remove 5
       zero.remove(5).runRandomIO
-      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("four": Slice[Byte])
+      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("four": Slice[Byte])
 
       zero.remove(2).runRandomIO
       zero.remove(3).runRandomIO
       zero.remove(4).runRandomIO
 
       println
-      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.runRandomIO.right.value.value shouldBe ("one": Slice[Byte])
+      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
 
       zero.remove(1).runRandomIO
       zero.last.runRandomIO.right.value shouldBe empty

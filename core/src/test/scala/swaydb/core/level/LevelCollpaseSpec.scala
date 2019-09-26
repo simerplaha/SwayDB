@@ -193,8 +193,8 @@ sealed trait LevelCollapseSpec extends TestBase {
     val nextLevel = TestLevel()
     nextLevel.put(level.segmentsInLevel()).right.right.value.right.value
 
-    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber)
+    if (persistent) nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)
     nextLevel.collapse(nextLevel.segmentsInLevel()).right.right.value.right.value
-    nextLevel.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe nextLevel.levelNumber)
+    nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
   }
 }

@@ -334,7 +334,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
                 case _ =>
                   //if not then do a merge.
-                  val newFromValue =
+                  val newFromValue: Value.FromValue =
                     FixedMerger(
                       newKeyValue = newRangeFromValue.getOrElse(newRangeRangeValue).toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
@@ -347,6 +347,7 @@ private[core] object SegmentMerger extends LazyLogging {
                       fromValue = Some(newFromValue),
                       rangeValue = newRangeRangeValue
                     )
+
                   doMerge(newKeyValues.dropPrepend(newKeyValue), oldKeyValues.dropHead())
               }
             } else {

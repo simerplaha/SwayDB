@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.{Persistent, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
@@ -33,7 +32,7 @@ sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time]
+           previous: Option[Persistent.Partial]): Time
 }
 
 /**
@@ -46,22 +45,19 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
-      Time.successEmpty
+                      previous: Option[Persistent.Partial]): Time =
+      Time.empty
   }
 
   implicit object UnCompressedTimeReader extends TimeReader[BaseEntryId.Time.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
-      indexReader.readUnsignedInt() flatMap {
-        timeSize =>
-          indexReader.read(timeSize) map {
-            time =>
-              Time(time)
-          }
-      }
+                      previous: Option[Persistent.Partial]): Time = {
+      val timeSize = indexReader.readUnsignedInt()
+      val time = indexReader.read(timeSize)
+      Time(time)
+    }
   }
 
   implicit object PartiallyCompressedTimeReader extends TimeReader[BaseEntryId.Time.PartiallyCompressed] {
@@ -69,44 +65,42 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = true
 
     def readTime(indexReader: ReaderBase,
-                 previousTime: Time): IO[swaydb.Error.Segment, Time] =
-      indexReader.readUnsignedInt() flatMap {
-        commonBytes =>
-          indexReader.readUnsignedInt() flatMap {
-            uncompressedBytes =>
-              indexReader.read(uncompressedBytes) map {
-                rightBytes =>
-                  val timeBytes = Bytes.decompress(previousTime.time, rightBytes, commonBytes)
-                  Time(timeBytes)
-              }
-          }
-      }
+                 previousTime: Time): Time = {
+      val commonBytes = indexReader.readUnsignedInt()
+      val uncompressedBytes = indexReader.readUnsignedInt()
+      val rightBytes = indexReader.read(uncompressedBytes)
+      val timeBytes = Bytes.decompress(previousTime.time, rightBytes, commonBytes)
+      Time(timeBytes)
+    }
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Time] =
-      previous map {
-        case previous: Persistent.Put =>
-          readTime(indexReader, previous.time)
+                      previous: Option[Persistent.Partial]): Time =
+      previous match {
+        case Some(previous) =>
+          previous match {
+            case previous: Persistent.Put =>
+              readTime(indexReader, previous.time)
 
-        case previous: Persistent.Remove =>
-          readTime(indexReader, previous.time)
+            case previous: Persistent.Remove =>
+              readTime(indexReader, previous.time)
 
-        case previous: Persistent.Function =>
-          readTime(indexReader, previous.time)
+            case previous: Persistent.Function =>
+              readTime(indexReader, previous.time)
 
-        case previous: Persistent.PendingApply =>
-          readTime(indexReader, previous.time)
+            case previous: Persistent.PendingApply =>
+              readTime(indexReader, previous.time)
 
-        case previous: Persistent.Update =>
-          readTime(indexReader, previous.time)
+            case previous: Persistent.Update =>
+              readTime(indexReader, previous.time)
 
-        case _: Persistent.Range =>
-          IO.failed(EntryReaderFailure.PreviousIsNotFixedKeyValue)
+            case _: Persistent.Range =>
+              throw EntryReaderFailure.PreviousIsNotFixedKeyValue
 
-        case _: Persistent.Partial =>
-          IO.failed("Expected Persistent. Received Partial.")
-      } getOrElse {
-        IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+            case _: Persistent.Partial =>
+              throw IO.throwable("Expected Persistent. Received Partial.")
+          }
+        case None =>
+          throw EntryReaderFailure.NoPreviousKeyValue
       }
   }
 }

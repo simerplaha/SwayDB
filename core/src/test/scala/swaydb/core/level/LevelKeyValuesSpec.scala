@@ -85,7 +85,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
 
       level.segmentsInLevel() foreach {
         segment =>
-          segment.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber
+          segment.createdInLevel shouldBe level.levelNumber
       }
 
       assertReads(keyValues, level)

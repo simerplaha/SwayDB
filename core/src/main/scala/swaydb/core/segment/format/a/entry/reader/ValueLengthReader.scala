@@ -19,10 +19,8 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.data.Persistent.Partial
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -35,43 +33,45 @@ sealed trait ValueLengthReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int]
+           previous: Option[Persistent.Partial]): Int
 }
 
 object ValueLengthReader {
 
   private def readLength(indexReader: ReaderBase,
                          previous: Option[Persistent.Partial],
-                         commonBytes: Int): IO[swaydb.Error.Segment, Int] =
-    previous map {
-      case previous: Persistent =>
-        val positionBeforeRead = indexReader.getPosition
-        indexReader.read(ByteSizeOf.varInt) flatMap {
-          valueLengthBytes =>
-            Bytes
-              .decompress(
-                previous = Slice.writeUnsignedInt(previous.valueLength),
-                next = valueLengthBytes,
-                commonBytes = commonBytes
-              )
-              .readUnsignedIntWithByteSize()
-              .flatMap {
-                case (length, byteSize) =>
-                  indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
-                  IO.Right(length)
-              }
+                         commonBytes: Int): Int =
+    previous match {
+      case Some(previous) =>
+        previous match {
+          case previous: Persistent =>
+            val positionBeforeRead = indexReader.getPosition
+            val valueLengthBytes = indexReader.read(ByteSizeOf.varInt)
+            val (length, byteSize) =
+              Bytes
+                .decompress(
+                  previous = Slice.writeUnsignedInt(previous.valueLength),
+                  next = valueLengthBytes,
+                  commonBytes = commonBytes
+                )
+                .readUnsignedIntWithByteSize()
+
+            indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
+            length
+
+          case _: Persistent.Partial =>
+            throw IO.throwable("Expected Persistent. Received Partial.")
         }
-      case _ =>
-        IO.failed("Expected Persistent. Received Partial.")
-    } getOrElse {
-      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+
+      case None =>
+        throw EntryReaderFailure.NoPreviousKeyValue
     }
 
   implicit object ValueLengthOneCompressed extends ValueLengthReader[BaseEntryId.ValueLength.OneCompressed] {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): Int =
       readLength(indexReader, previous, 1)
   }
 
@@ -79,7 +79,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): Int =
       readLength(indexReader, previous, 2)
   }
 
@@ -87,7 +87,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): Int =
       readLength(indexReader, previous, 3)
   }
 
@@ -95,15 +95,16 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
-      previous map {
-        case previous: Persistent =>
-          IO.Right(previous.valueLength)
+                      previous: Option[Persistent.Partial]): Int =
+      previous match {
+        case Some(previous: Persistent) =>
+          previous.valueLength
 
-        case _ =>
-          IO.failed("Expected Persistent. Received Partial.")
-      } getOrElse {
-        IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+        case Some(_: Persistent.Partial) =>
+          throw IO.throwable("Expected Persistent. Received Partial.")
+
+        case None =>
+          throw EntryReaderFailure.NoPreviousKeyValue
       }
   }
 
@@ -111,7 +112,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
+                      previous: Option[Persistent.Partial]): Int =
       indexReader.readUnsignedInt()
   }
 
@@ -119,7 +120,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): IO[swaydb.Error.Segment, Int] =
-      IO.zero
+                      previous: Option[Persistent.Partial]): Int =
+      0
   }
 }

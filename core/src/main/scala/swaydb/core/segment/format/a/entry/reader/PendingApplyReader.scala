@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.data.Persistent.Partial.Key
@@ -43,99 +42,88 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
                                                                     deadlineReader: DeadlineReader[T],
                                                                     valueOffsetReader: ValueOffsetReader[T],
                                                                     valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.PendingApply] =
-    deadlineReader.read(indexReader, previous) flatMap {
-      deadline =>
-        valueBytesReader.read(indexReader, previous) flatMap {
-          valueOffsetAndLength =>
-            timeReader.read(indexReader, previous) flatMap {
-              time =>
-                keyInfo match {
-                  case Some(keyInfo) =>
-                    keyInfo match {
-                      case Left(keySize) =>
-                        KeyReader.read(
-                          keyValueIdInt = keyValueId,
-                          indexReader = indexReader,
-                          keySize = Some(keySize),
-                          previous = previous,
-                          keyValueId = KeyValueId.PendingApply
-                        ) flatMap {
-                          key =>
-                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                                                                    valueBytesReader: ValueReader[T]): Persistent.PendingApply = {
+    val deadline = deadlineReader.read(indexReader, previous)
+    val valueOffsetAndLength = valueBytesReader.read(indexReader, previous)
+    val time = timeReader.read(indexReader, previous)
+    keyInfo match {
+      case Some(keyInfo) =>
+        keyInfo match {
+          case Left(keySize) =>
+            val key =
+              KeyReader.read(
+                keyValueIdInt = keyValueId,
+                indexReader = indexReader,
+                keySize = Some(keySize),
+                previous = previous,
+                keyValueId = KeyValueId.PendingApply
+              )
 
-                            IO.Right {
-                              Persistent.PendingApply(
-                                key = key,
-                                time = time,
-                                deadline = deadline,
-                                valuesReader = valuesReader,
-                                nextIndexOffset = nextIndexOffset,
-                                nextIndexSize = nextIndexSize,
-                                indexOffset = indexOffset,
-                                valueOffset = valueOffset,
-                                valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition
-                              )
-                            }
-                        }
+            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                      case Right(key) =>
-                        key match {
-                          case key: Key.Fixed =>
-                            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+            Persistent.PendingApply(
+              key = key,
+              time = time,
+              deadline = deadline,
+              valuesReader = valuesReader,
+              nextIndexOffset = nextIndexOffset,
+              nextIndexSize = nextIndexSize,
+              indexOffset = indexOffset,
+              valueOffset = valueOffset,
+              valueLength = valueLength,
+              sortedIndexAccessPosition = sortedIndexAccessPosition
+            )
 
-                            IO.Right {
-                              Persistent.PendingApply(
-                                key = key.key,
-                                time = time,
-                                deadline = deadline,
-                                valuesReader = valuesReader,
-                                nextIndexOffset = nextIndexOffset,
-                                nextIndexSize = nextIndexSize,
-                                indexOffset = indexOffset,
-                                valueOffset = valueOffset,
-                                valueLength = valueLength,
-                                sortedIndexAccessPosition = sortedIndexAccessPosition
-                              )
-                            }
+          case Right(key) =>
+            key match {
+              case key: Key.Fixed =>
+                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                          case key: Key.Range =>
-                            IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
-                        }
-                    }
+                Persistent.PendingApply(
+                  key = key.key,
+                  time = time,
+                  deadline = deadline,
+                  valuesReader = valuesReader,
+                  nextIndexOffset = nextIndexOffset,
+                  nextIndexSize = nextIndexSize,
+                  indexOffset = indexOffset,
+                  valueOffset = valueOffset,
+                  valueLength = valueLength,
+                  sortedIndexAccessPosition = sortedIndexAccessPosition
+                )
 
-                  case None =>
-                    KeyReader.read(
-                      keyValueIdInt = keyValueId,
-                      indexReader = indexReader,
-                      keySize = None,
-                      previous = previous,
-                      keyValueId = KeyValueId.PendingApply
-                    ) flatMap {
-                      key =>
-                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-                        IO.Right {
-                          Persistent.PendingApply(
-                            key = key,
-                            time = time,
-                            deadline = deadline,
-                            valuesReader = valuesReader,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            indexOffset = indexOffset,
-                            valueOffset = valueOffset,
-                            valueLength = valueLength,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition
-                          )
-                        }
-                    }
-                }
+              case key: Key.Range =>
+                throw IO.throwable(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
             }
         }
+
+      case None =>
+        val key =
+          KeyReader.read(
+            keyValueIdInt = keyValueId,
+            indexReader = indexReader,
+            keySize = None,
+            previous = previous,
+            keyValueId = KeyValueId.PendingApply
+          )
+
+        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+
+        Persistent.PendingApply(
+          key = key,
+          time = time,
+          deadline = deadline,
+          valuesReader = valuesReader,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          indexOffset = indexOffset,
+          valueOffset = valueOffset,
+          valueLength = valueLength,
+          sortedIndexAccessPosition = sortedIndexAccessPosition
+        )
     }
+  }
 }

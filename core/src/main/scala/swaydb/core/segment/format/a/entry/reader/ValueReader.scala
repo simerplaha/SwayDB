@@ -19,8 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.data.slice.ReaderBase
@@ -34,7 +32,7 @@ sealed trait ValueReader[-T] {
 
   def read[V](indexReader: ReaderBase,
               previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                    valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]]
+                                                    valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)]
 }
 
 object ValueReader {
@@ -43,22 +41,19 @@ object ValueReader {
 
     override def read[V](indexReader: ReaderBase,
                          previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                               valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]] =
-      IO.none
+                                                               valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
+      None
   }
 
   implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
     override def read[V](indexReader: ReaderBase,
                          previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                               valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]] =
-      valueOffsetReader.read(indexReader, previous) flatMap {
-        valueOffset =>
-          valueLengthReader.read(indexReader, previous) map {
-            valueLength =>
-              Some((valueOffset, valueLength))
-          }
-      }
+                                                               valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] = {
+      val valueOffset = valueOffsetReader.read(indexReader, previous)
+      val valueLength = valueLengthReader.read(indexReader, previous)
+      Some((valueOffset, valueLength))
+    }
   }
 
   implicit object ValueFullyCompressedReader extends ValueReader[BaseEntryId.Value.FullyCompressed] {
@@ -68,7 +63,7 @@ object ValueReader {
 
     override def read[V](indexReader: ReaderBase,
                          previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                               valueLengthReader: ValueLengthReader[V]): IO[swaydb.Error.Segment, Option[(Int, Int)]] =
+                                                               valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
       ValueUncompressedReader.read(
         indexReader = indexReader,
         previous = previous

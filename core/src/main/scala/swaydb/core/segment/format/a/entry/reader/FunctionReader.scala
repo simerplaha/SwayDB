@@ -19,9 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent
 import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
@@ -44,93 +42,85 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                                                                     deadlineReader: DeadlineReader[T],
                                                                     valueOffsetReader: ValueOffsetReader[T],
                                                                     valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): IO[swaydb.Error.Segment, Persistent.Function] =
-    valueBytesReader.read(indexReader, previous) flatMap {
-      valueOffsetAndLength =>
-        timeReader.read(indexReader, previous) flatMap {
-          time =>
-            keyInfo match {
-              case Some(keyInfo) =>
-                keyInfo match {
-                  case Left(keySize) =>
-                    KeyReader.read(
-                      keyValueIdInt = keyValueId,
-                      indexReader = indexReader,
-                      keySize = Some(keySize),
-                      previous = previous,
-                      keyValueId = KeyValueId.Function
-                    ) flatMap {
-                      key =>
-                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                                                                    valueBytesReader: ValueReader[T]): Persistent.Function = {
+    val valueOffsetAndLength = valueBytesReader.read(indexReader, previous)
+    val time = timeReader.read(indexReader, previous)
 
-                        IO.Right {
-                          Persistent.Function(
-                            key = key,
-                            valuesReader = valuesReader,
-                            time = time,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            indexOffset = indexOffset,
-                            valueOffset = valueOffset,
-                            valueLength = valueLength,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition
-                          )
-                        }
-                    }
+    keyInfo match {
+      case Some(keyInfo) =>
+        keyInfo match {
+          case Left(keySize) =>
+            val key =
+              KeyReader.read(
+                keyValueIdInt = keyValueId,
+                indexReader = indexReader,
+                keySize = Some(keySize),
+                previous = previous,
+                keyValueId = KeyValueId.Function
+              )
 
-                  case Right(key) =>
-                    key match {
-                      case fixed: Key.Fixed =>
-                        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                        IO.Right {
-                          Persistent.Function(
-                            key = fixed.key,
-                            valuesReader = valuesReader,
-                            time = time,
-                            nextIndexOffset = nextIndexOffset,
-                            nextIndexSize = nextIndexSize,
-                            indexOffset = indexOffset,
-                            valueOffset = valueOffset,
-                            valueLength = valueLength,
-                            sortedIndexAccessPosition = sortedIndexAccessPosition
-                          )
-                        }
-                      case key: Key.Range =>
-                        IO.failed(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
-                    }
-                }
+            Persistent.Function(
+              key = key,
+              valuesReader = valuesReader,
+              time = time,
+              nextIndexOffset = nextIndexOffset,
+              nextIndexSize = nextIndexSize,
+              indexOffset = indexOffset,
+              valueOffset = valueOffset,
+              valueLength = valueLength,
+              sortedIndexAccessPosition = sortedIndexAccessPosition
+            )
 
-              case None =>
-                KeyReader.read(
-                  keyValueIdInt = keyValueId,
-                  indexReader = indexReader,
-                  keySize = None,
-                  previous = previous,
-                  keyValueId = KeyValueId.Function
-                ) flatMap {
-                  key =>
+          case Right(key) =>
+            key match {
+              case fixed: Key.Fixed =>
+                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-                    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+                Persistent.Function(
+                  key = fixed.key,
+                  valuesReader = valuesReader,
+                  time = time,
+                  nextIndexOffset = nextIndexOffset,
+                  nextIndexSize = nextIndexSize,
+                  indexOffset = indexOffset,
+                  valueOffset = valueOffset,
+                  valueLength = valueLength,
+                  sortedIndexAccessPosition = sortedIndexAccessPosition
+                )
 
-                    IO.Right {
-                      Persistent.Function(
-                        key = key,
-                        valuesReader = valuesReader,
-                        time = time,
-                        nextIndexOffset = nextIndexOffset,
-                        nextIndexSize = nextIndexSize,
-                        indexOffset = indexOffset,
-                        valueOffset = valueOffset,
-                        valueLength = valueLength,
-                        sortedIndexAccessPosition = sortedIndexAccessPosition
-                      )
-                    }
-                }
+              case key: Key.Range =>
+                throw IO.throwable(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
             }
         }
+
+      case None =>
+        val key =
+          KeyReader.read(
+            keyValueIdInt = keyValueId,
+            indexReader = indexReader,
+            keySize = None,
+            previous = previous,
+            keyValueId = KeyValueId.Function
+          )
+
+        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+
+        Persistent.Function(
+          key = key,
+          valuesReader = valuesReader,
+          time = time,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          indexOffset = indexOffset,
+          valueOffset = valueOffset,
+          valueLength = valueLength,
+          sortedIndexAccessPosition = sortedIndexAccessPosition
+        )
     }
+  }
 }
