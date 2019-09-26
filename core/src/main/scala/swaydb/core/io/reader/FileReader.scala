@@ -28,7 +28,7 @@ private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging
 
   private var position: Int = 0
 
-  def isLoaded: IO[Error.IO, Boolean] =
+  def isLoaded: Boolean =
     file.isLoaded
 
   override def size: Long =

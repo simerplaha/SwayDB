@@ -286,12 +286,12 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
       def doTest(isSynchronised: Boolean, stored: Boolean) = {
         val lazyValue = Lazy.io[Throwable, Int](isSynchronised, stored, None)
 
-        lazyValue.getOrSet(throw new Exception("failed")).left.get.getMessage shouldBe "failed"
+        lazyValue.getOrSet(throw IO.throwableFatal("failed")).left.get.getMessage shouldBe "failed"
         lazyValue.isEmpty shouldBe true
         lazyValue.isDefined shouldBe false
         lazyValue.get() shouldBe empty
 
-        lazyValue.set(throw new Exception("failed")).left.get.getMessage shouldBe "failed"
+        lazyValue.set(throw IO.throwableFatal("failed")).left.get.getMessage shouldBe "failed"
         lazyValue.isEmpty shouldBe true
         lazyValue.isDefined shouldBe false
         lazyValue.get() shouldBe empty

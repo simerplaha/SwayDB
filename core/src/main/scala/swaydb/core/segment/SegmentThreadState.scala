@@ -65,6 +65,6 @@ object SegmentReadThreadState {
 }
 
 private[segment] class SegmentThreadState[K, V](val skipList: SkipList.ConcurrentLimit[K, V],
-                                                @BeanProperty var sortedIndexReader: Option[IO.Right[Error.Segment, UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]]],
-                                                @BeanProperty var valuesReader: Option[IO.Right[Error.Segment, Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]]],
+                                                @BeanProperty var sortedIndexReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                                                @BeanProperty var valuesReader: Option[Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                                                 @BooleanBeanProperty var sequentialRead: Boolean) extends SegmentReadThreadState

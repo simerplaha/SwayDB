@@ -217,7 +217,7 @@ object ValueSerializer {
             applies
           }
           else
-            throw IO.throwable(s"Invalid id:$id")
+            throw IO.throwableFatal(s"Invalid id:$id")
       }
     }
   }
@@ -276,7 +276,7 @@ object ValueSerializer {
     override def read(reader: ReaderBase): (Slice[Byte], Slice[Byte]) = {
       val bytes = SeqOfBytesSerializer.read(reader)
       if (bytes.size != 2)
-        throw IO.throwable(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}")
+        throw IO.throwableFatal(TupleOfBytesSerializer.getClass.getSimpleName + s".read did not return a tuple. Size = ${bytes.size}")
       else
         (bytes.head, bytes.last)
     }
@@ -345,7 +345,7 @@ object ValueSerializer {
     override def read(reader: ReaderBase): mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]] = {
       val format = reader.get()
       if (format != formatId)
-        throw IO.throwable(s"Invalid formatID: $format")
+        throw IO.throwableFatal(s"Invalid formatID: $format")
       else
         reader.foldLeft(mutable.Map.empty[Int, Iterable[(Slice[Byte], Slice[Byte])]]) {
           case (map, reader) =>

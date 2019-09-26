@@ -59,7 +59,7 @@ object MapStream {
 
       //FIXME: make this is not type-safe. This should never occur.
       case keyValue =>
-        throw new Exception(s"Can serialise toKV: $keyValue")
+        throw IO.throwableFatal(s"Can serialise toKV: $keyValue")
     }
   }
 

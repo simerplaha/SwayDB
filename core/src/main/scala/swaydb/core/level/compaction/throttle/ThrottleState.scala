@@ -26,7 +26,7 @@ import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.Compactor
 import swaydb.core.util.FiniteDurations
 import swaydb.data.slice.Slice
-import swaydb.{Scheduler, ActorWire}
+import swaydb.{ActorWire, IO, Scheduler}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -69,7 +69,7 @@ private[core] case class ThrottleState(levels: Slice[LevelRef],
     //Yep there needs to be a type-safe way of doing this and not thrown exception using a NonEmptyList.
     //But since levels are created internally this should never really occur. There will never be a
     //empty levels in CompactorState.
-      throw new Exception("CompactorState created without Levels.")
+      throw IO.throwableFatal("CompactorState created without Levels.")
     else
       levels.foldLeft(ThrottleLevelState.longSleep) {
         case (deadline, level) =>

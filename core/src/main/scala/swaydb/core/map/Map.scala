@@ -45,7 +45,7 @@ private[core] object Map extends LazyLogging {
                                                                     fileSweeper: FileSweeper,
                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListMerge: SkipListMerger[K, V]): IO[swaydb.Error.Map, RecoveryResult[PersistentMap[K, V]]] =
+                                                                    skipListMerge: SkipListMerger[K, V]): RecoveryResult[PersistentMap[K, V]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -63,7 +63,7 @@ private[core] object Map extends LazyLogging {
                                                  fileSweeper: FileSweeper,
                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                 skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, PersistentMap[K, V]] =
+                                                 skipListMerger: SkipListMerger[K, V]): PersistentMap[K, V] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -97,7 +97,7 @@ private[core] trait Map[K, V] {
   def writeSafe[E: IO.ExceptionHandler](mapEntry: MapEntry[K, V]): IO[E, Boolean] =
     IO[E, Boolean](write(mapEntry))
 
-  def delete: IO[swaydb.Error.Map, Unit]
+  def delete: Unit
 
   def size: Int =
     skipList.size
@@ -111,8 +111,7 @@ private[core] trait Map[K, V] {
   def pathOption: Option[Path] =
     None
 
-  def close(): IO[swaydb.Error.Map, Unit]
+  def close(): Unit
 
-  def fileId: IO[swaydb.Error.Map, Long] =
-    IO.Right[swaydb.Error.Map, Long](0)
+  def fileId: Long
 }

@@ -40,7 +40,7 @@ private[core] object Cache {
       override def clear(): Unit =
         ()
 
-      override def get(): Option[IO.Right[E, B]] =
+      override def getIO(): Option[IO.Right[E, B]] =
         Option(IO.Right(output))
 
       override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
@@ -142,11 +142,13 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
   def value(i: => I): IO[E, O]
   def isCached: Boolean
   def clear(): Unit
-  def get(): Option[IO.Right[E, O]]
+  def getIO(): Option[IO.Right[E, O]]
+  def get() = getIO().map(_.get)
+
   def getOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
   def getSomeOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, Option[B]]): IO[F, Option[B]] =
-    get().map(_.toOptionValue) getOrElse f
+    getIO().map(_.toOptionValue) getOrElse f
 
   /**
    * An adapter function that applies the map function to the input on each invocation.
@@ -163,10 +165,10 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
         self.isCached
 
       override def getOrElse[FF >: F : IO.ExceptionHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
-        get() getOrElse f
+        getIO() getOrElse f
 
-      override def get(): Option[IO.Right[F, B]] =
-        self.get() flatMap {
+      override def getIO(): Option[IO.Right[F, B]] =
+        self.getIO() flatMap {
           success =>
             success.flatMap(f) match {
               case success: IO.Right[F, B] =>
@@ -199,9 +201,9 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
        * If [[next]] is not already cached see if [[self]] is cached
        * and send it's value to [[next]]'s cache to populate.
        */
-      override def get(): Option[IO.Right[F, B]] =
-        next.get() orElse {
-          self.get() flatMap {
+      override def getIO(): Option[IO.Right[F, B]] =
+        next.getIO() orElse {
+          self.getIO() flatMap {
             value =>
               next.value(value.get) match {
                 case success @ IO.Right(_) =>
@@ -230,15 +232,15 @@ private class BlockIOCache[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, C
     cache.get() exists (_.isCached)
 
   override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
-    get() getOrElse f
+    getIO() getOrElse f
 
   override def clear(): Unit = {
     cache.get() foreach (_.clear())
     cache.clear()
   }
 
-  override def get(): Option[IO.Right[E, B]] =
-    cache.get().flatMap(_.get())
+  override def getIO(): Option[IO.Right[E, B]] =
+    cache.get().flatMap(_.getIO())
 }
 
 private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: I => IO[E, B],
@@ -256,7 +258,7 @@ private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: I => IO[E, B
   override def clear(): Unit =
     lazyIO.clear()
 
-  override def get(): Option[IO.Right[E, B]] =
+  override def getIO(): Option[IO.Right[E, B]] =
     lazyIO.get()
 }
 
@@ -288,7 +290,7 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
   override def clear() =
     lazyIO.clear()
 
-  override def get(): Option[IO.Right[E, B]] =
+  override def getIO(): Option[IO.Right[E, B]] =
     lazyIO.get()
 }
 

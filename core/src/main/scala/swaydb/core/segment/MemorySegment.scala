@@ -109,7 +109,7 @@ private[segment] case class MemorySegment(path: Path,
           (segments: Slice[Segment], _: Throwable) =>
             segments foreach {
               segmentToDelete =>
-                segmentToDelete.delete onLeftSideEffect {
+                IO(segmentToDelete.delete) onLeftSideEffect {
                   exception =>
                     logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                 }
@@ -127,9 +127,9 @@ private[segment] case class MemorySegment(path: Path,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        segmentConfig: SegmentBlock.Config,
                        targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
-    if (deleted)
+    if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
-    else {
+    } else {
       val currentKeyValues = getAll()
 
       val splits =
@@ -162,7 +162,7 @@ private[segment] case class MemorySegment(path: Path,
           (segments: Slice[Segment], _: Throwable) =>
             segments foreach {
               segmentToDelete =>
-                segmentToDelete.delete onLeftSideEffect {
+                IO(segmentToDelete.delete) onLeftSideEffect {
                   exception =>
                     logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
                 }
@@ -264,9 +264,9 @@ private[segment] case class MemorySegment(path: Path,
       skipList.higher(key)
 
   override def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
-    if (deleted)
+    if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
-    else {
+    } else {
       val slice = addTo getOrElse Slice.create[KeyValue.ReadOnly](skipList.size)
       skipList.values() forEach {
         new Consumer[Memory] {
@@ -277,19 +277,17 @@ private[segment] case class MemorySegment(path: Path,
       slice
     }
 
-  override def delete: IO[swaydb.Error.IO, Unit] = {
+  override def delete: Unit = {
     //cache should not be cleared.
     logger.trace(s"{}: DELETING FILE", path)
-    if (deleted) {
+    if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
-    } else {
+    else
       deleted = true
-      IO.unit
-    }
   }
 
-  override val close: IO[swaydb.Error.IO, Unit] =
-    IO.unit
+  override val close: Unit =
+    ()
 
   override def getKeyValueCount(): Int =
     if (deleted)

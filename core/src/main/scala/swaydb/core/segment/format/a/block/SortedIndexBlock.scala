@@ -260,7 +260,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     state.bytes addUnsignedInt state.segmentMaxIndexEntrySize
 
     if (state.bytes.currentWritePosition > state.headerSize)
-      throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+      throw IO.throwableFatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
     else
       state
   }

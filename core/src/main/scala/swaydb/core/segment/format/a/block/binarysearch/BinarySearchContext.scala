@@ -19,16 +19,12 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-import java.nio.ByteBuffer
-
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.KeyMatcher.Get
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{KeyMatcher, SortedIndexBlock, ValuesBlock}
-import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.{Error, IO}
 
 private[block] trait BinarySearchContext {
   def targetKey: Slice[Byte]
@@ -38,19 +34,10 @@ private[block] trait BinarySearchContext {
   def lowestKeyValue: Option[Persistent.Partial]
   def highestKeyValue: Option[Persistent.Partial]
 
-  def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result]
+  def seek(offset: Int): KeyMatcher.Result
 }
 
 private[block] object BinarySearchContext {
-
-  val yes = IO.Right[swaydb.Error.Segment, KeyMatcher.Result](KeyMatcher.Result.AheadOrNoneOrEnd(None))
-
-  val buffer = ByteBuffer.allocate(5)
-  buffer.putInt(1000000)
-
-  val intUnSigned = Slice.writeUnsignedInt(1000000)
-  val int = Slice.writeInt(1000000)
-
   def apply(key: Slice[Byte],
             lowest: Option[Persistent.Partial],
             highest: Option[Persistent.Partial],
@@ -72,49 +59,20 @@ private[block] object BinarySearchContext {
 
       override val highestKeyValue: Option[Persistent.Partial] = highest
 
+      override def seek(offset: Int): KeyMatcher.Result = {
+        val sortedIndexOffsetValue =
+          binarySearchIndex
+            .moveTo(offset)
+            .readInt(unsigned = binarySearchIndex.block.isUnsignedInt)
 
-
-      override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] = {
-
-//        buffer.getInt(0)
-
-        Bytes.readUnsignedInt(intUnSigned)
-//        Bytes.readUnsignedInt(intUnSigned)
-//        Bytes.readInt(int)
-
-//        val indexOffset =
-//          if (binarySearchIndex.block.isUnsignedInt)
-//            binarySearchIndex
-//              .moveTo(offset)
-//              .readUnsignedInt()
-//          else
-//            binarySearchIndex
-//              .moveTo(offset)
-//              .readIntUnsafe()
-
-//        indexOffset flatMap {
-//          _ =>
-//            IO.Right[swaydb.Error.Segment, KeyMatcher.Result](KeyMatcher.Result.AheadOrNoneOrEnd(None))
-//        }
-
-        yes
-
-
-        //        binarySearchIndex
-        //          .moveTo(offset)
-        //          .readInt(unsigned = binarySearchIndex.block.isUnsignedInt)
-        //          .flatMap {
-        //            sortedIndexOffsetValue =>
-        //              //              SortedIndexBlock.readAndMatch(
-        //              //                matcher = matcher,
-        //              //                fromOffset = sortedIndexOffsetValue,
-        //              //                fullRead = false,
-        //              //                overwriteNextIndexOffset = None,
-        //              //                sortedIndexReader = sortedIndex,
-        //              //                valuesReader = values
-        //              //              )
-        //              IO.Right[swaydb.Error.Segment, KeyMatcher.Result](KeyMatcher.Result.AheadOrNoneOrEnd(None))
-        //          }
+        SortedIndexBlock.readAndMatch(
+          matcher = matcher,
+          fromOffset = sortedIndexOffsetValue,
+          fullRead = false,
+          overwriteNextIndexOffset = None,
+          sortedIndexReader = sortedIndex,
+          valuesReader = values
+        )
       }
     }
 
@@ -139,7 +97,7 @@ private[block] object BinarySearchContext {
 
       override val highestKeyValue: Option[Persistent.Partial] = highest
 
-      override def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] =
+      override def seek(offset: Int): KeyMatcher.Result =
         SortedIndexBlock.readAndMatch(
           matcher = matcher,
           fromOffset = offset,

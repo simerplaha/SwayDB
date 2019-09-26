@@ -67,7 +67,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val blocks = getSegmentBlockCache(keyValues)
           blocks.createBinarySearchIndexReader().get shouldBe empty
           blocks.binarySearchIndexReaderCache.isCached shouldBe true
-          blocks.binarySearchIndexReaderCache.get() shouldBe Some(IO.none)
+          blocks.binarySearchIndexReaderCache.getIO() shouldBe Some(IO.none)
           blocks.createBinarySearchIndexReader().get shouldBe empty
         }
       }

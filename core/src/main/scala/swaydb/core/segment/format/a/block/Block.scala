@@ -104,7 +104,7 @@ private[core] object Block extends LazyLogging {
         compressedBytes addUnsignedInt compression.decompressor.id
         compressedBytes addUnsignedInt (bytes.size - headerSize) //decompressed bytes
         if (compressedBytes.currentWritePosition > headerSize)
-          throw new Exception(s"Compressed header bytes written over to data bytes for $blockName. CurrentPosition: ${compressedBytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${compressedBytes.size}")
+          throw IO.throwableFatal(s"Compressed header bytes written over to data bytes for $blockName. CurrentPosition: ${compressedBytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${compressedBytes.size}")
         compressedBytes
 
       case None =>
@@ -129,7 +129,7 @@ private[core] object Block extends LazyLogging {
     bytes addUnsignedInt headerSize
     bytes add uncompressedBlockId
     if (bytes.currentWritePosition > headerSize)
-      throw new Exception(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
+      throw IO.throwableFatal(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
     bytes
   }
 
@@ -237,7 +237,7 @@ private[core] object Block extends LazyLogging {
               )
           )
         else
-          throw IO.throwable(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
+          throw IO.throwableFatal(s"Decompressed bytes size (${decompressedBytes.size}) != decompressedLength (${compressionInfo.decompressedLength}).")
 
       case None =>
         //no compression just skip the header bytes.

@@ -113,7 +113,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
         }
 
         val segmentResult =
-          Effect.fileId(segmentPath) flatMap {
+          IO(Effect.fileId(segmentPath)) flatMap {
             case (segmentId, Extension.Seg) =>
 
               /**
@@ -128,19 +128,21 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                * initialise and handle errors within themselves without having to know about the outside.
                */
 
-              Segment(
-                path = segmentPath,
-                segmentId = segmentId,
-                mmapReads = mmapSegmentsOnRead,
-                mmapWrites = mmapSegmentsOnWrite,
-                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                minKey = minKey,
-                maxKey = maxKey,
-                segmentSize = segmentSize,
-                minMaxFunctionId = minMaxFunctionId,
-                nearestExpiryDeadline = nearestExpiryDeadline,
-                checkExists = false
-              ) match {
+              IO {
+                Segment(
+                  path = segmentPath,
+                  segmentId = segmentId,
+                  mmapReads = mmapSegmentsOnRead,
+                  mmapWrites = mmapSegmentsOnWrite,
+                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                  minKey = minKey,
+                  maxKey = maxKey,
+                  segmentSize = segmentSize,
+                  minMaxFunctionId = minMaxFunctionId,
+                  nearestExpiryDeadline = nearestExpiryDeadline,
+                  checkExists = false
+                )
+              } match {
                 case IO.Right(segment) =>
                   IO.Right {
                     Some(

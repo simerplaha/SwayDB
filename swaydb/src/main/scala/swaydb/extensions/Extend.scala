@@ -41,7 +41,7 @@ private[extensions] object Extend {
 
       override def read(data: Slice[Byte]): V =
         optionValueSerializer.read(data) getOrElse {
-          throw new Exception("optionValueSerializer returned None for value bytes.")
+          throw IO.throwableFatal("optionValueSerializer returned None for value bytes.")
         }
     }
     val rootMapKey = Seq.empty[K]

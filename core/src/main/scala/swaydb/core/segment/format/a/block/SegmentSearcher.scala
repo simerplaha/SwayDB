@@ -19,7 +19,6 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentReadThreadState
@@ -30,8 +29,6 @@ import swaydb.core.util.MinMax
 import swaydb.core.util.Options._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-
-import scala.util.Random
 
 private[core] object SegmentSearcher extends LazyLogging {
 
@@ -46,80 +43,81 @@ private[core] object SegmentSearcher extends LazyLogging {
   def search(key: Slice[Byte],
              start: Option[Persistent.Partial],
              end: => Option[Persistent.Partial],
-             hashIndexReader: => IO[swaydb.Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]],
+             hashIndexReader: => Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
-             keyValueCount: => IO[swaydb.Error.Segment, Int],
+             keyValueCount: => Int,
              threadState: SegmentReadThreadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
     when(start.isDefined && threadState.isSequentialRead)(start) match {
       case Some(startFrom) =>
         seqSeeks += 1
-        SortedIndexBlock.searchSeekOne(
-          key = key,
-          start = startFrom,
-          indexReader = sortedIndexReader,
-          fullRead = true,
-          valuesReader = valuesReader
-        ) flatMap {
-          found =>
-            if (found.isDefined)
-              IO.Right {
-                successfulSeqSeeks += 1
-                found
-              }
-            else {
-              failedSeqSeeks += 1
-              hashIndexSearch(
-                key = key,
-                start = start,
-                end = end,
-                keyValueCount = keyValueCount,
-                hashIndexReader = hashIndexReader,
-                binarySearchIndexReader = binarySearchIndexReader,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader,
-                hasRange = hasRange
-              ) onRightSideEffect {
-                result =>
-                  threadState setSequentialRead result.exists(_.indexOffset == startFrom.nextIndexOffset)
-              }
-            }
+        val found =
+          SortedIndexBlock.searchSeekOne(
+            key = key,
+            start = startFrom,
+            indexReader = sortedIndexReader,
+            fullRead = true,
+            valuesReader = valuesReader
+          )
+
+        if (found.isDefined) {
+          successfulSeqSeeks += 1
+          found
+        } else {
+          failedSeqSeeks += 1
+          val result =
+            hashIndexSearch(
+              key = key,
+              start = start,
+              end = end,
+              keyValueCount = keyValueCount,
+              hashIndexReader = hashIndexReader,
+              binarySearchIndexReader = binarySearchIndexReader,
+              sortedIndexReader = sortedIndexReader,
+              valuesReader = valuesReader,
+              hasRange = hasRange
+            )
+          threadState setSequentialRead result.exists(_.indexOffset == startFrom.nextIndexOffset)
+
+          result
         }
 
       case None =>
-        hashIndexSearch(
-          key = key,
-          start = start,
-          end = end,
-          keyValueCount = keyValueCount,
-          hashIndexReader = hashIndexReader,
-          binarySearchIndexReader = binarySearchIndexReader,
-          sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader,
-          hasRange = hasRange
-        ) onRightSideEffect {
-          result =>
-            threadState setSequentialRead {
-              result exists {
-                result =>
-                  start.exists(_.nextIndexOffset == result.indexOffset)
-              }
-            }
+        val result =
+          hashIndexSearch(
+            key = key,
+            start = start,
+            end = end,
+            keyValueCount = keyValueCount,
+            hashIndexReader = hashIndexReader,
+            binarySearchIndexReader = binarySearchIndexReader,
+            sortedIndexReader = sortedIndexReader,
+            valuesReader = valuesReader,
+            hasRange = hasRange
+          )
+
+        threadState setSequentialRead {
+          result exists {
+            result =>
+              start.exists(_.nextIndexOffset == result.indexOffset)
+          }
         }
+
+        result
     }
 
   def hashIndexSearch(key: Slice[Byte],
                       start: Option[Persistent.Partial],
                       end: => Option[Persistent.Partial],
-                      hashIndexReader: => IO[swaydb.Error.Segment, Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]]],
+                      hashIndexReader: => Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                       binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                       hasRange: Boolean,
-                      keyValueCount: => IO[swaydb.Error.Segment, Int])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
-    hashIndexReader flatMap {
+                      keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+    hashIndexReader match {
       case Some(hashIndexReader) =>
         hashIndexSeeks += 1
         //println
@@ -129,124 +127,86 @@ private[core] object SegmentSearcher extends LazyLogging {
           hashIndexReader = hashIndexReader,
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
-        ) flatMap {
+        ) match {
           case none: HashIndexSearchResult.None =>
-            if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange)
-              IO.none
-            else
-              binarySearchIndexReader flatMap {
-                binarySearchIndexReader =>
-                  failedHashIndexSeeks += 1
+            if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
+              None
+            } else {
+              failedHashIndexSeeks += 1
 
-                  val lowest =
-                    if (none.lower.isEmpty || start.isEmpty)
-                      start orElse none.lower
-                    else
-                      MinMax.maxFavourLeft(start, none.lower)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
+              val lowest =
+                if (none.lower.isEmpty || start.isEmpty)
+                  start orElse none.lower
+                else
+                  MinMax.maxFavourLeft(start, none.lower)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
 
-                  val highest =
-                    if (none.higher.isEmpty || end.isEmpty)
-                      none.higher orElse end
-                    else
-                      MinMax.minFavourLeft(end, none.higher)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
+              val highest =
+                if (none.higher.isEmpty || end.isEmpty)
+                  none.higher orElse end
+                else
+                  MinMax.minFavourLeft(end, none.higher)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
 
-                  BinarySearchIndexBlock.search(
-                    key = key,
-                    lowest = lowest,
-                    highest = highest,
-                    keyValuesCount = keyValueCount,
-                    binarySearchIndexReader = binarySearchIndexReader,
-                    sortedIndexReader = sortedIndexReader,
-                    valuesReader = valuesReader
-                  ).map(_.toOption)
-              }
+              BinarySearchIndexBlock.search(
+                key = key,
+                lowest = lowest,
+                highest = highest,
+                keyValuesCount = keyValueCount,
+                binarySearchIndexReader = binarySearchIndexReader,
+                sortedIndexReader = sortedIndexReader,
+                valuesReader = valuesReader
+              ).toOption
+            }
 
           case HashIndexSearchResult.Some(keyValue) =>
             successfulHashIndexSeeks += 1
-            IO.Right(Some(keyValue))
+            Some(keyValue)
         }
 
       case None =>
-        binarySearchIndexReader flatMap {
-          binarySearchIndexReader =>
-            BinarySearchIndexBlock.search(
-              key = key,
-              lowest = start,
-              highest = end,
-              keyValuesCount = keyValueCount,
-              binarySearchIndexReader = binarySearchIndexReader,
-              sortedIndexReader = sortedIndexReader,
-              valuesReader = valuesReader
-            ).map(_.toOption)
-        }
+        BinarySearchIndexBlock.search(
+          key = key,
+          lowest = start,
+          highest = end,
+          keyValuesCount = keyValueCount,
+          binarySearchIndexReader = binarySearchIndexReader,
+          sortedIndexReader = sortedIndexReader,
+          valuesReader = valuesReader
+        ).toOption
     }
 
   def searchHigher(key: Slice[Byte],
                    start: Option[Persistent.Partial],
                    end: => Option[Persistent.Partial],
-                   keyValueCount: => IO[swaydb.Error.Segment, Int],
-                   binarySearchIndexReader: => IO[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]],
+                   keyValueCount: => Int,
+                   binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
     start match {
       case Some(startFrom) =>
-        SortedIndexBlock.searchHigherMatchOnly(
-          key = key,
-          startFrom = startFrom,
-          sortedIndexReader = sortedIndexReader,
-          fullRead = false,
-          valuesReader = valuesReader
-        ) flatMap {
-          found =>
-            if (found.isDefined)
-              IO.Right(found)
-            else
-              binarySearchIndexReader flatMap {
-                binarySearchIndexReader =>
-                  BinarySearchIndexBlock.searchHigher(
-                    key = key,
-                    start = start,
-                    end = end,
-                    keyValuesCount = keyValueCount,
-                    binarySearchIndexReader = binarySearchIndexReader,
-                    sortedIndexReader = sortedIndexReader,
-                    valuesReader = valuesReader
-                  )
-              }
-        }
+        val found =
+          SortedIndexBlock.searchHigherMatchOnly(
+            key = key,
+            startFrom = startFrom,
+            sortedIndexReader = sortedIndexReader,
+            fullRead = false,
+            valuesReader = valuesReader
+          )
+
+        if (found.isDefined)
+          found
+        else
+          BinarySearchIndexBlock.searchHigher(
+            key = key,
+            start = start,
+            end = end,
+            keyValuesCount = keyValueCount,
+            binarySearchIndexReader = binarySearchIndexReader,
+            sortedIndexReader = sortedIndexReader,
+            valuesReader = valuesReader
+          )
 
       case None =>
-        binarySearchIndexReader flatMap {
-          binarySearchIndexReader =>
-            BinarySearchIndexBlock.searchHigher(
-              key = key,
-              start = start,
-              end = end,
-              keyValuesCount = keyValueCount,
-              binarySearchIndexReader = binarySearchIndexReader,
-              sortedIndexReader = sortedIndexReader,
-              valuesReader = valuesReader
-            )
-        }
-    }
-
-  def assertLowerAndStart(start: Option[Persistent.Partial], lower: Option[Persistent.Partial])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit =
-    if (start.isDefined && lower.nonEmpty)
-      if (lower.isEmpty || keyOrder.lt(lower.get.key, start.get.key))
-        throw new Exception(s"Lower ${lower.map(_.key.readInt())} is not greater than or equal to start ${start.map(_.key.readInt())}")
-      else
-        ()
-
-  def searchLower(key: Slice[Byte],
-                  start: Option[Persistent.Partial],
-                  end: Option[Persistent.Partial],
-                  keyValueCount: => IO[swaydb.Error.Segment, Int],
-                  binarySearchIndexReader: => IO[swaydb.Error.Segment, Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]]],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
-    binarySearchIndexReader flatMap {
-      binarySearchIndexReader =>
-        BinarySearchIndexBlock.searchLower(
+        BinarySearchIndexBlock.searchHigher(
           key = key,
           start = start,
           end = end,
@@ -256,4 +216,28 @@ private[core] object SegmentSearcher extends LazyLogging {
           valuesReader = valuesReader
         )
     }
+
+  def assertLowerAndStart(start: Option[Persistent.Partial], lower: Option[Persistent.Partial])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit =
+    if (start.isDefined && lower.nonEmpty)
+      if (lower.isEmpty || keyOrder.lt(lower.get.key, start.get.key))
+        throw IO.throwableFatal(s"Lower ${lower.map(_.key.readInt())} is not greater than or equal to start ${start.map(_.key.readInt())}")
+      else
+        ()
+
+  def searchLower(key: Slice[Byte],
+                  start: Option[Persistent.Partial],
+                  end: Option[Persistent.Partial],
+                  keyValueCount: => Int,
+                  binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+    BinarySearchIndexBlock.searchLower(
+      key = key,
+      start = start,
+      end = end,
+      keyValuesCount = keyValueCount,
+      binarySearchIndexReader = binarySearchIndexReader,
+      sortedIndexReader = sortedIndexReader,
+      valuesReader = valuesReader
+    )
 }

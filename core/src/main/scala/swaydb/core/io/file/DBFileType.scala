@@ -31,21 +31,21 @@ private[file] trait DBFileType extends FileSweeperItem {
 
   def blockCacheFileId: Long
 
-  def delete(): IO[swaydb.Error.IO, Unit]
+  def delete(): Unit
 
-  def close(): IO[swaydb.Error.IO, Unit]
+  def close(): Unit
 
-  def isMemoryMapped: IO[swaydb.Error.IO, Boolean]
+  def isMemoryMapped: Boolean
 
-  def isLoaded: IO[swaydb.Error.IO, Boolean]
+  def isLoaded: Boolean
 
   def isOpen: Boolean
 
-  def isFull: IO[swaydb.Error.IO, Boolean]
+  def isFull: Boolean
 
-  def forceSave(): IO[swaydb.Error.IO, Unit]
+  def forceSave(): Unit
 
-  def readAll: IO[swaydb.Error.IO, Slice[Byte]]
+  def readAll: Slice[Byte]
 
   def fileSize: Long
 

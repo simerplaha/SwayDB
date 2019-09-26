@@ -28,14 +28,11 @@ import swaydb.data.slice.{Reader, Slice}
 
 private[core] object BlockRefReader {
 
-  def apply(file: DBFile): IO[swaydb.Error.Segment, BlockRefReader[SegmentBlock.Offset]] =
-    file.fileSize map {
-      fileSize =>
-        new BlockRefReader(
-          offset = SegmentBlock.Offset(0, fileSize.toInt),
-          reader = Reader(file)
-        )
-    }
+  def apply(file: DBFile): BlockRefReader[SegmentBlock.Offset] =
+    new BlockRefReader(
+      offset = SegmentBlock.Offset(0, file.fileSize.toInt),
+      reader = Reader(file)
+    )
 
   def apply(file: DBFile, fileSize: Int): BlockRefReader[SegmentBlock.Offset] =
     new BlockRefReader(

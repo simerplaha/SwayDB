@@ -25,14 +25,12 @@ import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.IO.ExceptionHandler
-import swaydb.IO
-import swaydb.IO._
 import swaydb.core.util.Extension
 import swaydb.core.util.PipeOps._
 import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 private[core] object Effect extends LazyLogging {
 
@@ -60,40 +58,37 @@ private[core] object Effect extends LazyLogging {
   }
 
   def write(to: Path,
-            bytes: Slice[Byte]): IO[swaydb.Error.IO, Path] =
-    IO {
-      val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-      try {
-        writeUnclosed(channel, bytes)
-        to
-      } finally {
-        channel.close()
-      }
+            bytes: Slice[Byte]): Path = {
+    val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+    try {
+      writeUnclosed(channel, bytes)
+      to
+    } finally {
+      channel.close()
     }
+  }
 
   def write(to: Path,
-            bytes: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Path] =
-    IO {
-      val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
-      try {
-        writeUnclosed(channel, bytes)
-        to
-      } finally {
-        channel.close()
-      }
+            bytes: Iterable[Slice[Byte]]): Path = {
+    val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)
+    try {
+      writeUnclosed(channel, bytes)
+      to
+    } finally {
+      channel.close()
     }
+  }
 
   def replace(bytes: Slice[Byte],
-              to: Path): IO[swaydb.Error.IO, Path] =
-    IO {
-      val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
-      try {
-        writeUnclosed(channel, bytes)
-        to
-      } finally {
-        channel.close()
-      }
+              to: Path): Path = {
+    val channel = Files.newByteChannel(to, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
+    try {
+      writeUnclosed(channel, bytes)
+      to
+    } finally {
+      channel.close()
     }
+  }
 
   def writeUnclosed(channel: WritableByteChannel,
                     bytes: Iterable[Slice[Byte]]): Unit =
@@ -114,28 +109,22 @@ private[core] object Effect extends LazyLogging {
   }
 
   def copy(copyFrom: Path,
-           copyTo: Path): IO[swaydb.Error.IO, Path] =
-    IO {
-      Files.copy(copyFrom, copyTo)
-    }
+           copyTo: Path): Path =
+    Files.copy(copyFrom, copyTo)
 
-  def delete(path: Path): IO[swaydb.Error.IO, Unit] =
-    IO(Files.delete(path))
+  def delete(path: Path): Unit =
+    Files.delete(path)
 
-  def deleteIfExists(path: Path): IO[swaydb.Error.IO, Unit] =
+  def deleteIfExists(path: Path): Unit =
     if (exists(path))
       delete(path)
-    else
-      IO.unit
 
-  def createFile(path: Path): IO[swaydb.Error.IO, Path] =
-    IO {
-      Files.createFile(path)
-    }
+  def createFile(path: Path): Path =
+    Files.createFile(path)
 
-  def createFileIfAbsent(path: Path): IO[swaydb.Error.IO, Path] =
+  def createFileIfAbsent(path: Path): Path =
     if (exists(path))
-      IO.Right(path)
+      path
     else
       createFile(path)
 
@@ -157,29 +146,27 @@ private[core] object Effect extends LazyLogging {
     else
       Files.createDirectories(path)
 
-  def walkDelete(folder: Path): IO[swaydb.Error.IO, Unit] =
-    IO {
-      if (exists(folder))
-        Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
-          @throws[IOException]
-          override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-            Files.delete(file)
-            FileVisitResult.CONTINUE
-          }
+  def walkDelete(folder: Path): Unit = {
+    if (exists(folder))
+      Files.walkFileTree(folder, new SimpleFileVisitor[Path]() {
+        @throws[IOException]
+        override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+          Files.delete(file)
+          FileVisitResult.CONTINUE
+        }
 
-          override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
-            if (exc != null) throw exc
-            Files.delete(dir)
-            FileVisitResult.CONTINUE
-          }
-        })
-    }
+        override def postVisitDirectory(dir: Path, exc: IOException): FileVisitResult = {
+          if (exc != null) throw exc
+          Files.delete(dir)
+          FileVisitResult.CONTINUE
+        }
+      })
+  }
 
-  def release(lock: FileLock): IO[swaydb.Error.IO, Unit] =
-    IO {
-      lock.release()
-      lock.close()
-    }
+  def release(lock: FileLock): Unit = {
+    lock.release()
+    lock.close()
+  }
 
   def stream[T](path: Path)(f: DirectoryStream[Path] => T): T = {
     val stream: DirectoryStream[Path] = Files.newDirectoryStream(path)
@@ -189,8 +176,8 @@ private[core] object Effect extends LazyLogging {
       stream.close()
   }
 
-  def release(lock: Option[FileLock]): IO[swaydb.Error.IO, Unit] =
-    lock.map(release) getOrElse IO.unit
+  def release(lock: Option[FileLock]): Unit =
+    lock foreach release
 
   implicit class FileIdImplicits(id: Long) {
     def toLogFileId =
@@ -203,11 +190,10 @@ private[core] object Effect extends LazyLogging {
       s"$id.${Extension.Seg}"
   }
 
-  def incrementFileId(path: Path): IO[swaydb.Error.IO, Path] =
-    fileId(path) map {
-      case (id, ext) =>
-        path.getParent.resolve((id + 1) + "." + ext.toString)
-    }
+  def incrementFileId(path: Path): Path = {
+    val (id, ext) = fileId(path)
+    path.getParent.resolve((id + 1) + "." + ext.toString)
+  }
 
   def incrementFolderId(path: Path): Path =
     folderId(path) ==> {
@@ -218,27 +204,26 @@ private[core] object Effect extends LazyLogging {
   def folderId(path: Path): Long =
     path.getFileName.toString.toLong
 
-  def fileId(path: Path): IO[swaydb.Error.IO, (Long, Extension)] = {
+  def fileId(path: Path): (Long, Extension) = {
     val fileName = path.getFileName.toString
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
 
-    IO(fileName.substring(0, extIndex).toLong) orElse IO.failed(swaydb.Exception.NotAnIntFile(path)) flatMap {
-      fileId =>
-        val ext = fileName.substring(extIndex + 1, fileName.length)
-        if (ext == Extension.Log.toString)
-          IO.Right(fileId, Extension.Log)
-        else if (ext == Extension.Seg.toString)
-          IO.Right(fileId, Extension.Seg)
-        else {
-          logger.error("Unknown extension for file {}", path)
-          IO.failed(swaydb.Exception.UnknownExtension(path))
-        }
+    val fileId = fileName.substring(0, extIndex).toLong
+
+    val ext = fileName.substring(extIndex + 1, fileName.length)
+    if (ext == Extension.Log.toString)
+      (fileId, Extension.Log)
+    else if (ext == Extension.Seg.toString)
+      (fileId, Extension.Seg)
+    else {
+      logger.error("Unknown extension for file {}", path)
+      throw swaydb.Exception.UnknownExtension(path)
     }
   }
 
   def isExtension(path: Path, ext: Extension): Boolean =
-    fileId(path).map(_._2 == ext) getOrElse false
+    Try(fileId(path)).map(_._2 == ext) getOrElse false
 
   def files(folder: Path,
             extension: Extension): List[Path] =
@@ -247,14 +232,14 @@ private[core] object Effect extends LazyLogging {
         .asScala
         .filter(isExtension(_, extension))
         .toList
-        .sortBy(path => fileId(path).get._1)
+        .sortBy(path => fileId(path)._1)
     }
 
   def folders(folder: Path): List[Path] =
     Effect.stream(folder) {
       _.iterator()
         .asScala
-        .filter(folder => IO(folderId(folder)).isRight)
+        .filter(folder => Try(folderId(folder)).isSuccess)
         .toList
         .sortBy(folderId)
     }
@@ -262,11 +247,11 @@ private[core] object Effect extends LazyLogging {
   def segmentFilesOnDisk(paths: Seq[Path]): Seq[Path] =
     paths
       .flatMap(_.files(Extension.Seg))
-      .sortBy(_.getFileName.fileId.get._1)
+      .sortBy(_.getFileName.fileId._1)
 
-  def readAll(path: Path): IO[swaydb.Error.IO, Slice[Byte]] =
-    IO(Slice(Files.readAllBytes(path)))
+  def readAll(path: Path): Slice[Byte] =
+    Slice(Files.readAllBytes(path))
 
-  def size(path: Path): IO[swaydb.Error.IO, Long] =
-    IO(Files.size(path))
+  def size(path: Path): Long =
+    Files.size(path)
 }

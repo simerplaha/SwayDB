@@ -283,7 +283,7 @@ class IOSpec extends WordSpec with Matchers {
 
   "tryOrNone" when {
     "exception" in {
-      IO.tryOrNone(throw new Exception("Failed")) shouldBe empty
+      IO.tryOrNone(throw IO.throwableFatal("Failed")) shouldBe empty
     }
 
     "no exception" in {

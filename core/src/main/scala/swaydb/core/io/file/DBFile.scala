@@ -48,19 +48,16 @@ object DBFile extends LazyLogging {
     val closer: FileSweeperItem =
       new FileSweeperItem {
         override def path: Path = filePath
-        override def delete(): IO[Error.Segment, Unit] = IO.failed("only closable")
-        override def close(): IO[Error.Segment, Unit] = {
-          self.get() map {
+        override def delete(): Unit = IO.failed("only closable")
+        override def close(): Unit =
+          self.get() foreach {
             fileType =>
-              fileType.flatMap(_.close()) map {
-                _ =>
-                  self.clear()
-              }
-          } getOrElse IO.unit
-        }
+              fileType.close()
+              self.clear()
+          }
 
         override def isOpen: Boolean =
-          self.get().exists(_.exists(_.isOpen))
+          self.getIO().exists(_.exists(_.isOpen))
       }
 
     val cache =
@@ -92,11 +89,11 @@ object DBFile extends LazyLogging {
   }
 
   def write(path: Path,
-            bytes: Slice[Byte]): IO[swaydb.Error.IO, Path] =
+            bytes: Slice[Byte]): Path =
     Effect.write(path, bytes)
 
   def write(path: Path,
-            bytes: Iterable[Slice[Byte]]): IO[swaydb.Error.IO, Path] =
+            bytes: Iterable[Slice[Byte]]): Path =
     Effect.write(path, bytes)
 
   def channelWrite(path: Path,
@@ -266,41 +263,33 @@ class DBFile(val path: Path,
   def blockSize: Option[Int] =
     blockCache.map(_.blockSize)
 
-  def file: IO[Error.IO, DBFileType] =
-    fileCache.value()
+  def file: DBFileType =
+    fileCache.value().get
 
-  def delete(): IO[swaydb.Error.IO, Unit] =
-  //close the file
-    close flatMap {
-      _ =>
-        //try delegating the delete to the file itself.
-        //If the file is already closed, then delete it from disk.
-        //memory files are never closed so the first statement will always be executed for memory files.
-        (fileCache.get().map(_.flatMap(_.delete())) getOrElse Effect.deleteIfExists(path)) map {
-          _ =>
-            fileCache.clear()
-        }
+  def delete(): Unit = {
+    //close the file
+    close()
+    //try delegating the delete to the file itself.
+    //If the file is already closed, then delete it from disk.
+    //memory files are never closed so the first statement will always be executed for memory files.
+    fileCache.get().map(_.delete()) getOrElse Effect.deleteIfExists(path)
+    fileCache.clear()
+  }
+
+  def close(): Unit =
+    fileCache.get() foreach {
+      file =>
+        file.close()
+        fileCache.clear()
     }
-
-  def close: IO[swaydb.Error.IO, Unit] =
-    fileCache.get() map {
-      fileType =>
-        fileType.flatMap(_.close()) map {
-          _ =>
-            fileCache.clear()
-        }
-    } getOrElse IO.unit
 
   //if it's an in memory files return failure as Memory files cannot be copied.
-  def copyTo(toPath: Path): IO[swaydb.Error.IO, Path] =
-    forceSave() flatMap {
-      _ =>
-        Effect.copy(path, toPath) map {
-          path =>
-            logger.trace("{}: Copied: to {}", path, toPath)
-            path
-        }
-    }
+  def copyTo(toPath: Path): Path = {
+    forceSave()
+    val copiedPath = Effect.copy(path, toPath)
+    logger.trace("{}: Copied: to {}", copiedPath, toPath)
+    copiedPath
+  }
 
   def append(slice: Slice[Byte]) =
     fileCache.value().get.append(slice)
@@ -353,30 +342,30 @@ class DBFile(val path: Path,
     else
       fileCache.value().get.get(position)
 
-  def readAll: IO[Error.IO, Slice[Byte]] =
-    fileCache.value() flatMap (_.readAll)
+  def readAll: Slice[Byte] =
+    fileCache.value().get.readAll
 
   def fileSize: Long =
     fileCache.value().get.fileSize
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =
-    fileCache.get().exists(_.exists(_.isOpen))
+    fileCache.getIO().exists(_.exists(_.isOpen))
 
   def isFileDefined: Boolean =
-    fileCache.get().isDefined
+    fileCache.getIO().isDefined
 
-  def isMemoryMapped: IO[Error.IO, Boolean] =
-    fileCache.value() flatMap (_.isMemoryMapped)
+  def isMemoryMapped: Boolean =
+    fileCache.value().get.isMemoryMapped
 
-  def isLoaded: IO[Error.IO, Boolean] =
-    fileCache.value() flatMap (_.isLoaded)
+  def isLoaded: Boolean =
+    fileCache.value().get.isLoaded
 
-  def isFull: IO[swaydb.Error.IO, Boolean] =
-    fileCache.value() flatMap (_.isFull)
+  def isFull: Boolean =
+    fileCache.value().get.isFull
 
-  def forceSave(): IO[swaydb.Error.IO, Unit] =
-    fileCache.value().map(_.forceSave()) getOrElse IO.unit
+  def forceSave(): Unit =
+    fileCache.value().get.forceSave()
 
   override def equals(that: Any): Boolean =
     that match {

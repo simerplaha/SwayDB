@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.id
 
+import swaydb.IO
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.macros.SealedList
 
@@ -51,7 +52,7 @@ sealed trait KeyValueId {
     else if (isKeyValueId_UncompressedKey(keyValueId))
       keyValueId - minKey_Uncompressed_KeyValueId
     else
-      throw new Exception(s"Int id: $keyValueId does not belong to ${this.getClass.getSimpleName} ")
+      throw IO.throwable(s"Int id: $keyValueId does not belong to ${this.getClass.getSimpleName} ")
 
   //Note: this exceptions above and below is not expected to occur. This may only occur due to file corruption.
   //instead of wrapping in IO for performance throw exception as this is not expected to occur.
@@ -69,18 +70,18 @@ sealed trait KeyValueId {
       if (isKeyValueId_CompressedKey(baseId))
         baseId
       else
-        throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName} ")
+        throw IO.throwable(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName} ")
     else if (isKeyValueId_CompressedKey(baseId + minKey_Compressed_KeyValueId))
       baseId + minKey_Compressed_KeyValueId
     else
-      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKey_Compressed_KeyValueId}")
+      throw IO.throwable(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKey_Compressed_KeyValueId}")
 
   //the _ is to highlight that this will return an uncompressed id. There used to be a type-safe way to handle this!
   def adjustBaseIdToKeyValueIdKey_UnCompressed(baseId: Int): Int =
     if (isKeyValueId_UncompressedKey(baseId + minKey_Uncompressed_KeyValueId))
       baseId + minKey_Uncompressed_KeyValueId
     else
-      throw new Exception(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKey_Uncompressed_KeyValueId}")
+      throw IO.throwable(s"Int id: $baseId does not belong to ${this.getClass.getSimpleName}. Adjusted id was :${baseId + minKey_Uncompressed_KeyValueId}")
 }
 
 object KeyValueId {

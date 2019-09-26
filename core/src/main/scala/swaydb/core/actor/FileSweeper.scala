@@ -29,8 +29,8 @@ import scala.ref.WeakReference
 
 private[core] trait FileSweeperItem {
   def path: Path
-  def delete(): IO[swaydb.Error.Segment, Unit]
-  def close(): IO[swaydb.Error.Segment, Unit]
+  def delete(): Unit
+  def close(): Unit
   def isOpen: Boolean
 }
 
@@ -53,6 +53,7 @@ private[swaydb] object FileSweeper extends LazyLogging {
   private sealed trait Action {
     def isDelete: Boolean
   }
+
   private object Action {
     case class Delete(file: FileSweeperItem) extends Action {
       def isDelete: Boolean = true
@@ -82,17 +83,21 @@ private[swaydb] object FileSweeper extends LazyLogging {
         weigher = FileSweeper.weigher
       ) {
         case (Action.Delete(file), _) =>
-          file.delete() onLeftSideEffect {
-            error =>
-              logger.error(s"Failed to delete file. ${file.path}", error.exception)
+          try
+            file.delete()
+          catch {
+            case exception: Exception =>
+              logger.error(s"Failed to delete file. ${file.path}", exception)
           }
 
         case (Action.Close(file), _) =>
           file.get foreach {
             file =>
-              file.close onLeftSideEffect {
-                error =>
-                  logger.error(s"Failed to close file. ${file.path}", error.exception)
+              try
+                file.close()
+              catch {
+                case exception: Exception =>
+                  logger.error(s"Failed to close file. ${file.path}", exception)
               }
           }
       }

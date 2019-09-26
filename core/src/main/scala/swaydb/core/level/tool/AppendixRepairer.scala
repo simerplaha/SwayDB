@@ -63,15 +63,17 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         files
           .mapRecoverIO {
             segmentPath =>
-              Effect.fileId(segmentPath) flatMap {
+              IO(Effect.fileId(segmentPath)) flatMap {
                 case (segmentId, Extension.Seg) =>
-                  Segment(
-                    path = segmentPath,
-                    segmentId = segmentId,
-                    mmapReads = false,
-                    mmapWrites = false,
-                    checkExists = true
-                  )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
+                  IO {
+                    Segment(
+                      path = segmentPath,
+                      segmentId = segmentId,
+                      mmapReads = false,
+                      mmapWrites = false,
+                      checkExists = true
+                    )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
+                  }
 
                 case (_, Extension.Log) =>
                   IO.failed(s"Invalid segment file extension: $segmentPath")
@@ -96,19 +98,19 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           s"${KeepNew.getClass.getSimpleName.dropRight(1)} recovery strategy selected. Deleting old {}",
           segment.path
         )
-        segment.delete
+        IO(segment.delete)
 
       case KeepOld =>
         logger.info(
           s"${KeepOld.getClass.getSimpleName.dropRight(1)} recovery strategy selected. Deleting new {}.",
           overlappingSegment.path
         )
-        overlappingSegment.delete
+        IO(overlappingSegment.delete)
 
       case ReportFailure =>
-        segment.getKeyValueCount() flatMap {
+        IO(segment.getKeyValueCount()) flatMap {
           segmentKeyValueCount =>
-            overlappingSegment.getKeyValueCount() flatMap {
+            IO(overlappingSegment.getKeyValueCount()) flatMap {
               overlappingSegmentKeyValueCount =>
                 IO.Left(
                   swaydb.Error.Fatal(
@@ -173,24 +175,25 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
-    Effect.walkDelete(appendixDir) flatMap {
-      _ =>
-        Map.persistent[Slice[Byte], Segment](
-          folder = appendixDir,
-          mmap = false,
-          flushOnOverflow = true,
-          fileSize = 1.gb
-        ) flatMap {
-          appendix =>
-            segments foreachIO {
-              segment =>
-                appendix.writeSafe(MapEntry.Put(segment.minKey, segment))
-            } match {
-              case Some(IO.Left(error)) =>
-                IO.Left(error)
-              case None =>
-                IO.unit
-            }
+    IO {
+      Effect.walkDelete(appendixDir)
+      Map.persistent[Slice[Byte], Segment](
+        folder = appendixDir,
+        mmap = false,
+        flushOnOverflow = true,
+        fileSize = 1.gb
+      )
+    } flatMap {
+      appendix =>
+        segments foreachIO {
+          segment =>
+            appendix.writeSafe(MapEntry.Put(segment.minKey, segment))
+        } match {
+          case Some(IO.Left(error)) =>
+            IO.Left(error)
+
+          case None =>
+            IO.unit
         }
     }
 }

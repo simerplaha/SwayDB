@@ -23,7 +23,7 @@ import java.util.TimerTask
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, ActorQueue, Scheduler}
+import swaydb.{Actor, ActorQueue, IO, Scheduler}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Await, ExecutionContext, TimeoutException}
@@ -100,7 +100,7 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
         scheduler.future(after) {
           Option(queue.poll()) match {
             case Some(item) =>
-              throw new Exception(s"Has message: ${item.getClass.getSimpleName}")
+              throw IO.throwableFatal(s"Has message: ${item.getClass.getSimpleName}")
 
             case None =>
               ()

@@ -497,9 +497,9 @@ private[core] object SegmentBlock {
 
     //ensure that all the slices are full.
     if (!sortedIndexBlock.bytes.isFull)
-      throw IO.throwable(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
+      throw IO.throwableFatal(s"indexSlice is not full actual: ${sortedIndexBlock.bytes.size} - expected: ${sortedIndexBlock.bytes.allocatedSize}")
     else if (valuesBlock.exists(!_.bytes.isFull))
-      throw IO.throwable(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
+      throw IO.throwableFatal(s"valuesSlice is not full actual: ${valuesBlock.get.bytes.size} - expected: ${valuesBlock.get.bytes.allocatedSize}")
     else
       closedBlocks
   }

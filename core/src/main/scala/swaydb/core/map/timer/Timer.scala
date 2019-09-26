@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice
 private[core] trait Timer {
   def next: Time
 
-  def close: IO[swaydb.Error.Map, Unit]
+  def close: Unit
 }
 
 private[core] object Timer {

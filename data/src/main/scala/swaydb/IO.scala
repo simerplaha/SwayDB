@@ -253,6 +253,31 @@ object IO {
       }
     }
 
+    def flatMapRecoverThrowable[R](ioBlock: A => Iterable[R],
+                                   recover: (Iterable[R], Throwable) => Unit = (_: Iterable[R], _: Throwable) => (),
+                                   failFast: Boolean = true): Iterable[R] = {
+      val it = iterable.iterator
+      var failure: Option[Throwable] = None
+      val results = ListBuffer.empty[R]
+
+      while ((!failFast || failure.isEmpty) && it.hasNext)
+        try
+          ioBlock(it.next()) foreach (results += _)
+        catch {
+          case throwable: Throwable =>
+            failure = Some(throwable)
+        }
+
+      failure match {
+        case Some(throwable) =>
+          recover(results, throwable)
+          throw throwable
+
+        case None =>
+          results
+      }
+    }
+
     def foldLeftRecoverIO[R](r: R,
                              failFast: Boolean = true,
                              recover: (R, IO.Left[E, R]) => Unit = (_: R, _: IO.Left[E, R]) => ())(f: (R, A) => IO[E, R]): IO[E, R] = {
@@ -278,6 +303,31 @@ object IO {
 
         case None =>
           IO.Right[E, R](result)
+      }
+    }
+
+    def foldLeftRecover[R](r: R,
+                           failFast: Boolean = true,
+                           recover: (R, Throwable) => Unit = (_: R, _: Throwable) => ())(f: (R, A) => R): R = {
+      val it = iterable.iterator
+      var failure: Option[Throwable] = None
+      var result: R = r
+
+      while ((!failFast || failure.isEmpty) && it.hasNext)
+        try
+          result = f(result, it.next())
+        catch {
+          case throwable: Throwable =>
+            failure = Some(throwable)
+        }
+
+      failure match {
+        case Some(failure) =>
+          recover(result, failure)
+          throw failure
+
+        case None =>
+          result
       }
     }
   }
@@ -495,8 +545,11 @@ object IO {
     }
   }
 
-  @inline final def throwable(message: String): Throwable =
+  @inline final def throwableFatal(message: String): Throwable =
     new Exception(message)
+
+  @inline final def throwable(message: String, inner: Throwable): Throwable =
+    new Exception(message, inner)
 
   @inline final def failed[E: IO.ExceptionHandler, A](exception: Throwable): IO.Left[E, A] =
     new IO.Left[E, A](IO.ExceptionHandler.toError[E](exception))

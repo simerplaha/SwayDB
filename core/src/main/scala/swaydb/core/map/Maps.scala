@@ -93,7 +93,7 @@ private[core] object Maps extends LazyLogging {
         //delete maps that are empty.
         val (emptyMaps, otherMaps) = recoveredMapsReversed.partition(_.isEmpty)
         if (emptyMaps.nonEmpty) logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
-        emptyMaps foreachIO (_.delete) match {
+        emptyMaps foreachIO (map => IO(map.delete)) match {
           case Some(IO.Left(error)) =>
             logger.error(s"{}: Failed to delete empty maps {}", path, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
             IO.Left(error)
@@ -101,13 +101,15 @@ private[core] object Maps extends LazyLogging {
           case None =>
             logger.debug(s"{}: Creating next map with ID {} maps.", path, nextMapId)
             val queue = new ConcurrentLinkedDeque[Map[K, V]](otherMaps.asJavaCollection)
-            Map.persistent[K, V](
-              folder = nextMapId,
-              mmap = mmap,
-              flushOnOverflow = false,
-              fileSize = fileSize,
-              dropCorruptedTailEntries = recovery.drop
-            ) map {
+            IO {
+              Map.persistent[K, V](
+                folder = nextMapId,
+                mmap = mmap,
+                flushOnOverflow = false,
+                fileSize = fileSize,
+                dropCorruptedTailEntries = recovery.drop
+              )
+            } map {
               nextMap =>
                 logger.debug(s"{}: Next map created with ID {}.", path, nextMapId)
                 new Maps[K, V](queue, fileSize, acceleration, nextMap.item)
@@ -152,7 +154,7 @@ private[core] object Maps extends LazyLogging {
               logger.info(s"{}: Skipping files after corrupted file. Recovery mode: {}", mapPath, recovery.name)
               otherMapsPaths foreachIO { //delete Maps after the corruption.
                 mapPath =>
-                  Effect.walkDelete(mapPath) match {
+                  IO(Effect.walkDelete(mapPath)) match {
                     case IO.Right(_) =>
                       logger.info(s"{}: Deleted file after corruption. Recovery mode: {}", mapPath, recovery.name)
                       IO.unit
@@ -187,17 +189,19 @@ private[core] object Maps extends LazyLogging {
         case mapPath :: otherMapsPaths =>
           logger.info(s"{}: Recovering.", mapPath)
 
-          Map.persistent[K, V](
-            folder = mapPath,
-            mmap = mmap,
-            flushOnOverflow = false,
-            fileSize = fileSize,
-            dropCorruptedTailEntries = recovery.drop
-          ) match {
+          IO {
+            Map.persistent[K, V](
+              folder = mapPath,
+              mmap = mmap,
+              flushOnOverflow = false,
+              fileSize = fileSize,
+              dropCorruptedTailEntries = recovery.drop
+            )
+          } match {
             case IO.Right(recoveredMap) =>
               //recovered immutable memory map's files should be closed after load as they are always read from in memory
               // and does not require the files to be opened.
-              recoveredMap.item.close() match {
+              IO(recoveredMap.item.close()) match {
                 case IO.Right(_) =>
                   recoveredMaps += recoveredMap.item //recoveredMap.item can also be partially recovered file based on RecoveryMode set.
                   //if the recoveredMap's recovery result is a failure (partially recovered file),
@@ -246,7 +250,7 @@ private[core] object Maps extends LazyLogging {
                                                      skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, Map[K, V]] =
     currentMap match {
       case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
-        currentMap.close() flatMap {
+        IO(currentMap.close()) map {
           _ =>
             Map.persistent[K, V](
               folder = currentMap.path.incrementFolderId,
@@ -405,7 +409,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   def removeLast(): Option[IO[swaydb.Error.Map, Unit]] =
     Option(maps.pollLast()) map {
       removedMap =>
-        removedMap.delete match {
+        IO(removedMap.delete) match {
           case IO.Right(_) =>
             currentMapsCount -= 1
             IO.unit
@@ -435,12 +439,12 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     currentMap
 
   def close: IO[swaydb.Error.Map, Unit] = {
-    timer.close onLeftSideEffect {
+    IO(timer.close) onLeftSideEffect {
       failure =>
         logger.error("Failed to close timer file", failure.exception)
     }
     (Seq(currentMap) ++ maps.asScala)
-      .foreachIO(f = _.close(), failFast = false)
+      .foreachIO(f = map => IO(map.close()), failFast = false)
       .getOrElse(IO.unit)
   }
 

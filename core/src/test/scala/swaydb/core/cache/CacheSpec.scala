@@ -88,7 +88,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     "always return initial value" in {
       val cache: Cache[swaydb.Error.Segment, Unit, Int] = Cache.valueIO(10)
       cache.isCached shouldBe true
-      cache.get should contain(IO.Right(10))
+      cache.getIO should contain(IO.Right(10))
       runThisParallel(100.times) {
         cache.value(()).get shouldBe 10
       }
@@ -108,34 +108,34 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
           initialValue foreach {
             initialValue =>
               cache.isCached shouldBe true
-              cache.get().get.get shouldBe initialValue
+              cache.getIO().get.get shouldBe initialValue
               cache.clear()
           }
 
         cache.isCached shouldBe false
 
-        cache.get() shouldBe empty
+        cache.getIO() shouldBe empty
 
         //getOrElse on un-cached should set the cache
         cache.getOrElse(IO(111)) shouldBe IO(111)
         cache.isCached shouldBe false // still not cached
-        cache.get() shouldBe empty //still not cached
+        cache.getIO() shouldBe empty //still not cached
         mock.expects() returning IO(123)
 
         cache.value() shouldBe IO.Right(123)
         cache.isCached shouldBe true
-        cache.get() shouldBe Some(IO.Right(123))
+        cache.getIO() shouldBe Some(IO.Right(123))
         cache.value() shouldBe IO.Right(123) //value again mock function is not invoked again
         cache.getOrElse(fail()) shouldBe IO.Right(123)
 
         val mapNotStoredCache = cache.map(int => IO(int + 1))
-        mapNotStoredCache.get() shouldBe Some(IO.Right(124))
+        mapNotStoredCache.getIO() shouldBe Some(IO.Right(124))
         mapNotStoredCache.value(fail()) shouldBe IO.Right(124)
         mapNotStoredCache.value(fail()) shouldBe IO.Right(124)
         mapNotStoredCache.isCached shouldBe cache.isCached
 
         val mapStoredCache = cache.mapConcurrentStored(int => IO(int + 5))
-        mapStoredCache.get() shouldBe Some(IO.Right(128))
+        mapStoredCache.getIO() shouldBe Some(IO.Right(128))
         mapStoredCache.value(fail()) shouldBe IO.Right(128)
         mapStoredCache.value(fail()) shouldBe IO.Right(128)
         mapStoredCache.isCached shouldBe cache.isCached
@@ -143,7 +143,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), stored = true, None)((int: Int) => IO(int + 2)))
         flatMapStoredCache.value() shouldBe IO.Right(125)
         flatMapStoredCache.value(fail()) shouldBe IO.Right(125)
-        flatMapStoredCache.get() shouldBe Some(IO.Right(125))
+        flatMapStoredCache.getIO() shouldBe Some(IO.Right(125))
 
         val flatMapNotStoredCache =
           cache flatMap {
@@ -158,7 +158,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         flatMapNotStoredCache.value() shouldBe IO.Right(126)
         flatMapNotStoredCache.value(fail()) shouldBe IO.Right(126)
         //stored is false but get() will apply the value function fetching the value from parent cache.
-        flatMapNotStoredCache.get() shouldBe Some(IO.Right(126))
+        flatMapNotStoredCache.getIO() shouldBe Some(IO.Right(126))
 
         //getOrElse on cached is not invoked on new value
         cache.getOrElse(fail()) shouldBe IO(123)
@@ -172,11 +172,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         mapStoredCache.clear()
         mapStoredCache.isCached shouldBe false
-        mapStoredCache.get() shouldBe empty
+        mapStoredCache.getIO() shouldBe empty
 
         flatMapStoredCache.clear()
         flatMapStoredCache.isCached shouldBe false
-        flatMapStoredCache.get() shouldBe empty
+        flatMapStoredCache.getIO() shouldBe empty
       }
 
       runTestForAllCombinations(doTest)
@@ -248,7 +248,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         //since cache is populated value will not be fetched
         flatMapCache1.value(fail()) shouldBe IO(112) //value is not invoked since value is already set.
         //since cache is populated value will not be fetched
-        flatMapCache1.get().get.get shouldBe 112
+        flatMapCache1.getIO().get.get shouldBe 112
 
         cache.clear()
         cache.isCached shouldBe false
@@ -279,10 +279,10 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         //child caches are fetched above but since they are already populated
         //root cache's value should still remaing cleared
         cache.isCached shouldBe false
-        cache.get() shouldBe empty
+        cache.getIO() shouldBe empty
 
-        flatMapCache1.get().get.get shouldBe 112
-        flatMapCache2.get().get.get shouldBe 224
+        flatMapCache1.getIO().get.get shouldBe 112
+        flatMapCache2.getIO().get.get shouldBe 224
 
         cache.isCached shouldBe false
       }

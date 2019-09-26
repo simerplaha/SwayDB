@@ -363,7 +363,7 @@ private[writer] object ValueWriter {
           else if (valueLengthCommonBytes == 4)
             entryId.valueUncompressed.valueOffsetUncompressed.valueLengthFullyCompressed
           else
-            throw new Exception(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
+            throw IO.throwable(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
 
         val currentUnsignedValueOffsetBytes = Slice.writeUnsignedInt(currentValueOffset)
         val (indexEntryBytes, isPrefixCompressed) =
@@ -440,7 +440,7 @@ private[writer] object ValueWriter {
           else if (valueOffsetCommonBytes == 3)
             entryId.valueUncompressed.valueOffsetThreeCompressed
           else
-            throw new Exception(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
+            throw IO.throwable(s"Fatal exception: valueOffsetCommonBytes = $valueOffsetCommonBytes")
 
         Bytes.compress(Slice.writeUnsignedInt(previousValue.size), Slice.writeUnsignedInt(currentValue.size), 1) match {
           case Some((valueLengthCommonBytes, valueLengthRemainingBytes)) =>
@@ -454,7 +454,7 @@ private[writer] object ValueWriter {
               else if (valueLengthCommonBytes == 4)
                 valueOffsetId.valueLengthFullyCompressed
               else
-                throw new Exception(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
+                throw IO.throwable(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
 
             val (indexEntryBytes, _) =
               DeadlineWriter.write(

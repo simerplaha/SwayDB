@@ -23,6 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent}
@@ -39,7 +40,6 @@ import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.{Error, IO}
 
 import scala.concurrent.duration.Deadline
 
@@ -106,11 +106,10 @@ private[segment] case class PersistentSegment(file: DBFile,
   def skipList: SkipList[Slice[Byte], Persistent] =
     segmentCache.skipList
 
-  override def close: IO[Error.IO, Unit] =
-    file.close map {
-      _ =>
-        segmentCache.clearLocalAndBlockCache()
-    }
+  override def close: Unit = {
+    file.close()
+    segmentCache.clearLocalAndBlockCache()
+  }
 
   def isOpen: Boolean =
     file.isOpen
@@ -121,9 +120,9 @@ private[segment] case class PersistentSegment(file: DBFile,
   def deleteSegmentsEventually =
     fileSweeper.delete(this)
 
-  def delete: IO[swaydb.Error.IO, Unit] = {
+  def delete: Unit = {
     logger.trace(s"{}: DELETING FILE", path)
-    file.delete() onLeftSideEffect {
+    IO(file.delete()) onLeftSideEffect {
       failure =>
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
@@ -132,7 +131,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
   }
 
-  def copyTo(toPath: Path): IO[Error.IO, Path] =
+  def copyTo(toPath: Path): Path =
     file copyTo toPath
 
   /**
@@ -185,7 +184,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         (segments: Slice[Segment], _: Throwable) =>
           segments foreach {
             segmentToDelete =>
-              segmentToDelete.delete onLeftSideEffect {
+              IO(segmentToDelete.delete) onLeftSideEffect {
                 exception =>
                   logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
               }
@@ -237,7 +236,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         (segments: Slice[Segment], _: Throwable) =>
           segments foreach {
             segmentToDelete =>
-              segmentToDelete.delete onLeftSideEffect {
+              IO(segmentToDelete.delete) onLeftSideEffect {
                 exception =>
                   logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
               }

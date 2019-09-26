@@ -91,7 +91,7 @@ object Start {
         else if (testNumber == 6)
           MemoryTest(keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true, useMap = map)
         else {
-          throw new Exception(s"Invalid test number '$testNumber'.")
+          throw IO.throwable(s"Invalid test number '$testNumber'.")
         }
       }
 
@@ -109,7 +109,7 @@ object Start {
         else if (testNumber == 6)
           PersistentTest(dir = dir, mmap = true, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true, useMap = map)
         else
-          throw new Exception(s"Invalid test number '$testNumber'.")
+          throw IO.throwable(s"Invalid test number '$testNumber'.")
       }
 
       else if (databaseType == 3) {
@@ -126,10 +126,10 @@ object Start {
         else if (testNumber == 6)
           PersistentTest(dir = dir, mmap = false, keyValueCount = keyValueCount, randomWrite = false, randomRead = false, forwardIteration = false, reverseIteration = true, useMap = map)
         else
-          throw new Exception(s"Invalid test number '$testNumber'.")
+          throw IO.throwable(s"Invalid test number '$testNumber'.")
       }
       else
-        throw new Exception(s"Invalid database type '$databaseType'.")
+        throw IO.throwable(s"Invalid database type '$databaseType'.")
 
     Runner(test).run
     deleteDir(dir)

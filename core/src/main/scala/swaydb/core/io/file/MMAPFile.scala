@@ -95,14 +95,6 @@ private[file] class MMAPFile(val path: Path,
    *
    * FIXME - Switch to using Option.
    */
-  def recoverFromNullPointer[T](f: => T): IO[swaydb.Error.IO, T] =
-    IO[swaydb.Error.IO, T](f) recoverWith {
-      case swaydb.Error.Fatal(ex: NullPointerException) =>
-        IO.Left[swaydb.Error.IO, T](swaydb.Error.NullMappedByteBuffer(swaydb.Exception.NullMappedByteBuffer(ex, Reserve.free(name = s"${this.getClass.getSimpleName}: $path"))))
-
-      case other =>
-        IO.Left(other)
-    }
 
   def watchNullPointer[T](f: => T): T =
     try
@@ -112,27 +104,26 @@ private[file] class MMAPFile(val path: Path,
         throw swaydb.Exception.NullMappedByteBuffer(ex, Reserve.free(name = s"${this.getClass.getSimpleName}: $path"))
     }
 
-  def close(): IO[swaydb.Error.IO, Unit] =
+  def close(): Unit =
   //    logger.info(s"$path: Closing channel")
     if (open.compareAndSet(true, false)) {
-      recoverFromNullPointer {
+      watchNullPointer {
         forceSave()
         clearBuffer()
         channel.close()
       }
     } else {
       logger.trace("{}: Already closed.", path)
-      IO.unit
     }
 
   //forceSave and clearBuffer are never called concurrently other than when the database is being shut down.
   //so there is no blocking cost for using synchronized here on than when this file is already submitted for cleaning on shutdown.
-  def forceSave(): IO[swaydb.Error.IO, Unit] =
+  def forceSave(): Unit =
     synchronized {
       if (mode == MapMode.READ_ONLY || isBufferEmpty)
         IO.unit
       else
-        recoverFromNullPointer(buffer.force())
+        watchNullPointer(buffer.force())
     }
 
   private def clearBuffer(): Unit =
@@ -145,15 +136,6 @@ private[file] class MMAPFile(val path: Path,
       BufferCleaner.clean(swapBuffer, path)
     }
 
-  private def extendBuffer(bufferSize: Long): Unit =
-    watchNullPointer {
-      val positionBeforeClear = buffer.position()
-      buffer.force()
-      clearBuffer()
-      buffer = channel.map(mode, 0, positionBeforeClear + bufferSize)
-      buffer.position(positionBeforeClear)
-    }
-
   override def append(slice: Iterable[Slice[Byte]]): Unit =
     slice foreach append
 
@@ -163,13 +145,19 @@ private[file] class MMAPFile(val path: Path,
       watchNullPointer[Unit](buffer.put(slice.toByteBufferWrap))
     catch {
       case ex: BufferOverflowException =>
-        //Although this code extends the buffer, currently there is no implementation that requires this feature.
-        //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
-        val requiredByteSize = slice.size.toLong
-        logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
-          path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
+        watchNullPointer {
+          //Although this code extends the buffer, currently there is no implementation that requires this feature.
+          //All the bytes requires for each write operation are pre-calculated EXACTLY and an overflow should NEVER occur.
+          val requiredByteSize = slice.size.toLong
+          logger.debug("{}: BufferOverflowException. Required bytes: {}. Remaining bytes: {}. Extending buffer with {} bytes.",
+            path, requiredByteSize, buffer.remaining(), requiredByteSize, ex)
 
-        extendBuffer(requiredByteSize)
+          val positionBeforeClear = buffer.position()
+          buffer.force()
+          clearBuffer()
+          buffer = channel.map(mode, 0, positionBeforeClear + requiredByteSize)
+          buffer.position(positionBeforeClear)
+        }
         append(slice)
     }
 
@@ -192,25 +180,25 @@ private[file] class MMAPFile(val path: Path,
   override def fileSize =
     watchNullPointer(channel.size())
 
-  override def readAll: IO[swaydb.Error.IO, Slice[Byte]] =
-    IO(read(0, channel.size().toInt))
+  override def readAll: Slice[Byte] =
+    watchNullPointer(read(0, channel.size().toInt))
 
   override def isOpen =
-    channel.isOpen
+    watchNullPointer(channel.isOpen)
 
   override def isMemoryMapped =
-    IO.`true`
+    true
 
-  override def isLoaded: IO[swaydb.Error.IO, Boolean] =
-    recoverFromNullPointer(buffer.isLoaded)
+  override def isLoaded: Boolean =
+    watchNullPointer(buffer.isLoaded)
 
-  override def isFull: IO[swaydb.Error.IO, Boolean] =
-    recoverFromNullPointer(buffer.remaining() == 0)
+  override def isFull: Boolean =
+    watchNullPointer(buffer.remaining() == 0)
 
-  override def delete(): IO[swaydb.Error.IO, Unit] =
-    close flatMap {
-      _ =>
-        Effect.delete(path)
+  override def delete(): Unit =
+    watchNullPointer {
+      close()
+      Effect.delete(path)
     }
 
   def isBufferEmpty: Boolean =

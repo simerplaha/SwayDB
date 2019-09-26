@@ -91,7 +91,7 @@ private[writer] object DeadlineWriter {
     else if (bytesCompressed == 8)
       deadlineId.deadlineFullyCompressed
     else
-      throw new Exception(s"Fatal exception: deadlineBytesCompressed = $bytesCompressed")
+      throw IO.throwable(s"Fatal exception: deadlineBytesCompressed = $bytesCompressed")
 
   private[writer] def uncompressed(currentDeadline: Deadline,
                                    deadlineId: DeadlineId,

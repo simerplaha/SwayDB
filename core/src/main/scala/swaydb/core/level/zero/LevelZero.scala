@@ -149,7 +149,7 @@ private[core] object LevelZero extends LazyLogging {
           zero
             .nextLevel
             .map(_.delete)
-            .getOrElse(Effect.walkDelete(zero.path.getParent))
+            .getOrElse(IO[swaydb.Error.Delete, Unit](Effect.walkDelete(zero.path.getParent)))
       }
 }
 
@@ -175,7 +175,7 @@ private[core] case class LevelZero(path: Path,
     maps onNextMapCallback event
 
   def releaseLocks: IO[swaydb.Error.Close, Unit] =
-    Effect.release(lock) flatMap {
+    IO[swaydb.Error.Close, Unit](Effect.release(lock)) flatMap {
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
@@ -755,7 +755,7 @@ private[core] case class LevelZero(path: Path,
         nextLevel.appendixPath
 
       case None =>
-        throw new Exception("LevelZero does not have appendix.")
+        throw IO.throwableFatal("LevelZero does not have appendix.")
     }
 
   override def rootPath: Path =

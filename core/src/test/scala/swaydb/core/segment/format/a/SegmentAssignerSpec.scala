@@ -82,7 +82,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
 
       val segment = TestSegment().runRandomIO.right.value
 
-      val result = SegmentAssigner.assign(keyValues, List(segment)).runRandomIO.right.value
+      val result = SegmentAssigner.assignUnsafe(keyValues, List(segment)).runRandomIO.right.value
       result.size shouldBe 1
       result.keys.head.path shouldBe segment.path
       result.values.head shouldBe keyValues
@@ -94,7 +94,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
       val segments = Seq(segment1, segment2)
 
       val result =
-        SegmentAssigner.assign(
+        SegmentAssigner.assignUnsafe(
           keyValues =
             Slice(
               randomFixedKeyValue(10),
@@ -121,7 +121,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
           Memory.Range(16, 20, None, Value.update(16))
         )
 
-      val result = SegmentAssigner.assign(keyValues, segments).runRandomIO.right.value
+      val result = SegmentAssigner.assignUnsafe(keyValues, segments).runRandomIO.right.value
       result.size shouldBe 1
       result.keys.head.path shouldBe segment1.path
       result.values.head.toMemory shouldBe keyValues
@@ -143,7 +143,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
             randomRangeKeyValue(20, 100)
           )
 
-        val result = SegmentAssigner.assign(keyValues, segments).runRandomIO.right.value
+        val result = SegmentAssigner.assignUnsafe(keyValues, segments).runRandomIO.right.value
         result.size shouldBe 1
         result.keys.head.path shouldBe segment2.path
         result.values.head.toMemory shouldBe keyValues
@@ -177,7 +177,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
         assignments.find(_._1 == segment4).value._2 should contain only Memory.Range(40, 50, None, Value.update(10))
       }
 
-      assertResult(SegmentAssigner.assign(keyValues, segments).runRandomIO.right.value)
+      assertResult(SegmentAssigner.assignUnsafe(keyValues, segments).runRandomIO.right.value)
     }
 
     "assign key value to the first segment when the key is the new smallest" in {
@@ -188,7 +188,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
       //segment2 - 4 - 5
       val segments = Seq(segment1, segment2)
 
-      SegmentAssigner.assign(Slice(Memory.put(0)), segments).runRandomIO.right.value ==> {
+      SegmentAssigner.assignUnsafe(Slice(Memory.put(0)), segments).runRandomIO.right.value ==> {
         result =>
           result.size shouldBe 1
           result.keys.head.path shouldBe segment1.path
@@ -206,7 +206,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
       val segments = Seq(segment1, segment2, segment3)
 
       //insert range 0 - 20. This overlaps all 3 Segment and key-values will value sliced and distributed to all Segments.
-      SegmentAssigner.assign(Slice(Memory.Range(0, 20, Some(Value.put(0)), Value.remove(None))), segments).runRandomIO.right.value ==> {
+      SegmentAssigner.assignUnsafe(Slice(Memory.Range(0, 20, Some(Value.put(0)), Value.remove(None))), segments).runRandomIO.right.value ==> {
         assignments =>
           assignments.size shouldBe 3
           assignments.find(_._1 == segment1).value._2 should contain only Memory.Range(0, 4, Some(Value.put(0)), Value.remove(None))
@@ -224,7 +224,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
 
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
-      SegmentAssigner.assign(Slice(Memory.put(1), Memory.put(100000)), segments).runRandomIO.right.value ==> {
+      SegmentAssigner.assignUnsafe(Slice(Memory.put(1), Memory.put(100000)), segments).runRandomIO.right.value ==> {
         assignments =>
           assignments.size shouldBe 2
           assignments.find(_._1 == segment1).value._2 should contain only Memory.put(1)
@@ -239,21 +239,21 @@ sealed trait SegmentAssignerSpec extends TestBase {
       val segment4 = TestSegment(Slice(Transient.put(8), Transient.put(9)).updateStats).runRandomIO.right.value
       val segments = Seq(segment1, segment2, segment3, segment4)
 
-      SegmentAssigner.assign(Slice(Memory.put(10, "ten")), segments).runRandomIO.right.value ==> {
+      SegmentAssigner.assignUnsafe(Slice(Memory.put(10, "ten")), segments).runRandomIO.right.value ==> {
         result =>
           result.size shouldBe 1
           result.keys.head.path shouldBe segment4.path
           result.values.head should contain only Memory.put(10, "ten")
       }
 
-      SegmentAssigner.assign(Slice(Memory.remove(10)), segments).runRandomIO.right.value ==> {
+      SegmentAssigner.assignUnsafe(Slice(Memory.remove(10)), segments).runRandomIO.right.value ==> {
         result =>
           result.size shouldBe 1
           result.keys.head.path shouldBe segment4.path
           result.values.head should contain only Memory.remove(10)
       }
 
-      SegmentAssigner.assign(Slice(Memory.Range(10, 20, Some(Value.put(10)), Value.remove(None))), segments).runRandomIO.right.value ==> {
+      SegmentAssigner.assignUnsafe(Slice(Memory.Range(10, 20, Some(Value.put(10)), Value.remove(None))), segments).runRandomIO.right.value ==> {
         result =>
           result.size shouldBe 1
           result.keys.head.path shouldBe segment4.path
@@ -271,7 +271,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
 
       val segments = List(segment1, segment2, segment3, segment4, segment5)
 
-      val result = SegmentAssigner.assign(keyValues.toMemory, segments).runRandomIO.right.value
+      val result = SegmentAssigner.assignUnsafe(keyValues.toMemory, segments).runRandomIO.right.value
       result.size shouldBe 5
 
       //sort them by the fileId, so it's easier to test

@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
+import swaydb.IO
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, Bytez}
@@ -652,7 +653,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
         Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
 
       case _ =>
-        throw new Exception(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
+        throw IO.throwableFatal(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
     }
     writePosition += items.size
     written = (writePosition - fromOffset) max written

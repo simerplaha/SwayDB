@@ -20,8 +20,6 @@
 package swaydb.core.map
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Map.ExceptionHandler
-import swaydb.IO
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.util.SkipList
@@ -44,10 +42,10 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K
 
   override def hasRange: Boolean = _hasRange
 
-  def delete: IO[swaydb.Error.Map, Unit] =
-    IO(skipList.clear())
+  def delete: Unit =
+    skipList.clear()
 
-  override def write(entry: MapEntry[K, V]): IO[swaydb.Error.Map, Boolean] =
+  override def write(entry: MapEntry[K, V]): Boolean =
     synchronized {
       if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
         if (entry.hasRange) {
@@ -59,12 +57,15 @@ private[map] class MemoryMap[K, V: ClassTag](val skipList: SkipList.Concurrent[K
           entry applyTo skipList
         }
         currentBytesWritten += entry.totalByteSize
-        IO.`true`
+        true
       } else {
-        IO.`false`
+        false
       }
     }
 
-  override def close(): IO[swaydb.Error.Map, Unit] =
-    IO.unit
+  override def close(): Unit =
+    ()
+
+  def fileId: Long =
+    0
 }

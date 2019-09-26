@@ -140,16 +140,15 @@ private[core] object Level extends LazyLogging {
                 logger.info("{}: Failed to start Level. Appendix file is missing", appendixFolder)
                 IO.failed(new IllegalStateException(s"Failed to start Level. Appendix file is missing '$appendixFolder'."))
               } else {
-                Effect createDirectoriesIfAbsent appendixFolder
-                Map.persistent[Slice[Byte], Segment](
-                  folder = appendixFolder,
-                  mmap = mmap,
-                  flushOnOverflow = true,
-                  fileSize = appendixFlushCheckpointSize,
-                  dropCorruptedTailEntries = false
-                ).map(_.item) recoverWith {
-                  case error =>
-                    IO.Left(IO.ExceptionHandler.toError(error.exception))
+                IO {
+                  Effect createDirectoriesIfAbsent appendixFolder
+                  Map.persistent[Slice[Byte], Segment](
+                    folder = appendixFolder,
+                    mmap = mmap,
+                    flushOnOverflow = true,
+                    fileSize = appendixFlushCheckpointSize,
+                    dropCorruptedTailEntries = false
+                  ).item
                 }
               }
 
@@ -223,7 +222,7 @@ private[core] object Level extends LazyLogging {
   def largestSegmentId(appendix: Iterable[Segment]): Long =
     appendix.foldLeft(0L) {
       case (initialId, segment) =>
-        val segmentId = segment.path.fileId.get._1
+        val segmentId = segment.path.fileId._1
         if (initialId > segmentId)
           initialId
         else
@@ -253,7 +252,7 @@ private[core] object Level extends LazyLogging {
 
           if (toDelete) {
             logger.info("SEGMENT {} not in appendix. Deleting uncommitted segment.", segmentToDelete)
-            Effect.delete(segmentToDelete)
+            IO(Effect.delete(segmentToDelete))
           } else {
             IO.unit
           }
@@ -327,7 +326,7 @@ private[core] object Level extends LazyLogging {
                 .dirs
                 .foreachIO {
                   path =>
-                    Effect.walkDelete(path.path)
+                    IO(Effect.walkDelete(path.path))
                 }
                 .getOrElse(IO.unit)
             }
@@ -434,7 +433,7 @@ private[core] case class Level(dirs: Seq[Dir],
     rootPath.resolve("appendix")
 
   def releaseLocks: IO[swaydb.Error.Close, Unit] =
-    Effect.release(lock) flatMap {
+    IO[swaydb.Error.Close, Unit](Effect.release(lock)) flatMap {
       _ =>
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
@@ -458,11 +457,13 @@ private[core] case class Level(dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
-  private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Segment, IO[Promise[Unit], Slice[Byte]]] =
-    SegmentAssigner.assignMinMaxOnly(
-      inputSegments = segments,
-      targetSegments = appendix.skipList.values().asScala
-    ) map {
+  private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] = {
+    IO {
+      SegmentAssigner.assignMinMaxOnlyUnsafe(
+        inputSegments = segments,
+        targetSegments = appendix.skipList.values().asScala
+      )
+    } map {
       assigned =>
         Segment.minMaxKey(
           left = assigned,
@@ -477,12 +478,15 @@ private[core] case class Level(dirs: Seq[Dir],
             )
         } getOrElse IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
     }
+  }
 
-  private[level] implicit def reserve(map: Map[Slice[Byte], Memory]): IO[Error.Segment, IO[Promise[Unit], Slice[Byte]]] =
-    SegmentAssigner.assignMinMaxOnly(
-      map = map,
-      targetSegments = appendix.skipList.values().asScala
-    ) map {
+  private[level] implicit def reserve(map: Map[Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
+    IO {
+      SegmentAssigner.assignMinMaxOnlyUnsafe(
+        map = map,
+        targetSegments = appendix.skipList.values().asScala
+      )
+    } map {
       assigned =>
         Segment.minMaxKey(
           left = assigned,
@@ -594,8 +598,7 @@ private[core] case class Level(dirs: Seq[Dir],
       copiedSegments
         .foreach {
           segmentToDelete =>
-            segmentToDelete
-              .delete
+            IO(segmentToDelete.delete)
               .onLeftSideEffect {
                 failure =>
                   logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segmentToDelete.path, failure)
@@ -792,49 +795,50 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace(s"{}: Copying {} Segments", paths.head, segments.map(_.path.toString))
     segments.flatMapRecoverIO[Segment](
       ioBlock =
-        segment => {
-          def targetSegmentPath: (Long, Path) = {
-            val segmentId = segmentIDGenerator.nextID
-            val path = paths.next.resolve(IDGenerator.segmentId(segmentId))
-            (segmentId, path)
-          }
+        segment =>
+          IO {
+            def targetSegmentPath: (Long, Path) = {
+              val segmentId = segmentIDGenerator.nextID
+              val path = paths.next.resolve(IDGenerator.segmentId(segmentId))
+              (segmentId, path)
+            }
 
-          if (inMemory)
-            Segment.copyToMemory(
-              segment = segment,
-              createdInLevel = levelNumber,
-              fetchNextPath = targetSegmentPath,
-              removeDeletes = removeDeletedRecords,
-              minSegmentSize = segmentSize,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig
-            )
-          else
-            Segment.copyToPersist(
-              segment = segment,
-              segmentConfig = segmentConfig,
-              createdInLevel = levelNumber,
-              fetchNextPath = targetSegmentPath,
-              mmapSegmentsOnRead = mmapSegmentsOnRead,
-              mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-              removeDeletes = removeDeletedRecords,
-              minSegmentSize = segmentSize,
-              valuesConfig = valuesConfig,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig
-            )
-        },
+            if (inMemory)
+              Segment.copyToMemory(
+                segment = segment,
+                createdInLevel = levelNumber,
+                fetchNextPath = targetSegmentPath,
+                removeDeletes = removeDeletedRecords,
+                minSegmentSize = segmentSize,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig
+              )
+            else
+              Segment.copyToPersist(
+                segment = segment,
+                segmentConfig = segmentConfig,
+                createdInLevel = levelNumber,
+                fetchNextPath = targetSegmentPath,
+                mmapSegmentsOnRead = mmapSegmentsOnRead,
+                mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+                removeDeletes = removeDeletedRecords,
+                minSegmentSize = segmentSize,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig
+              )
+          },
       recover =
         (segments, failure) => {
           logFailure(s"${paths.head}: Failed to copy Segments. Deleting partially copied Segments ${segments.size} Segments", failure)
           segments foreach {
             segment =>
-              segment.delete onLeftSideEffect {
+              IO(segment.delete) onLeftSideEffect {
                 failure =>
                   logger.error(s"{}: Failed to delete copied Segment '{}'", paths.head, segment.path, failure)
               }
@@ -846,18 +850,20 @@ private[core] case class Level(dirs: Seq[Dir],
   def refresh(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.debug("{}: Running refresh.", paths.head)
     reserveAndRelease(Seq(segment)) {
-      segment.refresh(
-        minSegmentSize = segmentSize,
-        removeDeletes = removeDeletedRecords,
-        createdInLevel = levelNumber,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig,
-        targetPaths = paths
-      ) flatMap {
+      IO {
+        segment.refresh(
+          minSegmentSize = segmentSize,
+          removeDeletes = removeDeletedRecords,
+          createdInLevel = levelNumber,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig,
+          targetPaths = paths
+        )
+      } flatMap {
         newSegments =>
           logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
           buildNewMapEntry(newSegments, Some(segment), None) flatMap {
@@ -867,7 +873,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   if (deleteSegmentsEventually)
                     segment.deleteSegmentsEventually
                   else
-                    segment.delete onLeftSideEffect {
+                    IO(segment.delete) onLeftSideEffect {
                       failure =>
                         logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segment.path, failure)
                     }
@@ -876,7 +882,7 @@ private[core] case class Level(dirs: Seq[Dir],
             _ =>
               newSegments foreach {
                 segment =>
-                  segment.delete onLeftSideEffect {
+                  IO(segment.delete) onLeftSideEffect {
                     failure =>
                       logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, failure)
                   }
@@ -914,7 +920,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 segmentsToRemove foreach (_.deleteSegmentsEventually)
                 IO.zero
               } else {
-                Segment.deleteSegments(segmentsToRemove).recoverWith[swaydb.Error.Level, Int] {
+                IO(Segment.deleteSegments(segmentsToRemove)) recoverWith {
                   case exception =>
                     logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
                     IO.zero
@@ -969,7 +975,7 @@ private[core] case class Level(dirs: Seq[Dir],
             else
               segmentsToMerge foreach {
                 segment =>
-                  segment.delete onLeftSideEffect {
+                  IO(segment.delete) onLeftSideEffect {
                     exception =>
                       logger.warn(s"{}: Failed to delete Segment {} after successful collapse", paths.head, segment.path, exception)
                   }
@@ -984,8 +990,7 @@ private[core] case class Level(dirs: Seq[Dir],
                     targetSegments: Iterable[Segment],
                     appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Merging segments {}", paths.head, segments.map(_.path.toString))
-    Segment
-      .getAllKeyValues(segments)
+    IO(Segment.getAllKeyValues(segments))
       .flatMap {
         keyValues =>
           putKeyValues(
@@ -1003,7 +1008,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                  targetSegments: Iterable[Segment],
                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
-    SegmentAssigner.assign(keyValues, targetSegments) flatMap {
+    IO(SegmentAssigner.assignUnsafe(keyValues, targetSegments)) flatMap {
       assignments =>
         logger.trace(s"{}: Assigned segments {} for {} KeyValues.", paths.head, assignments.map(_._1.path.toString), keyValues.size)
         if (assignments.isEmpty) {
@@ -1031,7 +1036,7 @@ private[core] case class Level(dirs: Seq[Dir],
                       else
                         assignments foreach {
                           case (segment, _) =>
-                            segment.delete onLeftSideEffect {
+                            IO(segment.delete) onLeftSideEffect {
                               exception =>
                                 logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                             }
@@ -1047,7 +1052,7 @@ private[core] case class Level(dirs: Seq[Dir],
                     case (_, newSegments) =>
                       newSegments foreach {
                         segment =>
-                          segment.delete onLeftSideEffect {
+                          IO(segment.delete) onLeftSideEffect {
                             exception =>
                               logger.error(s"{}: Failed to delete Segment {}", paths.head, segment.path, exception)
                           }
@@ -1063,21 +1068,22 @@ private[core] case class Level(dirs: Seq[Dir],
     assignedSegments.mapRecoverIO[(Segment, Slice[Segment])](
       block = {
         case (targetSegment, assignedKeyValues) =>
-          targetSegment.put(
-            newKeyValues = assignedKeyValues,
-            minSegmentSize = segmentSize,
-            removeDeletes = removeDeletedRecords,
-            createdInLevel = levelNumber,
-            valuesConfig = valuesConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig,
-            segmentConfig = segmentConfig,
-            targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
-          ) map {
-            newSegments =>
-              (targetSegment, newSegments)
+          IO {
+            val newSegments =
+              targetSegment.put(
+                newKeyValues = assignedKeyValues,
+                minSegmentSize = segmentSize,
+                removeDeletes = removeDeletedRecords,
+                createdInLevel = levelNumber,
+                valuesConfig = valuesConfig,
+                sortedIndexConfig = sortedIndexConfig,
+                binarySearchIndexConfig = binarySearchIndexConfig,
+                hashIndexConfig = hashIndexConfig,
+                bloomFilterConfig = bloomFilterConfig,
+                segmentConfig = segmentConfig,
+                targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
+              )
+            (targetSegment, newSegments)
           }
       },
       recover =
@@ -1087,7 +1093,7 @@ private[core] case class Level(dirs: Seq[Dir],
             case (_, newSegments) =>
               newSegments foreach {
                 segment =>
-                  segment.delete onLeftSideEffect {
+                  IO(segment.delete) onLeftSideEffect {
                     exception =>
                       logger.error(s"{}: Failed to delete Segment '{}' in recovery for putAssignedKeyValues", paths.head, segment.path, exception)
                   }
@@ -1136,7 +1142,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def getFromThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly]] =
     appendix.skipList.floor(key) match {
       case Some(segment) =>
-        segment get key
+        IO(segment get key)
 
       case None =>
         IO.none
@@ -1153,7 +1159,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private def mightContainKeyInThisLevel(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
     appendix.skipList.floor(key) match {
       case Some(segment) =>
-        segment mightContainKey key
+        IO(segment mightContainKey key)
 
       case None =>
         IO.`false`
@@ -1209,8 +1215,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .lower(key)
       .map {
         segment =>
-          segment
-            .lower(key)
+          IO(segment.lower(key))
             .map {
               result =>
                 LevelSeek(
@@ -1246,8 +1251,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .floor(key)
       .map {
         segment =>
-          segment
-            .higher(key)
+          IO(segment.higher(key))
             .map {
               result =>
                 LevelSeek(
@@ -1264,8 +1268,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .higher(key)
       .map {
         segment =>
-          segment
-            .higher(key)
+          IO(segment.higher(key))
             .map {
               result =>
                 LevelSeek(
@@ -1368,8 +1371,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .skipList
       .foldLeft(IO.zero: IO[swaydb.Error.Level, Int]) {
         case (currentTotal, (_, segment)) =>
-          segment
-            .getKeyValueCount()
+          IO(segment.getKeyValueCount())
             .flatMap {
               segmentSize =>
                 currentTotal.map(_ + segmentSize)
@@ -1519,8 +1521,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .getOrElse(IO.unit)
       .flatMap {
         _ =>
-          appendix
-            .close()
+          IO(appendix.close())
             .onLeftSideEffect {
               failure =>
                 logger.error("{}: Failed to close appendix", paths.head, failure)
@@ -1541,7 +1542,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def closeSegments(): IO[swaydb.Error.Level, Unit] = {
     segmentsInLevel()
-      .foreachIO(_.close, failFast = false)
+      .foreachIO(segment => IO(segment.close), failFast = false)
       .foreach {
         failure =>
           logger.error("{}: Failed to close Segment file.", paths.head, failure.exception)

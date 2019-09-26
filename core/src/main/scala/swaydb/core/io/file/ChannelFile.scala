@@ -24,7 +24,6 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.IO.ExceptionHandler
 import swaydb.IO
 import swaydb.data.slice.Slice
 
@@ -57,11 +56,9 @@ private[file] class ChannelFile(val path: Path,
                                 channel: FileChannel,
                                 val blockCacheFileId: Long) extends LazyLogging with DBFileType {
 
-  def close: IO[swaydb.Error.IO, Unit] =
-    IO {
-      //      logger.info(s"$path: Closing channel")
-      channel.close()
-    }
+  def close: Unit =
+  //      logger.info(s"$path: Closing channel")
+    channel.close()
 
   def append(slice: Slice[Byte]): Unit =
     Effect.writeUnclosed(channel, slice)
@@ -78,12 +75,11 @@ private[file] class ChannelFile(val path: Path,
   def get(position: Int): Byte =
     read(position, 1).head
 
-  def readAll: IO[swaydb.Error.IO, Slice[Byte]] =
-    IO {
-      val bytes = new Array[Byte](channel.size().toInt)
-      channel.read(ByteBuffer.wrap(bytes))
-      Slice(bytes)
-    }
+  def readAll: Slice[Byte] = {
+    val bytes = new Array[Byte](channel.size().toInt)
+    channel.read(ByteBuffer.wrap(bytes))
+    Slice(bytes)
+  }
 
   def fileSize: Long =
     channel.size()
@@ -92,20 +88,19 @@ private[file] class ChannelFile(val path: Path,
     channel.isOpen
 
   override def isMemoryMapped =
-    IO.`false`
+    false
 
   override def isLoaded =
-    IO.`false`
+    false
 
   override def isFull =
-    IO.`false`
+    false
 
-  override def delete(): IO[swaydb.Error.IO, Unit] =
-    close flatMap {
-      _ =>
-        Effect.delete(path)
-    }
+  override def delete(): Unit = {
+    close
+    Effect.delete(path)
+  }
 
-  override def forceSave(): IO[swaydb.Error.IO, Unit] =
+  override def forceSave(): Unit =
     IO.unit
 }

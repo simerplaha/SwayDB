@@ -40,14 +40,14 @@ private[core] object PersistentTimer extends LazyLogging {
     override def insert(insertKey: Slice[Byte],
                         insertValue: Slice[Byte],
                         skipList: SkipList.Concurrent[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                   functionStore: FunctionStore): Unit =
+                                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                                 functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
 
     override def insert(entry: MapEntry[Slice[Byte], Slice[Byte]],
                         skipList: SkipList.Concurrent[Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                   functionStore: FunctionStore): Unit =
+                                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                                 functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
   }
 
@@ -62,13 +62,15 @@ private[core] object PersistentTimer extends LazyLogging {
     implicit val limiter = FileSweeper.Disabled
     implicit val memorySweeper = MemorySweeper.Disabled
 
-    Map.persistent[Slice[Byte], Slice[Byte]](
-      folder = path,
-      mmap = mmap,
-      flushOnOverflow = true,
-      fileSize = flushCheckpointSize,
-      dropCorruptedTailEntries = false
-    ).map(_.item) flatMap {
+    IO {
+      Map.persistent[Slice[Byte], Slice[Byte]](
+        folder = path,
+        mmap = mmap,
+        flushOnOverflow = true,
+        fileSize = flushCheckpointSize,
+        dropCorruptedTailEntries = false
+      ).item
+    } flatMap {
       map =>
         map.skipList.head() match {
           case Some(usedID) =>
@@ -126,13 +128,13 @@ private[core] object PersistentTimer extends LazyLogging {
       failed =>
         val message = s"Failed to write timer entry: $nextTime"
         logger.error(message, failed.exception)
-        throw new Exception(message) //:O see note above
+        throw IO.throwableFatal(message) //:O see note above
     } foreach {
       wrote =>
         if (!wrote) {
           val message = s"Failed to write timer entry: $nextTime"
           logger.error(message)
-          throw new Exception(message) //:O see note above
+          throw IO.throwableFatal(message) //:O see note above
         }
     }
 }
@@ -150,6 +152,6 @@ private[core] class PersistentTimer(mod: Long,
       Time(nextTime)
     }
 
-  override def close: IO[swaydb.Error.Map, Unit] =
+  override def close: Unit =
     map.close()
 }
