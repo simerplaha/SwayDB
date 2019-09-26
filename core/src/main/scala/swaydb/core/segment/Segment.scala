@@ -60,7 +60,7 @@ private[core] object Segment extends LazyLogging {
                                              functionStore: FunctionStore,
                                              fileSweeper: FileSweeper.Enabled): Segment =
     if (keyValues.isEmpty) {
-      throw IO.throwableFatal("Empty key-values submitted to memory Segment.")
+      throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
       val bloomFilterOption: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
@@ -130,7 +130,7 @@ private[core] object Segment extends LazyLogging {
     if (result.isEmpty) {
       //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
       //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
-      throw IO.throwableFatal("Empty key-values submitted to persistent Segment.")
+      throw IO.throwable("Empty key-values submitted to persistent Segment.")
     } else {
       val file =
       //if both read and writes are mmaped. Keep the file open.

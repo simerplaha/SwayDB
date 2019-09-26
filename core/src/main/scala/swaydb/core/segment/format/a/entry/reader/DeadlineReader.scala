@@ -53,52 +53,56 @@ object DeadlineReader {
 
     override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): Option[duration.Deadline] =
-      previous map {
-        case previous: Persistent =>
-          previous.indexEntryDeadline map {
-            deadline =>
-              IO.Right(Some(deadline))
-          } getOrElse IO.failed(EntryReaderFailure.NoPreviousDeadline)
+      previous match {
+        case Some(previous) =>
+          previous match {
+            case previous: Persistent =>
+              previous.indexEntryDeadline match {
+                case some @ Some(_) =>
+                  some
+                case None =>
+                  throw EntryReaderFailure.NoPreviousDeadline
+              }
 
-        case _ =>
-          IO.failed("Expected Persistent. Received Partial")
-      } getOrElse {
-        IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+            case _ =>
+              throw IO.throwable("Expected Persistent. Received Partial")
+          }
+        case None =>
+          throw EntryReaderFailure.NoPreviousKeyValue
       }
   }
 
   private def decompressDeadline(indexReader: ReaderBase,
                                  commonBytes: Int,
                                  previous: Option[Persistent.Partial]): Option[duration.Deadline] =
-    previous map {
-      case previous: Persistent =>
-        previous.indexEntryDeadline map {
-          previousDeadline =>
+    previous match {
+      case Some(previous: Persistent) =>
+        previous.indexEntryDeadline match {
+          case Some(previousDeadline) =>
             val positionBeforeRead = indexReader.getPosition
-            indexReader.read(ByteSizeOf.varLong) flatMap {
-              rightDeadlineBytes =>
-                Bytes
-                  .decompress(
-                    previous = previousDeadline.toBytes,
-                    next = rightDeadlineBytes,
-                    commonBytes = commonBytes
-                  )
-                  .readUnsignedLongWithByteSize()
-                  .flatMap {
-                    case (deadline, byteSize) =>
-                      indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
-                      IO.Right(deadline.toDeadlineOption)
-                  }
+            val rightDeadlineBytes = indexReader.read(ByteSizeOf.varLong)
 
-            }
-        } getOrElse {
-          IO.failed(EntryReaderFailure.NoPreviousDeadline)
+            val (deadline, byteSize) =
+              Bytes
+                .decompress(
+                  previous = previousDeadline.toBytes,
+                  next = rightDeadlineBytes,
+                  commonBytes = commonBytes
+                )
+                .readUnsignedLongWithByteSize()
+
+            indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
+            deadline.toDeadlineOption
+
+          case None =>
+            throw EntryReaderFailure.NoPreviousDeadline
         }
 
-      case _ =>
-        IO.failed("Expected Persistent. Received Partial")
-    } getOrElse {
-      IO.failed(EntryReaderFailure.NoPreviousKeyValue)
+      case Some(_: Persistent.Partial) =>
+        throw IO.throwable("Expected Persistent. Received Partial")
+
+      case None =>
+        throw EntryReaderFailure.NoPreviousKeyValue
     }
 
   implicit object DeadlineOneCompressedReader extends DeadlineReader[BaseEntryId.Deadline.OneCompressed] {
@@ -162,6 +166,6 @@ object DeadlineReader {
 
     override def read(indexReader: ReaderBase,
                       previous: Option[Persistent.Partial]): Option[duration.Deadline] =
-      indexReader.readUnsignedLong() map (_.toDeadlineOption)
+      indexReader.readUnsignedLong().toDeadlineOption
   }
 }

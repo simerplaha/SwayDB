@@ -96,7 +96,7 @@ class ActorSpec extends WordSpec with Matchers {
       val actor =
         Actor[Int, State](state) {
           case (int, self) =>
-            if (int == 2) throw IO.throwableFatal(s"Oh no! Failed at $int")
+            if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
             self.state.processed += int
         }
 
@@ -116,7 +116,7 @@ class ActorSpec extends WordSpec with Matchers {
       val actor =
         Actor[Int, State](state) {
           case (int, self) =>
-            if (int == 2) throw IO.throwableFatal(s"Oh no! Failed at $int")
+            if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
             self.state.processed += int
         } recoverException[Int] {
           case (message, error: IO[Throwable, Actor.Error], actor) =>
@@ -140,7 +140,7 @@ class ActorSpec extends WordSpec with Matchers {
       val actor =
         Actor[Int, State](state) {
           case (int, self) =>
-            if (int == 2) throw IO.throwableFatal(s"Oh no! Failed at $int")
+            if (int == 2) throw IO.throwable(s"Oh no! Failed at $int")
             self.state.processed += int
         } recoverException[Int] {
           case (message, error: IO[Throwable, Actor.Error], actor) =>

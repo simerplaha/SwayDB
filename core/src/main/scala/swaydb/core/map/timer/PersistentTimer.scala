@@ -128,13 +128,13 @@ private[core] object PersistentTimer extends LazyLogging {
       failed =>
         val message = s"Failed to write timer entry: $nextTime"
         logger.error(message, failed.exception)
-        throw IO.throwableFatal(message) //:O see note above
+        throw IO.throwable(message) //:O see note above
     } foreach {
       wrote =>
         if (!wrote) {
           val message = s"Failed to write timer entry: $nextTime"
           logger.error(message)
-          throw IO.throwableFatal(message) //:O see note above
+          throw IO.throwable(message) //:O see note above
         }
     }
 }

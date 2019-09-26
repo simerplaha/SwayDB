@@ -65,7 +65,7 @@ private[reader] object BlockReader extends LazyLogging {
       state.position += 1
       byte
     } else {
-      throw IO.throwableFatal(s"Has no more bytes. Position: ${state.position}")
+      throw IO.throwable(s"Has no more bytes. Position: ${state.position}")
     }
 
   def read(size: Int, state: State): Slice[Byte] = {

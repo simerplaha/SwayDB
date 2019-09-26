@@ -100,7 +100,7 @@ case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](st
         scheduler.future(after) {
           Option(queue.poll()) match {
             case Some(item) =>
-              throw IO.throwableFatal(s"Has message: ${item.getClass.getSimpleName}")
+              throw IO.throwable(s"Has message: ${item.getClass.getSimpleName}")
 
             case None =>
               ()

@@ -453,7 +453,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.Right[Promise[Unit], IO[swaydb.Error.Level, Unit]](IO(throw IO.throwableFatal("Kaboom!!")))(IO.ExceptionHandler.PromiseUnit)
+            IO.Right[Promise[Unit], IO[swaydb.Error.Level, Unit]](IO(throw IO.throwable("Kaboom!!")))(IO.ExceptionHandler.PromiseUnit)
         }
 
         level.put(segment).right.right.value.right.value

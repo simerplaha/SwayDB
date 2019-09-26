@@ -755,7 +755,7 @@ private[core] case class LevelZero(path: Path,
         nextLevel.appendixPath
 
       case None =>
-        throw IO.throwableFatal("LevelZero does not have appendix.")
+        throw IO.throwable("LevelZero does not have appendix.")
     }
 
   override def rootPath: Path =

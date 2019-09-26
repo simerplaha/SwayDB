@@ -69,7 +69,7 @@ private[core] case class ThrottleState(levels: Slice[LevelRef],
     //Yep there needs to be a type-safe way of doing this and not thrown exception using a NonEmptyList.
     //But since levels are created internally this should never really occur. There will never be a
     //empty levels in CompactorState.
-      throw IO.throwableFatal("CompactorState created without Levels.")
+      throw IO.throwable("CompactorState created without Levels.")
     else
       levels.foldLeft(ThrottleLevelState.longSleep) {
         case (deadline, level) =>

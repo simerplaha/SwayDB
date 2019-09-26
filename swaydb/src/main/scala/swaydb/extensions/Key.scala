@@ -228,7 +228,7 @@ private[extensions] object Key {
         else if (dataType == Key.mapEnd)
           Key.MapEnd(keys)
         else {
-          throw IO.throwableFatal(s"Invalid dataType: $dataType")
+          throw IO.throwable(s"Invalid dataType: $dataType")
         }
       }
     }
@@ -269,7 +269,7 @@ private[extensions] object Key {
           else
             defaultOrderResult
         } else {
-          throw IO.throwableFatal(s"Invalid key with prefix byte ${a.head}")
+          throw IO.throwable(s"Invalid key with prefix byte ${a.head}")
         }
       }
     }

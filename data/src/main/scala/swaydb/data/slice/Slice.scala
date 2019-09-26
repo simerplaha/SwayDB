@@ -653,7 +653,7 @@ class Slice[+T: ClassTag] private(array: Array[T],
         Array.copy(items.unsafeInnerArray, items.fromOffset, this.array, currentWritePosition, items.size)
 
       case _ =>
-        throw IO.throwableFatal(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
+        throw IO.throwable(s"Iterable is neither an Array or Slice. ${items.getClass.getName}")
     }
     writePosition += items.size
     written = (writePosition - fromOffset) max written

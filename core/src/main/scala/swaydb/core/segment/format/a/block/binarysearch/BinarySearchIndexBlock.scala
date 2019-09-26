@@ -239,7 +239,7 @@ private[core] object BinarySearchIndexBlock {
       state.bytes addInt state.bytesPerValue
       state.bytes addBoolean state.isFullIndex
       if (state.bytes.currentWritePosition > state.headerSize)
-        throw IO.throwableFatal(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+        throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
       Some(state)
     }
     else

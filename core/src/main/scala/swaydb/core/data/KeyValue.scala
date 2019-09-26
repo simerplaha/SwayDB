@@ -195,7 +195,7 @@ private[swaydb] object Memory {
 
     //to do - make type-safe.
     override def toRangeValue(): Value.RangeValue =
-      throw IO.throwableFatal("Put cannot be converted to RangeValue")
+      throw IO.throwable("Put cannot be converted to RangeValue")
   }
 
   case class Update(key: Slice[Byte],
@@ -1394,7 +1394,7 @@ private[core] object Persistent {
                       .unslice()
 
                   case None =>
-                    throw IO.throwableFatal("ValuesBlock is undefined.")
+                    throw IO.throwable("ValuesBlock is undefined.")
                 }
           },
         _time = time,
@@ -1446,7 +1446,7 @@ private[core] object Persistent {
       Value.Put(getOrFetchValue, deadline, time)
 
     override def toRangeValue(): Value.RangeValue =
-      throw IO.throwableFatal("Put cannot be converted to RangeValue")
+      throw IO.throwable("Put cannot be converted to RangeValue")
 
     override def toMemory(): Memory.Put =
       Memory.Put(
@@ -1495,7 +1495,7 @@ private[core] object Persistent {
                       .unslice()
 
                   case None =>
-                    throw IO.throwableFatal("ValuesBlock is undefined.")
+                    throw IO.throwable("ValuesBlock is undefined.")
                 }
           },
         _time = time,
@@ -1626,7 +1626,7 @@ private[core] object Persistent {
                     .unslice()
 
                 case None =>
-                  throw IO.throwableFatal("ValuesBlock is undefined.")
+                  throw IO.throwable("ValuesBlock is undefined.")
               }
           },
         _time = time,
@@ -1720,7 +1720,7 @@ private[core] object Persistent {
                     .map(_.unslice)
 
                 case None =>
-                  throw IO.throwableFatal("ValuesBlock is undefined.")
+                  throw IO.throwable("ValuesBlock is undefined.")
               }
           },
         nextIndexOffset = nextIndexOffset,
@@ -1830,7 +1830,7 @@ private[core] object Persistent {
                   (from.map(_.unslice), range.unslice)
 
                 case None =>
-                  throw IO.throwableFatal("ValuesBlock is undefined.")
+                  throw IO.throwable("ValuesBlock is undefined.")
               }
           },
         nextIndexOffset = nextIndexOffset,

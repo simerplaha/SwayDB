@@ -545,7 +545,7 @@ object IO {
     }
   }
 
-  @inline final def throwableFatal(message: String): Throwable =
+  @inline final def throwable(message: String): Throwable =
     new Exception(message)
 
   @inline final def throwable(message: String, inner: Throwable): Throwable =

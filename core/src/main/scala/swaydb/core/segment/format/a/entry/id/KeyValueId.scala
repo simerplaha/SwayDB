@@ -52,7 +52,7 @@ sealed trait KeyValueId {
     else if (isKeyValueId_UncompressedKey(keyValueId))
       keyValueId - minKey_Uncompressed_KeyValueId
     else
-      throw IO.throwable(s"Int id: $keyValueId does not belong to ${this.getClass.getSimpleName} ")
+      throw IO.throwable(s"Int id: $keyValueId does not belong to ${this.getClass.getSimpleName}")
 
   //Note: this exceptions above and below is not expected to occur. This may only occur due to file corruption.
   //instead of wrapping in IO for performance throw exception as this is not expected to occur.
