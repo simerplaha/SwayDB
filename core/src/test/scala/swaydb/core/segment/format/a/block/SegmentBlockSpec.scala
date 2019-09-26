@@ -71,7 +71,7 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(Int.MaxValue)
-          ).runRandomIO.right.value
+          )
 
         val reader = Reader(closedSegment.flattenSegmentBytes)
         assertReads(keyValues, reader)
@@ -101,7 +101,7 @@ class SegmentBlockSpec extends TestBase {
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
-          ).runRandomIO.right.value.flattenSegmentBytes
+          ).flattenSegmentBytes
 
         //in memory
         assertReads(keyValues, Reader(bytes.unslice()))
@@ -122,7 +122,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
-        ).runRandomIO.right.value.flattenSegment
+        ).flattenSegment
 
       deadline shouldBe empty
 
@@ -150,7 +150,7 @@ class SegmentBlockSpec extends TestBase {
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
-        ).runRandomIO.right.value.flattenSegment
+        ).flattenSegment
 
       if (!setDeadlines) deadline shouldBe empty
 
@@ -394,7 +394,7 @@ class SegmentBlockSpec extends TestBase {
 
         val blocks = getBlocks(keyValues).get
 
-        val bytes = blocks.valuesReader.get.readAllAndGetReader().get.readRemaining().get
+        val bytes = blocks.valuesReader.value.readAllAndGetReader().readRemaining()
 
         //only the bytes of the first value should be set and the next byte should be the start of index
         //as values are not duplicated
@@ -402,7 +402,7 @@ class SegmentBlockSpec extends TestBase {
         //drop the first value bytes that are value bytes and the next value bytes (value of the next key-value) should not be value bytes.
         bytes.drop(value.size).take(value.size) should not be value
 
-        val readKeyValues = SortedIndexBlock.readAll(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader).get
+        val readKeyValues = SortedIndexBlock.readAll(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader)
         readKeyValues should have size keyValues.size
 
         //assert that all valueOffsets of all key-values are the same

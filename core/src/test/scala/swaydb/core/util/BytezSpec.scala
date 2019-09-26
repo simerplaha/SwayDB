@@ -3,12 +3,11 @@ package swaydb.core.util
 import java.nio.charset.StandardCharsets
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.IOValues._
+import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.core.RunThis._
 
 import scala.util.Random
 
@@ -39,7 +38,7 @@ class BytezSpec extends WordSpec with Matchers {
             Bytes.writeInt(int, slice)
             slice.readInt() shouldBe int //from Slice
             Bytes.readInt(slice) shouldBe int //from slice
-            Bytes.readInt(Reader(slice)).value shouldBe int //from reader
+            Bytes.readInt(Reader(slice)) shouldBe int //from reader
         }
     }
   }
@@ -53,7 +52,7 @@ class BytezSpec extends WordSpec with Matchers {
             Bytes.writeLong(long, slice)
             slice.readLong() shouldBe long
             Bytes.readLong(slice) shouldBe long
-            Bytes.readLong(Reader(slice)).value shouldBe long
+            Bytes.readLong(Reader(slice)) shouldBe long
         }
     }
   }
@@ -80,7 +79,7 @@ class BytezSpec extends WordSpec with Matchers {
 
       booleans foreach {
         expectedBoolean =>
-          reader.readBoolean().value shouldBe expectedBoolean
+          reader.readBoolean() shouldBe expectedBoolean
       }
     }
   }
@@ -94,7 +93,7 @@ class BytezSpec extends WordSpec with Matchers {
         slice.readString() shouldBe string
         Bytes.readString(slice, StandardCharsets.UTF_8) shouldBe string
 
-        Bytes.readString(Reader(slice), StandardCharsets.UTF_8).value shouldBe string
+        Bytes.readString(Reader(slice), StandardCharsets.UTF_8) shouldBe string
       }
     }
 
@@ -111,8 +110,8 @@ class BytezSpec extends WordSpec with Matchers {
 
         val reader = Reader(slice)
 
-        Bytes.readString(string1Size, reader, StandardCharsets.UTF_8).value shouldBe string1
-        Bytes.readString(string2Size, reader, StandardCharsets.UTF_8).value shouldBe string2
+        Bytes.readString(string1Size, reader, StandardCharsets.UTF_8) shouldBe string1
+        Bytes.readString(string2Size, reader, StandardCharsets.UTF_8) shouldBe string2
       }
     }
   }
@@ -124,15 +123,15 @@ class BytezSpec extends WordSpec with Matchers {
           range foreach {
             int =>
               val unsignedBytes = Slice.writeUnsignedInt(int)
-              unsignedBytes.readUnsignedInt().value shouldBe int
+              unsignedBytes.readUnsignedInt() shouldBe int
               val actualByteSize = Bytes.sizeOfUnsignedInt(int)
               actualByteSize shouldBe unsignedBytes.size
 
-              Bytes.readUnsignedIntWithByteSize(unsignedBytes).value shouldBe(int, actualByteSize)
+              Bytes.readUnsignedIntWithByteSize(unsignedBytes) shouldBe(int, actualByteSize)
 
               val signedBytes = Slice.create[Byte](ByteSizeOf.varInt)
               Bytes.writeSignedInt(int, signedBytes)
-              Bytes.readSignedInt(signedBytes).value shouldBe int
+              Bytes.readSignedInt(signedBytes) shouldBe int
           }
       }
     }
@@ -143,15 +142,15 @@ class BytezSpec extends WordSpec with Matchers {
           range foreach {
             long =>
               val unsignedBytes = Slice.writeUnsignedLong(long)
-              unsignedBytes.readUnsignedLong().value shouldBe long
+              unsignedBytes.readUnsignedLong() shouldBe long
               val actualByteSize = Bytes.sizeOfUnsignedLong(long)
               actualByteSize shouldBe unsignedBytes.size
 
-              Bytes.readUnsignedLongWithByteSize(unsignedBytes).value shouldBe(long, actualByteSize)
+              Bytes.readUnsignedLongWithByteSize(unsignedBytes) shouldBe(long, actualByteSize)
 
               val signedBytes = Slice.create[Byte](ByteSizeOf.varLong)
               Bytes.writeSignedLong(long, signedBytes)
-              Bytes.readSignedLong(signedBytes).value shouldBe long
+              Bytes.readSignedLong(signedBytes) shouldBe long
           }
       }
     }
@@ -171,7 +170,7 @@ class BytezSpec extends WordSpec with Matchers {
           val reader = Reader(slice)
           range foreach {
             int =>
-              reader.readUnsignedInt().value shouldBe int
+              reader.readUnsignedInt() shouldBe int
           }
       }
     }
@@ -189,7 +188,7 @@ class BytezSpec extends WordSpec with Matchers {
           val reader = Reader(slice)
           range foreach {
             int =>
-              reader.readSignedInt().value shouldBe int
+              reader.readSignedInt() shouldBe int
           }
       }
     }
@@ -207,7 +206,7 @@ class BytezSpec extends WordSpec with Matchers {
           val reader = Reader(slice)
           range foreach {
             int =>
-              reader.readUnsignedLong().value shouldBe int
+              reader.readUnsignedLong() shouldBe int
           }
       }
     }
@@ -225,7 +224,7 @@ class BytezSpec extends WordSpec with Matchers {
           val reader = Reader(slice)
           range foreach {
             int =>
-              reader.readSignedLong().value shouldBe int
+              reader.readSignedLong() shouldBe int
           }
       }
     }
@@ -238,7 +237,7 @@ class BytezSpec extends WordSpec with Matchers {
         range foreach {
           int =>
             val slice = Bytes.writeUnsignedIntReversed(int)
-            Bytes.readLastUnsignedInt(slice).value shouldBe(int, Bytes.sizeOfUnsignedInt(int))
+            Bytes.readLastUnsignedInt(slice) shouldBe(int, Bytes.sizeOfUnsignedInt(int))
         }
 
     }

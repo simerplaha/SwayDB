@@ -30,6 +30,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.util.Random
 
@@ -50,20 +51,20 @@ class BloomFilterBlockSpec extends TestBase {
             updateMaxProbe = probe => probe,
             falsePositiveRate = 0.01,
             compressions = _ => compressions
-          ).get
+          ).value
 
         (1 to 10) foreach (BloomFilterBlock.add(_, filter))
 
-        BloomFilterBlock.close(filter).get
+        BloomFilterBlock.close(filter).value
 
         Seq(
           BlockRefReader[BloomFilterBlock.Offset](filter.bytes),
-          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.bytes)).get
+          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.bytes))
         ) foreach {
           reader =>
-            val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader).get
-            (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe true)
-            (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe false)
+            val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
+            (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe true)
+            (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe false)
 
             println("numberOfBits: " + filter.numberOfBits)
             println("written: " + filter.written)
@@ -81,20 +82,20 @@ class BloomFilterBlockSpec extends TestBase {
             updateMaxProbe = probe => probe,
             falsePositiveRate = 0.01,
             compressions = _ => compressions
-          ).get
+          ).value
 
         BloomFilterBlock.add(1, state)
 
-        BloomFilterBlock.close(state).get
+        BloomFilterBlock.close(state).value
 
         Seq(
           BlockRefReader[BloomFilterBlock.Offset](state.bytes),
-          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes)).get
+          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes))
         ) foreach {
           reader =>
-            val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader).get
-            BloomFilterBlock.mightContain(1, bloom).get shouldBe true
-            (2 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom).get shouldBe false)
+            val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
+            BloomFilterBlock.mightContain(1, bloom) shouldBe true
+            (2 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe false)
 
             println("numberOfBits: " + state.numberOfBits)
             println("written: " + state.written)
@@ -124,7 +125,7 @@ class BloomFilterBlockSpec extends TestBase {
               updateMaxProbe = probe => probe,
               falsePositiveRate = falsePositiveRate,
               compressions = _ => compression
-            ).get
+            ).value
 
           bloomFilter.bytes.size should be <=
             BloomFilterBlock.optimalSize(
@@ -243,13 +244,13 @@ class BloomFilterBlockSpec extends TestBase {
 
       val positives =
         data collect {
-          case data if !BloomFilterBlock.mightContain(data, reader.copy()).get =>
+          case data if !BloomFilterBlock.mightContain(data, reader.copy()) =>
             data
         }
 
       val falsePositives =
         data collect {
-          case data if BloomFilterBlock.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), reader.copy()).get =>
+          case data if BloomFilterBlock.mightContain(Random.alphanumeric.take(2000).mkString.getBytes(), reader.copy()) =>
             data
         }
 
@@ -272,7 +273,7 @@ class BloomFilterBlockSpec extends TestBase {
           updateMaxProbe = probe => probe,
           falsePositiveRate = 0.001,
           compressions = _ => compressions
-        ).get
+        ).value
 
       val data: Seq[String] =
         (1 to 10000) map {
@@ -282,14 +283,14 @@ class BloomFilterBlockSpec extends TestBase {
             string
         }
 
-      BloomFilterBlock.close(state).get
+      BloomFilterBlock.close(state).value
 
       Seq(
         BlockRefReader[BloomFilterBlock.Offset](state.bytes),
-        BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes)).get
+        BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes))
       ) foreach {
         blockRefReader =>
-          val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](blockRefReader).get
+          val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](blockRefReader)
           runAssert(data, reader)
       }
     }

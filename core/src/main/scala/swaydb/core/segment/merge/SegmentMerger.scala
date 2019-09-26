@@ -553,12 +553,12 @@ private[core] object SegmentMerger extends LazyLogging {
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(_), None) =>
-          newKeyValues.foreach(add)
+          newKeyValues foreach add
           splits
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
         case (None, Some(_)) =>
-          oldKeyValues.foreach(add)
+          oldKeyValues foreach add
           splits
 
         case (None, None) =>

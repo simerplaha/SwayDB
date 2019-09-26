@@ -87,16 +87,17 @@ private[extensions] object Key {
 
   private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[swaydb.Error.Segment, Seq[K]] = {
     def readOne(reader: ReaderBase): IO[swaydb.Error.Segment, Option[K]] =
-      reader
-        .readUnsignedInt()
-        .flatMap(reader.read)
-        .map {
-          bytes =>
-            if (bytes.isEmpty)
-              None
-            else
-              Some(keySerializer.read(bytes))
-        }
+      ???
+    //      reader
+    //        .readUnsignedInt()
+    //        .flatMap(reader.read)
+    //        .map {
+    //          bytes =>
+    //            if (bytes.isEmpty)
+    //              None
+    //            else
+    //              Some(keySerializer.read(bytes))
+    //        }
 
     Reader(keys).foldLeftIO(Seq.empty[K]) {
       case (keys, reader) =>
@@ -113,17 +114,17 @@ private[extensions] object Key {
   }
 
   /**
-    * Serializer implementation for [[Key]] types.
-    *
-    * Formats:
-    * [[MapStart]] - formatId|mapKey.size|mapKey|dataType
-    * [[MapEntry]] - formatId|mapKey.size|mapKey|dataType|dataKey
-    * [[MapEnd]]   - formatId|mapKey.size|mapKey|dataType
-    *
-    * mapKey   - the unique id of the Map.
-    * dataType - the type of [[Key]] which can be either one of [[mapStart]], [[mapEntry]] or [[mapEnd]]
-    * dataKey  - the entry key for the Map.
-    */
+   * Serializer implementation for [[Key]] types.
+   *
+   * Formats:
+   * [[MapStart]] - formatId|mapKey.size|mapKey|dataType
+   * [[MapEntry]] - formatId|mapKey.size|mapKey|dataType|dataKey
+   * [[MapEnd]]   - formatId|mapKey.size|mapKey|dataType
+   *
+   * mapKey   - the unique id of the Map.
+   * dataType - the type of [[Key]] which can be either one of [[mapStart]], [[mapEntry]] or [[mapEnd]]
+   * dataKey  - the entry key for the Map.
+   */
   implicit def serializer[K](implicit keySerializer: Serializer[K]): Serializer[Key[K]] =
     new Serializer[Key[K]] {
       override def write(data: Key[K]): Slice[Byte] =
@@ -234,12 +235,12 @@ private[extensions] object Key {
     }
 
   /**
-    * Implements un-typed ordering for performance. This ordering can also be implemented using types.
-    * See documentation at http://www.swaydb.io/custom-key-ordering/
-    *
-    * Creates dual ordering on [[Key.parentMapKeys]]. Orders mapKey using the [[KeyOrder.default]] order
-    * and applies custom ordering on the user provided keys.
-    */
+   * Implements un-typed ordering for performance. This ordering can also be implemented using types.
+   * See documentation at http://www.swaydb.io/custom-key-ordering/
+   *
+   * Creates dual ordering on [[Key.parentMapKeys]]. Orders mapKey using the [[KeyOrder.default]] order
+   * and applies custom ordering on the user provided keys.
+   */
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {

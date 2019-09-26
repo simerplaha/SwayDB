@@ -38,14 +38,14 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
       val file = fileReader.file
 
       //DBFile
-      BlockRefReader(file).get.readRemaining().right.value shouldBe bytes
+      BlockRefReader(file).readRemaining() shouldBe bytes
       //Slice[Byte]
-      BlockRefReader[SegmentBlock.Offset](bytes).readRemaining().right.value shouldBe bytes
+      BlockRefReader[SegmentBlock.Offset](bytes).readRemaining() shouldBe bytes
 
       //Reader: FileReader
-      BlockRefReader[SegmentBlock.Offset](fileReader: Reader).get.readRemaining().right.value shouldBe bytes
+      BlockRefReader[SegmentBlock.Offset](fileReader: Reader).readRemaining() shouldBe bytes
       //Reader: SliceReader
-      BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader).get.readRemaining().right.value shouldBe bytes
+      BlockRefReader[SegmentBlock.Offset](Reader(bytes): Reader).readRemaining() shouldBe bytes
     }
   }
 
@@ -56,20 +56,20 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
       val bytes = header ++ bodyBytes
 
       val ref = BlockRefReader[ValuesBlock.Offset](bytes)
-      ref.copy().readRemaining().get shouldBe bytes
-      ref.copy().moveTo(10).readRemaining().get shouldBe bytes.drop(10)
+      ref.copy().readRemaining() shouldBe bytes
+      ref.copy().moveTo(10).readRemaining() shouldBe bytes.drop(10)
 
-      val blocked = BlockedReader(ref).right.value
-      blocked.copy().readRemaining().get shouldBe bodyBytes
+      val blocked = BlockedReader(ref)
+      blocked.copy().readRemaining() shouldBe bodyBytes
 
-      val unblocked = UnblockedReader(blocked, randomBoolean()).right.value
-      unblocked.copy().readRemaining().get shouldBe bodyBytes
+      val unblocked = UnblockedReader(blocked, randomBoolean())
+      unblocked.copy().readRemaining() shouldBe bodyBytes
 
       val moveTo = BlockRefReader.moveTo(5, 5, unblocked)(ValuesBlockOps)
-      moveTo.copy().readRemaining().right.value shouldBe bodyBytes.drop(5).take(5)
+      moveTo.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
 
       val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked)(ValuesBlockOps)
-      moveWithin.copy().readRemaining().right.value shouldBe bodyBytes.drop(5).take(5)
+      moveWithin.copy().readRemaining() shouldBe bodyBytes.drop(5).take(5)
     }
 
     "compressed & uncompressed blocks" in {
@@ -77,23 +77,23 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
         val header = Slice.fill(5)(0.toByte)
         val body = randomBytesSlice(1000)
         val bytes = header ++ body
-        val compressed = Block.block(5, bytes, compressions, "test").right.value
+        val compressed = Block.block(5, bytes, compressions, "test")
 
         val ref = BlockRefReader[ValuesBlock.Offset](compressed)
-        ref.copy().readRemaining().get shouldBe compressed
-        ref.copy().moveTo(10).readRemaining().get shouldBe compressed.drop(10)
+        ref.copy().readRemaining() shouldBe compressed
+        ref.copy().moveTo(10).readRemaining() shouldBe compressed.drop(10)
 
-        val blocked = BlockedReader(ref).right.value
-        blocked.copy().readRemaining().get shouldBe compressed.drop(5)
+        val blocked = BlockedReader(ref)
+        blocked.copy().readRemaining() shouldBe compressed.drop(5)
 
-        val unblocked = UnblockedReader(blocked, randomBoolean()).right.value
-        unblocked.copy().readRemaining().get shouldBe body
+        val unblocked = UnblockedReader(blocked, randomBoolean())
+        unblocked.copy().readRemaining() shouldBe body
 
         val moveTo = BlockRefReader.moveTo(5, 5, unblocked)(ValuesBlockOps)
-        moveTo.copy().readRemaining().right.value shouldBe body.drop(5).take(5)
+        moveTo.copy().readRemaining() shouldBe body.drop(5).take(5)
 
         val moveWithin = BlockRefReader.moveTo(ValuesBlock.Offset(5, 5), unblocked)(ValuesBlockOps)
-        moveWithin.copy().readRemaining().right.value shouldBe body.drop(5).take(5)
+        moveWithin.copy().readRemaining() shouldBe body.drop(5).take(5)
       }
 
       runTest(randomCompressionsLZ4OrSnappyOrEmpty())

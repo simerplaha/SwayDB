@@ -370,7 +370,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       }
 
     //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
-    val indexEntryBytesAndNextIndexEntrySize = (blockReader read (indexSize + ByteSizeOf.varInt))
+    val indexEntryBytesAndNextIndexEntrySize = blockReader read (indexSize + ByteSizeOf.varInt)
 
     val extraBytesRead = indexEntryBytesAndNextIndexEntrySize.size - indexSize
 

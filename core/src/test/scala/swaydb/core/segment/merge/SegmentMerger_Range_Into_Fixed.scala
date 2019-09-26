@@ -41,7 +41,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   implicit val testTimer = TestTimer.Empty
 
   "Range into Single" when {
-    "IO.Left - when Single key-value matches Range's fromKey" in {
+    "Left - when Single key-value matches Range's fromKey" in {
       runThis(10000.times) {
         val newKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val oldKeyValue = randomFixedKeyValue(1)
@@ -50,7 +50,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
           FixedMerger(
             newKeyValue = newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(oldKeyValue.key),
             oldKeyValue = oldKeyValue
-          ).runRandomIO.right.value
+          )
 
         val expectedKeyValue =
           (newKeyValue.fromValue, newKeyValue.rangeValue) match {
@@ -61,7 +61,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
             case (Some(Value.Remove(None, _)), Value.Remove(None, _)) =>
               newKeyValue
             case _ =>
-              Memory.Range(1, 10, expectedFromValue.toFromValue().runRandomIO.right.value, newKeyValue.rangeValue)
+              Memory.Range(1, 10, expectedFromValue.toFromValue(), newKeyValue.rangeValue)
           }
 
         //        println
@@ -83,7 +83,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
         val midKey = Random.shuffle((2 to 9).toList).head
         val newKeyValue = Memory.Range(1, 10, randomFromValue(), randomRangeValue())
         val oldKeyValue = randomRemoveKeyValue(midKey)
-        val merged = FixedMerger(newKeyValue.rangeValue.toMemory(midKey), oldKeyValue).runRandomIO.right.value
+        val merged = FixedMerger(newKeyValue.rangeValue.toMemory(midKey), oldKeyValue)
 
         val expectedKeyValue =
           newKeyValue.rangeValue match {
@@ -92,7 +92,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
             case _ =>
               Slice(
                 newKeyValue.copy(fromKey = 1, toKey = midKey),
-                Memory.Range(midKey, 10, merged.toFromValue().runRandomIO.right.value, newKeyValue.rangeValue)
+                Memory.Range(midKey, 10, merged.toFromValue(), newKeyValue.rangeValue)
               )
           }
 
@@ -121,7 +121,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
       }
     }
 
-    "IO.Right - When Single's key does not belong to the Range" in {
+    "Right - When Single's key does not belong to the Range" in {
       runThis(10000.times) {
         val newKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val oldKeyValue = randomFixedKeyValue(10)

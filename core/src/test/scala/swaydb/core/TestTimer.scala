@@ -36,7 +36,7 @@ object TestTimer {
   def single(time: Time): TestTimer =
     new TestTimer {
       override def next: Time = time
-      override def close: IO[swaydb.Error.Map, Unit] = IO.unit
+      override def close: Unit = ()
     }
 
   case class Incremental(startTime: Long = 0) extends TestTimer {
@@ -45,8 +45,7 @@ object TestTimer {
     override def next: Time =
       Time(timer.incrementAndGet())
 
-    override def close: IO[swaydb.Error.Map, Unit] =
-      IO.unit
+    override def close: Unit = ()
   }
 
   object IncrementalRandom extends TestTimer {
@@ -59,8 +58,7 @@ object TestTimer {
       else
         Time.empty
 
-    override def close: IO[swaydb.Error.Map, Unit] =
-      IO.unit
+    override def close: Unit = ()
   }
 
   case class Decremental(startTime: Long = Int.MaxValue) extends TestTimer {
@@ -69,8 +67,7 @@ object TestTimer {
     override def next: Time =
       Time(timer.decrementAndGet())
 
-    override def close: IO[swaydb.Error.Map, Unit] =
-      IO.unit
+    override def close: Unit = ()
   }
 
   object DecrementalRandom extends TestTimer {
@@ -83,8 +80,7 @@ object TestTimer {
       else
         Time.empty
 
-    override def close: IO[swaydb.Error.Map, Unit] =
-      IO.unit
+    override def close: Unit = ()
   }
 
   object Empty extends TestTimer {
@@ -93,8 +89,7 @@ object TestTimer {
     override val next: Time =
       Time(Slice.emptyBytes)
 
-    override def close: IO[swaydb.Error.Map, Unit] =
-      IO.unit
+    override def close: Unit = ()
   }
 
   val all =

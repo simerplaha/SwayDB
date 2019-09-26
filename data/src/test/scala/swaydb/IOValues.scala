@@ -26,7 +26,7 @@ import scala.util.Random
 
 trait IOValues {
 
-  implicit class SomeIO[T](io: => T) {
+  implicit class SafeIO[T](io: => T) {
     def runBlockingIO: IO[Throwable, T] =
       IO.Defer(io).runBlockingIO
 

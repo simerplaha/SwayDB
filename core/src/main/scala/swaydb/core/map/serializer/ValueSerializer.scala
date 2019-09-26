@@ -202,7 +202,7 @@ object ValueSerializer {
       reader.foldLeft(Slice.create[Value.Apply](count)) {
         case (applies, reader) =>
           val id = reader.readUnsignedInt()
-          val bytes = reader.readUnsignedIntBytes()
+          val bytes = reader.readUnsignedIntSized()
           if (id == 0) {
             val update = ValueSerializer.read[Value.Update](Reader(bytes))
             applies add update
@@ -351,16 +351,18 @@ object ValueSerializer {
           case (map, reader) =>
             val int = reader.readUnsignedInt()
             val tuplesCount = reader.readUnsignedInt()
-            val tuples =
-              (1 to tuplesCount) map {
-                _ => {
-                  val leftSize = reader.readUnsignedInt()
-                  val left = reader.read(leftSize)
-                  val rightSize = reader.readUnsignedInt()
-                  val right = reader.read(rightSize)
-                  (left, right)
-                }
-              }
+
+            val tuples = Slice.create[(Slice[Byte], Slice[Byte])](tuplesCount)
+
+            var i = 0
+            while (i < tuplesCount) {
+              val leftSize = reader.readUnsignedInt()
+              val left = reader.read(leftSize)
+              val rightSize = reader.readUnsignedInt()
+              val right = reader.read(rightSize)
+              tuples add(left, right)
+              i += 1
+            }
 
             map.put(int, tuples)
             map

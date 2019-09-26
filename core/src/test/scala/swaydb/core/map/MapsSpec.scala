@@ -318,7 +318,9 @@ class MapsSpec extends TestBase {
 
       //failure because the file is deleted. The Map will NOT try to re-write this entry again because
       //it should be an indication that something is wrong with the file system permissions.
-      maps.write(_ => MapEntry.Put(2, Memory.put(2))).left.runRandomIO.right.value.exception shouldBe a[NoSuchFileException]
+      assertThrows[NoSuchFileException] {
+        maps.write(_ => MapEntry.Put(2, Memory.put(2)))
+      }
 
       //new Map file is created. Now this write will succeed.
       maps.write(_ => MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value

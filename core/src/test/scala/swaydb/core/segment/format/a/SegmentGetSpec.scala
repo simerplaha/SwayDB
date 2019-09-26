@@ -149,7 +149,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
     "value random key-values" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).runRandomIO.right.value
+      val segment = TestSegment(keyValues)
       assertGet(keyValues, segment)
     }
 

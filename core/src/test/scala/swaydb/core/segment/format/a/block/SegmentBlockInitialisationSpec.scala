@@ -65,10 +65,10 @@ class SegmentBlockInitialisationSpec extends TestBase {
             )
 
           val blocks = getSegmentBlockCache(keyValues)
-          blocks.createBinarySearchIndexReader().get shouldBe empty
+          blocks.createBinarySearchIndexReader() shouldBe empty
           blocks.binarySearchIndexReaderCache.isCached shouldBe true
           blocks.binarySearchIndexReaderCache.getIO() shouldBe Some(IO.none)
-          blocks.createBinarySearchIndexReader().get shouldBe empty
+          blocks.createBinarySearchIndexReader() shouldBe empty
         }
       }
 
@@ -465,18 +465,18 @@ class SegmentBlockInitialisationSpec extends TestBase {
       val cache = getSegmentBlockCache(keyValues, SegmentIO.defaultSynchronisedStored)
       cache.isCached shouldBe false
 
-      cache.getFooter().get
+      cache.getFooter()
       cache.isCached shouldBe true
       cache.footerBlockCache.isCached shouldBe true
       cache.clear()
       cache.isCached shouldBe false
       cache.footerBlockCache.isCached shouldBe false
 
-      cache.getBinarySearchIndex().get
-      cache.getSortedIndex().get
-      cache.getBloomFilter().get
-      cache.getHashIndex().get
-      cache.getValues().get
+      cache.getBinarySearchIndex()
+      cache.getSortedIndex()
+      cache.getBloomFilter()
+      cache.getHashIndex()
+      cache.getValues()
 
       cache.binarySearchIndexBlockCache.isCached shouldBe true
       cache.sortedIndexBlockCache.isCached shouldBe true

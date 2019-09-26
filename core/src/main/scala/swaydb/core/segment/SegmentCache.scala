@@ -101,7 +101,7 @@ private[core] class SegmentCache(id: String,
         )
 
       case None =>
-        false
+        true
     }
 
   def createSortedIndexReader(threadState: SegmentReadThreadState): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
@@ -155,14 +155,52 @@ private[core] class SegmentCache(id: String,
     }
 
   def get(key: Slice[Byte]): Option[Persistent] =
-    get(
-      key = key,
-      start = None,
-      keyValueCount = 1000000,
-      end = skipList.higher(key),
-      threadState = thisThreadState,
-      hasRange = false
-    )
+    maxKey match {
+      case MaxKey.Fixed(maxKey) if key > maxKey =>
+        None
+
+      case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
+        None
+
+      //check for minKey inside the Segment is not required since Levels already do minKey check.
+      //      case _ if key < minKey =>
+      //        IO.none
+
+      case _ =>
+        val threadState = thisThreadState
+        val skipList = _skipList getOrElse threadState.skipList
+
+        skipList.floor(key) match {
+          case Some(floor: Persistent) if floor.key equiv key =>
+            Some(floor)
+
+          case Some(floorRange: Persistent.Range) if floorRange contains key =>
+            Some(floorRange)
+
+          case floorValue =>
+            val footer = blockCache.getFooter()
+            if (footer.hasRange)
+              get(
+                key = key,
+                start = floorValue,
+                keyValueCount = footer.keyValueCount,
+                end = skipList.higher(key),
+                threadState = threadState,
+                hasRange = footer.hasRange
+              )
+            else if (mightContain(key))
+              get(
+                key = key,
+                start = floorValue,
+                keyValueCount = footer.keyValueCount,
+                threadState = threadState,
+                end = skipList.higher(key),
+                hasRange = footer.hasRange
+              )
+            else
+              None
+        }
+    }
 
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],

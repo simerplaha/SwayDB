@@ -73,7 +73,7 @@ class SegmentMergeSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
             createdInLevel = randomIntMax()
-          ).runRandomIO.right.value
+          )
 
         newSegments.size shouldBe 1
 
@@ -107,7 +107,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.right.value.size shouldBe 1
+        ).size shouldBe 1
 
         SegmentMerger.close(
           buffers = ListBuffer(buffer),
@@ -119,7 +119,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.right.value.size shouldBe 1
+        ).size shouldBe 1
       }
     }
   }
@@ -159,7 +159,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.right.value.toArray
+        ).toArray
       )
 
       assert(
@@ -175,7 +175,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.right.value.toArray
+        ).toArray
       )
     }
   }
@@ -197,7 +197,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.right.value
+        )
 
       splits should have size 5
       splits.map(_.toMemory) should contain only
@@ -220,7 +220,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.right.value
+        )
 
       persistentSplit should have size 1
 
@@ -247,7 +247,7 @@ class SegmentMergeSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).runRandomIO.right.value
+        )
 
       memorySplit should have size 1
 

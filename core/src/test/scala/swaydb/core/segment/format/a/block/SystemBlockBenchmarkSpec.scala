@@ -66,7 +66,7 @@ class SystemBlockBenchmarkSpec extends TestBase {
     Benchmark("test") {
       fileReader.foldLeftIO(0) {
         case (offset, reader) =>
-          val readBytes = reader.read(blockSizeToReader).get
+          val readBytes = reader.read(blockSizeToReader)
           val toOffset = offset + blockSizeToReader - 1
           //          val expected = bytes.slice(offset, toOffset)
           //          readBytes shouldBe expected

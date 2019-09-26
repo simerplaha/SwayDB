@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -81,7 +80,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               val reader = Reader(writeResult.indexBytes)
 
               val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timePartiallyCompressed.noValue.noDeadline.baseId)
-              reader.readUnsignedInt().get shouldBe expectedEntryID
+              reader.readUnsignedInt() shouldBe expectedEntryID
 
               val previous =
                 Persistent.Put(
@@ -100,7 +99,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               TimeReader.PartiallyCompressedTimeReader.read(
                 indexReader = reader,
                 previous = Some(previous),
-              ).get shouldBe currentTime
+              ) shouldBe currentTime
           }
       }
     }
@@ -137,7 +136,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
           val reader = Reader(writeResult.indexBytes)
 
           val expectedEntryID = put.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.timeUncompressed.noValue.noDeadline.baseId)
-          reader.readUnsignedInt().get shouldBe expectedEntryID
+          reader.readUnsignedInt() shouldBe expectedEntryID
 
           val previous =
             Persistent.Put(
@@ -161,7 +160,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                 Some(previous),
                 None
               )
-          ).get shouldBe currentTime
+          ) shouldBe currentTime
       }
     }
   }
@@ -189,7 +188,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               val reader = Reader(writeResult.indexBytes)
 
               val expectedEntryID = adjustedEntryId.keyValueId.adjustBaseIdToKeyValueIdKey_Compressed(keyId.noTime.noValue.noDeadline.baseId)
-              reader.readUnsignedInt().get shouldBe expectedEntryID
+              reader.readUnsignedInt() shouldBe expectedEntryID
 
               val previous =
                 Persistent.Put(
@@ -213,7 +212,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                     Some(previous),
                     None
                   )
-              ).get shouldBe Time.empty
+              ) shouldBe Time.empty
           }
       }
     }

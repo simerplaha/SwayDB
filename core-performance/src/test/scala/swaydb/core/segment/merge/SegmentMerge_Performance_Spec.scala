@@ -53,7 +53,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
         hashIndexConfig = HashIndexBlock.Config.disabled,
         bloomFilterConfig = BloomFilterBlock.Config.disabled
-      ).get
+      )
     }
   }
 }

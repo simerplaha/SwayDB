@@ -188,7 +188,7 @@ class MapEntrySpec extends TestBase {
 
     "add Appendix single Put entry to skipList" in {
       import AppendixMapEntryWriter._
-      val segment = TestSegment(keyValues).runRandomIO.right.value
+      val segment = TestSegment(keyValues)
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
 
@@ -204,7 +204,7 @@ class MapEntrySpec extends TestBase {
 
     "remove Appendix entry from skipList" in {
       import AppendixMapEntryWriter._
-      val segment = TestSegment(keyValues).runRandomIO.right.value
+      val segment = TestSegment(keyValues)
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
 
@@ -273,7 +273,7 @@ class MapEntrySpec extends TestBase {
     "write and read bytes for a single Appendix" in {
       import AppendixMapEntryWriter._
       import appendixReader._
-      val segment = TestSegment(keyValues).runRandomIO.right.value
+      val segment = TestSegment(keyValues)
 
       val entry = MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
       entry.hasRange shouldBe false
@@ -308,7 +308,7 @@ class MapEntrySpec extends TestBase {
     "write and read bytes for single Appendix entry" in {
       import AppendixMapEntryWriter._
       import appendixReader._
-      val segment = TestSegment(keyValues).runRandomIO.right.value
+      val segment = TestSegment(keyValues)
 
       //do remove
       val entry = MapEntry.Remove[Slice[Byte]](segment.minKey)
@@ -388,7 +388,7 @@ class MapEntrySpec extends TestBase {
       import appendixReader._
       import swaydb.Error.Map.ExceptionHandler
 
-      val segment = TestSegment(keyValues).runRandomIO.right.value
+      val segment = TestSegment(keyValues)
 
       val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segment)
       var entry =

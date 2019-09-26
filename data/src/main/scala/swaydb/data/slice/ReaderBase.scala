@@ -73,8 +73,8 @@ private[swaydb] abstract class ReaderBase { self =>
   def readUnsignedInt(): Int =
     Bytez.readUnsignedInt(self)
 
-  def readUnsignedIntBytes(): Slice[Byte] =
-    Slice.writeUnsignedInt(Bytez.readUnsignedInt(self))
+  def readUnsignedIntSized(): Slice[Byte] =
+    read(Bytez.readUnsignedInt(self))
 
   def readSignedInt(): Int =
     Bytez.readSignedInt(self)

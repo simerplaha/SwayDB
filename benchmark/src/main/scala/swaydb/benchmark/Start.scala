@@ -23,6 +23,8 @@ import java.io.IOException
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 
+import swaydb.IO
+
 import scala.io.StdIn._
 import scala.util.Try
 

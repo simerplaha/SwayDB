@@ -57,8 +57,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 10,
               toKey = 15,
-              fromValue = oldKeyValue.fromValue.map(fromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), fromValue.toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              fromValue = oldKeyValue.fromValue.map(fromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), fromValue.toMemory(10)).toFromValue()),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             ),
             Memory.Range(
               fromKey = 15,
@@ -103,8 +103,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 10,
               toKey = 20,
-              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).toFromValue()),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             )
           )
         val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
@@ -142,8 +142,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 10,
               toKey = 20,
-              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              fromValue = oldKeyValue.fromValue.map(oldFromValue => FixedMerger(newKeyValue.rangeValue.toMemory(10), oldFromValue.toMemory(10)).toFromValue()),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             ),
             Memory.Range(
               fromKey = 20,
@@ -180,11 +180,11 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
         val from: Option[Value.FromValue] =
           oldKeyValue.fromValue match {
             case Some(oldFromValue) =>
-              Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value)
+              Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue())
             case None =>
               newKeyValue.fromValue match {
                 case Some(newFromValue) =>
-                  Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value)
+                  Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).toFromValue())
                 case None =>
                   None
               }
@@ -238,16 +238,16 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
                 //different approach used pattern matching instead of using similar approach like in SegmentMerge.scala
                 oldKeyValue.fromValue match {
                   case Some(oldFromValue) =>
-                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value)
+                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue())
                   case None =>
                     newKeyValue.fromValue match {
                       case Some(newFromValue) =>
-                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value)
+                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).toFromValue())
                       case None =>
                         None
                     }
                 },
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             )
           )
         val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
@@ -283,16 +283,16 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
                 //different approach used pattern matching instead of using similar approach just like in SegmentMerge.scala
                 oldKeyValue.fromValue match {
                   case Some(oldFromValue) =>
-                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value)
+                    Some(FixedMerger(newKeyValue.fromValue.getOrElse(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue())
                   case None =>
                     newKeyValue.fromValue match {
                       case Some(newFromValue) =>
-                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).flatMap(_.toFromValue()).runRandomIO.right.value)
+                        Some(FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(10)).toFromValue())
                       case None =>
                         None
                     }
                 },
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             ),
             Memory.Range(
               fromKey = 20,
@@ -336,8 +336,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 11,
               toKey = 15,
-              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).runRandomIO.right.value),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).toFromValue()),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             ),
             Memory.Range(
               fromKey = 15,
@@ -381,8 +381,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 11,
               toKey = 20,
-              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).runRandomIO.right.value),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).toFromValue()),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             )
           )
         val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
@@ -420,8 +420,8 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 11,
               toKey = 20,
-              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).flatMap(_.toFromValue()).runRandomIO.right.value),
-              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).flatMap(_.toRangeValue()).runRandomIO.right.value
+              fromValue = newKeyValue.fromValue.map(fromValue => FixedMerger(fromValue.toMemory(11), oldKeyValue.rangeValue.toMemory(11)).toFromValue()),
+              rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             ),
             Memory.Range(
               fromKey = 20,

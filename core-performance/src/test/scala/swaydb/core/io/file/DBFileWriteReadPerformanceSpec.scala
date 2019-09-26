@@ -52,12 +52,12 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
     mmapFile.append(bytes).runRandomIO.right.value
     mmapFile.isFull.runRandomIO.right.value shouldBe true
 
-    mmapFile.forceSave().get
-    mmapFile.close.get
+    mmapFile.forceSave()
+    mmapFile.close()
 
-    val channelFile = DBFile.channelRead(mmapFile.path, randomIOStrategy(cacheOnAccess = true), true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).get
+    val channelFile = DBFile.channelRead(mmapFile.path, randomIOStrategy(cacheOnAccess = true), true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
 
-    val reader = BlockRefReader(channelFile).get
+    val reader = BlockRefReader(channelFile)
     //    val reader = Reader(channelFile)
 
     val bytesToRead = 15
@@ -78,7 +78,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
             _ =>
               val index = Random.nextInt(bytes.size - bytesToRead + 1)
               //              //          println(index)
-              val readBytes = reader.moveTo(index).read(bytesToRead).get
+              val readBytes = reader.moveTo(index).read(bytesToRead)
               //              map.get(SomeKey(i))
               //              map.get(SomeKey(i))
               //              map.get(SomeKey(i))
@@ -149,7 +149,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
 
       channel.close()
       //assert that bytes were
-      Effect.readAll(path).get shouldBe flattenBytes
+      Effect.readAll(path) shouldBe flattenBytes
 
       /**
        * Benchmark file channel write
@@ -165,7 +165,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
       //check all the bytes were written
       val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       readChannelFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
-      Effect.readAll(channelFile.path).get shouldBe flattenBytes
+      Effect.readAll(channelFile.path) shouldBe flattenBytes
       channelFile.close.runRandomIO.right.value
       readChannelFile.close.runRandomIO.right.value
 
@@ -183,7 +183,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
       }
       mmapFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
       mmapFile.close.runRandomIO.right.value
-      Effect.readAll(mmapFile.path).get shouldBe flattenBytes
+      Effect.readAll(mmapFile.path) shouldBe flattenBytes
     }
 
     "Get performance" in {

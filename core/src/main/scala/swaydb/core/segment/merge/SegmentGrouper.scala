@@ -85,17 +85,13 @@ private[merge] object SegmentGrouper extends LazyLogging {
             }
         }
 
-      if (addToCurrentSplit(force = false)) {
-        IO.unit //add successful after force grouping!
-      } else {
+      if (!addToCurrentSplit(force = false)) {
         //if still unable to add to current split after force grouping, start a new Segment!
         //And then do force add just in-case the new key-value is larger than the minimum segmentSize
         //because a Segment should contain at least one key-value.
         splits += SegmentBuffer()
-        if (addToCurrentSplit(force = true))
-          IO.unit
-        else
-          IO.failed(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}")
+        if (!addToCurrentSplit(force = true))
+          throw IO.throwable(s"Failed to add key-value to new Segment split. minSegmentSize: $minSegmentSize, splits: ${splits.size}, lastSplit: ${splits.lastOption.map(_.size)}")
       }
     }
 
@@ -103,7 +99,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
       case fixed: KeyValue.ReadOnly.Fixed =>
         fixed match {
           case put @ Memory.Put(key, value, deadline, time) =>
-            if (!isLastLevel && put.hasTimeLeft())
+            if (!isLastLevel || put.hasTimeLeft())
               doAdd(
                 Transient.Put(
                   key = key,
@@ -121,7 +117,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
               )
 
           case put: Persistent.Put =>
-            if (!isLastLevel && put.hasTimeLeft())
+            if (!isLastLevel || put.hasTimeLeft())
               doAdd(
                 Transient.Put(
                   key = put.key,
@@ -297,14 +293,12 @@ private[merge] object SegmentGrouper extends LazyLogging {
                         _
                       )
                     )
-                  else
-                    IO.unit
 
                 case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
-                  IO.unit
+                  ()
               }
             case None =>
-              IO.unit
+              ()
           }
         else {
           val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe

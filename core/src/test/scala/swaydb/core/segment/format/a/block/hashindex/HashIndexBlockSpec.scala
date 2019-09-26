@@ -19,22 +19,18 @@
 
 package swaydb.core.segment.format.a.block.hashindex
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.{Block, KeyMatcher, SortedIndexBlock}
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.{Block, SortedIndexBlock}
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import org.scalatest.OptionValues._
-import swaydb.IOValues._
-import swaydb.core.segment.format.a.block.KeyMatcher.Result
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -98,7 +94,7 @@ class HashIndexBlockSpec extends TestBase {
         uncompressedKeyValues should not be empty
 
         val uncompressedState =
-          HashIndexBlock.init(keyValues = uncompressedKeyValues).get
+          HashIndexBlock.init(keyValues = uncompressedKeyValues).value
 
         val compressedState =
           HashIndexBlock.init(
@@ -124,24 +120,24 @@ class HashIndexBlockSpec extends TestBase {
               key = keyValue.key,
               value = keyValue.stats.thisKeyValuesAccessIndexOffset,
               state = uncompressedState
-            ).get
+            )
 
             HashIndexBlock.write(
               key = keyValue.key,
               value = keyValue.stats.thisKeyValuesAccessIndexOffset,
               state = compressedState
-            ).get
+            )
         }
 
-        HashIndexBlock.close(uncompressedState).get
-        HashIndexBlock.close(compressedState).get
+        HashIndexBlock.close(uncompressedState)
+        HashIndexBlock.close(compressedState)
 
         //compressed bytes should be smaller
         compressedState.bytes.size should be <= uncompressedState.bytes.size
 
-        val uncompressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](uncompressedState.bytes).get
+        val uncompressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](uncompressedState.bytes)
 
-        val compressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](compressedState.bytes).get
+        val compressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](compressedState.bytes)
 
         uncompressedHashIndex.block.compressionInfo shouldBe empty
         compressedHashIndex.block.compressionInfo shouldBe defined
@@ -156,8 +152,8 @@ class HashIndexBlockSpec extends TestBase {
         //        println(s"miss: ${uncompressedHashIndex.block.miss}")
         //        println(s"prefixCompressionResetCount: ${uncompressedKeyValues.last.sortedIndexConfig.prefixCompressionResetCount}")
 
-        //        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean()).get
-        //        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean()).get
+        //        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean())
+        //        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean())
 
         //assert that both compressed and uncompressed HashIndexes should result in the same value eventually.
         uncompressedKeyValues foreach {
@@ -170,9 +166,9 @@ class HashIndexBlockSpec extends TestBase {
               assertValue =
                 index => {
                   uncompressedIndexes += index
-                  IO.none
+                  None
                 }
-            ).get
+            )
 
             val compressedIndexes = ListBuffer.empty[Int]
             HashIndexBlock.search(
@@ -181,9 +177,9 @@ class HashIndexBlockSpec extends TestBase {
               assertValue =
                 index => {
                   compressedIndexes += index
-                  IO.none
+                  None
                 }
-            ).get
+            )
 
             uncompressedIndexes should contain atLeastOneElementOf compressedIndexes
         }
@@ -221,7 +217,7 @@ class HashIndexBlockSpec extends TestBase {
         keyValues should not be empty
 
         val state =
-          HashIndexBlock.init(keyValues = keyValues).get
+          HashIndexBlock.init(keyValues = keyValues).value
 
         val allocatedBytes = state.bytes.allocatedSize
 
@@ -231,14 +227,14 @@ class HashIndexBlockSpec extends TestBase {
               key = keyValue.key,
               value = keyValue.stats.thisKeyValuesAccessIndexOffset,
               state = state
-            ).get
+            )
         }
 
         println(s"hit: ${state.hit}")
         println(s"miss: ${state.miss}")
         println
 
-        HashIndexBlock.close(state).get
+        HashIndexBlock.close(state).value
 
         println(s"Bytes allocated: $allocatedBytes")
         println(s"Bytes written: ${state.bytes.size}")
@@ -257,16 +253,16 @@ class HashIndexBlockSpec extends TestBase {
 
         println(s"ListMap created with size: ${indexOffsetMap.size}")
 
-        def findKey(indexOffset: Int, key: Slice[Byte]): IO[swaydb.Error.Segment, Option[Transient]] =
+        def findKey(indexOffset: Int, key: Slice[Byte]): Option[Transient] =
           indexOffsetMap.get(indexOffset) match {
             case Some(keyValues) =>
-              IO(keyValues.find(_.key equiv key))
+              keyValues.find(_.key equiv key)
 
             case None =>
-              IO.Left(swaydb.Error.Fatal(s"Got index that does not exist: $indexOffset"))
+              fail(s"Got index that does not exist: $indexOffset")
           }
 
-        val hashIndexReader = Block.unblock(BlockRefReader(state.bytes)).get
+        val hashIndexReader = Block.unblock(BlockRefReader(state.bytes))
 
         keyValues foreach {
           keyValue =>
@@ -275,7 +271,8 @@ class HashIndexBlockSpec extends TestBase {
                 key = keyValue.key,
                 reader = hashIndexReader,
                 assertValue = findKey(_, keyValue.key)
-              ).get.get
+              ).value
+
             (found.key equiv keyValue.key) shouldBe true
         }
       }
@@ -327,7 +324,7 @@ class HashIndexBlockSpec extends TestBase {
               hashIndexReader = blocks.hashIndexReader.get,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).get match {
+            ) match {
               case _: HashIndexSearchResult.None =>
                 fail("None on perfect hash.")
 

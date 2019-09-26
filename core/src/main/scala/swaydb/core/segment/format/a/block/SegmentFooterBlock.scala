@@ -115,31 +115,34 @@ object SegmentFooterBlock {
     footerBytes addUnsignedInt currentBlockOffset
     currentBlockOffset = currentBlockOffset + sortedIndex.bytes.size
 
-    hashIndex map {
-      hashIndex =>
+    hashIndex match {
+      case Some(hashIndex) =>
         footerBytes addUnsignedInt hashIndex.bytes.size
         footerBytes addUnsignedInt currentBlockOffset
         currentBlockOffset = currentBlockOffset + hashIndex.bytes.size
-    } getOrElse {
-      footerBytes addUnsignedInt 0
+
+      case None =>
+        footerBytes addUnsignedInt 0
     }
 
-    binarySearchIndex map {
-      binarySearchIndex =>
+    binarySearchIndex match {
+      case Some(binarySearchIndex) =>
         footerBytes addUnsignedInt binarySearchIndex.bytes.size
         footerBytes addUnsignedInt currentBlockOffset
         currentBlockOffset = currentBlockOffset + binarySearchIndex.bytes.size
-    } getOrElse {
-      footerBytes addUnsignedInt 0
+
+      case None =>
+        footerBytes addUnsignedInt 0
     }
 
-    bloomFilter map {
-      bloomFilter =>
+    bloomFilter match {
+      case Some(bloomFilter) =>
         footerBytes addUnsignedInt bloomFilter.bytes.size
         footerBytes addUnsignedInt currentBlockOffset
         currentBlockOffset = currentBlockOffset + bloomFilter.bytes.size
-    } getOrElse {
-      footerBytes addUnsignedInt 0
+
+      case None =>
+        footerBytes addUnsignedInt 0
     }
 
     val footerOffset =

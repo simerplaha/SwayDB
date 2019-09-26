@@ -263,8 +263,8 @@ class BytesSpec extends WordSpec with Matchers {
       normalisedBytes should have size 16
 
       val reader = Reader(normalisedBytes)
-      reader.readUnsignedInt().get shouldBe Int.MaxValue
-      val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
+      reader.readUnsignedInt() shouldBe Int.MaxValue
+      val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining())
       deNormalisedBytes shouldBe bytes
     }
 
@@ -275,8 +275,8 @@ class BytesSpec extends WordSpec with Matchers {
       normalisedBytes should have size 20
 
       val reader = Reader(normalisedBytes)
-      reader.readUnsignedInt().get shouldBe Int.MaxValue
-      val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining().get)
+      reader.readUnsignedInt() shouldBe Int.MaxValue
+      val deNormalisedBytes = Bytes.deNormalise(reader.readRemaining())
       deNormalisedBytes shouldBe bytes
     }
   }

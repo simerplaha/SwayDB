@@ -63,40 +63,40 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             key = keyValue.key,
             start = eitherOne(None, previous),
             end = None,
-            hashIndexReader = IO(blocks.hashIndexReader),
+            hashIndexReader = blocks.hashIndexReader,
             binarySearchIndexReader =
               if (blocks.sortedIndexReader.block.hasPrefixCompression || blocks.footer.hasRange)
-                IO(blocks.binarySearchIndexReader)
+                blocks.binarySearchIndexReader
               else
                 null, //set it to null. BinarySearchIndex is not accessed.
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
             hasRange = keyValues.last.stats.segmentHasRange,
-            keyValueCount = IO.Right(keyValues.size),
+            keyValueCount = keyValues.size,
             threadState = threadStates.get()
-          ).value.map(_.toPersistent.value)
+          ).map(_.toPersistent)
 
         if (got.isEmpty)
           SegmentSearcher.search(
             key = keyValue.key,
             start = eitherOne(None, previous),
             end = None,
-            hashIndexReader = IO(blocks.hashIndexReader),
+            hashIndexReader = blocks.hashIndexReader,
             if (blocks.sortedIndexReader.block.hasPrefixCompression || blocks.footer.hasRange)
-              IO(blocks.binarySearchIndexReader)
+              blocks.binarySearchIndexReader
             else
               null, //set it to null. BinarySearchIndex is not accessed.
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
             hasRange = keyValues.last.stats.segmentHasRange,
-            keyValueCount = IO.Right(keyValues.size),
+            keyValueCount = keyValues.size,
             threadState = threadStates.get()
-          ).value.map(_.toPersistent.value)
+          ).map(_.toPersistent)
 
         got shouldBe defined
         got shouldBe keyValue
 
-        persistentKeyValues add got.value.toPersistent.value
+        persistentKeyValues add got.value.toPersistent
 
         eitherOne(None, got, previous)
     }
@@ -118,15 +118,15 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               key = keyValue.key,
               start = randomStart,
               end = randomEnd,
-              hashIndexReader = IO.none,
+              hashIndexReader = None,
               //randomly use binary search index.
-              binarySearchIndexReader = IO(binarySearchIndexOptional),
+              binarySearchIndexReader = binarySearchIndexOptional,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader,
               hasRange = keyValues.last.stats.segmentHasRange,
-              keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size),
+              keyValueCount = keyValues.size,
               threadState = threadStates.get()
-            ).value.map(_.toPersistent.value)
+            ).map(_.toPersistent)
 
           found.value shouldBe keyValue
           eitherOne(None, found, previous)
@@ -141,14 +141,14 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           key = key,
           start = None,
           end = None,
-          hashIndexReader = IO(blocks.hashIndexReader),
-          binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+          hashIndexReader = blocks.hashIndexReader,
+          binarySearchIndexReader = blocks.binarySearchIndexReader,
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = Some(ValuesBlock.emptyUnblocked), //give it empty blocks since values are not read.
           hasRange = keyValues.last.stats.segmentHasRange,
-          keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size),
+          keyValueCount = keyValues.size,
           threadState = threadStates.get()
-        ).value shouldBe empty
+        ) shouldBe empty
     }
 
     persistentKeyValues
@@ -170,11 +170,11 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReader = IO(randomBinarySearchIndex), //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
-          keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size)
-        ).value.map(_.toPersistent.value)
+          keyValueCount = keyValues.size
+        ).map(_.toPersistent)
 
       if (expectedHigher.nonEmpty && got.isEmpty) {
         SegmentSearcher.searchHigher(
@@ -182,11 +182,11 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReader = IO(randomBinarySearchIndex), //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
-          keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size)
-        ).value.map(_.toPersistent.value)
+          keyValueCount = keyValues.size
+        ).map(_.toPersistent)
 
         println("debug")
       }
@@ -235,11 +235,11 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReader = IO(randomBinarySearchIndex), //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReader = randomBinarySearchIndex, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
-          keyValueCount = IO.Right[swaydb.Error.Segment, Int](keyValues.size)
-        ).value.map(_.toPersistent.value)
+          keyValueCount = keyValues.size
+        ).map(_.toPersistent)
 
       lower shouldBe expectedLower
     }
@@ -294,7 +294,9 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               allocateSpace = _.requiredSpace * 10,
               ioStrategy = _ => randomIOAccess(),
               compressions = _ => hashIndexCompressions
-            )
+            ),
+          sortedIndexConfig =
+            SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
         )
 
       val blocks: Blocks = getBlocks(keyValues).get

@@ -66,7 +66,7 @@ class SegmentMergeStressSpec extends TestBase {
                 binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
                 hashIndexConfig = HashIndexBlock.Config.random,
                 bloomFilterConfig = BloomFilterBlock.Config.random
-              ).get
+              )
             }
 
           mergedKeyValues should have size 1

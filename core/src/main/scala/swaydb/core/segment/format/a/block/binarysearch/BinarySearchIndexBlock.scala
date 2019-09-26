@@ -591,7 +591,11 @@ private[core] object BinarySearchIndexBlock {
                                            end: Option[Persistent.Partial],
                                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]) = {
-    val lowerPersistent = if (sortedIndexReader.block.hasPrefixCompression) lower.map(_.toPersistent) else lower
+    val lowerPersistent =
+      if (sortedIndexReader.block.hasPrefixCompression)
+        lower.map(_.toPersistent)
+      else
+        lower
 
     //next can either be got or end if end is inline with lower.
     val next =
@@ -602,7 +606,11 @@ private[core] object BinarySearchIndexBlock {
       else
         None
 
-    val nextPersistent = if (sortedIndexReader.block.hasPrefixCompression) next.map(_.toPersistent) else next
+    val nextPersistent =
+      if (sortedIndexReader.block.hasPrefixCompression)
+        next.map(_.toPersistent)
+      else
+        next
 
     SortedIndexBlock.matchOrSeekLower(
       key = key,

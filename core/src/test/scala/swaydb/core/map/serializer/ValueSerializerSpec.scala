@@ -42,7 +42,7 @@ class ValueSerializerSpec extends WordSpec with Matchers {
     IntMapListBufferSerializer.write(map, bytes)
     bytes.isFull shouldBe true
 
-    IntMapListBufferSerializer.read(bytes).get shouldBe map
+    IntMapListBufferSerializer.read(bytes) shouldBe map
   }
 
   "IntMapListBufferSerializer on 100 ranges" in {
@@ -77,9 +77,9 @@ class ValueSerializerSpec extends WordSpec with Matchers {
 
     optimalBytes should be >= bytes.size //calculated bytes should always return enough space for range filter bytes to be written.
 
-    println("Compressed size: " + CompressionInternal.randomLZ4().compressor.compress(bytes).get.get.size)
+    println("Compressed size: " + CompressionInternal.randomLZ4().compressor.compress(bytes).get.size)
 
-    IntMapListBufferSerializer.read(bytes).get shouldBe map.map {
+    IntMapListBufferSerializer.read(bytes) shouldBe map.map {
       case (key, value) =>
         (key, value.toSlice)
     }.toMap

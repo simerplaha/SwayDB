@@ -74,7 +74,7 @@ object CommonAssertions {
           Some(keyValue.toMemory.asInstanceOf[Memory.Put])
 
         case range: KeyValue.ReadOnly.Range =>
-          range.fetchFromValueUnsafe.value match {
+          range.fetchFromValueUnsafe flatMap {
             case put: Value.Put =>
               Some(put.toMemory(range.fromKey))
             case _ =>
@@ -125,8 +125,8 @@ object CommonAssertions {
             case keyValue: Memory.Function =>
               Some(keyValue.getOrFetchFunction)
             case keyValue: Memory.PendingApply =>
-              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies))
-              ValueSerializer.write(keyValue.getOrFetchApplies)(bytes)
+              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(keyValue.getOrFetchApplies.runRandomIO.right.value))
+              ValueSerializer.write(keyValue.getOrFetchApplies.runRandomIO.right.value)(bytes)
               Some(bytes)
             case keyValue: Memory.Remove =>
               None
@@ -154,13 +154,13 @@ object CommonAssertions {
         case keyValue: Persistent =>
           keyValue match {
             case keyValue: Persistent.Put =>
-              keyValue.getOrFetchValue
+              keyValue.getOrFetchValue.runRandomIO.right.value
 
             case keyValue: Persistent.Update =>
-              keyValue.getOrFetchValue
+              keyValue.getOrFetchValue.runRandomIO.right.value
 
             case keyValue: Persistent.Function =>
-              Some(keyValue.getOrFetchFunction)
+              Some(keyValue.getOrFetchFunction.runRandomIO.right.value)
 
             case keyValue: Persistent.PendingApply =>
               keyValue.toTransient.getOrFetchValue
@@ -335,11 +335,12 @@ object CommonAssertions {
         binarySearchIndexConfig = expected.lastOption.map(_.binarySearchIndexConfig) getOrElse BinarySearchIndexBlock.Config.random,
         hashIndexConfig = expected.lastOption.map(_.hashIndexConfig) getOrElse HashIndexBlock.Config.random,
         bloomFilterConfig = expected.lastOption.map(_.bloomFilterConfig) getOrElse BloomFilterBlock.Config.random
-      )
+      ).runRandomIO.right.value
 
     if (expected.size == 0) {
       result shouldBe empty
     } else {
+      try
       result should have size 1
       val head = result.head
       head should have size expected.size
@@ -402,8 +403,8 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
@@ -413,8 +414,8 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
@@ -424,8 +425,8 @@ object CommonAssertions {
                   expected: KeyValue.ReadOnly.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    RemoveMerger(newKeyValue, oldKeyValue) shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    RemoveMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
@@ -436,7 +437,7 @@ object CommonAssertions {
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
 
     //todo merge with persistent
@@ -447,8 +448,8 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
@@ -458,8 +459,8 @@ object CommonAssertions {
                   expected: KeyValue.ReadOnly.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
 
     //todo merge with persistent
@@ -470,7 +471,7 @@ object CommonAssertions {
                   expected: Memory.PendingApply,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     assertMerge(newKeyValue: KeyValue.ReadOnly, oldKeyValue: KeyValue.ReadOnly, expected, lastLevel)
     //todo merge with persistent
   }
@@ -507,7 +508,7 @@ object CommonAssertions {
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
 
     def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =
-      Segment.getAllKeyValues(actual) shouldBe Segment.getAllKeyValues(expected)
+      Segment.getAllKeyValues(actual).runRandomIO.right.value shouldBe Segment.getAllKeyValues(expected).runRandomIO.right.value
   }
 
   implicit class SliceByteImplicits(actual: Slice[Byte]) {
@@ -558,18 +559,18 @@ object CommonAssertions {
 
   implicit class PersistentReadOnlyKeyValueImplicits(actual: Persistent) {
     def shouldBe(expected: Transient) = {
-      actual.toMemory.value shouldBe expected.toMemory
+      actual.toMemory() shouldBe expected.toMemory
     }
   }
 
   implicit class PersistentReadOnlyImplicits(actual: Persistent) {
     def shouldBe(expected: Persistent) =
-      actual.toMemory.value shouldBe expected.toMemory.value
+      actual.toMemory shouldBe expected.toMemory
   }
 
   implicit class PersistentPartialReadOnlyImplicits(actual: Persistent.Partial) {
     def shouldBe(expected: KeyValue) =
-      actual.toPersistent.get.toMemory.value shouldBe expected.toMemory
+      actual.toPersistent.toMemory() shouldBe expected.toMemory
   }
 
   implicit class SegmentImplicits(actual: Segment) {
@@ -580,16 +581,16 @@ object CommonAssertions {
       actual.minKey shouldBe expected.minKey
       actual.maxKey shouldBe expected.maxKey
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
-      actual.getKeyValueCount() shouldBe expected.getKeyValueCount()
+      actual.getKeyValueCount().runRandomIO.right.value shouldBe expected.getKeyValueCount().runRandomIO.right.value
       actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
-      assertReads(expected.getAll(), actual)
+      assertReads(expected.getAll().runRandomIO.right.value, actual)
     }
 
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
       keyValues.foreach {
         keyValue =>
-          actual.get(keyValue.key).value shouldBe keyValue
+          actual.get(keyValue.key).runRandomIO.right.value.value shouldBe keyValue
       }
   }
 
@@ -674,7 +675,7 @@ object CommonAssertions {
           if (lower.nonEmpty) {
             expectedLowerKeyValue shouldBe defined
             lower.get.key shouldBe expectedLowerKeyValue.get.key
-            lower.get.getOrFetchValue shouldBe expectedLowerKeyValue.get.getOrFetchValue
+            lower.get.getOrFetchValue.runRandomIO.right.value shouldBe expectedLowerKeyValue.get.getOrFetchValue
           } else {
             expectedLowerKeyValue shouldBe empty
           }
@@ -704,27 +705,27 @@ object CommonAssertions {
           key = keyValue.key,
           start = None,
           end = None,
-          keyValueCount = IO.Right(blocks.footer.keyValueCount),
-          hashIndexReader = IO(blocks.hashIndexReader),
-          binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+          keyValueCount = blocks.footer.keyValueCount,
+          hashIndexReader = blocks.hashIndexReader,
+          binarySearchIndexReader = blocks.binarySearchIndexReader,
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           hasRange = blocks.footer.hasRange,
           threadState = SegmentReadThreadState.empty(randomBoolean())
-        ).runRandomIO.right.value.value.toPersistent.get shouldBe keyValue
+        ).runRandomIO.right.value.value.toPersistent shouldBe keyValue
     }
   }
 
   def assertBloom(keyValues: Slice[Transient],
                   bloom: BloomFilterBlock.State) = {
-    val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.bytes).get
+    val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.bytes)
 
     keyValues.par.count {
       keyValue =>
         BloomFilterBlock.mightContain(
           key = keyValue.key,
           reader = bloomFilter
-        ).get
+        )
     } should be >= (keyValues.size * 0.90).toInt
 
     assertBloomNotContains(bloom)
@@ -737,7 +738,7 @@ object CommonAssertions {
         segment.mightContainKey(keyValue.key).runRandomIO.right.value
     } shouldBe keyValues.size
 
-    if (segment.hasBloomFilter.right.value)
+    if (segment.hasBloomFilter)
       assertBloomNotContains(segment)
   }
 
@@ -750,7 +751,7 @@ object CommonAssertions {
         BloomFilterBlock.mightContain(
           key = keyValue.key,
           reader = bloomFilterReader.copy()
-        ).get
+        )
     } shouldBe unzipedKeyValues.size
 
     assertBloomNotContains(bloomFilterReader)
@@ -759,14 +760,14 @@ object CommonAssertions {
   def assertBloomNotContains(bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) =
     (1 to 1000).par.count {
       _ =>
-        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy())
+        BloomFilterBlock.mightContain(randomBytesSlice(100), bloomFilterReader.copy()).runRandomIO.right.value
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
     if (segment.hasBloomFilter)
       (1 to 1000).par.count {
         _ =>
-          segment.mightContainKey(randomBytesSlice(100))
+          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
       } should be < 1000
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
@@ -775,7 +776,7 @@ object CommonAssertions {
       BloomFilterBlock.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter.copy()
-      ) shouldBe false
+      ).runRandomIO.right.value shouldBe false
     }
 
   def assertReads(keyValues: Slice[KeyValue],
@@ -785,7 +786,7 @@ object CommonAssertions {
   }
 
   def assertAllSegmentsCreatedInLevel(level: Level) =
-    level.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)
+    level.segmentsInLevel() foreach (_.createdInLevel.runRandomIO.right.value shouldBe level.levelNumber)
 
   def assertReads(keyValues: Iterable[KeyValue],
                   level: LevelRef) = {
@@ -842,7 +843,7 @@ object CommonAssertions {
     readAll(segmentReader.copy()).runRandomIO.right.value shouldBe keyValues
     //    //find each KeyValue using all Matchers
     assertGet(keyValues, segmentReader.copy())
-//    assertLower(keyValues, segmentReader.copy())
+    //    assertLower(keyValues, segmentReader.copy())
     assertHigher(keyValues, segmentReader.copy())
   }
 
@@ -877,7 +878,7 @@ object CommonAssertions {
         //        if (intKey % 1000 == 0)
         //          println("Get: " + intKey)
         try
-          segment.get(keyValue.key).runRandomIO.right.value.value shouldBe keyValue
+          segment.get(keyValue.key).runRandomIO.value.value shouldBe keyValue
         catch {
           case exception: Exception =>
             println(s"Failed to get: ${keyValue.key.readInt()}")
@@ -891,7 +892,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos =
-            segment.getAll().value map {
+            segment.getAll() map {
               keyValue =>
                 keyValue.toMemory match {
                   case response: Memory =>
@@ -936,7 +937,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segmentsInLevel())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n")))).get
+        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n"))))
 
         dump(nextLevel)
 
@@ -944,7 +945,7 @@ object CommonAssertions {
         val data =
           Seq(s"\nLevel: ${level.rootPath}\n") ++
             dump(level.segmentsInLevel())
-        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n")))).get
+        Effect.write(Paths.get(s"/Users/simerplaha/IdeaProjects/SwayDB/core/target/dump_Level_${level.levelNumber}.txt"), Slice(Slice.writeString(data.mkString("\n"))))
     }
 
   def assertGet(keyValues: Iterable[KeyValue],
@@ -1093,8 +1094,8 @@ object CommonAssertions {
               key = range.fromKey,
               start = None,
               end = None,
-              keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value shouldBe empty
@@ -1105,8 +1106,8 @@ object CommonAssertions {
                   key = Slice.writeInt(key),
                   start = None,
                   end = None,
-                  keyValueCount = IO.Right(blocks.footer.keyValueCount),
-                  binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+                  keyValueCount = blocks.footer.keyValueCount,
+                  binarySearchIndexReader = blocks.binarySearchIndexReader,
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
                 ).runRandomIO.right.value.value shouldBe range
@@ -1117,8 +1118,8 @@ object CommonAssertions {
               key = keyValues(index).key,
               start = None,
               end = None,
-              keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value shouldBe empty
@@ -1132,8 +1133,8 @@ object CommonAssertions {
               key = range.fromKey,
               start = None,
               end = None,
-              keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value.value shouldBe expectedLowerKeyValue
@@ -1144,8 +1145,8 @@ object CommonAssertions {
                   key = Slice.writeInt(key),
                   start = None,
                   end = None,
-                  keyValueCount = IO.Right(blocks.footer.keyValueCount),
-                  binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+                  keyValueCount = blocks.footer.keyValueCount,
+                  binarySearchIndexReader = blocks.binarySearchIndexReader,
                   sortedIndexReader = blocks.sortedIndexReader,
                   valuesReader = blocks.valuesReader
                 ).runRandomIO.right.value.value shouldBe range
@@ -1156,8 +1157,8 @@ object CommonAssertions {
               key = keyValues(index).key,
               start = None,
               end = None,
-              keyValueCount = IO.Right(blocks.footer.keyValueCount),
-              binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ).runRandomIO.right.value.value shouldBe expectedLowerKeyValue
@@ -1177,20 +1178,16 @@ object CommonAssertions {
       keyValues,
       getHigher =
         key =>
-          SegmentSearcher.searchHigher(
-            key = key,
-            start = None,
-            end = None,
-            keyValueCount = IO.Right(blocks.footer.keyValueCount),
-            binarySearchIndexReader = IO(blocks.binarySearchIndexReader),
-            sortedIndexReader = blocks.sortedIndexReader,
-            valuesReader = blocks.valuesReader
-          ) flatMap {
-            case Some(partial) =>
-              partial.toPersistent.toOptionValue
-
-            case None =>
-              IO.none
+          IO {
+            SegmentSearcher.searchHigher(
+              key = key,
+              start = None,
+              end = None,
+              keyValueCount = blocks.footer.keyValueCount,
+              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              sortedIndexReader = blocks.sortedIndexReader,
+              valuesReader = blocks.valuesReader
+            ).map(_.toPersistent)
           }
     )
   }
@@ -1336,7 +1333,7 @@ object CommonAssertions {
     readAll(closedSegment.flattenSegmentBytes)
 
   def writeAndRead(keyValues: Iterable[Transient]): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] = {
-    val segment = SegmentBlock.writeClosed(keyValues, 0, SegmentBlock.Config.random).get
+    val segment = SegmentBlock.writeClosed(keyValues, 0, SegmentBlock.Config.random)
     readAll(segment.flattenSegmentBytes)
   }
 
@@ -1361,7 +1358,7 @@ object CommonAssertions {
     readBlocksFromReader(Reader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Transient], segmentIO: SegmentIO = SegmentIO.random, segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): SegmentBlockCache = {
-    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentConfig = segmentConfig).get
+    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentConfig = segmentConfig)
     getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
   }
 
@@ -1388,19 +1385,20 @@ object CommonAssertions {
     SegmentBlockCache(
       id = "test-cache",
       segmentIO = segmentIO,
-      blockRef = BlockRefReader[SegmentBlock.Offset](reader.copy())(SegmentBlockOps).get
+      blockRef = BlockRefReader[SegmentBlock.Offset](reader.copy())(SegmentBlockOps)
     )
 
-  def readAll(reader: Reader): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] = {
-    val blockCache = getSegmentBlockCacheFromReader(reader)
+  def readAll(reader: Reader): IO[swaydb.Error.Segment, Slice[KeyValue.ReadOnly]] =
+    IO {
+      val blockCache = getSegmentBlockCacheFromReader(reader)
 
-    SortedIndexBlock
-      .readAll(
-        keyValueCount = blockCache.getFooter().get.keyValueCount,
-        sortedIndexReader = blockCache.createSortedIndexReader().get,
-        valuesReader = blockCache.createValuesReader().get
-      )
-  }
+      SortedIndexBlock
+        .readAll(
+          keyValueCount = blockCache.getFooter().keyValueCount,
+          sortedIndexReader = blockCache.createSortedIndexReader(),
+          valuesReader = blockCache.createValuesReader()
+        )
+    }
 
   def readBlocksFromReader(reader: Reader, segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[swaydb.Error.Segment, Blocks] = {
     val blockCache = getSegmentBlockCacheFromReader(reader, segmentIO)
@@ -1410,12 +1408,12 @@ object CommonAssertions {
   def readBlocks(blockCache: SegmentBlockCache) =
     IO {
       Blocks(
-        footer = blockCache.getFooter().get,
-        valuesReader = blockCache.createValuesReader().get,
-        sortedIndexReader = blockCache.createSortedIndexReader().get,
-        hashIndexReader = blockCache.createHashIndexReader().get,
-        binarySearchIndexReader = blockCache.createBinarySearchIndexReader().get,
-        bloomFilterReader = blockCache.createBloomFilterReader().get
+        footer = blockCache.getFooter(),
+        valuesReader = blockCache.createValuesReader(),
+        sortedIndexReader = blockCache.createSortedIndexReader(),
+        hashIndexReader = blockCache.createHashIndexReader(),
+        binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+        bloomFilterReader = blockCache.createBloomFilterReader()
       )
     }
 
@@ -1436,7 +1434,7 @@ object CommonAssertions {
             //merge as though applies were normal fixed key-values. The result should be the same.
             FixedMerger(newer, older.toMemory(newKeyValue.key)).runRandomIO.right.value match {
               case newPendingApply: ReadOnly.PendingApply =>
-                val resultApplies = newPendingApply.getOrFetchApplies.reverse.toList ++ reveredApplied.drop(count)
+                val resultApplies = newPendingApply.getOrFetchApplies.runRandomIO.right.value.reverse.toList ++ reveredApplied.drop(count)
                 val result =
                   if (resultApplies.size == 1)
                     resultApplies.head.toMemory(newKeyValue.key)
@@ -1519,12 +1517,12 @@ object CommonAssertions {
           case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            put.getOrFetchValue.shouldBeSliced()
+            put.getOrFetchValue.runRandomIO.right.value.shouldBeSliced()
 
           case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            updated.getOrFetchValue.shouldBeSliced()
+            updated.getOrFetchValue.runRandomIO.right.value.shouldBeSliced()
 
           case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
@@ -1534,7 +1532,7 @@ object CommonAssertions {
           case pendingApply @ Persistent.PendingApply(_key, _time, deadline, lazyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            pendingApply.getOrFetchApplies foreach assertSliced
+            pendingApply.getOrFetchApplies.runRandomIO.right.value foreach assertSliced
 
           case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _fromKey.shouldBeSliced()

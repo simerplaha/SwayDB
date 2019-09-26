@@ -33,6 +33,7 @@ import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import org.scalatest.OptionValues._
 
 import scala.collection.mutable.ListBuffer
 
@@ -190,23 +191,23 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val valuesBlock = ValuesBlock.init(normalisedKeyValues)
       normalisedKeyValues foreach {
         keyValue =>
-          SortedIndexBlock.write(keyValue, sortedIndexBlock).get
+          SortedIndexBlock.write(keyValue, sortedIndexBlock)
           valuesBlock foreach {
             valuesBlock =>
-              ValuesBlock.write(keyValue, valuesBlock).get
+              ValuesBlock.write(keyValue, valuesBlock).value
           }
       }
 
-      val closedSortedIndexBlock = SortedIndexBlock.close(sortedIndexBlock).get
+      val closedSortedIndexBlock = SortedIndexBlock.close(sortedIndexBlock)
       val ref = BlockRefReader[SortedIndexBlock.Offset](closedSortedIndexBlock.bytes)
-      val header = Block.readHeader(ref.copy()).get
-      val block = SortedIndexBlock.read(header).get
+      val header = Block.readHeader(ref.copy())
+      val block = SortedIndexBlock.read(header)
 
       val valuesBlockReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
         valuesBlock map {
           valuesBlock =>
-            val closedState = ValuesBlock.close(valuesBlock).get
-            Block.unblock[ValuesBlock.Offset, ValuesBlock](closedState.bytes).get
+            val closedState = ValuesBlock.close(valuesBlock)
+            Block.unblock[ValuesBlock.Offset, ValuesBlock](closedState.bytes)
         }
 
       val expectsCompressions = normalisedKeyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(normalisedKeyValues.last.stats.segmentSortedIndexSize)).nonEmpty
@@ -216,12 +217,12 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       block.headerSize shouldBe SortedIndexBlock.headerSize(expectsCompressions)
       block.offset.start shouldBe header.headerSize
 
-      val sortedIndexReader = Block.unblock(ref.copy()).get
+      val sortedIndexReader = Block.unblock(ref.copy())
       //values are not required for this test. Create an empty reader.
       /**
        * TEST - READ ALL
        */
-      val readAllKeyValues = SortedIndexBlock.readAll(normalisedKeyValues.size, sortedIndexReader, valuesBlockReader).get
+      val readAllKeyValues = SortedIndexBlock.readAll(normalisedKeyValues.size, sortedIndexReader, valuesBlockReader)
       assetEqual(normalisedKeyValues.toSlice, readAllKeyValues)
       /**
        * TEST - READ ONE BY ONE
@@ -229,7 +230,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.seekAndMatch(keyValue.key, previous, fullRead = true, sortedIndexReader, valuesBlockReader).get.get.toPersistent.get
+          val searchedKeyValue = SortedIndexBlock.seekAndMatch(keyValue.key, previous, fullRead = true, sortedIndexReader, valuesBlockReader).value.toPersistent
           searchedKeyValue.key shouldBe keyValue.key
           searchedKeyValues += searchedKeyValue
           //randomly set previous
@@ -243,11 +244,11 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
        */
       searchedKeyValues.zip(keyValues).par foreach {
         case (persistent, transient) =>
-          val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, None, fullRead = true, sortedIndexReader.copy(), valuesBlockReader).get.get
+          val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, None, fullRead = true, sortedIndexReader.copy(), valuesBlockReader)
           transient match {
             case transient: Transient =>
-              searchedPersistent shouldBe persistent
-              searchedPersistent shouldBe transient
+              searchedPersistent.value shouldBe persistent
+              searchedPersistent.value shouldBe transient
           }
       }
     }

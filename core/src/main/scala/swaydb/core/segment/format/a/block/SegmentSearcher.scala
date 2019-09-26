@@ -217,13 +217,6 @@ private[core] object SegmentSearcher extends LazyLogging {
         )
     }
 
-  def assertLowerAndStart(start: Option[Persistent.Partial], lower: Option[Persistent.Partial])(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit =
-    if (start.isDefined && lower.nonEmpty)
-      if (lower.isEmpty || keyOrder.lt(lower.get.key, start.get.key))
-        throw IO.throwable(s"Lower ${lower.map(_.key.readInt())} is not greater than or equal to start ${start.map(_.key.readInt())}")
-      else
-        ()
-
   def searchLower(key: Slice[Byte],
                   start: Option[Persistent.Partial],
                   end: Option[Persistent.Partial],

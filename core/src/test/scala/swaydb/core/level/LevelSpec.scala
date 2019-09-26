@@ -153,7 +153,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       if (persistent) {
         //create a non empty level
         val level = TestLevel()
-        val segment = TestSegment(randomKeyValues(keyValuesCount)).right.value
+        val segment = TestSegment(randomKeyValues(keyValuesCount))
 
         level.put(segment).right.right.value.right.value
 

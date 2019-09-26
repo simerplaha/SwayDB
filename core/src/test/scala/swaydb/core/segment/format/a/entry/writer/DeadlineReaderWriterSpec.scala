@@ -21,8 +21,9 @@ package swaydb.core.segment.format.a.entry.writer
 
 import java.util.concurrent.TimeUnit
 
+import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Error.Segment.ExceptionHandler
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Time}
@@ -30,11 +31,10 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.DeadlineReader
 import swaydb.core.util.Bytes
+import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.core.util.Times._
-import swaydb.core.CommonAssertions._
 
 import scala.concurrent.duration._
 
@@ -133,8 +133,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val expectedKeyValueId = binder.keyValueId.adjustBaseIdToKeyValueIdKey(deadlineId.deadlineUncompressed.baseId, isKeyCompressed)
 
-            reader.readUnsignedInt().get shouldBe expectedKeyValueId
-            DeadlineReader.DeadlineUncompressedReader.read(reader, None).get should contain(deadline)
+            reader.readUnsignedInt() shouldBe expectedKeyValueId
+            DeadlineReader.DeadlineUncompressedReader.read(reader, None) should contain(deadline)
           }
 
           doAssert(isKeyCompressed = true, hasCompression = true)
@@ -194,7 +194,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             deadlineBytesOption shouldBe defined
 
-            val (deadlineBytes, isPrefixCompressed) = deadlineBytesOption.get
+            val (deadlineBytes, isPrefixCompressed) = deadlineBytesOption.value
             deadlineBytes.isFull shouldBe true
             isPrefixCompressed shouldBe true
 
@@ -226,7 +226,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
               else
                 fail(s"Invalid common bytes: $commonBytes")
 
-            reader.readUnsignedInt().get shouldBe expectedKeyValueId
+            reader.readUnsignedInt() shouldBe expectedKeyValueId
 
             val put =
               Persistent.Put(
@@ -246,7 +246,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
               .read(
                 indexReader = reader,
                 previous = Some(put)
-              ).get should contain(currentDeadline)
+              ) should contain(currentDeadline)
           }
 
           doAssert(compressedKey = true)
@@ -278,8 +278,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
                 val reader = Reader(deadlineBytes)
                 deadlineBytes.isFull shouldBe true
-                reader.readUnsignedInt().get shouldBe expectedEntryID
-                DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty
+                reader.readUnsignedInt() shouldBe expectedEntryID
+                DeadlineReader.NoDeadlineReader.read(reader, None) shouldBe empty
               }
 
               doAssert(isKeyCompressed = true, hasPrefixCompressed = true)
@@ -318,8 +318,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val reader = Reader(deadlineBytes)
             deadlineBytes.isFull shouldBe true
-            reader.readUnsignedInt().get shouldBe expectedEntryID
-            DeadlineReader.DeadlineUncompressedReader.read(reader, None).get shouldBe deadline
+            reader.readUnsignedInt() shouldBe expectedEntryID
+            DeadlineReader.DeadlineUncompressedReader.read(reader, None) shouldBe deadline
           }
 
           doAssert(isKeyCompressed = true, hasPrefixCompressed = true)
@@ -354,8 +354,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val reader = Reader(deadlineBytes)
             deadlineBytes.isFull shouldBe true
-            reader.readUnsignedInt().get shouldBe expectedEntryID
-            DeadlineReader.NoDeadlineReader.read(reader, None).get shouldBe empty
+            reader.readUnsignedInt() shouldBe expectedEntryID
+            DeadlineReader.NoDeadlineReader.read(reader, None) shouldBe empty
           }
 
           runThis(10.times) {
@@ -394,7 +394,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
             val reader = Reader(deadlineBytes)
             deadlineBytes.isFull shouldBe true
-            reader.readUnsignedInt().get shouldBe expectedEntryID
+            reader.readUnsignedInt() shouldBe expectedEntryID
 
             val previous =
               Persistent.Put(
@@ -411,7 +411,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
               )
 
             //            val previous = randomFixedKeyValue(key = 1, deadline = deadline, includeFunctions = false)
-            DeadlineReader.DeadlineFullyCompressedReader.read(reader, Some(previous)).get shouldBe deadline
+            DeadlineReader.DeadlineFullyCompressedReader.read(reader, Some(previous)) shouldBe deadline
           }
 
           runThis(10.times) {

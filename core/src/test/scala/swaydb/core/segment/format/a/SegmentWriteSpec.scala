@@ -238,7 +238,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "not create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
-        segment.hasBloomFilter.get shouldBe false
+        segment.hasBloomFilter shouldBe false
         assertBloom(keyValues.toMemory.toTransient, segment)
         segment.hasRange.runRandomIO.right.value shouldBe true
         segment.close.runRandomIO.right.value
@@ -377,7 +377,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           assert =
             (keyValues, segment) => {
               val failedKV = randomKeyValues(keyValuesCount, addRemoves = true)
-              val reopenedSegment = TestSegment(failedKV, path = segment.path)
+              val reopenedSegment = IO(TestSegment(failedKV, path = segment.path))
               reopenedSegment.left.right.value.exception shouldBe a[FileAlreadyExistsException]
               //data remained unchanged
               assertReads(keyValues, segment)
@@ -461,22 +461,22 @@ sealed trait SegmentWriteSpec extends TestBase {
       if (memory) {
         //memory Segments do not value re-initialised
       } else {
-        val segment = TestSegment().right.value
-        segment.delete.right.value
+        val segment = TestSegment()
+        segment.delete
 
-        segment.tryReopen.left.right.value.exception shouldBe a[NoSuchFileException]
+        IO(segment.tryReopen).left.right.value.exception shouldBe a[NoSuchFileException]
       }
     }
   }
 
   "deleteSegments" should {
     "delete multiple segments" in {
-      val segment1 = TestSegment(randomizedKeyValues(keyValuesCount)).right.value
-      val segment2 = TestSegment(randomizedKeyValues(keyValuesCount)).right.value
-      val segment3 = TestSegment(randomizedKeyValues(keyValuesCount)).right.value
+      val segment1 = TestSegment(randomizedKeyValues(keyValuesCount))
+      val segment2 = TestSegment(randomizedKeyValues(keyValuesCount))
+      val segment3 = TestSegment(randomizedKeyValues(keyValuesCount))
 
       val deleted = Segment.deleteSegments(Seq(segment1, segment2, segment3))
-      deleted.right.value shouldBe 3
+      deleted shouldBe 3
 
       //files should be closed
       segment1.isOpen shouldBe false
@@ -499,10 +499,10 @@ sealed trait SegmentWriteSpec extends TestBase {
         implicit val fileSweeper = FileSweeper.Disabled
 
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).right.value
+        val segment = TestSegment(keyValues)
 
         def close: Unit = {
-          segment.close.right.value
+          segment.close
           if (levelStorage.persistent) {
             //also clear the cache so that if the key-value is a group on open file is still reopened
             //instead of just reading from in-memory Group key-value.
@@ -513,7 +513,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         }
 
         def open(keyValue: KeyValue): Unit = {
-          segment.get(keyValue.key).right.value.value shouldBe keyValue
+          segment.get(keyValue.key).value shouldBe keyValue
           segment.isFileDefined shouldBe true
           segment.isOpen shouldBe true
         }
@@ -530,39 +530,43 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "fail read and write operations on a Segment that does not exists" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
 
-      segment.delete.right.value
+      segment.delete
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
 
       segment.existsOnDisk shouldBe false
-      segment.get(keyValues.head.key).left.right.value.exception shouldBe a[NoSuchFileException]
+      IO(segment.get(keyValues.head.key)).left.right.value.exception shouldBe a[NoSuchFileException]
 
-      segment.put(
-        newKeyValues = keyValues.toMemory,
-        minSegmentSize = 1.mb,
-        removeDeletes = false,
-        createdInLevel = 0,
-        valuesConfig = keyValues.last.valuesConfig,
-        sortedIndexConfig = keyValues.last.sortedIndexConfig,
-        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
-        hashIndexConfig = keyValues.last.hashIndexConfig,
-        bloomFilterConfig = keyValues.last.bloomFilterConfig,
-        segmentConfig = SegmentBlock.Config.random
-      ).left.right.value.exception shouldBe a[NoSuchFileException]
+      IO {
+        segment.put(
+          newKeyValues = keyValues.toMemory,
+          minSegmentSize = 1.mb,
+          removeDeletes = false,
+          createdInLevel = 0,
+          valuesConfig = keyValues.last.valuesConfig,
+          sortedIndexConfig = keyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = keyValues.last.hashIndexConfig,
+          bloomFilterConfig = keyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random
+        )
+      }.left.right.value.exception shouldBe a[NoSuchFileException]
 
-      segment.refresh(
-        minSegmentSize = 1.mb,
-        removeDeletes = false,
-        createdInLevel = 0,
-        valuesConfig = keyValues.last.valuesConfig,
-        sortedIndexConfig = keyValues.last.sortedIndexConfig,
-        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
-        hashIndexConfig = keyValues.last.hashIndexConfig,
-        bloomFilterConfig = keyValues.last.bloomFilterConfig,
-        segmentConfig = SegmentBlock.Config.random
-      ).left.right.value.exception shouldBe a[NoSuchFileException]
+      IO {
+        segment.refresh(
+          minSegmentSize = 1.mb,
+          removeDeletes = false,
+          createdInLevel = 0,
+          valuesConfig = keyValues.last.valuesConfig,
+          sortedIndexConfig = keyValues.last.sortedIndexConfig,
+          binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+          hashIndexConfig = keyValues.last.hashIndexConfig,
+          bloomFilterConfig = keyValues.last.bloomFilterConfig,
+          segmentConfig = SegmentBlock.Config.random
+        )
+      }.left.right.value.exception shouldBe a[NoSuchFileException]
 
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
@@ -576,14 +580,14 @@ sealed trait SegmentWriteSpec extends TestBase {
       implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
       implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(100.millisecond, ec))
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).right.value
+      val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit)
 
-      segment1.getKeyValueCount().right.value shouldBe keyValues.size
+      segment1.getKeyValueCount() shouldBe keyValues.size
       segment1.isOpen shouldBe true
 
       //create another segment should close segment 1
-      val segment2 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit).right.value
-      segment2.getKeyValueCount().right.value shouldBe keyValues.size
+      val segment2 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit)
+      segment2.getKeyValueCount() shouldBe keyValues.size
 
       eventual(5.seconds) {
         //segment one is closed
@@ -594,7 +598,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         //when it's close clear all the caches so that key-values do not get read from the cache.
         eitherOne(segment1.clearAllCaches(), segment1.clearCachedKeyValues())
         //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
-        (segment1 get keyValues.head.key).right.value.value shouldBe keyValues.head
+        (segment1 get keyValues.head.key).value shouldBe keyValues.head
         segment1.isOpen shouldBe true
       }
 
@@ -608,12 +612,12 @@ sealed trait SegmentWriteSpec extends TestBase {
   "delete" should {
     "close the channel and delete the file" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).get
+      val segment = TestSegment(keyValues)
       assertReads(keyValues, segment) //populate the cache
 
       segment.cachedKeyValueSize shouldBe keyValues.size
 
-      segment.delete.right.value
+      segment.delete
       segment.cachedKeyValueSize shouldBe keyValues.size //cache is not cleared
       if (persistent) {
         segment.isOpen shouldBe false
@@ -629,18 +633,18 @@ sealed trait SegmentWriteSpec extends TestBase {
         val keyValues = randomizedKeyValues(keyValuesCount)
         val keyValuesReadOnly = keyValues
 
-        val segment = TestSegment(keyValues).get.asInstanceOf[PersistentSegment]
+        val segment = TestSegment(keyValues).asInstanceOf[PersistentSegment]
         val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
 
-        segment.copyTo(targetPath).right.value
+        segment.copyTo(targetPath)
         segment.existsOnDisk shouldBe true
 
         val copiedSegment = segment.reopen(targetPath)
-        copiedSegment.getAll().right.value shouldBe keyValuesReadOnly
+        copiedSegment.getAll() shouldBe keyValuesReadOnly
         copiedSegment.path shouldBe targetPath
 
         //original segment should still exist
-        segment.getAll().right.value shouldBe keyValuesReadOnly
+        segment.getAll() shouldBe keyValuesReadOnly
       }
     }
   }
@@ -650,7 +654,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
 
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
       val levelPath = createNextLevelPath
 
       def fetchNextPath = {
@@ -674,7 +678,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           segmentConfig = SegmentBlock.Config.random,
           removeDeletes = false,
           minSegmentSize = keyValues.last.stats.segmentSize / 10
-        ).right.value
+        )
 
       if (persistent)
         segments.size shouldBe 1
@@ -682,14 +686,14 @@ sealed trait SegmentWriteSpec extends TestBase {
         segments.size should be > 1
 
       segments.foreach(_.existsOnDisk shouldBe true)
-      Segment.getAllKeyValues(segments).right.value shouldBe keyValues
+      Segment.getAllKeyValues(segments) shouldBe keyValues
     }
 
     "copy the segment and persist it to disk when remove deletes is true" in {
       runThis(10.times) {
         implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).right.value
+        val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath
 
         def fetchNextPath = {
@@ -717,14 +721,14 @@ sealed trait SegmentWriteSpec extends TestBase {
                 keyValues.last.stats.segmentSize / 10
               else
                 keyValues.last.stats.memorySegmentSize / 10
-          ).right.value
+          )
 
         segments.foreach(_.existsOnDisk shouldBe true)
 
         if (persistent)
-          Segment.getAllKeyValues(segments).right.value shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
+          Segment.getAllKeyValues(segments) shouldBe keyValues //persistent Segments are simply copied and are not checked for removed key-values.
         else
-          Segment.getAllKeyValues(segments).right.value shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
+          Segment.getAllKeyValues(segments) shouldBe keyValues.collect { //memory Segments does a split/merge and apply lastLevel rules.
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
             case Transient.Range(fromKey, _, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
@@ -736,7 +740,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     "revert copy if Segment initialisation fails after copy" in {
       implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
       val levelPath = createNextLevelPath
 
       val (segmentId, nextPath) = {
@@ -745,31 +749,35 @@ sealed trait SegmentWriteSpec extends TestBase {
         (segmentId, path)
       }
 
-      Effect.createFile(nextPath).right.value //path already taken.
+      Effect.createFile(nextPath) //path already taken.
 
-      Segment.copyToPersist(
-        segment = segment,
-        createdInLevel = 0,
-        fetchNextPath = (segmentId, nextPath),
-        mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
-        mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-        removeDeletes = true,
-        valuesConfig = keyValues.last.valuesConfig,
-        sortedIndexConfig = keyValues.last.sortedIndexConfig,
-        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
-        hashIndexConfig = keyValues.last.hashIndexConfig,
-        bloomFilterConfig = keyValues.last.bloomFilterConfig,
-        segmentConfig = SegmentBlock.Config.random,
-        minSegmentSize =
-          if (persistent)
-            keyValues.last.stats.segmentSize / 10
-          else
-            keyValues.last.stats.memorySegmentSize / 10
-      ).left.right.value.exception shouldBe a[FileAlreadyExistsException]
+      val newSegment =
+        IO {
+          Segment.copyToPersist(
+            segment = segment,
+            createdInLevel = 0,
+            fetchNextPath = (segmentId, nextPath),
+            mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+            removeDeletes = true,
+            valuesConfig = keyValues.last.valuesConfig,
+            sortedIndexConfig = keyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues.last.hashIndexConfig,
+            bloomFilterConfig = keyValues.last.bloomFilterConfig,
+            segmentConfig = SegmentBlock.Config.random,
+            minSegmentSize =
+              if (persistent)
+                keyValues.last.stats.segmentSize / 10
+              else
+                keyValues.last.stats.memorySegmentSize / 10
+          )
+        }
 
-      Effect.size(nextPath).right.value shouldBe 0
-      if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
+      newSegment.left.value.exception shouldBe a[FileAlreadyExistsException]
 
+      Effect.size(nextPath) shouldBe 0
+      //      if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
     }
 
     "revert copy of Key-values if creating at least one Segment fails" in {
@@ -784,7 +792,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         (segmentId, path)
       }
 
-      Effect.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))).right.value //path already taken.
+      Effect.createFile(levelPath.resolve(IDGenerator.segmentId(nextSegmentId + 4))) //path already taken.
 
       levelStorage.dirs foreach {
         dir =>
@@ -795,21 +803,26 @@ sealed trait SegmentWriteSpec extends TestBase {
       val filesBeforeCopy = levelPath.files(Extension.Seg)
       filesBeforeCopy.size shouldBe 1
 
-      Segment.copyToPersist(
-        keyValues = keyValues,
-        createdInLevel = 0,
-        fetchNextPath = nextPath,
-        mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
-        mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-        removeDeletes = false,
-        minSegmentSize = keyValues.last.stats.segmentSize / 5,
-        valuesConfig = keyValues.last.valuesConfig,
-        sortedIndexConfig = keyValues.last.sortedIndexConfig,
-        binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
-        hashIndexConfig = keyValues.last.hashIndexConfig,
-        bloomFilterConfig = keyValues.last.bloomFilterConfig,
-        segmentConfig = SegmentBlock.Config.random
-      ).left.right.value.exception shouldBe a[FileAlreadyExistsException]
+      val newSegment =
+        IO {
+          Segment.copyToPersist(
+            keyValues = keyValues,
+            createdInLevel = 0,
+            fetchNextPath = nextPath,
+            mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+            removeDeletes = false,
+            minSegmentSize = keyValues.last.stats.segmentSize / 5,
+            valuesConfig = keyValues.last.valuesConfig,
+            sortedIndexConfig = keyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = keyValues.last.hashIndexConfig,
+            bloomFilterConfig = keyValues.last.bloomFilterConfig,
+            segmentConfig = SegmentBlock.Config.random
+          )
+        }
+
+      newSegment.left.right.value.exception shouldBe a[FileAlreadyExistsException]
 
       levelPath.files(Extension.Seg) shouldBe filesBeforeCopy
     }
@@ -820,7 +833,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(100.times) {
         implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).right.value
+        val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath
 
         def nextPath = {
@@ -845,12 +858,12 @@ sealed trait SegmentWriteSpec extends TestBase {
               //for the split to occur.
               keyValues.last.stats.memorySegmentSize / 10
 
-          ).right.value
+          )
 
         segments.size should be >= 2 //ensures that splits occurs. Memory Segments do not value written to disk without splitting.
 
         segments.foreach(_.existsOnDisk shouldBe false)
-        Segment.getAllKeyValues(segments).right.value shouldBe keyValues
+        Segment.getAllKeyValues(segments) shouldBe keyValues
       }
     }
 
@@ -858,7 +871,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(10.times) {
         implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).right.value
+        val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath
 
         def nextPath = {
@@ -879,7 +892,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
             hashIndexConfig = keyValues.last.hashIndexConfig,
             bloomFilterConfig = keyValues.last.bloomFilterConfig
-          ).right.value
+          )
 
         segments.foreach(_.existsOnDisk shouldBe false)
 
@@ -887,7 +900,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
         //some key-values could value expired while unexpired key-values are being collected. So try again!
         IO {
-          Segment.getAllKeyValues(segments).right.value shouldBe keyValues.collect {
+          Segment.getAllKeyValues(segments) shouldBe keyValues.collect {
             case keyValue: Transient.Put if keyValue.hasTimeLeft() =>
               keyValue
             case Transient.Range(fromKey, _, _, _, Some(put @ Value.Put(_, deadline, _)), _, _, _, _, _, _, _, _) if deadline.forall(_.hasTimeLeft()) =>
@@ -921,7 +934,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             key
         }
 
-        val segment = TestSegment(keyValuesWithEmptyValues.toTransient).right.value
+        val segment = TestSegment(keyValuesWithEmptyValues.toTransient)
 
         def valuesValueShouldBeNone(value: Value): Unit =
           value match {
@@ -937,7 +950,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             //nothing to assert
           }
 
-        segment.getAll().right.value foreach {
+        segment.getAll() foreach {
           case keyValue: KeyValue.ReadOnly.Put =>
             keyValue.getOrFetchValue shouldBe None
 
@@ -945,11 +958,11 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValue.getOrFetchValue shouldBe None
 
           case keyValue: KeyValue.ReadOnly.Range =>
-            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe.right.value
+            val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
             Seq(fromValue, Some(rangeValue)).flatten foreach valuesValueShouldBeNone
 
           case apply: KeyValue.ReadOnly.PendingApply =>
-            apply.getOrFetchApplies.right.value foreach valuesValueShouldBeNone
+            apply.getOrFetchApplies foreach valuesValueShouldBeNone
 
           case _: KeyValue.ReadOnly.Function =>
           //nothing to assert
@@ -962,8 +975,8 @@ sealed trait SegmentWriteSpec extends TestBase {
     "reopen closed channel" in {
       val keyValues1 = randomizedKeyValues(keyValuesCount)
 
-      val segment = TestSegment(keyValues1).right.value
-      segment.close.right.value
+      val segment = TestSegment(keyValues1)
+      segment.close
       if (persistent) segment.isOpen shouldBe false
 
       val keyValues2 = randomizedKeyValues(keyValuesCount)
@@ -979,14 +992,14 @@ sealed trait SegmentWriteSpec extends TestBase {
         segmentConfig = SegmentBlock.Config.random,
         removeDeletes = false,
         createdInLevel = 0
-      ).right.value
+      )
 
       if (persistent) segment.isOpen shouldBe true
     }
 
     "return a new segment with merged key values" in {
       val keyValues = Slice(Transient.put(1, 1))
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
 
       val newKeyValues = Slice(Memory.put(2, 2)).toTransient
       val newSegments =
@@ -1001,11 +1014,11 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value
+        )
 
       newSegments should have size 1
 
-      val allReadKeyValues = Segment.getAllKeyValues(newSegments).right.value
+      val allReadKeyValues = Segment.getAllKeyValues(newSegments)
 
       val expectedKeyValues =
         SegmentMerger.merge(
@@ -1020,7 +1033,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
           createdInLevel = randomIntMax()
-        ).right.value
+        )
 
       expectedKeyValues should have size 1
 
@@ -1029,7 +1042,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "return multiple new segments with merged key values" in {
       val keyValues = randomizedKeyValues(keyValuesCount)
-      val segment = TestSegment(keyValues).get
+      val segment = TestSegment(keyValues)
 
       val newKeyValues = randomizedKeyValues(keyValuesCount)
       val newSegments =
@@ -1044,11 +1057,11 @@ sealed trait SegmentWriteSpec extends TestBase {
           segmentConfig = SegmentBlock.Config.random,
           removeDeletes = false,
           createdInLevel = 0
-        ).right.value
+        )
 
       newSegments.size should be > 1
 
-      val allReadKeyValues = Segment.getAllKeyValues(newSegments).right.value
+      val allReadKeyValues = Segment.getAllKeyValues(newSegments)
 
       //give merge a very large size so that there are no splits (test convenience)
       val expectedKeyValues =
@@ -1064,7 +1077,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = newKeyValues.last.hashIndexConfig,
           bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
           createdInLevel = randomIntMax()
-        ).right.value
+        )
 
       expectedKeyValues should have size 1
 
@@ -1078,29 +1091,31 @@ sealed trait SegmentWriteSpec extends TestBase {
       } else {
 
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues).get
+        val segment = TestSegment(keyValues)
         val newKeyValues = randomizedKeyValues(keyValuesCount)
 
         val tenthSegmentId = {
-          val segmentId = (segment.path.fileId.get._1 + 10).toSegmentFileId
+          val segmentId = (segment.path.fileId._1 + 10).toSegmentFileId
           segment.path.getParent.resolve(segmentId)
         }
 
         //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
-        val segmentToFailPut = TestSegment(path = tenthSegmentId).right.value
+        val segmentToFailPut = TestSegment(path = tenthSegmentId)
 
-        segment.put(
-          newKeyValues = newKeyValues.toMemory,
-          minSegmentSize = 500.bytes,
-          removeDeletes = false,
-          createdInLevel = 0,
-          valuesConfig = newKeyValues.last.valuesConfig,
-          sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
-          binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
-          hashIndexConfig = newKeyValues.last.hashIndexConfig,
-          bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-          segmentConfig = SegmentBlock.Config.random
-        ).left.right.value.exception shouldBe a[FileAlreadyExistsException]
+        IO {
+          segment.put(
+            newKeyValues = newKeyValues.toMemory,
+            minSegmentSize = 500.bytes,
+            removeDeletes = false,
+            createdInLevel = 0,
+            valuesConfig = newKeyValues.last.valuesConfig,
+            sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = newKeyValues.last.hashIndexConfig,
+            bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
+            segmentConfig = SegmentBlock.Config.random
+          )
+        }.left.right.value.exception shouldBe a[FileAlreadyExistsException]
 
         //the folder should contain only the original segment and the segmentToFailPut
         segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
@@ -1117,7 +1132,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         Transient.put(4),
         Transient.Range.create[FromValue, RangeValue](5, 10, None, Value.Update(None, None, testTimer.next))
       ).updateStats
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
       assertGet(keyValues, segment)
 
       val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, None, Value.remove(None))).toTransient
@@ -1134,11 +1149,11 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = deleteKeyValues.last.hashIndexConfig,
           bloomFilterConfig = deleteKeyValues.last.bloomFilterConfig,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value
+        )
 
       deletedSegment should have size 1
       val newDeletedSegment = deletedSegment.head
-      newDeletedSegment.getAll().right.value shouldBe deleteKeyValues
+      newDeletedSegment.getAll() shouldBe deleteKeyValues
 
       assertGet(keyValues, segment)
       if (persistent) assertGet(keyValues, segment.reopen)
@@ -1148,7 +1163,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       implicit val testTimer: TestTimer = TestTimer.Incremental()
 
       val keyValues = randomizedKeyValues(count = keyValuesCount)
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
 
       val updatedKeyValues = Slice.create[Memory](keyValues.size)
       keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, None))
@@ -1165,12 +1180,12 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = keyValues.last.hashIndexConfig,
           bloomFilterConfig = keyValues.last.bloomFilterConfig,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value
+        )
 
       updatedSegments should have size 1
 
       val newUpdatedSegment = updatedSegments.head
-      newUpdatedSegment.getAll().right.value shouldBe updatedKeyValues
+      newUpdatedSegment.getAll() shouldBe updatedKeyValues
 
       assertGet(updatedKeyValues, newUpdatedSegment)
     }
@@ -1180,7 +1195,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         implicit val testTimer: TestTimer = TestTimer.Incremental()
         //ranges value split to make sure there are no ranges.
         val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRanges = false)
-        val segment1 = TestSegment(keyValues1).right.value
+        val segment1 = TestSegment(keyValues1)
 
         val keyValues2Unclosed = Slice.create[Transient](keyValues1.size * 100)
         keyValues1 foreach {
@@ -1190,11 +1205,11 @@ sealed trait SegmentWriteSpec extends TestBase {
 
         val keyValues2Closed = keyValues2Unclosed.close().updateStats
 
-        val segment2 = TestSegment(keyValues2Closed).right.value
+        val segment2 = TestSegment(keyValues2Closed)
 
         val mergedSegments =
           segment1.put(
-            newKeyValues = segment2.getAll().right.value.toSlice,
+            newKeyValues = segment2.getAll().toSlice,
             minSegmentSize = 10.mb,
             removeDeletes = false,
             createdInLevel = 0,
@@ -1204,7 +1219,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             hashIndexConfig = keyValues1.last.hashIndexConfig,
             bloomFilterConfig = keyValues1.last.bloomFilterConfig,
             segmentConfig = SegmentBlock.Config.random
-          ).right.value
+          )
 
         mergedSegments.size shouldBe 1
         val mergedSegment = mergedSegments.head
@@ -1212,10 +1227,10 @@ sealed trait SegmentWriteSpec extends TestBase {
         //test merged segment should contain all
         keyValues2Closed foreach {
           keyValue =>
-            (mergedSegment get keyValue.key).right.value.value shouldBe keyValue
+            (mergedSegment get keyValue.key).value shouldBe keyValue
         }
 
-        mergedSegment.getAll().right.value.size shouldBe keyValues2Closed.size
+        mergedSegment.getAll().size shouldBe keyValues2Closed.size
       }
     }
 
@@ -1230,7 +1245,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             randomRangeKeyValue(5, 10, Some(randomRangeValue()), randomRangeValue())
           ).toTransient
 
-        val segment = TestSegment(keyValues).right.value
+        val segment = TestSegment(keyValues)
 
         val deleteKeyValues = Slice.create[Memory](keyValues.size)
         (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
@@ -1247,7 +1262,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value shouldBe empty
+        ) shouldBe empty
       }
     }
 
@@ -1255,7 +1270,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       implicit val testTimer: TestTimer = TestTimer.Empty
 
       val keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 10, None, Value.update(10))).updateStats
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
 
       val deleteKeyValues = Slice.create[Memory](10)
       (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
@@ -1272,7 +1287,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value.head.getAll().right.value
+        ).head.getAll()
 
       val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Some(Value.remove(None)), Value.update(10))) :+ Memory.remove(10)
 
@@ -1283,7 +1298,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       implicit val testTimer: TestTimer = TestTimer.Empty
 
       val keyValues = randomKeyValues(count = keyValuesCount)
-      val segment = TestSegment(keyValues).right.value
+      val segment = TestSegment(keyValues)
 
       val deleteKeyValues = Slice.create[Transient.Remove](keyValues.size - 1)
       keyValues.drop(1).foreach(keyValue => deleteKeyValues add Transient.remove(keyValue.key))
@@ -1300,23 +1315,23 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value
+        )
 
       newSegments.size shouldBe 1
-      newSegments.head.getKeyValueCount().right.value shouldBe 1
+      newSegments.head.getKeyValueCount() shouldBe 1
 
       val newSegment = newSegments.head
       val keyValue = keyValues.head
 
-      newSegment.get(keyValue.key).runRandomIO.right.value.value shouldBe keyValue
+      newSegment.get(keyValue.key).runRandomIO.value shouldBe keyValue
 
-      newSegment.lower(keyValue.key).right.value shouldBe empty
-      newSegment.higher(keyValue.key).right.value shouldBe empty
+      newSegment.lower(keyValue.key) shouldBe empty
+      newSegment.higher(keyValue.key) shouldBe empty
     }
 
     "distribute new Segments to multiple folders equally" in {
       val keyValues1 = Slice(Transient.put(1, 1), Transient.put(2, 2), Transient.put(3, 3), Transient.put(4, 4), Transient.put(5, 5), Transient.put(6, 6)).updateStats
-      val segment = TestSegment(keyValues1).right.value
+      val segment = TestSegment(keyValues1)
 
       val keyValues2 = Slice(Memory.put(7, 7), Memory.put(8, 8), Memory.put(9, 9), Memory.put(10, 10), Memory.put(11, 11), Memory.put(12, 12))
 
@@ -1337,7 +1352,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentConfig = SegmentBlock.Config.random,
             targetPaths = distributor
-          ).right.value
+          )
         else
           segment.put(
             newKeyValues = keyValues2,
@@ -1351,7 +1366,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             bloomFilterConfig = BloomFilterBlock.Config.random,
             segmentConfig = SegmentBlock.Config.random,
             targetPaths = distributor
-          ).right.value
+          )
 
       //all returned segments contain all the KeyValues ???
       //      segments should have size 6
@@ -1382,12 +1397,12 @@ sealed trait SegmentWriteSpec extends TestBase {
             key =>
               eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, None, randomRangeValue()))
           } toTransient
-        val segment = TestSegment(keyValues).right.value
-        segment.getKeyValueCount().right.value shouldBe keyValues.size
-        segment.getAll().right.value shouldBe keyValues
+        val segment = TestSegment(keyValues)
+        segment.getKeyValueCount() shouldBe keyValues.size
+        segment.getAll() shouldBe keyValues
 
         val reopened = segment.reopen(segment.path)
-        reopened.getKeyValueCount().right.value shouldBe keyValues.size
+        reopened.getKeyValueCount() shouldBe keyValues.size
         reopened.refresh(
           minSegmentSize = 1.mb,
           removeDeletes = true,
@@ -1398,14 +1413,14 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value shouldBe empty
+        ) shouldBe empty
       }
     }
 
     "return no new Segments if all the key-values in the Segment were expired" in {
       val keyValues1 = (1 to 100).map(key => randomPutKeyValue(key, deadline = Some(1.second.fromNow))).toTransient
-      val segment = TestSegment(keyValues1).right.value
-      segment.getKeyValueCount().right.value shouldBe keyValues1.size
+      val segment = TestSegment(keyValues1)
+      segment.getKeyValueCount() shouldBe keyValues1.size
 
       sleep(2.seconds)
       segment.refresh(
@@ -1418,13 +1433,13 @@ sealed trait SegmentWriteSpec extends TestBase {
         hashIndexConfig = HashIndexBlock.Config.random,
         bloomFilterConfig = BloomFilterBlock.Config.random,
         segmentConfig = SegmentBlock.Config.random
-      ).right.value shouldBe empty
+      ) shouldBe empty
     }
 
     "return all key-values when removeDeletes is false" in {
       val keyValues1 = (1 to 100).map(key => Transient.put(key, key, 1.second)).updateStats
-      val segment = TestSegment(keyValues1).right.value
-      segment.getKeyValueCount().right.value shouldBe keyValues1.size
+      val segment = TestSegment(keyValues1)
+      segment.getKeyValueCount() shouldBe keyValues1.size
 
       sleep(2.seconds)
       val refresh =
@@ -1438,7 +1453,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random
-        ).right.value
+        )
 
       refresh should have size 1
       refresh.head shouldContainAll keyValues1
@@ -1461,7 +1476,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           createdInLevel = randomIntMax()
-        ).right.value
+        )
 
       result should have size 1
       result.head should have size keyValues.size

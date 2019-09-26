@@ -45,10 +45,10 @@ class BlockReaderPerformanceSpec extends TestBase {
     val file = DBFile.mmapInit(randomFilePath, ioStrategy, bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
     file.append(bytes).runRandomIO.right.value
     file.isFull.runRandomIO.right.value shouldBe true
-    file.forceSave().get
-    file.close.get
+    file.forceSave()
+    file.close()
 
-    val readerFile = DBFile.mmapRead(path = file.path, ioStrategy = ioStrategy, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).get
+    val readerFile = DBFile.mmapRead(path = file.path, ioStrategy = ioStrategy, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
 
     /**
      * @note For randomReads:
@@ -59,7 +59,7 @@ class BlockReaderPerformanceSpec extends TestBase {
      *       - [[FileReader]] has the same performance as reading from the [[file]] directly.
      */
     //        val reader = Reader(bytes)
-    val reader = BlockRefReader(readerFile).get
+    val reader = BlockRefReader(readerFile)
     //    val reader = Reader(readerFile)
 
     Benchmark("") {
@@ -69,7 +69,7 @@ class BlockReaderPerformanceSpec extends TestBase {
           val index = i * 4 //sequential read
 
           //                    file.read(index, 4).get
-          reader.moveTo(index).read(4).get
+          reader.moveTo(index).read(4)
       }
     }
   }

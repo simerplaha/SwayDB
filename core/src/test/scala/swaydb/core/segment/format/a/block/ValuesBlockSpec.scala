@@ -28,6 +28,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import org.scalatest.OptionValues._
+import swaydb.IOValues._
 
 import scala.collection.mutable.ListBuffer
 
@@ -65,20 +66,20 @@ class ValuesBlockSpec extends TestBase {
             ValuesBlock.write(
               keyValue = keyValue,
               state = state
-            ).get
+            ).value
         }
 
-        ValuesBlock.close(state).get
+        ValuesBlock.close(state)
 
         val ref = BlockRefReader[ValuesBlock.Offset](state.bytes)
-        val blocked = BlockedReader(ref.copy()).get
+        val blocked = BlockedReader(ref.copy())
 
-        val manuallyReadBlock = ValuesBlock.read(Block.readHeader[ValuesBlock.Offset](ref.copy()).get)
+        val manuallyReadBlock = ValuesBlock.read(Block.readHeader[ValuesBlock.Offset](ref.copy()))
         manuallyReadBlock.dataType shouldBe blocked.block.dataType
         manuallyReadBlock.offset shouldBe blocked.block.offset
         manuallyReadBlock.headerSize shouldBe blocked.block.headerSize
 
-        val unblocked = Block.unblock(blocked, randomBoolean()).get
+        val unblocked = Block.unblock(blocked, randomBoolean())
 
         val keyValuesOffset = ListBuffer.empty[(Int, Slice[Byte])]
 
@@ -89,7 +90,7 @@ class ValuesBlockSpec extends TestBase {
               offset
             } else {
               keyValuesOffset += ((offset, valueBytes))
-              ValuesBlock.read(offset, valueBytes.size, unblocked).get.value shouldBe valueBytes.value
+              ValuesBlock.read(offset, valueBytes.size, unblocked).value shouldBe valueBytes.value
               offset + valueBytes.size
             }
         }
@@ -97,7 +98,7 @@ class ValuesBlockSpec extends TestBase {
         //concurrent read values
         keyValuesOffset.par foreach {
           case (offset, value) =>
-            ValuesBlock.read(offset, value.size, unblocked.copy()).get should contain(value)
+            ValuesBlock.read(offset, value.size, unblocked.copy()) should contain(value)
         }
       }
     }

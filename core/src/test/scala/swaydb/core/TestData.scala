@@ -127,28 +127,27 @@ object TestData {
                                                  blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                  segmentIO: SegmentIO = SegmentIO.random) {
 
-    def tryReopen: IO[swaydb.Error.Segment, Segment] =
+    def tryReopen: Segment =
       tryReopen(segment.path)
 
-    def tryReopen(path: Path): IO[swaydb.Error.Segment, Segment] =
-      Segment(
-        path = path,
-        segmentId = Effect.fileId(path).get._1,
-        mmapReads = randomBoolean(),
-        mmapWrites = randomBoolean(),
-        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-        minKey = segment.minKey,
-        maxKey = segment.maxKey,
-        segmentSize = segment.segmentSize,
-        minMaxFunctionId = segment.minMaxFunctionId,
-        nearestExpiryDeadline = segment.nearestExpiryDeadline
-      ) flatMap {
-        reopenedSegment =>
-          segment.close map {
-            _ =>
-              reopenedSegment
-          }
-      }
+    def tryReopen(path: Path): Segment = {
+      val reopenedSegment =
+        Segment(
+          path = path,
+          segmentId = Effect.fileId(path)._1,
+          mmapReads = randomBoolean(),
+          mmapWrites = randomBoolean(),
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          minKey = segment.minKey,
+          maxKey = segment.maxKey,
+          segmentSize = segment.segmentSize,
+          minMaxFunctionId = segment.minMaxFunctionId,
+          nearestExpiryDeadline = segment.nearestExpiryDeadline
+        )
+
+      segment.close
+      reopenedSegment
+    }
 
     def reopen: Segment =
       tryReopen.runRandomIO.right.value
@@ -181,21 +180,23 @@ object TestData {
       else if (!level.isEmpty)
         level.putKeyValues(keyValues, level.segmentsInLevel(), None)
       else if (level.inMemory)
-        Segment.copyToMemory(
-          keyValues = keyValues,
-          fetchNextPath = fetchNextPath,
-          removeDeletes = false,
-          minSegmentSize = 1000.mb,
-          createdInLevel = level.levelNumber,
-          valuesConfig = level.valuesConfig,
-          sortedIndexConfig = level.sortedIndexConfig,
-          binarySearchIndexConfig = level.binarySearchIndexConfig,
-          hashIndexConfig = level.hashIndexConfig,
-          bloomFilterConfig = level.bloomFilterConfig
-        ) flatMap {
+        IO {
+          Segment.copyToMemory(
+            keyValues = keyValues,
+            fetchNextPath = fetchNextPath,
+            removeDeletes = false,
+            minSegmentSize = 1000.mb,
+            createdInLevel = level.levelNumber,
+            valuesConfig = level.valuesConfig,
+            sortedIndexConfig = level.sortedIndexConfig,
+            binarySearchIndexConfig = level.binarySearchIndexConfig,
+            hashIndexConfig = level.hashIndexConfig,
+            bloomFilterConfig = level.bloomFilterConfig
+          )
+        } flatMap {
           segments =>
             segments should have size 1
-            segments mapIO {
+            segments mapRecoverIO {
               segment =>
                 level.putKeyValues(keyValues.toMemory, Seq(segment), None)
             } map {
@@ -203,24 +204,26 @@ object TestData {
             }
         }
       else
-        Segment.copyToPersist(
-          keyValues = keyValues.toTransient(),
-          createdInLevel = level.levelNumber,
-          fetchNextPath = fetchNextPath,
-          mmapSegmentsOnRead = randomBoolean(),
-          mmapSegmentsOnWrite = randomBoolean(),
-          removeDeletes = false,
-          minSegmentSize = 1000.mb,
-          segmentConfig = level.segmentConfig,
-          valuesConfig = level.valuesConfig,
-          sortedIndexConfig = level.sortedIndexConfig,
-          binarySearchIndexConfig = level.binarySearchIndexConfig,
-          hashIndexConfig = level.hashIndexConfig,
-          bloomFilterConfig = level.bloomFilterConfig
-        ) flatMap {
+        IO {
+          Segment.copyToPersist(
+            keyValues = keyValues.toTransient(),
+            createdInLevel = level.levelNumber,
+            fetchNextPath = fetchNextPath,
+            mmapSegmentsOnRead = randomBoolean(),
+            mmapSegmentsOnWrite = randomBoolean(),
+            removeDeletes = false,
+            minSegmentSize = 1000.mb,
+            segmentConfig = level.segmentConfig,
+            valuesConfig = level.valuesConfig,
+            sortedIndexConfig = level.sortedIndexConfig,
+            binarySearchIndexConfig = level.binarySearchIndexConfig,
+            hashIndexConfig = level.hashIndexConfig,
+            bloomFilterConfig = level.bloomFilterConfig
+          )
+        } flatMap {
           segments =>
             segments should have size 1
-            segments mapIO {
+            segments mapRecoverIO {
               segment =>
                 level.putKeyValues(keyValues.toMemory, Seq(segment), None)
             } map {

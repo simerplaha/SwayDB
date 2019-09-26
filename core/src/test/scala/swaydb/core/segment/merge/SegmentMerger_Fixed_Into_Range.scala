@@ -21,7 +21,6 @@ package swaydb.core.segment.merge
 
 import org.scalatest.WordSpec
 import swaydb.core.CommonAssertions._
-import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -70,8 +69,8 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
       runThis(10000.times) {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val newKeyValue = randomFixedKeyValue(1)
-        val expectedFromValue = FixedMerger(newKeyValue, oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(oldKeyValue.key)).get
-        val expectedKeyValue = Memory.Range(1, 10, expectedFromValue.toFromValue().runRandomIO.right.value, oldKeyValue.rangeValue)
+        val expectedFromValue = FixedMerger(newKeyValue, oldKeyValue.fromValue.getOrElse(oldKeyValue.rangeValue).toMemory(oldKeyValue.key))
+        val expectedKeyValue = Memory.Range(1, 10, expectedFromValue.toFromValue(), oldKeyValue.rangeValue)
         val expectedLastLevel = expectedFromValue.asInstanceOf[Memory.Fixed].toLastLevelExpected
 
         //println
@@ -95,11 +94,11 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         val oldKeyValue = Memory.Range(1, 10, randomFromValueOption(), randomRangeValue())
         val midKey = Random.shuffle((2 to 9).toList).head
         val newKeyValue = randomFixedKeyValue(midKey)
-        val expectedFromValue = FixedMerger(newKeyValue, oldKeyValue.rangeValue.toMemory(midKey)).get.asInstanceOf[Memory.Fixed]
+        val expectedFromValue = FixedMerger(newKeyValue, oldKeyValue.rangeValue.toMemory(midKey)).asInstanceOf[Memory.Fixed]
         val expectedKeyValue =
           Slice(
             oldKeyValue.copy(fromKey = 1, toKey = midKey),
-            Memory.Range(midKey, 10, expectedFromValue.toFromValue().runRandomIO.right.value, oldKeyValue.rangeValue)
+            Memory.Range(midKey, 10, expectedFromValue.toFromValue(), oldKeyValue.rangeValue)
           )
 
         val expectedLastLevelFromLowerSplit = oldKeyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(oldKeyValue.key))

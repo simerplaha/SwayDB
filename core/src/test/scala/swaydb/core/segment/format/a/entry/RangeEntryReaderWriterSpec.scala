@@ -54,7 +54,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
       val read =
         EntryReader.fullRead(
           isPartialReadEnabled = entry.sortedIndexConfig.enablePartialRead,
-          indexEntry = normalisedEntry.indexEntryBytes.dropUnsignedInt().value,
+          indexEntry = normalisedEntry.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = entry.stats.hasPrefixCompression,
           valuesReader = entry.valueEntryBytes.map(buildSingleValueReader),
           indexOffset = 0,
@@ -107,7 +107,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
       val previousRead =
         EntryReader.fullRead(
           isPartialReadEnabled = next.sortedIndexConfig.enablePartialRead,
-          indexEntry = previous.indexEntryBytes.dropUnsignedInt().right.value,
+          indexEntry = previous.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,
@@ -123,7 +123,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
       val nextRead =
         EntryReader.fullRead(
           isPartialReadEnabled = next.sortedIndexConfig.enablePartialRead,
-          indexEntry = next.indexEntryBytes.dropUnsignedInt().right.value,
+          indexEntry = next.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,

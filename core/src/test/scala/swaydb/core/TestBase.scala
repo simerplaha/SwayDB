@@ -251,18 +251,18 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
-                                                                               segmentIO: SegmentIO = SegmentIO.random): IO[swaydb.Error.Segment, Segment] =
+                                                                               segmentIO: SegmentIO = SegmentIO.random): Segment =
       if (levelStorage.memory)
         Segment.memory(
           path = path,
-          segmentId = Effect.fileId(path).get._1,
+          segmentId = Effect.fileId(path)._1,
           keyValues = keyValues,
           createdInLevel = 0
         )
       else
         Segment.persistent(
           path = path,
-          segmentId = Effect.fileId(path).get._1,
+          segmentId = Effect.fileId(path)._1,
           createdInLevel = 0,
           segmentConfig = segmentConfig,
           mmapReads = levelStorage.mmapSegmentsOnRead,
@@ -657,8 +657,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                           memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeper,
                                                           segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
-    val segment = TestSegment(keyValues).right.value
-    if (closeAfterCreate) segment.close.right.value
+    val segment = TestSegment(keyValues)
+    if (closeAfterCreate) segment.close
 
     assert(keyValues, segment) //first
     if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
@@ -668,12 +668,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       assert(keyValues, segment) //same Segment but test with cleared cache.
 
       val segmentReopened = segment.reopen //reopen
-      if (closeAfterCreate) segmentReopened.close.right.value
+      if (closeAfterCreate) segmentReopened.close
       assert(keyValues, segmentReopened)
       if (testAgainAfterAssert) assert(keyValues, segmentReopened)
-      segmentReopened.close.right.value
+      segmentReopened.close
     } else {
-      segment.close.right.value
+      segment.close
     }
   }
 }

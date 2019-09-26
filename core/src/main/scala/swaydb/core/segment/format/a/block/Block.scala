@@ -174,10 +174,9 @@ private[core] object Block extends LazyLogging {
           decompressedLength = decompressedLength
         )
       )
-    }
-    else if (formatID == Block.uncompressedBlockId)
+    } else if (formatID == Block.uncompressedBlockId) {
       None
-    else {
+    } else {
       val message = s"Invalid formatID: $formatID. Expected: ${Block.uncompressedBlockId} or ${Block.compressedBlockID}"
       throw swaydb.Exception.InvalidDataId(formatID, message)
     }

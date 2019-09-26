@@ -72,10 +72,10 @@ class KeyMatcherSpec extends TestBase {
      * A tuple indicates a range's (fromKey, toKey)
      */
 
-    val noneRangeValueCache = Cache.valueIO[swaydb.Error.Segment, ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)]((None, Value.Remove(None, Time.empty)))
+    val noneRangeValueCache = Cache.noIO[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)](false, false, None)(_ => null)
 
     implicit def toRange(tuple: (Int, Int)): Persistent.Range =
-      Persistent.Range(tuple._1, tuple._2, noneRangeValueCache, 0, 0, 0, 0, 0, 0)
+      Persistent.Range(_fromKey = tuple._1, _toKey = tuple._2, valueCache = noneRangeValueCache, 0, 0, 0, 0, 0, 0)
 
     implicit def toSomeRange(tuple: (Int, Int)): Option[Persistent.Range] =
       Some(tuple)

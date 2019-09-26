@@ -82,23 +82,23 @@ sealed trait TimerSpec extends TestBase {
         range foreach {
           i =>
             val nextTime = timer.next.time
-            val nextTimeLong = Bytez.readUnsignedLong(nextTime).value
+            val nextTimeLong = Bytez.readUnsignedLong(nextTime)
             nextTimeLong shouldBe i
         }
 
       val dir = randomDir
       val timer: Timer = newTimer(dir)
       write(1 to 1000, timer)
-      timer.close.get
+      timer.close
 
       if (persistent) {
         val reopenedTimer = Timer.persistent(dir, true, 100, 1000).get
         write(1000 + 101 to 2000 + 201, reopenedTimer)
-        reopenedTimer.close.get
+        reopenedTimer.close
 
         val reopenedTimer2 = Timer.persistent(dir, true, 100, 1000).get
         write(2000 + 201 to 300 + 301, reopenedTimer2)
-        reopenedTimer2.close.get
+        reopenedTimer2.close
       }
     }
   }

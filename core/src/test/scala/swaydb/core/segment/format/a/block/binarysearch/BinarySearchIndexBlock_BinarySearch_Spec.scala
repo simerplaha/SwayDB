@@ -45,16 +45,15 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
                        values: Seq[Int]) = {
         val largestValue = values.last
 
-        def matcher(valueToFind: Int, valueFound: Int): IO[swaydb.Error.Segment, KeyMatcher.Result] =
-          IO {
-            //            //println(s"valueToFind: $valueToFind. valueFound: $valueFound")
-            if (valueToFind == valueFound)
-              KeyMatcher.Result.Matched(None, null, None)
-            else if (valueToFind < valueFound)
-              KeyMatcher.Result.aheadOrNoneOrEndNone
-            else
-              KeyMatcher.Result.BehindFetchNext(null)
-          }
+        def matcher(valueToFind: Int, valueFound: Int): KeyMatcher.Result = {
+          //            //println(s"valueToFind: $valueToFind. valueFound: $valueFound")
+          if (valueToFind == valueFound)
+            KeyMatcher.Result.Matched(None, null, None)
+          else if (valueToFind < valueFound)
+            KeyMatcher.Result.aheadOrNoneOrEndNone
+          else
+            KeyMatcher.Result.BehindFetchNext(null)
+        }
 
         def context(valueToFind: Int) =
           new BinarySearchContext {
@@ -66,12 +65,12 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
             val lowestKeyValue: Option[Persistent] = None
             val highestKeyValue: Option[Persistent] = None
 
-            def seek(offset: Int): IO[Error.Segment, KeyMatcher.Result] = {
+            def seek(offset: Int) = {
               val foundValue =
                 if (bytesPerValue == 4)
                   bytes.take(offset, bytesPerValue).readInt()
                 else
-                  bytes.take(offset, bytesPerValue).readUnsignedInt().value
+                  bytes.take(offset, bytesPerValue).readUnsignedInt()
 
               matcher(valueToFind, foundValue)
             }
@@ -79,7 +78,7 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 
         values foreach {
           value =>
-            BinarySearchIndexBlock.binarySearch(context(value)).value shouldBe a[BinarySearchGetResult.Some[_]]
+            BinarySearchIndexBlock.binarySearch(context(value)) shouldBe a[BinarySearchGetResult.Some[_]]
         }
 
         //check for items not in the index.
@@ -87,7 +86,7 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 
         notInIndex foreach {
           i =>
-            BinarySearchIndexBlock.binarySearch(context(i)).value shouldBe a[BinarySearchGetResult.None[_]]
+            BinarySearchIndexBlock.binarySearch(context(i)) shouldBe a[BinarySearchGetResult.None[_]]
         }
       }
 
@@ -108,7 +107,7 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 
               values foreach {
                 offset =>
-                  BinarySearchIndexBlock.write(value = offset, state = state).value
+                  BinarySearchIndexBlock.write(value = offset, state = state)
               }
 
               BinarySearchIndexBlock.close(state).value
@@ -118,13 +117,13 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
               state.bytes.isFull shouldBe true
 
               Seq(
-                BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).value,
+                BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)),
                 BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
               ) foreach {
                 reader =>
-                  val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).value).value
+                  val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader))
 
-                  val decompressedBytes = Block.unblock(reader.copy()).value.readFullBlock().value
+                  val decompressedBytes = Block.unblock(reader.copy()).readFullBlock()
 
                   block.valuesCount shouldBe state.writtenValues
 
@@ -156,20 +155,20 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 
           values foreach {
             value =>
-              BinarySearchIndexBlock.write(value = value, state = state).value
+              BinarySearchIndexBlock.write(value = value, state = state)
           }
           BinarySearchIndexBlock.close(state).value
 
           state.writtenValues shouldBe values.size
 
           Seq(
-            BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)).value,
+            BlockRefReader[BinarySearchIndexBlock.Offset](createRandomFileReader(state.bytes)),
             BlockRefReader[BinarySearchIndexBlock.Offset](state.bytes)
           ) foreach {
             reader =>
-              val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader).value).value
+              val block = BinarySearchIndexBlock.read(Block.readHeader[BinarySearchIndexBlock.Offset](reader))
 
-              val decompressedBytes = Block.unblock(reader.copy()).value.readFullBlock().value
+              val decompressedBytes = Block.unblock(reader.copy()).readFullBlock()
 
               block.bytesPerValue shouldBe Bytes.sizeOfUnsignedInt(largestValue)
 

@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import org.scalatest.OptionValues._
-import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, Time, Transient}
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
@@ -74,7 +73,7 @@ class ValueReaderWriterSpec extends TestBase {
 
     //HEAD KEY-VALUE
     keyValues.head.valueEntryBytes.headOption shouldBe defined
-    var readKeyValueId = keyValues.head.indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().value
+    var readKeyValueId = keyValues.head.indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.PutBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     var baseId = TransientToKeyValueIdBinder.PutBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
     var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -85,7 +84,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read key-value using the persistent information.
     val readHeadKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
         valuesReader = Some(buildSingleValueReader(keyValues.head.valueEntryBytes.value)),
@@ -95,17 +94,17 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = None
-      ).get
+      )
     readHeadKeyValue shouldBe a[Persistent.Put]
     readHeadKeyValue.key shouldBe keyValues.head.key
-    readHeadKeyValue.asInstanceOf[Persistent.Put].getOrFetchValue.get.get shouldBe keyValues.head.value.value
+    readHeadKeyValue.asInstanceOf[Persistent.Put].getOrFetchValue.value shouldBe keyValues.head.value.value
 
     //SECOND KEY-VALUE
     keyValues(1).valueEntryBytes shouldBe empty
-    readKeyValueId = keyValues(1).indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    readKeyValueId = keyValues(1).indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.UpdateBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     baseId = TransientToKeyValueIdBinder.UpdateBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
-    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
+    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).value
     //check the ids are correct types.
     typedBaseId shouldBe a[BaseEntryId.Value.FullyCompressed]
     typedBaseId shouldBe a[BaseEntryId.ValueOffset.Uncompressed]
@@ -113,7 +112,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read the key-value giving it the previous key-value.
     val readNextKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
         valuesReader = Some(buildSingleValueReader(keyValues.head.valueEntryBytes.value)),
@@ -123,14 +122,14 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readHeadKeyValue)
-      ).get
+      )
     readNextKeyValue shouldBe a[Persistent.Update]
     readNextKeyValue.key shouldBe keyValues(1).key
-    readNextKeyValue.asInstanceOf[Persistent.Update].getOrFetchValue.get.get shouldBe keyValues(1).value.value
+    readNextKeyValue.asInstanceOf[Persistent.Update].getOrFetchValue.value shouldBe keyValues(1).value.value
 
     //THIRD KEY-VALUE
     keyValues(2).valueEntryBytes shouldBe empty
-    readKeyValueId = keyValues(2).indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    readKeyValueId = keyValues(2).indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.FunctionBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     baseId = TransientToKeyValueIdBinder.FunctionBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
     typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
@@ -141,7 +140,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read the key-value giving it the previous key-value.
     val readLastKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
         valuesReader = Some(buildSingleValueReader(keyValues.head.valueEntryBytes.value)),
@@ -151,10 +150,10 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readNextKeyValue)
-      ).get
+      )
     readLastKeyValue shouldBe a[Persistent.Function]
     readLastKeyValue.key shouldBe keyValues(2).key
-    readLastKeyValue.asInstanceOf[Persistent.Function].getOrFetchFunction.get shouldBe keyValues(2).value.value
+    readLastKeyValue.asInstanceOf[Persistent.Function].getOrFetchFunction shouldBe keyValues(2).value.value
   }
 
   "compress valueOffset and valueLength if prefixCompression is true and compressDuplicateValues is true" in {
@@ -182,10 +181,10 @@ class ValueReaderWriterSpec extends TestBase {
 
     //HEAD KEY-VALUE
     keyValues.head.valueEntryBytes.headOption shouldBe defined
-    var readKeyValueId = keyValues.head.indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    var readKeyValueId = keyValues.head.indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.PutBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     var baseId = TransientToKeyValueIdBinder.PutBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
-    var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
+    var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).value
     //check the ids are correct types.
     typedBaseId shouldBe a[BaseEntryId.Value.Uncompressed]
     typedBaseId shouldBe a[BaseEntryId.ValueOffset.Uncompressed]
@@ -193,7 +192,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read key-value using the persistent information.
     val readHeadKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
         valuesReader = Some(buildSingleValueReader(keyValues.head.valueEntryBytes.value)),
@@ -203,17 +202,17 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = None
-      ).get
+      )
     readHeadKeyValue shouldBe a[Persistent.Put]
     readHeadKeyValue.key shouldBe keyValues.head.key
-    readHeadKeyValue.asInstanceOf[Persistent.Put].getOrFetchValue.get.get shouldBe keyValues.head.value.value
+    readHeadKeyValue.asInstanceOf[Persistent.Put].getOrFetchValue.value shouldBe keyValues.head.value.value
 
     //SECOND KEY-VALUE
     keyValues(1).valueEntryBytes shouldBe empty
-    readKeyValueId = keyValues(1).indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    readKeyValueId = keyValues(1).indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.UpdateBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     baseId = TransientToKeyValueIdBinder.UpdateBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
-    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
+    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).value
     //check the ids are correct types.
     typedBaseId shouldBe a[BaseEntryId.Value.FullyCompressed]
     typedBaseId shouldBe a[BaseEntryId.ValueOffset.FullyCompressed]
@@ -221,7 +220,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read the key-value giving it the previous key-value.
     val readNextKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
         valuesReader = Some(buildSingleValueReader(keyValues.head.valueEntryBytes.value)),
@@ -231,17 +230,17 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readHeadKeyValue)
-      ).get
+      )
     readNextKeyValue shouldBe a[Persistent.Update]
     readNextKeyValue.key shouldBe keyValues(1).key
-    readNextKeyValue.asInstanceOf[Persistent.Update].getOrFetchValue.get.get shouldBe keyValues(1).value.value
+    readNextKeyValue.asInstanceOf[Persistent.Update].getOrFetchValue.value shouldBe keyValues(1).value.value
 
     //THIRD KEY-VALUE
     keyValues(2).valueEntryBytes shouldBe empty
-    readKeyValueId = keyValues(2).indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    readKeyValueId = keyValues(2).indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.FunctionBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     baseId = TransientToKeyValueIdBinder.FunctionBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
-    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
+    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).value
     //check the ids are correct types.
     typedBaseId shouldBe a[BaseEntryId.Value.FullyCompressed]
     typedBaseId shouldBe a[BaseEntryId.ValueOffset.FullyCompressed]
@@ -249,7 +248,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read the key-value giving it the previous key-value.
     val readLastKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
         valuesReader = Some(buildSingleValueReader(keyValues.head.valueEntryBytes.value)),
@@ -259,10 +258,10 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readNextKeyValue)
-      ).get
+      )
     readLastKeyValue shouldBe a[Persistent.Function]
     readLastKeyValue.key shouldBe keyValues(2).key
-    readLastKeyValue.asInstanceOf[Persistent.Function].getOrFetchFunction.get shouldBe keyValues(2).value.value
+    readLastKeyValue.asInstanceOf[Persistent.Function].getOrFetchFunction shouldBe keyValues(2).value.value
   }
 
   "write no value" in {
@@ -290,10 +289,10 @@ class ValueReaderWriterSpec extends TestBase {
 
     //HEAD KEY-VALUE
     keyValues.head.valueEntryBytes.headOption shouldBe empty
-    var readKeyValueId = keyValues.head.indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    var readKeyValueId = keyValues.head.indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.PutBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     var baseId = TransientToKeyValueIdBinder.PutBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
-    var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
+    var typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).value
     //check the ids are correct types.
     typedBaseId shouldBe a[BaseEntryId.Value.NoValue]
     typedBaseId should not be a[BaseEntryId.ValueOffset.Uncompressed]
@@ -301,7 +300,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read key-value using the persistent information.
     val readHeadKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
         valuesReader = None,
@@ -311,17 +310,17 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = None
-      ).get
+      )
     readHeadKeyValue shouldBe a[Persistent.Put]
     readHeadKeyValue.key shouldBe keyValues.head.key
-    readHeadKeyValue.asInstanceOf[Persistent.Put].getOrFetchValue.get shouldBe empty
+    readHeadKeyValue.asInstanceOf[Persistent.Put].getOrFetchValue shouldBe empty
 
     //SECOND KEY-VALUE
     keyValues(1).valueEntryBytes shouldBe empty
-    readKeyValueId = keyValues(1).indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    readKeyValueId = keyValues(1).indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.UpdateBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     baseId = TransientToKeyValueIdBinder.UpdateBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
-    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
+    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).value
     //check the ids are correct types.
     typedBaseId shouldBe a[BaseEntryId.Value.NoValue]
     typedBaseId should not be a[BaseEntryId.ValueOffset.Uncompressed]
@@ -329,7 +328,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read the key-value giving it the previous key-value.
     val readNextKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
         valuesReader = None,
@@ -339,17 +338,17 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readHeadKeyValue)
-      ).get
+      )
     readNextKeyValue shouldBe a[Persistent.Update]
     readNextKeyValue.key shouldBe keyValues(1).key
-    readNextKeyValue.asInstanceOf[Persistent.Update].getOrFetchValue.get shouldBe empty
+    readNextKeyValue.asInstanceOf[Persistent.Update].getOrFetchValue shouldBe empty
 
     //THIRD KEY-VALUE
     keyValues(2).valueEntryBytes shouldBe empty
-    readKeyValueId = keyValues(2).indexEntryBytes.dropUnsignedInt().value.readUnsignedInt().get
+    readKeyValueId = keyValues(2).indexEntryBytes.dropUnsignedInt().readUnsignedInt()
     TransientToKeyValueIdBinder.RemoveBinder.keyValueId.hasKeyValueId(readKeyValueId) shouldBe true
     baseId = TransientToKeyValueIdBinder.RemoveBinder.keyValueId.adjustKeyValueIdToBaseId(readKeyValueId)
-    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).get
+    typedBaseId = BaseEntryIdFormatA.baseIds.find(_.baseId == baseId).value
     //check the ids are correct types.
     typedBaseId shouldBe a[BaseEntryId.Value.NoValue]
     typedBaseId should not be a[BaseEntryId.ValueOffset.Uncompressed]
@@ -357,7 +356,7 @@ class ValueReaderWriterSpec extends TestBase {
     //read the key-value giving it the previous key-value.
     val readLastKeyValue =
       EntryReader.fullRead(
-        indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt().value,
+        indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
         valuesReader = None,
@@ -367,7 +366,7 @@ class ValueReaderWriterSpec extends TestBase {
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readNextKeyValue)
-      ).get
+      )
     readLastKeyValue shouldBe a[Persistent.Remove]
     readLastKeyValue.key shouldBe keyValues(2).key
   }

@@ -119,11 +119,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                       key = keyValue.key,
                       lowest = eitherOne(None, start),
                       highest = None,
-                      keyValuesCount = IO(keyValues.size),
+                      keyValuesCount = keyValues.size,
                       binarySearchIndexReader = blocks.binarySearchIndexReader,
                       sortedIndexReader = blocks.sortedIndexReader,
                       valuesReader = blocks.valuesReader
-                    ).value.toOption
+                    ).toOption
                 }
             )
             //println("--- End end ---")
@@ -137,11 +137,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 key = keyValue.key,
                 lowest = start,
                 highest = end,
-                keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                keyValuesCount = blocks.footer.keyValueCount,
                 binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
-              ).value match {
+              ) match {
                 case BinarySearchGetResult.None(_) =>
                   //all keys are known to exist.
                   fail("Expected success")
@@ -170,11 +170,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               key = key,
               lowest = None,
               highest = None,
-              keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+              keyValuesCount = blocks.footer.keyValueCount,
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).value match {
+            ) match {
               case BinarySearchGetResult.None(lower) =>
                 //lower will always be the last known uncompressed key before the last key-value.
                 if (keyValues.size > 4)
@@ -196,11 +196,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               key = key,
               lowest = None,
               highest = None,
-              keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+              keyValuesCount = blocks.footer.keyValueCount,
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).value match {
+            ) match {
               case BinarySearchGetResult.None(lower) =>
                 //lower is always empty since the test keys are lower than the actual key-values.
                 lower shouldBe empty
@@ -233,11 +233,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                         key = keyValue.key,
                         lowest = None,
                         highest = None,
-                        keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                        keyValuesCount = blocks.footer.keyValueCount,
                         binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
-                      ).value.toOption.map(_.toPersistent.get)
+                      ).toOption.map(_.toPersistent)
                   }
               )
             //println("--- Start ---")
@@ -255,11 +255,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                       key = keyValue.key,
                       lowest = eitherOne(None, start),
                       highest = None,
-                      keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                      keyValuesCount = blocks.footer.keyValueCount,
                       binarySearchIndexReader = blocks.binarySearchIndexReader,
                       sortedIndexReader = blocks.sortedIndexReader,
                       valuesReader = blocks.valuesReader
-                    ).value.toOption
+                    ).toOption
                 }
             )
             //println("--- End ---")
@@ -269,11 +269,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 key = key,
                 start = start,
                 end = end,
-                keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                keyValuesCount = blocks.footer.keyValueCount,
                 binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
-              ).value
+              )
 
             keyValue match {
               case fixed: Transient.Fixed =>
@@ -290,7 +290,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                     val higher = getHigher(key)
                     //println(s"Higher: ${higher.map(_.key.readInt())}")
                     //println(s"Key: $key")
-                    higher.value shouldBe range
+                    higher shouldBe range
                 }
             }
 
@@ -304,7 +304,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               fullRead = true,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).value
+            )
             //println("--- End next higher ---")
             nextHigher
         }
@@ -333,11 +333,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                         key = keyValue.key,
                         lowest = None,
                         highest = None,
-                        keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                        keyValuesCount = blocks.footer.keyValueCount,
                         binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
-                      ).value.toOption
+                      ).toOption
                   }
               )
             //println("--- Start ---")
@@ -361,11 +361,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                       key = endKeyValue.key,
                       lowest = orNone(start),
                       highest = None,
-                      keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                      keyValuesCount = blocks.footer.keyValueCount,
                       binarySearchIndexReader = blocks.binarySearchIndexReader,
                       sortedIndexReader = blocks.sortedIndexReader,
                       valuesReader = blocks.valuesReader
-                    ).value.toOption
+                    ).toOption
                 }
             )
             //println("--- END ---")
@@ -376,11 +376,11 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 key = key,
                 start = start,
                 end = end,
-                keyValuesCount = IO.Right(blocks.footer.keyValueCount),
+                keyValuesCount = blocks.footer.keyValueCount,
                 binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
-              ).value
+              )
 
             //          //println(s"Lower for: ${keyValue.minKey.readInt()}")
 
@@ -399,7 +399,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 if (index == 0)
                   lower shouldBe empty
                 else
-                  lower.map(_.toPersistent.value) shouldBe expectedLower
+                  lower.map(_.toPersistent) shouldBe expectedLower
 
                 val from = range.fromKey.readInt() + 1
                 val to = range.toKey.readInt()
@@ -412,7 +412,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                     //println
                     //println(s"Key: $key")
                     val lower = getLower(key)
-                    lower.value shouldBe range
+                    lower shouldBe range
                 }
             }
             //println("--- SEARCHING ---")
@@ -427,7 +427,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               fullRead = true,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).value.map(_.toPersistent.value)
+            ).map(_.toPersistent)
             //println(" --- lower for next ---")
 
             got.value.key shouldBe keyValue.key
