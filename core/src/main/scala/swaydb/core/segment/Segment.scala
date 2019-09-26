@@ -369,7 +369,7 @@ private[core] object Segment extends LazyLogging {
                                                                fileSweeper: FileSweeper.Enabled,
                                                                memorySweeper: Option[MemorySweeper.KeyValue],
                                                                segmentIO: SegmentIO): Slice[Segment] = {
-    val keyValues =
+    val splits =
       SegmentMerger.split(
         keyValues = keyValues,
         minSegmentSize = minSegmentSize,
@@ -384,16 +384,21 @@ private[core] object Segment extends LazyLogging {
       )
 
     //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
-    keyValues.map({
-      keyValues =>
+    val segments = Slice.create[Segment](splits.size)
+
+    splits foreach {
+      split =>
         val (segmentId, path) = fetchNextPath
-        Segment.memory(
-          path = path,
-          segmentId = segmentId,
-          createdInLevel = createdInLevel,
-          keyValues = keyValues
-        )
-    })(collection.breakOut)
+        segments add
+          Segment.memory(
+            path = path,
+            segmentId = segmentId,
+            createdInLevel = createdInLevel,
+            keyValues = split
+          )
+    }
+
+    segments
   }
 
   def apply(path: Path,

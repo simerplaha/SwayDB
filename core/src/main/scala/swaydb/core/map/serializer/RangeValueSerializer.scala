@@ -809,7 +809,7 @@ object RangeValueSerializer {
   @inline private implicit def optionTuple_1[L, R](tuple: (L, R)): (Option[L], R) =
     (Some(tuple._1), tuple._2)
 
-  @inline private implicit def optionTuple_1[R](tuple: (Unit, R)): (None.type, R) =
+  @inline private implicit def optionTuple_2[R](tuple: (Unit, R)): (None.type, R) =
     (None, tuple._2)
 
   private def read(rangeId: Int,
