@@ -1323,7 +1323,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       val newSegment = newSegments.head
       val keyValue = keyValues.head
 
-      newSegment.get(keyValue.key).runRandomIO.value shouldBe keyValue
+      newSegment.get(keyValue.key).runRandomIO.value.value shouldBe keyValue
 
       newSegment.lower(keyValue.key) shouldBe empty
       newSegment.higher(keyValue.key) shouldBe empty

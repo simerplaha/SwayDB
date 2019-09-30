@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a
 import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
+import swaydb.IO
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.RunThis._
@@ -71,9 +72,9 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
           keyValues = Slice(randomFixedKeyValue(1)).toTransient,
           assert =
             (keyValue, segment) => {
-              segment.higher(0).runRandomIO.right.value.value shouldBe keyValue.head
-              segment.higher(1).runRandomIO.right.value shouldBe empty
-              segment.higher(2).runRandomIO.right.value shouldBe empty
+              IO.Defer(segment.higher(0)).runRandomIO.right.value.value shouldBe keyValue.head
+              IO.Defer(segment.higher(1)).runRandomIO.right.value shouldBe empty
+              IO.Defer(segment.higher(2)).runRandomIO.right.value shouldBe empty
             }
         )
       }

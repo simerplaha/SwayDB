@@ -735,7 +735,7 @@ object CommonAssertions {
                   segment: Segment) = {
     keyValues.par.count {
       keyValue =>
-        segment.mightContainKey(keyValue.key).runRandomIO.right.value
+        IO.Defer(segment.mightContainKey(keyValue.key)).runRandomIO.right.value
     } shouldBe keyValues.size
 
     if (segment.hasBloomFilter)
@@ -878,7 +878,7 @@ object CommonAssertions {
         //        if (intKey % 1000 == 0)
         //          println("Get: " + intKey)
         try
-          segment.get(keyValue.key).runRandomIO.value.value shouldBe keyValue
+          IO.Defer(segment.get(keyValue.key)).runRandomIO.value.value shouldBe keyValue
         catch {
           case exception: Exception =>
             println(s"Failed to get: ${keyValue.key.readInt()}")
@@ -1202,7 +1202,7 @@ object CommonAssertions {
       } else if (index == 0) {
         val actualKeyValue = keyValues(index)
         //        println(s"Lower: ${actualKeyValue.key.readInt()}")
-        segment.lower(actualKeyValue.key).runRandomIO.right.value shouldBe empty
+        IO.Defer(segment.lower(actualKeyValue.key)).runRandomIO.right.value shouldBe empty
         assertLowers(index + 1)
       } else {
         val expectedLower = keyValues(index - 1)
@@ -1211,7 +1211,7 @@ object CommonAssertions {
         //        if (intKey % 100 == 0)
         //          println(s"Lower: $intKey")
         try {
-          val lower = segment.lower(keyValue.key).runRandomIO.right.value.value
+          val lower = IO.Defer(segment.lower(keyValue.key)).runRandomIO.right.value.value
           lower shouldBe expectedLower
         } catch {
           case x: Exception =>
@@ -1227,7 +1227,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(keyValues, getHigher = key => IO(segment.higher(key).runRandomIO.right.value))
+    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key)).runRandomIO.right.value))
 
   /**
    * Asserts that all key-values are returned in order when fetching higher in sequence.

@@ -20,8 +20,6 @@
 package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Error, IO}
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.format.a.block._
@@ -164,7 +162,7 @@ private[core] class SegmentCache(id: String,
 
       //check for minKey inside the Segment is not required since Levels already do minKey check.
       //      case _ if key < minKey =>
-      //        IO.none
+      //        None
 
       case _ =>
         val threadState = thisThreadState
@@ -205,236 +203,203 @@ private[core] class SegmentCache(id: String,
   private def lower(key: Slice[Byte],
                     start: Option[Persistent],
                     end: => Option[Persistent],
-                    keyValueCount: => IO[swaydb.Error.Segment, Int]): Option[Persistent] =
-  //    blockCache.createSortedIndexReader() flatMap {
-  //      sortedIndexReader =>
-  //        blockCache.createValuesReader flatMap {
-  //          valuesReader =>
-  //            SegmentSearcher.searchLower(
-  //              key = key,
-  //              start = start,
-  //              end = end,
-  //              keyValueCount = keyValueCount,
-  //              binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
-  //              sortedIndexReader = sortedIndexReader,
-  //              valuesReader
-  //            ) map {
-  //              case Some(response: Persistent) =>
-  //                addToCache(response)
-  //                Some(response)
-  //
-  //              case Some(partial: Persistent.Partial.Fixed) =>
-  //                val fixed = partial.toPersistent
-  //                addToCache(fixed)
-  //                Some(fixed)
-  //
-  //              case Some(partial: Persistent.Partial.Range) =>
-  //                val range = partial.toPersistent
-  //                addToCache(range)
-  //                Some(range)
-  //
-  //              case None =>
-  //                None
-  //            }
-  //        }
-  //    }
-    ???
+                    keyValueCount: => Int): Option[Persistent] =
+    SegmentSearcher.searchLower(
+      key = key,
+      start = start,
+      end = end,
+      keyValueCount = keyValueCount,
+      binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+      sortedIndexReader = blockCache.createSortedIndexReader(),
+      blockCache.createValuesReader()
+    ) match {
+      case Some(response: Persistent) =>
+        addToCache(response)
+        Some(response)
+
+      case Some(partial: Persistent.Partial.Fixed) =>
+        val fixed = partial.toPersistent
+        addToCache(fixed)
+        Some(fixed)
+
+      case Some(partial: Persistent.Partial.Range) =>
+        val range = partial.toPersistent
+        addToCache(range)
+        Some(range)
+
+      case None =>
+        None
+    }
 
   private def getForLower(key: Slice[Byte]): Option[Persistent] =
-  //    skipList.get(key) match {
-  //      case some @ Some(_) =>
-  //        IO(some)
-  //
-  //      case None =>
-  //        get(key = key)
-  //    }
-    ???
+    skipList.get(key) orElse get(key)
 
   def lower(key: Slice[Byte]): Option[Persistent] =
-  //    if (key <= minKey)
-  //      IO.none
-  //    else
-  //      maxKey match {
-  //        case MaxKey.Fixed(maxKey) if key > maxKey =>
-  //          get(maxKey)
-  //
-  //        case MaxKey.Range(fromKey, _) if key > fromKey =>
-  //          get(fromKey)
-  //
-  //        case _ =>
-  //          skipList.lower(key) match {
-  //            case someLower @ Some(lowerKeyValue) =>
-  //              //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
-  //              if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
-  //                lowerKeyValue match {
-  //                  case response: Persistent =>
-  //                    IO.Right(Some(response))
-  //                }
-  //              else
-  //                lowerKeyValue match {
-  //                  case lowerRange: Persistent.Range if lowerRange containsLower key =>
-  //                    IO.Right(Some(lowerRange))
-  //
-  //                  case lowerKeyValue: Persistent =>
-  //                    getForLower(key) flatMap {
-  //                      case Some(got) if lowerKeyValue.nextIndexOffset == got.indexOffset =>
-  //                        lowerKeyValue match {
-  //                          case response: Persistent =>
-  //                            IO.Right(Some(response))
-  //                        }
-  //
-  //                      case someCeiling @ Some(ceilingRange: Persistent.Range) =>
-  //                        if (ceilingRange containsLower key)
-  //                          IO.Right(Some(ceilingRange))
-  //                        else
-  //                          lower(
-  //                            key = key,
-  //                            start = someLower,
-  //                            end = someCeiling,
-  //                            keyValueCount = getFooter().map(_.keyValueCount)
-  //                          )
-  //                      case someCeiling @ Some(_: Persistent.Fixed) =>
-  //                        lower(
-  //                          key = key,
-  //                          start = someLower,
-  //                          end = someCeiling,
-  //                          keyValueCount = getFooter().map(_.keyValueCount)
-  //                        )
-  //
-  //                      case None =>
-  //                        lower(
-  //                          key = key,
-  //                          start = someLower,
-  //                          end = None,
-  //                          keyValueCount = getFooter().map(_.keyValueCount)
-  //                        )
-  //                    }
-  //                }
-  //
-  //            case None =>
-  //              lower(
-  //                key = key,
-  //                start = None,
-  //                end = getForLower(key).toOption.flatten,
-  //                keyValueCount = getFooter().map(_.keyValueCount)
-  //              )
-  //          }
-  //      }
-    ???
+    if (key <= minKey)
+      None
+    else
+      maxKey match {
+        case MaxKey.Fixed(maxKey) if key > maxKey =>
+          get(maxKey)
+
+        case MaxKey.Range(fromKey, _) if key > fromKey =>
+          get(fromKey)
+
+        case _ =>
+          skipList.lower(key) match {
+            case someLower @ Some(lowerKeyValue) =>
+              //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
+              if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
+                lowerKeyValue match {
+                  case response: Persistent =>
+                    Some(response)
+                }
+              else
+                lowerKeyValue match {
+                  case lowerRange: Persistent.Range if lowerRange containsLower key =>
+                    someLower
+
+                  case lowerKeyValue: Persistent =>
+                    getForLower(key) match {
+                      case Some(got) if lowerKeyValue.nextIndexOffset == got.indexOffset =>
+                        someLower
+
+                      case someCeiling @ Some(ceilingRange: Persistent.Range) =>
+                        if (ceilingRange containsLower key)
+                          Some(ceilingRange)
+                        else
+                          lower(
+                            key = key,
+                            start = someLower,
+                            end = someCeiling,
+                            keyValueCount = getFooter().keyValueCount
+                          )
+                      case someCeiling @ Some(_: Persistent.Fixed) =>
+                        lower(
+                          key = key,
+                          start = someLower,
+                          end = someCeiling,
+                          keyValueCount = getFooter().keyValueCount
+                        )
+
+                      case None =>
+                        lower(
+                          key = key,
+                          start = someLower,
+                          end = None,
+                          keyValueCount = getFooter().keyValueCount
+                        )
+                    }
+                }
+
+            case None =>
+              lower(
+                key = key,
+                start = None,
+                end = getForLower(key),
+                keyValueCount = getFooter().keyValueCount
+              )
+          }
+      }
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
-  //    hasPut map {
-  //      hasPut =>
-  //        if (hasPut)
-  //          if (key < minKey)
-  //            Some(minKey)
-  //          else if (key < maxKey.maxKey)
-  //            Some(key)
-  //          else
-  //            None
-  //        else
-  //          None
-  //    }
-    ???
+    if (hasPut)
+      if (key < minKey)
+        Some(minKey)
+      else if (key < maxKey.maxKey)
+        Some(key)
+      else
+        None
+    else
+      None
 
   private def higher(key: Slice[Byte],
                      start: Option[Persistent],
                      end: => Option[Persistent],
-                     keyValueCount: => IO[swaydb.Error.Segment, Int]): Option[Persistent] =
-  //    blockCache.createSortedIndexReader() flatMap {
-  //      sortedIndexReader =>
-  //        blockCache.createValuesReader() flatMap {
-  //          valuesReader =>
-  //            SegmentSearcher.searchHigher(
-  //              key = key,
-  //              start = start,
-  //              end = end,
-  //              keyValueCount = keyValueCount,
-  //              binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
-  //              sortedIndexReader = sortedIndexReader,
-  //              valuesReader = valuesReader
-  //            ) map {
-  //              case Some(response: Persistent) =>
-  //                addToCache(response)
-  //                Some(response)
-  //
-  //              case Some(partial: Persistent.Partial.Fixed) =>
-  //                val fixed = partial.toPersistent
-  //                addToCache(fixed)
-  //                Some(fixed)
-  //
-  //              case Some(partial: Persistent.Partial.Range) =>
-  //                val range = partial.toPersistent
-  //                addToCache(range)
-  //                Some(range)
-  //
-  //              case None =>
-  //                None
-  //            }
-  //        }
-  //    }
-    ???
+                     keyValueCount: => Int): Option[Persistent] =
+    SegmentSearcher.searchHigher(
+      key = key,
+      start = start,
+      end = end,
+      keyValueCount = keyValueCount,
+      binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+      sortedIndexReader = blockCache.createSortedIndexReader(),
+      valuesReader = blockCache.createValuesReader()
+    ) match {
+      case Some(response: Persistent) =>
+        addToCache(response)
+        Some(response)
+
+      case Some(partial: Persistent.Partial.Fixed) =>
+        val fixed = partial.toPersistent
+        addToCache(fixed)
+        Some(fixed)
+
+      case Some(partial: Persistent.Partial.Range) =>
+        val range = partial.toPersistent
+        addToCache(range)
+        Some(range)
+
+      case None =>
+        None
+    }
 
   def higher(key: Slice[Byte]): Option[Persistent] =
-  //    maxKey match {
-  //      case MaxKey.Fixed(maxKey) if key >= maxKey =>
-  //        IO.none
-  //
-  //      case MaxKey.Range(_, maxKey) if key >= maxKey =>
-  //        IO.none
-  //
-  //      case _ =>
-  //        skipList.floor(key) match {
-  //          case someFloor @ Some(floorEntry) =>
-  //            floorEntry match {
-  //              case floor: Persistent.Range if floor contains key =>
-  //                IO.Right(Some(floor))
-  //
-  //              case _ =>
-  //                skipList.higher(key) match {
-  //                  case Some(higherRange: Persistent.Range) if higherRange contains key =>
-  //                    IO.Right(Some(higherRange))
-  //
-  //                  case someHigher @ Some(higherKeyValue) =>
-  //                    if (floorEntry.nextIndexOffset == higherKeyValue.indexOffset)
-  //                      higherKeyValue match {
-  //                        case response: Persistent =>
-  //                          IO.Right(Some(response))
-  //                      }
-  //                    else
-  //                      higher(
-  //                        key = key,
-  //                        start = someFloor,
-  //                        end = someHigher,
-  //                        keyValueCount = getFooter().map(_.keyValueCount)
-  //                      )
-  //
-  //                  case None =>
-  //                    higher(
-  //                      key = key,
-  //                      start = someFloor,
-  //                      end = None,
-  //                      keyValueCount = getFooter().map(_.keyValueCount)
-  //                    )
-  //                }
-  //            }
-  //
-  //          case None =>
-  //            get(key) flatMap {
-  //              case some @ Some(floor: Persistent.Range) if floor contains key =>
-  //                IO.Right(some)
-  //
-  //              case start =>
-  //                higher(
-  //                  key = key,
-  //                  start = start,
-  //                  end = skipList.higher(key),
-  //                  keyValueCount = getFooter().map(_.keyValueCount)
-  //                )
-  //            }
-  //        }
-  //    }
-    ???
+    maxKey match {
+      case MaxKey.Fixed(maxKey) if key >= maxKey =>
+        None
+
+      case MaxKey.Range(_, maxKey) if key >= maxKey =>
+        None
+
+      case _ =>
+        skipList.floor(key) match {
+          case someFloor @ Some(floorEntry) =>
+            floorEntry match {
+              case floor: Persistent.Range if floor contains key =>
+                someFloor
+
+              case _ =>
+                skipList.higher(key) match {
+                  case someHigher @ Some(higherRange: Persistent.Range) if higherRange contains key =>
+                    someHigher
+
+                  case someHigher @ Some(higherKeyValue) =>
+                    if (floorEntry.nextIndexOffset == higherKeyValue.indexOffset)
+                      someHigher
+                    else
+                      higher(
+                        key = key,
+                        start = someFloor,
+                        end = someHigher,
+                        keyValueCount = getFooter().keyValueCount
+                      )
+
+                  case None =>
+                    higher(
+                      key = key,
+                      start = someFloor,
+                      end = None,
+                      keyValueCount = getFooter().keyValueCount
+                    )
+                }
+            }
+
+          case None =>
+            get(key) match {
+              case some @ Some(floor: Persistent.Range) if floor contains key =>
+                some
+
+              case start =>
+                higher(
+                  key = key,
+                  start = start,
+                  end = skipList.higher(key),
+                  keyValueCount = getFooter().keyValueCount
+                )
+            }
+        }
+    }
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
     blockCache readAll addTo
