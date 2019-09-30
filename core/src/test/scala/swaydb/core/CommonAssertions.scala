@@ -106,7 +106,7 @@ object CommonAssertions {
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                     memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeper,
+                                     memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeperMax,
                                      segmentIO: SegmentIO = SegmentIO.random): Unit = {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory

@@ -40,7 +40,7 @@ import scala.util.Random
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
   implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeper = TestLimitQueues.memorySweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeperMax
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "random access" in {

@@ -68,7 +68,7 @@ private[core] object UnblockedReader {
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
-                                                                             private[reader] val reader: Reader) extends BlockReaderBase with LazyLogging {
+                                                                             private[reader] val reader: Reader) extends BlockReaderBase {
 
   val offset = block.offset
 

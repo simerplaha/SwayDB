@@ -19,12 +19,11 @@
 
 package swaydb.core.segment.format.a.block.reader
 
-import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.data.slice.{Reader, Slice}
 
-private[reader] object BlockReader extends LazyLogging {
+private[reader] object BlockReader {
 
   def apply(offset: BlockOffset,
             reader: Reader): BlockReader.State =

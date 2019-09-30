@@ -72,7 +72,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
   //    false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "put KeyValues" should {

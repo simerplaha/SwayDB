@@ -103,9 +103,6 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def path = file.path
 
-  def skipList: SkipList[Slice[Byte], Persistent] =
-    segmentCache.skipList
-
   override def close: Unit = {
     file.close()
     segmentCache.clearLocalAndBlockCache()

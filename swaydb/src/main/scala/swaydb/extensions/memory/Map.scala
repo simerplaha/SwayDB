@@ -64,6 +64,7 @@ object Map extends LazyLogging {
                   segmentSize: Int = 2.mb,
                   memoryCacheSize: Int = 500.mb,
                   maxOpenSegments: Int = 100,
+                  maxKeyValuesPerSegment: Int = 100,
                   memorySweeperPollInterval: FiniteDuration = 10.seconds,
                   fileSweeperPollInterval: FiniteDuration = 10.seconds,
                   mightContainFalsePositiveRate: Double = 0.01,
@@ -92,6 +93,7 @@ object Map extends LazyLogging {
       memoryCache =
         MemoryCache.EnableKeyValueCache(
           capacity = memoryCacheSize,
+          maxKeyValuesPerSegment = Some(maxKeyValuesPerSegment),
           actorConfig = ActorConfig.Timer(
             delay = memorySweeperPollInterval,
             ec = memorySweeperEC

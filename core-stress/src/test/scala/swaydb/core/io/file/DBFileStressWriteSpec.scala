@@ -33,7 +33,7 @@ import scala.concurrent.duration._
 class DBFileStressWriteSpec extends TestBase {
 
   implicit val limiter = fileSweeper
-  implicit val memorySweeper = TestLimitQueues.memorySweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeperMax
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   "DBFile" should {

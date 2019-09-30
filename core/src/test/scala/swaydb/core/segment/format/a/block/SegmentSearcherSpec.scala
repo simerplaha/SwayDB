@@ -41,7 +41,7 @@ import scala.util.Try
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
-  implicit val limiter = TestLimitQueues.memorySweeper
+  implicit val limiter = TestLimitQueues.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 
   private val threadStates = SegmentThreadState.create[Slice[Byte], Persistent]()

@@ -42,9 +42,7 @@ protected object ActorQueue {
         new ActorQueue[(T, Int)] {
           val queue = new ConcurrentLinkedQueue[(T, Int)]()
           override def add(item: (T, Int)): Unit =
-            synchronized {
-              queue add item
-            }
+            queue add item
 
           override def poll(): (T, Int) =
             queue.poll()
@@ -53,9 +51,7 @@ protected object ActorQueue {
             queue.peek()
 
           override def clear(): Unit =
-            synchronized {
-              queue.clear()
-            }
+            queue.clear()
 
           def size: Int =
             queue.size
@@ -66,9 +62,7 @@ protected object ActorQueue {
           val skipList: ConcurrentSkipListSet[(T, Int)] = new ConcurrentSkipListSet[(T, Int)](ordered.ordering.on[(T, Int)](_._1))
 
           override def add(item: (T, Int)): Unit =
-            synchronized {
-              skipList add item
-            }
+            skipList add item
 
           override def poll(): (T, Int) =
             skipList.pollFirst()
@@ -77,9 +71,7 @@ protected object ActorQueue {
             skipList.first()
 
           override def clear(): Unit =
-            synchronized {
-              skipList.clear()
-            }
+            skipList.clear()
 
           def size: Int =
             skipList.size

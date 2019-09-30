@@ -47,6 +47,7 @@ object Set extends LazyLogging {
                segmentSize: Int = 2.mb,
                memoryCacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
                memorySweeperPollInterval: FiniteDuration = 10.seconds,
+               maxKeyValuesPerSegment: Int = 100,
                fileSweeperPollInterval: FiniteDuration = 10.seconds,
                mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = false,
@@ -73,6 +74,7 @@ object Set extends LazyLogging {
       memoryCache =
         MemoryCache.EnableKeyValueCache(
           capacity = memoryCacheSize,
+          maxKeyValuesPerSegment = Some(maxKeyValuesPerSegment),
           actorConfig = ActorConfig.Timer(
             delay = memorySweeperPollInterval,
             ec = memorySweeperEC

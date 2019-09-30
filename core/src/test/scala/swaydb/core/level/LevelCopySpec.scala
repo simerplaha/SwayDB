@@ -73,7 +73,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
   //    false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "copy" should {

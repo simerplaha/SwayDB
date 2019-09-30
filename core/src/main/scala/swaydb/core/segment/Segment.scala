@@ -873,7 +873,6 @@ private[core] trait Segment extends FileSweeperItem {
   val segmentSize: Int
   val nearestExpiryDeadline: Option[Deadline]
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-  private[segment] def skipList: SkipList[Slice[Byte], _ <: KeyValue.ReadOnly]
 
   def createdInLevel: Int
 

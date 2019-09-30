@@ -65,9 +65,11 @@ object MemoryCache {
                               actorConfig: ActorConfig) extends Block
 
   case class EnableKeyValueCache(capacity: Int,
+                                 maxKeyValuesPerSegment: Option[Int],
                                  actorConfig: ActorConfig) extends Enabled
 
   case class EnableBoth(blockSize: Int,
                         capacity: Int,
+                        maxKeyValuesPerSegment: Option[Int],
                         actorConfig: ActorConfig) extends Enabled with Block
 }

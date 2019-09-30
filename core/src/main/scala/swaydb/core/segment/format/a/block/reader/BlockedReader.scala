@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.a.block.reader
 
-import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps, SegmentBlock}
 import swaydb.data.slice.{Reader, Slice}
@@ -50,7 +49,7 @@ private[core] object BlockedReader {
 }
 
 private[core] class BlockedReader[O <: BlockOffset, B <: Block[O]] private(private[reader] val reader: Reader,
-                                                                           val block: B) extends BlockReaderBase with LazyLogging {
+                                                                           val block: B) extends BlockReaderBase {
 
   val offset = block.offset
 

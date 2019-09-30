@@ -41,7 +41,7 @@ private[segment] class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHas
     val existingState = states.get(threadId)
     if (existingState == null) {
       //todo - could possible copy the state of another thread instead of creating an empty one?
-      val newState = new SegmentThreadState[K, V](skipList = SkipList.concurrent[K, V](10), None, None, true)
+      val newState = new SegmentThreadState[K, V](None, None, true)
       states.put(threadId, newState)
       newState
     } else {
@@ -64,7 +64,6 @@ object SegmentReadThreadState {
     }
 }
 
-private[segment] class SegmentThreadState[K, V](val skipList: SkipList.ConcurrentLimit[K, V],
-                                                @BeanProperty var sortedIndexReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+private[segment] class SegmentThreadState[K, V](@BeanProperty var sortedIndexReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
                                                 @BeanProperty var valuesReader: Option[Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
                                                 @BooleanBeanProperty var sequentialRead: Boolean) extends SegmentReadThreadState

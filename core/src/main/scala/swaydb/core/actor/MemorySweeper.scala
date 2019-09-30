@@ -37,12 +37,12 @@ private[core] object Command {
     val skipListRef: WeakReference[SkipList[Slice[Byte], _]]
   }
 
-  case class WeighKeyValue(keyValueRef: WeakReference[Persistent],
-                           skipListRef: WeakReference[SkipList[Slice[Byte], _]]) extends KeyValueCommand
+  class WeighKeyValue(val keyValueRef: WeakReference[Persistent],
+                      val skipListRef: WeakReference[SkipList[Slice[Byte], _]]) extends KeyValueCommand
 
-  case class Block(key: BlockCache.Key,
-                   valueSize: Int,
-                   map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
+  class Block(val key: BlockCache.Key,
+              val valueSize: Int,
+              val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
 }
 
 private[core] sealed trait MemorySweeper
@@ -66,19 +66,21 @@ private[core] object MemorySweeper {
             actorConfig = block.actorConfig
           )
         )
-      case MemoryCache.EnableKeyValueCache(capacity, actorConfig) =>
+      case MemoryCache.EnableKeyValueCache(capacity, maxKeyValuesPerSegment, actorConfig) =>
         Some(
           MemorySweeper.KeyValueSweeper(
             cacheSize = capacity,
+            maxKeyValuesPerSegment = maxKeyValuesPerSegment,
             actorConfig = actorConfig
           )
         )
 
-      case MemoryCache.EnableBoth(blockSize, capacity, actorConfig) =>
+      case MemoryCache.EnableBoth(blockSize, capacity, maxKeyValuesPerSegment, actorConfig) =>
         Some(
           MemorySweeper.Both(
             blockSize = blockSize,
             cacheSize = capacity,
+            maxKeyValuesPerSegment = maxKeyValuesPerSegment,
             actorConfig = actorConfig
           )
         )
@@ -116,15 +118,18 @@ private[core] object MemorySweeper {
         config = actorConfig,
         weigher = MemorySweeper.weigher
       ) {
-        case (Command.Block(key, _, map), _) =>
-          map remove key
+        (command, _) =>
+          command match {
+            case command: Command.KeyValueCommand =>
+              for {
+                skipList <- command.skipListRef.get
+                keyValue <- command.keyValueRef.get
+              } yield {
+                skipList remove keyValue.key
+              }
 
-        case (command: Command.KeyValueCommand, self) =>
-          for {
-            skipList <- command.skipListRef.get
-            keyValue <- command.keyValueRef.get
-          } yield {
-            skipList remove keyValue.key
+            case block: Command.Block =>
+              block.map remove block.key
           }
       }
 
@@ -144,7 +149,7 @@ private[core] object MemorySweeper {
     def add(key: BlockCache.Key,
             value: Slice[Byte],
             map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
-      actor send Command.Block(
+      actor send new Command.Block(
         key = key,
         valueSize = value.size,
         map = map
@@ -158,18 +163,22 @@ private[core] object MemorySweeper {
   sealed trait KeyValue extends Enabled {
     def actor: ActorRef[Command, Unit]
 
+    def maxKeyValuesPerSegment: Option[Int]
+
     def add(keyValue: Persistent,
             skipList: SkipList[Slice[Byte], _]): Unit =
-      actor send Command.WeighKeyValue(
+      actor send new Command.WeighKeyValue(
         keyValueRef = new WeakReference(keyValue),
         skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList)
       )
   }
 
   case class KeyValueSweeper(cacheSize: Int,
+                             maxKeyValuesPerSegment: Option[Int],
                              actorConfig: ActorConfig) extends SweeperImplementation with KeyValue
 
   case class Both(blockSize: Int,
                   cacheSize: Int,
+                  maxKeyValuesPerSegment: Option[Int],
                   actorConfig: ActorConfig) extends SweeperImplementation with Block with KeyValue
 }

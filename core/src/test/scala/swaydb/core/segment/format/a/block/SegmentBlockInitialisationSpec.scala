@@ -39,7 +39,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
   val keyValueCount = 100
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val memorySweeper = TestLimitQueues.memorySweeper
+  implicit val memorySweeper = TestLimitQueues.memorySweeperMax
 
   implicit def testTimer: TestTimer = TestTimer.random
 
