@@ -70,7 +70,7 @@ class SegmentBlockSpec extends TestBase {
                 blockIO = _ => randomIOStrategy(),
                 compressions = _ => Seq.empty
               ),
-            createdInLevel = randomNextInt(Int.MaxValue)
+            createdInLevel = randomNextInt(Int.MaxValue),
           )
 
         val reader = Reader(closedSegment.flattenSegmentBytes)

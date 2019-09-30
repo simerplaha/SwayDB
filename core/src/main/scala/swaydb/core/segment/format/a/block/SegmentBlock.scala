@@ -264,7 +264,7 @@ private[core] object SegmentBlock {
           } match {
             //if it's a hit and binary search is not configured to be full.
             //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-            case Some(hit) if binarySearchIndex.forall(!_.isFullIndex) && !keyValue.isRange && hit =>
+            case Some(hit) if hit && !keyValue.isRange && binarySearchIndex.forall(!_.isFullIndex) =>
               ()
 
             case None | Some(_) =>

@@ -55,7 +55,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
         sortedIndexConfig =
           SortedIndexBlock.Config.random.copy(
             //            normaliseIndex = true,
-            //            prefixCompressionResetCount = 3,
+            prefixCompressionResetCount = (randomIntMax(keyValuesCount) - 1) max 0,
             //            enablePartialRead = true,
             //            enableAccessPositionIndex = true
           ),
@@ -290,7 +290,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                     val higher = getHigher(key)
                     //println(s"Higher: ${higher.map(_.key.readInt())}")
                     //println(s"Key: $key")
-                    higher shouldBe range
+                    higher.value shouldBe range
                 }
             }
 
@@ -412,7 +412,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                     //println
                     //println(s"Key: $key")
                     val lower = getLower(key)
-                    lower shouldBe range
+                    lower.value shouldBe range
                 }
             }
             //println("--- SEARCHING ---")

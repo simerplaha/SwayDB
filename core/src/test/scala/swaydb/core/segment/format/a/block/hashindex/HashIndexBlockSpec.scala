@@ -74,11 +74,11 @@ class HashIndexBlockSpec extends TestBase {
           randomKeyValues(
             count = 1000,
             startId = Some(1),
-            addRemoves = true,
-            addFunctions = true,
-            addRemoveDeadlines = true,
-            addUpdates = true,
-            addPendingApply = true,
+//            addRemoves = true,
+//            addFunctions = true,
+//            addRemoveDeadlines = true,
+//            addUpdates = true,
+//            addPendingApply = true,
             hashIndexConfig =
               HashIndexBlock.Config(
                 allocateSpace = allocateMoreSpace,
@@ -88,7 +88,9 @@ class HashIndexBlockSpec extends TestBase {
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
                 ioStrategy = _ => randomIOAccess()
-              )
+              ),
+            sortedIndexConfig =
+              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
           )
 
         uncompressedKeyValues should not be empty
@@ -116,17 +118,21 @@ class HashIndexBlockSpec extends TestBase {
 
         uncompressedKeyValues foreach {
           keyValue =>
-            HashIndexBlock.write(
-              key = keyValue.key,
-              value = keyValue.stats.thisKeyValuesAccessIndexOffset,
-              state = uncompressedState
-            )
+            val uncompressedWriteResult =
+              HashIndexBlock.write(
+                key = keyValue.key,
+                value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+                state = uncompressedState
+              )
 
-            HashIndexBlock.write(
-              key = keyValue.key,
-              value = keyValue.stats.thisKeyValuesAccessIndexOffset,
-              state = compressedState
-            )
+            val compressedWriteResult =
+              HashIndexBlock.write(
+                key = keyValue.key,
+                value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+                state = compressedState
+              )
+
+            uncompressedWriteResult shouldBe compressedWriteResult
         }
 
         HashIndexBlock.close(uncompressedState)

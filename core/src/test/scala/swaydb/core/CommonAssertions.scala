@@ -341,7 +341,7 @@ object CommonAssertions {
       result shouldBe empty
     } else {
       try
-      result should have size 1
+        result should have size 1
       val head = result.head
       head should have size expected.size
       head.toMemory.toList should contain inOrderElementsOf expected.toMemory
@@ -696,7 +696,7 @@ object CommonAssertions {
                 segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default) = {
     val blocks = readBlocksFromReader(rawSegmentReader.copy()).get
 
-    keyValues foreach {
+    keyValues.par foreach {
       keyValue =>
         //        val key = keyValue.minKey.readInt()
         //        if (key % 100 == 0)
@@ -706,10 +706,10 @@ object CommonAssertions {
           start = None,
           end = None,
           keyValueCount = blocks.footer.keyValueCount,
-          hashIndexReader = blocks.hashIndexReader,
-          binarySearchIndexReader = blocks.binarySearchIndexReader,
-          sortedIndexReader = blocks.sortedIndexReader,
-          valuesReader = blocks.valuesReader,
+          hashIndexReader = blocks.hashIndexReader.map(_.copy()),
+          binarySearchIndexReader = blocks.binarySearchIndexReader.map(_.copy()),
+          sortedIndexReader = blocks.sortedIndexReader.copy(),
+          valuesReader = blocks.valuesReader.map(_.copy()),
           hasRange = blocks.footer.hasRange,
           threadState = SegmentReadThreadState.empty(randomBoolean())
         ).runRandomIO.right.value.value.toPersistent shouldBe keyValue
@@ -843,7 +843,7 @@ object CommonAssertions {
     readAll(segmentReader.copy()).runRandomIO.right.value shouldBe keyValues
     //    //find each KeyValue using all Matchers
     assertGet(keyValues, segmentReader.copy())
-    //    assertLower(keyValues, segmentReader.copy())
+    assertLower(keyValues, segmentReader.copy())
     assertHigher(keyValues, segmentReader.copy())
   }
 
@@ -1184,9 +1184,9 @@ object CommonAssertions {
               start = None,
               end = None,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
-              sortedIndexReader = blocks.sortedIndexReader,
-              valuesReader = blocks.valuesReader
+              binarySearchIndexReader = blocks.binarySearchIndexReader.map(_.copy()),
+              sortedIndexReader = blocks.sortedIndexReader.copy(),
+              valuesReader = blocks.valuesReader.map(_.copy())
             ).map(_.toPersistent)
           }
     )

@@ -390,10 +390,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
             .drop(indexSize)
             .readUnsignedInt()
 
-        if (isBlockReader)
-          (nextIndexEntrySize, positionBeforeRead + blockReader.getPosition - extraBytesRead)
-        else
+        if (isBlockReader) {
+          //openEnd() could read footer bytes so this check is needed.
+          val nextIndexOffset = positionBeforeRead + blockReader.getPosition - extraBytesRead
+          if (nextIndexOffset == indexReader.size)
+            (0, -1)
+          else
+            (nextIndexEntrySize, nextIndexOffset)
+        } else {
           (nextIndexEntrySize, blockReader.getPosition - extraBytesRead)
+        }
       }
 
     //take only the bytes required for this in entry and submit it for parsing/reading.

@@ -135,7 +135,9 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfHits = 0,
                   ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
-                )
+                ),
+              sortedIndexConfig =
+                SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
             )
 
           keyValues should not be empty
@@ -192,7 +194,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   allocateSpace = _.requiredSpace * 20,
                   ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
-                )
+                ),
+              sortedIndexConfig = SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
             )
 
           val blocks = getBlocks(keyValues).get

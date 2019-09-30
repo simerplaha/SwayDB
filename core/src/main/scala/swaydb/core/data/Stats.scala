@@ -133,7 +133,7 @@ private[core] object Stats {
 
     val segmentBinarySearchIndexSize =
       if (isPrefixCompressed)
-        previousStats.map(_.segmentHashIndexSize) getOrElse 0
+        previousStats.map(_.segmentBinarySearchIndexSize) getOrElse 0
       else if (binarySearch.enabled && !sortedIndex.normaliseIndex)
         previousStats flatMap {
           previousStats =>
