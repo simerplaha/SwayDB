@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a.entry.writer
 
 import java.util.concurrent.TimeUnit
 
-import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -35,6 +34,7 @@ import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.concurrent.duration._
 
@@ -169,7 +169,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
             eitherOne(
               10.seconds.fromNow,
               10.minutes.fromNow,
-              10.hours.fromNow,
+              //              10.hours.fromNow,
               currentDeadline,
             )
 
@@ -182,7 +182,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
           //test with both when the key is compressed and uncompressed.
           def doAssert(compressedKey: Boolean) = {
-            val deadlineBytesOption =
+            val (deadlineBytes, isPrefixCompressed) =
               DeadlineWriter.compress(
                 currentDeadline = currentDeadline,
                 previousDeadline = previousDeadline,
@@ -190,11 +190,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 plusSize = 0,
                 isKeyCompressed = compressedKey,
                 adjustBaseIdToKeyValueId = true
-              )
+              ).value
 
-            deadlineBytesOption shouldBe defined
-
-            val (deadlineBytes, isPrefixCompressed) = deadlineBytesOption.value
             deadlineBytes.isFull shouldBe true
             isPrefixCompressed shouldBe true
 
@@ -242,11 +239,14 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 sortedIndexAccessPosition = 0
               )
 
-            deadlineReader
-              .read(
-                indexReader = reader,
-                previous = Some(put)
-              ) should contain(currentDeadline)
+            val readDeadline =
+              deadlineReader
+                .read(
+                  indexReader = reader,
+                  previous = Some(put)
+                )
+
+            readDeadline should contain(currentDeadline)
           }
 
           doAssert(compressedKey = true)
@@ -367,7 +367,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
       }
     }
 
-    "write compress deadline" in {
+    "write fully compressed deadline" in {
       runTestForEachDeadlineAndBinder {
         case (deadlineID, keyValueBinder) =>
           implicit val binder = keyValueBinder

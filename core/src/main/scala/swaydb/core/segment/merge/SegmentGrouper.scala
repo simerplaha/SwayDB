@@ -77,12 +77,11 @@ private[merge] object SegmentGrouper extends LazyLogging {
                 currentSegmentSize + nextKeyValueWithUpdatedStats.stats.thisKeyValuesSegmentKeyAndValueSize
 
             //if there are no key-values in the current Segment or if the current Segment size with new key-value fits, do add else return false.
-            if (force || currentSegmentSize == 0 || segmentSizeWithNextKeyValue <= minSegmentSize) {
-              splits.last add nextKeyValueWithUpdatedStats
-              true
-            } else {
-              false
-            }
+            val add = force || currentSegmentSize == 0 || segmentSizeWithNextKeyValue <= minSegmentSize
+
+            if (add) splits.last add nextKeyValueWithUpdatedStats
+
+            add
         }
 
       if (!addToCurrentSplit(force = false)) {
@@ -272,35 +271,30 @@ private[merge] object SegmentGrouper extends LazyLogging {
         }
 
       case range: KeyValue.ReadOnly.Range =>
-        if (isLastLevel)
-          range.fetchFromValueUnsafe match {
-            case Some(fromValue) =>
-              fromValue match {
-                case put @ Value.Put(fromValue, deadline, time) =>
-                  if (put.hasTimeLeft())
-                    doAdd(
-                      Transient.Put(
-                        key = range.fromKey,
-                        normaliseToSize = None,
-                        value = fromValue,
-                        deadline = deadline,
-                        time = time,
-                        valuesConfig = valuesConfig,
-                        sortedIndexConfig = sortedIndexConfig,
-                        binarySearchIndexConfig = binarySearchIndexConfig,
-                        hashIndexConfig = hashIndexConfig,
-                        bloomFilterConfig = bloomFilterConfig,
-                        _
-                      )
-                    )
+        if (isLastLevel) {
+          range.fetchFromValueUnsafe foreach {
+            case put @ Value.Put(fromValue, deadline, time) =>
+              if (put.hasTimeLeft())
+                doAdd(
+                  Transient.Put(
+                    key = range.fromKey,
+                    normaliseToSize = None,
+                    value = fromValue,
+                    deadline = deadline,
+                    time = time,
+                    valuesConfig = valuesConfig,
+                    sortedIndexConfig = sortedIndexConfig,
+                    binarySearchIndexConfig = binarySearchIndexConfig,
+                    hashIndexConfig = hashIndexConfig,
+                    bloomFilterConfig = bloomFilterConfig,
+                    _
+                  )
+                )
 
-                case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
-                  ()
-              }
-            case None =>
+            case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
               ()
           }
-        else {
+        } else {
           val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
           doAdd(
             Transient.Range(

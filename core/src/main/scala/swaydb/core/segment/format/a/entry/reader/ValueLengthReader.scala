@@ -45,19 +45,11 @@ object ValueLengthReader {
       case Some(previous) =>
         previous match {
           case previous: Persistent =>
-            val positionBeforeRead = indexReader.getPosition
-            val valueLengthBytes = indexReader.read(ByteSizeOf.varInt)
-            val (length, byteSize) =
-              Bytes
-                .decompress(
-                  previous = Slice.writeUnsignedInt(previous.valueLength),
-                  next = valueLengthBytes,
-                  commonBytes = commonBytes
-                )
-                .readUnsignedIntWithByteSize()
-
-            indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
-            length
+            Bytes.decompress(
+              previous = Slice.writeInt(previous.valueLength),
+              next = indexReader.read(ByteSizeOf.int - commonBytes),
+              commonBytes = commonBytes
+            ).readInt()
 
           case _: Persistent.Partial =>
             throw IO.throwable("Expected Persistent. Received Partial.")

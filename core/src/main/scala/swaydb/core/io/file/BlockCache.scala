@@ -159,6 +159,7 @@ private[core] object BlockCache {
                         headBytes: Slice[Byte],
                         file: DBFileType,
                         state: State)(implicit blockIO: BlockIO): Slice[Byte] = {
+    //TODO - create an array of size of n bytes and append to it instead of ++
     val keyPosition = seekPosition(position, state)
 
     state.map.get(Key(file.blockCacheFileId, keyPosition)) match {

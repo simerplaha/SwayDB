@@ -43,19 +43,11 @@ object ValueOffsetReader {
                          commonBytes: Int): Int =
     previous match {
       case Some(previous: Persistent) =>
-        val positionBeforeRead = indexReader.getPosition
-        val valueOffsetBytes = indexReader.read(ByteSizeOf.varInt)
-        val (offset, byteSize) =
-          Bytes
-            .decompress(
-              previous = Slice.writeUnsignedInt(previous.valueOffset),
-              next = valueOffsetBytes,
-              commonBytes = commonBytes
-            )
-            .readUnsignedIntWithByteSize()
-
-        indexReader moveTo (positionBeforeRead + byteSize - commonBytes)
-        offset
+        Bytes.decompress(
+          previous = Slice.writeInt(previous.valueOffset),
+          next = indexReader.read(ByteSizeOf.int - commonBytes),
+          commonBytes = commonBytes
+        ).readInt()
 
       case Some(_: Persistent.Partial) =>
         throw IO.throwable("Expected Persistent. Received Partial")
@@ -120,5 +112,4 @@ object ValueOffsetReader {
                       previous: Option[Persistent.Partial]): Int =
       0
   }
-
 }

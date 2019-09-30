@@ -39,9 +39,8 @@ private[writer] object DeadlineWriter {
                                isKeyCompressed: Boolean,
                                hasPrefixCompressed: Boolean,
                                adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): (Slice[Byte], Boolean) =
-    currentDeadline map {
-      currentDeadline: Deadline =>
-        //fetch the previous deadline bytes
+    currentDeadline match {
+      case Some(currentDeadline) =>
         when(enablePrefixCompression)(previousDeadline) flatMap {
           previousDeadline =>
             compress(
@@ -63,36 +62,37 @@ private[writer] object DeadlineWriter {
             adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
           )
         }
-    } getOrElse {
-      noDeadline(
-        deadlineId = deadlineId,
-        plusSize = plusSize,
-        isKeyCompressed = isKeyCompressed,
-        hasPrefixCompressed = hasPrefixCompressed,
-        adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
-      )
+
+      case None =>
+        noDeadline(
+          deadlineId = deadlineId,
+          plusSize = plusSize,
+          isKeyCompressed = isKeyCompressed,
+          hasPrefixCompressed = hasPrefixCompressed,
+          adjustBaseIdToKeyValueId = adjustBaseIdToKeyValueId
+        )
     }
 
-  private[writer] def applyDeadlineId(bytesCompressed: Int,
+  private[writer] def applyDeadlineId(commonBytes: Int,
                                       deadlineId: DeadlineId): BaseEntryId.Deadline =
-    if (bytesCompressed == 1)
+    if (commonBytes == 1)
       deadlineId.deadlineOneCompressed
-    else if (bytesCompressed == 2)
+    else if (commonBytes == 2)
       deadlineId.deadlineTwoCompressed
-    else if (bytesCompressed == 3)
+    else if (commonBytes == 3)
       deadlineId.deadlineThreeCompressed
-    else if (bytesCompressed == 4)
+    else if (commonBytes == 4)
       deadlineId.deadlineFourCompressed
-    else if (bytesCompressed == 5)
+    else if (commonBytes == 5)
       deadlineId.deadlineFiveCompressed
-    else if (bytesCompressed == 6)
+    else if (commonBytes == 6)
       deadlineId.deadlineSixCompressed
-    else if (bytesCompressed == 7)
+    else if (commonBytes == 7)
       deadlineId.deadlineSevenCompressed
-    else if (bytesCompressed == 8)
+    else if (commonBytes == 8)
       deadlineId.deadlineFullyCompressed
     else
-      throw IO.throwable(s"Fatal exception: deadlineBytesCompressed = $bytesCompressed")
+      throw IO.throwable(s"Fatal exception: commonBytes = $commonBytes, deadlineId: ${deadlineId.getClass.getName}")
 
   private[writer] def uncompressed(currentDeadline: Deadline,
                                    deadlineId: DeadlineId,
@@ -101,7 +101,7 @@ private[writer] object DeadlineWriter {
                                    hasPrefixCompressed: Boolean,
                                    adjustBaseIdToKeyValueId: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
     //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
-    val currentDeadlineUnsignedBytes = currentDeadline.toBytes
+    val currentDeadlineUnsignedBytes = currentDeadline.toUnsignedBytes
     val deadline = deadlineId.deadlineUncompressed
 
     val id =

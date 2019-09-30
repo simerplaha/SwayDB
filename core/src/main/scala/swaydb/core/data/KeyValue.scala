@@ -1443,7 +1443,11 @@ private[core] object Persistent {
       valueCache.isCached
 
     override def toFromValue(): Value.Put =
-      Value.Put(getOrFetchValue, deadline, time)
+      Value.Put(
+        value = getOrFetchValue,
+        deadline = deadline,
+        time = time
+      )
 
     override def toRangeValue(): Value.RangeValue =
       throw IO.throwable("Put cannot be converted to RangeValue")

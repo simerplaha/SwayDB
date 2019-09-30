@@ -30,13 +30,13 @@ private[swaydb] case class SliceReader(slice: Slice[Byte],
   def path = Paths.get(this.getClass.getSimpleName)
 
   override val size: Long =
-    slice.size.toLong
+    slice.size
 
   def hasAtLeast(size: Long): Boolean =
     (slice.size - position) >= size
 
   def read(size: Int): Slice[Byte] = {
-    if (size == 0)
+    if (size <= 0)
       Slice.emptyBytes
     else {
       val bytes = slice.take(position, size)

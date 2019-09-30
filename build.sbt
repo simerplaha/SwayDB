@@ -63,7 +63,7 @@ val commonDependencies =
 
 lazy val SwayDB =
   (project in file("."))
-    .settings(name := "source")
+    .settings(name := "SwayDB.source")
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)

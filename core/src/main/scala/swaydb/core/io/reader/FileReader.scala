@@ -56,16 +56,15 @@ private[core] class FileReader(val file: DBFile) extends Reader with LazyLogging
   override def getPosition: Int = position
 
   override def get() = {
-    val byte = (file get position)
+    val byte = file get position
     position += 1
     byte
   }
 
   override def read(size: Int) =
-    if (size == 0) {
+    if (size <= 0) {
       Slice.emptyBytes
-    }
-    else {
+    } else {
       val bytes = file.read(position, size)
       position += size
       bytes

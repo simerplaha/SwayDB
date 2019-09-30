@@ -143,7 +143,7 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
   def isCached: Boolean
   def clear(): Unit
   def getIO(): Option[IO.Right[E, O]]
-  def get() = getIO().map(_.get)
+  def get(): Option[O] = getIO().map(_.get)
 
   def getOrElse[F >: E : IO.ExceptionHandler, B >: O](f: => IO[F, B]): IO[F, B]
 
@@ -304,14 +304,15 @@ private[swaydb] class CacheNoIO[-I, +O](fetch: I => O, lazyValue: LazyValue[O]) 
     lazyValue getOrSet fetch(input)
 
   def applyOrFetchApply[E: IO.ExceptionHandler, T](apply: O => IO[E, T], fetch: => IO[E, I]): IO[E, T] =
-    lazyValue.get() map {
-      input =>
+    lazyValue.get() match {
+      case Some(input) =>
         apply(input)
-    } getOrElse {
-      fetch flatMap {
-        input =>
-          apply(value(input))
-      }
+
+      case None =>
+        fetch flatMap {
+          input =>
+            apply(value(input))
+        }
     }
 
   def isCached: Boolean =
