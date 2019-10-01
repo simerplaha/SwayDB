@@ -442,7 +442,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValues = randomizedKeyValues(keyValuesCount),
             assert =
               (keyValues, segment) => {
-                implicit val memorySweeper: Option[MemorySweeper.KeyValue] = orNone(TestLimitQueues.keyValueSweeperBlock)
+                implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = orNone(TestLimitQueues.keyValueSweeperBlock)
                 val readSegment =
                   Segment(
                     path = segment.path,
@@ -579,7 +579,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     if (memory) {
       //memory Segments do not value closed via
     } else {
-      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
       implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(100.millisecond, ec))
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit)
@@ -653,7 +653,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
-      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
 
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues)
@@ -693,7 +693,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when remove deletes is true" in {
       runThis(10.times) {
-        implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath
@@ -740,7 +740,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy if Segment initialisation fails after copy" in {
-      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues)
       val levelPath = createNextLevelPath
@@ -783,7 +783,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy of Key-values if creating at least one Segment fails" in {
-      implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
       val keyValues = randomizedKeyValues(keyValuesCount)
       val levelPath = createNextLevelPath
       val nextSegmentId = nextId
@@ -833,7 +833,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
       runThis(100.times) {
-        implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath
@@ -871,7 +871,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
-        implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath

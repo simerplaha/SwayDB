@@ -41,7 +41,7 @@ private[core] object DeadlineAndFunctionId {
     )
 
   def apply(keyValues: Iterable[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    memorySweeper: Option[MemorySweeper.KeyValue],
+                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                     segmentIO: SegmentIO): DeadlineAndFunctionId =
     keyValues.foldLeft(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
@@ -55,7 +55,7 @@ private[core] object DeadlineAndFunctionId {
   def apply(deadline: Option[Deadline],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             next: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     memorySweeper: Option[MemorySweeper.KeyValue],
+                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                      segmentIO: SegmentIO): DeadlineAndFunctionId =
     next match {
       case readOnly: KeyValue.ReadOnly.Put =>

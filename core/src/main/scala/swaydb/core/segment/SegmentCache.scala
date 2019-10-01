@@ -37,13 +37,13 @@ private[core] object SegmentCache {
             unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  memorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
+                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
     new SegmentCache(
       id = id,
       maxKey = maxKey,
       minKey = minKey,
       skipList =
-        memorySweeper map {
+        keyValueMemorySweeper map {
           sweeper =>
             sweeper.maxKeyValuesPerSegment match {
               case Some(maxKeyValuesPerSegment) =>
@@ -60,7 +60,7 @@ private[core] object SegmentCache {
           blockRef = blockRef,
           segmentIO = segmentIO
         )
-    )(keyOrder = keyOrder, memorySweeper = memorySweeper)
+    )
 }
 
 private[core] class SegmentCache(id: String,
@@ -69,7 +69,7 @@ private[core] class SegmentCache(id: String,
                                  val skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    memorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
+                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
 
   import keyOrder._
 
@@ -90,7 +90,7 @@ private[core] class SegmentCache(id: String,
     skipList foreach {
       skipList =>
         if (skipList.putIfAbsent(keyValue.key, keyValue))
-          memorySweeper.foreach(_.add(keyValue, skipList))
+          keyValueMemorySweeper.foreach(_.add(keyValue, skipList))
     }
   }
 

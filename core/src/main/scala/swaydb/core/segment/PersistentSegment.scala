@@ -55,7 +55,7 @@ object PersistentSegment {
             nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]],
                                                      functionStore: FunctionStore,
-                                                     memorySweeper: Option[MemorySweeper.KeyValue],
+                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                      blockCache: Option[BlockCache.State],
                                                      fileSweeper: FileSweeper.Enabled,
                                                      segmentIO: SegmentIO): PersistentSegment = {
@@ -98,7 +98,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                           functionStore: FunctionStore,
                                                                           blockCache: Option[BlockCache.State],
                                                                           fileSweeper: FileSweeper.Enabled,
-                                                                          memorySweeper: Option[MemorySweeper.KeyValue],
+                                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                           segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   def path = file.path

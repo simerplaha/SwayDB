@@ -73,9 +73,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   //    override def deleteFiles = false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  //  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeperMax
-  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeper10
-  //  implicit val memorySweeper: Option[MemorySweeper.KeyValue] = None
+  //  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeperMax
+  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeper10
+  //  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
   implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
 
   def strategy(action: IOAction): IOStrategy =

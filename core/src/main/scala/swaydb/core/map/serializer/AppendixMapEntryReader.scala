@@ -43,7 +43,7 @@ object AppendixMapEntryReader {
             mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore,
-                                          memorySweeper: Option[MemorySweeper.KeyValue],
+                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                           fileSweeper: FileSweeper.Enabled,
                                           blockCache: Option[BlockCache.State],
                                           segmentIO: SegmentIO): AppendixMapEntryReader =
@@ -66,7 +66,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                              mmapSegmentsOnWrite: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
-                                                           memorySweeper: Option[MemorySweeper.KeyValue],
+                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                            fileSweeper: FileSweeper.Enabled,
                                                            blockCache: Option[BlockCache.State],
                                                            segmentIO: SegmentIO) {

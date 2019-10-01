@@ -170,7 +170,7 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                        segments: Slice[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  fileSweeper: FileSweeper.Enabled,
-                                                 memorySweeper: Option[MemorySweeper.KeyValue],
+                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],

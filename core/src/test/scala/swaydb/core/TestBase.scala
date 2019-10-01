@@ -214,7 +214,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               path: Path = testMapFile,
               flushOnOverflow: Boolean = false,
               mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                    memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
                                     fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
@@ -247,7 +247,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     def apply(keyValues: Slice[Transient] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
               path: Path = testSegmentFile,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
                                                                                fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
@@ -311,7 +311,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                      memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
                                                       fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
                                                       blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Level =
@@ -344,7 +344,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               mapSize: Long = mapSize,
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                               memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper): LevelZero =
       LevelZero(
@@ -654,7 +654,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                        assert: (Slice[Transient], Segment) => T,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                          memorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
                                                           segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
     val segment = TestSegment(keyValues)

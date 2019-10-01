@@ -117,7 +117,7 @@ private[core] object Segment extends LazyLogging {
                                                  timeOrder: TimeOrder[Slice[Byte]],
                                                  functionStore: FunctionStore,
                                                  fileSweeper: FileSweeper.Enabled,
-                                                 memorySweeper: Option[MemorySweeper.KeyValue],
+                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                  blockCache: Option[BlockCache.State],
                                                  segmentIO: SegmentIO): Segment = {
     val result =
@@ -214,7 +214,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: FunctionStore,
-                                                                memorySweeper: Option[MemorySweeper.KeyValue],
+                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
                                                                 segmentIO: SegmentIO): Slice[Segment] =
@@ -280,7 +280,7 @@ private[core] object Segment extends LazyLogging {
                     bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 timeOrder: TimeOrder[Slice[Byte]],
                                                                 functionStore: FunctionStore,
-                                                                memorySweeper: Option[MemorySweeper.KeyValue],
+                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
                                                                 segmentIO: SegmentIO): Slice[Segment] = {
@@ -339,7 +339,7 @@ private[core] object Segment extends LazyLogging {
                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper.Enabled,
-                                                               memorySweeper: Option[MemorySweeper.KeyValue],
+                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                segmentIO: SegmentIO): Slice[Segment] =
     copyToMemory(
       keyValues = segment.getAll(),
@@ -367,7 +367,7 @@ private[core] object Segment extends LazyLogging {
                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                functionStore: FunctionStore,
                                                                fileSweeper: FileSweeper.Enabled,
-                                                               memorySweeper: Option[MemorySweeper.KeyValue],
+                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                segmentIO: SegmentIO): Slice[Segment] = {
     val splits =
       SegmentMerger.split(
@@ -414,7 +414,7 @@ private[core] object Segment extends LazyLogging {
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
-                                         memorySweeper: Option[MemorySweeper.KeyValue],
+                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                          fileSweeper: FileSweeper.Enabled,
                                          blockCache: Option[BlockCache.State],
                                          segmentIO: SegmentIO): Segment = {
@@ -466,7 +466,7 @@ private[core] object Segment extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
                                   blockCache: Option[BlockCache.State],
-                                  memorySweeper: Option[MemorySweeper.KeyValue],
+                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                   fileSweeper: FileSweeper.Enabled): Segment = {
 
     implicit val segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed

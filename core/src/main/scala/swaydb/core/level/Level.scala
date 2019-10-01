@@ -97,7 +97,7 @@ private[core] object Level extends LazyLogging {
             deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore,
-                                               memorySweeper: Option[MemorySweeper.KeyValue],
+                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                blockCache: Option[BlockCache.State],
                                                fileSweeper: FileSweeper.Enabled): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
@@ -356,7 +356,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               functionStore: FunctionStore,
                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                              memorySweeper: Option[MemorySweeper.KeyValue],
+                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                               fileSweeper: FileSweeper.Enabled,
                                                               blockCache: Option[BlockCache.State],
                                                               val segmentIDGenerator: IDGenerator,

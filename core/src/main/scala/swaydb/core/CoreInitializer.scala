@@ -194,21 +194,24 @@ private[core] object CoreInitializer extends LazyLogging {
       FileSweeper(fileCache)
 
     //TODO - do not initialise for in-memory no grouping databases.
-    implicit val memorySweeper: Option[MemorySweeper.Enabled] =
+    val memorySweeper: Option[MemorySweeper.Enabled] =
       MemorySweeper(memoryCache)
 
     implicit val blockCache: Option[BlockCache.State] =
       memorySweeper flatMap BlockCache.init
 
+    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] =
+      blockCache.map(_.sweeper)
+
     implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
       memorySweeper flatMap {
         enabled: MemorySweeper.Enabled =>
           enabled match {
-            case both: MemorySweeper.All =>
-              Some(both)
+            case sweeper: MemorySweeper.All =>
+              Some(sweeper)
 
-            case value: MemorySweeper.KeyValueSweeper =>
-              Some(value)
+            case sweeper: MemorySweeper.KeyValueSweeper =>
+              Some(sweeper)
 
             case _: MemorySweeper.BlockSweeper =>
               None
