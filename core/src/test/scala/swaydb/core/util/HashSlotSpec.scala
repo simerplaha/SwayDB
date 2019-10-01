@@ -2,10 +2,10 @@ package swaydb.core.util
 
 import org.scalatest.{FlatSpec, Matchers}
 
-class SlotMapSpec extends FlatSpec with Matchers {
+class HashSlotSpec extends FlatSpec with Matchers {
 
   it should "assign all slots" in {
-    val slot = SlotMap[Int, Int](10)
+    val slot = HashSlot[Int, Int](10)
 
     (1 to 10) foreach {
       i =>
