@@ -1,7 +1,7 @@
-package swaydb.core.util
+package swaydb.core.util.map
 
-import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.OptionValues._
+import org.scalatest.{FlatSpec, Matchers}
 
 class SlotMapSpec extends FlatSpec with Matchers {
 

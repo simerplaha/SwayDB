@@ -1,13 +1,13 @@
-package swaydb.core.util
+package swaydb.core.util.map
 
 import scala.reflect.ClassTag
 
-object SlotMap {
+private[core] object SlotMap {
   def apply[K, V: ClassTag](maxSize: Int) =
     new SlotMap[K, V](new Array[V](maxSize))
 }
 
-class SlotMap[K, V](array: Array[V]) {
+private[core] class SlotMap[K, V](array: Array[V]) {
 
   val arrayLength = array.length
 

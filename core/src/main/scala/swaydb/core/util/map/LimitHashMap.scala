@@ -1,14 +1,14 @@
-package swaydb.core.util
+package swaydb.core.util.map
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-object LimitHashMap {
-  def apply[K, V: ClassTag](maxSize: Int) =
-    new LimitHashMap[K, V](new Array[(K, V)](maxSize))
+private[core] object LimitHashMap {
+  def apply[K, V: ClassTag](limit: Int) =
+    new LimitHashMap[K, V](new Array[(K, V)](limit))
 }
 
-class LimitHashMap[K, V](array: Array[(K, V)]) {
+private[core] class LimitHashMap[K, V](array: Array[(K, V)]) {
 
   val arrayLength = array.length
   val maxProbe = 2

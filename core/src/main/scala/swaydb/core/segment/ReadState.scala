@@ -2,7 +2,7 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 
-import swaydb.core.util.SlotMap
+import swaydb.core.util.map.SlotMap
 
 sealed trait ReadState {
   def isSequential(path: Path): Boolean
