@@ -37,6 +37,9 @@ private[core] object Cache {
       override def isCached: Boolean =
         true
 
+      override def isStored: Boolean =
+        true
+
       override def clear(): Unit =
         ()
 
@@ -45,6 +48,7 @@ private[core] object Cache {
 
       override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
         IO[F, BB](output)
+
     }
 
   def emptyValuesBlock[E: IO.ExceptionHandler]: Cache[E, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
@@ -141,6 +145,7 @@ private[core] object Cache {
 private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] extends LazyLogging { self =>
   def value(i: => I): IO[E, O]
   def isCached: Boolean
+  def isStored: Boolean
   def clear(): Unit
   def getIO(): Option[IO.Right[E, O]]
   def get(): Option[O] = getIO().map(_.get)
@@ -164,6 +169,9 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
       override def isCached: Boolean =
         self.isCached
 
+      override def isStored: Boolean =
+        self.isStored
+
       override def getOrElse[FF >: F : IO.ExceptionHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
         getIO() getOrElse f
 
@@ -181,10 +189,11 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
         }
       override def clear(): Unit =
         self.clear()
+
     }
 
-//  def mapConcurrentStored[F >: E : IO.ExceptionHandler, O2](f: (O, Cache[F, I, O2]) => IO[F, O2]): Cache[F, I, O2] =
-//    flatMap(Cache.concurrentIO[F, I, O2](synchronised = false, stored = true, initial = None)(f))
+  //  def mapConcurrentStored[F >: E : IO.ExceptionHandler, O2](f: (O, Cache[F, I, O2]) => IO[F, O2]): Cache[F, I, O2] =
+  //    flatMap(Cache.concurrentIO[F, I, O2](synchronised = false, stored = true, initial = None)(f))
 
   def flatMap[F >: E : IO.ExceptionHandler, B](next: Cache[F, O, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
@@ -193,6 +202,9 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
 
       override def isCached: Boolean =
         self.isCached || next.isCached
+
+      override def isStored: Boolean =
+        self.isStored || next.isStored
 
       override def getOrElse[FF >: F : IO.ExceptionHandler, BB >: B](f: => IO[FF, BB]): IO[FF, BB] =
         next getOrElse f
@@ -220,10 +232,14 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
         next.clear()
         self.clear()
       }
+
     }
 }
 
 private class BlockIOCache[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
+
+  override def isStored: Boolean =
+    cache.isStored
 
   override def value(i: => I): IO[E, B] =
     cache.value(i).value(i)
@@ -241,10 +257,14 @@ private class BlockIOCache[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, C
 
   override def getIO(): Option[IO.Right[E, B]] =
     cache.get().flatMap(_.getIO())
+
 }
 
 private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: (I, Cache[E, I, B]) => IO[E, B],
                                                              lazyIO: LazyIO[E, B]) extends Cache[E, I, B] {
+
+  def isStored: Boolean =
+    lazyIO.stored
 
   override def value(i: => I): IO[E, B] =
     lazyIO getOrSet fetch(i, this)
@@ -269,6 +289,9 @@ private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: (I, Cache[E,
 private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, -I, +O](fetch: (I, Cache[E, I, O]) => IO[E, O],
                                                                                                 lazyIO: LazyIO[E, O],
                                                                                                 error: ER) extends Cache[E, I, O] {
+
+  def isStored: Boolean =
+    lazyIO.stored
 
   override def value(i: => I): IO[E, O] =
     lazyIO getOrElse {
@@ -299,6 +322,9 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
  * For example: A file's size.
  */
 private[swaydb] class CacheNoIO[-I, +O](fetch: (I, CacheNoIO[I, O]) => O, lazyValue: LazyValue[O]) {
+
+  def isStored: Boolean =
+    lazyValue.stored
 
   def value(input: => I): O =
     lazyValue getOrSet fetch(input, this)

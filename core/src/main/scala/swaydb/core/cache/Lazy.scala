@@ -55,9 +55,10 @@ protected sealed trait Lazy[A] {
   def isDefined: Boolean
   def isEmpty: Boolean
   def clear(): Unit
+  def stored: Boolean
 }
 
-private[swaydb] class LazyValue[A](synchronised: Boolean, stored: Boolean) extends Lazy[A] {
+private[swaydb] class LazyValue[A](synchronised: Boolean, val stored: Boolean) extends Lazy[A] {
 
   @volatile private var cache: Option[A] = None
 
@@ -117,6 +118,9 @@ private[swaydb] class LazyValue[A](synchronised: Boolean, stored: Boolean) exten
 }
 
 private[swaydb] class LazyIO[E: IO.ExceptionHandler, A](lazyValue: LazyValue[IO.Right[E, A]]) extends Lazy[IO[E, A]] {
+
+  def stored =
+    lazyValue.stored
 
   def set(value: => IO[E, A]): IO[E, A] =
     try

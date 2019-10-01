@@ -81,12 +81,15 @@ class SegmentBlockCache(id: String,
       (ref, self) =>
         IO {
           val header = Block.readHeader(ref)
-          val readBlock = blockOps.readBlock(header)
-          cacheMemorySweeper foreach {
-            sweeper =>
-              sweeper.add(readBlock.offset.size, self)
-          }
-          readBlock
+          val block = blockOps.readBlock(header)
+
+          if (self.isStored)
+            cacheMemorySweeper foreach {
+              sweeper =>
+                sweeper.add(block.offset.size, self)
+            }
+
+          block
         }
     }
 
@@ -100,7 +103,15 @@ class SegmentBlockCache(id: String,
       case (Some(ref), self) =>
         IO {
           val header = Block.readHeader(ref)
-          Some(blockOps.readBlock(header))
+          val block = blockOps.readBlock(header)
+
+          if (self.isStored)
+            cacheMemorySweeper foreach {
+              sweeper =>
+                sweeper.add(block.offset.size, self)
+            }
+
+          Some(block)
         }
 
       case (None, self) =>
@@ -115,10 +126,21 @@ class SegmentBlockCache(id: String,
     ) {
       (blockedReader, self) =>
         IO {
-          UnblockedReader(
-            blockedReader = blockedReader,
-            readAllIfUncompressed = blockIO(blockedReader.block.dataType).cacheOnAccess
-          )
+          val cacheOnAccess = blockIO(blockedReader.block.dataType).cacheOnAccess
+
+          val reader =
+            UnblockedReader(
+              blockedReader = blockedReader,
+              readAllIfUncompressed = cacheOnAccess
+            )
+
+          if (cacheOnAccess && self.isStored)
+            cacheMemorySweeper foreach {
+              sweeper =>
+                sweeper.add(reader.block.offset.size, self)
+            }
+
+          reader
         }
     }
 
@@ -130,12 +152,22 @@ class SegmentBlockCache(id: String,
     ) {
       case (Some(blockedReader), self) =>
         IO {
-          Some {
+          val cacheOnAccess = blockIO(blockedReader.block.dataType).cacheOnAccess
+
+          val reader =
             UnblockedReader(
               blockedReader = blockedReader,
-              readAllIfUncompressed = blockIO(blockedReader.block.dataType).cacheOnAccess
+              readAllIfUncompressed = cacheOnAccess
             )
-          }
+
+          if (cacheOnAccess && self.isStored)
+            cacheMemorySweeper foreach {
+              sweeper =>
+                sweeper.add(reader.block.offset.size, self)
+            }
+
+          Some(reader)
+
         }
 
       case (None, _) =>
