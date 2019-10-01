@@ -21,13 +21,9 @@ package swaydb.core.segment
 
 import java.util.concurrent.ConcurrentHashMap
 
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
-import swaydb.core.util.SkipList
 import swaydb.data.order.KeyOrder
-import swaydb.{Error, IO}
 
-import scala.beans.{BeanProperty, BooleanBeanProperty}
+import scala.beans.BooleanBeanProperty
 import scala.reflect.ClassTag
 
 private[segment] object SegmentThreadState {
@@ -41,7 +37,7 @@ private[segment] class SegmentThreadStates[K, V: ClassTag](states: ConcurrentHas
     val existingState = states.get(threadId)
     if (existingState == null) {
       //todo - could possible copy the state of another thread instead of creating an empty one?
-      val newState = new SegmentThreadState[K, V](None, None, true)
+      val newState = new SegmentThreadState[K, V](true)
       states.put(threadId, newState)
       newState
     } else {
@@ -64,6 +60,4 @@ object SegmentReadThreadState {
     }
 }
 
-private[segment] class SegmentThreadState[K, V](@BeanProperty var sortedIndexReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-                                                @BeanProperty var valuesReader: Option[Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]],
-                                                @BooleanBeanProperty var sequentialRead: Boolean) extends SegmentReadThreadState
+private[segment] class SegmentThreadState[K, V](@BooleanBeanProperty var sequentialRead: Boolean) extends SegmentReadThreadState

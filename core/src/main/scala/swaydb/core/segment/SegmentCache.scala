@@ -29,6 +29,8 @@ import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import scala.ref.WeakReference
+
 private[core] object SegmentCache {
 
   def apply(id: String,
@@ -110,20 +112,6 @@ private[core] class SegmentCache(id: String,
           )
       }
 
-  def createSortedIndexReader(threadState: SegmentReadThreadState): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
-    thisThreadState.getSortedIndexReader getOrElse {
-      val reader = blockCache.createSortedIndexReader()
-      thisThreadState setSortedIndexReader Some(reader)
-      reader
-    }
-
-  def createValuesReader(threadState: SegmentReadThreadState): Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    thisThreadState.getValuesReader getOrElse {
-      val reader = blockCache.createValuesReader()
-      thisThreadState setValuesReader Some(reader)
-      reader
-    }
-
   private def get(key: Slice[Byte],
                   start: Option[Persistent],
                   end: => Option[Persistent],
@@ -137,8 +125,8 @@ private[core] class SegmentCache(id: String,
       keyValueCount = keyValueCount,
       hashIndexReader = blockCache.createHashIndexReader(),
       binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
-      sortedIndexReader = createSortedIndexReader(threadState),
-      valuesReader = createValuesReader(threadState),
+      sortedIndexReader = blockCache.createSortedIndexReader(),
+      valuesReader = blockCache.createValuesReader(),
       hasRange = hasRange,
       threadState = threadState
     ) match {
