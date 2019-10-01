@@ -185,17 +185,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = strategy,
           compressions = _ => Seq.empty
         ),
-      hashIndexConfig =
-        HashIndexBlock.Config(
-          maxProbe = 10,
-          copyIndex = false,
-          minimumNumberOfKeys = 5,
-          minimumNumberOfHits = 5,
-          allocateSpace = _.requiredSpace * 2,
-          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-          compressions = _ => Seq.empty
-        ),
-      //      hashIndexConfig = HashIndexBlock.Config.disabled,
+//      hashIndexConfig =
+//        HashIndexBlock.Config(
+//          maxProbe = 10,
+//          copyIndex = false,
+//          minimumNumberOfKeys = 5,
+//          minimumNumberOfHits = 5,
+//          allocateSpace = _.requiredSpace * 2,
+//          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+//          compressions = _ => Seq.empty
+//        ),
+            hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(
@@ -210,7 +210,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   val shuffledKeyValues = Random.shuffle(keyValues)
 
   def assertGet(segment: Segment) = {
-    shuffledKeyValues foreach {
+    keyValues foreach {
       keyValue =>
         //        if (index % 10000 == 0)
         //          segment.get(shuffledKeyValues.head.key)

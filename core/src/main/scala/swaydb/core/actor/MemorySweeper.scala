@@ -19,6 +19,7 @@
 
 package swaydb.core.actor
 
+import swaydb.core.cache.Cache
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.util.{HashedMap, SkipList}
@@ -37,12 +38,16 @@ private[core] object Command {
     val skipListRef: WeakReference[SkipList[Slice[Byte], _]]
   }
 
-  class WeighKeyValue(val keyValueRef: WeakReference[Persistent],
-                      val skipListRef: WeakReference[SkipList[Slice[Byte], _]]) extends KeyValueCommand
+  private[actor] class KeyValue(val keyValueRef: WeakReference[Persistent],
+                                val skipListRef: WeakReference[SkipList[Slice[Byte], _]]) extends KeyValueCommand
 
-  class Block(val key: BlockCache.Key,
-              val valueSize: Int,
-              val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
+  private[actor] class IOCache(val weight: Int,
+                               val cache: WeakReference[Cache[_, _, _]]) extends Command
+
+  private[actor] class BlockCacheBytes(val key: BlockCache.Key,
+                                       val valueSize: Int,
+                                       val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
+
 }
 
 private[core] sealed trait MemorySweeper
@@ -90,10 +95,13 @@ private[core] object MemorySweeper {
 
   def weigher(entry: Command): Int =
     entry match {
-      case command: Command.Block =>
+      case command: Command.BlockCacheBytes =>
         ByteSizeOf.long + command.valueSize + 264
 
-      case command: Command.WeighKeyValue =>
+      case command: Command.IOCache =>
+        ByteSizeOf.long + command.weight + 264
+
+      case command: Command.KeyValue =>
         command.keyValueRef.get map {
           keyValue =>
             MemorySweeper.weight(keyValue).toInt
@@ -132,8 +140,11 @@ private[core] object MemorySweeper {
                     skipList remove keyValue.key
                   }
 
-                case block: Command.Block =>
+                case block: Command.BlockCacheBytes =>
                   block.map remove block.key
+
+                case cache: Command.IOCache =>
+                  cache.cache.get foreach (_.clear())
               }
           }
 
@@ -157,10 +168,19 @@ private[core] object MemorySweeper {
             map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
       actor foreach {
         actor =>
-          actor send new Command.Block(
+          actor send new Command.BlockCacheBytes(
             key = key,
             valueSize = value.size,
             map = map
+          )
+      }
+
+    def add(weight: Int, cache: Cache[_, _, _]): Unit =
+      actor foreach {
+        actor =>
+          actor send new Command.IOCache(
+            weight = weight,
+            cache = new WeakReference[Cache[_, _, _]](cache)
           )
       }
   }
@@ -181,7 +201,7 @@ private[core] object MemorySweeper {
       if (sweepKeyValues)
         actor foreach {
           actor =>
-            actor send new Command.WeighKeyValue(
+            actor send new Command.KeyValue(
               keyValueRef = new WeakReference(keyValue),
               skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList)
             )
