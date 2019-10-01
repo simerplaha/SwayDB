@@ -116,7 +116,7 @@ class SegmentBlockCache(path: Path,
           Some(block)
         }
 
-      case (None, self) =>
+      case (None, _) =>
         IO.none
     }
 
@@ -248,7 +248,17 @@ class SegmentBlockCache(path: Path,
       initial = None
     ) {
       (reader, self) =>
-        IO(SegmentFooterBlock.read(reader))
+        IO {
+          val block = SegmentFooterBlock.read(reader)
+
+          if (self.isStored)
+            cacheMemorySweeper foreach {
+              sweeper =>
+                sweeper.add(block.offset.size, self)
+            }
+
+          block
+        }
     }
 
   //info caches
