@@ -19,7 +19,6 @@
 
 package swaydb.core.actor
 
-import swaydb.core.cache.Cache
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.util.{HashedMap, SkipList}
@@ -41,12 +40,12 @@ private[core] object Command {
   private[actor] class KeyValue(val keyValueRef: WeakReference[Persistent],
                                 val skipListRef: WeakReference[SkipList[Slice[Byte], _]]) extends KeyValueCommand
 
-  private[actor] class IOCache(val weight: Int,
-                               val cache: WeakReference[Cache[_, _, _]]) extends Command
+  private[actor] class Cache(val weight: Int,
+                             val cache: WeakReference[swaydb.core.cache.Cache[_, _, _]]) extends Command
 
-  private[actor] class BlockCacheBytes(val key: BlockCache.Key,
-                                       val valueSize: Int,
-                                       val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
+  private[actor] class BlockCache(val key: BlockCache.Key,
+                                  val valueSize: Int,
+                                  val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
 
 }
 
@@ -95,10 +94,10 @@ private[core] object MemorySweeper {
 
   def weigher(entry: Command): Int =
     entry match {
-      case command: Command.BlockCacheBytes =>
+      case command: Command.BlockCache =>
         ByteSizeOf.long + command.valueSize + 264
 
-      case command: Command.IOCache =>
+      case command: Command.Cache =>
         ByteSizeOf.long + command.weight + 264
 
       case command: Command.KeyValue =>
@@ -140,10 +139,10 @@ private[core] object MemorySweeper {
                     skipList remove keyValue.key
                   }
 
-                case block: Command.BlockCacheBytes =>
+                case block: Command.BlockCache =>
                   block.map remove block.key
 
-                case cache: Command.IOCache =>
+                case cache: Command.Cache =>
                   cache.cache.get foreach (_.clear())
               }
           }
@@ -160,7 +159,20 @@ private[core] object MemorySweeper {
     def terminate(): Unit
   }
 
-  sealed trait Block extends Enabled {
+  sealed trait Cache extends Enabled {
+    def actor: Option[ActorRef[Command, Unit]]
+
+    def add(weight: Int, cache: swaydb.core.cache.Cache[_, _, _]): Unit =
+      actor foreach {
+        actor =>
+          actor send new Command.Cache(
+            weight = weight,
+            cache = new WeakReference[swaydb.core.cache.Cache[_, _, _]](cache)
+          )
+      }
+  }
+
+  sealed trait Block extends Cache {
     def actor: Option[ActorRef[Command, Unit]]
 
     def add(key: BlockCache.Key,
@@ -168,19 +180,10 @@ private[core] object MemorySweeper {
             map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
       actor foreach {
         actor =>
-          actor send new Command.BlockCacheBytes(
+          actor send new Command.BlockCache(
             key = key,
             valueSize = value.size,
             map = map
-          )
-      }
-
-    def add(weight: Int, cache: Cache[_, _, _]): Unit =
-      actor foreach {
-        actor =>
-          actor send new Command.IOCache(
-            weight = weight,
-            cache = new WeakReference[Cache[_, _, _]](cache)
           )
       }
   }

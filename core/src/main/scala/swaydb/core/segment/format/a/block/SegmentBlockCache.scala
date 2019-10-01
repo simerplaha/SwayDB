@@ -36,7 +36,7 @@ object SegmentBlockCache {
 
   def apply(id: String,
             segmentIO: SegmentIO,
-            blockRef: BlockRefReader[SegmentBlock.Offset])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache =
+            blockRef: BlockRefReader[SegmentBlock.Offset])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]): SegmentBlockCache =
     new SegmentBlockCache(
       id = id,
       segmentIO = segmentIO,
@@ -49,7 +49,7 @@ object SegmentBlockCache {
  */
 class SegmentBlockCache(id: String,
                         val segmentIO: SegmentIO,
-                        segmentBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]) {
+                        segmentBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
 
   /**
    * @note Segment's [[IOStrategy]] is required to be immutable ones read and cannot mutate during runtime.
