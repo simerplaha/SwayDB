@@ -59,6 +59,9 @@ object PersistentSegment {
                                                      blockCache: Option[BlockCache.State],
                                                      fileSweeper: FileSweeper.Enabled,
                                                      segmentIO: SegmentIO): PersistentSegment = {
+
+    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
+
     val segmentCache =
       SegmentCache(
         id = file.path.toString,

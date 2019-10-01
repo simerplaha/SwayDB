@@ -469,7 +469,8 @@ private[core] object Segment extends LazyLogging {
                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                   fileSweeper: FileSweeper.Enabled): Segment = {
 
-    implicit val segmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
+    implicit val segmentIO: SegmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
+    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
     val file =
       if (mmapReads)

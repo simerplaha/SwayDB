@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, Lazy}
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
@@ -35,7 +36,7 @@ object SegmentBlockCache {
 
   def apply(id: String,
             segmentIO: SegmentIO,
-            blockRef: BlockRefReader[SegmentBlock.Offset]): SegmentBlockCache =
+            blockRef: BlockRefReader[SegmentBlock.Offset])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache =
     new SegmentBlockCache(
       id = id,
       segmentIO = segmentIO,
@@ -48,7 +49,7 @@ object SegmentBlockCache {
  */
 class SegmentBlockCache(id: String,
                         val segmentIO: SegmentIO,
-                        segmentBlockRef: BlockRefReader[SegmentBlock.Offset]) {
+                        segmentBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]) {
 
   /**
    * @note Segment's [[IOStrategy]] is required to be immutable ones read and cannot mutate during runtime.

@@ -37,6 +37,7 @@ private[core] object SegmentCache {
             unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
     new SegmentCache(
       id = id,
@@ -69,6 +70,7 @@ private[core] class SegmentCache(id: String,
                                  val skipList: Option[SkipList[Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                    blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
 
   import keyOrder._
