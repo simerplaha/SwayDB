@@ -46,16 +46,14 @@ object Set extends LazyLogging {
                maxOpenSegments: Int = 100,
                segmentSize: Int = 2.mb,
                memoryCacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
-               memorySweeperPollInterval: FiniteDuration = 10.seconds,
-               maxKeyValuesPerSegment: Int = 100,
+               maxCachedKeyValuesPerSegment: Int = 10,
                fileSweeperPollInterval: FiniteDuration = 10.seconds,
                mightContainFalsePositiveRate: Double = 0.01,
                compressDuplicateValues: Boolean = false,
                deleteSegmentsEventually: Boolean = true,
                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+                                                                                     fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -72,13 +70,10 @@ object Set extends LazyLogging {
           ec = fileSweeperEC
         ),
       memoryCache =
-        MemoryCache.EnableKeyValueCache(
-          capacity = memoryCacheSize,
-          maxKeyValuesPerSegment = Some(maxKeyValuesPerSegment),
-          actorConfig = ActorConfig.Timer(
-            delay = memorySweeperPollInterval,
-            ec = memorySweeperEC
-          )
+        MemoryCache.KeyValueCacheOnly(
+          cacheCapacity = memoryCacheSize,
+          maxCachedKeyValueCountPerSegment = Some(maxCachedKeyValuesPerSegment),
+          memorySweeper = None
         )
     ) map {
       db =>

@@ -48,6 +48,7 @@ private[core] object SegmentCache {
             sweeper.maxKeyValuesPerSegment match {
               case Some(maxKeyValuesPerSegment) =>
                 SkipList.concurrent(maxKeyValuesPerSegment)
+
               case None =>
                 SkipList.concurrent()
             }
@@ -134,8 +135,8 @@ private[core] class SegmentCache(id: String,
       keyValueCount = keyValueCount,
       hashIndexReader = blockCache.createHashIndexReader(),
       binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
-      sortedIndexReader = blockCache.createSortedIndexReader(),
-      valuesReader = blockCache.createValuesReader(),
+      sortedIndexReader = createSortedIndexReader(threadState),
+      valuesReader = createValuesReader(threadState),
       hasRange = hasRange,
       threadState = threadState
     ) match {

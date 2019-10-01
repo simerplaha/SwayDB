@@ -19,28 +19,24 @@
 
 package swaydb.data.config
 
-import swaydb.Tagged
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-sealed trait MemoryCache extends Tagged[MemoryCache.Enabled, Option]
+sealed trait MemoryCache
 
 object MemoryCache {
 
-  case object Disable extends MemoryCache {
-    override def get: Option[MemoryCache.Enabled] = None
-  }
+  case object Disable extends MemoryCache
 
   object Enabled {
-    def default(blockSize: Int,
+    def default(minIOSeekSize: Int,
                 memorySize: Int,
                 interval: FiniteDuration,
                 ec: ExecutionContext) =
-      EnableBlockCache(
-        blockSize = blockSize,
-        capacity = memorySize,
-        actorConfig =
+      ByteCacheOnly(
+        minIOSeekSize = minIOSeekSize,
+        cacheCapacity = memorySize,
+        sweeperActorConfig =
           ActorConfig.TimeLoop(
             delay = interval,
             ec = ec
@@ -49,27 +45,26 @@ object MemoryCache {
   }
 
   sealed trait Enabled extends MemoryCache {
-    def capacity: Int
-    def actorConfig: ActorConfig
-    override def get: Option[MemoryCache.Enabled] = Some(this)
+    def cacheCapacity: Int
   }
 
   sealed trait Block extends Enabled {
-    val blockSize: Int
-    val capacity: Int
-    val actorConfig: ActorConfig
+    val minIOSeekSize: Int
+    val cacheCapacity: Int
+    val sweeperActorConfig: ActorConfig
   }
 
-  case class EnableBlockCache(blockSize: Int,
-                              capacity: Int,
-                              actorConfig: ActorConfig) extends Block
+  case class ByteCacheOnly(minIOSeekSize: Int,
+                           cacheCapacity: Int,
+                           sweeperActorConfig: ActorConfig) extends Block
 
-  case class EnableKeyValueCache(capacity: Int,
-                                 maxKeyValuesPerSegment: Option[Int],
-                                 actorConfig: ActorConfig) extends Enabled
+  case class KeyValueCacheOnly(cacheCapacity: Int,
+                               maxCachedKeyValueCountPerSegment: Option[Int],
+                               memorySweeper: Option[ActorConfig]) extends Enabled
 
-  case class EnableBoth(blockSize: Int,
-                        capacity: Int,
-                        maxKeyValuesPerSegment: Option[Int],
-                        actorConfig: ActorConfig) extends Enabled with Block
+  case class All(minIOSeekSize: Int,
+                 cacheCapacity: Int,
+                 maxCachedKeyValueCountPerSegment: Option[Int],
+                 sweepCachedKeyValues: Boolean,
+                 sweeperActorConfig: ActorConfig) extends Enabled with Block
 }

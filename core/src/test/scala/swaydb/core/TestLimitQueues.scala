@@ -37,19 +37,19 @@ object TestLimitQueues {
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 
   val memorySweeperMax: Option[MemorySweeper.Both] =
-    MemorySweeper(MemoryCache.EnableBoth(4098, 600.mb, None, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
+    MemorySweeper(MemoryCache.All(4098, 600.mb, None, false, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.Both])
 
   val memorySweeper10: Option[MemorySweeper.Both] =
-    MemorySweeper(MemoryCache.EnableBoth(4098, 600.mb, Some(5), ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
+    MemorySweeper(MemoryCache.All(4098, 600.mb, Some(1), false, ActorConfig.TimeLoop(10.seconds, level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.Both])
 
   val memorySweeperBlock: Option[MemorySweeper.BlockSweeper] =
-    MemorySweeper(MemoryCache.EnableBlockCache(4098, 600.mb, ActorConfig.Basic(level0PushDownPool)))
+    MemorySweeper(MemoryCache.ByteCacheOnly(4098, 600.mb, ActorConfig.Basic(level0PushDownPool)))
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
   val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
-    MemorySweeper(MemoryCache.EnableKeyValueCache(600.mb, randomIntMaxOption(10000), ActorConfig.Basic(level0PushDownPool)))
+    MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, randomIntMaxOption(10000), Some(ActorConfig.Basic(level0PushDownPool))))
       .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
   val someMemorySweeperMax = memorySweeperMax

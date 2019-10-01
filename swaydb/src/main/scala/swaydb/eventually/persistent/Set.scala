@@ -94,7 +94,7 @@ object Set extends LazyLogging {
         ),
       memoryCache =
         MemoryCache.Enabled.default(
-          blockSize = blockSize,
+          minIOSeekSize = blockSize,
           memorySize = memoryCacheSize,
           interval = memorySweeperPollInterval,
           ec = memorySweeperEC

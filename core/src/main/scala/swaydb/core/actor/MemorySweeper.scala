@@ -58,15 +58,16 @@ private[core] object MemorySweeper {
       case MemoryCache.Disable =>
         None
 
-      case block: MemoryCache.EnableBlockCache =>
+      case block: MemoryCache.ByteCacheOnly =>
         Some(
           MemorySweeper.BlockSweeper(
-            blockSize = block.blockSize,
-            cacheSize = block.capacity,
-            actorConfig = block.actorConfig
+            blockSize = block.minIOSeekSize,
+            cacheSize = block.cacheCapacity,
+            actorConfig = Some(block.sweeperActorConfig)
           )
         )
-      case MemoryCache.EnableKeyValueCache(capacity, maxKeyValuesPerSegment, actorConfig) =>
+
+      case MemoryCache.KeyValueCacheOnly(capacity, maxKeyValuesPerSegment, actorConfig) =>
         Some(
           MemorySweeper.KeyValueSweeper(
             cacheSize = capacity,
@@ -75,13 +76,14 @@ private[core] object MemorySweeper {
           )
         )
 
-      case MemoryCache.EnableBoth(blockSize, capacity, maxKeyValuesPerSegment, actorConfig) =>
+      case MemoryCache.All(blockSize, capacity, maxKeyValuesPerSegment, sweepKeyValues, actorConfig) =>
         Some(
           MemorySweeper.Both(
             blockSize = blockSize,
             cacheSize = capacity,
+            sweepKeyValues = sweepKeyValues,
             maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-            actorConfig = actorConfig
+            actorConfig = Some(actorConfig)
           )
         )
     }
@@ -107,34 +109,38 @@ private[core] object MemorySweeper {
   protected sealed trait SweeperImplementation {
     def cacheSize: Int
 
-    def actorConfig: ActorConfig
+    def actorConfig: Option[ActorConfig]
 
     /**
      * Lazy initialisation because this actor is not require for Memory database that do not use compression.
      */
-    val actor: ActorRef[Command, Unit] =
-      Actor.cacheFromConfig[Command](
-        stashCapacity = cacheSize,
-        config = actorConfig,
-        weigher = MemorySweeper.weigher
-      ) {
-        (command, _) =>
-          command match {
-            case command: Command.KeyValueCommand =>
-              for {
-                skipList <- command.skipListRef.get
-                keyValue <- command.keyValueRef.get
-              } yield {
-                skipList remove keyValue.key
-              }
+    val actor: Option[ActorRef[Command, Unit]] =
+      actorConfig map {
+        actorConfig =>
+          Actor.cacheFromConfig[Command](
+            stashCapacity = cacheSize,
+            config = actorConfig,
+            weigher = MemorySweeper.weigher
+          ) {
+            (command, _) =>
+              command match {
+                case command: Command.KeyValueCommand =>
+                  for {
+                    skipList <- command.skipListRef.get
+                    keyValue <- command.keyValueRef.get
+                  } yield {
+                    skipList remove keyValue.key
+                  }
 
-            case block: Command.Block =>
-              block.map remove block.key
+                case block: Command.Block =>
+                  block.map remove block.key
+              }
           }
+
       }
 
     def terminate() =
-      actor.terminateAndClear()
+      actor.foreach(_.terminateAndClear())
   }
 
   case object Disabled extends MemorySweeper
@@ -144,41 +150,54 @@ private[core] object MemorySweeper {
   }
 
   sealed trait Block extends Enabled {
-    def actor: ActorRef[Command, Unit]
+    def actor: Option[ActorRef[Command, Unit]]
 
     def add(key: BlockCache.Key,
             value: Slice[Byte],
             map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
-      actor send new Command.Block(
-        key = key,
-        valueSize = value.size,
-        map = map
-      )
+      actor foreach {
+        actor =>
+          actor send new Command.Block(
+            key = key,
+            valueSize = value.size,
+            map = map
+          )
+      }
   }
 
   case class BlockSweeper(blockSize: Int,
                           cacheSize: Int,
-                          actorConfig: ActorConfig) extends SweeperImplementation with Block
+                          actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block
 
   sealed trait KeyValue extends Enabled {
-    def actor: ActorRef[Command, Unit]
+    def actor: Option[ActorRef[Command, Unit]]
+
+    def sweepKeyValues: Boolean
 
     def maxKeyValuesPerSegment: Option[Int]
 
     def add(keyValue: Persistent,
             skipList: SkipList[Slice[Byte], _]): Unit =
-      actor send new Command.WeighKeyValue(
-        keyValueRef = new WeakReference(keyValue),
-        skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList)
-      )
+      if (sweepKeyValues)
+        actor foreach {
+          actor =>
+            actor send new Command.WeighKeyValue(
+              keyValueRef = new WeakReference(keyValue),
+              skipListRef = new WeakReference[SkipList[Slice[Byte], _]](skipList)
+            )
+        }
   }
 
   case class KeyValueSweeper(cacheSize: Int,
                              maxKeyValuesPerSegment: Option[Int],
-                             actorConfig: ActorConfig) extends SweeperImplementation with KeyValue
+                             actorConfig: Option[ActorConfig]) extends SweeperImplementation with KeyValue {
+    override val sweepKeyValues: Boolean = actorConfig.isDefined
+  }
 
   case class Both(blockSize: Int,
                   cacheSize: Int,
                   maxKeyValuesPerSegment: Option[Int],
-                  actorConfig: ActorConfig) extends SweeperImplementation with Block with KeyValue
+                  sweepKeyValues: Boolean,
+                  actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block with KeyValue
+
 }

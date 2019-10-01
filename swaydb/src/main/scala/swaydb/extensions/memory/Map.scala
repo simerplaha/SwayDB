@@ -41,31 +41,28 @@ object Map extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * A 2 Leveled (Level0 & Level1), in-memory database.
-    *
-    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-    *
-    * @param mapSize           size of Level0 maps before they are converted into Segments
-    * @param segmentSize       size of Level1 Segments
-    * @param acceleration      Controls the write speed.
-    * @param keySerializer     Converts keys to Bytes
-    * @param valueSerializer   Converts values to Bytes
-    * @param keyOrder          Sort order for keys
-    * @param fileSweeperEC Execution context used to close opened files when the maxOpenFiles limit is reached.
-    * @param memorySweeperEC    Execution context used to drop cached key-values when cacheSize is reached.
-    * @tparam K
-    * @tparam V
-    *
-    * @return
-    */
-
+   * A 2 Leveled (Level0 & Level1), in-memory database.
+   *
+   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   *
+   * @param mapSize         size of Level0 maps before they are converted into Segments
+   * @param segmentSize     size of Level1 Segments
+   * @param acceleration    Controls the write speed.
+   * @param keySerializer   Converts keys to Bytes
+   * @param valueSerializer Converts values to Bytes
+   * @param keyOrder        Sort order for keys
+   * @param fileSweeperEC   Execution context used to close opened files when the maxOpenFiles limit is reached.
+   * @param memorySweeperEC Execution context used to drop cached key-values when cacheSize is reached.
+   * @tparam K
+   * @tparam V
+   * @return
+   */
 
   def apply[K, V](mapSize: Int = 4.mb,
                   segmentSize: Int = 2.mb,
                   memoryCacheSize: Int = 500.mb,
                   maxOpenSegments: Int = 100,
-                  maxKeyValuesPerSegment: Int = 100,
-                  memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                  maxCachedKeyValuesPerSegment: Int = 10,
                   fileSweeperPollInterval: FiniteDuration = 10.seconds,
                   mightContainFalsePositiveRate: Double = 0.01,
                   compressDuplicateValues: Boolean = false,
@@ -73,8 +70,7 @@ object Map extends LazyLogging {
                   acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                         valueSerializer: Serializer[V],
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
+                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
     Core(
       config = DefaultMemoryConfig(
         mapSize = mapSize,
@@ -91,13 +87,10 @@ object Map extends LazyLogging {
           ec = fileSweeperEC
         ),
       memoryCache =
-        MemoryCache.EnableKeyValueCache(
-          capacity = memoryCacheSize,
-          maxKeyValuesPerSegment = Some(maxKeyValuesPerSegment),
-          actorConfig = ActorConfig.Timer(
-            delay = memorySweeperPollInterval,
-            ec = memorySweeperEC
-          )
+        MemoryCache.KeyValueCacheOnly(
+          cacheCapacity = memoryCacheSize,
+          maxCachedKeyValueCountPerSegment = Some(maxCachedKeyValuesPerSegment),
+          memorySweeper = None
         )
     ) map {
       db =>
