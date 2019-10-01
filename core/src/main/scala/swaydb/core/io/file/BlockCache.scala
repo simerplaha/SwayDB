@@ -46,7 +46,7 @@ private[core] object BlockCache {
           case _: MemorySweeper.KeyValueSweeper =>
             None
 
-          case both: MemorySweeper.Both =>
+          case both: MemorySweeper.All =>
             Some(BlockCache.init(both))
         }
     }
@@ -58,7 +58,7 @@ private[core] object BlockCache {
       map = HashedMap.concurrent[BlockCache.Key, Slice[Byte]]()
     )
 
-  def init(memorySweeper: MemorySweeper.Both) =
+  def init(memorySweeper: MemorySweeper.All) =
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,

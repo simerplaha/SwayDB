@@ -78,7 +78,7 @@ private[core] object MemorySweeper {
 
       case MemoryCache.All(blockSize, capacity, maxKeyValuesPerSegment, sweepKeyValues, actorConfig) =>
         Some(
-          MemorySweeper.Both(
+          MemorySweeper.All(
             blockSize = blockSize,
             cacheSize = capacity,
             sweepKeyValues = sweepKeyValues,
@@ -194,10 +194,10 @@ private[core] object MemorySweeper {
     override val sweepKeyValues: Boolean = actorConfig.isDefined
   }
 
-  case class Both(blockSize: Int,
-                  cacheSize: Int,
-                  maxKeyValuesPerSegment: Option[Int],
-                  sweepKeyValues: Boolean,
-                  actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block with KeyValue
+  case class All(blockSize: Int,
+                 cacheSize: Int,
+                 maxKeyValuesPerSegment: Option[Int],
+                 sweepKeyValues: Boolean,
+                 actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block with KeyValue
 
 }

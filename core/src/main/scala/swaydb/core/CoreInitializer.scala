@@ -204,7 +204,7 @@ private[core] object CoreInitializer extends LazyLogging {
       memorySweeper flatMap {
         enabled: MemorySweeper.Enabled =>
           enabled match {
-            case both: MemorySweeper.Both =>
+            case both: MemorySweeper.All =>
               Some(both)
 
             case value: MemorySweeper.KeyValueSweeper =>

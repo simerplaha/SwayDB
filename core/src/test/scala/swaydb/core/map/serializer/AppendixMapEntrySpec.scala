@@ -44,7 +44,7 @@ class AppendixMapEntrySpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeperMax
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestLimitQueues.memorySweeperMax
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO: SegmentIO = SegmentIO.random

@@ -86,7 +86,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
-  implicit val memorySweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeperMax
+  implicit val memorySweeper: Option[MemorySweeper.All] = TestLimitQueues.memorySweeperMax
   implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
 
   //  override def deleteFiles = false
