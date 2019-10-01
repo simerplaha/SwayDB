@@ -35,7 +35,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
     Benchmark.time("initialising caches") {
       runThis(range.size.times) {
         Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](_ => randomIOStrategy(), swaydb.Error.ReservedResource(Reserve.free(name = "test"))) {
-          int =>
+          (int, self) =>
             IO.Right(int)
         }
       }
@@ -44,7 +44,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
 
   "reading concurrentIO" when {
     "stored & concurrent" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, true, None)(int => IO.Right(int))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, true, None)((int, self) => IO.Right(int))
 
       Benchmark("reading stored") {
         range foreach {
@@ -62,7 +62,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
     }
 
     "stored & synchronised" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](true, true, None)(int => IO.Right(int))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](true, true, None)((int, self) => IO.Right(int))
 
       Benchmark("reading stored") {
         range foreach {
@@ -80,7 +80,7 @@ class CachePerformanceSpec extends WordSpec with Matchers {
     }
 
     "not stored" in {
-      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, false, None)(int => IO.Right(int))
+      val cache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](false, false, None)((int, self) => IO.Right(int))
 
       Benchmark("reading not stored") {
         range foreach {

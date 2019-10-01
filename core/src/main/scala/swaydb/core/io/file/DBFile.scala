@@ -66,7 +66,7 @@ object DBFile extends LazyLogging {
         reserveError = Error.OpeningFile(filePath, Reserve.free(name = s"DBFile: $filePath. MemoryMapped: $memoryMapped")),
         initial = file
       ) {
-        _ =>
+        (_, _) =>
           logger.debug(s"{}: Opening closed file.", filePath)
 
           IO {

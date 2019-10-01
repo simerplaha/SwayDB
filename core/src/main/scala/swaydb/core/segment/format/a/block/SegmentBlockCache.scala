@@ -78,10 +78,15 @@ class SegmentBlockCache(id: String,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName")),
       initial = None
     ) {
-      ref =>
+      (ref, self) =>
         IO {
-          val block = Block.readHeader(ref)
-          blockOps.readBlock(block)
+          val header = Block.readHeader(ref)
+          val readBlock = blockOps.readBlock(header)
+          cacheMemorySweeper foreach {
+            sweeper =>
+              sweeper.add(readBlock.offset.size, self)
+          }
+          readBlock
         }
     }
 
@@ -92,13 +97,13 @@ class SegmentBlockCache(id: String,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName")),
       initial = None
     ) {
-      case Some(ref) =>
+      case (Some(ref), self) =>
         IO {
           val header = Block.readHeader(ref)
           Some(blockOps.readBlock(header))
         }
 
-      case None =>
+      case (None, self) =>
         IO.none
     }
 
@@ -108,7 +113,7 @@ class SegmentBlockCache(id: String,
       strategy = reader => blockIO(reader.block.dataType).withCacheOnAccess,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName"))
     ) {
-      blockedReader =>
+      (blockedReader, self) =>
         IO {
           UnblockedReader(
             blockedReader = blockedReader,
@@ -123,7 +128,7 @@ class SegmentBlockCache(id: String,
       strategy = _.map(reader => blockIO(reader.block.dataType).withCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName"))
     ) {
-      case Some(blockedReader) =>
+      case (Some(blockedReader), self) =>
         IO {
           Some {
             UnblockedReader(
@@ -133,7 +138,7 @@ class SegmentBlockCache(id: String,
           }
         }
 
-      case None =>
+      case (None, _) =>
         IO.none
     }
 
@@ -208,7 +213,7 @@ class SegmentBlockCache(id: String,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: footerBlockCache")),
       initial = None
     ) {
-      reader =>
+      (reader, self) =>
         IO(SegmentFooterBlock.read(reader))
     }
 

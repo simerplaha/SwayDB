@@ -1381,8 +1381,8 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO(synchronised = true, stored = true, initial = None) {
-            offset =>
+          Cache.noIO[ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+            (offset, _) =>
               if (offset.size == 0)
                 None
               else
@@ -1486,8 +1486,8 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO(synchronised = true, stored = true, initial = None) {
-            offset =>
+          Cache.noIO[ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+            (offset, _) =>
               if (offset.size == 0)
                 None
               else
@@ -1620,8 +1620,8 @@ private[core] object Persistent {
       new Function(
         _key = key,
         valueCache =
-          Cache.noIO(synchronised = true, stored = true, initial = None) {
-            offset =>
+          Cache.noIO[ValuesBlock.Offset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
+            (offset, _) =>
               valuesReader match {
                 case Some(valuesReader) =>
                   UnblockedReader.moveTo(offset, valuesReader)
@@ -1710,8 +1710,8 @@ private[core] object Persistent {
         _time = time,
         deadline = deadline,
         valueCache =
-          Cache.noIO(synchronised = true, stored = true, initial = None) {
-            offset =>
+          Cache.noIO[ValuesBlock.Offset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
+            (offset, _) =>
               valuesReader match {
                 case Some(valuesReader) =>
                   val bytes =
@@ -1819,8 +1819,8 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          Cache.noIO(synchronised = true, stored = true, initial = None) {
-            offset =>
+          Cache.noIO[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)](synchronised = true, stored = true, initial = None) {
+            (offset, _) =>
               valuesReader match {
                 case Some(valuesReader) =>
                   val bytes =

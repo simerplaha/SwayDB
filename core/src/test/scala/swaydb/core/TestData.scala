@@ -2533,7 +2533,7 @@ object TestData {
 
   def buildSingleValueCache(bytes: Slice[Byte]): Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
     Cache.concurrentIO[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](randomBoolean(), randomBoolean(), None) {
-      offset =>
+      (offset, _) =>
         IO[Nothing, UnblockedReader[ValuesBlock.Offset, ValuesBlock]](
           UnblockedReader(
             block = ValuesBlock(offset, 0, None),
