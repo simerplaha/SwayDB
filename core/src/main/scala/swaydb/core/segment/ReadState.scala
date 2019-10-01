@@ -2,7 +2,7 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 
-import swaydb.core.util.HashSlot
+import swaydb.core.util.SlotMap
 
 sealed trait ReadState {
   def isSequential(path: Path): Boolean
@@ -15,7 +15,7 @@ object ReadState {
     new HashMapState(new java.util.HashMap[Path, Boolean]())
 
   def hashSlot(slots: Int): ReadState =
-    new SlotState(new HashSlot[Path, Boolean](new Array[Boolean](slots)))
+    new SlotState(SlotMap[Path, Boolean](slots))
 
   class HashMapState(map: java.util.HashMap[Path, Boolean]) extends ReadState {
 
@@ -28,7 +28,7 @@ object ReadState {
       map.put(path, isSequential)
   }
 
-  class SlotState(map: HashSlot[Path, Boolean]) extends ReadState {
+  class SlotState(map: SlotMap[Path, Boolean]) extends ReadState {
 
     def isSequential(path: Path): Boolean =
       map.get(path).forall(_ == true)

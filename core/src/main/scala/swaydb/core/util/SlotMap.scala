@@ -2,12 +2,12 @@ package swaydb.core.util
 
 import scala.reflect.ClassTag
 
-object HashSlot {
+object SlotMap {
   def apply[K, V: ClassTag](maxSize: Int) =
-    new HashSlot[K, V](new Array[V](maxSize))
+    new SlotMap[K, V](new Array[V](maxSize))
 }
 
-class HashSlot[K, V](array: Array[V]) {
+class SlotMap[K, V](array: Array[V]) {
 
   val arrayLength = array.length
 
