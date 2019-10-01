@@ -64,7 +64,7 @@ object PersistentSegment {
 
     val segmentCache =
       SegmentCache(
-        id = file.path.toString,
+        path = file.path,
         maxKey = maxKey,
         minKey = minKey,
         segmentIO = segmentIO,
@@ -108,7 +108,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   override def close: Unit = {
     file.close()
-    segmentCache.clearLocalAndBlockCache()
+    segmentCache.clearBlockCache()
   }
 
   def isOpen: Boolean =
@@ -127,7 +127,7 @@ private[segment] case class PersistentSegment(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
-        segmentCache.clearLocalAndBlockCache()
+        segmentCache.clearBlockCache()
     }
   }
 
@@ -262,17 +262,17 @@ private[segment] case class PersistentSegment(file: DBFile,
         )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte]): Option[Persistent] =
-    segmentCache get key
+  def get(key: Slice[Byte], readState: ReadState): Option[Persistent] =
+    segmentCache.get(key, readState)
 
-  def lower(key: Slice[Byte]): Option[Persistent] =
-    segmentCache lower key
+  def lower(key: Slice[Byte], readState: ReadState): Option[Persistent] =
+    segmentCache.lower(key, readState)
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
     segmentCache floorHigherHint key
 
-  def higher(key: Slice[Byte]): Option[Persistent] =
-    segmentCache higher key
+  def higher(key: Slice[Byte], readState: ReadState): Option[Persistent] =
+    segmentCache.higher(key, readState)
 
   def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
     segmentCache getAll addTo
@@ -315,7 +315,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def clearAllCaches(): Unit = {
     clearCachedKeyValues()
-    segmentCache.clearLocalAndBlockCache()
+    segmentCache.clearBlockCache()
   }
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =

@@ -28,6 +28,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data._
+import swaydb.core.segment.ReadState
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -79,9 +80,9 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(2).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(keyValues.head.key).runRandomIO.right.value.value shouldBe keyValues.head
+                  () => segment.get(0, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(2, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(keyValues.head.key, ReadState.random).runRandomIO.right.value.value shouldBe keyValues.head
                 )
               ).foreach(_ ())
         )
@@ -92,9 +93,9 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(3).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(keyValues.head.key).runRandomIO.right.value.value shouldBe keyValues.head
+                  () => segment.get(0, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(3, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(keyValues.head.key, ReadState.random).runRandomIO.right.value.value shouldBe keyValues.head
                 )
               ).foreach(_ ())
         )
@@ -109,9 +110,9 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(10).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(11).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(0, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(10, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(11, ReadState.random).runRandomIO.right.value shouldBe empty,
                   () =>
                     (1 to 9) foreach {
                       i =>
@@ -128,13 +129,13 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
             (keyValues, segment) =>
               Random.shuffle(
                 Seq(
-                  () => segment.get(0).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(20).runRandomIO.right.value shouldBe empty,
-                  () => segment.get(21).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(0, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(20, ReadState.random).runRandomIO.right.value shouldBe empty,
+                  () => segment.get(21, ReadState.random).runRandomIO.right.value shouldBe empty,
                   () =>
                     (1 to 9) foreach {
                       i =>
-                        segment.get(i).runRandomIO.right.value.value shouldBe keyValues.head
+                        segment.get(i, ReadState.random).runRandomIO.right.value.value shouldBe keyValues.head
                     },
                   () =>
                     (10 to 19) foreach {

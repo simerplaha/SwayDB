@@ -25,6 +25,7 @@ import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
+import swaydb.core.segment.ReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -33,11 +34,12 @@ import scala.annotation.tailrec
 private[core] object Get {
 
   def seek(key: Slice[Byte],
+           readState: ReadState,
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
                                    functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    Get(key = key)(
+    Get(key = key, readState = readState)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
       currentGetter = currentGetter,
@@ -45,11 +47,12 @@ private[core] object Get {
       functionStore = functionStore
     )
 
-  def apply(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                              timeOrder: TimeOrder[Slice[Byte]],
-                              currentGetter: CurrentGetter,
-                              nextGetter: NextGetter,
-                              functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+  def apply(key: Slice[Byte],
+            readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  currentGetter: CurrentGetter,
+                                  nextGetter: NextGetter,
+                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
 
     import keyOrder._
 
@@ -59,7 +62,7 @@ private[core] object Get {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
             nextGetter
-              .get(key)
+              .get(key, readState)
               .map {
                 nextOption =>
                   nextOption
@@ -89,7 +92,7 @@ private[core] object Get {
         case current: KeyValue.ReadOnly.Update =>
           if (current.hasTimeLeft())
             nextGetter
-              .get(key)
+              .get(key, readState)
               .map {
                 nextOption =>
                   nextOption
@@ -119,12 +122,12 @@ private[core] object Get {
                 IO.Defer.none
 
             case failure @ IO.Left(_) =>
-              failure recoverTo Get(key)
+              failure recoverTo Get(key, readState)
           }
 
         case current: KeyValue.ReadOnly.Function =>
           nextGetter
-            .get(key)
+            .get(key, readState)
             .flatMap {
               nextOption =>
                 nextOption
@@ -139,7 +142,7 @@ private[core] object Get {
                             IO.Defer.none
 
                           case failure @ IO.Left(_) =>
-                            failure recoverTo Get(key)
+                            failure recoverTo Get(key, readState)
                         }
                       else
                         IO.Defer.none
@@ -149,7 +152,7 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.PendingApply =>
           nextGetter
-            .get(key)
+            .get(key, readState)
             .flatMap {
               nextOption =>
                 nextOption
@@ -164,7 +167,7 @@ private[core] object Get {
                             IO.Defer.none
 
                           case failure @ IO.Left(_) =>
-                            failure recoverTo Get(key)
+                            failure recoverTo Get(key, readState)
                         }
                       else
                         IO.Defer.none
@@ -173,15 +176,15 @@ private[core] object Get {
             }
       }
 
-    currentGetter.get(key) match {
+    currentGetter.get(key, readState) match {
       case IO.Right(Some(current)) =>
         returnSegmentResponse(current)
 
       case IO.Right(None) =>
-        nextGetter.get(key)
+        nextGetter.get(key, readState)
 
       case failure @ IO.Left(_) =>
-        failure recoverTo Get(key)
+        failure recoverTo Get(key, readState)
     }
   }
 }

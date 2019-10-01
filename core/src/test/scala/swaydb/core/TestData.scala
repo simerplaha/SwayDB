@@ -42,7 +42,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -154,6 +154,24 @@ object TestData {
 
     def reopen(path: Path): Segment =
       tryReopen(path).runRandomIO.right.value
+
+    def get(key: Slice[Byte]): Option[ReadOnly] =
+      segment.get(key, ReadState.random)
+
+    def get(key: Int): Option[ReadOnly] =
+      segment.get(key, ReadState.random)
+
+    def higher(key: Int): Option[ReadOnly] =
+      segment.higher(key, ReadState.random)
+
+    def higher(key: Slice[Byte]): Option[ReadOnly] =
+      segment.higher(key, ReadState.random)
+
+    def lower(key: Int): Option[ReadOnly] =
+      segment.lower(key, ReadState.random)
+
+    def lower(key: Slice[Byte]): Option[ReadOnly] =
+      segment.lower(key, ReadState.random)
   }
 
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -2435,7 +2453,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-      Higher(key, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
+      Higher(key, ReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
   implicit class LowerImplicits(higher: Lower.type) {
@@ -2444,7 +2462,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-      Lower(key, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
+      Lower(key, ReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
   def randomStats(keySize: Int = randomIntMax(10000000),
@@ -2547,4 +2565,5 @@ object TestData {
       block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None),
       bytes = bytes
     )
+
 }

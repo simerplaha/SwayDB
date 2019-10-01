@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.segment.{PersistentSegment, Segment}
+import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.config.{IOAction, IOStrategy}
@@ -185,17 +185,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = strategy,
           compressions = _ => Seq.empty
         ),
-//      hashIndexConfig =
-//        HashIndexBlock.Config(
-//          maxProbe = 10,
-//          copyIndex = false,
-//          minimumNumberOfKeys = 5,
-//          minimumNumberOfHits = 5,
-//          allocateSpace = _.requiredSpace * 2,
-//          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-//          compressions = _ => Seq.empty
-//        ),
-            hashIndexConfig = HashIndexBlock.Config.disabled,
+      //      hashIndexConfig =
+      //        HashIndexBlock.Config(
+      //          maxProbe = 10,
+      //          copyIndex = false,
+      //          minimumNumberOfKeys = 5,
+      //          minimumNumberOfHits = 5,
+      //          allocateSpace = _.requiredSpace * 2,
+      //          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+      //          compressions = _ => Seq.empty
+      //        ),
+      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(
@@ -210,6 +210,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   val shuffledKeyValues = Random.shuffle(keyValues)
 
   def assertGet(segment: Segment) = {
+    val readState = ReadState()
     keyValues foreach {
       keyValue =>
         //        if (index % 10000 == 0)
@@ -221,11 +222,12 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //        val found = segment.get(keyValue.key).get.get
         //        found.getOrFetchValue
         //        segment.get(keyValue.key).get.key shouldBe keyValue.key
-        segment.get(keyValue.key).get
+        segment.get(keyValue.key, readState).get
     }
   }
 
   def assertHigher(segment: Segment) = {
+    val readState = ReadState()
     (0 until keyValues.size - 1) foreach {
       index =>
         //        segment.higherKey(keyValues(index).key)
@@ -233,11 +235,12 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         val keyValue = keyValues(index)
         //        val expectedHigher = unGroupedKeyValues(index + 1)
         //        segment.higher(keyValue.key).get.get shouldBe expectedHigher
-        segment.higher(keyValue.key).get
+        segment.higher(keyValue.key, readState).get
     }
   }
 
-  def assertLower(segment: Segment) =
+  def assertLower(segment: Segment) = {
+    val readState = ReadState()
     (1 until keyValues.size) foreach {
       index =>
         //        println(s"index: $index")
@@ -245,8 +248,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         val keyValue = keyValues(index)
         //        val expectedLower = unGroupedKeyValues(index - 1)
         //        segment.lower(keyValue.key).value.get shouldBe expectedLower
-        segment.lower(keyValue.key).get
+        segment.lower(keyValue.key, readState).get
     }
+  }
 
   var segment: Segment = null
 

@@ -22,15 +22,16 @@ package swaydb.core.level.seek
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
+import swaydb.core.segment.ReadState
 import swaydb.data.slice.Slice
 
 trait CurrentWalker {
 
   def levelNumber: String
 
-  def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def higher(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]]
+  def higher(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]]
 
-  def lower(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]]
+  def lower(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, LevelSeek[KeyValue.ReadOnly]]
 }

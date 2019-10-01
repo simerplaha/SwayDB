@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
@@ -494,7 +494,7 @@ private[core] object Segment extends LazyLogging {
 
     val segmentBlockCache =
       SegmentBlockCache(
-        id = "Reading segment",
+        path = Paths.get("Reading segment"),
         segmentIO = segmentIO,
         blockRef = refReader
       )
@@ -908,11 +908,11 @@ private[core] trait Segment extends FileSweeperItem {
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def get(key: Slice[Byte]): Option[KeyValue.ReadOnly]
+  def get(key: Slice[Byte], readState: ReadState): Option[KeyValue.ReadOnly]
 
-  def lower(key: Slice[Byte]): Option[KeyValue.ReadOnly]
+  def lower(key: Slice[Byte], readState: ReadState): Option[KeyValue.ReadOnly]
 
-  def higher(key: Slice[Byte]): Option[KeyValue.ReadOnly]
+  def higher(key: Slice[Byte], readState: ReadState): Option[KeyValue.ReadOnly]
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
 

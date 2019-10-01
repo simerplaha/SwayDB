@@ -27,6 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient}
 import swaydb.core.io.file.Effect
+import swaydb.core.segment.ReadState
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.compaction.Throttle
@@ -94,10 +95,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "write key-value" in {
       def assert(zero: LevelZero): Unit = {
         zero.put(1, "one").runRandomIO
-        zero.get(1).runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
+        zero.get(1, ReadState.random).runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
 
         zero.put("2", "two").runRandomIO
-        zero.get("2").runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
+        zero.get("2", ReadState.random).runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))))
@@ -112,7 +113,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
       zero.put(one, one).runRandomIO
 
-      val gotFromLevelZero = zero.get(one).runRandomIO.right.value.value.getOrFetchValue.value
+      val gotFromLevelZero = zero.get(one, ReadState.random).runRandomIO.right.value.value.getOrFetchValue.value
       gotFromLevelZero shouldBe one
       //ensure that key-values are not unsliced in LevelZero.
       gotFromLevelZero.underlyingArraySize shouldBe 10
@@ -122,7 +123,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       if (persistent) {
         //put the same key-value to Level1 and expect the key-values to be sliced
         level.putKeyValuesTest(Slice(Memory.put(one, one))).runRandomIO
-        val gotFromLevelOne = level.get(one).runRandomIO.right.value.value
+        val gotFromLevelOne = level.get(one, ReadState.random).runRandomIO.right.value.value
         gotFromLevelOne.getOrFetchValue.value shouldBe one
         //ensure that key-values are not unsliced in LevelOne.
         gotFromLevelOne.getOrFetchValue.underlyingArraySize shouldBe 4
@@ -137,7 +138,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     "write empty values" in {
       val zero = TestLevelZero(Some(TestLevel()))
       zero.put(1, Slice.empty).runRandomIO
-      zero.get(1).runRandomIO.right.value.value.getOrFetchValue.value shouldBe Slice.empty
+      zero.get(1, ReadState.random).runRandomIO.right.value.value.getOrFetchValue.value shouldBe Slice.empty
     }
 
     "write large keys and values and reopen the database and re-read key-values" in {
@@ -155,8 +156,8 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       }
 
       def assertRead(zero: LevelZero): Unit = {
-        zero.get(key1).runRandomIO.right.value.value.getOrFetchValue.value shouldBe value1
-        zero.get(key2).runRandomIO.right.value.value.getOrFetchValue.value shouldBe value2
+        zero.get(key1, ReadState.random).runRandomIO.right.value.value.getOrFetchValue.value shouldBe value1
+        zero.get(key2, ReadState.random).runRandomIO.right.value.value.getOrFetchValue.value shouldBe value2
       }
 
       val zero = TestLevelZero(Some(TestLevel(throttle = _ => Throttle(10.seconds, 0))))
@@ -175,12 +176,12 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.put("one").runRandomIO
       zero.put("two").runRandomIO
 
-      zero.get("one").runRandomIO.right.value.value.getOrFetchValue shouldBe empty
-      zero.get("two").runRandomIO.right.value.value.getOrFetchValue shouldBe empty
+      zero.get("one", ReadState.random).runRandomIO.right.value.value.getOrFetchValue shouldBe empty
+      zero.get("two", ReadState.random).runRandomIO.right.value.value.getOrFetchValue shouldBe empty
 
-      zero.contains("one").runRandomIO.right.value shouldBe true
-      zero.contains("two").runRandomIO.right.value shouldBe true
-      zero.contains("three").runRandomIO.right.value shouldBe false
+      zero.contains("one", ReadState.random).runRandomIO.right.value shouldBe true
+      zero.contains("two", ReadState.random).runRandomIO.right.value shouldBe true
+      zero.contains("three", ReadState.random).runRandomIO.right.value shouldBe false
     }
 
     "batch write key-values" in {
@@ -220,15 +221,15 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       }
 
       if (unexpiredPuts(keyValues).nonEmpty)
-        zero.head.runRandomIO.get shouldBe defined
+        zero.head(ReadState.random).runRandomIO.get shouldBe defined
 
       keyValues foreach {
         keyValue =>
           zero.remove(keyValue.key).runRandomIO
       }
 
-      zero.head.runRandomIO.right.value shouldBe empty
-      zero.last.runRandomIO.right.value shouldBe empty
+      zero.head(ReadState.random).runRandomIO.right.value shouldBe empty
+      zero.last(ReadState.random).runRandomIO.right.value shouldBe empty
     }
 
     "batch remove key-values" in {
@@ -242,7 +243,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.put(_ => removeKeyValues.toMapEntry.get).runRandomIO
 
       assertGetNone(keyValues, zero)
-      zero.head.runRandomIO.right.value shouldBe empty
+      zero.head(ReadState.random).runRandomIO.right.value shouldBe empty
     }
   }
 
@@ -257,10 +258,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
       zero.bloomFilterKeyValueCount.get shouldBe 1
 
-      zero.clear().runRandomIO.get
+      zero.clear(ReadState.random).runRandomIO.get
 
-      zero.head.runRandomIO.right.value shouldBe empty
-      zero.last.runRandomIO.right.value shouldBe empty
+      zero.head(ReadState.random).runRandomIO.right.value shouldBe empty
+      zero.last(ReadState.random).runRandomIO.right.value shouldBe empty
     }
 
     "remove all key-values" in {
@@ -271,10 +272,10 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
       }
 
-      zero.clear().runRandomIO.get
+      zero.clear(ReadState.random).runRandomIO.get
 
-      zero.head.runRandomIO.right.value shouldBe empty
-      zero.last.runRandomIO.right.value shouldBe empty
+      zero.head(ReadState.random).runRandomIO.right.value shouldBe empty
+      zero.last(ReadState.random).runRandomIO.right.value shouldBe empty
     }
   }
 
@@ -289,22 +290,22 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.put(4, "four").runRandomIO
       zero.put(5, "five").runRandomIO
 
-      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
+      zero.head(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
 
       //remove 1
       zero.remove(1).runRandomIO
       println
-      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
+      zero.head(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
 
       zero.remove(2).runRandomIO
       zero.remove(3).runRandomIO
       zero.remove(4).runRandomIO
 
-      zero.head.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
+      zero.head(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
 
       zero.remove(5).runRandomIO
-      zero.head.runRandomIO.right.value shouldBe empty
-      zero.last.runRandomIO.right.value shouldBe empty
+      zero.head(ReadState.random).runRandomIO.right.value shouldBe empty
+      zero.last(ReadState.random).runRandomIO.right.value shouldBe empty
     }
   }
 
@@ -318,22 +319,22 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.put(4, "four").runRandomIO
       zero.put(5, "five").runRandomIO
 
-      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
+      zero.last(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
 
       //remove 5
       zero.remove(5).runRandomIO
-      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("four": Slice[Byte])
+      zero.last(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("four": Slice[Byte])
 
       zero.remove(2).runRandomIO
       zero.remove(3).runRandomIO
       zero.remove(4).runRandomIO
 
       println
-      zero.last.runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
+      zero.last(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
 
       zero.remove(1).runRandomIO
-      zero.last.runRandomIO.right.value shouldBe empty
-      zero.head.runRandomIO.right.value shouldBe empty
+      zero.last(ReadState.random).runRandomIO.right.value shouldBe empty
+      zero.head(ReadState.random).runRandomIO.right.value shouldBe empty
     }
   }
 

@@ -134,7 +134,8 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     }
 
   def clear(): T[IO.Done] =
-    tag.point(core.clear())
+  //    tag.point(core.clear())
+    ???
 
   def registerFunction(functionID: K, function: V => Apply.Map[V]): K = {
     core.registerFunction(functionID, SwayDB.toCoreFunction(function))
@@ -170,26 +171,30 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
    * Returns target value for the input key.
    */
   def get(key: K): T[Option[V]] =
-    tag.point(core.get(key).map(_.map(_.read[V])))
-
+  //    tag.point(core.get(key).map(_.map(_.read[V])))
+    ???
+  //
   /**
    * Returns target full key for the input partial key.
    *
    * This function is mostly used for Set databases where partial ordering on the Key is provided.
    */
   def getKey(key: K): T[Option[K]] =
-    tag.point(core.getKey(key).map(_.map(_.read[K])))
+  //    tag.point(core.getKey(key).map(_.map(_.read[K])))
+    ???
 
   def getKeyValue(key: K): T[Option[(K, V)]] =
-    tag.point {
-      core.getKeyValue(key).map(_.map {
-        case (key, value) =>
-          (key.read[K], value.read[V])
-      })
-    }
+  //    tag.point {
+  //      core.getKeyValue(key).map(_.map {
+  //        case (key, value) =>
+  //          (key.read[K], value.read[V])
+  //      })
+  //    }
+    ???
 
   def contains(key: K): T[Boolean] =
-    tag.point(core contains key)
+  //    tag.point(core contains key)
+    ???
 
   def mightContain(key: K): T[Boolean] =
     tag.point(core mightContainKey key)
@@ -220,7 +225,8 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     (value: Slice[Byte]).size
 
   def expiration(key: K): T[Option[Deadline]] =
-    tag.point(core deadline key)
+  //    tag.point(core deadline key)
+    ???
 
   def timeLeft(key: K): T[Option[FiniteDuration]] =
     tag.point(expiration(key).map(_.map(_.timeLeft)))
@@ -241,37 +247,38 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def headOption: T[Option[(K, V)]] =
-    tag.point {
-      from match {
-        case Some(from) =>
-          val fromKeyBytes: Slice[Byte] = from.key
-
-          if (from.before)
-            core.before(fromKeyBytes)
-          else if (from.after)
-            core.after(fromKeyBytes)
-          else
-            core.getKeyValue(fromKeyBytes)
-              .flatMap {
-                case some @ Some(_) =>
-                  tag.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
-
-                case _ =>
-                  if (from.orAfter)
-                    core.after(fromKeyBytes)
-                  else if (from.orBefore)
-                    core.before(fromKeyBytes)
-                  else
-                    tag.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
-              }
-
-        case None =>
-          if (reverseIteration) core.last else core.head
-      }
-    } map (_.map {
-      case (key, value) =>
-        (key.read[K], value.read[V])
-    })
+  //    tag.point {
+  //      from match {
+  //        case Some(from) =>
+  //          val fromKeyBytes: Slice[Byte] = from.key
+  //
+  //          if (from.before)
+  //            core.before(fromKeyBytes)
+  //          else if (from.after)
+  //            core.after(fromKeyBytes)
+  //          else
+  //            core.getKeyValue(fromKeyBytes)
+  //              .flatMap {
+  //                case some @ Some(_) =>
+  //                  tag.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+  //
+  //                case _ =>
+  //                  if (from.orAfter)
+  //                    core.after(fromKeyBytes)
+  //                  else if (from.orBefore)
+  //                    core.before(fromKeyBytes)
+  //                  else
+  //                    tag.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+  //              }
+  //
+  //        case None =>
+  //          if (reverseIteration) core.last else core.head
+  //      }
+  //    } map (_.map {
+  //      case (key, value) =>
+  //        (key.read[K], value.read[V])
+  //    })
+    ???
 
   override def drop(count: Int): Stream[(K, V), T] =
     stream drop count
@@ -312,49 +319,52 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
         self.headOption
 
       override private[swaydb] def next(previous: (K, V)): T[Option[(K, V)]] =
-        tag.point {
-          val next =
-            if (reverseIteration)
-              core.before(keySerializer.write(previous._1))
-            else
-              core.after(keySerializer.write(previous._1))
-
-          next map (_.map {
-            case (key, value) =>
-              (key.read[K], value.read[V])
-          })
-        }
+      //        tag.point {
+      //          val next =
+      //            if (reverseIteration)
+      //              core.before(keySerializer.write(previous._1))
+      //            else
+      //              core.after(keySerializer.write(previous._1))
+      //
+      //          next map (_.map {
+      //            case (key, value) =>
+      //              (key.read[K], value.read[V])
+      //          })
+      //        }
+        ???
     }
 
   def sizeOfBloomFilterEntries: T[Int] =
     tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =
-    tag.point(core.headKey.map(_.isEmpty))
+  //    tag.point(core.headKey.map(_.isEmpty))
+    ???
 
   def nonEmpty: T[Boolean] =
     isEmpty.map(!_)
 
   def lastOption: T[Option[(K, V)]] =
-    if (reverseIteration)
-      tag.point {
-        core.head map {
-          case Some((key, value)) =>
-            Some(key.read[K], value.read[V])
-
-          case _ =>
-            None
-        }
-      }
-    else
-      tag.point {
-        core.last map {
-          case Some((key, value)) =>
-            Some(key.read[K], value.read[V])
-          case _ =>
-            None
-        }
-      }
+  //    if (reverseIteration)
+  //      tag.point {
+  //        core.head map {
+  //          case Some((key, value)) =>
+  //            Some(key.read[K], value.read[V])
+  //
+  //          case _ =>
+  //            None
+  //        }
+  //      }
+  //    else
+  //      tag.point {
+  //        core.last map {
+  //          case Some((key, value)) =>
+  //            Some(key.read[K], value.read[V])
+  //          case _ =>
+  //            None
+  //        }
+  //      }
+    ???
 
   def reverse: Map[K, V, T] =
     copy(reverseIteration = true)

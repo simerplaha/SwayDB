@@ -28,6 +28,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.segment.ReadState
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -170,7 +171,7 @@ sealed trait LevelCollapseSpec extends TestBase {
         case (keyValue, index) =>
 
           if (index % 2 == 0)
-            level.get(keyValue.key).runRandomIO.right.value.value.deadline should contain(expiryAt + index.millisecond)
+            level.get(keyValue.key, ReadState.random).runRandomIO.right.value.value.deadline should contain(expiryAt + index.millisecond)
       }
 
       sleep(20.seconds)

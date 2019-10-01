@@ -21,9 +21,11 @@ package swaydb.core.level.seek
 
 import swaydb.IO
 import swaydb.core.data.KeyValue
+import swaydb.core.segment.ReadState
 import swaydb.data.slice.Slice
 
 trait NextGetter {
 
-  def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+  def get(key: Slice[Byte],
+          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 }

@@ -39,7 +39,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.segment.{PersistentSegment, Segment}
+import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.MaxKey
@@ -170,12 +170,12 @@ sealed trait SegmentWriteSpec extends TestBase {
     "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
       //assert that all key-values added to cache are not sub-slices.
       def assertCacheKeyValuesAreSliced(segment: Segment) =
-//        segment.skipList.asScala foreach {
-//          case (key, value: KeyValue.ReadOnly) =>
-//            key.shouldBeSliced()
-//            assertSliced(value)
-//        }
-      ???
+      //        segment.skipList.asScala foreach {
+      //          case (key, value: KeyValue.ReadOnly) =>
+      //            key.shouldBeSliced()
+      //            assertSliced(value)
+      //        }
+        ???
 
       def assertMinAndMaxKeyAreSliced(segment: Segment) = {
         segment.minKey.underlyingArraySize shouldBe 1
@@ -415,7 +415,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
                 assertHigher(keyValues, segment)
 
-//                segment.skipList.isConcurrent shouldBe true
+                //                segment.skipList.isConcurrent shouldBe true
                 ???
 
                 segment.isOpen shouldBe true
@@ -600,7 +600,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         //when it's close clear all the caches so that key-values do not get read from the cache.
         eitherOne(segment1.clearAllCaches(), segment1.clearCachedKeyValues())
         //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
-        (segment1 get keyValues.head.key).value shouldBe keyValues.head
+        segment1.get(keyValues.head.key, ReadState.random).value shouldBe keyValues.head
         segment1.isOpen shouldBe true
       }
 

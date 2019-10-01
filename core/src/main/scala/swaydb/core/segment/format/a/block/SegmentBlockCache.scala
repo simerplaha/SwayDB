@@ -19,6 +19,8 @@
 
 package swaydb.core.segment.format.a.block
 
+import java.nio.file.Path
+
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.MemorySweeper
@@ -34,11 +36,11 @@ import swaydb.data.slice.Slice
 
 object SegmentBlockCache {
 
-  def apply(id: String,
+  def apply(path: Path,
             segmentIO: SegmentIO,
             blockRef: BlockRefReader[SegmentBlock.Offset])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]): SegmentBlockCache =
     new SegmentBlockCache(
-      id = id,
+      path = path,
       segmentIO = segmentIO,
       segmentBlockRef = blockRef
     )
@@ -47,7 +49,7 @@ object SegmentBlockCache {
 /**
  * Implements configured caching & IO strategies for all blocks within a Segment.
  */
-class SegmentBlockCache(id: String,
+class SegmentBlockCache(path: Path,
                         val segmentIO: SegmentIO,
                         segmentBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
 
@@ -75,7 +77,7 @@ class SegmentBlockCache(id: String,
                                                            resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, BlockRefReader[O], B] =
     Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockRefReader[O], B](
       strategy = blockIO(IOAction.ReadDataOverview),
-      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName")),
+      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName")),
       initial = None
     ) {
       (ref, self) =>
@@ -97,7 +99,7 @@ class SegmentBlockCache(id: String,
                                                                    resourceName: String)(implicit blockOps: BlockOps[O, B]): Cache[swaydb.Error.Segment, Option[BlockRefReader[O]], Option[B]] =
     Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockRefReader[O]], Option[B]](
       strategy = blockIO(IOAction.ReadDataOverview),
-      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName")),
+      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName")),
       initial = None
     ) {
       case (Some(ref), self) =>
@@ -122,7 +124,7 @@ class SegmentBlockCache(id: String,
                                                              resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
       strategy = reader => blockIO(reader.block.dataType).withCacheOnAccess,
-      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName"))
+      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
       (blockedReader, self) =>
         IO {
@@ -148,7 +150,7 @@ class SegmentBlockCache(id: String,
                                                                      resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
       strategy = _.map(reader => blockIO(reader.block.dataType).withCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
-      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: $resourceName"))
+      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
       case (Some(blockedReader), self) =>
         IO {
@@ -242,7 +244,7 @@ class SegmentBlockCache(id: String,
   private[block] val footerBlockCache =
     Cache.io[swaydb.Error.Segment, swaydb.Error.ReservedResource, UnblockedReader[SegmentBlock.Offset, SegmentBlock], SegmentFooterBlock](
       strategy = segmentFooterBlockIO(IOAction.ReadDataOverview),
-      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$id: footerBlockCache")),
+      reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: footerBlockCache")),
       initial = None
     ) {
       (reader, self) =>

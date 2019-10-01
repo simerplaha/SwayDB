@@ -18,6 +18,8 @@
  */
 package swaydb.core.segment.format.a.block
 
+import java.nio.file.Paths
+
 import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.core.CommonAssertions._
@@ -31,9 +33,9 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.segment.SegmentThreadState
 import swaydb.IOValues._
 import org.scalatest.OptionValues._
+import swaydb.core.segment.ReadState
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 
@@ -43,8 +45,6 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
   implicit val limiter = TestLimitQueues.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
-
-  private val threadStates = SegmentThreadState.create[Slice[Byte], Persistent]()
 
   def randomlySelectHigher(index: Int, keyValues: Slice[Persistent]) =
     eitherOne(None, Try(keyValues(index + (randomIntMax(keyValues.size) max 1))).toOption)
@@ -61,6 +61,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
         val got =
           SegmentSearcher.search(
             key = keyValue.key,
+            path = Paths.get("test"),
             start = eitherOne(None, previous),
             end = None,
             hashIndexReader = blocks.hashIndexReader,
@@ -73,24 +74,26 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             valuesReader = blocks.valuesReader,
             hasRange = keyValues.last.stats.segmentHasRange,
             keyValueCount = keyValues.size,
-            threadState = threadStates.get()
+            readState = ReadState.random
           ).map(_.toPersistent)
 
         if (got.isEmpty)
           SegmentSearcher.search(
             key = keyValue.key,
+            path = Paths.get("test"),
             start = eitherOne(None, previous),
             end = None,
             hashIndexReader = blocks.hashIndexReader,
-            if (blocks.sortedIndexReader.block.hasPrefixCompression || blocks.footer.hasRange)
-              blocks.binarySearchIndexReader
-            else
-              null, //set it to null. BinarySearchIndex is not accessed.
+            binarySearchIndexReader =
+              if (blocks.sortedIndexReader.block.hasPrefixCompression || blocks.footer.hasRange)
+                blocks.binarySearchIndexReader
+              else
+                null, //set it to null. BinarySearchIndex is not accessed.
             sortedIndexReader = blocks.sortedIndexReader,
             valuesReader = blocks.valuesReader,
             hasRange = keyValues.last.stats.segmentHasRange,
             keyValueCount = keyValues.size,
-            threadState = threadStates.get()
+            readState = ReadState.random
           ).map(_.toPersistent)
 
         got shouldBe defined
@@ -116,6 +119,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           val found =
             SegmentSearcher.search(
               key = keyValue.key,
+              path = Paths.get("test"),
               start = randomStart,
               end = randomEnd,
               hashIndexReader = None,
@@ -125,7 +129,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               valuesReader = blocks.valuesReader,
               hasRange = keyValues.last.stats.segmentHasRange,
               keyValueCount = keyValues.size,
-              threadState = threadStates.get()
+              readState = ReadState.random
             ).map(_.toPersistent)
 
           found.value shouldBe keyValue
@@ -139,6 +143,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
       key =>
         SegmentSearcher.search(
           key = key,
+          path = Paths.get("test"),
           start = None,
           end = None,
           hashIndexReader = blocks.hashIndexReader,
@@ -147,7 +152,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           valuesReader = Some(ValuesBlock.emptyUnblocked), //give it empty blocks since values are not read.
           hasRange = keyValues.last.stats.segmentHasRange,
           keyValueCount = keyValues.size,
-          threadState = threadStates.get()
+          readState = ReadState.random
         ) shouldBe empty
     }
 

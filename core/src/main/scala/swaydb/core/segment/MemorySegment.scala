@@ -173,7 +173,7 @@ private[segment] case class MemorySegment(path: Path,
   override def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly] =
     skipList.get(key)
 
-  override def get(key: Slice[Byte]): Option[Memory] =
+  override def get(key: Slice[Byte], readState: ReadState): Option[Memory] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -224,7 +224,8 @@ private[segment] case class MemorySegment(path: Path,
         )(FunctionStore.order)
     }
 
-  override def lower(key: Slice[Byte]): Option[Memory] =
+  override def lower(key: Slice[Byte],
+                     readState: ReadState): Option[Memory] =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
@@ -243,7 +244,8 @@ private[segment] case class MemorySegment(path: Path,
     else
       None
 
-  override def higher(key: Slice[Byte]): Option[Memory] =
+  override def higher(key: Slice[Byte],
+                      readState: ReadState): Option[Memory] =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else if (hasRange)

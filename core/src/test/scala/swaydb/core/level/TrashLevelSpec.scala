@@ -27,7 +27,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{ReadState, Segment}
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -75,7 +75,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
       //key values do not exist
       Segment.getAllKeyValues(segments).runRandomIO.right.value foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
+          level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
       }
       if (persistent) level.reopen.isEmpty shouldBe true
     }

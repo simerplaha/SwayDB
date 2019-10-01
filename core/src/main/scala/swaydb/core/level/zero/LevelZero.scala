@@ -25,6 +25,7 @@ import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
+import swaydb.IO.Defer
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
@@ -36,7 +37,7 @@ import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
@@ -301,11 +302,11 @@ private[core] case class LevelZero(path: Path,
           }
     }
 
-  def clear(): IO.Defer[swaydb.Error.Level, IO.Done] =
-    headKey
+  def clear(readState: ReadState): IO.Defer[swaydb.Error.Level, IO.Done] =
+    headKey(readState)
       .flatMap {
         case Some(headKey) =>
-          lastKey
+          lastKey(readState)
             .flatMap {
               case Some(lastKey) =>
                 remove(headKey, lastKey).toDefer
@@ -370,18 +371,18 @@ private[core] case class LevelZero(path: Path,
       find(key, mapsIterator.next(), mapsIterator)
     else
       nextLevel
-        .map(_ get key)
+        .map(_.get(key, ReadState.Random))
         .getOrElse(IO.Defer.none)
 
   def currentGetter(currentMap: map.Map[Slice[Byte], Memory]) =
     new CurrentGetter {
-      override def get(key: Slice[Byte]): IO[swaydb.Error.Level, Option[ReadOnly]] =
+      override def get(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, Option[ReadOnly]] =
         IO(getFromMap(key, currentMap))
     }
 
   def nextGetter(mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]) =
     new NextGetter {
-      override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         getFromNextLevel(key, mapsIterator)
     }
 
@@ -390,19 +391,22 @@ private[core] case class LevelZero(path: Path,
                    mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get.seek(
       key = key,
+      readState = ReadState.Random,
       currentGetter = currentGetter(currentMap),
       nextGetter = nextGetter(mapsIterator)
     )
 
-  def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+  def get(key: Slice[Byte],
+          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
     find(
       key = key,
       currentMap = maps.map,
       mapsIterator = maps.iterator
     )
 
-  def getKey(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
-    get(key).map(_.map(_.key))
+  def getKey(key: Slice[Byte],
+             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
+    get(key, readState).map(_.map(_.key))
 
   def firstKeyFromMaps =
     maps.reduce[Slice[Byte]](_.skipList.headKey, MinMax.minFavourLeft(_, _)(keyOrder))
@@ -423,46 +427,52 @@ private[core] case class LevelZero(path: Path,
       reduce = MinMax.maxFavourLeft(_, _)(keyOrder)
     )
 
-  def lastKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
-    last.map(_.map(_.key))
+  def lastKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
+    last(readState).map(_.map(_.key))
 
-  override def headKey: IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
-    head.map(_.map(_.key))
+  override def headKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
+    head(readState).map(_.map(_.key))
 
-  def head: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  def head(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     nextLevel
       .map {
         nextLevel =>
           nextLevel
-            .headKey
+            .headKey(readState)
             .flatMap {
               nextLevelFirstKey =>
-                MinMax.minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling) getOrElse IO.Defer.none
+                MinMax.minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling(_, readState)) getOrElse IO.Defer.none
             }
       }
-      .getOrElse(firstKeyFromMaps.map(ceiling) getOrElse IO.Defer.none)
+      .getOrElse(firstKeyFromMaps.map(ceiling(_, readState)) getOrElse IO.Defer.none)
 
-  def last: IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  def last(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     nextLevel
       .map {
         nextLevel =>
           nextLevel
-            .lastKey
+            .lastKey(readState)
             .flatMap {
               nextLevelLastKey =>
-                MinMax.maxFavourLeft(lastKeyFromMaps, nextLevelLastKey)(keyOrder).map(floor) getOrElse IO.Defer.none
+                MinMax
+                  .maxFavourLeft(lastKeyFromMaps, nextLevelLastKey)(keyOrder)
+                  .map(floor(_, readState))
+                  .getOrElse(IO.Defer.none)
             }
       }
-      .getOrElse(lastKeyFromMaps.map(floor) getOrElse IO.Defer.none)
+      .getOrElse(lastKeyFromMaps.map(floor(_, readState)) getOrElse IO.Defer.none)
 
-  def ceiling(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  def ceiling(key: Slice[Byte],
+              readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     ceiling(
       key = key,
+      readState = readState,
       currentMap = maps.map,
       otherMaps = Slice.from(maps.iterator.asScala)
     )
 
   def ceiling(key: Slice[Byte],
+              readState: ReadState,
               currentMap: map.Map[Slice[Byte], Memory],
               otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     find(
@@ -474,13 +484,15 @@ private[core] case class LevelZero(path: Path,
         if (found.isDefined)
           IO.Defer(found)
         else
-          findHigher(key, currentMap, otherMaps)
+          findHigher(key, readState, currentMap, otherMaps)
     }
 
-  def floor(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    floor(key, maps.map, Slice.from(maps.iterator.asScala))
+  def floor(key: Slice[Byte],
+            readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+    floor(key, readState, maps.map, Slice.from(maps.iterator.asScala))
 
   def floor(key: Slice[Byte],
+            readState: ReadState,
             currentMap: map.Map[Slice[Byte], Memory],
             otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     find(
@@ -492,7 +504,7 @@ private[core] case class LevelZero(path: Path,
         if (found.isDefined)
           IO.Defer(found)
         else
-          findLower(key, currentMap, otherMaps)
+          findLower(key, readState, currentMap, otherMaps)
     }
 
   private def higherFromMap(key: Slice[Byte],
@@ -513,25 +525,26 @@ private[core] case class LevelZero(path: Path,
         .higher(key)
 
   def findHigherInNextLevel(key: Slice[Byte],
+                            readState: ReadState,
                             otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //        println(s"Finding higher for key: ${key.readInt()} in Map: ${nextMap.pathOption}. Remaining map: ${otherMaps.size}")
-        findHigher(key, nextMap, otherMaps.drop(1))
+        findHigher(key, readState, nextMap, otherMaps.drop(1))
       case None =>
         //        println(s"Finding higher for key: ${key.readInt()} in ${nextLevel.rootPath}")
         nextLevel
-          .map(_.higher(key))
+          .map(_.higher(key, readState))
           .getOrElse(IO.Defer.none)
     }
 
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory],
                     otherMaps: Slice[map.Map[Slice[Byte], Memory]]) =
     new CurrentWalker {
-      override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
-      override def higher(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[ReadOnly]] =
+      override def higher(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, LevelSeek[ReadOnly]] =
         IO {
           LevelSeek(
             segmentId = 0,
@@ -539,7 +552,7 @@ private[core] case class LevelZero(path: Path,
           )
         }
 
-      override def lower(key: Slice[Byte]): IO[swaydb.Error.Level, LevelSeek[ReadOnly]] =
+      override def lower(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, LevelSeek[ReadOnly]] =
         IO {
           LevelSeek(
             segmentId = 0,
@@ -553,13 +566,16 @@ private[core] case class LevelZero(path: Path,
 
   def nextWalker(otherMaps: Slice[map.Map[Slice[Byte], Memory]]) =
     new NextWalker {
-      override def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
-        findHigherInNextLevel(key, otherMaps)
+      override def higher(key: Slice[Byte],
+                          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+        findHigherInNextLevel(key, readState, otherMaps)
 
-      override def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
-        findLowerInNextLevel(key, otherMaps)
+      override def lower(key: Slice[Byte],
+                         readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+        findLowerInNextLevel(key, readState, otherMaps)
 
-      override def get(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+      override def get(key: Slice[Byte],
+                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         getFromNextLevel(key, otherMaps.iterator.asJava)
 
       override def levelNumber: String =
@@ -567,10 +583,12 @@ private[core] case class LevelZero(path: Path,
     }
 
   def findHigher(key: Slice[Byte],
+                 readState: ReadState,
                  currentMap: map.Map[Slice[Byte], Memory],
                  otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Higher.seek(
       key = key,
+      readState = readState,
       currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
@@ -586,9 +604,11 @@ private[core] case class LevelZero(path: Path,
    *
    * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
    */
-  def higher(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  def higher(key: Slice[Byte],
+             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     findHigher(
       key = key,
+      readState = readState,
       currentMap = maps.map,
       otherMaps = Slice.from(maps.queuedMaps)
     )
@@ -607,23 +627,26 @@ private[core] case class LevelZero(path: Path,
       currentMap.skipList.lower(key)
 
   def findLowerInNextLevel(key: Slice[Byte],
+                           readState: ReadState,
                            otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     otherMaps.headOption match {
       case Some(nextMap) =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextMap.pathOption}")
-        findLower(key, nextMap, otherMaps.drop(1))
+        findLower(key, readState, nextMap, otherMaps.drop(1))
       case None =>
         //println(s"Finding lower for key: ${key.readInt()} in ${nextLevel.rootPath}")
         nextLevel
-          .map(_.lower(key))
+          .map(_.lower(key, readState))
           .getOrElse(IO.Defer.none)
     }
 
   def findLower(key: Slice[Byte],
+                readState: ReadState,
                 currentMap: map.Map[Slice[Byte], Memory],
                 otherMaps: Slice[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Lower.seek(
       key = key,
+      readState = readState,
       currentSeek = Seek.Current.Read(Int.MinValue),
       nextSeek = Seek.Next.Read,
       currentWalker = currentWalker(currentMap, otherMaps),
@@ -639,18 +662,22 @@ private[core] case class LevelZero(path: Path,
    *
    * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
    */
-  def lower(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  def lower(key: Slice[Byte],
+            readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     findLower(
       key = key,
+      readState = readState,
       currentMap = maps.map,
       otherMaps = Slice.from(maps.queuedMaps)
     )
 
-  def contains(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Boolean] =
-    get(key).map(_.isDefined)
+  def contains(key: Slice[Byte],
+               readState: ReadState): IO.Defer[swaydb.Error.Level, Boolean] =
+    get(key, readState).map(_.isDefined)
 
-  def valueSize(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[Int]] =
-    get(key) map {
+  def valueSize(key: Slice[Byte],
+                readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Int]] =
+    get(key, readState) map {
       result =>
         result map {
           response =>
@@ -665,8 +692,9 @@ private[core] case class LevelZero(path: Path,
       .getOrElse(IO.Right(keyValueCountInMaps))
   }
 
-  def deadline(key: Slice[Byte]): IO.Defer[swaydb.Error.Level, Option[Deadline]] =
-    get(key)
+  def deadline(key: Slice[Byte],
+               readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Deadline]] =
+    get(key, readState)
       .map {
         result =>
           result

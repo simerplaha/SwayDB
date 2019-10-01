@@ -30,6 +30,7 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
+import swaydb.core.segment.ReadState
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -141,7 +142,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       level.isEmpty shouldBe false
       keyValues foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
+          level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
       }
     }
 
@@ -211,7 +212,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       //expired key-values return empty after 2.seconds
       keyValues foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
+          level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
       }
 
       level.segmentFilesInAppendix shouldBe 0
@@ -248,7 +249,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       //expired key-values return empty.
       keyValues foreach {
         keyValue =>
-          level.get(keyValue.key).runRandomIO.right.value shouldBe empty
+          level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
       }
 
       //sleep for 2.seconds and Segments should still exists.
@@ -274,7 +275,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       eventual(5.seconds) {
         keyValues foreach {
           keyValue =>
-            level.get(keyValue.key).runRandomIO.right.value shouldBe empty
+            level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
         }
       }
 
@@ -305,7 +306,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       eventual(5.seconds) {
         keyValues foreach {
           keyValue =>
-            level.get(keyValue.key).runRandomIO.right.value shouldBe empty
+            level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
         }
       }
 
@@ -360,8 +361,8 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       failed.isLeft shouldBe true
       failed.left.get.exception shouldBe a[NullPointerException]
 
-      level.get(123).runRandomIO.right.value shouldBe empty
-      level.get(1234).runRandomIO.right.value shouldBe empty
+      level.get(123, ReadState.random).runRandomIO.right.value shouldBe empty
+      level.get(1234, ReadState.random).runRandomIO.right.value shouldBe empty
     }
   }
 }

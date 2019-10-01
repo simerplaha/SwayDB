@@ -32,6 +32,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
+import swaydb.core.segment.ReadState
 import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -112,7 +113,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         //deleted key-values do not exist.
         deletedKeyValues foreach {
           deleted =>
-            level.get(deleted.key).runRandomIO.right.value shouldBe empty
+            level.get(deleted.key, ReadState.random).runRandomIO.right.value shouldBe empty
         }
       }
 
@@ -135,10 +136,10 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         level.put(map).right.right.value.right.value
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
-        level.get("one").runRandomIO.right.value.value shouldBe existingKeyValues(0)
-        level.get("two").runRandomIO.right.value.value shouldBe existingKeyValues(1)
-        level.get("three").runRandomIO.right.value.value shouldBe existingKeyValues(2)
-        level.get("four").runRandomIO.right.value shouldBe empty
+        level.get("one", ReadState.random).runRandomIO.right.value.value shouldBe existingKeyValues(0)
+        level.get("two", ReadState.random).runRandomIO.right.value.value shouldBe existingKeyValues(1)
+        level.get("three", ReadState.random).runRandomIO.right.value.value shouldBe existingKeyValues(2)
+        level.get("four", ReadState.random).runRandomIO.right.value shouldBe empty
       }
     }
   }

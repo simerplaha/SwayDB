@@ -26,6 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
+import swaydb.core.segment.ReadState
 import swaydb.core.util.Benchmark
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -72,11 +73,11 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
         assertAllLevels =
           (_, _, _, level) =>
             Seq(
-              () => level.get(randomStringOption).runRandomIO.right.value shouldBe empty,
-              () => level.higher(randomStringOption).runRandomIO.right.value shouldBe empty,
-              () => level.lower(randomStringOption).runRandomIO.right.value shouldBe empty,
-              () => level.head.runRandomIO.right.value shouldBe empty,
-              () => level.last.runRandomIO.right.value shouldBe empty
+              () => level.get(randomStringOption, ReadState.random).runRandomIO.right.value shouldBe empty,
+              () => level.higher(randomStringOption, ReadState.random).runRandomIO.right.value shouldBe empty,
+              () => level.lower(randomStringOption, ReadState.random).runRandomIO.right.value shouldBe empty,
+              () => level.head(ReadState.random).runRandomIO.right.value shouldBe empty,
+              () => level.last(ReadState.random).runRandomIO.right.value shouldBe empty
             ).runThisRandomly
       )
     }
@@ -138,18 +139,18 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedHigher = existing.find(put => put.hasTimeLeft() && put.key.readInt() > nonExistentKey).map(_.key.readInt())
-                      level.higher(nonExistentKey).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedHigher
+                      level.higher(nonExistentKey, ReadState.random).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedHigher
                   },
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
                       try
-                        level.lower(nonExistentKey).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
+                        level.lower(nonExistentKey, ReadState.random).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
                       catch {
                         case exception: Exception =>
                           //TODO - debug.
-                          val lower = level.lower(nonExistentKey).runRandomIO.right.value.map(_.key.readInt())
+                          val lower = level.lower(nonExistentKey, ReadState.random).runRandomIO.right.value.map(_.key.readInt())
                           throw exception
                       }
                   }

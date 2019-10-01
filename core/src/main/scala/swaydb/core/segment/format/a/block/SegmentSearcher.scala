@@ -18,10 +18,11 @@
  */
 package swaydb.core.segment.format.a.block
 
+import java.nio.file.Path
+
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.segment.SegmentReadThreadState
+import swaydb.core.segment.ReadState
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexSearchResult}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -40,7 +41,8 @@ private[core] object SegmentSearcher extends LazyLogging {
   var successfulHashIndexSeeks = 0
   var failedHashIndexSeeks = 0
 
-  def search(key: Slice[Byte],
+  def search(path: Path,
+             key: Slice[Byte],
              start: Option[Persistent.Partial],
              end: => Option[Persistent.Partial],
              hashIndexReader: => Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
@@ -49,8 +51,8 @@ private[core] object SegmentSearcher extends LazyLogging {
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
              keyValueCount: => Int,
-             threadState: SegmentReadThreadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
-    when(start.isDefined && threadState.isSequentialRead)(start) match {
+             readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+    when(start.isDefined && readState.isSequential(path))(start) match {
       case Some(startFrom) =>
         seqSeeks += 1
         val found =
@@ -79,7 +81,13 @@ private[core] object SegmentSearcher extends LazyLogging {
               valuesReader = valuesReader,
               hasRange = hasRange
             )
-          threadState setSequentialRead result.exists(_.indexOffset == startFrom.nextIndexOffset)
+
+          val isSequential = result.exists(_.indexOffset == startFrom.nextIndexOffset)
+
+          readState.setSequential(
+            path = path,
+            isSequential = isSequential
+          )
 
           result
         }
@@ -98,12 +106,16 @@ private[core] object SegmentSearcher extends LazyLogging {
             hasRange = hasRange
           )
 
-        threadState setSequentialRead {
+        val isSequential =
           result exists {
             result =>
               start.exists(_.nextIndexOffset == result.indexOffset)
           }
-        }
+
+        readState.setSequential(
+          path = path,
+          isSequential = isSequential
+        )
 
         result
     }
