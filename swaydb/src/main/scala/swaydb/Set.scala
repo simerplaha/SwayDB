@@ -22,6 +22,7 @@ package swaydb
 import swaydb.PrepareImplicits._
 import swaydb.Tag.Implicits._
 import swaydb.core.Core
+import swaydb.core.segment.ReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -45,12 +46,10 @@ case class Set[A, T[_]](private val core: Core[T],
                                                                                tag: Tag[T]) extends Streamable[A, T] { self =>
 
   def get(elem: A): T[Option[A]] =
-  //    tag.point(core.getKey(elem).map(_.map(_.read[A])))
-    ???
+    tag.point(core.getKey(elem, core.readStates.get()).map(_.map(_.read[A])))
 
   def contains(elem: A): T[Boolean] =
-  //    tag.point(core contains elem)
-    ???
+    tag.point(core.contains(elem, core.readStates.get()))
 
   def mightContain(elem: A): T[Boolean] =
     tag.point(core mightContainKey elem)
@@ -124,8 +123,7 @@ case class Set[A, T[_]](private val core: Core[T],
     }
 
   def clear(): T[IO.Done] =
-  //    tag.point(core.clear())
-    ???
+    tag.point(core.clear(core.readStates.get()))
 
   def registerFunction(functionID: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
     core.registerFunction(functionID, SwayDB.toCoreFunction(function))
@@ -160,8 +158,7 @@ case class Set[A, T[_]](private val core: Core[T],
     (elem: Slice[Byte]).size
 
   def expiration(elem: A): T[Option[Deadline]] =
-  //    tag.point(core deadline elem)
-    ???
+    tag.point(core.deadline(elem, core.readStates.get()))
 
   def timeLeft(elem: A): T[Option[FiniteDuration]] =
     expiration(elem).map(_.map(_.timeLeft))
@@ -182,34 +179,36 @@ case class Set[A, T[_]](private val core: Core[T],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   override def headOption: T[Option[A]] =
-  //    tag.point {
-  //      from match {
-  //        case Some(from) =>
-  //          val fromKeyBytes: Slice[Byte] = from.key
-  //          if (from.before)
-  //            core.beforeKey(fromKeyBytes)
-  //          else if (from.after)
-  //            core.afterKey(fromKeyBytes)
-  //          else
-  //            core.getKey(fromKeyBytes)
-  //              .flatMap {
-  //                case Some(key) =>
-  //                  tag.success(Some(key)): T[Option[Slice[Byte]]]
-  //
-  //                case _ =>
-  //                  if (from.orAfter)
-  //                    core.afterKey(fromKeyBytes)
-  //                  else if (from.orBefore)
-  //                    core.beforeKey(fromKeyBytes)
-  //                  else
-  //                    tag.success(None): T[Option[Slice[Byte]]]
-  //              }
-  //
-  //        case None =>
-  //          if (reverseIteration) core.lastKey else core.headKey
-  //      }
-  //    } map (_.map(_.read[A]))
-    ???
+    headOption(core.readStates.get())
+
+  protected def headOption(readState: ReadState): T[Option[A]] =
+    tag.point {
+      from match {
+        case Some(from) =>
+          val fromKeyBytes: Slice[Byte] = from.key
+          if (from.before)
+            core.beforeKey(fromKeyBytes, readState)
+          else if (from.after)
+            core.afterKey(fromKeyBytes, readState)
+          else
+            core.getKey(fromKeyBytes, readState)
+              .flatMap {
+                case Some(key) =>
+                  tag.success(Some(key)): T[Option[Slice[Byte]]]
+
+                case _ =>
+                  if (from.orAfter)
+                    core.afterKey(fromKeyBytes, readState)
+                  else if (from.orBefore)
+                    core.beforeKey(fromKeyBytes, readState)
+                  else
+                    tag.success(None): T[Option[Slice[Byte]]]
+              }
+
+        case None =>
+          if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
+      }
+    } map (_.map(_.read[A]))
 
   override def drop(count: Int): Stream[A, T] =
     stream drop count
@@ -250,31 +249,28 @@ case class Set[A, T[_]](private val core: Core[T],
         self.headOption
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
-      //        tag.point {
-      //          if (reverseIteration)
-      //            core.beforeKey(serializer.write(previous))
-      //          else
-      //            core.afterKey(serializer.write(previous))
-      //        } map (_.map(_.read[A]))
-        ???
+        tag.point {
+          if (reverseIteration)
+            core.beforeKey(serializer.write(previous), core.readStates.get())
+          else
+            core.afterKey(serializer.write(previous), core.readStates.get())
+        } map (_.map(_.read[A]))
     }
 
   def sizeOfBloomFilterEntries: T[Int] =
     tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =
-  //    tag.point(core.headKey.map(_.isEmpty))
-    ???
+    tag.point(core.headKey(core.readStates.get()).map(_.isEmpty))
 
   def nonEmpty: T[Boolean] =
     isEmpty.map(!_)
 
   def lastOption: T[Option[A]] =
-  //    if (reverseIteration)
-  //      tag.point(core.headKey.map(_.map(_.read[A])))
-  //    else
-  //      tag.point(core.lastKey.map(_.map(_.read[A])))
-    ???
+    if (reverseIteration)
+      tag.point(core.headKey(core.readStates.get()).map(_.map(_.read[A])))
+    else
+      tag.point(core.lastKey(core.readStates.get()).map(_.map(_.read[A])))
 
   def reverse: Set[A, T] =
     copy(reverseIteration = true)

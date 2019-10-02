@@ -19,6 +19,8 @@
 
 package swaydb.core
 
+import java.util.function.Supplier
+
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
@@ -119,6 +121,13 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
                                  onClose: => IO.Defer[swaydb.Error.Close, Unit])(implicit tag: Tag[T]) {
 
   import Tag.Implicits._
+
+  protected[swaydb] val readStates =
+    ThreadLocal.withInitial[ReadState] {
+      new Supplier[ReadState] {
+        override def get(): ReadState = ReadState.limitHashMap(10, 2)
+      }
+    }
 
   def put(key: Slice[Byte]): T[IO.Done] =
     tag.point(tag.fromIO(zero.put(key)))
