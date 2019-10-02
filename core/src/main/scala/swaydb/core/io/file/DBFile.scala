@@ -78,6 +78,7 @@ object DBFile extends LazyLogging {
 
             if (autoClose)
               fileSweeper.close(closer)
+
             openResult
           }
       }

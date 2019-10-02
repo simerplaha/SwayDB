@@ -209,7 +209,13 @@ private[core] object Effect extends LazyLogging {
     val extensionIndex = fileName.lastIndexOf(".")
     val extIndex = if (extensionIndex <= 0) fileName.length else extensionIndex
 
-    val fileId = fileName.substring(0, extIndex).toLong
+    val fileId =
+      try
+        fileName.substring(0, extIndex).toLong
+      catch {
+        case _: NumberFormatException =>
+          throw swaydb.Exception.NotAnIntFile(path)
+      }
 
     val ext = fileName.substring(extIndex + 1, fileName.length)
     if (ext == Extension.Log.toString)

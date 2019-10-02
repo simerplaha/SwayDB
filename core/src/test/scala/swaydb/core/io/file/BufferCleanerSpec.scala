@@ -19,6 +19,8 @@
 //
 //package swaydb.core.io.file
 //
+//import swaydb.IOValues._
+//
 //import java.nio.channels.FileChannel
 //import java.nio.channels.FileChannel.MapMode
 //import java.nio.file.{NoSuchFileException, StandardOpenOption}
@@ -58,7 +60,7 @@
 //      )
 //
 //    eventual(10.seconds) {
-//      file.file match {
+//      IO(file.file) match {
 //        case IO.Right(file: MMAPFile) =>
 //          file.isBufferEmpty shouldBe true
 //
@@ -82,15 +84,17 @@
 //        (1 to 20) map {
 //          _ =>
 //            val file =
-//              DBFile.mmapWriteAndRead(
-//                path = randomDir,
-//                ioStrategy = randomIOStrategy(cacheOnAccess = true),
-//                autoClose = true,
-//                blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-//                bytes = Slice(randomBytesSlice())
-//              ).get
+//              IO {
+//                DBFile.mmapWriteAndRead(
+//                  path = randomDir,
+//                  ioStrategy = randomIOStrategy(cacheOnAccess = true),
+//                  autoClose = true,
+//                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+//                  bytes = Slice(randomBytesSlice())
+//                )
+//              }.get
 //
-//            file.delete().get
+//            IO(file.delete()).get
 //            file
 //        }
 //
@@ -100,7 +104,7 @@
 //        file =>
 //          Future {
 //            while (true)
-//              file.get(0).left.get.exception shouldBe a[NoSuchFileException]
+//              IO(file.get(0)).left.value shouldBe a[NoSuchFileException]
 //          }
 //      }
 //
