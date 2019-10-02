@@ -15,8 +15,18 @@ sealed trait LimitHashMapSpec extends FlatSpec with Matchers {
 
   def createMap[K, V](limit: Int): LimitHashMap[K, V]
 
+  it should "not fail if limit is <= 0" in {
+    val zeroMap = createMap[Int, Int](0)
+    zeroMap.get(1) shouldBe empty
+    zeroMap.size shouldBe 0
+
+    val negativeMap = createMap[Int, Int](-1)
+    negativeMap.get(1) shouldBe empty
+    negativeMap.size shouldBe 0
+  }
+
   it should "return none for empty" in {
-    val map = createMap[Int, Int](10)
+    val map = createMap[Int, Int](1)
     (1 to 100) foreach {
       i =>
         map.get(i) shouldBe empty

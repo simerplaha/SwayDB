@@ -23,8 +23,10 @@ object LimitHashMap {
    * @param maxProbe Number of re-tries on hash collision.
    */
   def apply[K, V](limit: Int,
-                  maxProbe: Int): LimitHashMap[K, V] =
-    if (maxProbe <= 0)
+                  maxProbe: Int): LimitHashMap[K, V] = {
+    if (limit <= 0)
+      new Empty[K, V]
+    else if (maxProbe <= 0)
       new NoProbe[K, V](
         array = new Array[(K, V)](limit)
       )
@@ -33,14 +35,18 @@ object LimitHashMap {
         array = new Array[(K, V)](limit),
         maxProbe = maxProbe
       )
+  }
 
   /**
    * @param limit Max number of key-values
    */
   def apply[K, V](limit: Int): LimitHashMap[K, V] =
-    new NoProbe[K, V](
-      array = new Array[(K, V)](limit)
-    )
+    if (limit <= 0)
+      new Empty[K, V]
+    else
+      new NoProbe[K, V](
+        array = new Array[(K, V)](limit)
+      )
 
   private class Probed[K, V](array: Array[(K, V)], maxProbe: Int) extends LimitHashMap[K, V] {
 
@@ -101,5 +107,12 @@ object LimitHashMap {
 
     override def iterator: Iterator[(K, V)] =
       array.iterator
+  }
+
+  private class Empty[K, V] extends LimitHashMap[K, V] {
+    override def limit: Int = 0
+    override def put(key: K, value: V): Unit = ()
+    override def get(key: K): Option[V] = None
+    override def iterator: Iterator[(K, V)] = Iterator.empty
   }
 }
