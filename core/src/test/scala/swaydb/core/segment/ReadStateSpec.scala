@@ -10,7 +10,7 @@ class ReadStateSpec extends WordSpec with Matchers {
   "SlotState" should {
     "return true for non existing keys" in {
 
-      val state = ReadState.hashSlot(10)
+      val state = ReadState.limitHashMap(10)
 
       (1 to 100) foreach {
         _ =>
@@ -19,7 +19,7 @@ class ReadStateSpec extends WordSpec with Matchers {
     }
 
     "assign" in {
-      val state = ReadState.hashSlot(10)
+      val state = ReadState.limitHashMap(10)
 
       val keys =
         (1 to 1000) map {
