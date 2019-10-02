@@ -21,12 +21,11 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO._
+import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
-import swaydb.core.segment.format.a.block.KeyMatcher.Result.AheadOrNoneOrEnd
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.util.Bytes
@@ -34,7 +33,6 @@ import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
-import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 

@@ -20,23 +20,19 @@
 package swaydb.core.segment.format.a.block.hashindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.Numbers._
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy, RandomKeyIndex, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
-import swaydb.{Error, IO}
 
 import scala.annotation.tailrec
 import scala.beans.BeanProperty
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
