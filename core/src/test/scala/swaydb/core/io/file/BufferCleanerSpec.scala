@@ -29,7 +29,7 @@
 //import swaydb.core.TestData._
 //import swaydb.core.actor.FileSweeper
 //import swaydb.core.util.BlockCacheFileIDGenerator
-//import swaydb.core.{TestBase, TestExecutionContext, TestLimitQueues}
+//import swaydb.core.{TestBase, TestExecutionContext, TestSweeper}
 //import swaydb.data.config.ActorConfig
 //import swaydb.data.slice.Slice
 //
@@ -38,8 +38,8 @@
 //
 //class BufferCleanerSpec extends TestBase {
 //
-//  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
-//  implicit val memorySweeper = TestLimitQueues.memorySweeper
+//  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
+//  implicit val memorySweeper = TestSweeper.memorySweeper10
 //
 //  override def beforeEach(): Unit = {
 //    BufferCleaner.initialiseCleaner

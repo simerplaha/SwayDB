@@ -31,7 +31,7 @@
 //import swaydb.core.io.file.Effect._
 //import swaydb.core.actor.MemorySweeper
 //import swaydb.core.segment.Segment
-//import swaydb.core.{TestBase, TestLimitQueues}
+//import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.data.compaction.Throttle
 //import swaydb.data.order.{KeyOrder, TimeOrder}
 //import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException}
@@ -46,8 +46,8 @@
 //  implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 //
-//  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-//  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.Both] = TestLimitQueues.memorySweeper
+//  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+//  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeper10
 //
 //  "AppendixRepair" should {
 //    "fail if the input path does not exist" in {

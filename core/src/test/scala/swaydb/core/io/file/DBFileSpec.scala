@@ -31,16 +31,16 @@
 //import swaydb.core.TestData._
 //import swaydb.core.actor.{FileSweeper, FileSweeperItem}
 //import swaydb.core.util.PipeOps._
-//import swaydb.core.{TestBase, TestLimitQueues}
+//import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.data.slice.Slice
 //
 //import scala.collection.JavaConverters._
 //
 //class DBFileSpec extends TestBase with MockFactory {
 //
-//  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-//  implicit val memorySweeper = TestLimitQueues.memorySweeper
-//  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
+//  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+//  implicit val memorySweeper = TestSweeper.memorySweeper10
+//  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 //
 //  "DBFile.write" should {
 //    "write bytes to a File" in {

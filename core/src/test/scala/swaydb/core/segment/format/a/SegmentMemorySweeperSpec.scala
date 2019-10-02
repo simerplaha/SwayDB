@@ -34,7 +34,7 @@
 //import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 //import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 //import swaydb.core.util.Benchmark
-//import swaydb.core.{TestBase, TestLimitQueues}
+//import swaydb.core.{TestBase, TestSweeper}
 //import swaydb.data.config.{ActorConfig, MemoryCache}
 //import swaydb.data.order.{KeyOrder, TimeOrder}
 //import swaydb.data.slice.Slice
@@ -49,8 +49,8 @@
 //
 //  val keyValuesCount = 100
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-//  implicit val memorySweeper = TestLimitQueues.memorySweeper
-//  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
+//  implicit val memorySweeper = TestSweeper.memorySweeper10
+//  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 //
 //  //  override def deleteFiles = false
 //
@@ -71,7 +71,7 @@
 //      try {
 //
 //        //create persistent Segment
-//        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), TestLimitQueues.fileSweeper, timeOrder, blockCache, SegmentIO.random).runRandomIO.right.value
+//        val segment = TestSegment(mergedKeyValues)(KeyOrder.default, Some(memorySweeper), TestSweeper.fileSweeper, timeOrder, blockCache, SegmentIO.random).runRandomIO.right.value
 //
 //        //initially Segment's cache is empty
 //        segment.areAllCachesEmpty shouldBe true
