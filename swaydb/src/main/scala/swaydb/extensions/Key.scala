@@ -19,7 +19,7 @@
 
 package swaydb.extensions
 
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
@@ -86,18 +86,14 @@ private[extensions] object Key {
     }
 
   private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[swaydb.Error.Segment, Seq[K]] = {
-    def readOne(reader: ReaderBase): IO[swaydb.Error.Segment, Option[K]] =
-      ???
-    //      reader
-    //        .readUnsignedInt()
-    //        .flatMap(reader.read)
-    //        .map {
-    //          bytes =>
-    //            if (bytes.isEmpty)
-    //              None
-    //            else
-    //              Some(keySerializer.read(bytes))
-    //        }
+    def readOne(reader: ReaderBase): IO[Error.Segment, Option[K]] =
+      IO[swaydb.Error.Segment, Option[K]] {
+        val bytes = reader.read(reader.readUnsignedInt())
+        if (bytes.isEmpty)
+          None
+        else
+          Some(keySerializer.read(bytes))
+      }
 
     Reader(keys).foldLeftIO(Seq.empty[K]) {
       case (keys, reader) =>
