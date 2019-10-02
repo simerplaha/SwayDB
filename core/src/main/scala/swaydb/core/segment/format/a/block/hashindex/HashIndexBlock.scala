@@ -482,7 +482,10 @@ private[core] object HashIndexBlock extends LazyLogging {
     //this will be entrySize/sortedIndexOffset if it's a reference else it will be thisKeyValuesAccessIndexOffset.
     val (entrySizeOrAccessIndexOffsetEntry, entrySizeOrAccessIndexOffsetEntryByteSize) = valueBytesWithoutCRC.readUnsignedIntWithByteSize()
 
-    val (entrySize, entryByteSize) = valueBytesWithoutCRC.drop(entrySizeOrAccessIndexOffsetEntryByteSize).readUnsignedIntWithByteSize()
+    val (entrySize, entryByteSize) =
+      valueBytesWithoutCRC
+        .drop(entrySizeOrAccessIndexOffsetEntryByteSize)
+        .readUnsignedIntWithByteSize()
 
     val valueBytes =
       valueBytesWithoutCRC

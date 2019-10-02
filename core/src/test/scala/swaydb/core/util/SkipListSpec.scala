@@ -355,24 +355,24 @@ sealed trait SkipListSpec extends FlatSpec with Matchers {
     skipList.isEmpty shouldBe true
   }
 
-  it should "concurrent vs minMax" in {
-    implicit val ordering = KeyOrder[Int](Ordering.Int)
-
-    //    val skipList = SkipList.concurrent[Int, Int]()
-    //    var size = 0
-//        val skipList = SkipList.minMax[Int, Int]()
-    val skipList = new util.SkipList.ConcurrentLimit[Int, Int](10, SkipList.concurrent[Int, Int]())
-
-    val range = Random.shuffle(1 to 10000000)
-
-    Benchmark("") {
-      range foreach {
-        i =>
-          skipList.put(i, i)
-          skipList.get(i)
-      }
-    }
-
-//    skipList.skipListSize.get() shouldBe skipList.size
-  }
+  //  it should "concurrent vs minMax" in {
+  //    implicit val ordering = KeyOrder[Int](Ordering.Int)
+  //
+  //    //    val skipList = SkipList.concurrent[Int, Int]()
+  //    //    var size = 0
+  ////        val skipList = SkipList.minMax[Int, Int]()
+  //    val skipList = new util.SkipList.ConcurrentLimit[Int, Int](10, SkipList.concurrent[Int, Int]())
+  //
+  //    val range = Random.shuffle(1 to 10000000)
+  //
+  //    Benchmark("") {
+  //      range foreach {
+  //        i =>
+  //          skipList.put(i, i)
+  //          skipList.get(i)
+  //      }
+  //    }
+  //
+  ////    skipList.skipListSize.get() shouldBe skipList.size
+  //  }
 }
