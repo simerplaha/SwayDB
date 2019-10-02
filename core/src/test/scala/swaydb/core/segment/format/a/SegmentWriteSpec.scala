@@ -39,7 +39,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.SegmentMerger
-import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
+import swaydb.core.segment.{MemorySegment, PersistentSegment, ReadState, Segment}
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.MaxKey
@@ -166,13 +166,21 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "un-slice Segment's minKey & maxKey and also un-slice cache key-values" in {
       //assert that all key-values added to cache are not sub-slices.
-      def assertCacheKeyValuesAreSliced(segment: Segment) =
-      //        segment.skipList.asScala foreach {
-      //          case (key, value: KeyValue.ReadOnly) =>
-      //            key.shouldBeSliced()
-      //            assertSliced(value)
-      //        }
-        ???
+      def assertCacheKeyValuesAreSliced(segment: Segment) = {
+        val skipList =
+          segment match {
+            case MemorySegment(path, segmentId, minKey, maxKey, minMaxFunctionId, segmentSize, hasRange, hasPut, createdInLevel, skipList, bloomFilterReader, nearestExpiryDeadline) =>
+              skipList
+            case segment @ PersistentSegment(file, segmentId, mmapReads, mmapWrites, minKey, maxKey, minMaxFunctionId, segmentSize, nearestExpiryDeadline, segmentCache) =>
+              segment.segmentCache.skipList.get
+          }
+
+        skipList.asScala foreach {
+          case (key, value: KeyValue.ReadOnly) =>
+            key.shouldBeSliced()
+            assertSliced(value)
+        }
+      }
 
       def assertMinAndMaxKeyAreSliced(segment: Segment) = {
         segment.minKey.underlyingArraySize shouldBe 1
@@ -411,9 +419,6 @@ sealed trait SegmentWriteSpec extends TestBase {
                 segment.isKeyValueCacheEmpty shouldBe true
 
                 assertHigher(keyValues, segment)
-
-                //                segment.skipList.isConcurrent shouldBe true
-                ???
 
                 segment.isOpen shouldBe true
                 segment.isFileDefined shouldBe true

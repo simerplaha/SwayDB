@@ -399,7 +399,7 @@ private[core] class SegmentCache(path: Path,
     blockCache.getFooter().hasPut
 
   def isKeyValueCacheEmpty =
-    skipList.isEmpty
+    skipList.forall(_.isEmpty)
 
   def isBlockCacheEmpty =
     !blockCache.isCached
@@ -417,7 +417,7 @@ private[core] class SegmentCache(path: Path,
     skipList contains key
 
   def cacheSize: Int =
-    skipList.size
+    skipList.foldLeft(0)(_ + _.size)
 
   def clearCachedKeyValues() =
     skipList.foreach(_.clear())
