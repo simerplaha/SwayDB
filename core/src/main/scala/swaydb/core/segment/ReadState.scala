@@ -4,24 +4,24 @@ import java.nio.file.Path
 
 import swaydb.core.util.LimitHashMap
 
-sealed trait ReadState {
+private[swaydb] sealed trait ReadState {
   def isSequential(path: Path): Boolean
   def setSequential(path: Path, isSequential: Boolean): Unit
 }
 
-object ReadState {
+private[swaydb] object ReadState {
 
   def hashMap(): ReadState =
     new HashMapState(new java.util.HashMap[Path, Boolean]())
 
   def limitHashMap(maxSize: Int,
                    probe: Int): ReadState =
-    new SlotState(LimitHashMap[Path, Boolean](maxSize, probe))
+    new LimitHashMapState(LimitHashMap[Path, Boolean](maxSize, probe))
 
   def limitHashMap(maxSize: Int): ReadState =
-    new SlotState(LimitHashMap[Path, Boolean](maxSize))
+    new LimitHashMapState(LimitHashMap[Path, Boolean](maxSize))
 
-  class HashMapState(map: java.util.HashMap[Path, Boolean]) extends ReadState {
+  private class HashMapState(map: java.util.HashMap[Path, Boolean]) extends ReadState {
 
     def isSequential(path: Path): Boolean = {
       val isSeq = map.get(path)
@@ -32,7 +32,7 @@ object ReadState {
       map.put(path, isSequential)
   }
 
-  class SlotState(map: LimitHashMap[Path, Boolean]) extends ReadState {
+  private class LimitHashMapState(map: LimitHashMap[Path, Boolean]) extends ReadState {
 
     def isSequential(path: Path): Boolean =
       map.get(path).forall(_ == true)
