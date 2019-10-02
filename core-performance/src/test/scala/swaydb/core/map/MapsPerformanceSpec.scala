@@ -27,7 +27,7 @@ import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Benchmark
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -38,8 +38,8 @@ class MapsPerformanceSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit def testTimer: TestTimer = TestTimer.random
-  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeper = TestLimitQueues.memorySweeperMax
+  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val memorySweeper = TestSweeper.memorySweeperMax
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._

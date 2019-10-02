@@ -28,7 +28,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.SortedIndexBlock
-import swaydb.core.{Blocks, TestBase, TestLimitQueues}
+import swaydb.core.{Blocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -40,7 +40,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
 
   implicit val keyOrder = KeyOrder.default
 
-  implicit val blockCacheMemorySweeper = TestLimitQueues.memorySweeperBlock
+  implicit val blockCacheMemorySweeper = TestSweeper.memorySweeperBlock
 
   val startId = 0
 

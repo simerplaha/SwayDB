@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block.hashindex
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.core.{TestBase, TestSweeper}
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
@@ -41,7 +41,7 @@ class HashIndexBlockSpec extends TestBase {
 
   val keyValueCount = 10000
 
-  implicit val blockCacheMemorySweeper = TestLimitQueues.memorySweeperBlock
+  implicit val blockCacheMemorySweeper = TestSweeper.memorySweeperBlock
 
   import keyOrder._
 

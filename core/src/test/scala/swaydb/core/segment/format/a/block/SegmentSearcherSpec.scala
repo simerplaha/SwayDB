@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.util.Benchmark
-import swaydb.core.{Blocks, TestBase, TestLimitQueues}
+import swaydb.core.{Blocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -43,7 +43,7 @@ import scala.util.Try
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
-  implicit val limiter = TestLimitQueues.memorySweeperMax
+  implicit val limiter = TestSweeper.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 
   def randomlySelectHigher(index: Int, keyValues: Slice[Persistent]) =

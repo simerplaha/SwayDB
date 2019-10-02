@@ -37,7 +37,7 @@ import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.util.{Extension, ReserveRange}
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -80,8 +80,8 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   //    override def deleteFiles: Boolean =
   //      false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestLimitQueues.memorySweeperMax
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val memorySweeperImplicitSweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
   implicit val skipListMerger = LevelZeroSkipListMerger
 
   "acquireLock" should {

@@ -105,7 +105,7 @@ object CommonAssertions {
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeperMax,
+                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax,
                                      segmentIO: SegmentIO = SegmentIO.random): Unit = {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
@@ -1378,7 +1378,15 @@ object CommonAssertions {
     if (randomBoolean())
       IOStrategy.SynchronisedIO(cacheOnAccess)
     else if (includeReserved && randomBoolean())
-      IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries. =
+      IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries.
+    else
+      IOStrategy.ConcurrentIO(cacheOnAccess)
+
+  def randomIOStrategyWithCacheOnAccess(cacheOnAccess: Boolean): IOStrategy =
+    if (randomBoolean())
+      IOStrategy.SynchronisedIO(cacheOnAccess)
+    else if (randomBoolean())
+      IOStrategy.AsyncIO(cacheOnAccess = cacheOnAccess) //not used in stress tests.
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 

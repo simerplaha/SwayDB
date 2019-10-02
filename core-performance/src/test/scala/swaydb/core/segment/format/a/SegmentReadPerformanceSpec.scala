@@ -31,7 +31,7 @@ import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -72,11 +72,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   //    override def deleteFiles = false
 
-  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  //  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeperMax
-  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeper10
+  implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
+//    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.someMemorySweeperMax
+  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
   //  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
-  implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
+  implicit val blockCache: Option[BlockCache.State] = TestSweeper.blockCache
 
   def strategy(action: IOAction): IOStrategy =
     action match {
@@ -210,7 +210,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   val shuffledKeyValues = Random.shuffle(keyValues)
 
   def assertGet(segment: Segment) = {
-    val readState = ReadState()
+    val readState = ReadState.limitHashMap(1)
     keyValues foreach {
       keyValue =>
         //        if (index % 10000 == 0)
@@ -227,7 +227,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   }
 
   def assertHigher(segment: Segment) = {
-    val readState = ReadState()
+    val readState = ReadState.hashMap()
     (0 until keyValues.size - 1) foreach {
       index =>
         //        segment.higherKey(keyValues(index).key)
@@ -240,7 +240,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   }
 
   def assertLower(segment: Segment) = {
-    val readState = ReadState()
+    val readState = ReadState.hashMap()
     (1 until keyValues.size) foreach {
       index =>
         //        println(s"index: $index")

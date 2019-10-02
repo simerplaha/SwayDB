@@ -27,8 +27,8 @@ import scala.util.Random
 trait IOValues {
 
   implicit class SafeIO[T](io: => T) {
-    def runRandomIO: IO[Throwable, T] =
-      IO.Defer(io).runRandomIO
+    def runRandomIO: IO[swaydb.Error.Segment, T] =
+      IO.Defer[swaydb.Error.Segment, T](io).runRandomIO
   }
 
   implicit class IOIncompleteImplicits[L: IO.ExceptionHandler, R](io: => IO[L, R]) {
@@ -44,12 +44,7 @@ trait IOValues {
 
   implicit class IOImplicits[E, T](io: IO[E, T]) {
     def value: T =
-      try
-        io.get
-      catch {
-        case exception: Exception =>
-          throw new AssertionError("Value is not IO.Right.", exception)
-      }
+      io.get
   }
 
   implicit class DeferredIOImplicits[L: IO.ExceptionHandler, R](io: => IO.Defer[L, R]) {

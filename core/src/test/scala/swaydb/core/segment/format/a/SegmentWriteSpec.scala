@@ -41,7 +41,7 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.SegmentMerger
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util._
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.config.{ActorConfig, Dir}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -86,12 +86,12 @@ sealed trait SegmentWriteSpec extends TestBase {
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def segmentIO = SegmentIO.random
-  implicit val memorySweeper: Option[MemorySweeper.All] = TestLimitQueues.memorySweeperMax
-  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit val memorySweeper: Option[MemorySweeper.All] = TestSweeper.memorySweeperMax
+  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   //  override def deleteFiles = false
 
-  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
+  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
 
   "Segment" should {
 
@@ -99,38 +99,35 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(100.times, log = true) {
         assertSegment(
           keyValues =
-            //            randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),
-            Slice(randomPutKeyValue(1, None, None).toTransient(previous = None, sortedIndexConfig = SortedIndexBlock.Config.random.copy(disableKeyPrefixCompression = true, enablePartialRead = true, prefixCompressionResetCount = 0))),
+            randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),
+          //            Slice(randomPutKeyValue(1, None, None).toTransient(previous = None, sortedIndexConfig = SortedIndexBlock.Config.random.copy(disableKeyPrefixCompression = true, enablePartialRead = true, prefixCompressionResetCount = 0))),
 
           assert =
             (keyValues, segment) => {
               assertReads(keyValues, segment)
-              //              segment.segmentId shouldBe IOEffect.fileId(segment.path).get._1
-              //              segment.minKey shouldBe keyValues.head.key
-              //              segment.maxKey shouldBe {
-              //                keyValues.last match {
-              //                  case _: Transient.Fixed =>
-              //                    MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
-              //
-              //                  case group: Transient.Group =>
-              //                    group.maxKey
-              //
-              //                  case range: Transient.Range =>
-              //                    MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
-              //                }
-              //              }
-              //              //ensure that min and max keys are slices
-              //              segment.minKey.underlyingArraySize shouldBe 4
-              //              segment.maxKey match {
-              //                case MaxKey.Fixed(maxKey) =>
-              //                  maxKey.underlyingArraySize shouldBe 4
-              //
-              //                case MaxKey.Range(fromKey, maxKey) =>
-              //                  fromKey.underlyingArraySize shouldBe 4
-              //                  maxKey.underlyingArraySize shouldBe 4
-              //              }
-              //              assertBloom(keyValues, segment)
-              //              segment.close.right.value
+              segment.segmentId shouldBe Effect.fileId(segment.path)._1
+              segment.minKey shouldBe keyValues.head.key
+              segment.maxKey shouldBe {
+                keyValues.last match {
+                  case _: Transient.Fixed =>
+                    MaxKey.Fixed[Slice[Byte]](keyValues.last.key)
+
+                  case range: Transient.Range =>
+                    MaxKey.Range[Slice[Byte]](range.fromKey, range.toKey)
+                }
+              }
+              //ensure that min and max keys are slices
+              segment.minKey.underlyingArraySize shouldBe 4
+              segment.maxKey match {
+                case MaxKey.Fixed(maxKey) =>
+                  maxKey.underlyingArraySize shouldBe 4
+
+                case MaxKey.Range(fromKey, maxKey) =>
+                  fromKey.underlyingArraySize shouldBe 4
+                  maxKey.underlyingArraySize shouldBe 4
+              }
+              assertBloom(keyValues, segment)
+              segment.close
             }
         )
       }
@@ -442,7 +439,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValues = randomizedKeyValues(keyValuesCount),
             assert =
               (keyValues, segment) => {
-                implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = orNone(TestLimitQueues.keyValueSweeperBlock)
+                implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = orNone(TestSweeper.keyValueSweeperBlock)
                 val readSegment =
                   Segment(
                     path = segment.path,
@@ -579,7 +576,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     if (memory) {
       //memory Segments do not value closed via
     } else {
-      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
       implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(100.millisecond, ec))
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit)
@@ -653,7 +650,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
   "copyToPersist" should {
     "copy the segment and persist it to disk" in {
-      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
 
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues)
@@ -693,7 +690,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when remove deletes is true" in {
       runThis(10.times) {
-        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath
@@ -740,7 +737,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy if Segment initialisation fails after copy" in {
-      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
       val keyValues = randomizedKeyValues(keyValuesCount)
       val segment = TestSegment(keyValues)
       val levelPath = createNextLevelPath
@@ -783,7 +780,7 @@ sealed trait SegmentWriteSpec extends TestBase {
     }
 
     "revert copy of Key-values if creating at least one Segment fails" in {
-      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
       val keyValues = randomizedKeyValues(keyValuesCount)
       val levelPath = createNextLevelPath
       val nextSegmentId = nextId
@@ -833,7 +830,7 @@ sealed trait SegmentWriteSpec extends TestBase {
   "copyToMemory" should {
     "copy persistent segment and store it in Memory" in {
       runThis(100.times) {
-        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath
@@ -871,7 +868,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "copy the segment and persist it to disk when removeDeletes is true" in {
       runThis(10.times) {
-        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax
+        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
         val levelPath = createNextLevelPath

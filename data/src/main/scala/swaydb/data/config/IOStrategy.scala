@@ -20,7 +20,7 @@ package swaydb.data.config
 
 sealed trait IOStrategy {
   def cacheOnAccess: Boolean
-  def withCacheOnAccess: IOStrategy
+  def forceCacheOnAccess: IOStrategy
 }
 object IOStrategy {
 
@@ -59,15 +59,15 @@ object IOStrategy {
     IOStrategy.ConcurrentIO(true)
 
   case class ConcurrentIO(cacheOnAccess: Boolean) extends IOStrategy {
-    def withCacheOnAccess: ConcurrentIO =
+    def forceCacheOnAccess: ConcurrentIO =
       copy(cacheOnAccess = true)
   }
   case class SynchronisedIO(cacheOnAccess: Boolean) extends IOStrategy {
-    def withCacheOnAccess: SynchronisedIO =
+    def forceCacheOnAccess: SynchronisedIO =
       copy(cacheOnAccess = true)
   }
   case class AsyncIO(cacheOnAccess: Boolean) extends IOStrategy {
-    def withCacheOnAccess: AsyncIO =
+    def forceCacheOnAccess: AsyncIO =
       copy(cacheOnAccess = true)
   }
 }

@@ -32,7 +32,7 @@ import scala.concurrent.duration._
 import TestData._
 import CommonAssertions._
 
-object TestLimitQueues {
+private[swaydb] object TestSweeper {
 
   implicit val level0PushDownPool = TestExecutionContext.executionContext
 

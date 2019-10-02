@@ -22,9 +22,9 @@ package swaydb.core.io.file
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.TestLimitQueues.fileSweeper
+import swaydb.core.TestSweeper.fileSweeper
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
-import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.Future
@@ -33,8 +33,8 @@ import scala.concurrent.duration._
 class DBFileStressWriteSpec extends TestBase {
 
   implicit val limiter = fileSweeper
-  implicit val memorySweeper = TestLimitQueues.memorySweeperMax
-  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit val memorySweeper = TestSweeper.memorySweeperMax
+  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   "DBFile" should {
     //use a larger size (200000) to test on larger data-set.

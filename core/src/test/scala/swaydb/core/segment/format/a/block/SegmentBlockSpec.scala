@@ -29,7 +29,7 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.{TestBase, TestLimitQueues, TestTimer}
+import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -42,7 +42,7 @@ class SegmentBlockSpec extends TestBase {
   val keyValueCount = 100
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
-  implicit val memorySweeper = TestLimitQueues.memorySweeperMax
+  implicit val memorySweeper = TestSweeper.memorySweeperMax
 
   implicit def testTimer: TestTimer = TestTimer.random
   implicit def segmentIO: SegmentIO = SegmentIO.random

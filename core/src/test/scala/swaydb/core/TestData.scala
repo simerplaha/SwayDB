@@ -28,7 +28,7 @@ import swaydb.{IO, Scheduler}
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
-import swaydb.core.TestLimitQueues.fileSweeper
+import swaydb.core.TestSweeper.fileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
 import swaydb.core.data.KeyValue.ReadOnly
@@ -52,7 +52,7 @@ import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator, UUIDs}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{Dir, IOStrategy, RecoveryMode}
+import swaydb.data.config.{ActorConfig, Dir, IOStrategy, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -121,10 +121,10 @@ object TestData {
 
   implicit class ReopenSegment(segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                  ec: ExecutionContext,
-                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                  fileSweeper: FileSweeper.Enabled = fileSweeper,
                                                  timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                 blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache,
+                                                 blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                  segmentIO: SegmentIO = SegmentIO.random) {
 
     def tryReopen: Segment =
@@ -177,7 +177,7 @@ object TestData {
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                            ec: ExecutionContext,
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                            segmentIO: SegmentIO = SegmentIO.random) {
 
     import swaydb.Error.Level.ExceptionHandler
@@ -185,8 +185,8 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper,
-                                                              blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Unit] = {
+    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                              blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): IO[swaydb.Error.Level, Unit] = {
       def fetchNextPath = {
         val segmentId = level.segmentIDGenerator.nextID
         val path = level.paths.next.resolve(IDGenerator.segmentId(segmentId))
@@ -258,7 +258,7 @@ object TestData {
 
     def reopen(segmentSize: Long = level.segmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
-               nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+               nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                fileSweeper: FileSweeper = fileSweeper): Level =
       tryReopen(
         segmentSize = segmentSize,
@@ -268,9 +268,9 @@ object TestData {
 
     def tryReopen(segmentSize: Long = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
-                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+                  nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                   fileSweeper: FileSweeper.Enabled = fileSweeper,
-                                                                  blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache): IO[swaydb.Error.Level, Level] =
+                                                                  blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): IO[swaydb.Error.Level, Level] =
       level.releaseLocks flatMap {
         _ =>
           level.closeSegments flatMap {
@@ -307,7 +307,7 @@ object TestData {
     def reopen: LevelZero =
       reopen()
 
-    def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax,
+    def reopen(mapSize: Long = level.maps.map.size)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                     timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                     fileSweeper: FileSweeper.Enabled = fileSweeper): LevelZero = {
       val reopened =
@@ -458,7 +458,7 @@ object TestData {
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                     hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                     bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax): Slice[Transient] = {
+                                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Transient] = {
       val slice = Slice.create[Transient](keyValues.size)
 
       keyValues foreach {
@@ -573,7 +573,7 @@ object TestData {
   }
 
   implicit class ReadOnlyKeyValueToMemory(keyValue: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax) {
+                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax) {
 
     def toTransient: Transient =
       toTransient(None)
@@ -1556,7 +1556,7 @@ object TestData {
                                addRemoveDeadlines: Boolean = false,
                                addPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                  keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax): Slice[Transient] =
+                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1587,7 +1587,7 @@ object TestData {
                           hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                           bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax): Slice[Transient] =
+                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1651,7 +1651,7 @@ object TestData {
                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                       createdInLevel: Int = Int.MaxValue)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax): Slice[Transient] = {
+                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Transient] = {
     val slice = Slice.create[Transient](count * 50) //extra space because addRanges and random Groups can be added for Fixed and Range key-values in the same iteration.
     //            var key = 1
     var key = startId getOrElse randomInt(minus = count)
@@ -1782,7 +1782,7 @@ object TestData {
                            addRemoves: Boolean = true,
                            addRemoveDeadlines: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental(),
                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestLimitQueues.memorySweeperMax): Slice[Transient] =
+                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -2565,5 +2565,15 @@ object TestData {
       block = ValuesBlock(ValuesBlock.Offset(0, bytes.size), 0, None),
       bytes = bytes
     )
+
+  implicit class ActorConfigImplicits(actorConfig: ActorConfig.type) {
+    def random(delay: FiniteDuration = 2.seconds)(implicit ec: ExecutionContext): ActorConfig =
+      if (randomBoolean())
+        ActorConfig.Basic(ec)
+      else if (randomBoolean())
+        ActorConfig.Timer(delay, ec)
+      else
+        ActorConfig.TimeLoop(delay, ec)
+  }
 
 }

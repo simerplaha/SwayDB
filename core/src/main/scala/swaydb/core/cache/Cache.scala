@@ -232,7 +232,6 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
         next.clear()
         self.clear()
       }
-
     }
 }
 
@@ -241,8 +240,20 @@ private class BlockIOCache[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, C
   override def isStored: Boolean =
     cache.isStored
 
-  override def value(i: => I): IO[E, B] =
-    cache.value(i).value(i)
+  override def value(i: => I): IO[E, B] = {
+    //ensure that i is not executed multiple times.
+    var executed: I = null.asInstanceOf[I]
+
+    def fetch =
+      if (executed == null) {
+        executed = i
+        executed
+      } else {
+        executed
+      }
+
+    cache.value(fetch).value(fetch)
+  }
 
   override def isCached: Boolean =
     cache.get() exists (_.isCached)

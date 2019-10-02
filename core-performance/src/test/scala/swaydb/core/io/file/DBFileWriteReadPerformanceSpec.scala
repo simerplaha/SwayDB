@@ -30,7 +30,7 @@ import swaydb.core.actor.FileSweeper
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator, Bytes}
-import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.config.IOStrategy
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -39,14 +39,14 @@ import scala.util.Random
 
 class DBFileWriteReadPerformanceSpec extends TestBase {
 
-  implicit val fileSweeper: FileSweeper.Enabled = TestLimitQueues.fileSweeper
-  implicit val memorySweeper = TestLimitQueues.memorySweeperMax
-  implicit def blockCache: Option[BlockCache.State] = TestLimitQueues.randomBlockCache
+  implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
+  implicit val memorySweeper = TestSweeper.memorySweeperMax
+  implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
   "random access" in {
     val bytes = randomBytesSlice(20.mb)
 
-    implicit val blockCache: Option[BlockCache.State] = TestLimitQueues.blockCache
+    implicit val blockCache: Option[BlockCache.State] = TestSweeper.blockCache
 
     val mmapFile = DBFile.mmapInit(randomFilePath, randomIOStrategy(cacheOnAccess = true), bytes.size, autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
     mmapFile.append(bytes).runRandomIO.right.value

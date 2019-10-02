@@ -123,20 +123,21 @@ class SegmentBlockCache(path: Path,
   def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                              resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
-      strategy = reader => blockIO(reader.block.dataType).withCacheOnAccess,
+      strategy = reader => blockIO(reader.block.dataType).forceCacheOnAccess,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
       (blockedReader, self) =>
         IO {
-          val cacheOnAccess = blockIO(blockedReader.block.dataType).cacheOnAccess
+
+          val readerIsCacheOnAccess = blockIO(blockedReader.block.dataType).cacheOnAccess
 
           val reader =
             UnblockedReader(
               blockedReader = blockedReader,
-              readAllIfUncompressed = cacheOnAccess
+              readAllIfUncompressed = readerIsCacheOnAccess
             )
 
-          if (cacheOnAccess && self.isStored)
+          if (self.isStored && readerIsCacheOnAccess)
             cacheMemorySweeper foreach {
               sweeper =>
                 sweeper.add(reader.block.offset.size, self)
@@ -149,7 +150,7 @@ class SegmentBlockCache(path: Path,
   def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                                      resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
-      strategy = _.map(reader => blockIO(reader.block.dataType).withCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
+      strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
       case (Some(blockedReader), self) =>

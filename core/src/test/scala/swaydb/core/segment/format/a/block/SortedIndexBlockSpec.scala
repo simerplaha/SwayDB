@@ -28,7 +28,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.util.{Benchmark, Bytes}
-import swaydb.core.{TestBase, TestLimitQueues}
+import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
@@ -40,7 +40,7 @@ import scala.collection.mutable.ListBuffer
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
   implicit val order = KeyOrder.default
-  implicit def memorySweeper = TestLimitQueues.memorySweeperMax
+  implicit def memorySweeper = TestSweeper.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 
   private def assetEqual(keyValues: Slice[Transient], readKeyValues: Iterable[KeyValue.ReadOnly]) = {
