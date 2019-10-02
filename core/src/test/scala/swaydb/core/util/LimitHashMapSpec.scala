@@ -2,13 +2,20 @@ package swaydb.core.util
 
 import org.scalatest.OptionValues._
 import org.scalatest.{FlatSpec, Matchers}
+import swaydb.core.CommonAssertions._
+import swaydb.core.TestData._
 
 class ProbeLimitHashMap extends LimitHashMapSpec {
   def createMap[K, V](limit: Int) = LimitHashMap[K, V](limit, 10)
 }
 
 class NoProbeLimitHashMap extends LimitHashMapSpec {
-  def createMap[K, V](limit: Int) = LimitHashMap[K, V](limit)
+  def createMap[K, V](limit: Int) =
+    eitherOne(
+      //create directly with noProbe or via 0 or negative probe.
+      LimitHashMap[K, V](limit),
+      LimitHashMap[K, V](limit, -randomIntMax(2))
+    )
 }
 
 sealed trait LimitHashMapSpec extends FlatSpec with Matchers {
