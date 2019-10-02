@@ -1,7 +1,7 @@
 package swaydb.core.util
 
-import org.scalatest.{Matchers, WordSpec}
 import org.scalatest.OptionValues._
+import org.scalatest.{FlatSpec, Matchers}
 
 class ProbeLimitHashMap extends LimitHashMapSpec {
   def createMap[K, V](limit: Int) = LimitHashMap[K, V](limit, 10)
@@ -11,52 +11,62 @@ class NoProbeLimitHashMap extends LimitHashMapSpec {
   def createMap[K, V](limit: Int) = LimitHashMap[K, V](limit)
 }
 
-sealed trait LimitHashMapSpec extends WordSpec with Matchers {
+sealed trait LimitHashMapSpec extends FlatSpec with Matchers {
 
   def createMap[K, V](limit: Int): LimitHashMap[K, V]
 
-  "no probe" should {
-    "assign all slots" in {
-      val map = createMap[Int, Int](10)
+  it should "return none for empty" in {
+    val map = createMap[Int, Int](10)
+    (1 to 100) foreach {
+      i =>
+        map.get(i) shouldBe empty
+    }
+  }
 
-      (1 to 10) foreach {
-        i =>
-          map.put(i, i)
-          map.get(i).value shouldBe i
-      }
+  it should "write to all slots" in {
+    val map = createMap[Int, Int](10)
 
-      (1 to 10) foreach {
-        i =>
-          map.get(i).value shouldBe i
-      }
-
-      map.toList.sorted shouldBe (1 to 10).map(i => (i, i))
+    (1 to 10) foreach {
+      i =>
+        map.put(i, i)
+        map.get(i).value shouldBe i
     }
 
-    "assign on overflow" in {
+    (1 to 10) foreach {
+      i =>
+        map.get(i).value shouldBe i
+    }
 
-      val map = createMap[Int, Int](10)
+    map.toList.sorted shouldBe (1 to 10).map(i => (i, i))
+  }
 
-      (1 to 10) foreach {
-        i =>
-          map.put(i, i)
-      }
+  it should "overwrite on overflow" in {
 
-      (11 to 20) foreach {
-        i =>
-          map.put(i, i)
-          map.get(i).value shouldBe i
-      }
+    val map = createMap[Int, Int](10)
 
-      (11 to 20) foreach {
-        i =>
-          map.get(i).value shouldBe i
-      }
+    (1 to 10) foreach {
+      i =>
+        map.put(i, i)
+    }
 
-      (1 to 10) foreach {
-        i =>
-          map.get(i) shouldBe empty
-      }
+    map.toList.sorted shouldBe (1 to 10).map(i => (i, i))
+
+    (11 to 20) foreach {
+      i =>
+        map.put(i, i)
+        map.get(i).value shouldBe i
+    }
+
+    (11 to 20) foreach {
+      i =>
+        map.get(i).value shouldBe i
+    }
+
+    map.toList.sorted shouldBe (11 to 20).map(i => (i, i))
+
+    (1 to 10) foreach {
+      i =>
+        map.get(i) shouldBe empty
     }
   }
 }

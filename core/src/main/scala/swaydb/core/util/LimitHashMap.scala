@@ -74,7 +74,7 @@ object LimitHashMap {
         None
       } else {
         val keyValue = array(index)
-        if (keyValue._1 == key)
+        if (keyValue != null && keyValue._1 == key)
           Some(keyValue._2)
         else
           get(key, if (index + 1 >= limit) 0 else index + 1, probe + 1)
