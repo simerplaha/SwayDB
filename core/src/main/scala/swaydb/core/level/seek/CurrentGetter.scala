@@ -19,7 +19,6 @@
 
 package swaydb.core.level.seek
 
-import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.ReadState
 import swaydb.data.slice.Slice
@@ -27,5 +26,5 @@ import swaydb.data.slice.Slice
 trait CurrentGetter {
 
   def get(key: Slice[Byte],
-          readState: ReadState): IO[swaydb.Error.Level, Option[KeyValue.ReadOnly]]
+          readState: ReadState): Option[KeyValue.ReadOnly]
 }

@@ -108,7 +108,7 @@ private[core] object Higher {
        * ****************************************************/
 
       case Seek.Current.Read(previousSegmentId) =>
-        currentWalker.higher(key, readState) match {
+        IO(currentWalker.higher(key, readState)) match {
           case IO.Right(LevelSeek.Some(segmentId, higher)) =>
             if (previousSegmentId == segmentId)
               Higher(key, readState, Seek.Current.Stash(segmentId, higher), nextSeek)

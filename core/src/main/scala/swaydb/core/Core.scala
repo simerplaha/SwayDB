@@ -193,7 +193,7 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
     zero.lastKey(readState).run
 
   def bloomFilterKeyValueCount: T[Int] =
-    IO.Defer(zero.bloomFilterKeyValueCount.get).run
+    IO.Defer(zero.bloomFilterKeyValueCount).run
 
   def deadline(key: Slice[Byte],
                readState: ReadState): T[Option[Deadline]] =
@@ -207,10 +207,10 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
     zero.contains(key, readState).run
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
-    IO.Defer(zero.mightContainKey(key).get).run
+    IO.Defer(zero.mightContainKey(key)).run
 
   def mightContainFunction(functionId: Slice[Byte]): T[Boolean] =
-    IO.Defer(zero.mightContainFunction(functionId).get).run
+    IO.Defer(zero.mightContainFunction(functionId)).run
 
   def get(key: Slice[Byte],
           readState: ReadState): T[Option[Option[Slice[Byte]]]] =

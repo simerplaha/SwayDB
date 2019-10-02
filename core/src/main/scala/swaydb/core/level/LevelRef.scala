@@ -164,7 +164,7 @@ private[core] trait LevelRef {
   def floor(key: Slice[Byte],
             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
 
-  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean]
+  def mightContainKey(key: Slice[Byte]): Boolean
 
   def lower(key: Slice[Byte],
             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
@@ -176,7 +176,7 @@ private[core] trait LevelRef {
 
   def lastKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int]
+  def bloomFilterKeyValueCount: Int
 
   def isEmpty: Boolean
 

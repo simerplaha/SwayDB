@@ -96,7 +96,7 @@ private[core] object Lower {
     import keyOrder._
     currentSeek match {
       case Seek.Current.Read(previousSegmentId) =>
-        currentWalker.lower(key, readState) match {
+        IO(currentWalker.lower(key, readState)) match {
           case IO.Right(LevelSeek.Some(segmentId, lower)) =>
             if (previousSegmentId == segmentId)
               Lower(key, readState, Seek.Current.Stash(segmentId, lower), nextSeek)

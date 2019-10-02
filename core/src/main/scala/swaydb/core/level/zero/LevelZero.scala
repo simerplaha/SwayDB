@@ -376,8 +376,8 @@ private[core] case class LevelZero(path: Path,
 
   def currentGetter(currentMap: map.Map[Slice[Byte], Memory]) =
     new CurrentGetter {
-      override def get(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, Option[ReadOnly]] =
-        IO(getFromMap(key, currentMap))
+      override def get(key: Slice[Byte], readState: ReadState): Option[Memory] =
+        getFromMap(key, currentMap)
     }
 
   def nextGetter(mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]) =
@@ -544,21 +544,17 @@ private[core] case class LevelZero(path: Path,
       override def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
         find(key, currentMap, otherMaps.asJava.iterator())
 
-      override def higher(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, LevelSeek[ReadOnly]] =
-        IO {
-          LevelSeek(
-            segmentId = 0,
-            result = higherFromMap(key, currentMap)
-          )
-        }
+      override def higher(key: Slice[Byte], readState: ReadState): LevelSeek[Memory] =
+        LevelSeek(
+          segmentId = 0,
+          result = higherFromMap(key, currentMap)
+        )
 
-      override def lower(key: Slice[Byte], readState: ReadState): IO[swaydb.Error.Level, LevelSeek[ReadOnly]] =
-        IO {
-          LevelSeek(
-            segmentId = 0,
-            result = lowerFromMap(key, currentMap)
-          )
-        }
+      override def lower(key: Slice[Byte], readState: ReadState): LevelSeek[Memory] =
+        LevelSeek(
+          segmentId = 0,
+          result = lowerFromMap(key, currentMap)
+        )
 
       override def levelNumber: String =
         "current"
@@ -685,11 +681,14 @@ private[core] case class LevelZero(path: Path,
         }
     }
 
-  def bloomFilterKeyValueCount: IO[swaydb.Error.Level, Int] = {
+  def bloomFilterKeyValueCount: Int = {
     val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
-    nextLevel
-      .map(_.bloomFilterKeyValueCount.map(_ + keyValueCountInMaps))
-      .getOrElse(IO.Right(keyValueCountInMaps))
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel.bloomFilterKeyValueCount + keyValueCountInMaps
+      case None =>
+        keyValueCountInMaps
+    }
   }
 
   def deadline(key: Slice[Byte],
@@ -734,13 +733,8 @@ private[core] case class LevelZero(path: Path,
       .map(_.closeSegments())
       .getOrElse(IO.unit)
 
-  def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
-    if (maps.contains(key))
-      IO.`true`
-    else
-      nextLevel
-        .map(_.mightContainKey(key))
-        .getOrElse(IO.`true`)
+  def mightContainKey(key: Slice[Byte]): Boolean =
+    maps.contains(key) || nextLevel.exists(_.mightContainFunction(key))
 
   private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
     maps.find[Boolean] {
@@ -766,13 +760,9 @@ private[core] case class LevelZero(path: Path,
     maps.queuedMapsCountWithCurrent >= 2 ||
       findFunctionInMaps(functionId)
 
-  def mightContainFunction(functionId: Slice[Byte]): IO[swaydb.Error.Level, Boolean] =
-    if (mightContainFunctionInMaps(functionId))
-      IO.`true`
-    else
-      nextLevel
-        .map(_.mightContainFunction(functionId))
-        .getOrElse(IO.`false`)
+  def mightContainFunction(functionId: Slice[Byte]): Boolean =
+    mightContainFunctionInMaps(functionId) ||
+      nextLevel.exists(_.mightContainFunction(functionId))
 
   override def hasNextLevel: Boolean =
     nextLevel.isDefined

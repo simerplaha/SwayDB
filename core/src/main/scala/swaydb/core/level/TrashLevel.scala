@@ -51,8 +51,8 @@ private[core] object TrashLevel extends NextLevel {
   override val hasNextLevel: Boolean =
     false
 
-  override val bloomFilterKeyValueCount: IO[swaydb.Error.Segment, Int] =
-    IO.zero
+  override val bloomFilterKeyValueCount: Int =
+    0
 
   override val segmentsCount: Int =
     0
@@ -117,11 +117,11 @@ private[core] object TrashLevel extends NextLevel {
   override def meterFor(levelNumber: Int): Option[LevelMeter] =
     None
 
-  override def mightContainKey(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
-    IO.`false`
+  override def mightContainKey(key: Slice[Byte]): Boolean =
+    false
 
-  override def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Segment, Boolean] =
-    IO.`false`
+  override def mightContainFunction(key: Slice[Byte]): Boolean =
+    false
 
   override val isTrash: Boolean = true
 

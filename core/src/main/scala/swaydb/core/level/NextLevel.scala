@@ -69,7 +69,7 @@ trait NextLevel extends LevelRef {
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment])
 
-  def mightContainFunction(key: Slice[Byte]): IO[swaydb.Error.Level, Boolean]
+  def mightContainFunction(key: Slice[Byte]): Boolean
 
   def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]]
 

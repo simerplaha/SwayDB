@@ -176,15 +176,17 @@ private[core] object Get {
             }
       }
 
-    currentGetter.get(key, readState) match {
-      case IO.Right(Some(current)) =>
-        returnSegmentResponse(current)
+    try
+      currentGetter.get(key, readState) match {
+        case Some(current) =>
+          returnSegmentResponse(current)
 
-      case IO.Right(None) =>
-        nextGetter.get(key, readState)
-
-      case failure @ IO.Left(_) =>
-        failure recoverTo Get(key, readState)
+        case None =>
+          nextGetter.get(key, readState)
+      }
+    catch {
+      case throwable: Throwable =>
+        IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
     }
   }
 }

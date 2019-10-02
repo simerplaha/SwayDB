@@ -256,7 +256,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
       }
 
-      zero.bloomFilterKeyValueCount.get shouldBe 1
+      zero.bloomFilterKeyValueCount shouldBe 1
 
       zero.clear(ReadState.random).runRandomIO.get
 
