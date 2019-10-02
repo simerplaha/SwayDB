@@ -333,7 +333,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val nextLevel = mock[NextLevel]
         nextLevel.isTrash _ expects() returning false
 
-        val level = TestLevel(nextLevel = Some(nextLevel))
+        val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
@@ -367,7 +367,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val nextLevel = mock[NextLevel]
         nextLevel.isTrash _ expects() returning false
 
-        val level = TestLevel(nextLevel = Some(nextLevel))
+        val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
@@ -394,7 +394,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val nextLevel = mock[NextLevel]
         nextLevel.isTrash _ expects() returning false
 
-        val level = TestLevel(nextLevel = Some(nextLevel))
+        val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGet(keyValues, level)
@@ -432,7 +432,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val nextLevel = mock[NextLevel]
         nextLevel.isTrash _ expects() returning false
 
-        val level = TestLevel(nextLevel = Some(nextLevel))
+        val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGet(keyValues, level)

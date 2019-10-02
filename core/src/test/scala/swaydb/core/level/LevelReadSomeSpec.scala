@@ -31,6 +31,7 @@ import swaydb.core.TestData._
 import swaydb.core.segment.ReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import org.scalatest.OptionValues._
 
 import scala.util.{Failure, Success, Try}
 
@@ -60,9 +61,9 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
 
   //  override def deleteFiles = false
 
-  val keyValuesCount = 5000
+  val keyValuesCount = 100
 
-  val times = 2
+  val times = 10
 
   "return Put" when {
 
@@ -108,7 +109,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                   val (gotValue, gotDeadline) =
                     level.get(update.key, ReadState.random).map {
                       case Some(put) =>
-                        val value = IO.Defer(put.getOrFetchValue.get).runIO.runRandomIO.right.value
+                        val value = put.getOrFetchValue.runRandomIO.right.value
                         (value, put.deadline)
 
                       case None =>

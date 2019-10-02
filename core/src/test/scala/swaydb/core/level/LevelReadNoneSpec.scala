@@ -20,14 +20,14 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.segment.ReadState
-import swaydb.core.util.Benchmark
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -114,7 +114,9 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
     }
 
     "level is non empty but the searched key do not exist" in {
-      runThis(10) {
+      runThis(10.times) {
+        implicit val keyOrder = KeyOrder.integer
+
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
@@ -124,7 +126,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
             (level0KeyValues, _, _, level) => {
               val existing = unexpiredPuts(level0KeyValues)
 
-              import swaydb.data.order.KeyOrder.default._
+              import keyOrder._
               val nonExistingKeys: List[Int] =
                 (level0KeyValues.head.key.readInt() - 100 to getMaxKey(level0KeyValues.last.toTransient).maxKey.readInt() + 100)
                   .filterNot(intKey => existing.exists(_.key equiv Slice.writeInt(intKey)))
@@ -145,14 +147,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
-                      try
-                        level.lower(nonExistentKey, ReadState.random).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
-                      catch {
-                        case exception: Exception =>
-                          //TODO - debug.
-                          val lower = level.lower(nonExistentKey, ReadState.random).runRandomIO.right.value.map(_.key.readInt())
-                          throw exception
-                      }
+                      level.lower(nonExistentKey, ReadState.random).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
                   }
               ).runThisRandomlyInParallel
             }

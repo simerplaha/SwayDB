@@ -127,10 +127,10 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
   "copy map directly into lower level" in {
     val level2 = TestLevel(segmentSize = 1.kb)
-    val level1 = TestLevel(segmentSize = 1.kb, nextLevel = Some(level2))
+    val level1 = TestLevel(segmentSize = 1.kb, pushForward = true, nextLevel = Some(level2))
 
     val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-    val maps = TestMap(keyValues.toTransient.toMemoryResponse)
+    val maps = TestMap(keyValues)
 
     level1.put(maps).right.right.value.right.value
 

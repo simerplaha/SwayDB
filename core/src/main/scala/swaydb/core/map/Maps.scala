@@ -336,7 +336,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           persist(entry)
 
         case IO.Left(error) =>
-          throw error.exception
+          throw new Exception("Fatal exception", error.exception)
       }
     }
 

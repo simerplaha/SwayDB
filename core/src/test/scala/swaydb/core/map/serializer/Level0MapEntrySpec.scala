@@ -21,8 +21,8 @@ package swaydb.core.map.serializer
 
 import org.scalatest.OptionValues._
 import swaydb.IO
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Transient}
@@ -34,8 +34,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
-import scala.collection.JavaConverters._
 
 class Level0MapEntrySpec extends TestBase {
 
@@ -165,7 +163,7 @@ class Level0MapEntrySpec extends TestBase {
 
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
       readEntry applyTo skipList
-      val scalaSkipList = skipList.asScala
+      def scalaSkipList = skipList.asScala
       assertSkipList()
 
       def assertSkipList() = {

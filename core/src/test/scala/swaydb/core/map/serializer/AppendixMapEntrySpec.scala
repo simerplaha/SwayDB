@@ -130,7 +130,7 @@ class AppendixMapEntrySpec extends TestBase {
 
       val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
       readEntry applyTo skipList
-      val scalaSkipList = skipList.asScala
+      def scalaSkipList = skipList.asScala
       assertSkipList()
 
       def assertSkipList() = {
