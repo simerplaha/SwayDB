@@ -114,7 +114,15 @@ private[core] object Get {
             IO.Defer.none
 
         case current: KeyValue.ReadOnly.Range =>
-          IO(if (current.key equiv key) current.fetchFromOrElseRangeValueUnsafe else current.fetchRangeValueUnsafe) match {
+          val currentValue =
+            IO {
+              if (current.key equiv key)
+                current.fetchFromOrElseRangeValueUnsafe
+              else
+                current.fetchRangeValueUnsafe
+            }
+
+          currentValue match {
             case IO.Right(currentValue) =>
               if (Value.hasTimeLeft(currentValue))
                 returnSegmentResponse(currentValue.toMemory(key))
@@ -129,64 +137,62 @@ private[core] object Get {
           nextGetter
             .get(key, readState)
             .flatMap {
-              nextOption =>
-                nextOption
-                  .map {
-                    next =>
-                      if (next.hasTimeLeft())
-                        IO(FunctionMerger(current, next)) match {
-                          case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                            IO.Defer(Some(put))
+              case Some(next) =>
+                if (next.hasTimeLeft())
+                  try
+                    FunctionMerger(current, next) match {
+                      case put: ReadOnly.Put if put.hasTimeLeft() =>
+                        IO.Defer(Some(put))
 
-                          case IO.Right(_: ReadOnly.Fixed) =>
-                            IO.Defer.none
-
-                          case failure @ IO.Left(_) =>
-                            failure recoverTo Get(key, readState)
-                        }
-                      else
+                      case _: ReadOnly.Fixed =>
                         IO.Defer.none
+                    }
+                  catch {
+                    case throwable: Throwable =>
+                      IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
                   }
-                  .getOrElse(IO.Defer.none)
+                else
+                  IO.Defer.none
+
+              case None =>
+                IO.Defer.none
             }
 
         case current: KeyValue.ReadOnly.PendingApply =>
           nextGetter
             .get(key, readState)
             .flatMap {
-              nextOption =>
-                nextOption
-                  .map {
-                    next =>
-                      if (next.hasTimeLeft())
-                        IO(PendingApplyMerger(current, next)) match {
-                          case IO.Right(put: ReadOnly.Put) if put.hasTimeLeft() =>
-                            IO.Defer(Some(put))
+              case Some(next) =>
+                if (next.hasTimeLeft())
+                  try
+                    PendingApplyMerger(current, next) match {
+                      case put: ReadOnly.Put if put.hasTimeLeft() =>
+                        IO.Defer(Some(put))
 
-                          case IO.Right(_: ReadOnly.Fixed) =>
-                            IO.Defer.none
-
-                          case failure @ IO.Left(_) =>
-                            failure recoverTo Get(key, readState)
-                        }
-                      else
+                      case _: ReadOnly.Fixed =>
                         IO.Defer.none
+                    }
+                  catch {
+                    case throwable: Throwable =>
+                      IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
                   }
-                  .getOrElse(IO.Defer.none)
+                else
+                  IO.Defer.none
+
+              case None =>
+                IO.Defer.none
             }
       }
 
-    try
-      currentGetter.get(key, readState) match {
-        case Some(current) =>
-          returnSegmentResponse(current)
+    IO(currentGetter.get(key, readState)) match {
+      case IO.Right(Some(current)) =>
+        returnSegmentResponse(current)
 
-        case None =>
-          nextGetter.get(key, readState)
-      }
-    catch {
-      case throwable: Throwable =>
-        IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
+      case IO.Right(None) =>
+        nextGetter.get(key, readState)
+
+      case failure @ IO.Left(_) =>
+        failure recoverTo Get(key, readState)
     }
   }
 }
