@@ -414,7 +414,7 @@ private[core] class SegmentCache(path: Path,
     blockCache.getFooter().createdInLevel
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
-    skipList contains key
+    skipList.exists(_.contains(key))
 
   def cacheSize: Int =
     skipList.foldLeft(0)(_ + _.size)
