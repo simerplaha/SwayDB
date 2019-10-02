@@ -183,75 +183,82 @@ class SegmentMergeSpec extends TestBase {
   "split" should {
     "split key-values" in {
 
-      val keyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.remove(2), Memory.put(3, 3), Memory.put(4, 4), Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5)))
+      runThis(100.times) {
+        val keyValues: Slice[Memory] = Slice(Memory.put(1, 1), Memory.remove(2), Memory.put(3, 3), Memory.put(4, 4), Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5)))
 
-      val splits =
-        SegmentMerger.split(
-          keyValues = keyValues,
-          minSegmentSize = 1.byte,
-          isLastLevel = false,
-          forInMemory = false,
-          valuesConfig = ValuesBlock.Config.random,
-          sortedIndexConfig = SortedIndexBlock.Config.random,
-          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-          hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
-          createdInLevel = randomIntMax()
-        )
+        val splits =
+          SegmentMerger.split(
+            keyValues = keyValues,
+            minSegmentSize = 1.byte,
+            isLastLevel = false,
+            forInMemory = false,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            createdInLevel = randomIntMax()
+          )
 
-      splits should have size 5
-      splits.map(_.toMemory) should contain only
-        (Slice(Memory.put(1, 1)),
-          Slice(Memory.remove(2)),
-          Slice(Memory.put(3, 3)),
-          Slice(Memory.put(4, 4)), //51.byte Segment size
-          Slice(Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5))) //56.bytes (segment size)
-        )
+        splits should have size 5
+        splits.map(_.toMemory) should contain only
+          (Slice(Memory.put(1, 1)),
+            Slice(Memory.remove(2)),
+            Slice(Memory.put(3, 3)),
+            Slice(Memory.put(4, 4)), //51.byte Segment size
+            Slice(Memory.Range(5, 10, Some(Value.remove(None)), Value.update(5))) //56.bytes (segment size)
+          )
 
-      val persistentSplit =
-        SegmentMerger.split(
-          keyValues = keyValues,
-          minSegmentSize = keyValues.toTransient.last.stats.segmentSize,
-          isLastLevel = false,
-          forInMemory = false,
-          valuesConfig = ValuesBlock.Config.random,
-          sortedIndexConfig = SortedIndexBlock.Config.random,
-          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-          hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
-          createdInLevel = randomIntMax()
-        )
+        val transientKeyValues =
+          keyValues.toTransient
 
-      persistentSplit should have size 1
+        val persistentSplit =
+          SegmentMerger.split(
+            keyValues = keyValues,
+            //* 5 because the size of hashIndex and bloomFilter are not calculated.
+            minSegmentSize = transientKeyValues.last.stats.segmentSize * 5,
+            isLastLevel = false,
+            forInMemory = false,
+            valuesConfig = transientKeyValues.last.valuesConfig,
+            sortedIndexConfig = transientKeyValues.last.sortedIndexConfig,
+            binarySearchIndexConfig = transientKeyValues.last.binarySearchIndexConfig,
+            hashIndexConfig = transientKeyValues.last.hashIndexConfig,
+            bloomFilterConfig = transientKeyValues.last.bloomFilterConfig,
+            createdInLevel = randomIntMax()
+          )
 
-      val expected =
-        Seq(
-          Transient.put(1, 1),
-          Transient.remove(2),
-          Transient.put(3, 3),
-          Transient.put(4, 4), //51.byte Segment size
-          Transient.Range.create[FromValue, RangeValue](5, 10, Some(Value.remove(None)), Value.update(5)) //56.bytes (segment size)
-        ).updateStats
+        persistentSplit should have size 1
 
-      persistentSplit.flatten shouldBe expected
 
-      val memorySplit =
-        SegmentMerger.split(
-          keyValues = keyValues,
-          minSegmentSize = keyValues.toTransient.last.stats.memorySegmentSize,
-          isLastLevel = false,
-          forInMemory = true,
-          valuesConfig = ValuesBlock.Config.random,
-          sortedIndexConfig = SortedIndexBlock.Config.random,
-          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-          hashIndexConfig = HashIndexBlock.Config.random,
-          bloomFilterConfig = BloomFilterBlock.Config.random,
-          createdInLevel = randomIntMax()
-        )
+        val expected =
+          Seq(
+            Transient.put(1, 1),
+            Transient.remove(2),
+            Transient.put(3, 3),
+            Transient.put(4, 4), //51.byte Segment size
+            Transient.Range.create[FromValue, RangeValue](5, 10, Some(Value.remove(None)), Value.update(5)) //56.bytes (segment size)
+          ).updateStats
 
-      memorySplit should have size 1
+        persistentSplit.flatten shouldBe expected
 
-      memorySplit.flatten shouldBe expected
+        val memorySplit =
+          SegmentMerger.split(
+            keyValues = keyValues,
+            minSegmentSize = keyValues.toTransient.last.stats.memorySegmentSize,
+            isLastLevel = false,
+            forInMemory = true,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            createdInLevel = randomIntMax()
+          )
+
+        memorySplit should have size 1
+
+        memorySplit.flatten shouldBe expected
+      }
     }
   }
 

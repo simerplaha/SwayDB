@@ -7,7 +7,7 @@ import swaydb.core.TestData._
 
 class ReadStateSpec extends WordSpec with Matchers {
 
-  "SlotState" should {
+  "it" should {
     "return true for non existing keys" in {
 
       val state = ReadState.limitHashMap(10)
@@ -19,10 +19,10 @@ class ReadStateSpec extends WordSpec with Matchers {
     }
 
     "assign" in {
-      val state = ReadState.limitHashMap(10)
+      val state = ReadState.limitHashMap(100, 100)
 
       val keys =
-        (1 to 1000) map {
+        (1 to 100) map {
           _ =>
             val key = Paths.get(randomString)
             state.setSequential(key, false)
