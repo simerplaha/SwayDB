@@ -542,7 +542,7 @@ private[core] object HashIndexBlock extends LazyLogging {
                 (-1L, 0)
             }
 
-          if (crc == -1 || crc < reader.block.minimumCRC) {
+          if (crc == -1 || crc < reader.block.minimumCRC || possibleValueBytes.size <= crcByteSize) {
             doFind(probe + 1)
           } else {
             val (valueBytes, accessIndexOffset) = parseCopiedValuesBytes(valueBytesWithoutCRC = possibleValueBytes drop crcByteSize)
