@@ -338,9 +338,10 @@ object TestData {
       else
         keyValues.toMapEntry match {
           case Some(value) =>
-            level
-              .put(_ => value)
-              .flatMap(_ => IO.unit)
+            IO {
+              level
+                .put(_ => value)
+            }
 
           case None =>
             IO.unit

@@ -19,8 +19,6 @@
 
 package swaydb
 
-import java.util.concurrent.{ConcurrentLinkedQueue, Executors, ThreadFactory}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.{ApiIO, ThrowableIO}
 import swaydb.data.config.ActorConfig.QueueOrder
@@ -38,7 +36,7 @@ sealed trait Tag[T[_]] {
   def unit: T[Unit]
   def none[A]: T[Option[A]]
   def apply[A](a: => A): T[A]
-  def createSerial: Serial[T]
+  def applySerial(): Serial[T]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): T[B]
   def flatMap[A, B](fa: T[A])(f: A => T[B]): T[B]
@@ -237,9 +235,9 @@ object Tag extends LazyLogging {
 
         override val baseConverter: Converter[T, X] = converter
 
-        override def createSerial: Serial[X] =
+        override def applySerial(): Serial[X] =
           new Serial[X] {
-            val selfSerial = base.createSerial
+            val selfSerial = base.applySerial
             override def execute[F](f: => F): X[F] =
               converter.to(selfSerial.execute(f))
           }
@@ -276,9 +274,9 @@ object Tag extends LazyLogging {
 
         override val baseConverter: Converter[T, X] = converter
 
-        override def createSerial: Serial[X] =
+        override def applySerial(): Serial[X] =
           new Serial[X] {
-            val selfSerial = base.createSerial
+            val selfSerial = base.applySerial
             override def execute[F](f: => F): X[F] =
               converter.to(selfSerial.execute(f))
           }
@@ -303,7 +301,7 @@ object Tag extends LazyLogging {
       override def none[A]: IO.ThrowableIO[Option[A]] =
         IO.none
 
-      override def createSerial: Serial[ThrowableIO] =
+      override def applySerial(): Serial[ThrowableIO] =
         new Serial[ThrowableIO] {
           override def execute[F](f: => F): ThrowableIO[F] =
             IO(f)
@@ -419,7 +417,7 @@ object Tag extends LazyLogging {
   implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
     new Async[Future] {
 
-      override def createSerial: Serial[Future] =
+      override def applySerial(): Serial[Future] =
         new Serial[Future] {
 
           val actor = Actor[() => Any] {

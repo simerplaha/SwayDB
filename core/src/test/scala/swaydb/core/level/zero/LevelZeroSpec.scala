@@ -21,6 +21,7 @@ package swaydb.core.level.zero
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
+import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -131,7 +132,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
     "not write empty key-value" in {
       val zero = TestLevelZero(Some(TestLevel()))
-      zero.put(Slice.empty, Slice.empty).left.get.exception shouldBe a[IllegalArgumentException]
+      IO(zero.put(Slice.empty, Slice.empty)).left.value shouldBe a[IllegalArgumentException]
     }
 
     "write empty values" in {
@@ -343,16 +344,16 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
   "LevelZero.remove range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.remove(10, 1).left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
-      zero.remove(2, 1).left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
+      IO(zero.remove(10, 1)).left.value.getMessage shouldBe "fromKey should be less than toKey."
+      IO(zero.remove(2, 1)).left.value.getMessage shouldBe "fromKey should be less than toKey."
     }
   }
 
   "LevelZero.update range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.update(10, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
-      zero.update(2, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
+      IO(zero.update(10, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
+      IO(zero.update(2, 1, value = "value")).left.value.getMessage shouldBe "fromKey should be less than toKey."
     }
   }
 }

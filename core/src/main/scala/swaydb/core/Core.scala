@@ -135,6 +135,8 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
 
   import Tag.Implicits._
 
+  private val serial = tag.applySerial()
+
   protected[swaydb] val readStates =
     ThreadLocal.withInitial[ReadState] {
       new Supplier[ReadState] {
@@ -142,19 +144,17 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
       }
     }
 
-  private val serial = tag.createSerial
-
   def put(key: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.put(key)))
+    serial.execute(zero.put(key))
 
   def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.put(key, value)))
+    serial.execute(zero.put(key, value))
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.put(key, value)))
+    serial.execute(zero.put(key, value))
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.put(key, value, removeAt)))
+    serial.execute(zero.put(key, value, removeAt))
 
   /**
    * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
@@ -167,39 +167,39 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
    */
   def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
     if (entries.isEmpty)
-      serial.execute(tag.fromIO(IO.failed("Cannot write empty batch")))
+      tag.failure(new IllegalArgumentException("Cannot write empty batch"))
     else
-      serial.execute(tag.fromIO(zero.put(Core.prepareToMapEntry(entries)(_).get))) //Gah .get! hmm.
+      serial.execute(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get!
 
   def remove(key: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.remove(key)))
+    serial.execute(zero.remove(key))
 
   def remove(key: Slice[Byte], at: Deadline): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.remove(key, at)))
+    serial.execute(zero.remove(key, at))
 
   def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.remove(from, to)))
+    serial.execute(zero.remove(from, to))
 
   def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.remove(from, to, at)))
+    serial.execute(zero.remove(from, to, at))
 
   def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.update(key, value)))
+    serial.execute(zero.update(key, value))
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.update(key, value)))
+    serial.execute(zero.update(key, value))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.update(fromKey, to, value)))
+    serial.execute(zero.update(fromKey, to, value))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.update(fromKey, to, value)))
+    serial.execute(zero.update(fromKey, to, value))
 
   def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.applyFunction(key, function)))
+    serial.execute(zero.applyFunction(key, function))
 
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
-    serial.execute(tag.fromIO(zero.applyFunction(from, to, function)))
+    serial.execute(zero.applyFunction(from, to, function))
 
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     zero.registerFunction(functionID, function)

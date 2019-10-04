@@ -180,65 +180,62 @@ private[core] case class LevelZero(path: Path,
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
-  def assertRun(key: Slice[Byte])(block: => Unit): IO[swaydb.Error.Level, IO.Done] =
-    if (key.isEmpty)
-      IO.failed(new IllegalArgumentException("key cannot be empty."))
-    else
-      IO[swaydb.Error.Level, IO.Done] {
-        block
-        IO.Done
-      }
+  def assertRun(key: Slice[Byte])(block: => Unit): IO.Done =
+    if (key.isEmpty) {
+      throw new IllegalArgumentException("key cannot be empty.")
+    } else {
+      block
+      IO.Done
+    }
 
-  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): IO[swaydb.Error.Level, IO.Done] =
+  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): IO.Done =
     if (fromKey.isEmpty)
-      IO.failed(new IllegalArgumentException("fromKey cannot be empty."))
+      throw new IllegalArgumentException("fromKey cannot be empty.")
     else if (toKey.isEmpty)
-      IO.failed(new IllegalArgumentException("toKey cannot be empty."))
+      throw new IllegalArgumentException("toKey cannot be empty.")
     else if (fromKey > toKey) //fromKey cannot also be equal to toKey. The invoking this assert should also check for equality and call update on single key-value.
-      IO.failed("fromKey should be less than toKey.")
-    else
-      IO[swaydb.Error.Level, IO.Done] {
-        block
-        IO.Done
-      }
+      throw new IllegalArgumentException("fromKey should be less than toKey.")
+    else {
+      block
+      IO.Done
+    }
 
-  def put(key: Slice[Byte]): IO[Error.Level, IO.Done] =
+  def put(key: Slice[Byte]): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, None, None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
+  def put(key: Slice[Byte], value: Slice[Byte]): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, Some(value), None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO[swaydb.Error.Level, IO.Done] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO[swaydb.Error.Level, IO.Done] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
     }
 
-  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): IO[swaydb.Error.Level, IO.Done] =
-    IO {
-      maps write entry
-      IO.Done
-    }
+  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): IO.Done = {
+    maps write entry
+    IO.Done
+  }
 
-  def remove(key: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
+  def remove(key: Slice[Byte]): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
     }
 
-  def remove(key: Slice[Byte], at: Deadline): IO[swaydb.Error.Level, IO.Done] =
+  def remove(key: Slice[Byte], at: Deadline): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): IO.Done =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         remove(fromKey)
@@ -251,7 +248,7 @@ private[core] case class LevelZero(path: Path,
           }
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): IO[swaydb.Error.Level, IO.Done] =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): IO.Done =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         remove(fromKey)
@@ -264,20 +261,20 @@ private[core] case class LevelZero(path: Path,
           }
     }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
+  def update(key: Slice[Byte], value: Slice[Byte]): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, Some(value), None, timer.next)))
     }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO[swaydb.Error.Level, IO.Done] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO.Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     }
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): IO.Done =
     update(fromKey, toKey, Some(value))
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO[swaydb.Error.Level, IO.Done] =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO.Done =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         update(fromKey, value)
@@ -304,7 +301,7 @@ private[core] case class LevelZero(path: Path,
           lastKey(readState)
             .flatMap {
               case Some(lastKey) =>
-                remove(headKey, lastKey).toDefer
+                IO.Defer(remove(headKey, lastKey))
 
               case None =>
                 IO.Defer.done //might have been removed by another thread?
@@ -317,17 +314,17 @@ private[core] case class LevelZero(path: Path,
   def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
     functionStore.put(functionID, function)
 
-  def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO.Done =
     if (!functionStore.exists(function))
-      IO.failed("Function does not exists in function store.")
+      throw new IllegalArgumentException("Function does not exists in function store.")
     else
       assertRun(key) {
         maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next)))
       }
 
-  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO[swaydb.Error.Level, IO.Done] =
+  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO.Done =
     if (!functionStore.exists(function))
-      IO.failed("Function does not exists in function store.")
+      throw new IllegalArgumentException("Function does not exists in function store.")
     else
       assertRun(fromKey, toKey) {
         if (fromKey equiv toKey)
