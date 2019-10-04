@@ -55,7 +55,7 @@ object SwayDB extends LazyLogging {
   lazy val defaultExecutionContext = new ExecutionContext {
     val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
 
-    def execute(runnable: Runnable) =
+    def execute(runnable: Runnable): Unit =
       threadPool execute runnable
 
     def reportFailure(exception: Throwable): Unit =

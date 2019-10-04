@@ -19,7 +19,11 @@
 
 package swaydb
 
-import swaydb.IO.ApiIO
+import java.util.concurrent.{ConcurrentLinkedQueue, Executors, ThreadFactory}
+
+import com.typesafe.scalalogging.LazyLogging
+import swaydb.IO.{ApiIO, ThrowableIO}
+import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.Futures
 
 import scala.annotation.tailrec
@@ -34,6 +38,7 @@ sealed trait Tag[T[_]] {
   def unit: T[Unit]
   def none[A]: T[Option[A]]
   def apply[A](a: => A): T[A]
+  def createSerial: Serial[T]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): T[B]
   def flatMap[A, B](fa: T[A])(f: A => T[B]): T[B]
@@ -56,7 +61,7 @@ sealed trait Tag[T[_]] {
     flatMap[Unit, B](unit)(_ => f)
 }
 
-object Tag {
+object Tag extends LazyLogging {
 
   object Implicits {
     implicit class TagImplicits[A, T[_]](a: T[A])(implicit tag: Tag[T]) {
@@ -232,6 +237,13 @@ object Tag {
 
         override val baseConverter: Converter[T, X] = converter
 
+        override def createSerial: Serial[X] =
+          new Serial[X] {
+            val selfSerial = base.createSerial
+            override def execute[F](f: => F): X[F] =
+              converter.to(selfSerial.execute(f))
+          }
+
         override def exception[A](a: X[A]): Option[Throwable] =
           self.exception(converter.from(a))
 
@@ -246,6 +258,7 @@ object Tag {
 
         override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
           converter.to(self.orElse[A, B](converter.from(a))(converter.from(b)))
+
       }
   }
 
@@ -262,6 +275,13 @@ object Tag {
         override val base: Tag[T] = self
 
         override val baseConverter: Converter[T, X] = converter
+
+        override def createSerial: Serial[X] =
+          new Serial[X] {
+            val selfSerial = base.createSerial
+            override def execute[F](f: => F): X[F] =
+              converter.to(selfSerial.execute(f))
+          }
 
         override def fromPromise[A](a: Promise[A]): X[A] =
           converter.to(self.fromPromise(a))
@@ -282,6 +302,12 @@ object Tag {
 
       override def none[A]: IO.ThrowableIO[Option[A]] =
         IO.none
+
+      override def createSerial: Serial[ThrowableIO] =
+        new Serial[ThrowableIO] {
+          override def execute[F](f: => F): ThrowableIO[F] =
+            IO(f)
+        }
 
       override def apply[A](a: => A): IO.ThrowableIO[A] =
         IO(a)
@@ -387,10 +413,27 @@ object Tag {
         }
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
         IO[Throwable, A](a.get)
+
     }
 
   implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
     new Async[Future] {
+
+      override def createSerial: Serial[Future] =
+        new Serial[Future] {
+
+          val actor = Actor[() => Any] {
+            (run, _) =>
+              run()
+          }(ec, QueueOrder.FIFO)
+
+          override def execute[F](f: => F): Future[F] = {
+            val promise = Promise[F]
+            actor.send(() => promise.tryComplete(Try(f)))
+            promise.future
+          }
+        }
+
       override val unit: Future[Unit] =
         Futures.unit
 
@@ -484,7 +527,6 @@ object Tag {
         }
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] = a.toFuture
-
     }
 
   implicit val apiIO: Tag.Sync[IO.ApiIO] = throwableIO.toTag[IO.ApiIO]
