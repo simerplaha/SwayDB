@@ -173,17 +173,17 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       new Stream[A, T] {
         override def headOption: T[Option[A]] =
           self.headOption flatMap {
-            headOption =>
-              headOption map {
-                head =>
-                  if (count == 1)
-                    next(head)
-                  else
-                    tag.foldLeft(Option.empty[A], Some(head), self, count - 1, takeOne) {
-                      case (_, next) =>
-                        Some(next)
-                    }
-              } getOrElse tag.none
+            case Some(head) =>
+              if (count == 1)
+                next(head)
+              else
+                tag.foldLeft(Option.empty[A], Some(head), self, count - 1, takeOne) {
+                  case (_, next) =>
+                    Some(next)
+                }
+
+            case None =>
+              tag.none
           }
 
         override private[swaydb] def next(previous: A): T[Option[A]] =
@@ -194,14 +194,14 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     new Stream[A, T] {
       override def headOption: T[Option[A]] =
         self.headOption flatMap {
-          headOption =>
-            headOption map {
-              head =>
-                if (f(head))
-                  tag.collectFirst(head, self)(!f(_))
-                else
-                  tag.success(headOption)
-            } getOrElse tag.none
+          case headOption @ Some(head) =>
+            if (f(head))
+              tag.collectFirst(head, self)(!f(_))
+            else
+              tag.success(headOption)
+
+          case None =>
+            tag.none
         }
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
@@ -224,17 +224,17 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
        * Previous input parameter here is ignored so that parent stream can be read.
        */
       override private[swaydb] def next(previous: B): T[Option[B]] =
-        previousA
-          .map {
-            previous =>
-              self.next(previous) map {
-                nextA =>
-                  previousA = nextA
-                  nextA
-              }
-          }
-          .getOrElse(tag.none[A])
-          .map(_.map(f))
+        previousA match {
+          case Some(previous) =>
+            self.next(previous) map {
+              nextA =>
+                previousA = nextA
+                nextA.map(f)
+            }
+
+          case None =>
+            tag.none
+        }
     }
 
   def foreach[U](f: A => U): Stream[Unit, T] =
@@ -245,14 +245,14 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
 
       override def headOption: T[Option[A]] =
         self.headOption flatMap {
-          previousAOption =>
-            previousAOption map {
-              a =>
-                if (f(a))
-                  tag.success(previousAOption)
-                else
-                  next(a)
-            } getOrElse tag.none
+          case previousAOption @ Some(a) =>
+            if (f(a))
+              tag.success(previousAOption)
+            else
+              next(a)
+
+          case None =>
+            tag.none
         }
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
@@ -339,8 +339,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     } map (_.asSeq)
 
   /**
-   * Converts the current Stream with Future API. If the current stream is blocking,
-   * the output stream will still return blocking stream but wrapped as future APIs.
+   * Given a [[Tag.Converter]] this function converts the current Stream to another type.
    */
   def to[B[_]](implicit tag: Tag[B], converter: Tag.Converter[T, B]): Stream[A, B] =
     new Stream[A, B]()(tag) {

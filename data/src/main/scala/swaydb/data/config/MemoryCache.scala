@@ -33,9 +33,11 @@ object MemoryCache {
                 memorySize: Int,
                 interval: FiniteDuration,
                 ec: ExecutionContext) =
-      ByteCacheOnly(
+      All(
         minIOSeekSize = minIOSeekSize,
         cacheCapacity = memorySize,
+        maxCachedKeyValueCountPerSegment = Some(2),
+        sweepCachedKeyValues = false,
         sweeperActorConfig =
           ActorConfig.TimeLoop(
             delay = interval,

@@ -127,6 +127,7 @@ private[core] object LevelZero extends LazyLogging {
               (map, Paths.get("MEMORY_DB").resolve(0.toString), None)
           }
       }
+
     mapsAndPathAndLock map {
       case (maps, path, lock: Option[FileLock]) =>
         new LevelZero(
