@@ -370,7 +370,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   private def findFirst[R](f: Map[K, V] => Option[R]): Option[R] = {
     val iterator = maps.iterator()
 
-    def getNext() = if (iterator.hasNext) Some(iterator.next()) else None
+    def getNext() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
     def find(next: Map[K, V]): Option[R] =
@@ -379,16 +379,18 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
           found
 
         case None =>
-          getNext() match {
-            case Some(next) =>
-              find(next)
-
-            case None =>
-              None
-          }
+          val next = getNext()
+          if (next == null)
+            None
+          else
+            find(next)
       }
 
-    getNext() flatMap find
+    val next = getNext()
+    if (next == null)
+      None
+    else
+      find(next)
   }
 
   private def findAndReduce[R](f: Map[K, V] => Option[R],
@@ -410,6 +412,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             case None =>
               find(getNext(), previousResult)
           }
+
         case None =>
           previousResult
       }
