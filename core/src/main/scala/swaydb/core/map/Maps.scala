@@ -21,6 +21,7 @@ package swaydb.core.map
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
@@ -286,6 +287,8 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   @volatile private var totalMapsCount: Int = maps.size() + 1
   @volatile private var currentMapsCount: Int = maps.size() + 1
 
+  @volatile var queuedMapsSlice: Slice[Map[K, V]] = toQueuedMapSlice()
+
   val meter =
     new LevelZeroMeter {
       override def defaultMapSize: Long = fileSize
@@ -302,12 +305,27 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       persist(mapEntry(timer))
     }
 
+  def toQueuedMapSlice(): Slice[Map[K, V]] = {
+    val slice = Slice.create[Map[K, V]](totalMapsCount - 1)
+    maps forEach {
+      new Consumer[Map[K, V]] {
+        override def accept(map: Map[K, V]): Unit =
+          slice add map
+      }
+    }
+    slice
+  }
+
+  def updateQueuedMapSlice() =
+    this.queuedMapsSlice = toQueuedMapSlice()
+
   private def initNextMap(mapSize: Long) = {
     val nextMap = Maps.nextMapUnsafe(mapSize, currentMap)
     maps addFirst currentMap
     currentMap = nextMap
     totalMapsCount += 1
     currentMapsCount += 1
+    updateQueuedMapSlice()
     onNextMapListener()
   }
 
@@ -421,6 +439,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
         IO(removedMap.delete) match {
           case IO.Right(_) =>
             currentMapsCount -= 1
+            updateQueuedMapSlice()
             IO.unit
 
           case IO.Left(error) =>
@@ -428,6 +447,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
             logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
             maps.addLast(removedMap)
+            updateQueuedMapSlice()
             IO.Left(error)
         }
     }
@@ -458,7 +478,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       .getOrElse(IO.unit)
   }
 
-  def iterator =
+  def queuedMapsIterator =
     maps.iterator()
 
   def stateId: Long =

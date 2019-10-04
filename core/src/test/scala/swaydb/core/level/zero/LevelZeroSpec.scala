@@ -25,10 +25,9 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Transient}
+import swaydb.core.data.Memory
 import swaydb.core.io.file.Effect
 import swaydb.core.segment.ReadState
-import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.compaction.Throttle
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -36,7 +35,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -345,16 +343,16 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
   "LevelZero.remove range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.remove(10, 1).left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
-      zero.remove(2, 1).left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.remove(10, 1).left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
+      zero.remove(2, 1).left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
     }
   }
 
   "LevelZero.update range" should {
     "not allow from key to be > than to key" in {
       val zero = TestLevelZero(Some(TestLevel()), mapSize = 1.byte)
-      zero.update(10, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
-      zero.update(2, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than or equal to toKey"
+      zero.update(10, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
+      zero.update(2, 1, value = "value").left.get.exception.getMessage shouldBe "fromKey should be less than toKey."
     }
   }
 }
