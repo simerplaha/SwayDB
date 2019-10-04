@@ -57,7 +57,7 @@ private[core] object Get {
     import keyOrder._
 
     @tailrec
-    def returnSegmentResponse(current: KeyValue.ReadOnly): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+    def resolve(current: KeyValue.ReadOnly): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
       current match {
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
@@ -115,23 +115,20 @@ private[core] object Get {
 
         case current: KeyValue.ReadOnly.Range =>
           val currentValue =
-            IO {
+            try
               if (current.key equiv key)
                 current.fetchFromOrElseRangeValueUnsafe
               else
                 current.fetchRangeValueUnsafe
+            catch {
+              case throwable: Throwable =>
+                return IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
             }
 
-          currentValue match {
-            case IO.Right(currentValue) =>
-              if (Value.hasTimeLeft(currentValue))
-                returnSegmentResponse(currentValue.toMemory(key))
-              else
-                IO.Defer.none
-
-            case failure @ IO.Left(_) =>
-              failure recoverTo Get(key, readState)
-          }
+          if (Value.hasTimeLeft(currentValue))
+            resolve(currentValue.toMemory(key))
+          else
+            IO.Defer.none
 
         case current: KeyValue.ReadOnly.Function =>
           nextGetter
@@ -184,15 +181,20 @@ private[core] object Get {
             }
       }
 
-    IO(currentGetter.get(key, readState)) match {
-      case IO.Right(Some(current)) =>
-        returnSegmentResponse(current)
+    val current =
+      try
+        currentGetter.get(key, readState)
+      catch {
+        case throwable: Throwable =>
+          return IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
+      }
 
-      case IO.Right(None) =>
+    current match {
+      case Some(current) =>
+        resolve(current)
+
+      case None =>
         nextGetter.get(key, readState)
-
-      case failure @ IO.Left(_) =>
-        failure recoverTo Get(key, readState)
     }
   }
 }

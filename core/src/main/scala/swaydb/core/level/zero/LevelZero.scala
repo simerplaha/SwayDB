@@ -707,12 +707,10 @@ private[core] case class LevelZero(path: Path,
 
   def deadline(key: Slice[Byte],
                readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Deadline]] =
-    get(key, readState)
-      .map {
-        result =>
-          result
-            .flatMap(_.deadline)
-      }
+    get(
+      key = key,
+      readState = readState
+    ).map(_.flatMap(_.deadline))
 
   def sizeOfSegments: Long =
     nextLevel match {
@@ -846,7 +844,7 @@ private[core] case class LevelZero(path: Path,
         .flatMap {
           case Some(put) =>
             try
-              tag.success(Some(put.key, put.getOrFetchValue))
+              tag.success(Some(put.key, put.getOrFetchValue)) //getOrFetchValue could also result in ReservedResource.
             catch {
               case throwable: Throwable =>
                 failed = Some(IO.ExceptionHandler.toError(throwable))
