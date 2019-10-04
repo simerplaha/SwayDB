@@ -135,7 +135,7 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
 
   import Tag.Implicits._
 
-  private val serial = tag.applySerial()
+  private val serial = tag.createSerial()
 
   protected[swaydb] val readStates =
     ThreadLocal.withInitial[ReadState] {

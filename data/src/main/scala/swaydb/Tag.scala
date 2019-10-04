@@ -36,7 +36,7 @@ sealed trait Tag[T[_]] {
   def unit: T[Unit]
   def none[A]: T[Option[A]]
   def apply[A](a: => A): T[A]
-  def applySerial(): Serial[T]
+  def createSerial(): Serial[T]
   def foreach[A, B](a: A)(f: A => B): Unit
   def map[A, B](a: A)(f: A => B): T[B]
   def flatMap[A, B](fa: T[A])(f: A => T[B]): T[B]
@@ -235,9 +235,9 @@ object Tag extends LazyLogging {
 
         override val baseConverter: Converter[T, X] = converter
 
-        override def applySerial(): Serial[X] =
+        override def createSerial(): Serial[X] =
           new Serial[X] {
-            val selfSerial = base.applySerial
+            val selfSerial = base.createSerial()
             override def execute[F](f: => F): X[F] =
               converter.to(selfSerial.execute(f))
           }
@@ -274,9 +274,9 @@ object Tag extends LazyLogging {
 
         override val baseConverter: Converter[T, X] = converter
 
-        override def applySerial(): Serial[X] =
+        override def createSerial(): Serial[X] =
           new Serial[X] {
-            val selfSerial = base.applySerial
+            val selfSerial = base.createSerial()
             override def execute[F](f: => F): X[F] =
               converter.to(selfSerial.execute(f))
           }
@@ -301,7 +301,7 @@ object Tag extends LazyLogging {
       override def none[A]: IO.ThrowableIO[Option[A]] =
         IO.none
 
-      override def applySerial(): Serial[ThrowableIO] =
+      override def createSerial(): Serial[ThrowableIO] =
         new Serial[ThrowableIO] {
           override def execute[F](f: => F): ThrowableIO[F] =
             IO(f)
@@ -417,7 +417,7 @@ object Tag extends LazyLogging {
   implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
     new Async[Future] {
 
-      override def applySerial(): Serial[Future] =
+      override def createSerial(): Serial[Future] =
         new Serial[Future] {
 
           val actor = Actor[() => Any] {
