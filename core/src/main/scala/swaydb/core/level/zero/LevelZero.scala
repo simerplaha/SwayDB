@@ -396,7 +396,7 @@ private[core] case class LevelZero(path: Path,
                    mapsIterator: util.Iterator[map.Map[Slice[Byte], Memory]]): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get.seek(
       key = key,
-      readState = ReadState.Random,
+      readState = readState,
       currentGetter = currentGetter(currentMap),
       nextGetter = nextGetter(readState, mapsIterator)
     )
@@ -427,6 +427,7 @@ private[core] case class LevelZero(path: Path,
             .map {
               case fixed: KeyValue.ReadOnly.Fixed =>
                 fixed.key
+
               case range: KeyValue.ReadOnly.Range =>
                 range.toKey
             },
@@ -440,35 +441,37 @@ private[core] case class LevelZero(path: Path,
     head(readState).map(_.map(_.key))
 
   def head(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel
-      .map {
-        nextLevel =>
-          nextLevel
-            .headKey(readState)
-            .flatMap {
-              nextLevelFirstKey =>
-                MinMax.minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrder)
-                  .map(ceiling(_, readState))
-                  .getOrElse(IO.Defer.none)
-            }
-      }
-      .getOrElse(firstKeyFromMaps.map(ceiling(_, readState)) getOrElse IO.Defer.none)
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel
+          .headKey(readState)
+          .flatMap {
+            nextLevelFirstKey =>
+              MinMax.minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrder)
+                .map(ceiling(_, readState))
+                .getOrElse(IO.Defer.none)
+          }
+
+      case None =>
+        firstKeyFromMaps.map(ceiling(_, readState)) getOrElse IO.Defer.none
+    }
 
   def last(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel
-      .map {
-        nextLevel =>
-          nextLevel
-            .lastKey(readState)
-            .flatMap {
-              nextLevelLastKey =>
-                MinMax
-                  .maxFavourLeft(lastKeyFromMaps, nextLevelLastKey)(keyOrder)
-                  .map(floor(_, readState))
-                  .getOrElse(IO.Defer.none)
-            }
-      }
-      .getOrElse(lastKeyFromMaps.map(floor(_, readState)) getOrElse IO.Defer.none)
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel
+          .lastKey(readState)
+          .flatMap {
+            nextLevelLastKey =>
+              MinMax
+                .maxFavourLeft(lastKeyFromMaps, nextLevelLastKey)(keyOrder)
+                .map(floor(_, readState))
+                .getOrElse(IO.Defer.none)
+          }
+
+      case None =>
+        lastKeyFromMaps.map(floor(_, readState)) getOrElse IO.Defer.none
+    }
 
   def ceiling(key: Slice[Byte],
               readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =

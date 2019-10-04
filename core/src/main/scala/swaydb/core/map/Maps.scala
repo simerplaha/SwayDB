@@ -452,6 +452,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       failure =>
         logger.error("Failed to close timer file", failure.exception)
     }
+
     (Seq(currentMap) ++ maps.asScala)
       .foreachIO(f = map => IO(map.close()), failFast = false)
       .getOrElse(IO.unit)
