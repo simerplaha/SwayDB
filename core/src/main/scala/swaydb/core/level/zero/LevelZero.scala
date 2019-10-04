@@ -182,7 +182,7 @@ private[core] case class LevelZero(path: Path,
 
   def assertRun(key: Slice[Byte])(block: => Unit): IO[swaydb.Error.Level, IO.Done] =
     if (key.isEmpty)
-      IO.failed(new IllegalArgumentException("Input key(s) cannot be empty."))
+      IO.failed(new IllegalArgumentException("key cannot be empty."))
     else
       IO[swaydb.Error.Level, IO.Done] {
         block
@@ -191,9 +191,9 @@ private[core] case class LevelZero(path: Path,
 
   def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): IO[swaydb.Error.Level, IO.Done] =
     if (fromKey.isEmpty)
-      IO.failed(new IllegalArgumentException("Input fromKey cannot be empty."))
+      IO.failed(new IllegalArgumentException("fromKey cannot be empty."))
     else if (toKey.isEmpty)
-      IO.failed(new IllegalArgumentException("Input toKey cannot be empty."))
+      IO.failed(new IllegalArgumentException("toKey cannot be empty."))
     else
       IO[swaydb.Error.Level, IO.Done] {
         block
@@ -447,7 +447,9 @@ private[core] case class LevelZero(path: Path,
             .headKey(readState)
             .flatMap {
               nextLevelFirstKey =>
-                MinMax.minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrder).map(ceiling(_, readState)) getOrElse IO.Defer.none
+                MinMax.minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrder)
+                  .map(ceiling(_, readState))
+                  .getOrElse(IO.Defer.none)
             }
       }
       .getOrElse(firstKeyFromMaps.map(ceiling(_, readState)) getOrElse IO.Defer.none)

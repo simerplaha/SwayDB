@@ -1296,10 +1296,10 @@ private[core] case class Level(dirs: Seq[Dir],
       .map(_.headKey(readState))
       .getOrElse(IO.Defer.none)
       .map {
-        nextLevelFirstKey =>
+        nextLevelHeadKey =>
           MinMax.minFavourLeft(
             left = appendix.skipList.headKey,
-            right = nextLevelFirstKey
+            right = nextLevelHeadKey
           )(keyOrder)
       }
 

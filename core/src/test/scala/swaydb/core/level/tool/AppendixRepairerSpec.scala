@@ -130,7 +130,7 @@ class AppendixRepairerSpec extends TestBase {
       //create empty Level
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomizedKeyValues(10000).toMemory
+      val keyValues = randomizedKeyValues(100).toMemory
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       level.segmentsCount() should be > 2

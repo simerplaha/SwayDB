@@ -81,12 +81,19 @@ private[swaydb] object Core {
         val nextEntry =
           prepare match {
             case Prepare.Put(key, value, expire) =>
+              if (key.isEmpty) throw new Exception("Key cannot be empty.")
+
               MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Add(key, expire) =>
+              if (key.isEmpty) throw new Exception("Key cannot be empty.")
+
               MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, None, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Remove(key, toKey, expire) =>
+              if (key.isEmpty) throw new Exception("Key cannot be empty.")
+              if (toKey.exists(_.isEmpty)) throw new Exception("toKey cannot be empty.")
+
               toKey map {
                 toKey =>
                   (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Remove(expire, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
@@ -96,6 +103,9 @@ private[swaydb] object Core {
               }
 
             case Prepare.Update(key, toKey, value) =>
+              if (key.isEmpty) throw new Exception("Key cannot be empty.")
+              if (toKey.exists(_.isEmpty)) throw new Exception("toKey cannot be empty.")
+
               toKey map {
                 toKey =>
                   (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Update(value, None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
@@ -105,6 +115,9 @@ private[swaydb] object Core {
               }
 
             case Prepare.ApplyFunction(key, toKey, function) =>
+              if (key.isEmpty) throw new Exception("Key cannot be empty.")
+              if (toKey.exists(_.isEmpty)) throw new Exception("toKey cannot be empty.")
+
               toKey map {
                 toKey =>
                   (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, None, Value.Function(function, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++

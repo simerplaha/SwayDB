@@ -107,7 +107,8 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
       val nextLevel = TestLevel()
       nextLevel.put(level.segmentsInLevel()).right.right.value
 
-      nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)
+      if (persistent)
+        nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe level.levelNumber)
       nextLevel.segmentsInLevel() foreach (segment => nextLevel.refresh(segment).right.right.value)
       nextLevel.segmentsInLevel() foreach (_.createdInLevel shouldBe nextLevel.levelNumber)
     }

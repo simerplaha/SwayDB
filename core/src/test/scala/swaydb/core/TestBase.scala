@@ -63,17 +63,19 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   implicit val idGenerator = IDGenerator()
 
-  val currentLevelId = new AtomicInteger(Byte.MaxValue + 1)
+  val currentLevelId = new AtomicInteger(100000000)
 
   private def nextLevelId: Int = {
-    //LevelNumber cannot be greater than 1 byte. If more than one byte is used, reset.
+    //use unsignedInt instead of byte so level number's can be > 1.byte.
     val id = currentLevelId.decrementAndGet()
-    if (id < 0) {
-      currentLevelId.set(Byte.MaxValue)
-      Byte.MaxValue.toInt
-    } else {
-      id
-    }
+    //LevelNumber cannot be greater than 1 byte. If more than one byte is used, reset. - Nope not needed anymore!
+    //    if (id < 0) {
+    //      currentLevelId.set(Byte.MaxValue)
+    //      Byte.MaxValue.toInt
+    //    } else {
+    //      id
+    //    }
+    id
   }
 
   val testFileDirectory = Paths.get(getClass.getClassLoader.getResource("").getPath).getParent.getParent.resolve("TEST_FILES")

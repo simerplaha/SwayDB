@@ -36,6 +36,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -195,20 +196,21 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       zero.bloomFilterKeyValueCount.runRandomIO.right.value shouldBe keyValues.size
     }
 
-    "batch writing empty keys should fail" in {
-      if (persistent) {
-        val keyValues = Slice(Transient.put(Slice.empty, 1))
-
-        val zero = TestLevelZero(Some(TestLevel()))
-        assertThrows[Exception] {
-          zero.put(_ => keyValues.toMapEntry.get)
-        }
-      } else {
-        //Currently this test does not apply for in-memory. Empty keys should NEVER be written.
-        //Persistent batch writes check for empty keys but since in-memory is just a skipList in Level0, there is no
-        //check. The design of MapEntry restricts this which should be fixed.
-      }
-    }
+    //removed test - empty check are performed at the source where the MapEntry is created.
+    //    "batch writing empty keys should fail" in {
+    //      if (persistent) {
+    //        val keyValues = Slice(Transient.put(Slice.empty, 1))
+    //
+    //        val zero = TestLevelZero(Some(TestLevel()))
+    //        assertThrows[Exception] {
+    //          zero.put(_ => keyValues.toMapEntry.value)
+    //        }
+    //      } else {
+    //        //Currently this test does not apply for in-memory. Empty keys should NEVER be written.
+    //        //Persistent batch writes check for empty keys but since in-memory is just a skipList in Level0, there is no
+    //        //check. The design of MapEntry restricts this which should be fixed.
+    //      }
+    //    }
   }
 
   "LevelZero.remove" should {
@@ -284,28 +286,30 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
       //disable throttle
       val zero = TestLevelZero(Some(TestLevel(throttle = (_) => Throttle(10.seconds, 0))), mapSize = 1.byte)
 
-      zero.put(1, "one").runRandomIO
-      zero.put(2, "two").runRandomIO
-      zero.put(3, "three").runRandomIO
-      zero.put(4, "four").runRandomIO
-      zero.put(5, "five").runRandomIO
+      zero.put(1, "one").runRandomIO.value
+      zero.put(2, "two").runRandomIO.value
+      zero.put(3, "three").runRandomIO.value
+      zero.put(4, "four").runRandomIO.value
+      zero.put(5, "five").runRandomIO.value
 
-      zero.head(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("one": Slice[Byte])
+      val head = zero.head(ReadState.random).runRandomIO.value.value
+      head.key shouldBe (1: Slice[Byte])
+      head.getOrFetchValue.value shouldBe ("one": Slice[Byte])
 
       //remove 1
       zero.remove(1).runRandomIO
       println
-      zero.head(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
+      zero.head(ReadState.random).runRandomIO.value.value.getOrFetchValue.value shouldBe ("two": Slice[Byte])
 
       zero.remove(2).runRandomIO
       zero.remove(3).runRandomIO
       zero.remove(4).runRandomIO
 
-      zero.head(ReadState.random).runRandomIO.runRandomIO.right.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
+      zero.head(ReadState.random).runRandomIO.value.value.getOrFetchValue.value shouldBe ("five": Slice[Byte])
 
       zero.remove(5).runRandomIO
-      zero.head(ReadState.random).runRandomIO.right.value shouldBe empty
-      zero.last(ReadState.random).runRandomIO.right.value shouldBe empty
+      zero.head(ReadState.random).runRandomIO.value shouldBe empty
+      zero.last(ReadState.random).runRandomIO.value shouldBe empty
     }
   }
 
