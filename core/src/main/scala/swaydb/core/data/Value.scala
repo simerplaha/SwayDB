@@ -36,11 +36,11 @@ private[swaydb] object Value {
     rangeValue match {
       case remove: Value.Remove =>
         remove.deadline exists (_.hasTimeLeft())
+
       case update: Value.Update =>
         update.deadline forall (_.hasTimeLeft())
-      case _: Value.Function =>
-        true
-      case _: Value.PendingApply =>
+
+      case _: Value.Function | _: Value.PendingApply =>
         true
     }
 

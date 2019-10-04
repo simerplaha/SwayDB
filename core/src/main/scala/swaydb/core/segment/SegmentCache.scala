@@ -244,12 +244,11 @@ private[core] class SegmentCache(path: Path,
 
                   case lowerKeyValue: Persistent =>
                     getForLower(key, readState) match {
-                      case Some(got) if lowerKeyValue.nextIndexOffset == got.indexOffset =>
-                        someLower
-
                       case someCeiling @ Some(ceilingRange: Persistent.Range) =>
                         if (ceilingRange containsLower key)
                           Some(ceilingRange)
+                        else if (lowerKeyValue.nextIndexOffset == ceilingRange.indexOffset)
+                          someLower
                         else
                           lower(
                             key = key,
@@ -257,13 +256,17 @@ private[core] class SegmentCache(path: Path,
                             end = someCeiling,
                             keyValueCount = getFooter().keyValueCount
                           )
-                      case someCeiling @ Some(_: Persistent.Fixed) =>
-                        lower(
-                          key = key,
-                          start = someLower,
-                          end = someCeiling,
-                          keyValueCount = getFooter().keyValueCount
-                        )
+
+                      case someCeiling @ Some(ceiling: Persistent.Fixed) =>
+                        if (lowerKeyValue.nextIndexOffset == ceiling.indexOffset)
+                          someLower
+                        else
+                          lower(
+                            key = key,
+                            start = someLower,
+                            end = someCeiling,
+                            keyValueCount = getFooter().keyValueCount
+                          )
 
                       case None =>
                         lower(

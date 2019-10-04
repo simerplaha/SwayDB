@@ -93,6 +93,7 @@ private[core] object Lower {
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+
     import keyOrder._
     currentSeek match {
       case Seek.Current.Read(previousSegmentId) =>

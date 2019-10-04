@@ -87,7 +87,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
-              randomizedKeyValues(keyValuesCount, addPut = false, startId = Some(0))(testTimer).toMemory,
+              randomizedKeyValues(keyValuesCount, addPut = false, addUpdates = true, startId = Some(0))(testTimer).toMemory,
 
           assertAllLevels =
             (level0KeyValues, _, _, level) =>
