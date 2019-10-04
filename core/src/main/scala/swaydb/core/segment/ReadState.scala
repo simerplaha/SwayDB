@@ -4,6 +4,8 @@ import java.nio.file.Path
 
 import swaydb.core.util.LimitHashMap
 
+import scala.util.Random
+
 private[swaydb] sealed trait ReadState {
   def isSequential(path: Path): Boolean
   def setSequential(path: Path, isSequential: Boolean): Unit
@@ -44,29 +46,11 @@ private[swaydb] object ReadState {
       map.toString
   }
 
-  object Random extends ReadState {
-    def isSequential(path: Path): Boolean =
-      false
-
-    def setSequential(path: Path, isSequential: Boolean): Unit =
-      ()
-  }
-
-  object Sequential extends ReadState {
-    def isSequential(path: Path): Boolean =
-      true
-
-    def setSequential(path: Path, isSequential: Boolean): Unit =
-      ()
-  }
-
   def random: ReadState =
     if (scala.util.Random.nextBoolean())
       ReadState.hashMap()
     else if (scala.util.Random.nextBoolean())
-      Random
+      ReadState.limitHashMap(10, Random.nextInt(10))
     else
-      Sequential
-
+      ReadState.limitHashMap(20)
 }
-
