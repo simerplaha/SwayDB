@@ -338,7 +338,7 @@ class MapSpec extends TestBase {
       file.path.fileId shouldBe(0, Extension.Log)
 
       skipList.isEmpty shouldBe true
-      file.close
+      file.close()
     }
 
     "recover from an existing PersistentMap folder" in {
@@ -428,8 +428,8 @@ class MapSpec extends TestBase {
       skipList2.get(15: Slice[Byte]).value shouldBe Memory.Range(15, 20, None, Value.update(20))
 
       map.close()
-      recoveredFile.close
-      recoveredFile2.close
+      recoveredFile.close()
+      recoveredFile2.close()
     }
 
     "recover from an existing PersistentMap folder with empty memory map" in {
@@ -452,7 +452,7 @@ class MapSpec extends TestBase {
 
       skipList.isEmpty shouldBe true
 
-      file.close
+      file.close()
     }
   }
 
@@ -482,8 +482,8 @@ class MapSpec extends TestBase {
       nextFileSkipList.get(10: Slice[Byte]).value shouldBe Memory.Range(10, 15, None, Value.remove(None))
       nextFileSkipList.get(15: Slice[Byte]).value shouldBe Memory.Range(15, 20, Some(Value.put(15)), Value.update(14))
 
-      currentFile.close
-      nextFile.close
+      currentFile.close()
+      nextFile.close()
     }
   }
 

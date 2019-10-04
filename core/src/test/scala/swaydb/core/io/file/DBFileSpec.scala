@@ -57,7 +57,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe bytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
 
       DBFile.channelRead(
@@ -68,7 +68,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe bytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
 
@@ -86,7 +86,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe empty
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
 
       Effect.exists(testFile) shouldBe true
@@ -120,7 +120,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe bytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
   }
@@ -158,7 +158,7 @@ class DBFileSpec extends TestBase with MockFactory {
       IO(file.get(0)).left.value shouldBe a[NonReadableChannelException]
 
       //closing the channel and reopening it will open it in read only mode
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
       file.isFileDefined shouldBe false
       file.isOpen shouldBe false
       file.readAll.runRandomIO.value shouldBe bytes //read
@@ -168,7 +168,7 @@ class DBFileSpec extends TestBase with MockFactory {
       //cannot write to a reopened file channel. Ones closed! It cannot be reopened for writing.
       IO(file.append(bytes)).left.value shouldBe a[NonWritableChannelException]
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       DBFile.channelRead(
         path = testFile,
@@ -178,7 +178,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe bytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
       //above onOpen is also invoked
     }
@@ -201,7 +201,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
       channelFile.append(bytes).runRandomIO.get
       IO(Effect.readAll(testFile)).value shouldBe bytes
-      channelFile.close.runRandomIO.value
+      channelFile.close().runRandomIO.value
     }
 
     "fail initialisation if the file already exists" in {
@@ -215,7 +215,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.existsOnDisk shouldBe true
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
       //creating the same file again should fail
       IO {
@@ -236,7 +236,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe empty
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
   }
@@ -349,7 +349,7 @@ class DBFileSpec extends TestBase with MockFactory {
       file.readAll.runRandomIO.value shouldBe expectedBytes
 
       //close buffer
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
       file.isFileDefined shouldBe false
       file.isOpen shouldBe false
       file.readAll.runRandomIO.value shouldBe expectedBytes
@@ -358,7 +358,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
       //writing fails since the file is now readonly
       IO(file.append(bytes)).left.value shouldBe a[ReadOnlyBufferException]
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       //open read only buffer
       DBFile.mmapRead(
@@ -369,7 +369,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe expectedBytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
 
@@ -423,7 +423,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe bytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
   }
@@ -502,7 +502,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
       file.readAll.runRandomIO.value shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
     }
 
     "fail to initialise if it already exists" in {
@@ -546,7 +546,7 @@ class DBFileSpec extends TestBase with MockFactory {
     //      file.isFileDefined shouldBe true
     //
     //      def close = {
-    //        file.close.runRandomIO.value
+    //        file.close().runRandomIO.value
     //        file.isOpen shouldBe false
     //        file.isFileDefined shouldBe false
     //        file.existsOnDisk shouldBe true
@@ -588,7 +588,7 @@ class DBFileSpec extends TestBase with MockFactory {
       file.append(bytes).runRandomIO.value
 
       def close = {
-        file.close.runRandomIO.value
+        file.close().runRandomIO.value
         file.isOpen shouldBe false
         file.isFileDefined shouldBe false
         file.existsOnDisk shouldBe true
@@ -629,12 +629,12 @@ class DBFileSpec extends TestBase with MockFactory {
         ).runRandomIO.value
 
       file.append(bytes).runRandomIO.value
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       IO(file.append(bytes)).left.value shouldBe a[NonWritableChannelException]
       file.readAll.runRandomIO.value shouldBe bytes
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
     }
 
     "close that MMAPFile and reopening the file should open it in read only mode" in {
@@ -651,12 +651,12 @@ class DBFileSpec extends TestBase with MockFactory {
         ).runRandomIO.value
 
       file.append(bytes).runRandomIO.value
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       IO(file.append(bytes)).left.value shouldBe a[ReadOnlyBufferException]
       file.readAll.runRandomIO.value shouldBe bytes
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
     }
   }
 
@@ -678,7 +678,7 @@ class DBFileSpec extends TestBase with MockFactory {
       file.append(bytes(2)).runRandomIO.value
       IO(file.read(0, 1)).isLeft shouldBe true //not open for read
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
@@ -690,7 +690,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
       DBFile.mmapRead(
         path = testFile,
@@ -700,10 +700,10 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
     }
 
     "append bytes to the end of the MMAP file" in {
@@ -729,7 +729,7 @@ class DBFileSpec extends TestBase with MockFactory {
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
       file.readAll.runRandomIO.value shouldBe expectedAllBytes
-      file.close.runRandomIO.value //close
+      file.close().runRandomIO.value //close
 
       //reopen
       DBFile.mmapRead(
@@ -740,7 +740,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
 
       DBFile.channelRead(
@@ -751,7 +751,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
 
@@ -779,7 +779,7 @@ class DBFileSpec extends TestBase with MockFactory {
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
       file.readAll.runRandomIO.value shouldBe expectedAllBytes
-      file.close.runRandomIO.value //close
+      file.close().runRandomIO.value //close
 
       //reopen
       DBFile.mmapRead(
@@ -790,7 +790,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
 
       DBFile.channelRead(
@@ -801,7 +801,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
 
@@ -823,9 +823,9 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe empty
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
     }
 
     "not fail when appending empty bytes to MMAPFile" in {
@@ -839,7 +839,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
       file.append(Slice.emptyBytes).runRandomIO.value
       file.readAll.runRandomIO.value shouldBe Slice.fill(file.fileSize.toInt)(0)
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       DBFile.mmapRead(
         path = file.path,
@@ -869,7 +869,7 @@ class DBFileSpec extends TestBase with MockFactory {
       file.append(bytes).runRandomIO.value
       IO(file.read(0, 1)).isLeft shouldBe true //not open for read
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       val readFile = DBFile.channelRead(
         path = testFile,
@@ -920,7 +920,7 @@ class DBFileSpec extends TestBase with MockFactory {
           bytes = randomBytesSlice()
         ).runRandomIO.value
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       file.delete().runRandomIO.value
       file.existsOnDisk shouldBe false
@@ -954,10 +954,10 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe bytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
 
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
     }
 
     "copy a MMAPFile" in {
@@ -974,7 +974,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
       file.append(bytes).runRandomIO.value
       file.isFull.runRandomIO.value shouldBe true
-      file.close.runRandomIO.value
+      file.close().runRandomIO.value
 
       val targetFile = randomFilePath
       file.copyTo(targetFile).runRandomIO.value shouldBe targetFile
@@ -987,7 +987,7 @@ class DBFileSpec extends TestBase with MockFactory {
       ).runRandomIO.value ==> {
         file =>
           file.readAll.runRandomIO.value shouldBe bytes
-          file.close.runRandomIO.value
+          file.close().runRandomIO.value
       }
     }
   }

@@ -240,32 +240,28 @@ private[core] object Maps extends LazyLogging {
     doRecovery(folder.folders, ListBuffer.empty)
   }
 
-  def nextMap[K, V: ClassTag](nextMapSize: Long,
-                              currentMap: Map[K, V])(implicit keyOrder: KeyOrder[K],
-                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                     fileSweeper: FileSweeper,
-                                                     functionStore: FunctionStore,
-                                                     mapReader: MapEntryReader[MapEntry[K, V]],
-                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                     skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, Map[K, V]] =
+  def nextMapUnsafe[K, V: ClassTag](nextMapSize: Long,
+                                    currentMap: Map[K, V])(implicit keyOrder: KeyOrder[K],
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           fileSweeper: FileSweeper,
+                                                           functionStore: FunctionStore,
+                                                           mapReader: MapEntryReader[MapEntry[K, V]],
+                                                           writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                           skipListMerger: SkipListMerger[K, V]): Map[K, V] =
     currentMap match {
       case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
-        IO(currentMap.close()) map {
-          _ =>
-            Map.persistent[K, V](
-              folder = currentMap.path.incrementFolderId,
-              mmap = currentMap.mmap,
-              flushOnOverflow = false,
-              fileSize = nextMapSize
-            )
-        }
+        currentMap.close()
+        Map.persistent[K, V](
+          folder = currentMap.path.incrementFolderId,
+          mmap = currentMap.mmap,
+          flushOnOverflow = false,
+          fileSize = nextMapSize
+        )
 
       case _ =>
-        IO.Right(
-          Map.memory[K, V](
-            fileSize = nextMapSize,
-            flushOnOverflow = false
-          )
+        Map.memory[K, V](
+          fileSize = nextMapSize,
+          flushOnOverflow = false
         )
     }
 }
@@ -306,39 +302,52 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       persist(mapEntry(timer))
     }
 
+  private def initNextMap(mapSize: Long) = {
+    val nextMap = Maps.nextMapUnsafe(mapSize, currentMap)
+    maps addFirst currentMap
+    currentMap = nextMap
+    totalMapsCount += 1
+    currentMapsCount += 1
+    onNextMapListener()
+  }
+
   /**
    * @param entry entry to add
    * @return IO.Right(true) when new map gets added to maps. This return value is currently used
    *         in LevelZero to determine if there is a map that should be converted Segment.
    */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): Unit =
-    if (!currentMap.write(entry)) {
+  private def persist(entry: MapEntry[K, V]): Unit = {
+    val persisted =
+      try
+        currentMap write entry
+      catch {
+        case throwable: Throwable =>
+          //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that
+          //if the failure was due to a corruption in the current Map, all the new Entries do not value submitted
+          //to the same Map file. They SHOULD be added to a new Map file that is not already unreadable.
+          logger.error("IO.Failure to write Map entry. Starting a new Map.", throwable)
+          initNextMap(fileSize)
+          throw throwable
+      }
+
+    if (!persisted) {
       val accelerate = acceleration(meter)
 
       accelerate.brake match {
-        case Some(brake) =>
-          brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
-
         case None =>
           brakePedal = null
+
+        case Some(brake) =>
+          brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
       }
 
       val nextMapSize = accelerate.nextMapSize max entry.totalByteSize
       logger.debug(s"Next map size: {}.bytes", nextMapSize)
-      Maps.nextMap(nextMapSize, currentMap) match {
-        case IO.Right(nextMap) =>
-          maps addFirst currentMap
-          currentMap = nextMap
-          totalMapsCount += 1
-          currentMapsCount += 1
-          onNextMapListener()
-          persist(entry)
-
-        case IO.Left(error) =>
-          throw new Exception("Fatal exception", error.exception)
-      }
+      initNextMap(nextMapSize)
+      persist(entry)
     }
+  }
 
   private def findFirst[R](f: Map[K, V] => Option[R]): Option[R] = {
     val iterator = maps.iterator()

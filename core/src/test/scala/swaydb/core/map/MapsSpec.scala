@@ -322,9 +322,8 @@ class MapsSpec extends TestBase {
         maps.write(_ => MapEntry.Put(2, Memory.put(2)))
       }
 
-      //Updated - Failure to write to map should not start a new map but stop writes for manual resolution.
       //new Map file is created. Now this write will succeed.
-      //      maps.write(_ => MapEntry.Put(2, Memory.put(2)))
+      maps.write(_ => MapEntry.Put(2, Memory.put(2)))
     }
   }
 }

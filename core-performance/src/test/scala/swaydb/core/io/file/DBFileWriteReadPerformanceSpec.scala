@@ -166,8 +166,8 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
       val readChannelFile = DBFile.channelRead(channelFile.path, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       readChannelFile.fileSize.runRandomIO.right.value shouldBe bytes.size * chunkSize
       Effect.readAll(channelFile.path) shouldBe flattenBytes
-      channelFile.close.runRandomIO.right.value
-      readChannelFile.close.runRandomIO.right.value
+      channelFile.close().runRandomIO.right.value
+      readChannelFile.close().runRandomIO.right.value
 
       /**
        * Benchmark memory mapped files write
@@ -190,7 +190,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
       val bytes = randomBytes(chunkSize)
       val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       file.append(Slice(bytes))
-      file.close.runRandomIO.right.value
+      file.close().runRandomIO.right.value
 
       /**
        * Benchmark file channel read
@@ -206,7 +206,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
             channelFile.get(index).runRandomIO.right.value shouldBe bytes(index)
         }
       }
-      channelFile.close.runRandomIO.right.value
+      channelFile.close().runRandomIO.right.value
 
       /**
        * Benchmark memory mapped file read
@@ -236,7 +236,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
       }
       val file = DBFile.channelWrite(randomFilePath, autoClose = true, ioStrategy = IOStrategy.ConcurrentIO(true), blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
       bytes foreach (file.append(_).runRandomIO.right.value)
-      file.close.runRandomIO.right.value
+      file.close().runRandomIO.right.value
 
       /**
        * Benchmark file channel read
@@ -254,7 +254,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
             index + chunkSize
         }
       }
-      channelFile.close.runRandomIO.right.value
+      channelFile.close().runRandomIO.right.value
 
       /**
        * Benchmark memory mapped file read

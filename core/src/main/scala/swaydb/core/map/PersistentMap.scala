@@ -303,7 +303,7 @@ private[map] case class PersistentMap[K, V: ClassTag](path: Path,
     }
 
   override def close(): Unit =
-    currentFile.close
+    currentFile.close()
 
   override def exists: Boolean =
     currentFile.existsOnDisk

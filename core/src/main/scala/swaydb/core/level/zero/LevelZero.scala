@@ -25,7 +25,6 @@ import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO.Defer
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
 import swaydb.core.data._
@@ -371,9 +370,13 @@ private[core] case class LevelZero(path: Path,
     if (mapsIterator.hasNext)
       find(key, readState, mapsIterator.next(), mapsIterator)
     else
-      nextLevel
-        .map(_.get(key, readState))
-        .getOrElse(IO.Defer.none)
+      nextLevel match {
+        case Some(nextLevel) =>
+          nextLevel.get(key, readState)
+
+        case None =>
+          IO.Defer.none
+      }
 
   def currentGetter(currentMap: map.Map[Slice[Byte], Memory]) =
     new CurrentGetter {
@@ -538,9 +541,13 @@ private[core] case class LevelZero(path: Path,
         findHigher(key, readState, nextMap, otherMaps.drop(1))
       case None =>
         //        println(s"Finding higher for key: ${key.readInt()} in ${nextLevel.rootPath}")
-        nextLevel
-          .map(_.higher(key, readState))
-          .getOrElse(IO.Defer.none)
+        nextLevel match {
+          case Some(nextLevel) =>
+            nextLevel.higher(key, readState)
+
+          case None =>
+            IO.Defer.none
+        }
     }
 
   def currentWalker(currentMap: map.Map[Slice[Byte], Memory],
@@ -691,6 +698,7 @@ private[core] case class LevelZero(path: Path,
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.bloomFilterKeyValueCount + keyValueCountInMaps
+
       case None =>
         keyValueCountInMaps
     }
@@ -836,19 +844,13 @@ private[core] case class LevelZero(path: Path,
         .run
         .flatMap {
           case Some(put) =>
-
-            val value =
-              IO(put.getOrFetchValue)
-                .flatMap {
-                  value =>
-                    IO.Right(Some(put.key, value))
-                }
-                .onLeftSideEffect {
-                  failure => //if there was an error, store it locally for further processing.
-                    failed = Some(failure.value)
-                }
-
-            tag.fromIO(value)
+            try
+              tag.success(Some(put.key, put.getOrFetchValue))
+            catch {
+              case throwable: Throwable =>
+                failed = Some(IO.ExceptionHandler.toError(throwable))
+                tag.failure(throwable)
+            }
 
           case None =>
             tag.none

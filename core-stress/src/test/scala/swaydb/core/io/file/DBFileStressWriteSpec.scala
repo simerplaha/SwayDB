@@ -50,7 +50,7 @@ class DBFileStressWriteSpec extends TestBase {
             file.append(byteChunk).runRandomIO.right.value
         }
       }
-      file.close.runRandomIO.right.value
+      file.close().runRandomIO.right.value
     }
 
     "write key values to a ChannelFile concurrently" in {
@@ -65,7 +65,7 @@ class DBFileStressWriteSpec extends TestBase {
           }
         } await 20.seconds
       }
-      file.close.runRandomIO.right.value
+      file.close().runRandomIO.right.value
     }
 
     "write key values to a MMAPlFile" in {
@@ -78,7 +78,7 @@ class DBFileStressWriteSpec extends TestBase {
             file.append(chunk).runRandomIO.right.value
         }
       }
-      file.close.runRandomIO.right.value
+      file.close().runRandomIO.right.value
     }
 
     "write key values to a MMAPlFile concurrently" in {
@@ -93,7 +93,7 @@ class DBFileStressWriteSpec extends TestBase {
           }
         } await 20.seconds
       }
-      file.close.runRandomIO.right.value
+      file.close().runRandomIO.right.value
     }
   }
 }
