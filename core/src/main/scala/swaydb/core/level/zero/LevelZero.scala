@@ -888,7 +888,7 @@ private[core] case class LevelZero(path: Path,
     failed match {
       case Some(error) =>
         error match {
-          case _: Error.NoSuchFile | _: Error.FileNotFound =>
+          case _: Error.NoSuchFile | _: Error.FileNotFound | _: Error.NullMappedByteBuffer =>
             run(apply)
 
           case _: Error =>
