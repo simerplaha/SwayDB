@@ -24,7 +24,6 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Path, StandardOpenOption}
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.data.slice.Slice
 
 private[file] object ChannelFile {

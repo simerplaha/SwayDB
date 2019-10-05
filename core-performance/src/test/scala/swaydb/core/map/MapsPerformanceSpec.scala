@@ -19,8 +19,8 @@
 
 package swaydb.core.map
 
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory

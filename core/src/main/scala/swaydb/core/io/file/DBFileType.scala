@@ -21,7 +21,6 @@ package swaydb.core.io.file
 
 import java.nio.file.Path
 
-import swaydb.IO
 import swaydb.core.actor.FileSweeperItem
 import swaydb.data.slice.Slice
 

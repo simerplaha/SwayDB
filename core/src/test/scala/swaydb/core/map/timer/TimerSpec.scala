@@ -29,7 +29,6 @@ import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter, TimerMapEntry
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.Bytez
-import swaydb.IOValues._
 
 import scala.concurrent.ExecutionContext
 

@@ -20,7 +20,6 @@
 package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._

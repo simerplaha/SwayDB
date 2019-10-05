@@ -23,10 +23,9 @@ import java.util.concurrent.ConcurrentSkipListSet
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.IOValues._
-import swaydb.core.RunThis._
-import swaydb.core.TestExecutionContext
-import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb._
+import swaydb.core.RunThis._
+import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._

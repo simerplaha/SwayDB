@@ -21,13 +21,11 @@ package swaydb.core.segment.format.a
 
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
 
 class SegmentKeyValueCount0 extends SegmentKeyValueCount {
   val keyValuesCount = 1000

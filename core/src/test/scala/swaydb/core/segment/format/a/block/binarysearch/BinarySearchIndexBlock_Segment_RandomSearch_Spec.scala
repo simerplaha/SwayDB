@@ -20,8 +20,6 @@ package swaydb.core.segment.format.a.block.binarysearch
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._

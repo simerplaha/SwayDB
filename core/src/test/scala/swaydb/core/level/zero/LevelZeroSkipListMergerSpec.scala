@@ -19,6 +19,7 @@
 package swaydb.core.level.zero
 
 
+import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -29,9 +30,6 @@ import swaydb.data.order.TimeOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
-
-import scala.collection.JavaConverters._
 
 class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
   implicit val keyOrder = swaydb.data.order.KeyOrder.default

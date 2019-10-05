@@ -26,7 +26,6 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.util.Benchmark
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._

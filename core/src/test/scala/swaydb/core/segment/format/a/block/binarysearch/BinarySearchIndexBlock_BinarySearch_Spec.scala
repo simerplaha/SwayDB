@@ -19,8 +19,6 @@
 package swaydb.core.segment.format.a.block.binarysearch
 
 import org.scalatest.OptionValues._
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
@@ -31,7 +29,6 @@ import swaydb.core.segment.format.a.block.{Block, KeyMatcher}
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.{Error, IO}
 
 class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 

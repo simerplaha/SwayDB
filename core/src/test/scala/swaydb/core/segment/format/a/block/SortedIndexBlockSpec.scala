@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.Compression
 import swaydb.IOValues._
@@ -33,7 +34,6 @@ import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import org.scalatest.OptionValues._
 
 import scala.collection.mutable.ListBuffer
 

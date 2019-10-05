@@ -10,7 +10,7 @@
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data._

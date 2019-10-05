@@ -21,15 +21,13 @@ package swaydb.core.level.tool
 
 import java.nio.file.NoSuchFileException
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.compaction.Throttle

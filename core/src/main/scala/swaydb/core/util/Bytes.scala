@@ -19,7 +19,6 @@
 
 package swaydb.core.util
 
-import swaydb.Error.IO.ExceptionHandler
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice

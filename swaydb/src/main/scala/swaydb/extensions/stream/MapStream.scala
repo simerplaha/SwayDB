@@ -19,12 +19,12 @@
 
 package swaydb.extensions.stream
 
+import swaydb.Error.API.ExceptionHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.Key
 import swaydb.serializers.Serializer
 import swaydb.{IO, Streamable}
-import swaydb.Error.API.ExceptionHandler
 
 import scala.annotation.tailrec
 

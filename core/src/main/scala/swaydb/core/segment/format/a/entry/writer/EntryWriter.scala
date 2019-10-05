@@ -22,9 +22,9 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
-import swaydb.core.util.{Bytes, Options}
 import swaydb.core.util.Bytes._
 import swaydb.core.util.Options._
+import swaydb.core.util.{Bytes, Options}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 

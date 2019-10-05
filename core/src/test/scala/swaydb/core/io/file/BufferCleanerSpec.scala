@@ -19,13 +19,12 @@
 
 package swaydb.core.io.file
 
-import swaydb.IOValues._
-
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode
 import java.nio.file.{NoSuchFileException, StandardOpenOption}
 
 import swaydb.IO
+import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.RunThis._
 import swaydb.core.TestData._

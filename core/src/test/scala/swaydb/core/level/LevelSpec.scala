@@ -22,11 +22,9 @@ package swaydb.core.level
 import java.nio.channels.OverlappingFileLockException
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.EitherValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.IO
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}

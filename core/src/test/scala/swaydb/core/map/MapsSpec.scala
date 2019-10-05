@@ -22,9 +22,8 @@ package swaydb.core.map
 import java.nio.file.{Files, NoSuchFileException}
 
 import org.scalatest.OptionValues._
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, Value}

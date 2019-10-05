@@ -21,8 +21,8 @@ package swaydb.core.merge
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer

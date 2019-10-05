@@ -21,7 +21,7 @@ package swaydb.core.level.compaction
 
 import swaydb.core.level.zero.LevelZero
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.{IO, ActorWire}
+import swaydb.{ActorWire, IO}
 
 import scala.concurrent.Future
 

@@ -1,7 +1,6 @@
 package swaydb.core.segment.format.a.entry.id
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.data.slice.Slice
 

@@ -22,7 +22,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.config.{ActorConfig, FileCache}
-import swaydb.{Actor, ActorRef, IO, Tagged}
+import swaydb.{Actor, ActorRef}
 
 import scala.concurrent.ExecutionContext
 import scala.ref.WeakReference

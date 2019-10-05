@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block.reader
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
 import swaydb.core.TestBase
 import swaydb.core.TestData._

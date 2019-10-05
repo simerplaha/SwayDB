@@ -22,8 +22,8 @@ package swaydb.core.map.serializer
 import org.scalatest.OptionValues._
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
@@ -36,8 +36,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
-import scala.collection.JavaConverters._
 
 class LevelZeroMapEntrySpec extends TestBase {
 

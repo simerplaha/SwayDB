@@ -31,10 +31,9 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.io.file.Effect._
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock

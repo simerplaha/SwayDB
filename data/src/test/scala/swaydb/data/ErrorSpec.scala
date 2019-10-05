@@ -27,8 +27,8 @@ import java.nio.file.{NoSuchFileException, Paths}
 import org.scalatest.{FlatSpec, Matchers}
 import swaydb.Error.DataAccess
 import swaydb.Exception.NullMappedByteBuffer
-import swaydb.{Error, _}
 import swaydb.data.slice.Slice
+import swaydb.{Error, _}
 
 class ErrorSpec extends FlatSpec with Matchers {
 

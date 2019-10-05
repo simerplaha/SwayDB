@@ -22,15 +22,13 @@ package swaydb.core
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import swaydb.core.CommonAssertions._
+import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.actor.MemorySweeper
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
-import TestData._
-import CommonAssertions._
 
 private[swaydb] object TestSweeper {
 

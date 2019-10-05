@@ -23,12 +23,11 @@ import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.IO
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.data.Transient
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._

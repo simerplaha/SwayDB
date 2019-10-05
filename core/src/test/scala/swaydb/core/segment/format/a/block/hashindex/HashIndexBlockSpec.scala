@@ -22,12 +22,12 @@ package swaydb.core.segment.format.a.block.hashindex
 import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
-import swaydb.core.{TestBase, TestSweeper}
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{Block, SortedIndexBlock}
+import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

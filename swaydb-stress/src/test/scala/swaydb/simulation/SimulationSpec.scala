@@ -25,7 +25,6 @@ import com.typesafe.scalalogging.LazyLogging
 import org.scalatest.WordSpec
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.ActorRef
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.MMAP

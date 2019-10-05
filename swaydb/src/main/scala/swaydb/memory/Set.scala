@@ -24,7 +24,7 @@ import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.config.{ActorConfig, FileCache, MemoryCache}
+import swaydb.data.config.{FileCache, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._

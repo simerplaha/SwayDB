@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.entry.id.BaseEntryId

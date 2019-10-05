@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.entry.writer
 
 import java.util.concurrent.TimeUnit
 
+import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -34,7 +35,6 @@ import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
 
 import scala.concurrent.duration._
 

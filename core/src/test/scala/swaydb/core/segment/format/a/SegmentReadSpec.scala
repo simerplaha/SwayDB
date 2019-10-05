@@ -25,8 +25,8 @@ import org.scalatest.OptionValues._
 import org.scalatest.concurrent.ScalaFutures
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}

@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.a
 
-import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Transient
@@ -28,7 +27,6 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestSweeper, TestTimer}

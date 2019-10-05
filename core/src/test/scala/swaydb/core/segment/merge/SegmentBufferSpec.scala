@@ -20,11 +20,10 @@
 package swaydb.core.segment.merge
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.TestData._
-import swaydb.core.RunThis._
 import swaydb.core.CommonAssertions._
-import swaydb.serializers._
+import swaydb.core.TestData._
 import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class SegmentBufferSpec extends WordSpec with Matchers {
 

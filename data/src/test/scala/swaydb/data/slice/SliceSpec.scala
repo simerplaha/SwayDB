@@ -19,11 +19,11 @@
 
 package swaydb.data.slice
 
+import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.ByteSizeOf
-import org.scalatest.OptionValues._
 
 import scala.util.Random
 

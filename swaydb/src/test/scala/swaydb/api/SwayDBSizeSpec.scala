@@ -19,8 +19,8 @@
 
 package swaydb
 
-import swaydb.api.TestBaseEmbedded
 import swaydb.IOValues._
+import swaydb.api.TestBaseEmbedded
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
 

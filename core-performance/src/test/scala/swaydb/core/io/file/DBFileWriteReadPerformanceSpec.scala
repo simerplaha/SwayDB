@@ -27,7 +27,6 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator, Bytes}
 import swaydb.core.{TestBase, TestSweeper}

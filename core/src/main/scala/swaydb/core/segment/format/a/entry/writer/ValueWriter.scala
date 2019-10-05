@@ -23,8 +23,8 @@ import swaydb.IO
 import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
 import swaydb.core.util.Options._
+import swaydb.data.slice.Slice
 
 private[writer] object ValueWriter {
 

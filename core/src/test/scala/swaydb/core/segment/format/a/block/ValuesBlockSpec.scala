@@ -19,6 +19,8 @@
 
 package swaydb.core.segment.format.a.block
 
+import org.scalatest.OptionValues._
+import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Transient
@@ -27,8 +29,6 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
-import swaydb.IOValues._
 
 import scala.collection.mutable.ListBuffer
 

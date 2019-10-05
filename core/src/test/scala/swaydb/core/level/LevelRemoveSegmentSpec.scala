@@ -21,13 +21,11 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.PrivateMethodTester
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.zero.LevelZeroSkipListMerger
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice

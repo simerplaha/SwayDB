@@ -22,14 +22,13 @@ package swaydb.core.segment.format.a
 import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import org.scalatest.concurrent.ScalaFutures
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.ReadState
-import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

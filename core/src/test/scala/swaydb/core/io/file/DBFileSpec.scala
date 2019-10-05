@@ -21,20 +21,17 @@ package swaydb.core.io.file
 
 import java.nio.ReadOnlyBufferException
 import java.nio.channels.{NonReadableChannelException, NonWritableChannelException}
-import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
+import java.nio.file.FileAlreadyExistsException
 
 import org.scalamock.scalatest.MockFactory
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions.randomIOStrategy
-import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.actor.{FileSweeper, FileSweeperItem}
+import swaydb.core.actor.FileSweeper
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.slice.Slice
-
-import scala.collection.JavaConverters._
 
 class DBFileSpec extends TestBase with MockFactory {
 

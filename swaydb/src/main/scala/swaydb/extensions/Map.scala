@@ -19,15 +19,15 @@
 
 package swaydb.extensions
 
+import swaydb.Error.API.ExceptionHandler
+import swaydb.IO._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
 import swaydb.{From, IO, Prepare}
-import IO._
-import swaydb.Error.API.ExceptionHandler
-import swaydb.extensions.stream.{MapKeysStream, MapStream}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 

@@ -19,17 +19,11 @@
 
 package swaydb.core.util
 
-import java.util.concurrent.ConcurrentSkipListMap
-import java.util.concurrent.locks.ReentrantReadWriteLock
-
 import org.scalatest.{FlatSpec, Matchers}
-import swaydb.core.util
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.util.Random
 
 class MinMaxSkipListSpec extends SkipListSpec {
   override def isMinMax: Boolean = true

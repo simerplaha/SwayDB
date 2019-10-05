@@ -21,14 +21,13 @@ package swaydb.core.map.serializer
 
 
 import org.scalatest.OptionValues._
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.SkipList
@@ -37,8 +36,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-
-import scala.collection.JavaConverters._
 
 class AppendixMapEntrySpec extends TestBase {
 

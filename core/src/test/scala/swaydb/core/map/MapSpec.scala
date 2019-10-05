@@ -22,19 +22,17 @@ package swaydb.core.map
 import java.nio.file.{FileAlreadyExistsException, Files, Path}
 
 import org.scalatest.OptionValues._
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{Memory, Transient, Value}
-import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.io.file.Effect._
+import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{BlockCacheFileIDGenerator, Extension, SkipList}

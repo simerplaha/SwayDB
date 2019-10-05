@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock

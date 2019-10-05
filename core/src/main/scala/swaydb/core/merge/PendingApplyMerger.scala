@@ -19,8 +19,6 @@
 
 package swaydb.core.merge
 
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore

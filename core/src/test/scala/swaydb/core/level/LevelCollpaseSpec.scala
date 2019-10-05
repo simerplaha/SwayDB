@@ -19,7 +19,6 @@
 
 package swaydb.core.level
 
-import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._

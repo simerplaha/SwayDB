@@ -19,7 +19,6 @@
 
 package swaydb.core.util
 
-import swaydb.IO
 import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Transient, Value}
 import swaydb.core.function.FunctionStore

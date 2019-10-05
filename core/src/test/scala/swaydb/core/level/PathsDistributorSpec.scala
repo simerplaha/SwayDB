@@ -22,7 +22,6 @@ package swaydb.core.level
 import java.nio.file.{Path, Paths}
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase

@@ -21,7 +21,9 @@ package swaydb.core.level.compaction.throttle
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
+import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.{TestBase, TestExecutionContext, TestSweeper, TestTimer}
@@ -29,8 +31,6 @@ import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{Actor, Scheduler}
-import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
 
 import scala.collection.mutable
 import scala.concurrent.Promise

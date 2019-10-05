@@ -19,12 +19,9 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.Error.IO.ExceptionHandler
 import swaydb.IO
-import swaydb.IO._
 import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
-import swaydb.core.map.serializer.ValueSerializer.SeqOfBytesSerializer
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
 import swaydb.data.slice.{ReaderBase, Slice}

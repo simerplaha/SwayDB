@@ -22,13 +22,12 @@ package swaydb.core.map.serializer
 
 import org.scalatest.OptionValues._
 import swaydb.Error.Map.ExceptionHandler
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.io.file.BlockCache
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestSweeper, TestTimer}

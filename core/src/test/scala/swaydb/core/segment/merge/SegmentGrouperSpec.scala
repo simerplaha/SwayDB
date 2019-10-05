@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -27,7 +26,6 @@ import swaydb.core.data._
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.StorageUnits._

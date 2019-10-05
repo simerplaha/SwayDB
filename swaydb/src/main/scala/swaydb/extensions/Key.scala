@@ -19,12 +19,12 @@
 
 package swaydb.extensions
 
-import swaydb.{Error, IO}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.serializers.Serializer
+import swaydb.{Error, IO}
 
 private[extensions] sealed trait Key[+K] {
   def parentMapKeys: Seq[K]

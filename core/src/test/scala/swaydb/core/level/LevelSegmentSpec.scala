@@ -22,7 +22,6 @@ package swaydb.core.level
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.EitherValues._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._

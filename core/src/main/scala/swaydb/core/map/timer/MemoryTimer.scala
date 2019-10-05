@@ -21,7 +21,6 @@ package swaydb.core.map.timer
 
 import java.util.concurrent.atomic.AtomicLong
 
-import swaydb.IO
 import swaydb.core.data.Time
 
 private[core] object MemoryTimer {

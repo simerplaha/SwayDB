@@ -20,7 +20,6 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.data.{Memory, Persistent, Value, _}
 import swaydb.core.segment.format.a.block._

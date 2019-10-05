@@ -21,23 +21,20 @@ package swaydb.core.segment.format.a.block
 import java.nio.file.Paths
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.IO
+import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.segment.ReadState
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.util.Benchmark
 import swaydb.core.{Blocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IOValues._
-import org.scalatest.OptionValues._
-import swaydb.core.segment.ReadState
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 
 import scala.util.Try
 

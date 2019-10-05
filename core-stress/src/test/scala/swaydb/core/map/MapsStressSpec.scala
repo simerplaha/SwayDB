@@ -10,7 +10,7 @@
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -20,8 +20,8 @@
 package swaydb.core.map
 
 import org.scalatest.OptionValues._
-import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
+import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Memory

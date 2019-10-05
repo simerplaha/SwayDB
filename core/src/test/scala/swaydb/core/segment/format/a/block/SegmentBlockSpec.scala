@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.Error.Segment.ExceptionHandler
+import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -27,15 +27,12 @@ import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
 
 class SegmentBlockSpec extends TestBase {
 

@@ -19,12 +19,12 @@
 
 package swaydb.extensions
 
-import swaydb.{From, IO}
+import swaydb.Error.API.ExceptionHandler
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
-import swaydb.Error.API.ExceptionHandler
+import swaydb.{From, IO}
 
 //@formatter:off
 class Maps[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],

@@ -20,8 +20,8 @@
 package swaydb.api
 
 
-import swaydb.{Tag, _}
 import swaydb.IOValues._
+import swaydb._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 

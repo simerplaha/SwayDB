@@ -21,7 +21,6 @@ package swaydb.core
 
 import java.util.concurrent.atomic.AtomicLong
 
-import swaydb.IO
 import swaydb.core.data.Time
 import swaydb.core.map.timer.Timer
 import swaydb.data.slice.Slice

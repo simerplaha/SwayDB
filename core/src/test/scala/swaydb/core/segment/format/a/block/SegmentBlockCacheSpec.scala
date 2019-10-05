@@ -2,6 +2,7 @@ package swaydb.core.segment.format.a.block
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
+import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -14,13 +15,12 @@ import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import org.scalatest.OptionValues._
-import swaydb.data.util.StorageUnits._
-import scala.concurrent.duration._
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 import scala.util.Random
 
 class SegmentBlockCacheSpec extends TestBase {

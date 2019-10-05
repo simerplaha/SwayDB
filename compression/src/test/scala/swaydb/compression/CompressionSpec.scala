@@ -20,7 +20,6 @@
 package swaydb.compression
 
 import org.scalatest.Matchers._
-import org.scalatest.OptionValues._
 import org.scalatest.WordSpec
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf

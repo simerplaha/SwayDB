@@ -41,13 +41,13 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
-import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}

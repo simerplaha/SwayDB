@@ -19,9 +19,9 @@
 
 package swaydb.core.actor
 
-import swaydb.{Actor, ActorRef}
 import swaydb.core.RunThis._
 import swaydb.data.config.ActorConfig.QueueOrder
+import swaydb.{Actor, ActorRef}
 
 import scala.concurrent.duration._
 

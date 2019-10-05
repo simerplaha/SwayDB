@@ -20,10 +20,10 @@
 package swaydb.core.actor
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.{Actor, ActorWire, Tag}
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.{Actor, ActorWire}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future

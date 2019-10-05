@@ -20,7 +20,6 @@
 package swaydb.core.io.reader
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Error, IO}
 import swaydb.core.io.file.DBFile
 import swaydb.data.slice.{Reader, Slice}
 

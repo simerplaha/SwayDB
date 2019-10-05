@@ -25,10 +25,9 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorQueue, IO, Scheduler}
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, TimeoutException}
 import scala.util.{Failure, Success, Try}
-import scala.concurrent.duration._
 
 /**
  * TO-DO - Move this to a test module.
