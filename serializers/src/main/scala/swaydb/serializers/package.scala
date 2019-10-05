@@ -23,19 +23,19 @@ import swaydb.data.slice.Slice
 
 package object serializers {
 
-  implicit def toSlice[T](data: T)(implicit serializer: Serializer[T]): Slice[Byte] =
+  @inline implicit def toSlice[T](data: T)(implicit serializer: Serializer[T]): Slice[Byte] =
     serializer.write(data)
 
-  implicit def toSlice[T](data: Option[T])(implicit serializer: Serializer[T]): Option[Slice[Byte]] =
+  @inline implicit def toSlice[T](data: Option[T])(implicit serializer: Serializer[T]): Option[Slice[Byte]] =
     data.map(serializer.write)
 
   implicit class Decode(slice: Slice[Byte]) {
-    def read[T](implicit serializer: Serializer[T]): T =
+    @inline def read[T](implicit serializer: Serializer[T]): T =
       serializer.read(slice)
   }
 
   implicit class DecodeOption(slice: Option[Slice[Byte]]) {
-    def read[T](implicit serializer: Serializer[T]): T =
+    @inline def read[T](implicit serializer: Serializer[T]): T =
       slice.map(serializer.read) getOrElse serializer.read(Slice.emptyBytes)
   }
 }
