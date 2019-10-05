@@ -100,8 +100,8 @@ private[core] object BufferCleaner extends LazyLogging {
    * Mutates the state after cleaner is initialised. Do not copy state to avoid necessary GC workload.
    */
   private[file] def clean(state: State, buffer: MappedByteBuffer, path: Path): IO[swaydb.Error.IO, State] =
-    state.cleaner map {
-      cleaner =>
+    state.cleaner match {
+      case Some(cleaner) =>
         IO {
           cleaner.clean(buffer)
           state
@@ -112,8 +112,9 @@ private[core] object BufferCleaner extends LazyLogging {
             logger.error(errorMessage, exception)
             throw IO.throwable(errorMessage, exception) //also throw to output to stdout in-case logging is not enabled since this is critical.
         }
-    } getOrElse {
-      initialiseCleaner(state, buffer, path)
+
+      case None =>
+        initialiseCleaner(state, buffer, path)
     }
 
   //FIXME: Rah! Not very nice way to initialise BufferCleaner.
@@ -124,10 +125,13 @@ private[core] object BufferCleaner extends LazyLogging {
       cleaner = Some(new BufferCleaner)
 
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
-    cleaner map {
-      cleaner =>
-        cleaner.actor send (buffer, path, false)
-    } getOrElse logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
+    cleaner match {
+      case Some(cleaner) =>
+        cleaner.actor send(buffer, path, false)
+
+      case None =>
+        logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
+    }
 }
 
 private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLogging {
@@ -135,11 +139,10 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
   implicit val queueOrder = QueueOrder.FIFO
 
   private val actor: ActorRef[(MappedByteBuffer, Path, Boolean), State] =
-    Actor.timerCache[(MappedByteBuffer, Path, Boolean), State](
+    Actor.timer[(MappedByteBuffer, Path, Boolean), State](
       state = State(None),
-      stashCapacity = 100,
-      interval = 5.seconds,
-      weigher = _ => 1
+      stashCapacity = 20,
+      interval = 5.seconds
     ) {
       case (message @ (buffer, path, isOverdue), self) =>
         if (isOverdue)
@@ -149,5 +152,5 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
     }
 
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
-    actor send (buffer, path, false)
+    actor send(buffer, path, false)
 }

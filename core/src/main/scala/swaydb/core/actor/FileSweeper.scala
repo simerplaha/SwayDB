@@ -37,6 +37,7 @@ private[core] trait FileSweeperItem {
 private[swaydb] trait FileSweeper {
   def close(file: FileSweeperItem): Unit
 }
+
 private[swaydb] object FileSweeper extends LazyLogging {
 
   case object Disabled extends FileSweeper {
