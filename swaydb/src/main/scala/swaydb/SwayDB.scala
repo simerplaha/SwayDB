@@ -36,7 +36,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration._
 import scala.concurrent.forkjoin.ForkJoinPool
 import scala.reflect.ClassTag
 

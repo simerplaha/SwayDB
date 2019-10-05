@@ -38,7 +38,7 @@ private[core] trait Timer {
 }
 
 private[core] object Timer {
-  val defaultKey = Slice.writeInt(0)
+  val defaultKey = Slice.emptyBytes
 
   def memory(): MemoryTimer =
     MemoryTimer()

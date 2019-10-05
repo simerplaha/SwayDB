@@ -61,8 +61,6 @@ private[core] object LevelZero extends LazyLogging {
                                                         functionStore: FunctionStore): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-    implicit val timerReader = TimerMapEntryReader.TimerPutMapEntryReader
-    implicit val timerWriter = TimerMapEntryWriter.TimerPutMapEntryWriter
 
     //LevelZero does not required FileSweeper since they are all Map files.
     implicit val fileSweeper: FileSweeper = FileSweeper.Disabled
@@ -80,7 +78,11 @@ private[core] object LevelZero extends LazyLogging {
                 mmap = mmap,
                 mod = 100000,
                 flushCheckpointSize = 1.mb
-              )
+              )(keyOrder = KeyOrder.default,
+                timeOrder = timeOrder,
+                functionStore = functionStore,
+                writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
+                reader = TimerMapEntryReader.TimerPutMapEntryReader)
             } else {
               IO.Right(Timer.empty)
             }
@@ -120,7 +122,11 @@ private[core] object LevelZero extends LazyLogging {
                     mmap = LevelRef.hasMMAP(nextLevel),
                     mod = 100000,
                     flushCheckpointSize = 1.mb
-                  )
+                  )(keyOrder = KeyOrder.default,
+                    timeOrder = timeOrder,
+                    functionStore = functionStore,
+                    writer = TimerMapEntryWriter.TimerPutMapEntryWriter,
+                    reader = TimerMapEntryReader.TimerPutMapEntryReader)
 
                 case None =>
                   IO.Right(Timer.memory())
