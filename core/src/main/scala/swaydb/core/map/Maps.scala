@@ -287,7 +287,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
   @volatile private var totalMapsCount: Int = maps.size() + 1
   @volatile private var currentMapsCount: Int = maps.size() + 1
 
-  @volatile var queuedMapsSlice: Slice[Map[K, V]] = toQueuedMapSlice()
+  @volatile var currentMapsSlice: Slice[Map[K, V]] = toMapsSlice()
 
   val meter =
     new LevelZeroMeter {
@@ -305,8 +305,10 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
       persist(mapEntry(timer))
     }
 
-  def toQueuedMapSlice(): Slice[Map[K, V]] = {
-    val slice = Slice.create[Map[K, V]](totalMapsCount - 1)
+  def toMapsSlice(): Slice[Map[K, V]] = {
+    val slice = Slice.create[Map[K, V]](totalMapsCount)
+
+    slice add currentMap
     maps forEach {
       new Consumer[Map[K, V]] {
         override def accept(map: Map[K, V]): Unit =
@@ -316,8 +318,8 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     slice
   }
 
-  def updateQueuedMapSlice() =
-    this.queuedMapsSlice = toQueuedMapSlice()
+  def updateMapsSlice(): Unit =
+    this.currentMapsSlice = toMapsSlice()
 
   private def initNextMap(mapSize: Long) = {
     val nextMap = Maps.nextMapUnsafe(mapSize, currentMap)
@@ -325,7 +327,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
     currentMap = nextMap
     totalMapsCount += 1
     currentMapsCount += 1
-    updateQueuedMapSlice()
+    updateMapsSlice()
     onNextMapListener()
   }
 
@@ -442,7 +444,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
         IO(removedMap.delete) match {
           case IO.Right(_) =>
             currentMapsCount -= 1
-            updateQueuedMapSlice()
+            updateMapsSlice()
             IO.unit
 
           case IO.Left(error) =>
@@ -450,7 +452,7 @@ private[core] class Maps[K, V: ClassTag](val maps: ConcurrentLinkedDeque[Map[K, 
             val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
             logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
             maps.addLast(removedMap)
-            updateQueuedMapSlice()
+            updateMapsSlice()
             IO.Left(error)
         }
     }
