@@ -32,7 +32,7 @@ import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[extensions] object Map {
-  def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
+  def apply[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
                   mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                   valueSerializer: Serializer[V],
                                   mapKeySerializer: Serializer[Key[K]],
@@ -101,7 +101,7 @@ private[extensions] object Map {
    *
    * Note: If the map already exists, it will be removed including all it's child maps similar to a in-memory [[scala.collection.mutable.Map]].
    */
-  def putMap[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
+  def putMap[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
                    mapKey: Seq[K],
                    value: Option[V])(implicit keySerializer: Serializer[K],
                                      mapKeySerializer: Serializer[Key[K]],
@@ -154,7 +154,7 @@ private[extensions] object Map {
       Seq(Prepare.Put(Key.MapStart(mapKey), Option(value)))
     }
 
-  def removeMap[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
+  def removeMap[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
                       mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                       mapKeySerializer: Serializer[Key[K]],
                                       valueSerializer: Serializer[V],
@@ -175,12 +175,20 @@ private[extensions] object Map {
  *
  * For documentation check - http://swaydb.io/api/
  */
+//@formatter:off
 class Map[K, V](mapKey: Seq[K],
-                map: swaydb.Map[Key[K], Option[V], IO.ApiIO])(implicit keySerializer: Serializer[K],
-                                                              mapKeySerializer: Serializer[Key[K]],
-                                                              keyOrder: KeyOrder[Slice[Byte]],
-                                                              valueSerializerOption: Serializer[Option[V]],
-                                                              valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey, map = map.copy(map.core, from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO])(implicit keySerializer: Serializer[K],
+                                                                       mapKeySerializer: Serializer[Key[K]],
+                                                                       keyOrder: KeyOrder[Slice[Byte]],
+                                                                       valueSerializerOption: Serializer[Option[V]],
+                                                                       valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey = mapKey,
+                                                                                                                               map = map.copy(core = map.core,
+                                                                                                                                              from = Some(From(Key.MapStart(mapKey),
+                                                                                                                                              orAfter = false,
+                                                                                                                                              orBefore = false,
+                                                                                                                                              before = false,
+                                                                                                                                              after = true)))) {
+//@formatter:on
 
   def maps: Maps[K, V] =
     new Maps[K, V](map, mapKey)
@@ -433,6 +441,6 @@ class Map[K, V](mapKey: Seq[K],
   def closeDatabase(): IO.ApiIO[Unit] =
     baseMap().close()
 
-  private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V], ApiIO] =
+  private[swaydb] def baseMap(): swaydb.Map[Key[K], Option[V], Nothing, ApiIO] =
     map
 }

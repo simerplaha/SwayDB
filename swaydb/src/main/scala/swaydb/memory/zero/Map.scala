@@ -31,6 +31,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
+import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
@@ -38,22 +39,23 @@ object Map extends LazyLogging {
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
   /**
-    * A single level zero only database. Does not need compaction.
-    */
+   * A single level zero only database. Does not need compaction.
+   */
 
-  def apply[K, V](mapSize: Int = 4.mb,
-                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                        valueSerializer: Serializer[V],
-                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+  def apply[K, V, F <: K](mapSize: Int = 4.mb,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                                valueSerializer: Serializer[V],
+                                                                                                functionClassTag: ClassTag[F],
+                                                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
-      enableTimer = false,
+      enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
         acceleration = acceleration
       )
     ) map {
       db =>
-        swaydb.Map[K, V, IO.ApiIO](db)
+        swaydb.Map[K, V, F, IO.ApiIO](db)
     }
 }

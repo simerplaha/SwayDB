@@ -30,9 +30,9 @@ private[extensions] object Extend {
    * Wraps the input [[swaydb.Map]] instance and returns a new [[Map]] instance
    * which contains extended APIs to create nested Maps.
    */
-  def apply[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO])(implicit keySerializer: Serializer[K],
-                                                                optionValueSerializer: Serializer[Option[V]],
-                                                                keyOrder: KeyOrder[Slice[Byte]]): IO.ApiIO[Map[K, V]] = {
+  def apply[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO])(implicit keySerializer: Serializer[K],
+                                                                         optionValueSerializer: Serializer[Option[V]],
+                                                                         keyOrder: KeyOrder[Slice[Byte]]): IO.ApiIO[Map[K, V]] = {
     implicit val mapKeySerializer = Key.serializer(keySerializer)
 
     implicit val valueSerializer = new Serializer[V] {

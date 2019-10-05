@@ -19,7 +19,6 @@
 
 package swaydb.api
 
-
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.RunThis._
@@ -28,53 +27,53 @@ import swaydb.serializers.Default._
 class ScalaMapSpec0 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String, Nothing](dir = randomDir).right.value
 }
 
 class ScalaMapSpec1 extends ScalaMapSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class ScalaMapSpec2 extends ScalaMapSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value
 }
 
 class ScalaMapSpec3 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String]().right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.Map[Int, String, Nothing]().right.value
 }
 
 class ScalaMapSpec4 extends ScalaMapSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String, Nothing](mapSize = 1.byte).right.value
 }
 
 class ScalaMapSpec5 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String]().right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String, Nothing]().right.value
 }
 
 sealed trait ScalaMapSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, IO.ApiIO]
+  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
 
   "Expire" when {
     "put" in {

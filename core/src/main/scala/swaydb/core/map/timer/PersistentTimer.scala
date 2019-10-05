@@ -143,6 +143,8 @@ private[core] class PersistentTimer(mod: Long,
                                     startID: Long,
                                     map: PersistentMap[Slice[Byte], Slice[Byte]])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]]) extends Timer {
 
+  override val empty = false
+
   private val time = new AtomicLong(startID)
 
   override def next: Time =

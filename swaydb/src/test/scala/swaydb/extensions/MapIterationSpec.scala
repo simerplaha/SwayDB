@@ -30,7 +30,7 @@ class MapIterationSpec0 extends MapIterationSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).right.value.right.value
+    swaydb.extensions.persistent.Map[Int, String, Nothing](dir = randomDir).right.value.right.value
 }
 
 class MapIterationSpec1 extends MapIterationSpec {
@@ -38,7 +38,7 @@ class MapIterationSpec1 extends MapIterationSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).right.value.right.value
+    swaydb.extensions.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte).right.value.right.value
 }
 
 class MapIterationSpec2 extends MapIterationSpec {
@@ -46,14 +46,14 @@ class MapIterationSpec2 extends MapIterationSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).right.value.right.value
+    swaydb.extensions.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value.right.value
 }
 
 class MapIterationSpec3 extends MapIterationSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().right.value.right.value
+    swaydb.extensions.memory.Map[Int, String, Nothing]().right.value.right.value
 }
 
 sealed trait MapIterationSpec extends TestBaseEmbedded {

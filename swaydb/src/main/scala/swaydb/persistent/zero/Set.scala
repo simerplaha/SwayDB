@@ -34,22 +34,24 @@ import swaydb.serializers.Serializer
 import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
+import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
-  def apply[T](dir: Path,
-               mapSize: Int = 4.mb,
-               mmapMaps: Boolean = true,
-               recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-               otherDirs: Seq[Dir] = Seq.empty,
-               acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
-                                                                                     keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+  def apply[T, F <: T](dir: Path,
+                       mapSize: Int = 4.mb,
+                       mmapMaps: Boolean = true,
+                       recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                       otherDirs: Seq[Dir] = Seq.empty,
+                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
+                                                                                             functionClassTag: ClassTag[F],
+                                                                                             keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                             ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
-      enableTimer = false,
+      enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultPersistentZeroConfig(
         dir = dir,
         otherDirs = otherDirs,

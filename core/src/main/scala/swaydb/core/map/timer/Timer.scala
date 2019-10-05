@@ -30,6 +30,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 private[core] trait Timer {
+  val empty: Boolean
+
   def next: Time
 
   def close: Unit

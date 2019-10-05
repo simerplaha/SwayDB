@@ -35,20 +35,20 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class Memory_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.memory.Map[Int, WeatherData]().get
+  override val db = swaydb.memory.Map[Int, WeatherData, Nothing]().get
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.persistent.Map[Int, WeatherData](randomDir, memoryCacheSize = 10.mb, acceleration = Accelerator.brake()).get
+  override val db = swaydb.persistent.Map[Int, WeatherData, Nothing](randomDir, memoryCacheSize = 10.mb, acceleration = Accelerator.brake()).get
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.eventually.persistent.Map[Int, WeatherData](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  override val db = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
 }
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAfterAll {
 
-  val db: swaydb.Map[Int, WeatherData, IO.ApiIO]
+  val db: swaydb.Map[Int, WeatherData, Nothing, IO.ApiIO]
 
   override protected def afterAll(): Unit = {
     db.close().get

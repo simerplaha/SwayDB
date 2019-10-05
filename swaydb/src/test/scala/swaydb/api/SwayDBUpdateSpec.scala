@@ -31,53 +31,53 @@ import scala.concurrent.duration._
 class SwayDBUpdateSpec0 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String, Nothing](dir = randomDir).right.value
 }
 
 class SwayDBUpdateSpec1 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBUpdateSpec2 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value
 }
 
 class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String]().right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.Map[Int, String, Nothing]().right.value
 }
 
 class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String, Nothing](mapSize = 1.byte).right.value
 }
 
 class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String]().right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String, Nothing]().right.value
 }
 
 sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, IO.ApiIO]
+  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
 
   "Updating" when {
     "Put" in {

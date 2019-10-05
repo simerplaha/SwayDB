@@ -35,11 +35,11 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  *
  * For documentation check - http://swaydb.io/tag/
  */
-case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
-                           private val from: Option[From[K]] = None,
-                           private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
-                                                                                  valueSerializer: Serializer[V],
-                                                                                  tag: Tag[T]) extends Streamable[(K, V), T] { self =>
+case class Map[K, V, F <: K, T[_]](private[swaydb] val core: Core[T],
+                                   private val from: Option[From[K]] = None,
+                                   private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
+                                                                                          valueSerializer: Serializer[V],
+                                                                                          tag: Tag[T]) extends Streamable[(K, V), T] { self =>
 
   def put(key: K, value: V): T[IO.Done] =
     tag.point(core.put(key = key, value = Some(value)))
@@ -138,26 +138,26 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction(functionID: K, function: V => Apply.Map[V]): K = {
-    core.registerFunction(functionID, SwayDB.toCoreFunction(function))
+  def registerFunction(functionID: F, function: V => Apply.Map[V]): K = {
+    core.registerFunction(keySerializer.write(functionID), SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def registerFunction(functionID: K, function: (K, Option[Deadline]) => Apply.Map[V]): K = {
-    core.registerFunction(functionID, SwayDB.toCoreFunction(function))
+  def registerFunction(functionID: F, function: (K, Option[Deadline]) => Apply.Map[V]): F = {
+    core.registerFunction(keySerializer.write(functionID), SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def registerFunction(functionID: K, function: (K, V, Option[Deadline]) => Apply.Map[V]): K = {
-    core.registerFunction(functionID, SwayDB.toCoreFunction(function))
+  def registerFunction(functionID: F, function: (K, V, Option[Deadline]) => Apply.Map[V]): F = {
+    core.registerFunction(keySerializer.write(functionID), SwayDB.toCoreFunction(function))
     functionID
   }
 
-  def applyFunction(key: K, functionID: K): T[IO.Done] =
-    tag.point(core.function(key, functionID))
+  def applyFunction(key: K, functionID: F): T[IO.Done] =
+    tag.point(core.function(key, keySerializer.write(functionID)))
 
-  def applyFunction(from: K, to: K, functionID: K): T[IO.Done] =
-    tag.point(core.function(from, to, functionID))
+  def applyFunction(from: K, to: K, functionID: F): T[IO.Done] =
+    tag.point(core.function(from, to, keySerializer.write(functionID)))
 
   def commit(prepare: Prepare[K, V]*): T[IO.Done] =
     tag.point(core.put(prepare))
@@ -227,19 +227,19 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
   def timeLeft(key: K): T[Option[FiniteDuration]] =
     tag.point(expiration(key).map(_.map(_.timeLeft)))
 
-  def from(key: K): Map[K, V, T] =
+  def from(key: K): Map[K, V, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
 
-  def before(key: K): Map[K, V, T] =
+  def before(key: K): Map[K, V, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)))
 
-  def fromOrBefore(key: K): Map[K, V, T] =
+  def fromOrBefore(key: K): Map[K, V, F, T] =
     copy(from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)))
 
-  def after(key: K): Map[K, V, T] =
+  def after(key: K): Map[K, V, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)))
 
-  def fromOrAfter(key: K): Map[K, V, T] =
+  def fromOrAfter(key: K): Map[K, V, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def headOption: T[Option[(K, V)]] =
@@ -362,17 +362,17 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
         }
       }
 
-  def reverse: Map[K, V, T] =
+  def reverse: Map[K, V, F, T] =
     copy(reverseIteration = true)
 
   /**
    * Returns an Async API of type O where the [[Tag]] is known.
    */
-  def toTag[X[_]](implicit tag: Tag[X]): Map[K, V, X] =
+  def toTag[X[_]](implicit tag: Tag[X]): Map[K, V, F, X] =
     copy(core = core.toTag[X])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V](toTag[IO.ApiIO](Tag.apiIO))
+    ScalaMap[K, V, F](toTag[IO.ApiIO](Tag.apiIO))
 
   def close(): T[Unit] =
     tag.point(core.close())
@@ -381,5 +381,5 @@ case class Map[K, V, T[_]](private[swaydb] val core: Core[T],
     tag.point(core.delete())
 
   override def toString(): String =
-    classOf[Map[_, _, T]].getClass.getSimpleName
+    classOf[Map[_, _, _, T]].getClass.getSimpleName
 }

@@ -34,6 +34,7 @@ import swaydb.{Error, IO, SwayDB, extensions}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
+import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
@@ -58,21 +59,22 @@ object Map extends LazyLogging {
    * @return
    */
 
-  def apply[K, V](mapSize: Int = 4.mb,
-                  segmentSize: Int = 2.mb,
-                  memoryCacheSize: Int = 500.mb,
-                  maxOpenSegments: Int = 100,
-                  maxCachedKeyValuesPerSegment: Int = 10,
-                  fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                  mightContainFalsePositiveRate: Double = 0.01,
-                  compressDuplicateValues: Boolean = false,
-                  deleteSegmentsEventually: Boolean = true,
-                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                        valueSerializer: Serializer[V],
-                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
+  def apply[K, V, F <: K](mapSize: Int = 4.mb,
+                          segmentSize: Int = 2.mb,
+                          memoryCacheSize: Int = 500.mb,
+                          maxOpenSegments: Int = 100,
+                          maxCachedKeyValuesPerSegment: Int = 10,
+                          fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                          mightContainFalsePositiveRate: Double = 0.01,
+                          compressDuplicateValues: Boolean = false,
+                          deleteSegmentsEventually: Boolean = true,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                                valueSerializer: Serializer[V],
+                                                                                                functionClassTag: ClassTag[F],
+                                                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
     Core(
-      enableTimer = false,
+      enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,
@@ -107,7 +109,7 @@ object Map extends LazyLogging {
                 Some(valueSerializer.read(data))
           }
 
-        val map = swaydb.Map[Key[K], Option[V], IO.ApiIO](db)
+        val map = swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO](db)
         Extend(map = map)(
           keySerializer = keySerializer,
           optionValueSerializer = optionValueSerializer,

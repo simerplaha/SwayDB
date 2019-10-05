@@ -30,7 +30,7 @@ class FromMapSpec0 extends FromMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](dir = randomDir).right.value.right.value
+    swaydb.extensions.persistent.Map[Int, String, Nothing](dir = randomDir).right.value.right.value
 }
 
 class FromMapSpec1 extends FromMapSpec {
@@ -38,7 +38,7 @@ class FromMapSpec1 extends FromMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.persistent.Map[Int, String](randomDir, mapSize = 1.byte).right.value.right.value
+    swaydb.extensions.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte).right.value.right.value
 }
 
 class FromMapSpec2 extends FromMapSpec {
@@ -46,14 +46,14 @@ class FromMapSpec2 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String](mapSize = 1.byte).right.value.right.value
+    swaydb.extensions.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value.right.value
 }
 
 class FromMapSpec3 extends FromMapSpec {
   val keyValueCount: Int = 100000
 
   override def newDB(): extensions.Map[Int, String] =
-    swaydb.extensions.memory.Map[Int, String]().right.value.right.value
+    swaydb.extensions.memory.Map[Int, String, Nothing]().right.value.right.value
 }
 
 sealed trait FromMapSpec extends TestBaseEmbedded {

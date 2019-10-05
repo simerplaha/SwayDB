@@ -33,7 +33,7 @@ trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
-  def doAssertEmpty[V](db: Map[Int, V, IO.ApiIO]) =
+  def doAssertEmpty[V](db: Map[Int, V, Nothing, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).right.value match {
@@ -50,7 +50,7 @@ trait TestBaseEmbedded extends TestBase {
   //recursively go through all levels and assert they do no have any Segments.
   //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
 
-  def assertLevelsAreEmpty(db: Map[Int, String, IO.ApiIO], submitUpdates: Boolean) = {
+  def assertLevelsAreEmpty(db: Map[Int, String, Nothing, IO.ApiIO], submitUpdates: Boolean) = {
     println("Checking levels are empty.")
 
     @tailrec

@@ -288,5 +288,5 @@ case class Set[A, T[_]](private val core: Core[T],
     tag.point(core.delete())
 
   override def toString(): String =
-    classOf[Map[_, _, T]].getClass.getSimpleName
+    classOf[Map[_, _, _, T]].getClass.getSimpleName
 }

@@ -31,6 +31,8 @@ private[core] object MemoryTimer {
 
 private[core] class MemoryTimer(time: AtomicLong) extends Timer {
 
+  override val empty = false
+
   def next: Time =
     Time(time.incrementAndGet())
 

@@ -26,12 +26,20 @@ import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
 import swaydb.Error.API.ExceptionHandler
 
-class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
+//@formatter:off
+class Maps[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
                  mapKey: Seq[K])(implicit keySerializer: Serializer[K],
                                  mapKeySerializer: Serializer[Key[K]],
                                  keyOrder: KeyOrder[Slice[Byte]],
                                  valueSerializerOption: Serializer[Option[V]],
-                                 valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey, mapsOnly = true, map = map.copy(from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)))) {
+                                 valueSerializer: Serializer[V]) extends MapStream[K, V](mapKey = mapKey,
+                                                                                         mapsOnly = true,
+                                                                                         map = map.copy[Key[K], Option[V], Nothing, IO.ApiIO](from = Some(From(Key.SubMapsStart(mapKey),
+                                                                                                                                              orAfter = false,
+                                                                                                                                              orBefore = false,
+                                                                                                                                              before = false,
+                                                                                                                                              after = true)))) {
+//@formatter:on
 
   def getOrPut(key: K, value: V): IO.ApiIO[Map[K, V]] =
     get(key) flatMap {
@@ -92,8 +100,8 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
   }
 
   /**
-    * Removes all key-values from the target Map.
-    */
+   * Removes all key-values from the target Map.
+   */
   def clear(key: K): IO.ApiIO[IO.Done] =
     get(key) flatMap {
       case Some(map) =>
@@ -109,8 +117,8 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], IO.ApiIO],
     keys.size
 
   /**
-    * Returns None if this map does not exist or returns the value.
-    */
+   * Returns None if this map does not exist or returns the value.
+   */
   def getValue(key: K): IO.ApiIO[Option[V]] =
     map.get(Key.MapStart(mapKey :+ key)).map(_.flatten)
 

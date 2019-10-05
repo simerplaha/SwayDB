@@ -35,6 +35,7 @@ import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
+import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
 
@@ -44,29 +45,30 @@ object Set extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[T](dir: Path,
-               maxOpenSegments: Int = 1000,
-               memoryCacheSize: Int = 100.mb,
-               mapSize: Int = 4.mb,
-               mmapMaps: Boolean = true,
-               recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-               mmapAppendix: Boolean = true,
-               mmapSegments: MMAP = MMAP.WriteAndRead,
-               segmentSize: Int = 2.mb,
-               appendixFlushCheckpointSize: Int = 2.mb,
-               otherDirs: Seq[Dir] = Seq.empty,
-               memorySweeperPollInterval: FiniteDuration = 10.seconds,
-               fileSweeperPollInterval: FiniteDuration = 10.seconds,
-               mightContainFalsePositiveRate: Double = 0.01,
-               blockSize: Int = 4098,
-               compressDuplicateValues: Boolean = true,
-               deleteSegmentsEventually: Boolean = false,
-               acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
-                                                                                     keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                     memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+  def apply[T, F <: T](dir: Path,
+                       maxOpenSegments: Int = 1000,
+                       memoryCacheSize: Int = 100.mb,
+                       mapSize: Int = 4.mb,
+                       mmapMaps: Boolean = true,
+                       recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                       mmapAppendix: Boolean = true,
+                       mmapSegments: MMAP = MMAP.WriteAndRead,
+                       segmentSize: Int = 2.mb,
+                       appendixFlushCheckpointSize: Int = 2.mb,
+                       otherDirs: Seq[Dir] = Seq.empty,
+                       memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                       fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                       mightContainFalsePositiveRate: Double = 0.01,
+                       blockSize: Int = 4098,
+                       compressDuplicateValues: Boolean = true,
+                       deleteSegmentsEventually: Boolean = false,
+                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
+                                                                                             functionClassTag: ClassTag[F],
+                                                                                             keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                             fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                             memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
-      enableTimer = false,
+      enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,

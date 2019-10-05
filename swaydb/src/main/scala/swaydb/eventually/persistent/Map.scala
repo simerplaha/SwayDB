@@ -35,6 +35,7 @@ import swaydb.{IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
+import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
@@ -63,31 +64,32 @@ object Map extends LazyLogging {
    * @tparam V Type of value
    * @return Database instance
    */
-  def apply[K, V](dir: Path,
-                  maxOpenSegments: Int = 1000,
-                  mapSize: Int = 4.mb,
-                  maxMemoryLevelSize: Int = 100.mb,
-                  maxSegmentsToPush: Int = 5,
-                  memoryLevelSegmentSize: Int = 2.mb,
-                  persistentLevelSegmentSize: Int = 4.mb,
-                  persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
-                  mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
-                  mmapPersistentAppendix: Boolean = true,
-                  otherDirs: Seq[Dir] = Seq.empty,
-                  blockSize: Int = 4098.bytes,
-                  memoryCacheSize: Int = 100.mb,
-                  memorySweeperPollInterval: FiniteDuration = 10.seconds,
-                  fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                  mightContainFalsePositiveRate: Double = 0.01,
-                  compressDuplicateValues: Boolean = true,
-                  deleteSegmentsEventually: Boolean = false,
-                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                        valueSerializer: Serializer[V],
-                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                        memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+  def apply[K, V, F <: K](dir: Path,
+                          maxOpenSegments: Int = 1000,
+                          mapSize: Int = 4.mb,
+                          maxMemoryLevelSize: Int = 100.mb,
+                          maxSegmentsToPush: Int = 5,
+                          memoryLevelSegmentSize: Int = 2.mb,
+                          persistentLevelSegmentSize: Int = 4.mb,
+                          persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
+                          mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
+                          mmapPersistentAppendix: Boolean = true,
+                          otherDirs: Seq[Dir] = Seq.empty,
+                          blockSize: Int = 4098.bytes,
+                          memoryCacheSize: Int = 100.mb,
+                          memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                          fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                          mightContainFalsePositiveRate: Double = 0.01,
+                          compressDuplicateValues: Boolean = true,
+                          deleteSegmentsEventually: Boolean = false,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                                valueSerializer: Serializer[V],
+                                                                                                functionClassTag: ClassTag[F],
+                                                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
+                                                                                                memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
-      enableTimer = false,
+      enableTimer = functionClassTag != ClassTag.Nothing,
       config =
         DefaultEventuallyPersistentConfig(
           dir = dir,
@@ -120,6 +122,6 @@ object Map extends LazyLogging {
         )
     ) map {
       db =>
-        swaydb.Map[K, V, IO.ApiIO](db)
+        swaydb.Map[K, V, F, IO.ApiIO](db)
     }
 }

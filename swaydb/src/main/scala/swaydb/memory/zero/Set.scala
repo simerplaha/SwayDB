@@ -31,6 +31,7 @@ import swaydb.serializers.Serializer
 import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
+import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
 
@@ -40,12 +41,13 @@ object Set extends LazyLogging {
   /**
    * A single level zero only database.
    */
-  def apply[T](mapSize: Int = 4.mb,
-               acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
-                                                                                     keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                     ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+  def apply[T, F <: T](mapSize: Int = 4.mb,
+                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
+                                                                                             functionClassTag: ClassTag[F],
+                                                                                             keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                             ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
-      enableTimer = false,
+      enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryZeroConfig(
         mapSize = mapSize,
         acceleration = acceleration

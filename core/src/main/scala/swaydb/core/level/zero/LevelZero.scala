@@ -332,7 +332,13 @@ private[core] case class LevelZero(path: Path,
       throw new IllegalArgumentException("Function does not exists in function store.")
     else
       assertRun(key) {
-        maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next)))
+        maps.write {
+          timer =>
+            if (timer.empty)
+              throw new IllegalArgumentException("Functions are disabled.")
+            else
+              MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
+        }
       }
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO.Done =
@@ -345,8 +351,11 @@ private[core] case class LevelZero(path: Path,
         else
           maps.write {
             timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
+              if (timer.empty)
+                throw new IllegalArgumentException("Functions are disabled.")
+              else
+                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+                  MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
           }
       }
 

@@ -34,23 +34,25 @@ import swaydb.serializers.Serializer
 import swaydb.{Error, IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
+import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
-  def apply[K, V](dir: Path,
-                  mapSize: Int = 4.mb,
-                  mmapMaps: Boolean = true,
-                  recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                  otherDirs: Seq[Dir] = Seq.empty,
-                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                        valueSerializer: Serializer[V],
-                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
+  def apply[K, V, F <: K](dir: Path,
+                          mapSize: Int = 4.mb,
+                          mmapMaps: Boolean = true,
+                          recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                          otherDirs: Seq[Dir] = Seq.empty,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                                valueSerializer: Serializer[V],
+                                                                                                functionClassTag: ClassTag[F],
+                                                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
-      enableTimer = false,
+      enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultPersistentZeroConfig(
         dir = dir,
         otherDirs = otherDirs,
@@ -60,6 +62,6 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V, IO.ApiIO](db)
+        swaydb.Map[K, V, F, IO.ApiIO](db)
     }
 }

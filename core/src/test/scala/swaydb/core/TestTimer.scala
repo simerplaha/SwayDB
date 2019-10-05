@@ -35,22 +35,27 @@ object TestTimer {
 
   def single(time: Time): TestTimer =
     new TestTimer {
+      override val empty: Boolean = false
       override def next: Time = time
       override def close: Unit = ()
     }
 
   case class Incremental(startTime: Long = 0) extends TestTimer {
+    override val empty: Boolean = false
+
     val timer = new AtomicLong(startTime)
 
     override def next: Time =
       Time(timer.incrementAndGet())
 
     override def close: Unit = ()
+
   }
 
   object IncrementalRandom extends TestTimer {
     val startTime: Long = 0
     private val timer = new AtomicLong(startTime)
+    override val empty: Boolean = false
 
     override def next: Time =
       if (Random.nextBoolean())
@@ -63,6 +68,7 @@ object TestTimer {
 
   case class Decremental(startTime: Long = Int.MaxValue) extends TestTimer {
     val timer = new AtomicLong(startTime)
+    override val empty: Boolean = false
 
     override def next: Time =
       Time(timer.decrementAndGet())
@@ -73,6 +79,7 @@ object TestTimer {
   object DecrementalRandom extends TestTimer {
     val startTime: Long = Int.MaxValue
     private val timer = new AtomicLong(startTime)
+    override val empty: Boolean = false
 
     override def next: Time =
       if (Random.nextBoolean())
@@ -85,6 +92,7 @@ object TestTimer {
 
   object Empty extends TestTimer {
     val startTime: Long = 0
+    override val empty: Boolean = true
 
     override val next: Time =
       Time(Slice.emptyBytes)

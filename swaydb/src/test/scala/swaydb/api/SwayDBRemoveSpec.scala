@@ -19,7 +19,6 @@
 
 package swaydb
 
-
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.IOValues._
@@ -31,53 +30,53 @@ import scala.concurrent.duration._
 class SwayDBRemoveSpec0 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](dir = randomDir).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String, Nothing](dir = randomDir).right.value
 }
 
 class SwayDBRemoveSpec1 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class SwayDBRemoveSpec2 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String](mapSize = 1.byte, segmentSize = 10.bytes).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.Map[Int, String, Nothing](mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.Map[Int, String]().right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.Map[Int, String, Nothing]().right.value
 }
 
 class SwayDBRemoveSpec4 extends SwayDBRemoveSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String, Nothing](mapSize = 1.byte).right.value
 }
 
 class SwayDBRemoveSpec5 extends SwayDBRemoveSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String]().right.value
+  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+    swaydb.memory.zero.Map[Int, String, Nothing]().right.value
 }
 
 sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, IO.ApiIO]
+  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
 
   "Remove" when {
     "Put" in {
@@ -172,7 +171,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   "Remove" when {
     "Update" in {
-      val db: Map[Int, String, IO.ApiIO] = newDB()
+      val db: Map[Int, String, Nothing, IO.ApiIO] = newDB()
 
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),

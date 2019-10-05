@@ -29,19 +29,19 @@ import swaydb.Error.API.ExceptionHandler
 import scala.annotation.tailrec
 
 /**
-  * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type - tagless final.
-  *
-  * Sample order
-  *
-  * Key.MapStart(1),
-  *   MapKey.EntriesStart(1)
-  *     MapKey.Entry(1, 1)
-  *   MapKey.EntriesEnd(1)
-  *   MapKey.SubMapsStart(1)
-  *     MapKey.SubMap(1, 1000)
-  *   MapKey.SubMapsEnd(1)
-  * MapKey.End(1)
-  **/
+ * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type - tagless final.
+ *
+ * Sample order
+ *
+ * Key.MapStart(1),
+ *   MapKey.EntriesStart(1)
+ *     MapKey.Entry(1, 1)
+ *   MapKey.EntriesEnd(1)
+ *   MapKey.SubMapsStart(1)
+ *     MapKey.SubMap(1, 1000)
+ *   MapKey.SubMapsEnd(1)
+ * MapKey.End(1)
+ **/
 
 object MapStream {
 
@@ -175,9 +175,9 @@ object MapStream {
 case class MapStream[K, V](mapKey: Seq[K],
                            mapsOnly: Boolean = false,
                            userDefinedFrom: Boolean = false,
-                           map: swaydb.Map[Key[K], Option[V], IO.ApiIO])(implicit keySerializer: Serializer[K],
-                                                                   mapKeySerializer: Serializer[Key[K]],
-                                                                   optionValueSerializer: Serializer[Option[V]]) extends Streamable[(K, V), IO.ApiIO] { self =>
+                           map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO])(implicit keySerializer: Serializer[K],
+                                                                                  mapKeySerializer: Serializer[Key[K]],
+                                                                                  optionValueSerializer: Serializer[Option[V]]) extends Streamable[(K, V), IO.ApiIO] { self =>
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
@@ -215,10 +215,10 @@ case class MapStream[K, V](mapKey: Seq[K],
       copy(map = map.fromOrAfter(Key.MapEntry(mapKey, key)), userDefinedFrom = true)
 
   private def before(key: Key[K], reverse: Boolean): MapStream[K, V] =
-    copy(map = map.before(key).copy(reverseIteration = reverse))
+    copy(map = map.before(key).copy[Key[K], Option[V], Nothing, IO.ApiIO](reverseIteration = reverse))
 
   private def reverse(reverse: Boolean): MapStream[K, V] =
-    copy(map = map.copy(reverseIteration = reverse))
+    copy(map = map.copy[Key[K], Option[V], Nothing, IO.ApiIO](reverseIteration = reverse))
 
   def isReverse: Boolean =
     self.map.reverseIteration
@@ -296,10 +296,10 @@ case class MapStream[K, V](mapKey: Seq[K],
   def stream: swaydb.Stream[(K, V), IO.ApiIO] =
     new swaydb.Stream[(K, V), IO.ApiIO] {
       /**
-        * Stores raw key-value from previous read. This is a temporary solution because
-        * this class extends Stream[(K, V)] and the types are being lost on stream.next here since previous
-        * (Key[K], Option[V]) is not known.
-        */
+       * Stores raw key-value from previous read. This is a temporary solution because
+       * this class extends Stream[(K, V)] and the types are being lost on stream.next here since previous
+       * (Key[K], Option[V]) is not known.
+       */
       private var previousRaw: (Key[K], Option[V]) = _
 
       override def headOption: IO.ApiIO[Option[(K, V)]] =
@@ -324,12 +324,12 @@ case class MapStream[K, V](mapKey: Seq[K],
     }
 
   /**
-    * Returns the start key when doing reverse iteration.
-    *
-    * If subMaps are included then it will return the starting point to be [[Key.SubMapsEnd]]
-    * which will iterate backward until [[Key.MapEntriesStart]]
-    * else returns the starting point to be [[Key.MapEntriesEnd]] to fetch entries only.
-    */
+   * Returns the start key when doing reverse iteration.
+   *
+   * If subMaps are included then it will return the starting point to be [[Key.SubMapsEnd]]
+   * which will iterate backward until [[Key.MapEntriesStart]]
+   * else returns the starting point to be [[Key.MapEntriesEnd]] to fetch entries only.
+   */
   def reverse: MapStream[K, V] =
     if (userDefinedFrom) //if user has defined from then do not override it and just set reverse to true.
       reverse(reverse = true)
@@ -339,10 +339,10 @@ case class MapStream[K, V](mapKey: Seq[K],
       before(key = endEntriesKey, reverse = true)
 
   /**
-    * lastOption should always force formKey to be the [[endSubMapsKey]]
-    * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
-    * most efficient way to fetch the last is from the key [[endSubMapsKey]].
-    */
+   * lastOption should always force formKey to be the [[endSubMapsKey]]
+   * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
+   * most efficient way to fetch the last is from the key [[endSubMapsKey]].
+   */
   override def lastOption: IO.ApiIO[Option[(K, V)]] =
     reverse.headOption
 
