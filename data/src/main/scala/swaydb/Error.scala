@@ -274,7 +274,7 @@ object Error {
       case exception: Exception.SegmentFileMissing => Error.SegmentFileMissing(exception)
       case exception: Exception.InvalidKeyValueId => Error.InvalidKeyValueId(exception)
 
-      case exception: Exception.FunctionNotFound => Error.FunctionNotFound(exception.functionID)
+      case exception: Exception.FunctionNotFound => Error.FunctionNotFound(exception.functionId)
 
       case exception: Exception.NotAnIntFile => Error.NotAnIntFile(exception)
       case exception: Exception.UnknownExtension => Error.UnknownExtension(exception)
@@ -373,8 +373,8 @@ object Error {
 
   case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Error.IO
 
-  case class FunctionNotFound(functionID: Slice[Byte]) extends Error.API with Error.Segment {
-    override def exception: Throwable = swaydb.Exception.FunctionNotFound(functionID)
+  case class FunctionNotFound(functionId: Slice[Byte]) extends Error.API with Error.Segment {
+    override def exception: Throwable = swaydb.Exception.FunctionNotFound(functionId)
   }
 
   case class UnableToLockDirectory(exception: swaydb.Exception.OverlappingFileLock) extends Error.Boot

@@ -187,9 +187,9 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           if (randomBoolean())
             db.update(productId, updatedProduct).get
           else {
-            val functionID =
+            val functionId =
               db.registerFunction(
-                functionID = functionIDs.incrementAndGet(),
+                functionId = functionIDs.incrementAndGet(),
                 function =
                   (key, _) =>
                     if (key == productId)
@@ -197,7 +197,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
                     else
                       Apply.Nothing
               )
-            db.applyFunction(productId, functionID)
+            db.applyFunction(productId, functionId)
           }
 
           state.products.put(productId, (updatedProduct, deadline))
@@ -216,14 +216,14 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           if (randomBoolean())
             db.expire(productId, newDeadline).get
           else {
-            val functionID =
+            val functionId =
               db.registerFunction(
-                functionID = functionIDs.incrementAndGet(),
+                functionId = functionIDs.incrementAndGet(),
                 function =
                   (_, _) =>
                     Apply.Expire(newDeadline)
               )
-            db.applyFunction(productId, functionID)
+            db.applyFunction(productId, functionId)
           }
 
           state.products.put(productId, (product, Some(newDeadline)))
@@ -314,14 +314,14 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           if (randomBoolean())
             db.update(from, to, updatedProduct).get
           else {
-            val functionID =
+            val functionId =
               db.registerFunction(
-                functionID = functionIDs.incrementAndGet(),
+                functionId = functionIDs.incrementAndGet(),
                 function =
                   (_, _) =>
                     Apply.Update(updatedProduct)
               )
-            db.applyFunction(from, to, functionID)
+            db.applyFunction(from, to, functionId)
           }
 
           (from to to) foreach {
@@ -352,14 +352,14 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           if (randomBoolean())
             db.expire(from, to, newDeadline).get
           else {
-            val functionID =
+            val functionId =
               db.registerFunction(
-                functionID = functionIDs.incrementAndGet(),
+                functionId = functionIDs.incrementAndGet(),
                 function =
                   (_, _) =>
                     Apply.Expire(newDeadline)
               )
-            db.applyFunction(from, to, functionID)
+            db.applyFunction(from, to, functionId)
           }
 
           (from to to) foreach {
@@ -383,14 +383,14 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           if (randomBoolean())
             db.remove(productToRemoveId).get
           else {
-            val functionID =
+            val functionId =
               db.registerFunction(
-                functionID = functionIDs.incrementAndGet(),
+                functionId = functionIDs.incrementAndGet(),
                 function =
                   (_, _) =>
                     Apply.Remove
               )
-            db.applyFunction(productToRemoveId, functionID)
+            db.applyFunction(productToRemoveId, functionId)
           }
 
           state.products remove productToRemoveId
@@ -432,14 +432,14 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           if (randomBoolean())
             db.remove(from, to).get
           else {
-            val functionID =
+            val functionId =
               db.registerFunction(
-                functionID = functionIDs.incrementAndGet(),
+                functionId = functionIDs.incrementAndGet(),
                 function =
                   (_, _) =>
                     Apply.Remove
               )
-            db.applyFunction(from, to, functionID)
+            db.applyFunction(from, to, functionId)
           }
 
           (from to to) foreach {

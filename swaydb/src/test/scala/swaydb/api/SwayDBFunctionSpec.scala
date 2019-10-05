@@ -69,11 +69,11 @@ sealed trait SwayDBFunctionSpec extends TestBase {
 
       db.put(1, 0).get
 
-      val functionID = db.registerFunction(1, value => Apply.Update(value + 1))
+      val functionId = db.registerFunction(1, value => Apply.Update(value + 1))
 
       (1 to 1000).par foreach {
         _ =>
-          db.applyFunction(1, functionID).get
+          db.applyFunction(1, functionId).get
       }
 
       db.get(1).get should contain(1000)
@@ -90,13 +90,13 @@ sealed trait SwayDBFunctionSpec extends TestBase {
           db.put(i, 0).get
       }
 
-      val functionID = db.registerFunction(1, value => Apply.Update(value + 1))
+      val functionId = db.registerFunction(1, value => Apply.Update(value + 1))
 
       (1 to 100).par foreach {
         _ =>
           (1 to 1000).par foreach {
             i =>
-              db.applyFunction(i, functionID).get
+              db.applyFunction(i, functionId).get
           }
       }
 
@@ -117,13 +117,13 @@ sealed trait SwayDBFunctionSpec extends TestBase {
           db.put(i, 0).get
       }
 
-      val functionID = db.registerFunction(1, value => Apply.Nothing)
+      val functionId = db.registerFunction(1, value => Apply.Nothing)
 
       (1 to 100).par foreach {
         _ =>
           (1 to 1000).par foreach {
             i =>
-              db.applyFunction(i, functionID).get
+              db.applyFunction(i, functionId).get
           }
       }
 

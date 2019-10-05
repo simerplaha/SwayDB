@@ -125,13 +125,13 @@ case class Set[A, T[_]](private val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction(functionID: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
-    core.registerFunction(functionID, SwayDB.toCoreFunction(function))
-    functionID
+  def registerFunction(functionId: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
+    core.registerFunction(functionId, SwayDB.toCoreFunction(function))
+    functionId
   }
 
-  def applyFunction(from: A, to: A, functionID: A): T[IO.Done] =
-    tag.point(core.function(from, to, functionID))
+  def applyFunction(from: A, to: A, functionId: A): T[IO.Done] =
+    tag.point(core.function(from, to, functionId))
 
   def applyFunction(elem: A, function: A): T[IO.Done] =
     tag.point(core.function(elem, function))

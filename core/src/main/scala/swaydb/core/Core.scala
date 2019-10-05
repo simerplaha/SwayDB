@@ -213,8 +213,8 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
   def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
     serial.execute(zero.applyFunction(from, to, function))
 
-  def registerFunction(functionID: Slice[Byte], function: SwayFunction): SwayFunction =
-    zero.registerFunction(functionID, function)
+  def registerFunction(functionId: Slice[Byte], function: SwayFunction): SwayFunction =
+    zero.registerFunction(functionId, function)
 
   def head(readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.head(readState))

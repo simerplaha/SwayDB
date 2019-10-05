@@ -47,12 +47,12 @@ object Exception {
   case class MergeKeyValuesWithoutTargetSegment(keyValueCount: Int) extends Exception(s"Received key-values to merge without target Segment - keyValueCount: $keyValueCount")
 
   /**
-   * [[functionID]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
-   * with the [[functionID]] is returned to the client for reads and the exception's string message is only logged.
+   * [[functionId]] itself is not logged or printed to console since it may contain sensitive data but instead this Exception
+   * with the [[functionId]] is returned to the client for reads and the exception's string message is only logged.
    *
-   * @param functionID the id of the missing function.
+   * @param functionId the id of the missing function.
    */
-  case class FunctionNotFound(functionID: Slice[Byte]) extends Exception("Function not found for ID.")
+  case class FunctionNotFound(functionId: Slice[Byte]) extends Exception("Function not found for ID.")
   case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")

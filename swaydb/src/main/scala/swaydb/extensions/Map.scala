@@ -335,7 +335,7 @@ class Map[K, V](mapKey: Seq[K],
         Prepare.Update(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), value = Some(value))
 
       case Prepare.ApplyFunction(from, to, function) =>
-        Prepare.ApplyFunction(Key.MapEntry(mapKey, from), to.map(Key.MapEntry(mapKey, _)), functionID = Key.MapEntry(Seq.empty, function))
+        Prepare.ApplyFunction(Key.MapEntry(mapKey, from), to.map(Key.MapEntry(mapKey, _)), functionId = Key.MapEntry(Seq.empty, function))
 
       case Prepare.Add(elem, deadline) =>
         Prepare.Add(elem = Key.MapEntry(mapKey, elem), deadline = deadline)
