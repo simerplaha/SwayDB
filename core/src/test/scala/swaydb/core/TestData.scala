@@ -20,14 +20,14 @@
 package swaydb.core
 
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
-import swaydb.{IO, Scheduler}
+import swaydb.IOValues._
 import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
-import swaydb.IOValues._
 import swaydb.core.TestSweeper.fileSweeper
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
@@ -41,14 +41,13 @@ import swaydb.core.level.seek._
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
-import swaydb.core.actor.MemorySweeper
-import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator, UUIDs}
+import swaydb.core.segment.{ReadState, Segment}
+import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -59,8 +58,8 @@ import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.{IO, Scheduler}
 
-import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
@@ -77,6 +76,8 @@ object TestData {
   val allBaseEntryIds = BaseEntryIdFormatA.baseIds
 
   implicit val functionStore: FunctionStore = FunctionStore.memory()
+
+  val functionIdGenerator = new AtomicInteger(0)
 
   implicit def toMemory(slice: Slice[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]]) = slice.toMemory
 
@@ -968,8 +969,7 @@ object TestData {
 
   def createFunction(key: Slice[Byte],
                      swayFunction: SwayFunction)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Function = {
-    //    val functionId = UUIDUtil.randomIdNoHyphenBytes()
-    val functionId = Slice.writeInt(randomNextInt(Byte.MaxValue))
+    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
     functionStore.put(functionId, swayFunction)
     Memory.Function(key, functionId, testTimer.next)
   }
@@ -1124,8 +1124,7 @@ object TestData {
       randomValueOnlyFunction(functionOutput)
 
   def randomFunctionId(functionOutput: SwayFunctionOutput = randomFunctionOutput()): Slice[Byte] = {
-    //    val functionId: Slice[Byte] = UUIDUtil.randomIdNoHyphenBytes()
-    val functionId = Slice.writeInt(randomNextInt(Byte.MaxValue))
+    val functionId = Slice.writeInt(functionIdGenerator.incrementAndGet())
     functionStore.put(functionId, randomSwayFunction(functionOutput))
     functionId
   }
