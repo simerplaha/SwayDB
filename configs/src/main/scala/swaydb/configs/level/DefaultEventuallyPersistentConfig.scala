@@ -75,7 +75,7 @@ object DefaultEventuallyPersistentConfig {
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         compactionExecutionContext = CompactionExecutionContext.Shared,
@@ -98,26 +98,26 @@ object DefaultEventuallyPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = true, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         hashIndex =
           RandomKeyIndex.Enable(
-            maxProbe = 2,
+            maxProbe = 10,
             minimumNumberOfKeys = 2,
             minimumNumberOfHits = 2,
             copyKeys = true,
             allocateSpace = _.requiredSpace * 2,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 5,
             searchSortedIndexDirectly = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         mightContainKey =
@@ -125,19 +125,19 @@ object DefaultEventuallyPersistentConfig {
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         values =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segmentIO =
           ioAction =>
-            IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
+            IOStrategy.SynchronisedIO(cacheOnAccess = false),
         segmentCompressions = _ => Seq.empty,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
