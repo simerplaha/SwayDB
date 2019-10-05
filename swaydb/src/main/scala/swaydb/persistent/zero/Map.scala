@@ -50,6 +50,7 @@ object Map extends LazyLogging {
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
+      enableTimer = false,
       config = DefaultPersistentZeroConfig(
         dir = dir,
         otherDirs = otherDirs,

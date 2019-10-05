@@ -97,6 +97,7 @@ object Map extends LazyLogging {
                                                                                         fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                         memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
+      enableTimer = false,
       config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,

@@ -41,6 +41,9 @@ private[core] object Timer {
   def memory(): MemoryTimer =
     MemoryTimer()
 
+  def empty: Timer =
+    EmptyTimer
+
   def persistent(path: Path,
                  mmap: Boolean,
                  mod: Long,

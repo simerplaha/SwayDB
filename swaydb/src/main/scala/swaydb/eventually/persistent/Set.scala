@@ -69,6 +69,7 @@ object Set extends LazyLogging {
                                                                                      fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                      memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
+      enableTimer = false,
       config =
         DefaultEventuallyPersistentConfig(
           dir = dir,

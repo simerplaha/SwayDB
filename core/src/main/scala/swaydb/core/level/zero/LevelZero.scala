@@ -21,7 +21,6 @@ package swaydb.core.level.zero
 
 import java.nio.channels.{FileChannel, FileLock}
 import java.nio.file.{Path, Paths, StandardOpenOption}
-import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
@@ -54,6 +53,7 @@ private[core] object LevelZero extends LazyLogging {
 
   def apply(mapSize: Long,
             storage: Level0Storage,
+            enableTimer: Boolean,
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -71,18 +71,26 @@ private[core] object LevelZero extends LazyLogging {
     val mapsAndPathAndLock =
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
-          val timerDir = databaseDirectory.resolve("0").resolve("timer")
-          Effect createDirectoriesIfAbsent timerDir
-          Timer.persistent(
-            path = timerDir,
-            mmap = mmap,
-            mod = 100000,
-            flushCheckpointSize = 1.mb
-          ) flatMap {
+          val timer =
+            if (enableTimer) {
+              val timerDir = databaseDirectory.resolve("0").resolve("timer")
+              Effect createDirectoriesIfAbsent timerDir
+              Timer.persistent(
+                path = timerDir,
+                mmap = mmap,
+                mod = 100000,
+                flushCheckpointSize = 1.mb
+              )
+            } else {
+              IO.Right(Timer.empty)
+            }
+
+          timer flatMap {
             implicit timer =>
               val path = databaseDirectory.resolve("0")
               logger.info("{}: Acquiring lock.", path)
               val lockFile = path.resolve("LOCK")
+              Effect createDirectoriesIfAbsent path
               Effect createFileIfAbsent lockFile
               IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
                 lock =>
@@ -102,20 +110,23 @@ private[core] object LevelZero extends LazyLogging {
 
         case Level0Storage.Memory =>
           val timer =
-            LevelRef.firstPersistentPath(nextLevel) match {
-              case Some(persistentPath) =>
-                val timerDir = persistentPath.getParent.resolve("0").resolve("timer")
-                Effect createDirectoriesIfAbsent timerDir
-                Timer.persistent(
-                  path = timerDir,
-                  mmap = LevelRef.hasMMAP(nextLevel),
-                  mod = 100000,
-                  flushCheckpointSize = 1.mb
-                )
+            if (enableTimer)
+              LevelRef.firstPersistentPath(nextLevel) match {
+                case Some(persistentPath) =>
+                  val timerDir = persistentPath.getParent.resolve("0").resolve("timer")
+                  Effect createDirectoriesIfAbsent timerDir
+                  Timer.persistent(
+                    path = timerDir,
+                    mmap = LevelRef.hasMMAP(nextLevel),
+                    mod = 100000,
+                    flushCheckpointSize = 1.mb
+                  )
 
-              case None =>
-                IO.Right(Timer.memory())
-            }
+                case None =>
+                  IO.Right(Timer.memory())
+              }
+            else
+              IO.Right(Timer.empty)
 
           timer map {
             implicit timer =>
@@ -124,6 +135,7 @@ private[core] object LevelZero extends LazyLogging {
                   fileSize = mapSize,
                   acceleration = acceleration
                 )
+
               (map, Paths.get("MEMORY_DB").resolve(0.toString), None)
           }
       }

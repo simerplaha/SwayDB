@@ -36,7 +36,7 @@ object MemoryCache {
       All(
         minIOSeekSize = minIOSeekSize,
         cacheCapacity = memorySize,
-        maxCachedKeyValueCountPerSegment = Some(2),
+        maxCachedKeyValueCountPerSegment = Some(10),
         sweepCachedKeyValues = false,
         sweeperActorConfig =
           ActorConfig.TimeLoop(

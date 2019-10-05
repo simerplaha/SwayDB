@@ -69,6 +69,7 @@ object Map extends LazyLogging {
                                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                         fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
+      enableTimer = false,
       config = DefaultMemoryConfig(
         mapSize = mapSize,
         segmentSize = segmentSize,

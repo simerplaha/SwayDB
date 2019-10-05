@@ -43,37 +43,49 @@ import scala.concurrent.duration.Deadline
 private[swaydb] object Core {
 
   def apply(config: SwayDBPersistentConfig,
+            enableTimer: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
                                       functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
     CoreInitializer(
       config = config,
+      enableTimer = enableTimer,
       fileCache = fileCache,
       memoryCache = memoryCache
     )
 
   def apply(config: SwayDBMemoryConfig,
+            enableTimer: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
                                       functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
     CoreInitializer(
       config = config,
+      enableTimer = enableTimer,
       fileCache = fileCache,
       memoryCache = memoryCache
     )
 
-  def apply(config: LevelZeroPersistentConfig)(implicit mmapCleanerEC: Option[ExecutionContext],
+  def apply(enableTimer: Boolean,
+            config: LevelZeroPersistentConfig)(implicit mmapCleanerEC: Option[ExecutionContext],
                                                keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
-    CoreInitializer(config = config)
+    CoreInitializer(
+      config = config,
+      enableTimer = enableTimer
+    )
 
-  def apply(config: LevelZeroMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                           timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
-    CoreInitializer(config = config)
+  def apply(config: LevelZeroMemoryConfig,
+            enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+    CoreInitializer(
+      config = config,
+      enableTimer = enableTimer
+    )
 
   private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {

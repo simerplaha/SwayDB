@@ -37,7 +37,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{IO, Scheduler, ActorWire}
+import swaydb.{ActorWire, IO, Scheduler}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -102,10 +102,11 @@ private[core] object CoreInitializer extends LazyLogging {
       closeLevels(zero)
     }
 
-  def apply(config: LevelZeroPersistentConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                               timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore,
-                                               bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
+  def apply(config: LevelZeroPersistentConfig,
+            enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore,
+                                  bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
 
     implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
     if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
@@ -115,6 +116,7 @@ private[core] object CoreInitializer extends LazyLogging {
         mapSize = config.mapSize,
         storage = config.storage,
         nextLevel = None,
+        enableTimer = enableTimer,
         throttle = config.throttle,
         acceleration = config.acceleration
       ) match {
@@ -128,9 +130,10 @@ private[core] object CoreInitializer extends LazyLogging {
       }
   }
 
-  def apply(config: LevelZeroMemoryConfig)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                           timeOrder: TimeOrder[Slice[Byte]],
-                                           functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
+  def apply(config: LevelZeroMemoryConfig,
+            enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
 
     implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
 
@@ -138,6 +141,7 @@ private[core] object CoreInitializer extends LazyLogging {
       mapSize = config.mapSize,
       storage = config.storage,
       nextLevel = None,
+      enableTimer = enableTimer,
       throttle = config.throttle,
       acceleration = config.acceleration
     ) match {
@@ -185,6 +189,7 @@ private[core] object CoreInitializer extends LazyLogging {
     }
 
   def apply(config: SwayDBConfig,
+            enableTimer: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -285,6 +290,7 @@ private[core] object CoreInitializer extends LazyLogging {
               LevelZero(
                 mapSize = config.level0.mapSize,
                 storage = config.level0.storage,
+                enableTimer = enableTimer,
                 nextLevel = Some(level1),
                 throttle = config.level0.throttle,
                 acceleration = config.level0.acceleration

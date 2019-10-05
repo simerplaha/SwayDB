@@ -38,7 +38,9 @@ object Level0Storage {
     override def isMMAP: Boolean = false
   }
 
-  case class Persistent(mmap: Boolean, dir: Path, recovery: RecoveryMode) extends Level0Storage {
+  case class Persistent(mmap: Boolean,
+                        dir: Path,
+                        recovery: RecoveryMode) extends Level0Storage {
     override val memory: Boolean = false
     override def isMMAP: Boolean = mmap
   }

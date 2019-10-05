@@ -81,6 +81,7 @@ object SwayDB extends LazyLogging {
                                             keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
       config = config,
+      enableTimer = false,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
@@ -94,6 +95,7 @@ object SwayDB extends LazyLogging {
                                          keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
       config = config,
+      enableTimer = false,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
@@ -110,6 +112,7 @@ object SwayDB extends LazyLogging {
                                             memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
       config = config,
+      enableTimer = false,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
@@ -125,6 +128,7 @@ object SwayDB extends LazyLogging {
                                          memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
       config = config,
+      enableTimer = false,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
@@ -136,7 +140,8 @@ object SwayDB extends LazyLogging {
                                                   keyOrder: KeyOrder[Slice[Byte]],
                                                   mmapCleanerEC: Option[ExecutionContext]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
-      config = config
+      config = config,
+      enableTimer = false
     ) map {
       db =>
         swaydb.Set[T](db)
@@ -145,7 +150,8 @@ object SwayDB extends LazyLogging {
   def apply[T](config: LevelZeroMemoryConfig)(implicit serializer: Serializer[T],
                                               keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
-      config = config
+      config = config,
+      enableTimer = false
     ) map {
       db =>
         swaydb.Set[T](db)

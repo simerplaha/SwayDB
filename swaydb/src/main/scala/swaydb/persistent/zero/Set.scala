@@ -49,6 +49,7 @@ object Set extends LazyLogging {
                                                                                      keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                      ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
     Core(
+      enableTimer = false,
       config = DefaultPersistentZeroConfig(
         dir = dir,
         otherDirs = otherDirs,

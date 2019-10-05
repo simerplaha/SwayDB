@@ -353,6 +353,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         mapSize = mapSize,
         storage = level0Storage,
         nextLevel = nextLevel,
+        enableTimer = true,
         throttle = throttle,
         acceleration = brake,
       ).runRandomIO.right.value

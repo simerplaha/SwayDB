@@ -46,22 +46,21 @@ object Map extends LazyLogging {
    *
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    *
-   * @param dir                                Root directory for all Level where appendix folder & files are created
-   * @param otherDirs                          Secondary directories for all Levels where Segments get distributed.
-   * @param mapSize                            Size of LevelZero's maps (WAL)
-   * @param maxMemoryLevelSize                 Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
-   * @param maxSegmentsToPush                  Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
-   * @param memoryLevelSegmentSize             Size of Level1's Segments
-   * @param persistentLevelSegmentSize         Size of Level2's Segments
-   * @param mmapPersistentSegments             Memory-maps Level2 Segments
-   * @param mmapPersistentAppendix             Memory-maps Level2's appendix file
-   * @param acceleration                       Controls the write speed.
-   * @param keySerializer                      Converts keys to Bytes
-   * @param valueSerializer                    Converts values to Bytes
-   * @param keyOrder                           Sort order for keys
+   * @param dir                        Root directory for all Level where appendix folder & files are created
+   * @param otherDirs                  Secondary directories for all Levels where Segments get distributed.
+   * @param mapSize                    Size of LevelZero's maps (WAL)
+   * @param maxMemoryLevelSize         Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
+   * @param maxSegmentsToPush          Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
+   * @param memoryLevelSegmentSize     Size of Level1's Segments
+   * @param persistentLevelSegmentSize Size of Level2's Segments
+   * @param mmapPersistentSegments     Memory-maps Level2 Segments
+   * @param mmapPersistentAppendix     Memory-maps Level2's appendix file
+   * @param acceleration               Controls the write speed.
+   * @param keySerializer              Converts keys to Bytes
+   * @param valueSerializer            Converts values to Bytes
+   * @param keyOrder                   Sort order for keys
    * @tparam K Type of key
    * @tparam V Type of value
-   *
    * @return Database instance
    */
   def apply[K, V](dir: Path,
@@ -88,6 +87,7 @@ object Map extends LazyLogging {
                                                                                         fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
                                                                                         memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, IO.ApiIO]] =
     Core(
+      enableTimer = false,
       config =
         DefaultEventuallyPersistentConfig(
           dir = dir,

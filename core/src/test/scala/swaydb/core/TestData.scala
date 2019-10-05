@@ -317,6 +317,7 @@ object TestData {
               _ =>
                 LevelZero(
                   mapSize = mapSize,
+                  enableTimer = true,
                   storage =
                     Level0Storage.Persistent(
                       mmap = true,
