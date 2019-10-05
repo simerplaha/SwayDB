@@ -61,7 +61,7 @@ object Set extends LazyLogging {
                        mightContainFalsePositiveRate: Double = 0.01,
                        blockSize: Int = 4098,
                        compressDuplicateValues: Boolean = true,
-                       deleteSegmentsEventually: Boolean = false,
+                       deleteSegmentsEventually: Boolean = true,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                              functionClassTag: ClassTag[F],
                                                                                              keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,

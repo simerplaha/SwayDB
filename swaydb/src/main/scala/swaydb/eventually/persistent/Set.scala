@@ -64,7 +64,7 @@ object Set extends LazyLogging {
                        fileSweeperPollInterval: FiniteDuration = 10.seconds,
                        mightContainFalsePositiveRate: Double = 0.01,
                        compressDuplicateValues: Boolean = true,
-                       deleteSegmentsEventually: Boolean = false,
+                       deleteSegmentsEventually: Boolean = true,
                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
                                                                                              functionClassTag: ClassTag[F],
                                                                                              keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
