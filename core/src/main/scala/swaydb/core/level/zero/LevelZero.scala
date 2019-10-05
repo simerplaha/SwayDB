@@ -774,7 +774,8 @@ private[core] case class LevelZero(path: Path,
       .getOrElse(IO.unit)
 
   def mightContainKey(key: Slice[Byte]): Boolean =
-    maps.contains(key) || nextLevel.exists(_.mightContainFunction(key))
+    maps.contains(key) ||
+      nextLevel.exists(_.mightContainKey(key))
 
   private def findFunctionInMaps(functionId: Slice[Byte]): Boolean =
     maps.find[Boolean] {
