@@ -11,6 +11,7 @@ val scalaMockVersion = "4.4.0"
 val scalaTestVersion = "3.0.8"
 val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
+val monixVersion = "3.0.0"
 
 parallelExecution in ThisBuild := false
 
@@ -68,7 +69,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
-    .aggregate(swaydb, core, compression, data, configs, serializers)
+    .aggregate(swaydb, core, compression, data, configs, serializers, monix)
 
 lazy val core =
   project
@@ -109,6 +110,15 @@ lazy val serializers =
   project
     .settings(commonSettings)
     .settings(publishSettings)
+    .dependsOn(data)
+
+lazy val monix =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "io.monix" %% "monix" % monixVersion
+    )
     .dependsOn(data)
 
 lazy val `core-stress` =

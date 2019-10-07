@@ -293,6 +293,75 @@ object Tag extends LazyLogging {
       }
   }
 
+  object Async {
+
+    import Monad._
+
+    def foldLeft[A, U, T[_]](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit monad: Monad[T]): T[U] = {
+      def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): T[U] =
+        if (take.contains(currentSize))
+          monad.success(previousResult)
+        else
+          stream
+            .next(previous)
+            .flatMap {
+              case Some(next: A) =>
+                if (drop >= 1) {
+                  fold(next, drop - 1, currentSize, previousResult)
+                } else {
+                  try {
+                    val newResult = operation(previousResult, next)
+                    fold(next, drop, currentSize + 1, newResult)
+                  } catch {
+                    case throwable: Throwable =>
+                      monad.failed(throwable)
+                  }
+                }
+
+              case None =>
+                monad.success(previousResult)
+            }
+
+      if (take.contains(0))
+        monad.success(initial)
+      else
+        after
+          .map(stream.next)
+          .getOrElse(stream.headOption)
+          .flatMap {
+            case Some(first) =>
+              if (drop >= 1) {
+                fold(first, drop - 1, 0, initial)
+              } else {
+                try {
+                  val nextResult = operation(initial, first)
+                  fold(first, drop, 1, nextResult)
+                } catch {
+                  case throwable: Throwable =>
+                    monad.failed(throwable)
+                }
+              }
+
+            case None =>
+              monad.success(initial)
+          }
+    }
+
+    def collectFirst[A, T[_]](previous: A, stream: swaydb.Stream[A, T], condition: A => Boolean)(implicit monad: Monad[T]): T[Option[A]] =
+      stream
+        .next(previous)
+        .flatMap {
+          case some @ Some(nextA) =>
+            if (condition(nextA))
+              monad.success(some)
+            else
+              collectFirst(nextA, stream, condition)
+
+          case None =>
+            monad.success(None)
+        }
+  }
+
   implicit val throwableIO: Tag.Sync[IO.ThrowableIO] =
     new Tag.Sync[IO.ThrowableIO] {
       override val unit: IO.ThrowableIO[Unit] =
@@ -465,64 +534,22 @@ object Tag extends LazyLogging {
       def isComplete[A](a: Future[A]): Boolean =
         a.isCompleted
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] = {
-        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): Future[U] =
-          if (take.contains(currentSize))
-            Future.successful(previousResult)
-          else
-            stream
-              .next(previous)
-              .flatMap {
-                case Some(next) =>
-                  if (drop >= 1) {
-                    fold(next, drop - 1, currentSize, previousResult)
-                  } else {
-                    try {
-                      val newResult = operation(previousResult, next)
-                      fold(next, drop, currentSize + 1, newResult)
-                    } catch {
-                      case throwable: Throwable =>
-                        Future.failed(throwable)
-                    }
-                  }
-
-                case None =>
-                  Future.successful(previousResult)
-              }
-
-        if (take.contains(0))
-          Future.successful(initial)
-        else
-          after.map(stream.next).getOrElse(stream.headOption) flatMap {
-            case Some(first) =>
-              if (drop >= 1) {
-                fold(first, drop - 1, 0, initial)
-              } else {
-                try {
-                  val nextResult = operation(initial, first)
-                  fold(first, drop, 1, nextResult)
-                } catch {
-                  case throwable: Throwable =>
-                    Future.failed(throwable)
-                }
-              }
-
-            case None =>
-              Future.successful(initial)
-          }
-      }
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] =
+        swaydb.Tag.Async.foldLeft(
+          initial = initial,
+          after = after,
+          stream = stream,
+          drop = drop,
+          take = take,
+          operation = operation
+        )
 
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Future])(condition: A => Boolean): Future[Option[A]] =
-        stream.next(previous) flatMap {
-          case some @ Some(nextA) =>
-            if (condition(nextA))
-              Future.successful(some)
-            else
-              collectFirst(nextA, stream)(condition)
-
-          case None =>
-            Future.successful(None)
-        }
+        swaydb.Tag.Async.collectFirst(
+          previous = previous,
+          stream = stream,
+          condition = condition
+        )
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] = a.toFuture
     }
