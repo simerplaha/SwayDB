@@ -68,17 +68,17 @@ object ProductCommand {
 
 class Memory_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.memory.Map[Long, Domain, Functions]().get
+  override lazy val db = swaydb.memory.Map[Long, Domain, Functions, IO.ApiIO]().get
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions](randomDir, acceleration = Accelerator.brake()).get
+  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, acceleration = Accelerator.brake()).get
 }
 
 class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions](randomDir, mmapAppendix = false, mmapMaps = false, mmapSegments = MMAP.Disabled).get
+  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = false, mmapMaps = false, mmapSegments = MMAP.Disabled).get
 }
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {

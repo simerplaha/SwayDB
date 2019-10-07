@@ -102,7 +102,7 @@ object SwayDB extends LazyLogging {
       memoryCache = memoryCache
     ) map {
       db =>
-        swaydb.Set[T, F](db)
+        swaydb.Set[T, F, IO.ApiIO](db)
     }
 
   def apply[K, V, F](config: SwayDBMemoryConfig,
@@ -137,7 +137,7 @@ object SwayDB extends LazyLogging {
       memoryCache = memoryCache
     ) map {
       db =>
-        swaydb.Set[T, F](db)
+        swaydb.Set[T, F, IO.ApiIO](db)
     }
 
   def apply[T, F](config: LevelZeroPersistentConfig)(implicit serializer: Serializer[T],
@@ -149,7 +149,7 @@ object SwayDB extends LazyLogging {
       enableTimer = false
     ) map {
       db =>
-        swaydb.Set[T, F](db)
+        swaydb.Set[T, F, IO.ApiIO](db)
     }
 
   def apply[T, F](config: LevelZeroMemoryConfig)(implicit serializer: Serializer[T],
@@ -160,7 +160,7 @@ object SwayDB extends LazyLogging {
       enableTimer = false
     ) map {
       db =>
-        swaydb.Set[T, F](db)
+        swaydb.Set[T, F, IO.ApiIO](db)
     }
 
   private def toCoreFunctionOutput[V](output: swaydb.Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =

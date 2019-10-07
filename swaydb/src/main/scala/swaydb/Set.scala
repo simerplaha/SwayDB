@@ -31,7 +31,8 @@ import swaydb.serializers.{Serializer, _}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Set {
-  def apply[T, F](api: Core[IO.ApiIO])(implicit serializer: Serializer[T]): Set[T, F, IO.ApiIO] =
+  def apply[A, F, T[_]](api: Core[T])(implicit serializer: Serializer[A],
+                                      tag: Tag[T]): Set[A, F, T] =
     new Set(api, None)
 }
 

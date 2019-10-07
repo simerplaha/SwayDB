@@ -67,35 +67,35 @@ protected object Key {
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
 
   override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.persistent.Map[Key, Int, Key.Function](randomDir).right.value
+    swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir).right.value
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
   override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.persistent.Map[Key, Int, Key.Function](randomDir, mapSize = 1.byte).right.value
+    swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
   override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.Map[Key, Int, Key.Function](mapSize = 1.byte).right.value
+    swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
   override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.Map[Key, Int, Key.Function]().right.value
+    swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO]().right.value
 }
 
 class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
 
   override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.zero.Map[Key, Int, Key.Function](mapSize = 1.byte).right.value
+    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec5 extends SwayDBFunctionSpec {
   override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.zero.Map[Key, Int, Key.Function]().right.value
+    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO]().right.value
 }
 
 sealed trait SwayDBFunctionSpec extends TestBase {

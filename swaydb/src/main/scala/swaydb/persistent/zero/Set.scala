@@ -41,15 +41,16 @@ object Set extends LazyLogging {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
-  def apply[T, F](dir: Path,
-                  mapSize: Int = 4.mb,
-                  mmapMaps: Boolean = true,
-                  recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                  otherDirs: Seq[Dir] = Seq.empty,
-                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
-                                                                                        functionClassTag: ClassTag[F],
-                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
+  def apply[A, F, T[_]](dir: Path,
+                        mapSize: Int = 4.mb,
+                        mmapMaps: Boolean = true,
+                        recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                        otherDirs: Seq[Dir] = Seq.empty,
+                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
+                                                                                              functionClassTag: ClassTag[F],
+                                                                                              tag: swaydb.Tag[T],
+                                                                                              keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                              ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Set[A, F, T]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultPersistentZeroConfig(
@@ -62,6 +63,6 @@ object Set extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Set[T, F](db)
+        swaydb.Set[A, F, T](db.toTag)
     }
 }

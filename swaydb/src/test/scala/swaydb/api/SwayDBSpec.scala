@@ -27,7 +27,7 @@ import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](randomDir).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value
 
   override val keyValueCount: Int = 100
 }
@@ -37,12 +37,12 @@ class SwayDBSpec1 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDB_Zero_Spec0 extends SwayDBSpec {
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.zero.Map[Int, String, Nothing](randomDir).right.value
+    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value
 
   override val keyValueCount: Int = 100
 }
@@ -52,7 +52,7 @@ class SwayDB_Zero_Spec1 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.zero.Map[Int, String, Nothing](randomDir, mapSize = 1.byte).right.value
+    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBSpec2 extends SwayDBSpec {
@@ -60,7 +60,7 @@ class SwayDBSpec2 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBSpec3 extends SwayDBSpec {
@@ -68,7 +68,7 @@ class SwayDBSpec3 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing]().right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
 //class SwayDB_Zero_Spec2 extends SwayDBSpec {

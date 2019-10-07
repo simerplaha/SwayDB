@@ -42,12 +42,13 @@ object Map extends LazyLogging {
    * A single level zero only database. Does not need compaction.
    */
 
-  def apply[K, V, F](mapSize: Int = 4.mb,
-                     acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                           valueSerializer: Serializer[V],
-                                                                                           functionClassTag: ClassTag[F],
-                                                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                           ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
+  def apply[K, V, F, T[_]](mapSize: Int = 4.mb,
+                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                                 valueSerializer: Serializer[V],
+                                                                                                 functionClassTag: ClassTag[F],
+                                                                                                 tag: swaydb.Tag[T],
+                                                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                 ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, F, T]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryZeroConfig(
@@ -56,6 +57,6 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V, F, IO.ApiIO](db)
+        swaydb.Map[K, V, F, T](db.toTag)
     }
 }

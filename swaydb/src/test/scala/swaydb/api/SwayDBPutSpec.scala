@@ -32,7 +32,7 @@ class SwayDBPutSpec0 extends SwayDBPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](dir = randomDir).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
 }
 
 class SwayDBPutSpec1 extends SwayDBPutSpec {
@@ -40,7 +40,7 @@ class SwayDBPutSpec1 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBPutSpec2 extends SwayDBPutSpec {
@@ -48,14 +48,14 @@ class SwayDBPutSpec2 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBPutSpec3 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing]().right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
 class SwayDBPutSpec4 extends SwayDBPutSpec {
@@ -63,14 +63,14 @@ class SwayDBPutSpec4 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing](mapSize = 1.byte).right.value
+    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBPutSpec5 extends SwayDBPutSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing]().right.value
+    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
 sealed trait SwayDBPutSpec extends TestBaseEmbedded {

@@ -28,7 +28,7 @@ class ScalaMapSpec0 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](dir = randomDir).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
 }
 
 class ScalaMapSpec1 extends ScalaMapSpec {
@@ -36,7 +36,7 @@ class ScalaMapSpec1 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class ScalaMapSpec2 extends ScalaMapSpec {
@@ -44,14 +44,14 @@ class ScalaMapSpec2 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class ScalaMapSpec3 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing]().right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
 class ScalaMapSpec4 extends ScalaMapSpec {
@@ -59,14 +59,14 @@ class ScalaMapSpec4 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing](mapSize = 1.byte).right.value
+    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class ScalaMapSpec5 extends ScalaMapSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing]().right.value
+    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
 sealed trait ScalaMapSpec extends TestBaseEmbedded {

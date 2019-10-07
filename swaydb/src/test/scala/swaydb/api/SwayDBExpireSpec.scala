@@ -32,7 +32,7 @@ class SwayDBExpireSpec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](dir = randomDir).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
 }
 
 class SwayDBExpireSpec1 extends SwayDBExpireSpec {
@@ -40,7 +40,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segmentSize = 10.bytes).right.value
 }
 
 class SwayDBExpireSpec2 extends SwayDBExpireSpec {
@@ -48,14 +48,14 @@ class SwayDBExpireSpec2 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing](mapSize = 1.byte).right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBExpireSpec3 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.Map[Int, String, Nothing]().right.value
+    swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
 class SwayDBExpireSpec4 extends SwayDBExpireSpec {
@@ -63,14 +63,14 @@ class SwayDBExpireSpec4 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing](mapSize = 1.byte).right.value
+    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBExpireSpec5 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing]().right.value
+    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
 sealed trait SwayDBExpireSpec extends TestBaseEmbedded {

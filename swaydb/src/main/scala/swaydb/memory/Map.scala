@@ -29,7 +29,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO, SwayDB}
+import swaydb.{IO, SwayDB}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -40,36 +40,21 @@ object Map extends LazyLogging {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
-  /**
-   * A 2 Leveled (Level0 & Level1), in-memory database.
-   *
-   * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-   *
-   * @param mapSize         size of Level0 maps before they are converted into Segments
-   * @param segmentSize     size of Level1 Segments
-   * @param acceleration    Controls the write speed.
-   * @param keySerializer   Converts keys to Bytes
-   * @param valueSerializer Converts values to Bytes
-   * @param keyOrder        Sort order for keys
-   * @tparam K
-   * @tparam V
-   * @return
-   */
-
-  def apply[K, V, F](mapSize: Int = 4.mb,
-                     segmentSize: Int = 2.mb,
-                     memoryCacheSize: Int = 500.mb,
-                     maxOpenSegments: Int = 100,
-                     maxCachedKeyValuesPerSegment: Int = 10,
-                     fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                     mightContainFalsePositiveRate: Double = 0.01,
-                     compressDuplicateValues: Boolean = false,
-                     deleteSegmentsEventually: Boolean = true,
-                     acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                           valueSerializer: Serializer[V],
-                                                                                           functionClassTag: ClassTag[F],
-                                                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                           fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
+  def apply[K, V, F, T[_]](mapSize: Int = 4.mb,
+                           segmentSize: Int = 2.mb,
+                           memoryCacheSize: Int = 500.mb,
+                           maxOpenSegments: Int = 100,
+                           maxCachedKeyValuesPerSegment: Int = 10,
+                           fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                           mightContainFalsePositiveRate: Double = 0.01,
+                           compressDuplicateValues: Boolean = false,
+                           deleteSegmentsEventually: Boolean = true,
+                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                                 valueSerializer: Serializer[V],
+                                                                                                 functionClassTag: ClassTag[F],
+                                                                                                 tag: swaydb.Tag[T],
+                                                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                 fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, T]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryConfig(
@@ -94,6 +79,6 @@ object Map extends LazyLogging {
         )
     ) map {
       db =>
-        swaydb.Map[K, V, F, IO.ApiIO](db)
+        swaydb.Map[K, V, F, T](db.toTag)
     }
 }
