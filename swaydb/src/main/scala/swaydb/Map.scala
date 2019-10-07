@@ -153,10 +153,10 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     function
   }
 
-  def applyFunction[B <: F with swaydb.Function[K, V]](key: K, function: B): T[IO.Done] =
+  def applyFunction(key: K, function: F with swaydb.Function[K, V]): T[IO.Done] =
     tag.point(core.function(key, function.id))
 
-  def applyFunction[B <: F with swaydb.Function[K, V]](from: K, to: K, function: B): T[IO.Done] =
+  def applyFunction(from: K, to: K, function: F with swaydb.Function[K, V]): T[IO.Done] =
     tag.point(core.function(from, to, function.id))
 
   def commit(prepare: Prepare[K, V]*): T[IO.Done] =

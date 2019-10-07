@@ -130,11 +130,11 @@ case class Set[A, F, T[_]](private val core: Core[T],
     function
   }
 
-  def applyFunction(from: A, to: A, functionId: A): T[IO.Done] =
-    tag.point(core.function(from, to, functionId))
+  def applyFunction(from: A, to: A, function: F with swaydb.Function.GetKey[A, Nothing]): T[IO.Done] =
+    tag.point(core.function(from, to, function.id))
 
-  def applyFunction(elem: A, function: A): T[IO.Done] =
-    tag.point(core.function(elem, function))
+  def applyFunction(elem: A, function: F with swaydb.Function.GetKey[A, Nothing]): T[IO.Done] =
+    tag.point(core.function(elem, function.id))
 
   def commit(prepare: Prepare[A, Nothing]*): T[IO.Done] =
     tag.point(core.put(prepare))
