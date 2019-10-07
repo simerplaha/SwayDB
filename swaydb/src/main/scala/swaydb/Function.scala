@@ -19,11 +19,36 @@
 
 package swaydb
 
+import swaydb.data.slice.Slice
+
 import scala.concurrent.duration.Deadline
 
-sealed trait Function[+K, +V]
+sealed trait Function[+K, +V] {
+  /**
+   * This unique id is stored in the database when an update is submitted.
+   *
+   * This can simply be an increment integer. For example:
+   * {{{
+   *   val id = new AtomicInteger(0)
+   *   Slice.writeInt(id.incrementAndGet())
+   * }}}
+   *
+   * @return a unique id for each function.
+   */
+  def id: Slice[Byte]
+}
+
 object Function {
-  trait GetValue[V] extends (V => Apply.Map[V]) with Function[Nothing, V]
-  trait GetKeyDeadline[K, V] extends ((K, Option[Deadline]) => Apply.Map[V]) with Function[K, V]
-  trait GetKeyValueDeadline[K, V] extends ((K, V, Option[Deadline]) => Apply.Map[V]) with Function[K, V]
+
+  trait GetValue[V] extends (V => Apply.Map[V]) with Function[Nothing, V] {
+    override def apply(value: V): Apply.Map[V]
+  }
+
+  trait GetKey[K, +V] extends ((K, Option[Deadline]) => Apply.Map[V]) with Function[K, V] {
+    override def apply(key: K, deadline: Option[Deadline]): Apply.Map[V]
+  }
+
+  trait GetKeyValue[K, V] extends ((K, V, Option[Deadline]) => Apply.Map[V]) with Function[K, V] {
+    override def apply(key: K, value: V, deadline: Option[Deadline]): Apply.Map[V]
+  }
 }

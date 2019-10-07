@@ -26,7 +26,7 @@ import scala.collection.{TraversableOnce, mutable}
  */
 private[swaydb] object ScalaSet {
 
-  def apply[A](db: Set[A, IO.ApiIO]): mutable.Set[A] =
+  def apply[A, F](db: Set[A, F, IO.ApiIO]): mutable.Set[A] =
     new mutable.Set[A] {
 
       override def contains(elem: A): Boolean =

@@ -28,16 +28,19 @@ import swaydb.core.TestData._
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.config.MMAP
+import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
 import swaydb.simulation.RemoveAsserted._
-import swaydb.{Actor, ActorRef, Apply, IO}
+import swaydb.{Actor, ActorRef, Apply, Function, IO}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.{Random, Try}
+
+protected sealed trait Functions
 
 sealed trait RemoveAsserted
 object RemoveAsserted {
@@ -65,22 +68,22 @@ object ProductCommand {
 
 class Memory_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.memory.Map[Long, Domain, Long]().get
+  override lazy val db = swaydb.memory.Map[Long, Domain, Functions]().get
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.persistent.Map[Long, Domain, Long](randomDir, acceleration = Accelerator.brake()).get
+  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions](randomDir, acceleration = Accelerator.brake()).get
 }
 
 class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.persistent.Map[Long, Domain, Long](randomDir, mmapAppendix = false, mmapMaps = false, mmapSegments = MMAP.Disabled).get
+  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions](randomDir, mmapAppendix = false, mmapMaps = false, mmapSegments = MMAP.Disabled).get
 }
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
-  def db: swaydb.Map[Long, Domain, Long, IO.ApiIO]
+  def db: swaydb.Map[Long, Domain, Functions, IO.ApiIO]
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)
@@ -188,15 +191,18 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           else {
             val functionId =
               db.registerFunction(
-                functionId = functionIDs.incrementAndGet(),
-                function =
-                  (key, _) =>
+                new Function.GetKey[Long, Domain] with Functions {
+                  override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                     if (key == productId)
                       Apply.Update(updatedProduct)
                     else
                       Apply.Nothing
+
+                  override def id: Slice[Byte] =
+                    Slice.writeInt(functionIDs.incrementAndGet())
+                }
               )
-            db.applyFunction(productId, functionId)
+            db.applyFunction(productId, functionId).get
           }
 
           state.products.put(productId, (updatedProduct, deadline))
@@ -217,12 +223,16 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           else {
             val functionId =
               db.registerFunction(
-                functionId = functionIDs.incrementAndGet(),
-                function =
-                  (_, _) =>
+                new Function.GetKey[Long, Domain] with Functions {
+                  override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                     Apply.Expire(newDeadline)
+
+                  override def id: Slice[Byte] =
+                    Slice.writeInt(functionIDs.incrementAndGet())
+                }
               )
-            db.applyFunction(productId, functionId)
+
+            db.applyFunction(productId, functionId).get
           }
 
           state.products.put(productId, (product, Some(newDeadline)))
@@ -315,12 +325,15 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           else {
             val functionId =
               db.registerFunction(
-                functionId = functionIDs.incrementAndGet(),
-                function =
-                  (_, _) =>
+                new Function.GetKey[Long, Domain] with Functions {
+                  override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                     Apply.Update(updatedProduct)
+
+                  override def id: Slice[Byte] =
+                    Slice.writeInt(functionIDs.incrementAndGet())
+                }
               )
-            db.applyFunction(from, to, functionId)
+            db.applyFunction(from, to, functionId).get
           }
 
           (from to to) foreach {
@@ -353,12 +366,15 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           else {
             val functionId =
               db.registerFunction(
-                functionId = functionIDs.incrementAndGet(),
-                function =
-                  (_, _) =>
+                new Function.GetKey[Long, Domain] with Functions {
+                  override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                     Apply.Expire(newDeadline)
+
+                  override def id: Slice[Byte] =
+                    Slice.writeInt(functionIDs.incrementAndGet())
+                }
               )
-            db.applyFunction(from, to, functionId)
+            db.applyFunction(from, to, functionId).get
           }
 
           (from to to) foreach {
@@ -384,12 +400,15 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           else {
             val functionId =
               db.registerFunction(
-                functionId = functionIDs.incrementAndGet(),
-                function =
-                  (_, _) =>
+                new Function.GetKey[Long, Domain] with Functions {
+                  override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                     Apply.Remove
+
+                  override def id: Slice[Byte] =
+                    Slice.writeInt(functionIDs.incrementAndGet())
+                }
               )
-            db.applyFunction(productToRemoveId, functionId)
+            db.applyFunction(productToRemoveId, functionId).get
           }
 
           state.products remove productToRemoveId
@@ -433,12 +452,15 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           else {
             val functionId =
               db.registerFunction(
-                functionId = functionIDs.incrementAndGet(),
-                function =
-                  (_, _) =>
+                new Function.GetKey[Long, Domain] with Functions {
+                  override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                     Apply.Remove
+
+                  override def id: Slice[Byte] =
+                    Slice.writeInt(functionIDs.incrementAndGet())
+                }
               )
-            db.applyFunction(from, to, functionId)
+            db.applyFunction(from, to, functionId).get
           }
 
           (from to to) foreach {
@@ -547,6 +569,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               (command, self) =>
                 processCommand(self.state, command, self)
             }
+
           actor send ProductCommand.Create
       }
 

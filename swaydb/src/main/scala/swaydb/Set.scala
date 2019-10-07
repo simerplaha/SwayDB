@@ -31,7 +31,7 @@ import swaydb.serializers.{Serializer, _}
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object Set {
-  def apply[T](api: Core[IO.ApiIO])(implicit serializer: Serializer[T]): Set[T, IO.ApiIO] =
+  def apply[T, F](api: Core[IO.ApiIO])(implicit serializer: Serializer[T]): Set[T, F, IO.ApiIO] =
     new Set(api, None)
 }
 
@@ -40,10 +40,10 @@ object Set {
  *
  * For documentation check - http://swaydb.io/api/
  */
-case class Set[A, T[_]](private val core: Core[T],
-                        private val from: Option[From[A]],
-                        private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
-                                                                               tag: Tag[T]) extends Streamable[A, T] { self =>
+case class Set[A, F, T[_]](private val core: Core[T],
+                           private val from: Option[From[A]],
+                           private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
+                                                                                  tag: Tag[T]) extends Streamable[A, T] { self =>
 
   def get(elem: A): T[Option[A]] =
     tag.point(core.getKey(elem, core.readStates.get()).map(_.map(_.read[A])))
@@ -125,8 +125,8 @@ case class Set[A, T[_]](private val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction(function: A with swaydb.Function.GetKeyDeadline[A, Nothing]): A = {
-    core.registerFunction(serializer.write(function), SwayDB.toCoreFunction(function))
+  def registerFunction[R <: F with swaydb.Function.GetKey[A, Nothing]](function: R): R = {
+    core.registerFunction(function.id, SwayDB.toCoreFunction(function))
     function
   }
 
@@ -163,19 +163,19 @@ case class Set[A, T[_]](private val core: Core[T],
   def timeLeft(elem: A): T[Option[FiniteDuration]] =
     expiration(elem).map(_.map(_.timeLeft))
 
-  def from(key: A): Set[A, T] =
+  def from(key: A): Set[A, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
 
-  def before(key: A): Set[A, T] =
+  def before(key: A): Set[A, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = true, after = false)))
 
-  def fromOrBefore(key: A): Set[A, T] =
+  def fromOrBefore(key: A): Set[A, F, T] =
     copy(from = Some(From(key = key, orBefore = true, orAfter = false, before = false, after = false)))
 
-  def after(key: A): Set[A, T] =
+  def after(key: A): Set[A, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = true)))
 
-  def fromOrAfter(key: A): Set[A, T] =
+  def fromOrAfter(key: A): Set[A, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   override def headOption: T[Option[A]] =
@@ -272,14 +272,14 @@ case class Set[A, T[_]](private val core: Core[T],
     else
       tag.point(core.lastKey(core.readStates.get()).map(_.map(_.read[A])))
 
-  def reverse: Set[A, T] =
+  def reverse: Set[A, F, T] =
     copy(reverseIteration = true)
 
-  def toTag[X[_]](implicit tag: Tag[X]): Set[A, X] =
+  def toTag[X[_]](implicit tag: Tag[X]): Set[A, F, X] =
     copy(core = core.toTag[X])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A](toTag[IO.ApiIO])
+    ScalaSet[A, F](toTag[IO.ApiIO])
 
   def close(): T[Unit] =
     tag.point(core.close())

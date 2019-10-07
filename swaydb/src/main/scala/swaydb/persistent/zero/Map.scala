@@ -41,16 +41,16 @@ object Map extends LazyLogging {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val functionStore: FunctionStore = FunctionStore.memory()
 
-  def apply[K, V, F <: K](dir: Path,
-                          mapSize: Int = 4.mb,
-                          mmapMaps: Boolean = true,
-                          recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                          otherDirs: Seq[Dir] = Seq.empty,
-                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                                valueSerializer: Serializer[V],
-                                                                                                functionClassTag: ClassTag[F],
-                                                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
+  def apply[K, V, F](dir: Path,
+                     mapSize: Int = 4.mb,
+                     mmapMaps: Boolean = true,
+                     recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                     otherDirs: Seq[Dir] = Seq.empty,
+                     acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                           valueSerializer: Serializer[V],
+                                                                                           functionClassTag: ClassTag[F],
+                                                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                           ec: Option[ExecutionContext] = Some(SwayDB.defaultExecutionContext)): IO[Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultPersistentZeroConfig(

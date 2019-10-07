@@ -26,7 +26,7 @@ import scala.collection.{TraversableOnce, mutable}
  */
 private[swaydb] object ScalaMap {
 
-  def apply[K, V, F <: K](db: Map[K, V, F, IO.ApiIO]): mutable.Map[K, V] =
+  def apply[K, V, F](db: Map[K, V, F, IO.ApiIO]): mutable.Map[K, V] =
     new mutable.Map[K, V] {
       override def get(key: K): Option[V] =
         db.get(key).get

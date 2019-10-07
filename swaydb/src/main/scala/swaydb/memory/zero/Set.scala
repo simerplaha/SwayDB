@@ -41,11 +41,11 @@ object Set extends LazyLogging {
   /**
    * A single level zero only database.
    */
-  def apply[T, F <: T](mapSize: Int = 4.mb,
-                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
-                                                                                             functionClassTag: ClassTag[F],
-                                                                                             keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                             ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, IO.ApiIO]] =
+  def apply[T, F](mapSize: Int = 4.mb,
+                  acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[T],
+                                                                                        functionClassTag: ClassTag[F],
+                                                                                        keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                        ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryZeroConfig(
@@ -54,6 +54,6 @@ object Set extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Set[T](db)
+        swaydb.Set[T, F](db)
     }
 }

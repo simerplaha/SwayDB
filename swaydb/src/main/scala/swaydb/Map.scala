@@ -35,11 +35,11 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  *
  * For documentation check - http://swaydb.io/tag/
  */
-case class Map[K, V, F <: K, T[_]](private[swaydb] val core: Core[T],
-                                   private val from: Option[From[K]] = None,
-                                   private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
-                                                                                          valueSerializer: Serializer[V],
-                                                                                          tag: Tag[T]) extends Streamable[(K, V), T] { self =>
+case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
+                              private val from: Option[From[K]] = None,
+                              private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
+                                                                                     valueSerializer: Serializer[V],
+                                                                                     tag: Tag[T]) extends Streamable[(K, V), T] { self =>
 
   def put(key: K, value: V): T[IO.Done] =
     tag.point(core.put(key = key, value = Some(value)))
@@ -138,28 +138,26 @@ case class Map[K, V, F <: K, T[_]](private[swaydb] val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction(function: F with swaydb.Function[K, V]): F = {
-    val functionId = keySerializer.write(function)
-
+  def registerFunction[R <: F with swaydb.Function[K, V]](function: R): R = {
     (function: swaydb.Function[K, V]) match {
       case function: swaydb.Function.GetValue[V] =>
-        core.registerFunction(functionId, SwayDB.toCoreFunction(function))
+        core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-      case function: swaydb.Function.GetKeyDeadline[K, V] =>
-        core.registerFunction(functionId, SwayDB.toCoreFunction(function))
+      case function: swaydb.Function.GetKey[K, V] =>
+        core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-      case function: swaydb.Function.GetKeyValueDeadline[K, V] =>
-        core.registerFunction(functionId, SwayDB.toCoreFunction(function))
+      case function: swaydb.Function.GetKeyValue[K, V] =>
+        core.registerFunction(function.id, SwayDB.toCoreFunction(function))
     }
 
     function
   }
 
-  def applyFunction(key: K, function: F): T[IO.Done] =
-    tag.point(core.function(key, keySerializer.write(function)))
+  def applyFunction[B <: F with swaydb.Function[K, V]](key: K, function: B): T[IO.Done] =
+    tag.point(core.function(key, function.id))
 
-  def applyFunction(from: K, to: K, function: F): T[IO.Done] =
-    tag.point(core.function(from, to, keySerializer.write(function)))
+  def applyFunction[B <: F with swaydb.Function[K, V]](from: K, to: K, function: B): T[IO.Done] =
+    tag.point(core.function(from, to, function.id))
 
   def commit(prepare: Prepare[K, V]*): T[IO.Done] =
     tag.point(core.put(prepare))
@@ -201,8 +199,8 @@ case class Map[K, V, F <: K, T[_]](private[swaydb] val core: Core[T],
   def mightContainFunction(functionId: K): T[Boolean] =
     tag.point(core mightContainFunction functionId)
 
-  def keys: Set[K, T] =
-    Set[K, T](
+  def keys: Set[K, F, T] =
+    Set[K, F, T](
       core = core,
       from = from,
       reverseIteration = reverseIteration

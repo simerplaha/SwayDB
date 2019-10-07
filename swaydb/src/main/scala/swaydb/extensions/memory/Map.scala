@@ -59,20 +59,20 @@ object Map extends LazyLogging {
    * @return
    */
 
-  def apply[K, V, F <: K](mapSize: Int = 4.mb,
-                          segmentSize: Int = 2.mb,
-                          memoryCacheSize: Int = 500.mb,
-                          maxOpenSegments: Int = 100,
-                          maxCachedKeyValuesPerSegment: Int = 10,
-                          fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                          mightContainFalsePositiveRate: Double = 0.01,
-                          compressDuplicateValues: Boolean = false,
-                          deleteSegmentsEventually: Boolean = true,
-                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                                valueSerializer: Serializer[V],
-                                                                                                functionClassTag: ClassTag[F],
-                                                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
+  def apply[K, V, F](mapSize: Int = 4.mb,
+                     segmentSize: Int = 2.mb,
+                     memoryCacheSize: Int = 500.mb,
+                     maxOpenSegments: Int = 100,
+                     maxCachedKeyValuesPerSegment: Int = 10,
+                     fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                     mightContainFalsePositiveRate: Double = 0.01,
+                     compressDuplicateValues: Boolean = false,
+                     deleteSegmentsEventually: Boolean = true,
+                     acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                           valueSerializer: Serializer[V],
+                                                                                           functionClassTag: ClassTag[F],
+                                                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                           fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryConfig(

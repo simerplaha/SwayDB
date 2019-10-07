@@ -28,19 +28,19 @@ import swaydb.{IO, Streamable}
 import scala.annotation.tailrec
 
 /**
-  * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type - tagless final.
-  *
-  * Sample order
-  *
-  * Key.MapStart(1),
-  *   MapKey.EntriesStart(1)
-  *     MapKey.Entry(1, 1)
-  *   MapKey.EntriesEnd(1)
-  *   MapKey.SubMapsStart(1)
-  *     MapKey.SubMap(1, 1000)
-  *   MapKey.SubMapsEnd(1)
-  * MapKey.End(1)
-  **/
+ * TODO - [[MapStream]] and [[MapKeysStream]] are similar and need a higher type - tagless final.
+ *
+ * Sample order
+ *
+ * Key.MapStart(1),
+ *   MapKey.EntriesStart(1)
+ *     MapKey.Entry(1, 1)
+ *   MapKey.EntriesEnd(1)
+ *   MapKey.SubMapsStart(1)
+ *     MapKey.SubMap(1, 1000)
+ *   MapKey.SubMapsEnd(1)
+ * MapKey.End(1)
+ **/
 
 object MapKeysStream {
 
@@ -103,8 +103,8 @@ object MapKeysStream {
 case class MapKeysStream[K](mapKey: Seq[K],
                             mapsOnly: Boolean = false,
                             userDefinedFrom: Boolean = false,
-                            set: swaydb.Set[Key[K], IO.ApiIO])(implicit keySerializer: Serializer[K],
-                                                         mapKeySerializer: Serializer[Key[K]]) extends Streamable[K, IO.ApiIO] { self =>
+                            set: swaydb.Set[Key[K], Nothing, IO.ApiIO])(implicit keySerializer: Serializer[K],
+                                                                        mapKeySerializer: Serializer[Key[K]]) extends Streamable[K, IO.ApiIO] { self =>
 
   private val endEntriesKey = Key.MapEntriesEnd(mapKey)
   private val endSubMapsKey = Key.SubMapsEnd(mapKey)
@@ -223,10 +223,10 @@ case class MapKeysStream[K](mapKey: Seq[K],
   def stream: swaydb.Stream[K, IO.ApiIO] =
     new swaydb.Stream[K, IO.ApiIO] {
       /**
-        * Stores raw key-value from previous read. This is a temporary solution because
-        * this class extends Stream[K] and the types are being lost on stream.next here since previous
-        * Key[K] is not known.
-        */
+       * Stores raw key-value from previous read. This is a temporary solution because
+       * this class extends Stream[K] and the types are being lost on stream.next here since previous
+       * Key[K] is not known.
+       */
       private var previousRaw: Key[K] = _
 
       override def headOption: IO.ApiIO[Option[K]] =
@@ -251,12 +251,12 @@ case class MapKeysStream[K](mapKey: Seq[K],
     }
 
   /**
-    * Returns the start key when doing reverse iteration.
-    *
-    * If subMaps are included then it will return the starting point to be [[Key.SubMapsEnd]]
-    * which will iterate backward until [[Key.MapEntriesStart]]
-    * else returns the starting point to be [[Key.MapEntriesEnd]] to fetch entries only.
-    */
+   * Returns the start key when doing reverse iteration.
+   *
+   * If subMaps are included then it will return the starting point to be [[Key.SubMapsEnd]]
+   * which will iterate backward until [[Key.MapEntriesStart]]
+   * else returns the starting point to be [[Key.MapEntriesEnd]] to fetch entries only.
+   */
   def reverse: MapKeysStream[K] =
     if (userDefinedFrom) //if user has defined from then do not override it and just set reverse to true.
       reverse(reverse = true)
@@ -266,10 +266,10 @@ case class MapKeysStream[K](mapKey: Seq[K],
       before(key = endEntriesKey, reverse = true)
 
   /**
-    * lastOption should always force formKey to be the [[endSubMapsKey]]
-    * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
-    * most efficient way to fetch the last is from the key [[endSubMapsKey]].
-    */
+   * lastOption should always force formKey to be the [[endSubMapsKey]]
+   * because from is always set in [[swaydb.extensions.Maps]] and regardless from where the iteration starts the
+   * most efficient way to fetch the last is from the key [[endSubMapsKey]].
+   */
   override def lastOption: IO.ApiIO[Option[K]] =
     reverse.headOption
 

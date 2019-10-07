@@ -127,7 +127,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
       mapKey = mapKey,
       mapsOnly = true,
       set =
-        new swaydb.Set[Key[K], IO.ApiIO](
+        new swaydb.Set[Key[K], Nothing, IO.ApiIO](
           core = map.core,
           from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
         )

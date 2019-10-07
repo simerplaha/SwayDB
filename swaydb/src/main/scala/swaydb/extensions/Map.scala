@@ -401,7 +401,7 @@ class Map[K, V](mapKey: Seq[K],
     MapKeysStream[K](
       mapKey = mapKey,
       set =
-        new swaydb.Set[Key[K], IO.ApiIO](
+        new swaydb.Set[Key[K], Nothing, IO.ApiIO](
           core = map.core,
           from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)),
           reverseIteration = isReverse
