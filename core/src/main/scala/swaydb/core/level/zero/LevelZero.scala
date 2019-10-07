@@ -913,7 +913,7 @@ private[core] case class LevelZero(path: Path,
     failed match {
       case Some(error) =>
         error match {
-          case _: Error.NoSuchFile | _: Error.FileNotFound | _: Error.NullMappedByteBuffer =>
+          case _: Error.NoSuchFile | _: Error.FileNotFound | _: Error.NullMappedByteBuffer | _: Error.ClosedChannel | _: Error.AsynchronousClose =>
             run(apply)
 
           case _: Error =>
