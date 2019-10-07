@@ -138,26 +138,28 @@ case class Map[K, V, F <: K, T[_]](private[swaydb] val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction(functionId: F, function: V => Apply.Map[V]): K = {
-    core.registerFunction(keySerializer.write(functionId), SwayDB.toCoreFunction(function))
-    functionId
+  def registerFunction(function: F with swaydb.Function[K, V]): F = {
+    val functionId = keySerializer.write(function)
+
+    (function: swaydb.Function[K, V]) match {
+      case function: swaydb.Function.GetValue[V] =>
+        core.registerFunction(functionId, SwayDB.toCoreFunction(function))
+
+      case function: swaydb.Function.GetKeyDeadline[K, V] =>
+        core.registerFunction(functionId, SwayDB.toCoreFunction(function))
+
+      case function: swaydb.Function.GetKeyValueDeadline[K, V] =>
+        core.registerFunction(functionId, SwayDB.toCoreFunction(function))
+    }
+
+    function
   }
 
-  def registerFunction(functionId: F, function: (K, Option[Deadline]) => Apply.Map[V]): F = {
-    core.registerFunction(keySerializer.write(functionId), SwayDB.toCoreFunction(function))
-    functionId
-  }
+  def applyFunction(key: K, function: F): T[IO.Done] =
+    tag.point(core.function(key, keySerializer.write(function)))
 
-  def registerFunction(functionId: F, function: (K, V, Option[Deadline]) => Apply.Map[V]): F = {
-    core.registerFunction(keySerializer.write(functionId), SwayDB.toCoreFunction(function))
-    functionId
-  }
-
-  def applyFunction(key: K, functionId: F): T[IO.Done] =
-    tag.point(core.function(key, keySerializer.write(functionId)))
-
-  def applyFunction(from: K, to: K, functionId: F): T[IO.Done] =
-    tag.point(core.function(from, to, keySerializer.write(functionId)))
+  def applyFunction(from: K, to: K, function: F): T[IO.Done] =
+    tag.point(core.function(from, to, keySerializer.write(function)))
 
   def commit(prepare: Prepare[K, V]*): T[IO.Done] =
     tag.point(core.put(prepare))

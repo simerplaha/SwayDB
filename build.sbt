@@ -53,7 +53,8 @@ val testDependencies =
   Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
-    "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
+    "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test,
+    "io.suzaku" %% "boopickle" % boopickleVersion % Test
   )
 
 val commonDependencies =
@@ -148,8 +149,7 @@ lazy val `swaydb-stress` =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++=
-        commonDependencies :+ "io.suzaku" %% "boopickle" % boopickleVersion % Test
+      libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 

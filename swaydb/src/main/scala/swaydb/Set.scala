@@ -125,9 +125,9 @@ case class Set[A, T[_]](private val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction(functionId: A, function: (A, Option[Deadline]) => Apply.Set[A]): A = {
-    core.registerFunction(functionId, SwayDB.toCoreFunction(function))
-    functionId
+  def registerFunction(function: A with swaydb.Function.GetKeyDeadline[A, Nothing]): A = {
+    core.registerFunction(serializer.write(function), SwayDB.toCoreFunction(function))
+    function
   }
 
   def applyFunction(from: A, to: A, functionId: A): T[IO.Done] =
