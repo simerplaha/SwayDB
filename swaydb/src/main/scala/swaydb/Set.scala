@@ -125,10 +125,8 @@ case class Set[A, F, T[_]](private val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction[R <: F with swaydb.Function.GetKey[A, Nothing]](function: R): R = {
+  def registerFunction(function: F with swaydb.Function.GetKey[A, Nothing]): Unit =
     core.registerFunction(function.id, SwayDB.toCoreFunction(function))
-    function
-  }
 
   def applyFunction(from: A, to: A, function: F with swaydb.Function.GetKey[A, Nothing]): T[IO.Done] =
     tag.point(core.function(from, to, function.id))

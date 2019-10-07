@@ -138,7 +138,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction[R <: F with swaydb.Function[K, V]](function: R): R = {
+  def registerFunction(function: F with swaydb.Function[K, V]): Unit =
     (function: swaydb.Function[K, V]) match {
       case function: swaydb.Function.GetValue[V] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
@@ -149,9 +149,6 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
       case function: swaydb.Function.GetKeyValue[K, V] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
     }
-
-    function
-  }
 
   def applyFunction(key: K, function: F with swaydb.Function[K, V]): T[IO.Done] =
     tag.point(core.function(key, function.id))

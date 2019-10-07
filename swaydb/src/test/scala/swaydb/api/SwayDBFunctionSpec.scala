@@ -106,14 +106,13 @@ sealed trait SwayDBFunctionSpec extends TestBase {
     "perform concurrent atomic updates to a single key" in {
 
       val db = newDB()
+      db.registerFunction(Key.IncrementValue)
 
       db.put(Key.Id(1), 0).get
 
-      val incrementValue = db.registerFunction(Key.IncrementValue)
-
       (1 to 1000).par foreach {
         _ =>
-          db.applyFunction(Key.Id(1), incrementValue).get
+          db.applyFunction(Key.Id(1), Key.IncrementValue).get
       }
 
       db.get(Key.Id(1)).get should contain(1000)
@@ -124,19 +123,18 @@ sealed trait SwayDBFunctionSpec extends TestBase {
     "perform concurrent atomic updates to multiple keys" in {
 
       val db = newDB()
+      db.registerFunction(Key.IncrementValue)
 
       (1 to 1000) foreach {
         i =>
           db.put(Key.Id(i), 0).get
       }
 
-      val functionId = db.registerFunction(Key.IncrementValue)
-
       (1 to 100).par foreach {
         _ =>
           (1 to 1000).par foreach {
             i =>
-              db.applyFunction(Key.Id(i), functionId).get
+              db.applyFunction(Key.Id(i), Key.IncrementValue).get
           }
       }
 
@@ -151,19 +149,18 @@ sealed trait SwayDBFunctionSpec extends TestBase {
     "Nothing should not update data" in {
 
       val db = newDB()
+      db.registerFunction(Key.DoNothing)
 
       (1 to 1000) foreach {
         i =>
           db.put(Key.Id(i), 0).get
       }
 
-      val functionId = db.registerFunction(Key.DoNothing)
-
       (1 to 100).par foreach {
         _ =>
           (1 to 1000).par foreach {
             i =>
-              db.applyFunction(Key.Id(i), functionId).get
+              db.applyFunction(Key.Id(i), Key.DoNothing).get
           }
       }
 
