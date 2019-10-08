@@ -12,6 +12,7 @@ val scalaTestVersion = "3.0.8"
 val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
 val monixVersion = "3.0.0"
+val zioVersion = "1.0.0-RC14"
 
 parallelExecution in ThisBuild := false
 
@@ -69,7 +70,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
-    .aggregate(swaydb, core, compression, data, configs, serializers, monix)
+    .aggregate(swaydb, core, compression, data, configs, serializers, `swaydb-monix`, `swaydb-zio`)
 
 lazy val core =
   project
@@ -110,15 +111,6 @@ lazy val serializers =
   project
     .settings(commonSettings)
     .settings(publishSettings)
-    .dependsOn(data)
-
-lazy val monix =
-  project
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(
-      libraryDependencies += "io.monix" %% "monix" % monixVersion
-    )
     .dependsOn(data)
 
 lazy val `core-stress` =
@@ -170,3 +162,27 @@ lazy val benchmark =
       libraryDependencies ++= commonDependencies
     ).dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
+
+
+/**
+ * Support.
+ */
+lazy val `swaydb-monix` =
+  project
+    .settings(name := "swaydb-monix")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "io.monix" %% "monix" % monixVersion
+    )
+    .dependsOn(data)
+
+lazy val `swaydb-zio` =
+  project
+    .settings(name := "swaydb-zio")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "dev.zio" %% "zio" % zioVersion
+    )
+    .dependsOn(data)

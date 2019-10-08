@@ -95,6 +95,8 @@ object Tag {
       override def complete[A](promise: Promise[A], a: Task[A]): Unit =
         promise tryCompleteWith a.runToFuture
 
+      //todo - there does not seem to be a way to check if a Task is complete without running it.
+      //       isComplete should be removed.
       def isComplete[A](a: Task[A]): Boolean =
         a.runToFuture.isCompleted
 
