@@ -24,7 +24,7 @@ import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, Serial}
 import zio.Task
 
-import scala.concurrent.Promise
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 
 object Tag {
@@ -43,8 +43,11 @@ object Tag {
       Task.fromTry(scala.util.Failure(a))
   }
 
-  implicit def apply(implicit runTime: zio.Runtime[Any]): swaydb.Tag.Async[Task] =
+  implicit def apply[T](implicit runTime: zio.Runtime[T]): swaydb.Tag.Async[Task] =
     new Async[Task] {
+
+      override def executionContext: ExecutionContext =
+        runTime.Platform.executor.asEC
 
       override def createSerial(): Serial[Task] =
         new Serial[Task] {
@@ -55,7 +58,7 @@ object Tag {
           val actor = Actor[() => Any] {
             (run, _) =>
               run()
-          }(runTime.Platform.executor.asEC, QueueOrder.FIFO)
+          }(executionContext, QueueOrder.FIFO)
 
           override def execute[F](f: => F): Task[F] = {
             val promise = Promise[F]
@@ -95,11 +98,6 @@ object Tag {
       override def complete[A](promise: Promise[A], task: Task[A]): Unit =
         promise.tryCompleteWith(runTime.unsafeRunToFuture(task))
 
-      //todo - there does not seem to be a way to check if a Task is complete without running it.
-      //       isComplete should be removed.
-      def isComplete[A](task: Task[A]): Boolean =
-        runTime.unsafeRunToFuture(task).isCompleted
-
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Task], drop: Int, take: Option[Int])(operation: (U, A) => U): Task[U] =
         swaydb.Tag.Async.foldLeft(
           initial = initial,
@@ -119,5 +117,8 @@ object Tag {
 
       override def fromIO[E: swaydb.IO.ExceptionHandler, A](a: swaydb.IO[E, A]): Task[A] =
         Task.fromTry(a.toTry)
+
+      override def fromFuture[A](a: Future[A]): Task[A] =
+        Task.fromFuture(_ => a)
     }
 }

@@ -24,7 +24,7 @@ import swaydb.Tag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, IO, Serial}
 
-import scala.concurrent.Promise
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 
 object Tag {
@@ -45,6 +45,9 @@ object Tag {
 
   implicit def apply(implicit scheduler: monix.execution.Scheduler): swaydb.Tag.Async[Task] =
     new Async[Task] {
+
+      override def executionContext: ExecutionContext =
+        scheduler
 
       override def createSerial(): Serial[Task] =
         new Serial[Task] {
@@ -95,11 +98,6 @@ object Tag {
       override def complete[A](promise: Promise[A], a: Task[A]): Unit =
         promise tryCompleteWith a.runToFuture
 
-      //todo - there does not seem to be a way to check if a Task is complete without running it.
-      //       isComplete should be removed.
-      def isComplete[A](a: Task[A]): Boolean =
-        a.runToFuture.isCompleted
-
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Task], drop: Int, take: Option[Int])(operation: (U, A) => U): Task[U] =
         swaydb.Tag.Async.foldLeft(
           initial = initial,
@@ -119,5 +117,8 @@ object Tag {
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Task[A] =
         Task.fromTry(a.toTry)
+
+      override def fromFuture[A](a: Future[A]): Task[A] =
+        Task.fromFuture(a)
     }
 }

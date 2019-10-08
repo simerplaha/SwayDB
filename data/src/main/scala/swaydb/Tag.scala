@@ -262,11 +262,9 @@ object Tag extends LazyLogging {
 
   trait Async[T[_]] extends Tag[T] { self =>
     def fromPromise[A](a: Promise[A]): T[A]
-    def isComplete[A](a: T[A]): Boolean
     def complete[A](promise: Promise[A], a: T[A]): Unit
-
-    def isIncomplete[A](a: T[A]): Boolean =
-      !isComplete(a)
+    def executionContext: ExecutionContext
+    def fromFuture[A](a: Future[A]): T[A]
 
     def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Async[X] =
       new Tag.Async[X] with ToTagBase[T, X] {
@@ -284,18 +282,34 @@ object Tag extends LazyLogging {
         override def fromPromise[A](a: Promise[A]): X[A] =
           converter.to(self.fromPromise(a))
 
-        override def isComplete[A](a: X[A]): Boolean =
-          self.isComplete(converter.from(a))
-
         override def complete[A](promise: Promise[A], a: X[A]): Unit =
           self.complete(promise, converter.from(a))
 
+        override def executionContext: ExecutionContext =
+          self.executionContext
+
+        override def fromFuture[A](a: Future[A]): X[A] =
+          converter.to(self.fromFuture(a))
       }
   }
 
   object Async {
 
     import Monad._
+
+    /**
+     * Reserved for Tags that have the ability to check is T.isComplete or not.
+     *
+     * zio.Task and monix.Task do not have this ability but scala.Future does.
+     *
+     * isComplete is required to add stack-safe read retries if there were failures like
+     * async closed files during reads etc.
+     */
+    trait Retryable[T[_]] extends Tag.Async[T] { self =>
+      def isComplete[A](a: T[A]): Boolean
+      def isIncomplete[A](a: T[A]): Boolean =
+        !isComplete(a)
+    }
 
     def foldLeft[A, U, T[_]](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit monad: Monad[T]): T[U] = {
       def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): T[U] =
@@ -483,8 +497,11 @@ object Tag extends LazyLogging {
 
     }
 
-  implicit def future(implicit ec: ExecutionContext): Tag.Async[Future] =
-    new Async[Future] {
+  implicit def future(implicit ec: ExecutionContext): Tag.Async.Retryable[Future] =
+    new Async.Retryable[Future] {
+
+      override def executionContext: ExecutionContext =
+        ec
 
       override def createSerial(): Serial[Future] =
         new Serial[Future] {
@@ -551,7 +568,11 @@ object Tag extends LazyLogging {
           condition = condition
         )
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] = a.toFuture
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Future[A] =
+        a.toFuture
+
+      override def fromFuture[A](a: Future[A]): Future[A] =
+        a
     }
 
   implicit val apiIO: Tag.Sync[IO.ApiIO] = throwableIO.toTag[IO.ApiIO]

@@ -169,7 +169,7 @@ lazy val benchmark =
  */
 lazy val `swaydb-monix` =
   project
-    .settings(name := "swaydb-monix")
+    .settings(name := "monix")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
@@ -179,7 +179,7 @@ lazy val `swaydb-monix` =
 
 lazy val `swaydb-zio` =
   project
-    .settings(name := "swaydb-zio")
+    .settings(name := "zio")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(

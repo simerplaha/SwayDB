@@ -798,8 +798,14 @@ object IO {
         case sync: Tag.Sync[T] =>
           runSync(sync)
 
-        case async: Tag.Async[T] =>
+        //if a tag is provided that implements isComplete then execute it directly
+        case async: Tag.Async.Retryable[T] =>
           runAsync(async)
+
+        case async: Tag.Async[T] =>
+          //else run the Tag as Future and return it's result.
+          implicit val ec = async.executionContext
+          async.fromFuture(runAsync[B, Future])
       }
 
     /**
@@ -893,7 +899,7 @@ object IO {
       doRun(this, 0)
     }
 
-    private def runAsync[B >: A, T[_]](implicit tag: Tag.Async[T]): T[B] = {
+    private def runAsync[B >: A, T[_]](implicit tag: Tag.Async.Retryable[T]): T[B] = {
 
       /**
        * If the value is already fetched [[isPending]] run in current thread
