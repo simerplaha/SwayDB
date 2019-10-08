@@ -33,14 +33,14 @@ import scala.util.{Failure, Success, Try}
  * TO-DO - Move this to a test module.
  */
 //@formatter:off
-case class TestActor[T](implicit ec: ExecutionContext) extends Actor[T, Unit](state = (),
-                                                                              queue = ActorQueue(QueueOrder.FIFO),
-                                                                              stashCapacity = 0,
-                                                                              weigher = _ => 1,
-                                                                              cached = false,
-                                                                              execution = (_, _) => None,
-                                                                              interval = None,
-                                                                              recovery = None) {
+case class TestActor[T](implicit override val ec: ExecutionContext) extends Actor[T, Unit](state = (),
+                                                                                           queue = ActorQueue(QueueOrder.FIFO),
+                                                                                           stashCapacity = 0,
+                                                                                           weigher = _ => 1,
+                                                                                           cached = false,
+                                                                                           execution = (_, _) => None,
+                                                                                           interval = None,
+                                                                                           recovery = None) {
 //@formatter:on
 
   private val queue = new ConcurrentLinkedQueue[T]

@@ -13,6 +13,7 @@ val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
 val monixVersion = "3.0.0"
 val zioVersion = "1.0.0-RC14"
+val scalaJava8CompatVersion = "0.9.0"
 
 parallelExecution in ThisBuild := false
 
@@ -186,3 +187,13 @@ lazy val `swaydb-zio` =
       libraryDependencies += "dev.zio" %% "zio" % zioVersion
     )
     .dependsOn(data)
+
+lazy val `swaydb-java` =
+  project
+    .settings(name := "java")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
+    )
+    .dependsOn(swaydb)
