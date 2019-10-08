@@ -33,13 +33,13 @@ import swaydb.data.slice.Slice
 
 private[core] object SegmentSearcher extends LazyLogging {
 
-  var seqSeeks = 0
-  var successfulSeqSeeks = 0
-  var failedSeqSeeks = 0
-
-  var hashIndexSeeks = 0
-  var successfulHashIndexSeeks = 0
-  var failedHashIndexSeeks = 0
+  //  var seqSeeks = 0
+  //  var successfulSeqSeeks = 0
+  //  var failedSeqSeeks = 0
+  //
+  //  var hashIndexSeeks = 0
+  //  var successfulHashIndexSeeks = 0
+  //  var failedHashIndexSeeks = 0
 
   def search(path: Path,
              key: Slice[Byte],
@@ -54,7 +54,7 @@ private[core] object SegmentSearcher extends LazyLogging {
              readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
     when(start.isDefined && readState.isSequential(path))(start) match {
       case Some(startFrom) =>
-        seqSeeks += 1
+        //        seqSeeks += 1
         val found =
           SortedIndexBlock.searchSeekOne(
             key = key,
@@ -65,10 +65,10 @@ private[core] object SegmentSearcher extends LazyLogging {
           )
 
         if (found.isDefined) {
-          successfulSeqSeeks += 1
+          //          successfulSeqSeeks += 1
           found
         } else {
-          failedSeqSeeks += 1
+          //          failedSeqSeeks += 1
           val result =
             hashIndexSearch(
               key = key,
@@ -131,7 +131,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                       keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
     hashIndexReader match {
       case Some(hashIndexReader) =>
-        hashIndexSeeks += 1
+        //        hashIndexSeeks += 1
         //println
         //println(s"Search key: ${key.readInt()}")
         HashIndexBlock.search(
@@ -144,7 +144,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
               None
             } else {
-              failedHashIndexSeeks += 1
+              //              failedHashIndexSeeks += 1
 
               val lowest =
                 if (none.lower.isEmpty || start.isEmpty)
@@ -170,7 +170,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             }
 
           case HashIndexSearchResult.Some(keyValue) =>
-            successfulHashIndexSeeks += 1
+            //            successfulHashIndexSeeks += 1
             Some(keyValue)
         }
 

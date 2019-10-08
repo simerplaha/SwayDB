@@ -308,16 +308,16 @@ private[core] object BinarySearchIndexBlock {
         context.valuesCount - 1
     }
 
-  var totalHops = 0
-  var maxHop = 0
-  var minHop = 0
-  var currentHops = 0
-  var binarySeeks = 0
-  var binarySuccessfulSeeks = 0
-  var binaryFailedSeeks = 0
-  var failedWithLower = 0
-  var sameLower = 0
-  var greaterLower = 0
+  //  var totalHops = 0
+  //  var maxHop = 0
+  //  var minHop = 0
+  //  var currentHops = 0
+  //  var binarySeeks = 0
+  //  var binarySuccessfulSeeks = 0
+  //  var binaryFailedSeeks = 0
+  //  var failedWithLower = 0
+  //  var sameLower = 0
+  //  var greaterLower = 0
 
   private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchGetResult[Persistent.Partial] = {
     implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
@@ -328,8 +328,8 @@ private[core] object BinarySearchIndexBlock {
 
       //println(s"start: $start, mid: $mid, end: $end")
 
-      totalHops += 1
-      currentHops += 1
+      //      totalHops += 1
+      //      currentHops += 1
 
       val valueOffset = mid * context.bytesPerValue
 
@@ -451,7 +451,7 @@ private[core] object BinarySearchIndexBlock {
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchGetResult[Persistent.Partial] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable) {
-      binarySeeks += 1
+      //      binarySeeks += 1
       binarySearch(
         BinarySearchContext(
           key = key,
@@ -469,10 +469,10 @@ private[core] object BinarySearchIndexBlock {
           //println
           //println(s"Key: ${key.readInt()}")
           //          hops = 0
-          binarySeeks += 1
-          maxHop = maxHop max currentHops
-          minHop = minHop min currentHops
-          currentHops = 0
+          //          binarySeeks += 1
+          //          maxHop = maxHop max currentHops
+          //          minHop = minHop min currentHops
+          //          currentHops = 0
 
           binarySearch(
             BinarySearchContext(
@@ -485,21 +485,21 @@ private[core] object BinarySearchIndexBlock {
             )
           ) match {
             case some: BinarySearchGetResult.Some[Persistent.Partial] =>
-              binarySuccessfulSeeks += 1
+              //              binarySuccessfulSeeks += 1
               some
 
             case none @ BinarySearchGetResult.None(lower) =>
-              binaryFailedSeeks += 1
+              //              binaryFailedSeeks += 1
               if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
                 none
               else
                 lower match {
                   case Some(lower) =>
-                    failedWithLower += 1
-                    if (lowest.exists(lowest => ordering.gt(lower.key, lowest.key)))
-                      greaterLower += 1
-                    else if (lowest.exists(lowest => ordering.equiv(lower.key, lowest.key)))
-                      sameLower += 1
+                    //                    failedWithLower += 1
+                    //                    if (lowest.exists(lowest => ordering.gt(lower.key, lowest.key)))
+                    //                      greaterLower += 1
+                    //                    else if (lowest.exists(lowest => ordering.equiv(lower.key, lowest.key)))
+                    //                      sameLower += 1
 
                     SortedIndexBlock.matchOrSeek(
                       key = key,

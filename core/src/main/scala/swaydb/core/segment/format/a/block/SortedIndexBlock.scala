@@ -313,7 +313,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       previous = None
     )
 
-  var ends = 0
+  //  var ends = 0
   /**
    * Pre-requisite: The position of the index on the reader should be set.
    *
@@ -358,7 +358,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             if (openBytes.size >= expectedSize)
               (indexEntrySize, Reader(openBytes, indexEntrySizeByteSize), true)
             else {
-              ends += 1
+              //              ends += 1
               (indexEntrySize, indexReader.moveTo(positionBeforeRead + indexEntrySizeByteSize), false)
             }
           } else {
@@ -405,32 +405,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     val block = indexReader.block
 
-    val read =
-      if (block.enablePartialRead)
-        if (fullRead)
-          EntryReader.fullReadFromPartial(
-            indexEntry = indexEntry,
-            mightBeCompressed = block.hasPrefixCompression,
-            valuesReader = valuesReader,
-            indexOffset = positionBeforeRead,
-            nextIndexOffset = nextIndexOffset,
-            nextIndexSize = nextIndexSize,
-            hasAccessPositionIndex = block.enableAccessPositionIndex,
-            isNormalised = block.hasNormalisedBytes,
-            previous = previous
-          )
-        else
-          EntryReader.partialRead(
-            indexEntry = indexEntry,
-            block = block,
-            indexOffset = positionBeforeRead,
-            nextIndexOffset = nextIndexOffset,
-            nextIndexSize = nextIndexSize,
-            valuesReader = valuesReader,
-            previous = previous
-          )
-      else
-        EntryReader.fullRead(
+    if (block.enablePartialRead)
+      if (fullRead)
+        EntryReader.fullReadFromPartial(
           indexEntry = indexEntry,
           mightBeCompressed = block.hasPrefixCompression,
           valuesReader = valuesReader,
@@ -441,10 +418,28 @@ private[core] object SortedIndexBlock extends LazyLogging {
           isNormalised = block.hasNormalisedBytes,
           previous = previous
         )
-
-    //println(s"readKeyValue: ${read.key.readInt()}")
-    read
-
+      else
+        EntryReader.partialRead(
+          indexEntry = indexEntry,
+          block = block,
+          indexOffset = positionBeforeRead,
+          nextIndexOffset = nextIndexOffset,
+          nextIndexSize = nextIndexSize,
+          valuesReader = valuesReader,
+          previous = previous
+        )
+    else
+      EntryReader.fullRead(
+        indexEntry = indexEntry,
+        mightBeCompressed = block.hasPrefixCompression,
+        valuesReader = valuesReader,
+        indexOffset = positionBeforeRead,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        hasAccessPositionIndex = block.enableAccessPositionIndex,
+        isNormalised = block.hasNormalisedBytes,
+        previous = previous
+      )
   }
 
   def readAll(keyValueCount: Int,

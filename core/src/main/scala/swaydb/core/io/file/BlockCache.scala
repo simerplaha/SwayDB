@@ -27,9 +27,9 @@ import scala.annotation.tailrec
 
 private[core] object BlockCache {
 
-  var diskSeeks = 0
-  var memorySeeks = 0
-  var splitsCount = 0
+  //  var diskSeeks = 0
+  //  var memorySeeks = 0
+  //  var splitsCount = 0
 
   final case class Key(fileId: Long, position: Int)
 
@@ -124,7 +124,7 @@ private[core] object BlockCache {
             size = seekedSize
           )
 
-      diskSeeks += 1
+      //      diskSeeks += 1
       if (state.blockSize <= 0) {
         bytes
       } else if (bytes.isEmpty) {
@@ -136,7 +136,7 @@ private[core] object BlockCache {
         state.sweeper.add(key, value, state.map)
         bytes
       } else {
-        splitsCount += 1
+        //        splitsCount += 1
         var index = 0
         var position = keyPosition
         val splits = Math.ceil(bytes.size / state.blockSizeDouble)
@@ -165,7 +165,7 @@ private[core] object BlockCache {
     state.map.get(Key(file.blockCacheFileId, keyPosition)) match {
       case Some(fromCache) =>
         //println(s"Memory seek size: $size")
-        memorySeeks += 1
+        //        memorySeeks += 1
         val seekedBytes = fromCache.take(position - keyPosition, size)
 
         val mergedBytes =

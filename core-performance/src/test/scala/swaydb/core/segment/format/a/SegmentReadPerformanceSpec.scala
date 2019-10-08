@@ -350,32 +350,32 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     def printStats() = {
 
-      println("seqSeeks: " + SegmentSearcher.seqSeeks)
-      println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
-      println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
+//      println("seqSeeks: " + SegmentSearcher.seqSeeks)
+//      println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
+//      println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
+//      println
+//
+//      println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
+//      println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
+//      println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
+//      println
+
+//      println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
+//      println("binarySuccessfulSeeks: " + BinarySearchIndexBlock.binarySuccessfulSeeks)
+//      println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
+//      println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
+//      println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
+//      println("sameLower: " + BinarySearchIndexBlock.sameLower)
+//      println("Hops: " + BinarySearchIndexBlock.totalHops)
+//      println("maxHops: " + BinarySearchIndexBlock.maxHop)
+//      println("minHop: " + BinarySearchIndexBlock.minHop)
       println
 
-      println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
-      println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
-      println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
-      println
+//      println("diskSeeks: " + BlockCache.diskSeeks)
+//      println("memorySeeks: " + BlockCache.memorySeeks)
+//      println("splitsCount: " + BlockCache.splitsCount)
 
-      println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
-      println("binarySuccessfulSeeks: " + BinarySearchIndexBlock.binarySuccessfulSeeks)
-      println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
-      println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
-      println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
-      println("sameLower: " + BinarySearchIndexBlock.sameLower)
-      println("Hops: " + BinarySearchIndexBlock.totalHops)
-      println("maxHops: " + BinarySearchIndexBlock.maxHop)
-      println("minHop: " + BinarySearchIndexBlock.minHop)
-      println
-
-      println("diskSeeks: " + BlockCache.diskSeeks)
-      println("memorySeeks: " + BlockCache.memorySeeks)
-      println("splitsCount: " + BlockCache.splitsCount)
-
-      println("ends: " + SortedIndexBlock.ends)
+//      println("ends: " + SortedIndexBlock.ends)
       println
     }
 
