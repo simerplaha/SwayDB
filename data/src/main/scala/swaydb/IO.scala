@@ -19,12 +19,20 @@
 
 package swaydb
 
+import java.util.Optional
+import java.util.concurrent.CompletionStage
+import java.util.function.{Consumer, Predicate, Supplier, Function => JavaFunction}
+
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable.ListBuffer
+import scala.compat.java8.FunctionConverters._
+import scala.compat.java8.FutureConverters._
+import scala.compat.java8.OptionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.Try
@@ -34,18 +42,43 @@ import scala.util.Try
  *
  * [[IO.Defer]] is for performing synchronous and asynchronous IO.
  */
+
 sealed trait IO[+L, +R] {
   def isLeft: Boolean
   def isRight: Boolean
   def get: R
+
   def getOrElse[B >: R](default: => B): B
+  def javaGetOrElse[B >: R](supplier: Supplier[B]): B = getOrElse(supplier.asScala())
+
   def orElse[L2 >: L : IO.ExceptionHandler, B >: R](default: => IO[L2, B]): IO[L2, B]
+  def javaOrElse[L2 >: L, B >: R](supplier: Supplier[IO[L2, B]])(implicit exceptionHandler: IO.ExceptionHandler[L2]): IO[L2, B] =
+    orElse(supplier.asScala())
+
   def foreach[B](f: R => B): Unit
+  def javaForeach(function: Consumer[R@uncheckedVariance]): Unit =
+    foreach(function.asScala)
+
   def map[B](f: R => B): IO[L, B]
+  def javaMap[B](function: JavaFunction[R, B]@uncheckedVariance): IO[L, B] =
+    map(function.asScala)
+
   def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B]
+
+  def javaFlatMap[L2 >: L, B](function: JavaFunction[R, IO[L2, B]]@uncheckedVariance)(implicit exceptionHandler: IO.ExceptionHandler[L2]): IO[L2, B] =
+    flatMap(function.asScala)
+
   def exists(f: R => Boolean): Boolean
+  def javaExists(predicate: Predicate[R]@uncheckedVariance): Boolean =
+    exists(predicate.asScala)
+
   def filter(p: R => Boolean): IO[L, R]
+  def javaFilter(predicate: Predicate[R]@uncheckedVariance) =
+    filter(predicate.asScala)
+
   def valueOrElse[B](f: R => B, orElse: => B): B
+  def javaValueOrElse[B](function: JavaFunction[R, B]@uncheckedVariance, orElse: Supplier[B]): B =
+    valueOrElse(function.asScala, orElse.asScala())
 
   @inline final def withFilter(p: R => Boolean): WithFilter = new WithFilter(p)
   class WithFilter(p: R => Boolean) {
@@ -66,20 +99,52 @@ sealed trait IO[+L, +R] {
   def right: IO[Throwable, R]
 
   def recoverWith[L2 >: L : IO.ExceptionHandler, B >: R](f: PartialFunction[L, IO[L2, B]]): IO[L2, B]
+  def javaRecoverWith[L2 >: L](function: JavaFunction[L, IO[L2, R]]@uncheckedVariance)(implicit exceptionHandler: IO.ExceptionHandler[L2]): IO[L2, R] =
+    recoverWith {
+      case result =>
+        function.apply(result)
+    }
+
   def recover[B >: R](f: PartialFunction[L, B]): IO[L, B]
+  def javaRecover(function: JavaFunction[L, R]@uncheckedVariance): IO[L, R] =
+    recover {
+      case result =>
+        function.apply(result)
+    }
+
   def flatten[L2, R2](implicit ev: R <:< IO[L2, R2]): IO[L2, R2]
 
   def onLeftSideEffect(f: IO.Left[L, R] => Unit): IO[L, R]
+  def javaOnLeftSideEffect(consumer: Consumer[IO.Left[L, R]]@uncheckedVariance): IO[L, R] =
+    onLeftSideEffect(consumer.asScala)
+
   def onRightSideEffect(f: R => Unit): IO[L, R]
+  def javaOnRightSideEffect(consumer: Consumer[R]@uncheckedVariance): IO[L, R] =
+    onRightSideEffect(consumer.asScala)
+
   def onCompleteSideEffect(f: IO[L, R] => Unit): IO[L, R]
+  def javaOnCompleteSideEffect(consumer: Consumer[IO[L, R]]@uncheckedVariance): IO[L, R] =
+    onCompleteSideEffect(consumer.asScala)
 
   def toOption: Option[R]
+  def javaToOptional: Optional[R@uncheckedVariance] =
+    toOption.asJava
+
   def toOptionValue: IO[L, Option[R]]
+  def javaToOptionValue: IO[L, Optional[R]@uncheckedVariance] =
+    toOptionValue.map(_.asJava)
+
   def toEither: Either[L, R]
   def toFuture: Future[R]
+  def javaToFuture: CompletionStage[R@uncheckedVariance] =
+    toFuture.toJava
+
   def toTry: scala.util.Try[R]
   def toDefer[L2 >: L : IO.ExceptionHandler]: IO.Defer[L2, R] =
     IO.Defer.io[L2, R](io = this)
+
+  def javaToDefer(implicit exceptionHandler: IO.ExceptionHandler[L@uncheckedVariance]): IO.Defer[L, R] =
+    IO.Defer.io[L, R](io = this)
 }
 
 object IO {
@@ -352,6 +417,12 @@ object IO {
     else
       onFalse
 
+  @inline final def javaApply[E, A](supplier: Supplier[A])(implicit exceptionHandler: IO.ExceptionHandler[E]): IO[E, A] =
+    apply(supplier.asScala())
+
+  @inline final def javaApply[A](supplier: Supplier[A]): IO[Throwable, A] =
+    apply[Throwable, A](supplier.asScala())(IO.ExceptionHandler.Throwable)
+
   @inline final def apply[E: IO.ExceptionHandler, A](f: => A): IO[E, A] =
     try IO.Right[E, A](f) catch {
       case ex: Throwable =>
@@ -376,6 +447,9 @@ object IO {
       case scala.util.Failure(exception) =>
         IO.Left[E, A](value = IO.ExceptionHandler.toError[E](exception))
     }
+
+  def javaExceptionHandler(): ExceptionHandler.type =
+    ExceptionHandler
 
   trait ExceptionHandler[E] {
     def toException(f: E): Throwable
@@ -429,6 +503,8 @@ object IO {
       override def toException(f: scala.None.type): Throwable =
         new Exception("None value.")
     }
+
+    def javaThrowable(): IO.ExceptionHandler[Throwable] = Throwable
 
     implicit object Throwable extends IO.ExceptionHandler[Throwable] {
       override def toError(e: Throwable): Throwable =
