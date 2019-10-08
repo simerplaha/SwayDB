@@ -15,8 +15,23 @@
 Embeddable persistent and in-memory database for resource efficiency, performance 
 and easy data management with simple collections API.
 
-[Documentation - SwayDB.io](http://swaydb.io). Note - documentation is not yet updated for latest version: `v0.10.3`.
+[Documentation - SwayDB.io](http://swaydb.io). 
+
+Note - documentation website is not yet updated for latest version: `v0.10.3`.
 Refer to [SwayDB.examples](https://github.com/simerplaha/SwayDB.examples) instead. 
+
+## Setup
+
+```scala
+libraryDependencies += "io.swaydb" %% "swaydb" % "0.10.3"
+
+//for monix support
+libraryDependencies += "io.swaydb" %% "monix" % "0.10.3"
+
+//for zio support
+libraryDependencies += "io.swaydb" %% "zio" % "0.10.3"
+```
+
 
 ## Performance (old benchmark for v0.2 - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
@@ -71,9 +86,6 @@ db
 # Project status
 
 Undergoing frequent changes & beta testing.
-
-See the tags to see a more stable version.
-Default branch is `develop` and is pushed to directly so at times it will be unstable. 
 
 # Project support
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
