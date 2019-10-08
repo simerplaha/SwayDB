@@ -15,7 +15,8 @@
 Embeddable persistent and in-memory database for resource efficiency, performance 
 and easy data management with simple collections API.
 
-[Documentation - SwayDB.io](http://swaydb.io).
+[Documentation - SwayDB.io](http://swaydb.io). Note - documentation is not yet updated for latest version: `v0.10.3`.
+Refer to [SwayDB.examples](https://github.com/simerplaha/SwayDB.examples) instead. 
 
 ## Performance (old benchmark for v0.2 - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
