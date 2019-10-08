@@ -20,12 +20,13 @@
 package swaydb
 
 import java.util.Optional
+import java.util.function.{BiFunction, Consumer, Predicate}
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.util.Javaz._
+import swaydb.data.util.KeyVal
 
-import scala.compat.java8.FunctionConverters._
-import scala.compat.java8.FutureConverters._
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -48,8 +49,8 @@ case class MapJIO[K, V, F](map: Map[K, V, F, IO.ThrowableIO]) { self =>
   def put(keyValues: (K, V)*): IO[Throwable, IO.Done] =
     map.put(keyValues)
 
-  def put(keyValues: Stream[(K, V), IO.ThrowableIO]): IO[Throwable, IO.Done] =
-    map.put(keyValues)
+  def put(keyValues: StreamJIO[(K, V)]): IO[Throwable, IO.Done] =
+    map.put(keyValues.stream)
 
   def put(keyValues: Iterable[(K, V)]): IO[Throwable, IO.Done] =
     map.put(keyValues)
@@ -63,8 +64,8 @@ case class MapJIO[K, V, F](map: Map[K, V, F, IO.ThrowableIO]) { self =>
   def remove(keys: K*): IO[Throwable, IO.Done] =
     map.remove(keys)
 
-  def remove(keys: Stream[K, IO.ThrowableIO]): IO[Throwable, IO.Done] =
-    map.remove(keys)
+  def remove(keys: StreamJIO[K]): IO[Throwable, IO.Done] =
+    map.remove(keys.stream)
 
   def remove(keys: Iterable[K]): IO[Throwable, IO.Done] =
     map.remove(keys)
@@ -84,8 +85,8 @@ case class MapJIO[K, V, F](map: Map[K, V, F, IO.ThrowableIO]) { self =>
   def expire(keys: (K, Deadline)*): IO[Throwable, IO.Done] =
     map.expire(keys)
 
-  def expire(keys: Stream[(K, Deadline), IO.ThrowableIO]): IO[Throwable, IO.Done] =
-    map.expire(keys)
+  def expire(keys: StreamJIO[(K, Deadline)]): IO[Throwable, IO.Done] =
+    map.expire(keys.stream)
 
   def expire(keys: Iterable[(K, Deadline)]): IO[Throwable, IO.Done] =
     map.expire(keys)
@@ -99,8 +100,8 @@ case class MapJIO[K, V, F](map: Map[K, V, F, IO.ThrowableIO]) { self =>
   def update(keyValues: (K, V)*): IO[Throwable, IO.Done] =
     map.update(keyValues)
 
-  def update(keyValues: Stream[(K, V), IO.ThrowableIO]): IO[Throwable, IO.Done] =
-    map.update(keyValues)
+  def update(keyValues: StreamJIO[(K, V)]): IO[Throwable, IO.Done] =
+    map.update(keyValues.stream)
 
   def update(keyValues: Iterable[(K, V)]): IO[Throwable, IO.Done] =
     map.update(keyValues)
@@ -120,8 +121,8 @@ case class MapJIO[K, V, F](map: Map[K, V, F, IO.ThrowableIO]) { self =>
   def commit(prepare: Prepare[K, V]*): IO[Throwable, IO.Done] =
     map.commit(prepare)
 
-  def commit(prepare: Stream[Prepare[K, V], IO.ThrowableIO]): IO[Throwable, IO.Done] =
-    map.commit(prepare)
+  def commit(prepare: StreamJIO[Prepare[K, V]]): IO[Throwable, IO.Done] =
+    map.commit(prepare.stream)
 
   def commit(prepare: Iterable[Prepare[K, V]]): IO[Throwable, IO.Done] =
     map.commit(prepare)
@@ -194,41 +195,62 @@ case class MapJIO[K, V, F](map: Map[K, V, F, IO.ThrowableIO]) { self =>
   def headOptional: IO.ThrowableIO[Optional[(K, V)]] =
     map.headOption.map(_.asJava)
 
-  def drop(count: Int): Stream[(K, V), IO.ThrowableIO] =
-    map.drop(count)
+  def drop(count: Int): StreamJIO[(K, V)] =
+    new StreamJIO(map.drop(count))
 
-  def dropWhile(f: ((K, V)) => Boolean): Stream[(K, V), IO.ThrowableIO] =
-    map.dropWhile(f)
+  def dropWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
+    StreamJIO(map.dropWhile {
+      case (key: K, value: V) =>
+        function.test(KeyVal(key, value))
+    })
 
-  def take(count: Int): Stream[(K, V), IO.ThrowableIO] =
-    stream take count
+  def take(count: Int): StreamJIO[(K, V)] =
+    StreamJIO(map.take(count))
 
-  def takeWhile(f: ((K, V)) => Boolean): Stream[(K, V), IO.ThrowableIO] =
-    stream takeWhile f
+  def takeWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
+    StreamJIO(map.takeWhile {
+      case (key: K, value: V) =>
+        function.test(KeyVal(key, value))
+    })
 
-  def map[B](f: ((K, V)) => B): Stream[B, IO.ThrowableIO] =
-    stream map f
+  def map[B](function: JavaFunction[KeyVal[K, V], B]): StreamJIO[B] =
+    StreamJIO(map.map {
+      case (key: K, value: V) =>
+        function.apply(KeyVal(key, value))
+    })
 
-  def flatMap[B](f: ((K, V)) => Stream[B, IO.ThrowableIO]): Stream[B, IO.ThrowableIO] =
-    stream flatMap f
+  def flatMap[B](function: JavaFunction[KeyVal[K, V], StreamJIO[B]]): StreamJIO[B] =
+    StreamJIO(map.flatMap {
+      case (key: K, value: V) =>
+        function.apply(KeyVal(key, value)).stream
+    })
 
-  def foreach[U](f: ((K, V)) => U): Stream[Unit, IO.ThrowableIO] =
-    stream foreach f
+  def foreach(function: Consumer[KeyVal[K, V]]): StreamJIO[Unit] =
+    StreamJIO(map.foreach {
+      case (key: K, value: V) =>
+        function.accept(KeyVal(key, value))
+    })
 
-  def filter(f: ((K, V)) => Boolean): Stream[(K, V), IO.ThrowableIO] =
-    stream filter f
+  def filter(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
+    StreamJIO(map.filter {
+      case (key: K, value: V) =>
+        function.test(KeyVal(key, value))
+    })
 
-  def filterNot(f: ((K, V)) => Boolean): Stream[(K, V), IO.ThrowableIO] =
-    stream filterNot f
+  def filterNot(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
+    StreamJIO(map.filterNot {
+      case (key: K, value: V) =>
+        function.test(KeyVal(key, value))
+    })
 
-  def foldLeft[B](initial: B)(f: (B, (K, V)) => B): IO.ThrowableIO[B] =
-    stream.foldLeft(initial)(f)
+  def foldLeft[B](initial: B)(function: BiFunction[B, KeyVal[K, V], B]): IO.ThrowableIO[B] =
+    stream.foldLeft(initial, function)
 
   def size: IO.ThrowableIO[Int] =
     map.size
 
-  def stream: Stream[(K, V), IO.ThrowableIO] =
-    map.stream
+  def stream: StreamJIO[KeyVal[K, V]] =
+    new StreamJIO(map.stream.map(_.asJava))
 
   def sizeOfBloomFilterEntries: IO.ThrowableIO[Int] =
     map.sizeOfBloomFilterEntries

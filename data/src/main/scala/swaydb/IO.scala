@@ -47,7 +47,8 @@ import scala.util.Try
 sealed trait IO[+L, +R] {
   def isLeft: Boolean
   def isRight: Boolean
-  @throws[Exception]
+
+  @throws[Throwable]
   def get: R
 
   def getOrElse[B >: R](default: => B): B
@@ -648,6 +649,7 @@ object IO {
     def exception: Throwable =
       IO.ExceptionHandler.toException(value)
 
+    @throws[Throwable]
     override def get: R =
       throw exception
 

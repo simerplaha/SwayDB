@@ -109,33 +109,35 @@ object Map extends LazyLogging {
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
     @throws[Exception]
-    def create(): IO[Error.Boot, MapJIO[K, V, F]] =
-      Core(
-        enableTimer = functionClassTag != ClassTag.Nothing,
-        config = DefaultMemoryConfig(
-          mapSize = mapSize,
-          segmentSize = segmentSize,
-          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-          compressDuplicateValues = compressDuplicateValues,
-          deleteSegmentsEventually = deleteSegmentsEventually,
-          acceleration = acceleration.asScala
-        ),
-        fileCache =
-          FileCache.Enable.default(
-            maxOpen = maxOpenSegments,
-            interval = fileSweeperPollInterval,
-            ec = fileSweeperEC
+    def create(): IO[Throwable, MapJIO[K, V, F]] =
+      IO {
+        Core(
+          enableTimer = functionClassTag != ClassTag.Nothing,
+          config = DefaultMemoryConfig(
+            mapSize = mapSize,
+            segmentSize = segmentSize,
+            mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+            compressDuplicateValues = compressDuplicateValues,
+            deleteSegmentsEventually = deleteSegmentsEventually,
+            acceleration = acceleration.asScala
           ),
-        memoryCache =
-          MemoryCache.KeyValueCacheOnly(
-            cacheCapacity = memoryCacheSize,
-            maxCachedKeyValueCountPerSegment = Some(maxCachedKeyValuesPerSegment),
-            memorySweeper = None
-          )
-      ) map {
-        db =>
-          val scalaMap = swaydb.Map[K, V, F, IO.ThrowableIO](db.toTag)
-          swaydb.MapJIO[K, V, F](scalaMap)
+          fileCache =
+            FileCache.Enable.default(
+              maxOpen = maxOpenSegments,
+              interval = fileSweeperPollInterval,
+              ec = fileSweeperEC
+            ),
+          memoryCache =
+            MemoryCache.KeyValueCacheOnly(
+              cacheCapacity = memoryCacheSize,
+              maxCachedKeyValueCountPerSegment = Some(maxCachedKeyValuesPerSegment),
+              memorySweeper = None
+            )
+        ) map {
+          db =>
+            val scalaMap = swaydb.Map[K, V, F, IO.ThrowableIO](db.toTag)
+            swaydb.MapJIO[K, V, F](scalaMap)
+        } get
       }
   }
 

@@ -19,29 +19,7 @@
 
 package swaydb.data.util
 
-import java.util.Comparator
-import java.util.concurrent.ExecutorService
-
-import scala.concurrent.ExecutionContext
-
-object Javaz {
-
-  type JavaFunction[T, R] = java.util.function.Function[T, R]
-
-  final abstract class Disabled
-
-  implicit class ExecutorServiceImplicit(service: ExecutorService) {
-    @inline def asScala: ExecutionContext =
-      ExecutionContext.fromExecutorService(service)
-  }
-
-  implicit class ComparatorImplicit[T](comparator: Comparator[T]) {
-    @inline def asScala: Ordering[T] =
-      Ordering.comparatorToOrdering(comparator)
-  }
-
-  implicit class TupleImplicits[K, V](tuple: (K, V)) {
-    @inline def asJava: KeyVal[K, V] =
-      KeyVal(tuple._1, tuple._2)
-  }
+case class KeyVal[+K, +V](key: K, value: V) {
+  def toTuple: (K, V) =
+    (key, value)
 }
