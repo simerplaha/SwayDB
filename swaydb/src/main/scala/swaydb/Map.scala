@@ -170,7 +170,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
    */
   def get(key: K): T[Option[V]] =
     tag.point(core.get(key, core.readStates.get()).map(_.map(_.read[V])))
-  //
+
   /**
    * Returns target full key for the input partial key.
    *

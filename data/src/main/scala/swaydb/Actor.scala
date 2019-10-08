@@ -186,11 +186,11 @@ object Actor {
     )
 
   def javaCreateFIFO[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService): ActorRef[T, S] =
-    apply[T, S](state)(execution.asScala)(ec.asJava, QueueOrder.FIFO)
+    apply[T, S](state)(execution.asScala)(ec.asScala, QueueOrder.FIFO)
 
   def javaCreateOrdered[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService,
                                                                                comparator: Comparator[T]): ActorRef[T, S] =
-    apply[T, S](state)(execution.asScala)(ec.asJava, QueueOrder.Ordered(comparator.asJava))
+    apply[T, S](state)(execution.asScala)(ec.asScala, QueueOrder.Ordered(comparator.asScala))
 
   def cache[T](stashCapacity: Int,
                weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,

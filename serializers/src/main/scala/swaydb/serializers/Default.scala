@@ -84,6 +84,9 @@ object Default {
       data.toByteBufferWrap.getShort
   }
 
+  def stringSerializer(): Serializer[String] =
+    StringSerializer
+
   implicit object StringSerializer extends Serializer[String] {
     override def write(data: String): Slice[Byte] =
       Slice.writeString(data)

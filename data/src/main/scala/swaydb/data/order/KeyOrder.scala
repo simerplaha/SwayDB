@@ -19,6 +19,8 @@
 
 package swaydb.data.order
 
+import java.util.Comparator
+
 import swaydb.data.slice.Slice
 
 object KeyOrder {
@@ -43,6 +45,12 @@ object KeyOrder {
         }
         a.size - b.size
       }
+    }
+
+  def defaultComparator: Comparator[Slice[Byte]] =
+    new Comparator[Slice[Byte]] {
+      override def compare(t: Slice[Byte], t1: Slice[Byte]): Int =
+        default.compare(t, t1)
     }
 
   /**

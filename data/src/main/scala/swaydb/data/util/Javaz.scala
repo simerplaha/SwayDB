@@ -26,13 +26,17 @@ import scala.concurrent.ExecutionContext
 
 object Javaz {
 
+  type JavaFunction[T, R] = java.util.function.Function[T, R]
+
+  final abstract class Disabled
+
   implicit class ExecutorServiceImplicit(service: ExecutorService) {
-    @inline def asJava: ExecutionContext =
+    @inline def asScala: ExecutionContext =
       ExecutionContext.fromExecutorService(service)
   }
 
   implicit class ComparatorImplicit[T](comparator: Comparator[T]) {
-    @inline def asJava: Ordering[T] =
+    @inline def asScala: Ordering[T] =
       Ordering.comparatorToOrdering(comparator)
   }
 }

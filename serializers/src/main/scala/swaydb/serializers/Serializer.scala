@@ -26,3 +26,15 @@ trait Serializer[A] {
 
   def read(data: Slice[Byte]): A
 }
+
+trait JavaSerializer[A] extends Serializer[A] {
+  override final def read(data: Slice[Byte]): A =
+    readData(data.asInstanceOf[Slice[java.lang.Byte]])
+
+  override final def write(data: A): Slice[Byte] =
+    writeData(data).asInstanceOf[Slice[Byte]]
+
+  def writeData(data: A): Slice[java.lang.Byte]
+
+  def readData(data: Slice[java.lang.Byte]): A
+}

@@ -20,6 +20,8 @@
 package swaydb
 
 import java.nio.file.Path
+import java.util
+import java.util.concurrent.{Callable, Executor, ExecutorService, Executors, Future}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.Core
@@ -62,6 +64,9 @@ object SwayDB extends LazyLogging {
     def reportFailure(exception: Throwable): Unit =
       logger.error("Execution context failure", exception)
   }
+
+  lazy val defaultExecutorService =
+    Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors())
 
   /**
    * Creates a database based on the input config.

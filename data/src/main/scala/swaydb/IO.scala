@@ -21,11 +21,12 @@ package swaydb
 
 import java.util.Optional
 import java.util.concurrent.CompletionStage
-import java.util.function.{Consumer, Predicate, Supplier, Function => JavaFunction}
+import java.util.function.{Consumer, Predicate, Supplier}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
+import swaydb.data.util.Javaz.JavaFunction
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
@@ -46,6 +47,7 @@ import scala.util.Try
 sealed trait IO[+L, +R] {
   def isLeft: Boolean
   def isRight: Boolean
+  @throws[Exception]
   def get: R
 
   def getOrElse[B >: R](default: => B): B
