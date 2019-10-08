@@ -20,8 +20,7 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util
-import java.util.concurrent.{Callable, Executor, ExecutorService, Executors, Future}
+import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.Core

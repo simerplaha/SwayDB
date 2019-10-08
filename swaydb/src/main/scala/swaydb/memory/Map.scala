@@ -35,7 +35,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.Javaz._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO, MapJIO, SwayDB}
+import swaydb.{IO, MapJIO, SwayDB}
 
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
