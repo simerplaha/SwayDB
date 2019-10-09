@@ -27,251 +27,252 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.util.Javaz._
 import swaydb.data.util.KeyVal
 
+import scala.compat.java8.DurationConverters._
 import scala.compat.java8.OptionConverters._
-import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
  * IOMap database API.
  *
  * For documentation check - http://swaydb.io/tag/
  */
-case class MapJIO[K, V, F](map: Map[K, V, F, IO.ThrowableIO]) { self =>
+case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
 
   def put(key: K, value: V): IO[Throwable, IO.Done] =
-    map.put(key, value)
+    asScala.put(key, value)
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): IO[Throwable, IO.Done] =
-    map.put(key, value, expireAfter)
+  def put(key: K, value: V, expireAfter: java.time.Duration): IO[Throwable, IO.Done] =
+    asScala.put(key, value, expireAfter.toScala)
 
-  def put(key: K, value: V, expireAt: Deadline): IO[Throwable, IO.Done] =
-    map.put(key, value, expireAt)
+  def put(keyValues: KeyVal[K, V]*): IO[Throwable, IO.Done] =
+    asScala.put(keyValues.map(_.toTuple))
 
-  def put(keyValues: (K, V)*): IO[Throwable, IO.Done] =
-    map.put(keyValues)
+  def put(keyValues: StreamJIO[KeyVal[K, V]]): IO[Throwable, IO.Done] =
+    asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def put(keyValues: StreamJIO[(K, V)]): IO[Throwable, IO.Done] =
-    map.put(keyValues.stream)
-
-  def put(keyValues: Iterable[(K, V)]): IO[Throwable, IO.Done] =
-    map.put(keyValues)
+  def put(keyValues: Iterable[KeyVal[K, V]]): IO[Throwable, IO.Done] =
+    asScala.put(keyValues.map(_.toTuple))
 
   def remove(key: K): IO[Throwable, IO.Done] =
-    map.remove(key)
+    asScala.remove(key)
 
   def remove(from: K, to: K): IO[Throwable, IO.Done] =
-    map.remove(from, to)
+    asScala.remove(from, to)
 
   def remove(keys: K*): IO[Throwable, IO.Done] =
-    map.remove(keys)
+    asScala.remove(keys)
 
   def remove(keys: StreamJIO[K]): IO[Throwable, IO.Done] =
-    map.remove(keys.stream)
+    asScala.remove(keys.asScala)
 
   def remove(keys: Iterable[K]): IO[Throwable, IO.Done] =
-    map.remove(keys)
+    asScala.remove(keys)
 
-  def expire(key: K, after: FiniteDuration): IO[Throwable, IO.Done] =
-    map.expire(key, after)
+  def expire(key: K, after: java.time.Duration): IO[Throwable, IO.Done] =
+    asScala.expire(key, after.toScala)
 
-  def expire(key: K, at: Deadline): IO[Throwable, IO.Done] =
-    map.expire(key, at)
+  def expire(from: K, to: K, after: java.time.Duration): IO[Throwable, IO.Done] =
+    asScala.expire(from, to, after.toScala)
 
-  def expire(from: K, to: K, after: FiniteDuration): IO[Throwable, IO.Done] =
-    map.expire(from, to, after)
+  def expire(keys: KeyVal[K, java.time.Duration]*): IO[Throwable, IO.Done] =
+    asScala.expire(
+      keys map {
+        keyValue =>
+          (keyValue.key, keyValue.value.toScala.fromNow)
+      }
+    )
 
-  def expire(from: K, to: K, at: Deadline): IO[Throwable, IO.Done] =
-    map.expire(from, to, at)
+  def expire(keys: StreamJIO[KeyVal[K, java.time.Duration]]): IO[Throwable, IO.Done] =
+    asScala.expire(keys.asScala.map(_.toScala))
 
-  def expire(keys: (K, Deadline)*): IO[Throwable, IO.Done] =
-    map.expire(keys)
-
-  def expire(keys: StreamJIO[(K, Deadline)]): IO[Throwable, IO.Done] =
-    map.expire(keys.stream)
-
-  def expire(keys: Iterable[(K, Deadline)]): IO[Throwable, IO.Done] =
-    map.expire(keys)
+  def expire(keys: Iterable[(K, java.time.Duration)]): IO[Throwable, IO.Done] =
+    asScala.expire(keys.map(_.asScalaDeadline))
 
   def update(key: K, value: V): IO[Throwable, IO.Done] =
-    map.update(key, value)
+    asScala.update(key, value)
 
   def update(from: K, to: K, value: V): IO[Throwable, IO.Done] =
-    map.update(from, to, value)
+    asScala.update(from, to, value)
 
-  def update(keyValues: (K, V)*): IO[Throwable, IO.Done] =
-    map.update(keyValues)
+  def update(keyValues: KeyVal[K, V]*): IO[Throwable, IO.Done] =
+    asScala.update(keyValues.map(_.toTuple))
 
-  def update(keyValues: StreamJIO[(K, V)]): IO[Throwable, IO.Done] =
-    map.update(keyValues.stream)
+  def update(keyValues: StreamJIO[KeyVal[K, V]]): IO[Throwable, IO.Done] =
+    asScala.update(keyValues.asScala.map(_.toTuple))
 
-  def update(keyValues: Iterable[(K, V)]): IO[Throwable, IO.Done] =
-    map.update(keyValues)
+  def update(keyValues: Iterable[KeyVal[K, V]]): IO[Throwable, IO.Done] =
+    asScala.update(keyValues.map(_.toTuple))
 
   def clear(): IO[Throwable, IO.Done] =
-    map.clear()
+    asScala.clear()
 
   def registerFunction(function: F with swaydb.Function[K, V]): Unit =
-    map.registerFunction(function)
+    asScala.registerFunction(function)
 
   def applyFunction(key: K, function: F with swaydb.Function[K, V]): IO[Throwable, IO.Done] =
-    map.applyFunction(key, function)
+    asScala.applyFunction(key, function)
 
   def applyFunction(from: K, to: K, function: F with swaydb.Function[K, V]): IO[Throwable, IO.Done] =
-    map.applyFunction(from, to, function)
+    asScala.applyFunction(from, to, function)
 
   def commit(prepare: Prepare[K, V]*): IO[Throwable, IO.Done] =
-    map.commit(prepare)
+    asScala.commit(prepare)
 
   def commit(prepare: StreamJIO[Prepare[K, V]]): IO[Throwable, IO.Done] =
-    map.commit(prepare.stream)
+    asScala.commit(prepare.asScala)
 
   def commit(prepare: Iterable[Prepare[K, V]]): IO[Throwable, IO.Done] =
-    map.commit(prepare)
+    asScala.commit(prepare)
 
-  /**
-   * Returns target value for the input key.
-   */
   def get(key: K): IO.ThrowableIO[Optional[V]] =
-    map.get(key).map(_.asJava)
+    asScala.get(key).map(_.asJava)
 
-  /**
-   * Returns target full key for the input partial key.
-   *
-   * This function is mostly used for Set databases where partial ordering on the Key is provided.
-   */
   def getKey(key: K): IO.ThrowableIO[Optional[K]] =
-    map.getKey(key).map(_.asJava)
+    asScala.getKey(key).map(_.asJava)
 
-  def getKeyValue(key: K): IO.ThrowableIO[Optional[(K, V)]] =
-    map.getKeyValue(key).map(_.asJava)
+  def getKeyValue(key: K): IO.ThrowableIO[Optional[KeyVal[K, V]]] =
+    asScala.getKeyValue(key).map(_.map(KeyVal(_)).asJava)
 
   def contains(key: K): IO.ThrowableIO[Boolean] =
-    map.contains(key)
+    asScala.contains(key)
 
   def mightContain(key: K): IO.ThrowableIO[Boolean] =
-    map.mightContain(key)
+    asScala.mightContain(key)
 
   def mightContainFunction(functionId: K): IO.ThrowableIO[Boolean] =
-    map.mightContainFunction(functionId)
+    asScala.mightContainFunction(functionId)
 
   def keys: Set[K, F, IO.ThrowableIO] =
-    map.keys
+    asScala.keys
 
   def level0Meter: LevelZeroMeter =
-    map.level0Meter
+    asScala.level0Meter
 
   def levelMeter(levelNumber: Int): Optional[LevelMeter] =
-    map.levelMeter(levelNumber).asJava
+    asScala.levelMeter(levelNumber).asJava
 
   def sizeOfSegments: Long =
-    map.sizeOfSegments
+    asScala.sizeOfSegments
 
   def keySize(key: K): Int =
-    map.keySize(key)
+    asScala.keySize(key)
 
   def valueSize(value: V): Int =
-    map.valueSize(value)
+    asScala.valueSize(value)
 
-  def expiration(key: K): IO.ThrowableIO[Optional[Deadline]] =
-    map.expiration(key).map(_.asJava)
+  def timeLeft(key: K): IO.ThrowableIO[Optional[java.time.Duration]] =
+    asScala.timeLeft(key).map {
+      case Some(duration) =>
+        Optional.of(duration.toJava)
 
-  def timeLeft(key: K): IO.ThrowableIO[Optional[FiniteDuration]] =
-    map.timeLeft(key).map(_.asJava)
+      case None =>
+        Optional.empty()
+    }
 
   def from(key: K): MapJIO[K, V, F] =
-    copy(map.from(key))
+    copy(asScala.from(key))
 
   def before(key: K): MapJIO[K, V, F] =
-    copy(map.before(key))
+    copy(asScala.before(key))
 
   def fromOrBefore(key: K): MapJIO[K, V, F] =
-    copy(map.fromOrBefore(key))
+    copy(asScala.fromOrBefore(key))
 
   def after(key: K): MapJIO[K, V, F] =
-    copy(map.after(key))
+    copy(asScala.after(key))
 
   def fromOrAfter(key: K): MapJIO[K, V, F] =
-    copy(map.fromOrAfter(key))
+    copy(asScala.fromOrAfter(key))
 
-  def headOptional: IO.ThrowableIO[Optional[(K, V)]] =
-    map.headOption.map(_.asJava)
+  def headOptional: IO.ThrowableIO[Optional[KeyVal[K, V]]] =
+    asScala.headOption.map(_.map(KeyVal(_)).asJava)
 
-  def drop(count: Int): StreamJIO[(K, V)] =
-    new StreamJIO(map.drop(count))
+  def drop(count: Int): StreamJIO[KeyVal[K, V]] =
+    new StreamJIO(asScala.drop(count).map(_.asJava))
 
-  def dropWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
-    StreamJIO(map.dropWhile {
-      case (key: K, value: V) =>
-        function.test(KeyVal(key, value))
-    })
+  def dropWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
+    StreamJIO(
+      asScala
+        .map(_.asJava)
+        .dropWhile(function.test)
+    )
 
-  def take(count: Int): StreamJIO[(K, V)] =
-    StreamJIO(map.take(count))
+  def take(count: Int): StreamJIO[KeyVal[K, V]] =
+    StreamJIO(asScala.take(count).map(_.asJava))
 
-  def takeWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
-    StreamJIO(map.takeWhile {
-      case (key: K, value: V) =>
-        function.test(KeyVal(key, value))
-    })
+  def takeWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
+    StreamJIO(
+      asScala
+        .map(_.asJava)
+        .takeWhile(function.test)
+    )
 
   def map[B](function: JavaFunction[KeyVal[K, V], B]): StreamJIO[B] =
-    StreamJIO(map.map {
-      case (key: K, value: V) =>
-        function.apply(KeyVal(key, value))
-    })
+    StreamJIO(
+      asScala map {
+        case (key: K, value: V) =>
+          function.apply(KeyVal(key, value))
+      }
+    )
 
   def flatMap[B](function: JavaFunction[KeyVal[K, V], StreamJIO[B]]): StreamJIO[B] =
-    StreamJIO(map.flatMap {
-      case (key: K, value: V) =>
-        function.apply(KeyVal(key, value)).stream
-    })
+    StreamJIO(
+      asScala.flatMap {
+        case (key: K, value: V) =>
+          function.apply(KeyVal(key, value)).asScala
+      }
+    )
 
   def foreach(function: Consumer[KeyVal[K, V]]): StreamJIO[Unit] =
-    StreamJIO(map.foreach {
-      case (key: K, value: V) =>
-        function.accept(KeyVal(key, value))
-    })
+    StreamJIO(
+      asScala foreach {
+        case (key: K, value: V) =>
+          function.accept(KeyVal(key, value))
+      }
+    )
 
-  def filter(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
-    StreamJIO(map.filter {
-      case (key: K, value: V) =>
-        function.test(KeyVal(key, value))
-    })
+  def filter(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
+    StreamJIO(
+      asScala
+        .map(_.asJava)
+        .filter(function.test)
+    )
 
-  def filterNot(function: Predicate[KeyVal[K, V]]): StreamJIO[(K, V)] =
-    StreamJIO(map.filterNot {
-      case (key: K, value: V) =>
-        function.test(KeyVal(key, value))
-    })
+  def filterNot(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
+    StreamJIO(
+      asScala
+        .map(_.asJava)
+        .filterNot(function.test)
+    )
 
   def foldLeft[B](initial: B)(function: BiFunction[B, KeyVal[K, V], B]): IO.ThrowableIO[B] =
     stream.foldLeft(initial, function)
 
   def size: IO.ThrowableIO[Int] =
-    map.size
+    asScala.size
 
   def stream: StreamJIO[KeyVal[K, V]] =
-    new StreamJIO(map.stream.map(_.asJava))
+    new StreamJIO(asScala.stream.map(_.asJava))
 
   def sizeOfBloomFilterEntries: IO.ThrowableIO[Int] =
-    map.sizeOfBloomFilterEntries
+    asScala.sizeOfBloomFilterEntries
 
   def isEmpty: IO.ThrowableIO[Boolean] =
-    map.isEmpty
+    asScala.isEmpty
 
   def nonEmpty: IO.ThrowableIO[Boolean] =
-    map.nonEmpty
+    asScala.nonEmpty
 
-  def lastOptional: IO.ThrowableIO[Optional[(K, V)]] =
-    map.lastOption.map(_.asJava)
+  def lastOptional: IO.ThrowableIO[Optional[KeyVal[K, V]]] =
+    asScala.lastOption.map(_.map(KeyVal(_)).asJava)
 
   def reverse: MapJIO[K, V, F] =
-    copy(map.reverse)
+    copy(asScala.reverse)
 
   def close(): IO.ThrowableIO[Unit] =
-    map.close()
+    asScala.close()
 
   def delete(): IO.ThrowableIO[Unit] =
-    map.delete()
+    asScala.delete()
 
   override def toString(): String =
     classOf[MapJIO[_, _, _]].getClass.getSimpleName

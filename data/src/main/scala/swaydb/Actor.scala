@@ -76,6 +76,9 @@ sealed trait ActorRef[-T, S] { self =>
 
   def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
 
+  def javaRecover[M <: T, E](f: TriFunctionVoid[M, IO[E, Actor.Error], Actor[T, S]]@uncheckedVariance)(implicit exceptionHandler: ExceptionHandler[E]): ActorRef[T, S] =
+    recover(f.apply)
+
   def terminateAndRecover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
 
   def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
@@ -165,11 +168,11 @@ object Actor {
                                                        queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     apply[T, Unit](state = ())(execution)
 
-  def javaCreateFIFO[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService): ActorRef[T, Unit] =
+  def createFIFO[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService): ActorRef[T, Unit] =
     apply(execution.asScala)(ExecutionContext.fromExecutorService(ec), QueueOrder.FIFO)
 
-  def javaCreateOrdered[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService,
-                                                                     comparator: Comparator[T]): ActorRef[T, Unit] =
+  def createOrdered[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService,
+                                                                 comparator: Comparator[T]): ActorRef[T, Unit] =
     apply(execution.asScala)(ExecutionContext.fromExecutorService(ec), QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator)))
 
   def apply[T, S](state: S)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
@@ -185,11 +188,11 @@ object Actor {
       recovery = None
     )
 
-  def javaCreateFIFO[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService): ActorRef[T, S] =
+  def createFIFO[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService): ActorRef[T, S] =
     apply[T, S](state)(execution.asScala)(ec.asScala, QueueOrder.FIFO)
 
-  def javaCreateOrdered[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService,
-                                                                               comparator: Comparator[T]): ActorRef[T, S] =
+  def createOrdered[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService,
+                                                                           comparator: Comparator[T]): ActorRef[T, S] =
     apply[T, S](state)(execution.asScala)(ec.asScala, QueueOrder.Ordered(comparator.asScala))
 
   def cache[T](stashCapacity: Int,

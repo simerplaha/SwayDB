@@ -26,7 +26,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.data.Base._
 
-class IOIOLeftSpec extends WordSpec with Matchers {
+class IOLeftSpec extends WordSpec with Matchers {
 
   val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
   val otherError = swaydb.Error.FileNotFound(new FileNotFoundException())
@@ -76,7 +76,7 @@ class IOIOLeftSpec extends WordSpec with Matchers {
   }
 
   "recover" in {
-    IO.Left(error) recover {
+    IO.Left(error).recover {
       case error =>
         error shouldBe this.error
         1

@@ -32,6 +32,9 @@ import swaydb.data.util.ByteSizeOf
  */
 object Default {
 
+  def intSerializer(): Serializer[Integer] =
+    IntSerializer.asInstanceOf[Serializer[java.lang.Integer]]
+
   implicit object IntSerializer extends Serializer[Int] {
     override def write(data: Int): Slice[Byte] =
       Slice.writeInt(data)
@@ -40,6 +43,9 @@ object Default {
       data.readInt()
   }
 
+  def longSerializer(): Serializer[java.lang.Long] =
+    LongSerializer.asInstanceOf[Serializer[java.lang.Long]]
+
   implicit object LongSerializer extends Serializer[Long] {
     override def write(data: Long): Slice[Byte] =
       Slice.writeLong(data)
@@ -47,6 +53,9 @@ object Default {
     override def read(data: Slice[Byte]): Long =
       data.readLong()
   }
+
+  def charSerializer(): Serializer[java.lang.Character] =
+    CharSerializer.asInstanceOf[Serializer[java.lang.Character]]
 
   implicit object CharSerializer extends Serializer[Char] {
     override def write(data: Char): Slice[Byte] = {
@@ -57,6 +66,9 @@ object Default {
       data.toByteBufferWrap.getChar
   }
 
+  def doubleSerializer(): Serializer[java.lang.Double] =
+    DoubleSerializer.asInstanceOf[Serializer[java.lang.Double]]
+
   implicit object DoubleSerializer extends Serializer[Double] {
     override def write(data: Double): Slice[Byte] = {
       Slice(ByteBuffer.allocate(ByteSizeOf.double).putDouble(data).array())
@@ -65,6 +77,9 @@ object Default {
     override def read(data: Slice[Byte]): Double =
       data.toByteBufferWrap.getDouble
   }
+
+  def floatSerializer(): Serializer[java.lang.Float] =
+    FloatSerializer.asInstanceOf[Serializer[java.lang.Float]]
 
   implicit object FloatSerializer extends Serializer[Float] {
     override def write(data: Float): Slice[Byte] = {
@@ -75,6 +90,9 @@ object Default {
       data.toByteBufferWrap.getFloat
   }
 
+  def shortSerializer(): Serializer[java.lang.Short] =
+    ShortSerializer.asInstanceOf[Serializer[java.lang.Short]]
+
   implicit object ShortSerializer extends Serializer[Short] {
     override def write(data: Short): Slice[Byte] = {
       Slice(ByteBuffer.allocate(ByteSizeOf.short).putShort(data).array())
@@ -84,7 +102,7 @@ object Default {
       data.toByteBufferWrap.getShort
   }
 
-  def stringSerializer(): Serializer[String] =
+  def stringSerializer(): Serializer[java.lang.String] =
     StringSerializer
 
   implicit object StringSerializer extends Serializer[String] {

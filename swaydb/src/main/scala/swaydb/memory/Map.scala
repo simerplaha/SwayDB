@@ -19,7 +19,6 @@
 
 package swaydb.memory
 
-import java.beans.BeanProperty
 import java.util.Comparator
 import java.util.concurrent.ExecutorService
 import java.util.function.{Function => JavaFunction}
@@ -32,11 +31,13 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{FileCache, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.util.Functions
 import swaydb.data.util.Javaz._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, MapJIO, SwayDB}
+import swaydb.{IO, MapJIO, SwayDB, Tag}
 
+import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -108,36 +109,29 @@ object Map extends LazyLogging {
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
-    @throws[Exception]
     def create(): IO[Throwable, MapJIO[K, V, F]] =
       IO {
-        Core(
-          enableTimer = functionClassTag != ClassTag.Nothing,
-          config = DefaultMemoryConfig(
+        val scalaMap =
+          apply[K, V, F, IO.ThrowableIO](
             mapSize = mapSize,
             segmentSize = segmentSize,
+            memoryCacheSize = memoryCacheSize,
+            maxOpenSegments = maxOpenSegments,
+            maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
+            fileSweeperPollInterval = fileSweeperPollInterval,
             mightContainFalsePositiveRate = mightContainFalsePositiveRate,
             compressDuplicateValues = compressDuplicateValues,
             deleteSegmentsEventually = deleteSegmentsEventually,
-            acceleration = acceleration.asScala
-          ),
-          fileCache =
-            FileCache.Enable.default(
-              maxOpen = maxOpenSegments,
-              interval = fileSweeperPollInterval,
-              ec = fileSweeperEC
-            ),
-          memoryCache =
-            MemoryCache.KeyValueCacheOnly(
-              cacheCapacity = memoryCacheSize,
-              maxCachedKeyValueCountPerSegment = Some(maxCachedKeyValuesPerSegment),
-              memorySweeper = None
-            )
-        ) map {
-          db =>
-            val scalaMap = swaydb.Map[K, V, F, IO.ThrowableIO](db.toTag)
-            swaydb.MapJIO[K, V, F](scalaMap)
-        } get
+            acceleration = acceleration.asScala,
+          )(keySerializer = keySerializer,
+            valueSerializer = valueSerializer,
+            functionClassTag = functionClassTag,
+            tag = Tag.throwableIO,
+            keyOrder = scalaKeyOrder,
+            fileSweeperEC = fileSweeperEC
+          ).get
+
+        swaydb.MapJIO[K, V, F](scalaMap)
       }
   }
 
@@ -150,10 +144,10 @@ object Map extends LazyLogging {
     )
 
   def build[K, V](implicit keySerializer: Serializer[K],
-                  valueSerializer: Serializer[V]): Builder[K, V, Disabled] =
+                  valueSerializer: Serializer[V]): Builder[K, V, Functions.Disabled] =
     new Builder(
       keySerializer = keySerializer,
       valueSerializer = valueSerializer,
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Disabled]]
+      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
     )
 }

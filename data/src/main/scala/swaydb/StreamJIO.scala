@@ -34,46 +34,46 @@ object StreamJIO {
   def apply[A](stream: Stream[A, ThrowableIO]): StreamJIO[A] = new StreamJIO(stream)
 }
 
-class StreamJIO[A](protected[swaydb] val stream: Stream[A, IO.ThrowableIO]) {
+class StreamJIO[A](protected[swaydb] val asScala: Stream[A, IO.ThrowableIO]) {
   def foreach(f: Consumer[A]): StreamJIO[Unit] =
-    new StreamJIO[Unit](stream.foreach(f.asScala))
+    new StreamJIO[Unit](asScala.foreach(f.asScala))
 
   def map[B](f: JavaFunction[A, B]): StreamJIO[B] =
-    StreamJIO(stream.map(f.asScala))
+    StreamJIO(asScala.map(f.asScala))
 
   def flatMap[B](f: JavaFunction[A, StreamJIO[B]]): StreamJIO[B] =
-    StreamJIO(stream.flatMap(f.asScala(_).stream))
+    StreamJIO(asScala.flatMap(f.asScala(_).asScala))
 
   def drop(count: Int): StreamJIO[A] =
-    StreamJIO(stream.drop(count))
+    StreamJIO(asScala.drop(count))
 
   def dropWhile(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(stream.dropWhile(f.asScala))
+    StreamJIO(asScala.dropWhile(f.asScala))
 
   def take(count: Int): StreamJIO[A] =
-    StreamJIO(stream.take(count))
+    StreamJIO(asScala.take(count))
 
   def takeWhile(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(stream.takeWhile(f.asScala))
+    StreamJIO(asScala.takeWhile(f.asScala))
 
   def filter(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(stream.filter(f.asScala))
+    StreamJIO(asScala.filter(f.asScala))
 
   def filterNot(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(stream.filterNot(f.asScala))
+    StreamJIO(asScala.filterNot(f.asScala))
 
   def lastOption: IO[Throwable, Optional[A]] =
-    stream.lastOption.map(_.asJava)
+    asScala.lastOption.map(_.asJava)
 
   def headOption: IO[Throwable, Optional[A]] =
-    stream.headOption.map(_.asJava)
+    asScala.headOption.map(_.asJava)
 
   def foldLeft[B](initial: B, f: BiFunction[B, A, B]): IO[Throwable, B] =
-    stream.foldLeft(initial)(f.asScala)
+    asScala.foldLeft(initial)(f.asScala)
 
   def size: IO[Throwable, Int] =
-    stream.size
+    asScala.size
 
   def materialize: IO[Throwable, util.List[A]] =
-    stream.materialize.map(_.asJava)
+    asScala.materialize.map(_.asJava)
 }

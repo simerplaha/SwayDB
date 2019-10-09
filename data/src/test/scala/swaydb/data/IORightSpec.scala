@@ -26,7 +26,7 @@ import swaydb.data.Base._
 
 import scala.util.Try
 
-class IOIORightSpec extends WordSpec with Matchers {
+class IORightSpec extends WordSpec with Matchers {
 
   val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
 

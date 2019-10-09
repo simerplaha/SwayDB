@@ -23,12 +23,12 @@ import java.util.Comparator
 import java.util.concurrent.ExecutorService
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.compat.java8.DurationConverters._
 
 object Javaz {
 
   type JavaFunction[T, R] = java.util.function.Function[T, R]
-
-  final abstract class Disabled
 
   implicit class ExecutorServiceImplicit(service: ExecutorService) {
     @inline def asScala: ExecutionContext =
@@ -43,5 +43,13 @@ object Javaz {
   implicit class TupleImplicits[K, V](tuple: (K, V)) {
     @inline def asJava: KeyVal[K, V] =
       KeyVal(tuple._1, tuple._2)
+  }
+
+  implicit class TupleDurationImplicits[K](tuple: (K, java.time.Duration)) {
+    @inline def asScala: (K, FiniteDuration) =
+      (tuple._1, tuple._2.toScala)
+
+    @inline def asScalaDeadline: (K, Deadline) =
+      (tuple._1, tuple._2.toScala.fromNow)
   }
 }

@@ -19,6 +19,18 @@
 
 package swaydb.data.util
 
+import scala.compat.java8.DurationConverters._
+import scala.concurrent.duration.Deadline
+
+object KeyVal {
+  def apply[K, V](keyVal: (K, V)): KeyVal[K, V] = new KeyVal(keyVal._1, keyVal._2)
+
+  implicit class KeyValueImplicit[K](keyVal: KeyVal[K, java.time.Duration]) {
+    def toScala: (K, Deadline) =
+      (keyVal.key, keyVal.value.toScala.fromNow)
+  }
+}
+
 case class KeyVal[+K, +V](key: K, value: V) {
   def toTuple: (K, V) =
     (key, value)
