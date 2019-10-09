@@ -50,16 +50,18 @@ import scala.concurrent.ExecutionContext
 
 object Actor {
 
-  def createFIFO[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService): ActorRef[T, Unit] =
+  def fifo[T](execution: BiConsumer[T, Actor[T, Unit]],
+              executorService: ExecutorService): ActorRef[T, Unit] =
     swaydb.Actor(execution = execution.asScala)(
-      ec = ExecutionContext.fromExecutorService(ec),
+      ec = ExecutionContext.fromExecutorService(executorService),
       queueOrder = QueueOrder.FIFO
     )
 
-  def createOrdered[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService,
-                                                                 comparator: Comparator[T]): ActorRef[T, Unit] =
+  def ordered[T](execution: BiConsumer[T, Actor[T, Unit]],
+                 executorService: ExecutorService,
+                 comparator: Comparator[T]): ActorRef[T, Unit] =
     swaydb.Actor(execution = execution.asScala)(
-      ec = ExecutionContext.fromExecutorService(ec),
+      ec = ExecutionContext.fromExecutorService(executorService),
       queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
     )
 }
