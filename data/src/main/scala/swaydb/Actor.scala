@@ -19,10 +19,10 @@
 
 package swaydb
 
-import java.util.{Comparator, TimerTask}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.concurrent.{CompletionStage, ExecutorService, TimeUnit}
-import java.util.function.{BiConsumer, IntUnaryOperator, Function => JavaFunction}
+import java.util.concurrent.{ExecutorService, TimeUnit}
+import java.util.function.{BiConsumer, IntUnaryOperator}
+import java.util.{Comparator, TimerTask}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
@@ -30,13 +30,8 @@ import swaydb.data.config.ActorConfig
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.data.util.Functions
 
-import scala.annotation.unchecked.uncheckedVariance
-import scala.compat.java8.DurationConverters._
-import scala.compat.java8.FunctionConverters._
-import scala.compat.java8.FutureConverters._
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import swaydb.data.util.Javaz._
 
 sealed trait ActorRef[-T, S] { self =>
 
@@ -45,8 +40,6 @@ sealed trait ActorRef[-T, S] { self =>
   def send(message: T): Unit
 
   def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R]
-  def javaAsk[R](message: JavaFunction[ActorRef[R, Unit], T]@uncheckedVariance): CompletionStage[R] =
-    ask[R, Future](message.asScala)(Tag.future(ec)).toJava
 
   /**
    * Sends a message to this actor with delay
@@ -54,10 +47,6 @@ sealed trait ActorRef[-T, S] { self =>
   def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
 
   def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Task[R, X]
-  def javaAsk[R](message: JavaFunction[ActorRef[R, Unit], T]@uncheckedVariance, delay: java.time.Duration)(implicit scheduler: Scheduler): Actor.Task[R, CompletionStage] = {
-    val task = ask[R, Future](message.asScala, delay.toScala)(scheduler, Tag.future(ec))
-    new Actor.Task(task.task.toJava, task.timer)
-  }
 
   def totalWeight: Int
 
@@ -76,22 +65,13 @@ sealed trait ActorRef[-T, S] { self =>
 
   def recover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
 
-  def javaRecover[M <: T, E](f: TriFunctionVoid[M, IO[E, Actor.Error], Actor[T, S]]@uncheckedVariance)(implicit exceptionHandler: ExceptionHandler[E]): ActorRef[T, S] =
-    recover(f.apply)
-
   def terminateAndRecover[M <: T, E: ExceptionHandler](f: (M, IO[E, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S]
 
   def recoverException[M <: T](f: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     recover[M, Throwable](f)
 
-  def javaRecoverException[M <: T](function: TriFunction[M, IO[Throwable, Actor.Error], Actor[T, S], Unit]@uncheckedVariance): ActorRef[T, S] =
-    recoverException[M](function.apply)
-
   def terminateAndRecoverException[M <: T](function: (M, IO[Throwable, Actor.Error], Actor[T, S]) => Unit): ActorRef[T, S] =
     terminateAndRecover[M, Throwable](function)
-
-  def javaTerminateAndRecoverException(function: TriFunction[T, IO[Throwable, Actor.Error], Actor[T, S], Unit]@uncheckedVariance): ActorRef[T, S] =
-    terminateAndRecoverException[T](function.apply)
 }
 
 object Actor {
@@ -168,13 +148,6 @@ object Actor {
                                                        queueOrder: QueueOrder[T]): ActorRef[T, Unit] =
     apply[T, Unit](state = ())(execution)
 
-  def createFIFO[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService): ActorRef[T, Unit] =
-    apply(execution.asScala)(ExecutionContext.fromExecutorService(ec), QueueOrder.FIFO)
-
-  def createOrdered[T](execution: BiConsumer[T, Actor[T, Unit]])(implicit ec: ExecutorService,
-                                                                 comparator: Comparator[T]): ActorRef[T, Unit] =
-    apply(execution.asScala)(ExecutionContext.fromExecutorService(ec), QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator)))
-
   def apply[T, S](state: S)(execution: (T, Actor[T, S]) => Unit)(implicit ec: ExecutionContext,
                                                                  queueOrder: QueueOrder[T]): ActorRef[T, S] =
     new Actor[T, S](
@@ -187,13 +160,6 @@ object Actor {
       interval = None,
       recovery = None
     )
-
-  def createFIFO[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService): ActorRef[T, S] =
-    apply[T, S](state)(execution.asScala)(ec.asScala, QueueOrder.FIFO)
-
-  def createOrdered[T, S](state: S)(execution: BiConsumer[T, Actor[T, S]])(implicit ec: ExecutorService,
-                                                                           comparator: Comparator[T]): ActorRef[T, S] =
-    apply[T, S](state)(execution.asScala)(ec.asScala, QueueOrder.Ordered(comparator.asScala))
 
   def cache[T](stashCapacity: Int,
                weigher: T => Int)(execution: (T, Actor[T, Unit]) => Unit)(implicit ec: ExecutionContext,

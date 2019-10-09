@@ -84,12 +84,19 @@ lazy val core =
 
 lazy val data =
   project
-    .in(file("data"))
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= commonDependencies :+ "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
+      libraryDependencies ++= commonDependencies
     ).dependsOn(macros % "compile-internal")
+
+lazy val `data-java` =
+  project
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
+    ).dependsOn(data)
 
 lazy val swaydb =
   project
@@ -196,4 +203,4 @@ lazy val `swaydb-java` =
     .settings(
       libraryDependencies += "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
     )
-    .dependsOn(swaydb)
+    .dependsOn(swaydb, `data-java`)

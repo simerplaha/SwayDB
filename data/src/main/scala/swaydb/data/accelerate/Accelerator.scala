@@ -19,15 +19,9 @@
 
 package swaydb.data.accelerate
 
-import java.util.function
-
-import swaydb.data.util.Javaz.JavaFunction
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
-import scala.compat.java8.DurationConverters._
-import scala.compat.java8.FunctionConverters._
-import scala.compat.java8.FutureConverters._
 
 /**
  * Default Accelerator implementation.
@@ -83,11 +77,6 @@ object Accelerator {
       brake =
         None
     )
-
-  def javaNoBrakes: JavaFunction[LevelZeroMeter, Accelerator] = {
-    val function: LevelZeroMeter => Accelerator = noBrakes()(_)
-    function.asJava
-  }
 
   def cruise(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(

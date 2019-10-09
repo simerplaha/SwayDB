@@ -17,50 +17,50 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.java.data
 
-import java.util
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
+import swaydb.IO
 import swaydb.IO.ThrowableIO
-import swaydb.data.util.Javaz.JavaFunction
+import swaydb.java.data.util.Javaz.JavaFunction
 
+import scala.collection.JavaConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.compat.java8.OptionConverters._
-import scala.collection.JavaConverters._
 
-object StreamJIO {
-  def apply[A](stream: Stream[A, ThrowableIO]): StreamJIO[A] = new StreamJIO(stream)
+object Stream {
+  def apply[A](stream: swaydb.Stream[A, ThrowableIO]): Stream[A] = new Stream(stream)
 }
 
-class StreamJIO[A](protected[swaydb] val asScala: Stream[A, IO.ThrowableIO]) {
-  def foreach(f: Consumer[A]): StreamJIO[Unit] =
-    new StreamJIO[Unit](asScala.foreach(f.asScala))
+class Stream[A](protected[swaydb] val asScala: swaydb.Stream[A, IO.ThrowableIO]) {
+  def foreach(f: Consumer[A]): Stream[Unit] =
+    new Stream[Unit](asScala.foreach(f.asScala))
 
-  def map[B](f: JavaFunction[A, B]): StreamJIO[B] =
-    StreamJIO(asScala.map(f.asScala))
+  def map[B](f: JavaFunction[A, B]): Stream[B] =
+    Stream(asScala.map(f.asScala))
 
-  def flatMap[B](f: JavaFunction[A, StreamJIO[B]]): StreamJIO[B] =
-    StreamJIO(asScala.flatMap(f.asScala(_).asScala))
+  def flatMap[B](f: JavaFunction[A, Stream[B]]): Stream[B] =
+    Stream(asScala.flatMap(f.asScala(_).asScala))
 
-  def drop(count: Int): StreamJIO[A] =
-    StreamJIO(asScala.drop(count))
+  def drop(count: Int): Stream[A] =
+    Stream(asScala.drop(count))
 
-  def dropWhile(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(asScala.dropWhile(f.asScala))
+  def dropWhile(f: Predicate[A]): Stream[A] =
+    Stream(asScala.dropWhile(f.asScala))
 
-  def take(count: Int): StreamJIO[A] =
-    StreamJIO(asScala.take(count))
+  def take(count: Int): Stream[A] =
+    Stream(asScala.take(count))
 
-  def takeWhile(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(asScala.takeWhile(f.asScala))
+  def takeWhile(f: Predicate[A]): Stream[A] =
+    Stream(asScala.takeWhile(f.asScala))
 
-  def filter(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(asScala.filter(f.asScala))
+  def filter(f: Predicate[A]): Stream[A] =
+    Stream(asScala.filter(f.asScala))
 
-  def filterNot(f: Predicate[A]): StreamJIO[A] =
-    StreamJIO(asScala.filterNot(f.asScala))
+  def filterNot(f: Predicate[A]): Stream[A] =
+    Stream(asScala.filterNot(f.asScala))
 
   def lastOption: IO[Throwable, Optional[A]] =
     asScala.lastOption.map(_.asJava)
@@ -74,6 +74,6 @@ class StreamJIO[A](protected[swaydb] val asScala: Stream[A, IO.ThrowableIO]) {
   def size: IO[Throwable, Int] =
     asScala.size
 
-  def materialize: IO[Throwable, util.List[A]] =
+  def materialize: IO[Throwable, java.util.List[A]] =
     asScala.materialize.map(_.asJava)
 }

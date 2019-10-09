@@ -19,10 +19,6 @@
 
 package swaydb.memory
 
-import java.util.Comparator
-import java.util.concurrent.ExecutorService
-import java.util.function.{Function => JavaFunction}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.Core
@@ -31,14 +27,10 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{FileCache, MemoryCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.Functions
-import swaydb.data.util.Javaz._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, MapJIO, SwayDB, Tag}
+import swaydb.{IO, SwayDB}
 
-import scala.beans.BeanProperty
-import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.reflect.ClassTag
@@ -89,65 +81,4 @@ object Map extends LazyLogging {
       db =>
         swaydb.Map[K, V, F, T](db.toTag)
     }
-
-  class Builder[K, V, F](@BeanProperty var mapSize: Int = 4.mb,
-                         @BeanProperty var segmentSize: Int = 2.mb,
-                         @BeanProperty var memoryCacheSize: Int = 500.mb,
-                         @BeanProperty var maxOpenSegments: Int = 100,
-                         @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
-                         @BeanProperty var fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                         @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
-                         @BeanProperty var compressDuplicateValues: Boolean = false,
-                         @BeanProperty var deleteSegmentsEventually: Boolean = true,
-                         @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = Accelerator.javaNoBrakes,
-                         @BeanProperty var keyOrder: Comparator[Slice[Byte]] = KeyOrder.defaultComparator,
-                         @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
-                         @BeanProperty implicit var keySerializer: Serializer[K],
-                         @BeanProperty implicit var valueSerializer: Serializer[V],
-                         final implicit val functionClassTag: ClassTag[F]) {
-
-    implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
-    implicit val fileSweeperEC = fileSweeperExecutorService.asScala
-
-    def create(): IO[Throwable, MapJIO[K, V, F]] =
-      IO {
-        val scalaMap =
-          apply[K, V, F, IO.ThrowableIO](
-            mapSize = mapSize,
-            segmentSize = segmentSize,
-            memoryCacheSize = memoryCacheSize,
-            maxOpenSegments = maxOpenSegments,
-            maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
-            fileSweeperPollInterval = fileSweeperPollInterval,
-            mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-            compressDuplicateValues = compressDuplicateValues,
-            deleteSegmentsEventually = deleteSegmentsEventually,
-            acceleration = acceleration.asScala,
-          )(keySerializer = keySerializer,
-            valueSerializer = valueSerializer,
-            functionClassTag = functionClassTag,
-            tag = Tag.throwableIO,
-            keyOrder = scalaKeyOrder,
-            fileSweeperEC = fileSweeperEC
-          ).get
-
-        swaydb.MapJIO[K, V, F](scalaMap)
-      }
-  }
-
-  def buildEnableFunctions[K, V, F](implicit keySerializer: Serializer[K],
-                                    valueSerializer: Serializer[V]): Builder[K, V, F] =
-    new Builder(
-      keySerializer = keySerializer,
-      valueSerializer = valueSerializer,
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
-    )
-
-  def build[K, V](implicit keySerializer: Serializer[K],
-                  valueSerializer: Serializer[V]): Builder[K, V, Functions.Disabled] =
-    new Builder(
-      keySerializer = keySerializer,
-      valueSerializer = valueSerializer,
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
-    )
 }

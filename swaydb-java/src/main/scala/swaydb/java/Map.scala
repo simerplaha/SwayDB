@@ -17,15 +17,17 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.java
 
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.util.Javaz._
-import swaydb.data.util.KeyVal
+import swaydb.java.data.Stream
+import swaydb.java.data.util.Javaz._
+import swaydb.java.data.util.KeyVal
+import swaydb.{IO, Prepare, Set}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.OptionConverters._
@@ -35,7 +37,7 @@ import scala.compat.java8.OptionConverters._
  *
  * For documentation check - http://swaydb.io/tag/
  */
-case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
+case class Map[K, V, F](asScala: swaydb.Map[K, V, F, IO.ThrowableIO]) { self =>
 
   def put(key: K, value: V): IO[Throwable, IO.Done] =
     asScala.put(key, value)
@@ -46,7 +48,7 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
   def put(keyValues: KeyVal[K, V]*): IO[Throwable, IO.Done] =
     asScala.put(keyValues.map(_.toTuple))
 
-  def put(keyValues: StreamJIO[KeyVal[K, V]]): IO[Throwable, IO.Done] =
+  def put(keyValues: Stream[KeyVal[K, V]]): IO[Throwable, IO.Done] =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: Iterable[KeyVal[K, V]]): IO[Throwable, IO.Done] =
@@ -61,7 +63,7 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
   def remove(keys: K*): IO[Throwable, IO.Done] =
     asScala.remove(keys)
 
-  def remove(keys: StreamJIO[K]): IO[Throwable, IO.Done] =
+  def remove(keys: Stream[K]): IO[Throwable, IO.Done] =
     asScala.remove(keys.asScala)
 
   def remove(keys: Iterable[K]): IO[Throwable, IO.Done] =
@@ -81,7 +83,7 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
       }
     )
 
-  def expire(keys: StreamJIO[KeyVal[K, java.time.Duration]]): IO[Throwable, IO.Done] =
+  def expire(keys: Stream[KeyVal[K, java.time.Duration]]): IO[Throwable, IO.Done] =
     asScala.expire(keys.asScala.map(_.toScala))
 
   def expire(keys: Iterable[(K, java.time.Duration)]): IO[Throwable, IO.Done] =
@@ -96,7 +98,7 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
   def update(keyValues: KeyVal[K, V]*): IO[Throwable, IO.Done] =
     asScala.update(keyValues.map(_.toTuple))
 
-  def update(keyValues: StreamJIO[KeyVal[K, V]]): IO[Throwable, IO.Done] =
+  def update(keyValues: Stream[KeyVal[K, V]]): IO[Throwable, IO.Done] =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
   def update(keyValues: Iterable[KeyVal[K, V]]): IO[Throwable, IO.Done] =
@@ -117,7 +119,7 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
   def commit(prepare: Prepare[K, V]*): IO[Throwable, IO.Done] =
     asScala.commit(prepare)
 
-  def commit(prepare: StreamJIO[Prepare[K, V]]): IO[Throwable, IO.Done] =
+  def commit(prepare: Stream[Prepare[K, V]]): IO[Throwable, IO.Done] =
     asScala.commit(prepare.asScala)
 
   def commit(prepare: Iterable[Prepare[K, V]]): IO[Throwable, IO.Done] =
@@ -168,77 +170,77 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
         Optional.empty()
     }
 
-  def from(key: K): MapJIO[K, V, F] =
+  def from(key: K): Map[K, V, F] =
     copy(asScala.from(key))
 
-  def before(key: K): MapJIO[K, V, F] =
+  def before(key: K): Map[K, V, F] =
     copy(asScala.before(key))
 
-  def fromOrBefore(key: K): MapJIO[K, V, F] =
+  def fromOrBefore(key: K): Map[K, V, F] =
     copy(asScala.fromOrBefore(key))
 
-  def after(key: K): MapJIO[K, V, F] =
+  def after(key: K): Map[K, V, F] =
     copy(asScala.after(key))
 
-  def fromOrAfter(key: K): MapJIO[K, V, F] =
+  def fromOrAfter(key: K): Map[K, V, F] =
     copy(asScala.fromOrAfter(key))
 
   def headOptional: IO.ThrowableIO[Optional[KeyVal[K, V]]] =
     asScala.headOption.map(_.map(KeyVal(_)).asJava)
 
-  def drop(count: Int): StreamJIO[KeyVal[K, V]] =
-    new StreamJIO(asScala.drop(count).map(_.asJava))
+  def drop(count: Int): Stream[KeyVal[K, V]] =
+    new Stream(asScala.drop(count).map(_.asJava))
 
-  def dropWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
-    StreamJIO(
+  def dropWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
+    Stream(
       asScala
         .map(_.asJava)
         .dropWhile(function.test)
     )
 
-  def take(count: Int): StreamJIO[KeyVal[K, V]] =
-    StreamJIO(asScala.take(count).map(_.asJava))
+  def take(count: Int): Stream[KeyVal[K, V]] =
+    Stream(asScala.take(count).map(_.asJava))
 
-  def takeWhile(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
-    StreamJIO(
+  def takeWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
+    Stream(
       asScala
         .map(_.asJava)
         .takeWhile(function.test)
     )
 
-  def map[B](function: JavaFunction[KeyVal[K, V], B]): StreamJIO[B] =
-    StreamJIO(
+  def map[B](function: JavaFunction[KeyVal[K, V], B]): Stream[B] =
+    Stream(
       asScala map {
         case (key: K, value: V) =>
           function.apply(KeyVal(key, value))
       }
     )
 
-  def flatMap[B](function: JavaFunction[KeyVal[K, V], StreamJIO[B]]): StreamJIO[B] =
-    StreamJIO(
+  def flatMap[B](function: JavaFunction[KeyVal[K, V], Stream[B]]): Stream[B] =
+    Stream(
       asScala.flatMap {
         case (key: K, value: V) =>
           function.apply(KeyVal(key, value)).asScala
       }
     )
 
-  def foreach(function: Consumer[KeyVal[K, V]]): StreamJIO[Unit] =
-    StreamJIO(
+  def foreach(function: Consumer[KeyVal[K, V]]): Stream[Unit] =
+    Stream(
       asScala foreach {
         case (key: K, value: V) =>
           function.accept(KeyVal(key, value))
       }
     )
 
-  def filter(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
-    StreamJIO(
+  def filter(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
+    Stream(
       asScala
         .map(_.asJava)
         .filter(function.test)
     )
 
-  def filterNot(function: Predicate[KeyVal[K, V]]): StreamJIO[KeyVal[K, V]] =
-    StreamJIO(
+  def filterNot(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
+    Stream(
       asScala
         .map(_.asJava)
         .filterNot(function.test)
@@ -250,8 +252,8 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
   def size: IO.ThrowableIO[Int] =
     asScala.size
 
-  def stream: StreamJIO[KeyVal[K, V]] =
-    new StreamJIO(asScala.stream.map(_.asJava))
+  def stream: Stream[KeyVal[K, V]] =
+    new Stream(asScala.stream.map(_.asJava))
 
   def sizeOfBloomFilterEntries: IO.ThrowableIO[Int] =
     asScala.sizeOfBloomFilterEntries
@@ -265,7 +267,7 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
   def lastOptional: IO.ThrowableIO[Optional[KeyVal[K, V]]] =
     asScala.lastOption.map(_.map(KeyVal(_)).asJava)
 
-  def reverse: MapJIO[K, V, F] =
+  def reverse: Map[K, V, F] =
     copy(asScala.reverse)
 
   def close(): IO.ThrowableIO[Unit] =
@@ -275,5 +277,5 @@ case class MapJIO[K, V, F](asScala: Map[K, V, F, IO.ThrowableIO]) { self =>
     asScala.delete()
 
   override def toString(): String =
-    classOf[MapJIO[_, _, _]].getClass.getSimpleName
+    classOf[Map[_, _, _]].getClass.getSimpleName
 }

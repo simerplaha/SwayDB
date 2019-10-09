@@ -17,14 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.util
+package swaydb.java.data.util
 
 import java.util.Comparator
 import java.util.concurrent.ExecutorService
+import scala.compat.java8.DurationConverters._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
-import scala.compat.java8.DurationConverters._
 
 object Javaz {
 
