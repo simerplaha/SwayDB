@@ -31,17 +31,17 @@ import scala.concurrent.ExecutionContext
 
 object Actor {
 
-  def fifo[T](execution: BiConsumer[T, Actor[T, Unit]],
-              executorService: ExecutorService): ActorRef[T, Unit] =
-    swaydb.Actor(execution = execution.asScala)(
+  def statelessFIFO[T](execution: BiConsumer[T, Actor[T, java.lang.Void]],
+                       executorService: ExecutorService): ActorRef[T, java.lang.Void] =
+    swaydb.Actor[T, java.lang.Void](null)(execution = execution.asScala)(
       ec = ExecutionContext.fromExecutorService(executorService),
       queueOrder = QueueOrder.FIFO
     )
 
-  def ordered[T](execution: BiConsumer[T, Actor[T, Unit]],
-                 executorService: ExecutorService,
-                 comparator: Comparator[T]): ActorRef[T, Unit] =
-    swaydb.Actor(execution = execution.asScala)(
+  def statelessOrdered[T](execution: BiConsumer[T, Actor[T, java.lang.Void]],
+                          executorService: ExecutorService,
+                          comparator: Comparator[T]): ActorRef[T, java.lang.Void] =
+    swaydb.Actor[T, java.lang.Void](null)(execution = execution.asScala)(
       ec = ExecutionContext.fromExecutorService(executorService),
       queueOrder = QueueOrder.Ordered(Ordering.comparatorToOrdering(comparator))
     )

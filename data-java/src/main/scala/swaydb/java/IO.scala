@@ -34,7 +34,7 @@ object IO {
 
   def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = IO[scala.Throwable, R](io)
 
-  def safe[R](supplier: Supplier[R]): IO[Throwable, R] =
+  def run[R](supplier: Supplier[R]): IO[Throwable, R] =
     IO(swaydb.IO[Throwable, R](supplier.get()))
 }
 
