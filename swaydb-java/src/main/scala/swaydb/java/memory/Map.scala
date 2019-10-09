@@ -57,7 +57,7 @@ object Map {
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
-    def create(): IO[Throwable, swaydb.java.Map[K, V, F]] =
+    def start(): IO[Throwable, swaydb.java.Map[K, V, F]] =
       IO {
         val scalaMap =
           swaydb.memory.Map[K, V, F, IO.ThrowableIO](
@@ -83,16 +83,16 @@ object Map {
       }
   }
 
-  def buildWithFunctions[K, V, F](implicit keySerializer: Serializer[K],
-                                  valueSerializer: Serializer[V]): Builder[K, V, F] =
+  def enableFunctions[K, V, F](implicit keySerializer: Serializer[K],
+                               valueSerializer: Serializer[V]): Builder[K, V, F] =
     new Builder(
       keySerializer = keySerializer,
       valueSerializer = valueSerializer,
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def build[K, V](implicit keySerializer: Serializer[K],
-                  valueSerializer: Serializer[V]): Builder[K, V, Functions.Disabled] =
+  def disableFunctions[K, V](implicit keySerializer: Serializer[K],
+                             valueSerializer: Serializer[V]): Builder[K, V, Functions.Disabled] =
     new Builder(
       keySerializer = keySerializer,
       valueSerializer = valueSerializer,

@@ -37,7 +37,7 @@ import scala.compat.java8.OptionConverters._
  *
  * For documentation check - http://swaydb.io/tag/
  */
-case class Map[K, V, F](asScala: swaydb.Map[K, V, F, IO.ThrowableIO]) { self =>
+case class Map[K, V, F](asScala: swaydb.Map[K, V, F, IO.ThrowableIO]) {
 
   def put(key: K, value: V): IO[Throwable, IO.Done] =
     asScala.put(key, value)
@@ -246,7 +246,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, IO.ThrowableIO]) { self =>
         .filterNot(function.test)
     )
 
-  def foldLeft[B](initial: B)(function: BiFunction[B, KeyVal[K, V], B]): IO.ThrowableIO[B] =
+  def foldLeft[B](initial: B)(function: BiFunction[B, KeyVal[K, V], B]): data.IO[Throwable, B] =
     stream.foldLeft(initial, function)
 
   def size: IO.ThrowableIO[Int] =

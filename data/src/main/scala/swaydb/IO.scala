@@ -19,16 +19,11 @@
 
 package swaydb
 
-import java.util.Optional
-import java.util.concurrent.CompletionStage
-import java.util.function.{Consumer, Predicate, Supplier}
-
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -43,6 +38,7 @@ import scala.util.Try
 sealed trait IO[+L, +R] {
   def isLeft: Boolean
   def isRight: Boolean
+  def exceptionHandler: IO.ExceptionHandler[_]
 
   @throws[Throwable]
   def get: R
@@ -495,7 +491,7 @@ object IO {
    * **********************
    */
 
-  final case class Right[+L: IO.ExceptionHandler, +R](value: R) extends IO[L, R] {
+  final case class Right[+L, +R](value: R)(implicit exceptionHandler: IO.ExceptionHandler[L]) extends IO[L, R] {
     override def get: R =
       value
 
@@ -571,6 +567,9 @@ object IO {
       try f(this) finally {}
       this
     }
+
+    override def exceptionHandler: ExceptionHandler[_] =
+      this.exceptionHandler
   }
 
   @inline final def throwable(message: String): Throwable =
@@ -594,7 +593,7 @@ object IO {
    * **********************
    */
 
-  final case class Left[+L: IO.ExceptionHandler, +R](value: L) extends IO[L, R] {
+  final case class Left[+L, +R](value: L)(implicit exceptionHandler: IO.ExceptionHandler[L]) extends IO[L, R] {
     def exception: Throwable =
       IO.ExceptionHandler.toException(value)
 
@@ -691,6 +690,9 @@ object IO {
 
     override def onRightSideEffect(f: R => Unit): IO.Left[L, R] =
       this
+
+    override def exceptionHandler: ExceptionHandler[_] =
+      this.exceptionHandler
   }
 
   def fromFuture[L: IO.ExceptionHandler, R](future: Future[R])(implicit ec: ExecutionContext): IO.Defer[L, R] = {

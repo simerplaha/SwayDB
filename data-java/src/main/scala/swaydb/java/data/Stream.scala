@@ -22,8 +22,6 @@ package swaydb.java.data
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
-import swaydb.IO
-import swaydb.IO.ThrowableIO
 import swaydb.java.data.util.Javaz.JavaFunction
 
 import scala.collection.JavaConverters._
@@ -31,10 +29,11 @@ import scala.compat.java8.FunctionConverters._
 import scala.compat.java8.OptionConverters._
 
 object Stream {
-  def apply[A](stream: swaydb.Stream[A, ThrowableIO]): Stream[A] = new Stream(stream)
+  def apply[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): Stream[A] =
+    new Stream(stream)
 }
 
-class Stream[A](protected[swaydb] val asScala: swaydb.Stream[A, IO.ThrowableIO]) {
+class Stream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
   def foreach(f: Consumer[A]): Stream[Unit] =
     new Stream[Unit](asScala.foreach(f.asScala))
 
@@ -63,17 +62,17 @@ class Stream[A](protected[swaydb] val asScala: swaydb.Stream[A, IO.ThrowableIO])
     Stream(asScala.filterNot(f.asScala))
 
   def lastOption: IO[Throwable, Optional[A]] =
-    asScala.lastOption.map(_.asJava)
+    IO(asScala.lastOption.map(_.asJava))
 
   def headOption: IO[Throwable, Optional[A]] =
-    asScala.headOption.map(_.asJava)
+    IO(asScala.headOption.map(_.asJava))
 
   def foldLeft[B](initial: B, f: BiFunction[B, A, B]): IO[Throwable, B] =
-    asScala.foldLeft(initial)(f.asScala)
+    IO(asScala.foldLeft(initial)(f.asScala))
 
   def size: IO[Throwable, Int] =
-    asScala.size
+    IO(asScala.size)
 
   def materialize: IO[Throwable, java.util.List[A]] =
-    asScala.materialize.map(_.asJava)
+    IO(asScala.materialize.map(_.asJava))
 }
