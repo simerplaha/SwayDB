@@ -187,3 +187,13 @@ lazy val `swaydb-zio` =
       libraryDependencies += "dev.zio" %% "zio" % zioVersion
     )
     .dependsOn(data)
+
+lazy val `swaydb-java` =
+  project
+    .settings(name := "java")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
+    )
+    .dependsOn(swaydb)
