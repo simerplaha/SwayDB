@@ -27,9 +27,10 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
+import swaydb.java.IO
 import swaydb.java.data.util.Javaz.{JavaFunction, _}
 import swaydb.serializers.Serializer
-import swaydb.{IO, SwayDB, Tag}
+import swaydb.{SwayDB, Tag}
 
 import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
@@ -59,27 +60,29 @@ object Map {
 
     def start(): IO[Throwable, swaydb.java.Map[K, V, F]] =
       IO {
-        val scalaMap =
-          swaydb.memory.Map[K, V, F, IO.ThrowableIO](
-            mapSize = mapSize,
-            segmentSize = segmentSize,
-            memoryCacheSize = memoryCacheSize,
-            maxOpenSegments = maxOpenSegments,
-            maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
-            fileSweeperPollInterval = fileSweeperPollInterval,
-            mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-            compressDuplicateValues = compressDuplicateValues,
-            deleteSegmentsEventually = deleteSegmentsEventually,
-            acceleration = acceleration.asScala,
-          )(keySerializer = keySerializer,
-            valueSerializer = valueSerializer,
-            functionClassTag = functionClassTag,
-            tag = Tag.throwableIO,
-            keyOrder = scalaKeyOrder,
-            fileSweeperEC = fileSweeperEC
-          ).get
+        swaydb.IO {
+          val scalaMap =
+            swaydb.memory.Map[K, V, F, swaydb.IO.ThrowableIO](
+              mapSize = mapSize,
+              segmentSize = segmentSize,
+              memoryCacheSize = memoryCacheSize,
+              maxOpenSegments = maxOpenSegments,
+              maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
+              fileSweeperPollInterval = fileSweeperPollInterval,
+              mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+              compressDuplicateValues = compressDuplicateValues,
+              deleteSegmentsEventually = deleteSegmentsEventually,
+              acceleration = acceleration.asScala,
+            )(keySerializer = keySerializer,
+              valueSerializer = valueSerializer,
+              functionClassTag = functionClassTag,
+              tag = Tag.throwableIO,
+              keyOrder = scalaKeyOrder,
+              fileSweeperEC = fileSweeperEC
+            ).get
 
-        swaydb.java.Map[K, V, F](scalaMap)
+          swaydb.java.Map[K, V, F](scalaMap)
+        }
       }
   }
 

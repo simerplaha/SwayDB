@@ -26,7 +26,7 @@ object IOConverters {
   implicit class IOConverterImplicit[L, R](io: swaydb.IO[L, R]) {
     def asJava = {
       implicit val exceptionHandler = io.exceptionHandler.asInstanceOf[IO.ExceptionHandler[L]]
-      new swaydb.java.data.IO(io)
+      new swaydb.java.IO(io)
     }
   }
 

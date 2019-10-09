@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.data
+package swaydb.java
 
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}

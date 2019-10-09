@@ -17,19 +17,25 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.data
+package swaydb.java
 
 import java.util.Optional
 import java.util.concurrent.CompletionStage
 import java.util.function.{Consumer, Predicate, Supplier}
 
-import scala.compat.java8.OptionConverters._
-import scala.compat.java8.FutureConverters._
 import swaydb.java.data.util.Javaz.JavaFunction
+
+import scala.compat.java8.FutureConverters._
+import scala.compat.java8.OptionConverters._
 
 object IO {
   def fromScala[L, R](io: swaydb.IO[L, R], exceptionHandler: swaydb.IO.ExceptionHandler[L]) =
     IO(io)(exceptionHandler)
+
+  def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = IO[scala.Throwable, R](io)
+
+  def safe[R](supplier: Supplier[R]): IO[Throwable, R] =
+    IO(swaydb.IO[Throwable, R](supplier.get()))
 }
 
 case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
