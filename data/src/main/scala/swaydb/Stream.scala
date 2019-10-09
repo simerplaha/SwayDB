@@ -259,6 +259,36 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         tag.collectFirst(previous, self)(f)
     }
 
+  def collect[B](pf: PartialFunction[A, B]): Stream[B, T] = {
+    new Stream[B, T] {
+
+      var previousA: Option[A] = Option.empty
+
+      override def headOption: T[Option[B]] =
+        self.headOption map {
+          previousAOption =>
+            previousA = previousAOption
+            previousAOption.collect(pf)
+        }
+
+      /**
+        * Previous input parameter here is ignored so that parent stream can be read.
+        */
+      override private[swaydb] def next(previous: B): T[Option[B]] =
+        previousA match {
+          case Some(previous) =>
+            self.next(previous) map {
+              nextA =>
+                previousA = nextA
+                nextA.collect(pf)
+            }
+
+          case None =>
+            tag.none
+        }
+    }
+  }
+
   def filterNot(f: A => Boolean): Stream[A, T] =
     filter(!f(_))
 
