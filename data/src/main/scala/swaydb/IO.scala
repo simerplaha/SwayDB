@@ -997,8 +997,24 @@ object IO {
       runNow(this, 0)
     }
 
+    //blocking
     def getOrElse[B >: A](default: => B): B =
-      getValue getOrElse default
+      runIO getOrElse default
+
+    def orElse[F >: E : IO.ExceptionHandler, B >: A](default: => IO.Defer[F, B]): IO.Defer[F, B] =
+      IO.Defer[F, B]((runIO orElse default.toIO).get)
+
+    def exists(f: A => Boolean): IO.Defer[E, Boolean] =
+      map(f)
+
+    def foreach(f: A => Unit): IO.Defer[E, Unit] =
+      IO.Defer[E, Unit](
+        operation = () => f(getUnsafe),
+        error = error
+      )
+
+    def orElseIO[F >: E : IO.ExceptionHandler, B >: A](default: => IO[F, B]): IO.Defer[F, B] =
+      IO.Defer[F, B]((runIO orElse default).get)
 
     def map[B](f: A => B): IO.Defer[E, B] =
       IO.Defer[E, B](

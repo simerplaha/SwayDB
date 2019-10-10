@@ -34,7 +34,7 @@ object Stream {
 }
 
 class Stream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
-  def foreach(f: Consumer[A]): Stream[Unit] =
+  def forEach(f: Consumer[A]): Stream[Unit] =
     new Stream[Unit](asScala.foreach(f.asScala))
 
   def map[B](f: JavaFunction[A, B]): Stream[B] =

@@ -29,6 +29,7 @@ import scala.compat.java8.FutureConverters._
 import scala.compat.java8.OptionConverters._
 
 object IO {
+
   def fromScala[L, R](io: swaydb.IO[L, R], exceptionHandler: swaydb.IO.ExceptionHandler[L]) =
     IO(io)(exceptionHandler)
 
@@ -36,6 +37,62 @@ object IO {
 
   def run[R](supplier: Supplier[R]): IO[Throwable, R] =
     IO(swaydb.IO[Throwable, R](supplier.get()))
+
+  def defer[R](supplier: Supplier[R]): Defer[Throwable, R] =
+    Defer(swaydb.IO.Defer[Throwable, R](supplier.get())(swaydb.IO.ExceptionHandler.Throwable))
+
+  case class Defer[E, R](asScala: swaydb.IO.Defer[E, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[E]) {
+
+    @throws[Throwable]
+    def run: R =
+      asScala.runIO.get
+
+    def orElseGet[B >: R](supplier: Supplier[B]): B =
+      asScala.getOrElse(supplier.get())
+
+    def or[B >: R](supplier: Supplier[Defer[E, B]]): Defer[E, B] =
+      Defer(asScala.orElse(supplier.get().asScala))
+
+    def orIO[B >: R](supplier: Supplier[IO[E, B]]): Defer[E, B] =
+      Defer[E, B](asScala.orElseIO(supplier.get().asScala))
+
+    def forEach(consumer: Consumer[R]): Unit =
+      asScala.toIO.foreach(consumer.accept)
+
+    def map[B](function: JavaFunction[R, B]): Defer[E, B] =
+      Defer(asScala.map(result => function.apply(result)))
+
+    def flatMap[B](function: JavaFunction[R, Defer[E, B]]): Defer[E, B] =
+      Defer(asScala.flatMap[E, B](result => function.apply(result).asScala))
+
+    def flatMapIO[B](function: JavaFunction[R, IO[E, B]]): Defer[E, B] =
+      Defer(asScala.flatMapIO[E, B](result => function.apply(result).asScala))
+
+    def exists(predicate: Predicate[R]): Defer[E, Boolean] =
+      Defer(asScala.exists(predicate.test))
+
+    def recoverWith[B >: R](function: JavaFunction[E, Defer[E, B]]): Defer[E, B] =
+      Defer(
+        asScala.recoverWith {
+          case result =>
+            function.apply(result).asScala
+        }
+      )
+
+    def recover[B >: R](function: JavaFunction[E, B]): Defer[E, B] =
+      Defer(
+        asScala.recover {
+          case result =>
+            function(result)
+        }
+      )
+
+    def toOption: Optional[R] =
+      asScala.toIO.toOption.asJava
+
+    def toFuture: CompletionStage[R] =
+      asScala.toIO.toFuture.toJava
+  }
 }
 
 case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
@@ -56,10 +113,10 @@ case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swa
   def get: R =
     asScala.get
 
-  def getOrElse[B >: R](supplier: Supplier[B]): B =
+  def orElseGet[B >: R](supplier: Supplier[B]): B =
     asScala.getOrElse(supplier.get())
 
-  def orElse[B >: R](supplier: Supplier[IO[L, B]]): IO[L, B] =
+  def or[B >: R](supplier: Supplier[IO[L, B]]): IO[L, B] =
     new IO[L, B](asScala.orElse(supplier.get().asScala))
 
   def forEach(consumer: Consumer[R]): Unit =
