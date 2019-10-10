@@ -110,10 +110,10 @@ object IO {
 
 class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
 
-  def left: IO[Throwable, L] =
+  def leftValue: IO[Throwable, L] =
     new IO(asScala.left)
 
-  def right: IO[Throwable, R] =
+  def rightValue: IO[Throwable, R] =
     new IO(asScala.right)
 
   def isLeft: Boolean =

@@ -24,156 +24,139 @@ import org.junit.jupiter.api.Test;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test success conditions for IO.
  */
-class IORightTest {
+class IOLeftTest {
 
-  IO<Throwable, Integer> io = IO.run(() -> 1);
+  private class FailedIO extends RuntimeException {
+  }
+
+  IO<Throwable, Integer> io = IO.run(
+    () -> {
+      throw new FailedIO();
+    }
+  );
 
   @Test
-  void isRight() throws Throwable {
-    assertTrue(io.isRight());
-    assertEquals(1, io.get());
-    assertFalse(io.isLeft());
+  void isLeft() throws Throwable {
+    assertFalse(io.isRight());
+    assertThrows(FailedIO.class, () -> io.get());
+    assertTrue(io.isLeft());
   }
 
   @Test
   void left() {
-    assertThrows(UnsupportedOperationException.class, () -> io.leftValue().get());
+    assertDoesNotThrow(() -> io.leftValue().get());
   }
 
   @Test
-  void right() throws Throwable {
-    assertEquals(1, io.rightValue().get());
+  void right() {
+    assertThrows(UnsupportedOperationException.class, () -> io.rightValue().get());
   }
 
   @Test
-  void map() throws Throwable {
+  void map() {
     IO<Throwable, Integer> map = io.map(integer -> integer + 1);
-    assertTrue(map.isRight());
-    assertEquals(map.get(), 2);
+    assertTrue(map.isLeft());
   }
 
   @Test
   void flatMap() throws Throwable {
     IO<Throwable, Integer> map = io.flatMap(integer -> IO.run(() -> integer + 2));
-    assertTrue(map.isRight());
-    assertEquals(map.get(), 3);
+    assertTrue(map.isLeft());
   }
 
   @Test
   void orElseGet() {
-    Integer result =
-      io.orElseGet(
-        () -> {
-          fail("Should not have executed this");
-          return null;
-        }
-      );
-
-    assertEquals(1, result);
+    Integer result = io.orElseGet(() -> 22);
+    assertEquals(22, result);
   }
 
   @Test
   void or() throws Throwable {
     IO<Throwable, Integer> result =
       io.or(
-        () -> {
-          fail("Should not have executed this");
-          return null;
-        }
+        () -> IO.right(222)
       );
 
-    assertEquals(1, result.get());
+    assertEquals(222, result.get());
   }
 
   @Test
   void forEach() {
     AtomicBoolean executed = new AtomicBoolean(false);
     io.forEach(integer -> executed.set(true));
-    assertTrue(executed.get());
+    assertFalse(executed.get());
   }
 
   @Test
   void exists() {
-    assertTrue(io.exists(integer -> integer == 1));
+    assertFalse(io.exists(integer -> integer == 1));
     assertFalse(io.exists(integer -> integer == 2));
   }
 
 
   @Test
   void filter() throws Throwable {
-    IO<Throwable, Integer> exists = io.filter(integer -> integer == 1);
-    assertTrue(exists.isRight());
-    assertEquals(exists.get(), 1);
-
-    IO<Throwable, Integer> existsNot = io.filter(integer -> integer == 2);
+    IO<Throwable, Integer> existsNot = io.filter(integer -> integer == 12);
     assertTrue(existsNot.isLeft());
-    assertThrows(NoSuchElementException.class, () -> existsNot.get());
+    assertThrows(FailedIO.class, () -> existsNot.get());
   }
 
   @Test
   void recoverWith() throws Throwable {
     IO<Throwable, Integer> recovered =
       io.recoverWith(
-        throwable -> {
-          fail("Unexpected");
-          return null;
-        }
+        throwable -> IO.right(22222)
       );
 
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertEquals(recovered.get(), 22222);
   }
 
   @Test
   void recover() throws Throwable {
     IO<Throwable, Integer> recovered =
       io.recover(
-        throwable -> {
-          fail("Unexpected");
-          return null;
-        }
+        throwable -> 22222
       );
 
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertEquals(recovered.get(), 22222);
   }
 
   @Test
   void onLeftSideEffect() throws Throwable {
-    IO<Throwable, Integer> recovered =
-      io.onLeftSideEffect(
-        throwable -> {
-          fail("Unexpected");
-        }
-      );
-
-    assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
-  }
-
-  @Test
-  void onRightSideEffect() throws Throwable {
     AtomicBoolean executed = new AtomicBoolean(false);
     IO<Throwable, Integer> recovered =
-      io.onRightSideEffect(
+      io.onLeftSideEffect(
         throwable -> {
           executed.set(true);
         }
       );
 
     assertTrue(executed.get());
-    assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
   }
 
   @Test
-  void onCompleteSideEffect() throws Throwable {
+  void onRightSideEffect() {
+    AtomicBoolean executed = new AtomicBoolean(false);
+    io.onRightSideEffect(
+      throwable -> {
+        executed.set(true);
+      }
+    );
+
+    assertFalse(executed.get());
+  }
+
+  @Test
+  void onCompleteSideEffect() {
     AtomicBoolean executed = new AtomicBoolean(false);
     IO<Throwable, Integer> recovered =
       io.onCompleteSideEffect(
@@ -183,14 +166,12 @@ class IORightTest {
       );
 
     assertTrue(executed.get());
-    assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertTrue(recovered.isLeft());
   }
 
   @Test
   void toOptional() {
     Optional<Integer> integer = io.toOptional();
-    assertTrue(integer.isPresent());
-    assertEquals(1, integer.get());
+    assertTrue(integer.isEmpty());
   }
 }
