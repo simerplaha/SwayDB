@@ -95,7 +95,7 @@ case class Runner(test: Test) extends LazyLogging {
           }
       }
     else {
-      println(s"mapsCount: ${map.level0Meter.mapsCount}")
+      println(s"mapsCount: ${map.levelZeroMeter.mapsCount}")
       val readKeys = if (randomRead) shuffledKeys else keys
       Benchmark("Read benchmark during compaction") {
         //        (1 to 5).par foreach {
@@ -160,7 +160,7 @@ case class Runner(test: Test) extends LazyLogging {
           }
       }
     else {
-      println(s"mapsCount: ${map.level0Meter.mapsCount}")
+      println(s"mapsCount: ${map.levelZeroMeter.mapsCount}")
       val readKeys = if (randomRead) shuffledKeys else keys
       Benchmark("Read benchmark after compaction") {
         readKeys foreach {

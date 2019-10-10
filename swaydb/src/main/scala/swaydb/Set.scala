@@ -144,8 +144,8 @@ case class Set[A, F, T[_]](private val core: Core[T],
   def commit(prepare: Iterable[Prepare[A, Nothing]]): T[IO.Done] =
     tag.point(core.put(prepare))
 
-  def level0Meter: LevelZeroMeter =
-    core.level0Meter
+  def levelZeroMeter: LevelZeroMeter =
+    core.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     core.levelMeter(levelNumber)

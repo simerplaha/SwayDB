@@ -280,7 +280,7 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
                 readState: ReadState): T[Option[Int]] =
     zero.valueSize(key, readState).run
 
-  def level0Meter: LevelZeroMeter =
+  def levelZeroMeter: LevelZeroMeter =
     zero.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =

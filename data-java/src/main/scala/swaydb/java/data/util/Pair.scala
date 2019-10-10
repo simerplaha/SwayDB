@@ -19,7 +19,30 @@
 
 package swaydb.java.data.util
 
-case class Pair[+L, +R](left: L, right: R) {
+import scala.compat.java8.DurationConverters._
+import scala.concurrent.duration.Deadline
+
+object Pair {
+
+  implicit class KeyValueImplicit[K](keyVal: Pair[K, java.time.Duration]) {
+    def toScala: (K, Deadline) =
+      (keyVal.left, keyVal.right.toScala.fromNow)
+  }
+
+  def apply[L, R](left: L, right: R): Pair[L, R] =
+    new Pair(left, right)
+}
+
+class Pair[+L, +R](val left: L, val right: R) {
   def toTuple: (L, R) =
     (left, right)
+
+  def toKeyVal =
+    KeyVal(left, right)
+
+  override def equals(obj: Any): Boolean =
+    toTuple.equals(obj)
+
+  override def hashCode(): Int =
+    toTuple.hashCode()
 }

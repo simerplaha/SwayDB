@@ -203,8 +203,8 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
       reverseIteration = reverseIteration
     )(keySerializer, tag)
 
-  def level0Meter: LevelZeroMeter =
-    core.level0Meter
+  def levelZeroMeter: LevelZeroMeter =
+    core.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     core.levelMeter(levelNumber)

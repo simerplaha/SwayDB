@@ -418,7 +418,7 @@ class Map[K, V](mapKey: Seq[K],
     map mightContain Key.MapEntry(mapKey, key)
 
   def level0Meter: LevelZeroMeter =
-    map.level0Meter
+    map.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter] =
     map.levelMeter(levelNumber)

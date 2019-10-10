@@ -160,9 +160,6 @@ case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
   def filter(predicate: Predicate[T]): Slice[T] =
     Slice(asScala.filter(predicate.test))
 
-  def merge[B >: T](other: Slice[B]): Slice[B] =
-    Slice(asScala ++ other.asScala)
-
   def underlyingArraySize: Int =
     asScala.underlyingArraySize
 

@@ -21,15 +21,16 @@ package swaydb.java
 
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
-
+import scala.collection.JavaConverters._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Javaz._
 import swaydb.java.data.util.KeyVal
-import swaydb.{Prepare, Set}
+import swaydb.Prepare
 
-import scala.compat.java8.DurationConverters._
+import scala.compat.java8._
 import scala.compat.java8.OptionConverters._
+import DurationConverters._
 
 /**
  * IOMap database API.
@@ -40,7 +41,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = IO.toIO(io)
+  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = IO.toIO(io)
 
   def put(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.put(key, value)
@@ -54,8 +55,8 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def put(keyValues: Stream[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def put(keyValues: Iterable[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.put(keyValues.map(_.toTuple))
+  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
+    asScala.put(keyValues.asScala.map(_.toTuple).toIterable)
 
   def remove(key: K): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.remove(key)
@@ -69,8 +70,8 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def remove(keys: Stream[K]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.remove(keys.asScala)
 
-  def remove(keys: Iterable[K]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.remove(keys)
+  def remove(keys: java.util.Iterator[K]): IO[scala.Throwable, swaydb.IO.Done] =
+    asScala.remove(keys.asScala.toIterable)
 
   def expire(key: K, after: java.time.Duration): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(key, after.toScala)
@@ -89,8 +90,8 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def expire(keys: Stream[KeyVal[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(keys.asScala.map(_.toScala))
 
-  def expire(keys: Iterable[(K, java.time.Duration)]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.expire(keys.map(_.asScalaDeadline))
+  def expire(keys: java.util.Iterator[(K, java.time.Duration)]): IO[scala.Throwable, swaydb.IO.Done] =
+    asScala.expire(keys.asScala.map(_.asScalaDeadline).toIterable)
 
   def update(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.update(key, value)
@@ -104,8 +105,8 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def update(keyValues: Stream[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
-  def update(keyValues: Iterable[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.update(keyValues.map(_.toTuple))
+  def update(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
+    asScala.update(keyValues.asScala.map(_.toTuple).toIterable)
 
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
@@ -125,8 +126,8 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def commit(prepare: Stream[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare.asScala)
 
-  def commit(prepare: Iterable[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.commit(prepare)
+  def commit(prepare: java.util.Iterator[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
+    asScala.commit(prepare.asScala.toIterable)
 
   def get(key: K): IO[scala.Throwable, Optional[V]] =
     asScala.get(key).map(_.asJava)
@@ -146,11 +147,11 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def mightContainFunction(functionId: K): IO[scala.Throwable, Boolean] =
     asScala.mightContainFunction(functionId)
 
-  def keys: Set[K, F, swaydb.IO.ThrowableIO] =
-    asScala.keys
+  def keys =
+    Set(asScala.keys)
 
   def level0Meter: LevelZeroMeter =
-    asScala.level0Meter
+    asScala.levelZeroMeter
 
   def levelMeter(levelNumber: Int): Optional[LevelMeter] =
     asScala.levelMeter(levelNumber).asJava

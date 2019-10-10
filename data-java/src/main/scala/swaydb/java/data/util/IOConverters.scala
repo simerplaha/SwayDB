@@ -29,5 +29,4 @@ object IOConverters {
       new swaydb.java.IO(io)
     }
   }
-
 }
