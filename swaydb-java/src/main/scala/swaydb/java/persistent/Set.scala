@@ -70,7 +70,7 @@ object Set {
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
     def start(): IO[Throwable, swaydb.java.Set[A, F]] =
-      IO {
+      IO.fromScala {
         swaydb.IO {
           val scalaMap =
             swaydb.persistent.Set[A, F, swaydb.IO.ThrowableIO](

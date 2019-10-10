@@ -59,7 +59,7 @@ object Set {
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
     def start(): IO[Throwable, swaydb.java.Set[A, F]] =
-      IO {
+      new IO(
         swaydb.IO {
           val scalaMap =
             swaydb.memory.Set[A, F, swaydb.IO.ThrowableIO](
@@ -80,7 +80,7 @@ object Set {
 
           swaydb.java.Set[A, F](scalaMap)
         }
-      }
+      )
   }
 
   def enableFunctions[A, F](serializer: JavaSerializer[A]): Builder[A, F] =

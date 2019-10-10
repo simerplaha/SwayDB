@@ -49,7 +49,7 @@ object Map {
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
 
     def start(): IO[Throwable, swaydb.java.Map[K, V, F]] =
-      IO {
+      IO.fromScala {
         swaydb.IO {
           val scalaMap =
             swaydb.memory.zero.Map[K, V, F, swaydb.IO.ThrowableIO](

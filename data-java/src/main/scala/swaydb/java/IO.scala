@@ -31,12 +31,25 @@ import scala.compat.java8.OptionConverters._
 object IO {
 
   def fromScala[L, R](io: swaydb.IO[L, R], exceptionHandler: swaydb.IO.ExceptionHandler[L]) =
-    IO(io)(exceptionHandler)
+    new IO(io)(exceptionHandler)
 
-  def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = IO[scala.Throwable, R](io)
+  def fromScala[R](io: swaydb.IO[Throwable, R]) =
+    new IO(io)(swaydb.IO.ExceptionHandler.Throwable)
 
   def run[R](supplier: Supplier[R]): IO[Throwable, R] =
-    IO(swaydb.IO[Throwable, R](supplier.get()))
+    new IO(swaydb.IO[Throwable, R](supplier.get()))
+
+  def right[R](right: R): IO[Throwable, R] =
+    new IO(swaydb.IO.Right(right))
+
+  def right[L, R](right: R, exceptionHandler: swaydb.IO.ExceptionHandler[L]): IO[L, R] =
+    new IO(swaydb.IO.Right(right)(exceptionHandler))(exceptionHandler)
+
+  def left[R](left: Throwable): IO[Throwable, R] =
+    new IO(swaydb.IO.Left(left))
+
+  def left[L, R](left: L, exceptionHandler: swaydb.IO.ExceptionHandler[L]): IO[L, R] =
+    new IO(swaydb.IO.Left(left)(exceptionHandler))(exceptionHandler)
 
   def defer[R](supplier: Supplier[R]): Defer[Throwable, R] =
     Defer(swaydb.IO.Defer[Throwable, R](supplier.get())(swaydb.IO.ExceptionHandler.Throwable))
@@ -95,13 +108,13 @@ object IO {
   }
 }
 
-case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
+class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
 
   def left: IO[Throwable, L] =
-    IO(asScala.left)
+    new IO(asScala.left)
 
   def right: IO[Throwable, R] =
-    IO(asScala.right)
+    new IO(asScala.right)
 
   def isLeft: Boolean =
     asScala.isLeft
@@ -113,6 +126,12 @@ case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swa
   def get: R =
     asScala.get
 
+  def map[B](function: JavaFunction[R, B]): IO[L, B] =
+    new IO(asScala.map(result => function.apply(result)))
+
+  def flatMap[B](function: JavaFunction[R, IO[L, B]]): IO[L, B] =
+    new IO(asScala.flatMap[L, B](result => function.apply(result).asScala))
+
   def orElseGet[B >: R](supplier: Supplier[B]): B =
     asScala.getOrElse(supplier.get())
 
@@ -122,20 +141,14 @@ case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swa
   def forEach(consumer: Consumer[R]): Unit =
     asScala.foreach(consumer.accept)
 
-  def map[B](function: JavaFunction[R, B]): IO[L, B] =
-    IO(asScala.map(result => function.apply(result)))
-
-  def flatMap[B](function: JavaFunction[R, IO[L, B]]): IO[L, B] =
-    IO(asScala.flatMap[L, B](result => function.apply(result).asScala))
-
   def exists(predicate: Predicate[R]): Boolean =
     asScala.exists(predicate.test)
 
   def filter(predicate: Predicate[R]): IO[L, R] =
-    IO(asScala.filter(predicate.test))
+    new IO(asScala.filter(predicate.test))
 
   def recoverWith[B >: R](function: JavaFunction[L, IO[L, B]]): IO[L, B] =
-    IO(
+    new IO(
       asScala.recoverWith {
         case result =>
           function.apply(result).asScala
@@ -143,7 +156,7 @@ case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swa
     )
 
   def recover[B >: R](function: JavaFunction[L, B]): IO[L, B] =
-    IO(
+    new IO(
       asScala.recover {
         case result =>
           function(result)
@@ -151,7 +164,7 @@ case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swa
     )
 
   def onLeftSideEffect(consumer: Consumer[L]): IO[L, R] =
-    IO(
+    new IO(
       asScala.onLeftSideEffect {
         left =>
           consumer.accept(left.value)
@@ -159,22 +172,32 @@ case class IO[L, R](asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swa
     )
 
   def onRightSideEffect(consumer: Consumer[R]): IO[L, R] =
-    IO {
+    new IO(
       asScala.onRightSideEffect(consumer.accept)
-    }
+    )
 
   def onCompleteSideEffect(consumer: Consumer[IO[L, R]]): IO[L, R] =
-    IO {
+    new IO(
       asScala.onCompleteSideEffect {
         io =>
-          consumer.accept(IO(io)) //fixme - is will use this be enough?
+          consumer.accept(new IO(io)) //fixme - is will use this be enough?
       }
-    }
+    )
 
-  def toOption: Optional[R] =
+  def toOptional: Optional[R] =
     asScala.toOption.asJava
 
   def toFuture: CompletionStage[R] =
     asScala.toFuture.toJava
-}
 
+  override def equals(obj: Any): Boolean =
+    obj match {
+      case io: IO[_, _] =>
+        asScala.equals(io.asScala)
+
+      case _ => false
+    }
+
+  override def hashCode(): Int =
+    asScala.hashCode()
+}

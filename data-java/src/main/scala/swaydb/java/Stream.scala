@@ -29,7 +29,7 @@ import scala.compat.java8.FunctionConverters._
 import scala.compat.java8.OptionConverters._
 
 object Stream {
-  def apply[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): Stream[A] =
+  def create[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): Stream[A] =
     new Stream(stream)
 }
 
@@ -38,41 +38,41 @@ class Stream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
     new Stream[Unit](asScala.foreach(consumer.asScala))
 
   def map[B](function: JavaFunction[A, B]): Stream[B] =
-    Stream(asScala.map(function.asScala))
+    Stream.create(asScala.map(function.asScala))
 
   def flatMap[B](function: JavaFunction[A, Stream[B]]): Stream[B] =
-    Stream(asScala.flatMap(function.asScala(_).asScala))
+    Stream.create(asScala.flatMap(function.asScala(_).asScala))
 
   def drop(count: Int): Stream[A] =
-    Stream(asScala.drop(count))
+    Stream.create(asScala.drop(count))
 
   def dropWhile(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.dropWhile(predicate.asScala))
+    Stream.create(asScala.dropWhile(predicate.asScala))
 
   def take(count: Int): Stream[A] =
-    Stream(asScala.take(count))
+    Stream.create(asScala.take(count))
 
   def takeWhile(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.takeWhile(predicate.asScala))
+    Stream.create(asScala.takeWhile(predicate.asScala))
 
   def filter(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.filter(predicate.asScala))
+    Stream.create(asScala.filter(predicate.asScala))
 
   def filterNot(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.filterNot(predicate.asScala))
+    Stream.create(asScala.filterNot(predicate.asScala))
 
   def lastOption: IO[Throwable, Optional[A]] =
-    IO(asScala.lastOption.map(_.asJava))
+    new IO(asScala.lastOption.map(_.asJava))
 
   def headOption: IO[Throwable, Optional[A]] =
-    IO(asScala.headOption.map(_.asJava))
+    new IO(asScala.headOption.map(_.asJava))
 
   def foldLeft[B](initial: B, function: BiFunction[B, A, B]): IO[Throwable, B] =
-    IO(asScala.foldLeft(initial)(function.asScala))
+    new IO(asScala.foldLeft(initial)(function.asScala))
 
   def size: IO[Throwable, Int] =
-    IO(asScala.size)
+    new IO(asScala.size)
 
   def materialize: IO[Throwable, java.util.List[A]] =
-    IO(asScala.materialize.map(_.asJava))
+    new IO(asScala.materialize.map(_.asJava))
 }

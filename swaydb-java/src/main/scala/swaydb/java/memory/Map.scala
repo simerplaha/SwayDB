@@ -61,7 +61,7 @@ object Map {
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
     def start(): IO[Throwable, swaydb.java.Map[K, V, F]] =
-      IO {
+      IO.fromScala(
         swaydb.IO {
           val scalaMap =
             swaydb.memory.Map[K, V, F, swaydb.IO.ThrowableIO](
@@ -84,7 +84,7 @@ object Map {
 
           swaydb.java.Map[K, V, F](scalaMap)
         }
-      }
+      )
   }
 
   def enableFunctions[K, V, F](keySerializer: JavaSerializer[K],

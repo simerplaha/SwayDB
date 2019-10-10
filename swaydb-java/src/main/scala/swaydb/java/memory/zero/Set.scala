@@ -48,7 +48,7 @@ object Set {
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
 
     def start(): IO[Throwable, swaydb.java.Set[A, F]] =
-      IO {
+      IO.fromScala {
         swaydb.IO {
           val scalaMap =
             swaydb.memory.zero.Set[A, F, swaydb.IO.ThrowableIO](

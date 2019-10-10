@@ -43,7 +43,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = IO.toIO(io)
+  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
     asScala.get(elem).map(_.asJava)
@@ -184,22 +184,22 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
     asScala.headOption.map(_.asJava)
 
   def drop(count: Int): Stream[A] =
-    Stream(asScala.drop(count))
+    Stream.create(asScala.drop(count))
 
   def dropWhile(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.dropWhile(predicate.test))
+    Stream.create(asScala.dropWhile(predicate.test))
 
   def take(count: Int): Stream[A] =
-    Stream(asScala.take(count))
+    Stream.create(asScala.take(count))
 
   def takeWhile(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.takeWhile(predicate.test))
+    Stream.create(asScala.takeWhile(predicate.test))
 
   def map[B](function: JavaFunction[A, B]): Stream[B] =
-    Stream(asScala.map(function.apply))
+    Stream.create(asScala.map(function.apply))
 
   def flatMap[B](function: JavaFunction[A, Stream[B]]): Stream[B] =
-    Stream(
+    Stream.create(
       asScala.flatMap {
         item =>
           function.apply(item).asScala
@@ -207,13 +207,13 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
     )
 
   def forEach(consumer: Consumer[A]): Stream[Unit] =
-    Stream(asScala.foreach(consumer.accept))
+    Stream.create(asScala.foreach(consumer.accept))
 
   def filter(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.filter(predicate.test))
+    Stream.create(asScala.filter(predicate.test))
 
   def filterNot(predicate: Predicate[A]): Stream[A] =
-    Stream(asScala.filterNot(predicate.test))
+    Stream.create(asScala.filterNot(predicate.test))
 
   def foldLeft[B](initial: B, fold: JavaFunction[Pair[B, A], B]): IO[scala.Throwable, B] =
     asScala.foldLeft(initial) {
@@ -225,7 +225,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
     stream.size
 
   def stream: Stream[A] =
-    Stream(asScala.stream)
+    Stream.create(asScala.stream)
 
   def sizeOfBloomFilterEntries: IO[scala.Throwable, Int] =
     asScala.sizeOfBloomFilterEntries

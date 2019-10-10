@@ -95,7 +95,10 @@ lazy val `data-java` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
+      libraryDependencies ++= Seq(
+        "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion,
+          "org.junit.jupiter" % "junit-jupiter-api" % "5.5.2" % Test
+      )
     ).dependsOn(data)
 
 lazy val swaydb =

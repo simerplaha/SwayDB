@@ -41,7 +41,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = IO.toIO(io)
+  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
 
   def put(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.put(key, value)
@@ -166,7 +166,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
     asScala.valueSize(value)
 
   def timeLeft(key: K): IO[scala.Throwable, Optional[java.time.Duration]] =
-    IO {
+    new IO(
       asScala.timeLeft(key).map {
         case Some(duration) =>
           Optional.of(duration.toJava)
@@ -174,7 +174,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
         case None =>
           Optional.empty()
       }
-    }
+    )
 
   def from(key: K): Map[K, V, F] =
     copy(asScala.from(key))
@@ -198,24 +198,24 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
     new Stream(asScala.drop(count).map(_.asKeyVal))
 
   def dropWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream(
+    Stream.create(
       asScala
         .map(_.asKeyVal)
         .dropWhile(function.test)
     )
 
   def take(count: Int): Stream[KeyVal[K, V]] =
-    Stream(asScala.take(count).map(_.asKeyVal))
+    Stream.create(asScala.take(count).map(_.asKeyVal))
 
   def takeWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream(
+    Stream.create(
       asScala
         .map(_.asKeyVal)
         .takeWhile(function.test)
     )
 
   def map[B](function: JavaFunction[KeyVal[K, V], B]): Stream[B] =
-    Stream(
+    Stream.create(
       asScala map {
         case (key: K, value: V) =>
           function.apply(KeyVal(key, value))
@@ -223,7 +223,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
     )
 
   def flatMap[B](function: JavaFunction[KeyVal[K, V], Stream[B]]): Stream[B] =
-    Stream(
+    Stream.create(
       asScala.flatMap {
         case (key: K, value: V) =>
           function.apply(KeyVal(key, value)).asScala
@@ -231,7 +231,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
     )
 
   def forEach(function: Consumer[KeyVal[K, V]]): Stream[Unit] =
-    Stream(
+    Stream.create(
       asScala foreach {
         case (key: K, value: V) =>
           function.accept(KeyVal(key, value))
@@ -239,14 +239,14 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
     )
 
   def filter(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream(
+    Stream.create(
       asScala
         .map(_.asKeyVal)
         .filter(function.test)
     )
 
   def filterNot(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream(
+    Stream.create(
       asScala
         .map(_.asKeyVal)
         .filterNot(function.test)
