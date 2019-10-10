@@ -37,29 +37,29 @@ class Stream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
   def forEach(f: Consumer[A]): Stream[Unit] =
     new Stream[Unit](asScala.foreach(f.asScala))
 
-  def map[B](f: JavaFunction[A, B]): Stream[B] =
-    Stream(asScala.map(f.asScala))
+  def map[B](function: JavaFunction[A, B]): Stream[B] =
+    Stream(asScala.map(function.asScala))
 
-  def flatMap[B](f: JavaFunction[A, Stream[B]]): Stream[B] =
-    Stream(asScala.flatMap(f.asScala(_).asScala))
+  def flatMap[B](function: JavaFunction[A, Stream[B]]): Stream[B] =
+    Stream(asScala.flatMap(function.asScala(_).asScala))
 
   def drop(count: Int): Stream[A] =
     Stream(asScala.drop(count))
 
-  def dropWhile(f: Predicate[A]): Stream[A] =
-    Stream(asScala.dropWhile(f.asScala))
+  def dropWhile(predicate: Predicate[A]): Stream[A] =
+    Stream(asScala.dropWhile(predicate.asScala))
 
   def take(count: Int): Stream[A] =
     Stream(asScala.take(count))
 
-  def takeWhile(f: Predicate[A]): Stream[A] =
-    Stream(asScala.takeWhile(f.asScala))
+  def takeWhile(predicate: Predicate[A]): Stream[A] =
+    Stream(asScala.takeWhile(predicate.asScala))
 
-  def filter(f: Predicate[A]): Stream[A] =
-    Stream(asScala.filter(f.asScala))
+  def filter(predicate: Predicate[A]): Stream[A] =
+    Stream(asScala.filter(predicate.asScala))
 
-  def filterNot(f: Predicate[A]): Stream[A] =
-    Stream(asScala.filterNot(f.asScala))
+  def filterNot(predicate: Predicate[A]): Stream[A] =
+    Stream(asScala.filterNot(predicate.asScala))
 
   def lastOption: IO[Throwable, Optional[A]] =
     IO(asScala.lastOption.map(_.asJava))
