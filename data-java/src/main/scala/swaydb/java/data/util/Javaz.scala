@@ -41,8 +41,11 @@ object Javaz {
   }
 
   implicit class TupleImplicits[K, V](tuple: (K, V)) {
-    @inline def asJava: KeyVal[K, V] =
+    @inline def asKeyVal: KeyVal[K, V] =
       KeyVal(tuple._1, tuple._2)
+
+    @inline def asPair: Pair[K, V] =
+      Pair(tuple._1, tuple._2)
   }
 
   implicit class TupleDurationImplicits[K](tuple: (K, java.time.Duration)) {

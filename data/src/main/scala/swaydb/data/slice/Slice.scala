@@ -621,6 +621,20 @@ class Slice[+T: ClassTag] private(array: Array[T],
     array(adjustedIndex)
   }
 
+  def indexOf[B >: T](elem: B): Option[Int] = {
+    var index = 0
+    var found = Option.empty[Int]
+    while (found.isEmpty && index < size) {
+      val next = get(index)
+      if (elem == next)
+        found = Some(index)
+      else
+        None
+      index += 1
+    }
+    found
+  }
+
   /**
    * Returns a new non-writable slice. Unless position is moved manually.
    */
@@ -682,20 +696,6 @@ class Slice[+T: ClassTag] private(array: Array[T],
       array.asInstanceOf[Array[B]]
     else
       toArrayCopy
-
-  def indexOf[B >: T](elem: B): Option[Int] = {
-    var index = 0
-    var found = Option.empty[Int]
-    while (found.isEmpty && index < size) {
-      val next = get(index)
-      if (elem == next)
-        found = Some(index)
-      else
-        None
-      index += 1
-    }
-    found
-  }
 
   def toArrayCopy[B >: T](implicit evidence$1: ClassTag[B]): Array[B] = {
     val newArray = new Array[B](size)

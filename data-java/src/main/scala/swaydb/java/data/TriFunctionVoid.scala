@@ -19,6 +19,6 @@
 
 package swaydb.java.data
 
-@FunctionalInterface trait TriFunction[A, B, C, R] {
-  def apply(param1: A, param2: B, param3: C): R
+@FunctionalInterface trait TriFunctionVoid[A, B, C] {
+  def apply(param1: A, param2: B, param3: C): Unit
 }

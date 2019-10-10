@@ -194,22 +194,22 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
     asScala.headOption.map(_.map(KeyVal(_)).asJava)
 
   def drop(count: Int): Stream[KeyVal[K, V]] =
-    new Stream(asScala.drop(count).map(_.asJava))
+    new Stream(asScala.drop(count).map(_.asKeyVal))
 
   def dropWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
     Stream(
       asScala
-        .map(_.asJava)
+        .map(_.asKeyVal)
         .dropWhile(function.test)
     )
 
   def take(count: Int): Stream[KeyVal[K, V]] =
-    Stream(asScala.take(count).map(_.asJava))
+    Stream(asScala.take(count).map(_.asKeyVal))
 
   def takeWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
     Stream(
       asScala
-        .map(_.asJava)
+        .map(_.asKeyVal)
         .takeWhile(function.test)
     )
 
@@ -240,14 +240,14 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def filter(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
     Stream(
       asScala
-        .map(_.asJava)
+        .map(_.asKeyVal)
         .filter(function.test)
     )
 
   def filterNot(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
     Stream(
       asScala
-        .map(_.asJava)
+        .map(_.asKeyVal)
         .filterNot(function.test)
     )
 
@@ -258,7 +258,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
     asScala.size
 
   def stream: Stream[KeyVal[K, V]] =
-    new Stream(asScala.stream.map(_.asJava))
+    new Stream(asScala.stream.map(_.asKeyVal))
 
   def sizeOfBloomFilterEntries: IO[scala.Throwable, Int] =
     asScala.sizeOfBloomFilterEntries

@@ -17,8 +17,9 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.data
+package swaydb.java.data.util
 
-@FunctionalInterface trait TriFunction[A, B, C, R] {
-  def apply(param1: A, param2: B, param3: C): R
+case class Pair[+L, +R](left: L, right: R) {
+  def toTuple: (L, R) =
+    (left, right)
 }
