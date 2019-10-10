@@ -24,9 +24,14 @@ import scala.concurrent.duration.Deadline
 
 object Pair {
 
-  implicit class KeyValueImplicit[K](keyVal: Pair[K, java.time.Duration]) {
+  implicit class PairImplicit[K](keyVal: Pair[K, java.time.Duration]) {
     def toScala: (K, Deadline) =
       (keyVal.left, keyVal.right.toScala.fromNow)
+  }
+
+  implicit class TupleImplicits[L, R](tuple: (L, R)) {
+    def toPair: Pair[L, R] =
+      Pair(tuple._1, tuple._2)
   }
 
   def apply[L, R](left: L, right: R): Pair[L, R] =

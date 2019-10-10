@@ -20,8 +20,8 @@
 package swaydb.java.memory.zero
 
 import java.util.Comparator
-import java.util.concurrent.ExecutorService
 
+import swaydb.Tag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -29,21 +29,20 @@ import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.IO
 import swaydb.java.data.util.Javaz.{JavaFunction, _}
+import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
-import swaydb.{SwayDB, Tag}
 
 import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.duration.{FiniteDuration, _}
 import scala.reflect.ClassTag
 
 object Set {
 
   class Builder[A, F](@BeanProperty var mapSize: Int = 4.mb,
                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                      @BeanProperty var keyOrder: Comparator[Slice[Byte]] = KeyOrder.defaultComparator,
-                      @BeanProperty implicit var serializer: Serializer[A],
-                      final implicit val functionClassTag: ClassTag[F]) {
+                      @BeanProperty var keyOrder: Comparator[Slice[java.lang.Byte]] = KeyOrder.defaultComparator.asInstanceOf[Comparator[Slice[java.lang.Byte]]],
+                      serializer: Serializer[A],
+                      functionClassTag: ClassTag[F]) {
 
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
 
@@ -57,7 +56,7 @@ object Set {
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder
+              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]],
             ).get
 
           swaydb.java.Set[A, F](scalaMap)
@@ -65,15 +64,15 @@ object Set {
       }
   }
 
-  def enableFunctions[A, F](keySerializer: Serializer[A]): Builder[A, F] =
+  def enableFunctions[A, F](keySerializer: JavaSerializer[A]): Builder[A, F] =
     new Builder(
-      serializer = keySerializer,
+      serializer = SerializerConverter.toScala(keySerializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def disableFunctions[A](serializer: Serializer[A]): Builder[A, Functions.Disabled] =
+  def disableFunctions[A](serializer: JavaSerializer[A]): Builder[A, Functions.Disabled] =
     new Builder(
-      serializer = serializer,
+      serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
     )
 }

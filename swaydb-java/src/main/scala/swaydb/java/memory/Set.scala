@@ -29,12 +29,14 @@ import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.IO
 import swaydb.java.data.util.Javaz.{JavaFunction, _}
+import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
 import swaydb.{SwayDB, Tag}
 
 import scala.beans.BeanProperty
+import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
 object Set {
@@ -43,14 +45,14 @@ object Set {
                       @BeanProperty var segmentSize: Int = 2.mb,
                       @BeanProperty var maxOpenSegments: Int = 100,
                       @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
-                      @BeanProperty var fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                      @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
                       @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
                       @BeanProperty var deleteSegmentsEventually: Boolean = true,
                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                      @BeanProperty var keyOrder: Comparator[Slice[Byte]] = KeyOrder.defaultComparator,
+                      @BeanProperty var keyOrder: Comparator[Slice[java.lang.Byte]] = KeyOrder.defaultComparator.asInstanceOf[Comparator[Slice[java.lang.Byte]]],
                       @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
-                      @BeanProperty implicit var serializer: Serializer[A],
-                      final implicit val functionClassTag: ClassTag[F]) {
+                      serializer: Serializer[A],
+                      functionClassTag: ClassTag[F]) {
 
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
@@ -64,14 +66,14 @@ object Set {
               segmentSize = segmentSize,
               maxOpenSegments = maxOpenSegments,
               maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
-              fileSweeperPollInterval = fileSweeperPollInterval,
+              fileSweeperPollInterval = fileSweeperPollInterval.toScala,
               mightContainFalsePositiveRate = mightContainFalsePositiveRate,
               deleteSegmentsEventually = deleteSegmentsEventually,
               acceleration = acceleration.asScala,
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder,
+              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]],
               fileSweeperEC = fileSweeperEC
             ).get
 
@@ -80,15 +82,15 @@ object Set {
       }
   }
 
-  def enableFunctions[A, F](keySerializer: Serializer[A]): Builder[A, F] =
+  def enableFunctions[A, F](serializer: JavaSerializer[A]): Builder[A, F] =
     new Builder(
-      serializer = keySerializer,
+      serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def disableFunctions[A](serializer: Serializer[A]): Builder[A, Functions.Disabled] =
+  def disableFunctions[A](serializer: JavaSerializer[A]): Builder[A, Functions.Disabled] =
     new Builder(
-      serializer = serializer,
+      serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
     )
 

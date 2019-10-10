@@ -17,12 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.serializers
+package swaydb.java.serializers;
 
-import swaydb.data.slice.Slice
+import swaydb.java.data.slice.ByteSlice;
 
-trait Serializer[A] {
-  def write(data: A): Slice[Byte]
+public interface Serializer<A> {
 
-  def read(data: Slice[Byte]): A
+  byte[] write(A data);
+
+  A read(ByteSlice slice);
+
 }

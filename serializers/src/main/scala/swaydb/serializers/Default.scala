@@ -32,7 +32,7 @@ import swaydb.data.util.ByteSizeOf
  */
 object Default {
 
-  def intSerializer(): Serializer[Integer] =
+  def javaIntSerializer(): Serializer[Integer] =
     IntSerializer.asInstanceOf[Serializer[java.lang.Integer]]
 
   implicit object IntSerializer extends Serializer[Int] {
@@ -43,7 +43,7 @@ object Default {
       data.readInt()
   }
 
-  def longSerializer(): Serializer[java.lang.Long] =
+  def javaLongSerializer(): Serializer[java.lang.Long] =
     LongSerializer.asInstanceOf[Serializer[java.lang.Long]]
 
   implicit object LongSerializer extends Serializer[Long] {
@@ -54,7 +54,7 @@ object Default {
       data.readLong()
   }
 
-  def charSerializer(): Serializer[java.lang.Character] =
+  def javaCharSerializer(): Serializer[java.lang.Character] =
     CharSerializer.asInstanceOf[Serializer[java.lang.Character]]
 
   implicit object CharSerializer extends Serializer[Char] {
@@ -66,7 +66,7 @@ object Default {
       data.toByteBufferWrap.getChar
   }
 
-  def doubleSerializer(): Serializer[java.lang.Double] =
+  def javaDoubleSerializer(): Serializer[java.lang.Double] =
     DoubleSerializer.asInstanceOf[Serializer[java.lang.Double]]
 
   implicit object DoubleSerializer extends Serializer[Double] {
@@ -78,7 +78,7 @@ object Default {
       data.toByteBufferWrap.getDouble
   }
 
-  def floatSerializer(): Serializer[java.lang.Float] =
+  def javaFloatSerializer(): Serializer[java.lang.Float] =
     FloatSerializer.asInstanceOf[Serializer[java.lang.Float]]
 
   implicit object FloatSerializer extends Serializer[Float] {
@@ -90,7 +90,7 @@ object Default {
       data.toByteBufferWrap.getFloat
   }
 
-  def shortSerializer(): Serializer[java.lang.Short] =
+  def javaShortSerializer(): Serializer[java.lang.Short] =
     ShortSerializer.asInstanceOf[Serializer[java.lang.Short]]
 
   implicit object ShortSerializer extends Serializer[Short] {
@@ -102,7 +102,7 @@ object Default {
       data.toByteBufferWrap.getShort
   }
 
-  def stringSerializer(): Serializer[java.lang.String] =
+  def javaStringSerializer(): Serializer[java.lang.String] =
     StringSerializer
 
   implicit object StringSerializer extends Serializer[String] {

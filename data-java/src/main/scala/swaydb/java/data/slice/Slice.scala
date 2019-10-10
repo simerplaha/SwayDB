@@ -17,21 +17,30 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java
+package swaydb.java.data.slice
 
+import java.util.function.{BiFunction, Consumer, Predicate}
 import java.util.{Comparator, Optional}
-import java.util.function.Predicate
 import java.{lang, util}
 
 import swaydb.data.slice.{Slice => ScalaSlice}
-import swaydb.java.data.util.Pair
 import swaydb.java.data.util.Javaz._
+import swaydb.java.data.util.Pair
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.OptionConverters._
 
 object Slice {
   val emptyBytes: ScalaSlice[lang.Byte] = ScalaSlice.create[java.lang.Byte](0)
+
+  def fromByteArray(array: Array[java.lang.Byte]): Slice[java.lang.Byte] =
+    Slice(swaydb.data.slice.Slice(array))
+
+  def create[T](length: Int): Slice[T] =
+    new Slice(ScalaSlice.create(length = length))
+
+  def createFull[T](length: Int): Slice[T] =
+    new Slice(ScalaSlice.create(length = length, isFull = true))
 }
 
 case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
@@ -119,13 +128,30 @@ case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
   def close(): Slice[T] =
     Slice(asScala.close())
 
+  @throws[ArrayIndexOutOfBoundsException]
+  def add(value: T): Slice[T] = {
+    asScala.add(value)
+    this
+  }
+
+  @throws[ArrayIndexOutOfBoundsException]
+  def addAll(value: Array[T]): Slice[T] = {
+    asScala.addAll(value)
+    this
+  }
+
+  @throws[ArrayIndexOutOfBoundsException]
+  def addAll(value: Slice[T]): Slice[T] = {
+    asScala.addAll(value.asScala)
+    this
+  }
+
   //todo - how to convert Scala array to Java without iteration?
+  @throws[NotImplementedError]
+  def toArray: Array[T] = ???
 
   @throws[NotImplementedError]
-  def toArray = ???
-
-  @throws[NotImplementedError]
-  def toArrayCopy = ???
+  def toArrayCopy: Array[T] = ???
 
   def isOriginalSlice: Boolean =
     asScala.isOriginalSlice
@@ -159,6 +185,27 @@ case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
 
   def filter(predicate: Predicate[T]): Slice[T] =
     Slice(asScala.filter(predicate.test))
+
+  def foldLeft[B](initial: B, function: BiFunction[B, T, B]): B =
+    asScala.foldLeft(initial) {
+      case (b, t) =>
+        function.apply(b, t)
+    }
+
+  def foldRight[B](initial: B, function: BiFunction[T, B, B]): B =
+    asScala.foldRight(initial) {
+      case (t, b) =>
+        function.apply(t, b)
+    }
+
+  def map[B](function: JavaFunction[T, B]): Slice[B] = {
+    val mapped = Slice.create[B](size)
+    asScala.foreach {
+      item =>
+        mapped add function.apply(item)
+    }
+    mapped
+  }
 
   def underlyingArraySize: Int =
     asScala.underlyingArraySize
