@@ -29,6 +29,7 @@ import swaydb.java.data.util.Pair
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.OptionConverters._
+import scala.reflect.ClassTag
 
 object Slice {
   val emptyBytes: ScalaSlice[lang.Byte] = ScalaSlice.create[java.lang.Byte](0)
@@ -146,12 +147,11 @@ case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
     this
   }
 
-  //todo - how to convert Scala array to Java without iteration?
-  @throws[NotImplementedError]
-  def toArray: Array[T] = ???
+  def toArray: Array[T] =
+    asScala.toArray[T](asScala.classTag.asInstanceOf[ClassTag[T]])
 
-  @throws[NotImplementedError]
-  def toArrayCopy: Array[T] = ???
+  def toArrayCopy: Array[T] =
+    asScala.toArrayCopy(asScala.classTag.asInstanceOf[ClassTag[T]])
 
   def isOriginalSlice: Boolean =
     asScala.isOriginalSlice

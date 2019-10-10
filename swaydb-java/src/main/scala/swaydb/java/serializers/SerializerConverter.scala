@@ -19,7 +19,7 @@
 
 package swaydb.java.serializers
 
-import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.slice.{ByteSlice, Slice}
 import swaydb.java.serializers.{Serializer => JavaSerializer}
 import swaydb.serializers.{Serializer => ScalaSerializer}
 
@@ -31,7 +31,7 @@ object SerializerConverter {
         swaydb.data.slice.Slice(javaSerializer.write(data))
 
       override def read(data: swaydb.data.slice.Slice[Byte]): T =
-        ???
+        javaSerializer.read(ByteSlice(Slice(data)))
     }
 
   def toJava[T](scalaSerializer: ScalaSerializer[T]): JavaSerializer[T] =
@@ -40,6 +40,6 @@ object SerializerConverter {
         scalaSerializer.write(data).toArray
 
       override def read(slice: ByteSlice): T =
-        ???
+        scalaSerializer.read(slice.innerSlice.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]])
     }
 }

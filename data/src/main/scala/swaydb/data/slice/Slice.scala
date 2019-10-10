@@ -415,12 +415,15 @@ object Slice {
  * @param written    items written
  * @tparam T The type of this Slice
  */
-class Slice[+T: ClassTag] private(array: Array[T],
-                                  val fromOffset: Int,
-                                  val toOffset: Int,
-                                  private var written: Int) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
+class Slice[+T] private(array: Array[T],
+                        val fromOffset: Int,
+                        val toOffset: Int,
+                        private var written: Int)(implicit classTag: ClassTag[T]) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
 
   private var writePosition = fromOffset + written
+
+  def classTag: ClassTag[_] =
+    this.classTag
 
   val allocatedSize =
     toOffset - fromOffset + 1
