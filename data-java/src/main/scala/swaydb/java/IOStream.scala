@@ -42,19 +42,19 @@ class IOStream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
     Stream.fromScala(asScala.drop(count))
 
   def dropWhile(predicate: Predicate[A]): IOStream[A] =
-    Stream.fromScala(asScala.dropWhile(predicate.asScala))
+    Stream.fromScala(asScala.dropWhile(predicate.test))
 
   def take(count: Int): IOStream[A] =
     Stream.fromScala(asScala.take(count))
 
   def takeWhile(predicate: Predicate[A]): IOStream[A] =
-    Stream.fromScala(asScala.takeWhile(predicate.asScala))
+    Stream.fromScala(asScala.takeWhile(predicate.test))
 
   def filter(predicate: Predicate[A]): IOStream[A] =
-    Stream.fromScala(asScala.filter(predicate.asScala))
+    Stream.fromScala(asScala.filter(predicate.test))
 
   def filterNot(predicate: Predicate[A]): IOStream[A] =
-    Stream.fromScala(asScala.filterNot(predicate.asScala))
+    Stream.fromScala(asScala.filterNot(predicate.test))
 
   def lastOption: IO[Throwable, Optional[A]] =
     new IO(asScala.lastOption.map(_.asJava))

@@ -20,6 +20,7 @@
 package swaydb.java
 
 import java.util.concurrent.{CompletableFuture, ExecutorService, Future}
+import java.util.function.Supplier
 
 import swaydb.Streamer
 
@@ -33,9 +34,25 @@ trait FutureStreamer[A] { parent =>
   def toScalaStreamer: Streamer[A, scala.concurrent.Future] =
     new Streamer[A, scala.concurrent.Future] {
       override def head: concurrent.Future[Option[A]] =
-        FutureConverters.toScala(CompletableFuture.supplyAsync(() => parent.head.get)) //TODO - is calling .get on a Java Future blocking?
+        FutureConverters.toScala(
+          CompletableFuture.supplyAsync(
+            new Supplier[Option[A]] {
+              override def get(): Option[A] =
+                parent.head.get
+            },
+            executorService
+          )
+        ) //TODO - is calling .get on a Java Future blocking?
 
       override def next(previous: A): concurrent.Future[Option[A]] =
-        FutureConverters.toScala(CompletableFuture.supplyAsync(() => parent.next(previous).get)) //TODO - is calling .get on a Java Future blocking?
+        FutureConverters.toScala(
+          CompletableFuture.supplyAsync(
+            new Supplier[Option[A]] {
+              override def get(): Option[A] =
+                parent.next(previous).get
+            },
+            executorService
+          )
+        ) //TODO - is calling .get on a Java Future blocking?
     }
 }
