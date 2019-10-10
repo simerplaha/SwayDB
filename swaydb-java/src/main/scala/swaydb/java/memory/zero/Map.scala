@@ -67,7 +67,7 @@ object Map {
       }
   }
 
-  def enableFunctions[K, V, F](implicit keySerializer: Serializer[K],
+  def enableFunctions[K, V, F](keySerializer: Serializer[K],
                                valueSerializer: Serializer[V]): Builder[K, V, F] =
     new Builder(
       keySerializer = keySerializer,
@@ -75,12 +75,11 @@ object Map {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def disableFunctions[K, V](implicit keySerializer: Serializer[K],
+  def disableFunctions[K, V](keySerializer: Serializer[K],
                              valueSerializer: Serializer[V]): Builder[K, V, Functions.Disabled] =
     new Builder(
       keySerializer = keySerializer,
       valueSerializer = valueSerializer,
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
     )
-
 }

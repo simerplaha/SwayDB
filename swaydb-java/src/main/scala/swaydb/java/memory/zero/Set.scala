@@ -65,13 +65,13 @@ object Set {
       }
   }
 
-  def enableFunctions[A, F](implicit keySerializer: Serializer[A]): Builder[A, F] =
+  def enableFunctions[A, F](keySerializer: Serializer[A]): Builder[A, F] =
     new Builder(
       serializer = keySerializer,
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def disableFunctions[A](implicit serializer: Serializer[A]): Builder[A, Functions.Disabled] =
+  def disableFunctions[A](serializer: Serializer[A]): Builder[A, Functions.Disabled] =
     new Builder(
       serializer = serializer,
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]

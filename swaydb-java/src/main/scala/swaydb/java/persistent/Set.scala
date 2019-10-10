@@ -17,12 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.memory
+package swaydb.java.persistent
 
+import java.nio.file.Path
 import java.util.Comparator
 import java.util.concurrent.ExecutorService
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.config.{Dir, MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
@@ -39,12 +41,22 @@ import scala.reflect.ClassTag
 
 object Set {
 
-  class Builder[A, F](@BeanProperty var mapSize: Int = 4.mb,
+  class Builder[A, F](@BeanProperty var dir: Path,
+                      @BeanProperty var maxOpenSegments: Int = 1000,
+                      @BeanProperty var memoryCacheSize: Int = 100.mb,
+                      @BeanProperty var mapSize: Int = 4.mb,
+                      @BeanProperty var mmapMaps: Boolean = true,
+                      @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                      @BeanProperty var mmapAppendix: Boolean = true,
+                      @BeanProperty var mmapSegments: MMAP = MMAP.WriteAndRead,
                       @BeanProperty var segmentSize: Int = 2.mb,
-                      @BeanProperty var maxOpenSegments: Int = 100,
-                      @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
+                      @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
+                      @BeanProperty var otherDirs: Seq[Dir] = Seq.empty,
+                      @BeanProperty var memorySweeperPollInterval: FiniteDuration = 10.seconds,
                       @BeanProperty var fileSweeperPollInterval: FiniteDuration = 10.seconds,
                       @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
+                      @BeanProperty var blockSize: Int = 4098,
+                      @BeanProperty var compressDuplicateValues: Boolean = true,
                       @BeanProperty var deleteSegmentsEventually: Boolean = true,
                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                       @BeanProperty var keyOrder: Comparator[Slice[Byte]] = KeyOrder.defaultComparator,
@@ -59,13 +71,23 @@ object Set {
       IO {
         swaydb.IO {
           val scalaMap =
-            swaydb.memory.Set[A, F, swaydb.IO.ThrowableIO](
-              mapSize = mapSize,
-              segmentSize = segmentSize,
+            swaydb.persistent.Set[A, F, swaydb.IO.ThrowableIO](
+              dir = dir,
               maxOpenSegments = maxOpenSegments,
-              maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
+              memoryCacheSize = memoryCacheSize,
+              mapSize = mapSize,
+              mmapMaps = mmapMaps,
+              recoveryMode = recoveryMode,
+              mmapAppendix = mmapAppendix,
+              mmapSegments = mmapSegments,
+              segmentSize = segmentSize,
+              appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+              otherDirs = otherDirs,
+              memorySweeperPollInterval = memorySweeperPollInterval,
               fileSweeperPollInterval = fileSweeperPollInterval,
               mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+              blockSize = blockSize,
+              compressDuplicateValues = compressDuplicateValues,
               deleteSegmentsEventually = deleteSegmentsEventually,
               acceleration = acceleration.asScala,
             )(serializer = serializer,
@@ -80,14 +102,18 @@ object Set {
       }
   }
 
-  def enableFunctions[A, F](keySerializer: Serializer[A]): Builder[A, F] =
+  def enableFunctions[A, F](dir: Path,
+                            keySerializer: Serializer[A]): Builder[A, F] =
     new Builder(
+      dir = dir,
       serializer = keySerializer,
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def disableFunctions[A](serializer: Serializer[A]): Builder[A, Functions.Disabled] =
+  def disableFunctions[A](dir: Path,
+                          serializer: Serializer[A]): Builder[A, Functions.Disabled] =
     new Builder(
+      dir = dir,
       serializer = serializer,
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
     )

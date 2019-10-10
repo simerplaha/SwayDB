@@ -30,6 +30,9 @@ object RecoveryMode {
   /**
    * Returns failure immediately if a corruption is detected.
    */
+  def reportFailure(): RecoveryMode =
+    ReportFailure
+
   case object ReportFailure extends RecoveryMode {
     override val drop: Boolean = false
   }
@@ -38,6 +41,10 @@ object RecoveryMode {
    * Keeps all entries until a corrupted entry in the Log file is detected and then
    * drops all entries after the corruption.
    */
+
+  def dropCorruptedTailEntries(): RecoveryMode =
+    DropCorruptedTailEntries
+
   case object DropCorruptedTailEntries extends RecoveryMode {
     override val drop: Boolean = true
   }
@@ -47,6 +54,10 @@ object RecoveryMode {
    * drops all entries after the corruption and also ignores all the
    * subsequent Map files after the corrupted file.
    */
+
+  def dropCorruptedTailEntriesAndMaps(): RecoveryMode =
+    DropCorruptedTailEntriesAndMaps
+
   case object DropCorruptedTailEntriesAndMaps extends RecoveryMode {
     override val drop: Boolean = true
   }

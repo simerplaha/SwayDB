@@ -47,7 +47,6 @@ object Map extends LazyLogging {
                            maxCachedKeyValuesPerSegment: Int = 10,
                            fileSweeperPollInterval: FiniteDuration = 10.seconds,
                            mightContainFalsePositiveRate: Double = 0.01,
-                           compressDuplicateValues: Boolean = false,
                            deleteSegmentsEventually: Boolean = true,
                            acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                  valueSerializer: Serializer[V],
@@ -61,7 +60,6 @@ object Map extends LazyLogging {
         mapSize = mapSize,
         segmentSize = segmentSize,
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         acceleration = acceleration
       ),

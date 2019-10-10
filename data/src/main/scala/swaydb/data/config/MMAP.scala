@@ -24,14 +24,26 @@ sealed trait MMAP {
   val mmapWrite: Boolean
 }
 object MMAP {
+
+  def writeAndRead(): MMAP =
+    WriteAndRead
+
   case object WriteAndRead extends MMAP {
     override val mmapRead: Boolean = true
     override val mmapWrite: Boolean = true
   }
+
+  def readOnly(): MMAP =
+    ReadOnly
+
   case object ReadOnly extends MMAP {
     override val mmapRead: Boolean = true
     override val mmapWrite: Boolean = false
   }
+
+  def disabled(): MMAP =
+    Disabled
+
   case object Disabled extends MMAP {
     override val mmapRead: Boolean = false
     override val mmapWrite: Boolean = false
