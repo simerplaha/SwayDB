@@ -19,7 +19,7 @@
 
 package swaydb.java.data.slice
 
-import java.util.function.{BiFunction, Consumer, Predicate}
+import java.util.function.{BiFunction, Predicate}
 import java.util.{Comparator, Optional}
 import java.{lang, util}
 
