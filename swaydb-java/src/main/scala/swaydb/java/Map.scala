@@ -24,7 +24,7 @@ import java.util.function.{BiFunction, Consumer, Predicate}
 import scala.collection.JavaConverters._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.java.data.util.JavaConversions._
+import swaydb.java.data.util.Java._
 import swaydb.java.data.util.KeyVal
 import swaydb.Prepare
 
@@ -52,7 +52,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def put(keyValues: KeyVal[K, V]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.put(keyValues.map(_.toTuple))
 
-  def put(keyValues: Stream[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def put(keyValues: IOStream[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -67,7 +67,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def remove(keys: K*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.remove(keys)
 
-  def remove(keys: Stream[K]): IO[scala.Throwable, swaydb.IO.Done] =
+  def remove(keys: IOStream[K]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.remove(keys.asScala)
 
   def remove(keys: java.util.Iterator[K]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -87,7 +87,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
       }
     )
 
-  def expire(keys: Stream[KeyVal[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(keys: IOStream[KeyVal[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(keys.asScala.map(_.toScala))
 
   def expire(keys: java.util.Iterator[(K, java.time.Duration)]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -102,7 +102,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def update(keyValues: KeyVal[K, V]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.update(keyValues.map(_.toTuple))
 
-  def update(keyValues: Stream[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def update(keyValues: IOStream[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
   def update(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -123,7 +123,7 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def commit(prepare: Prepare[K, V]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare)
 
-  def commit(prepare: Stream[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit(prepare: IOStream[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare.asScala)
 
   def commit(prepare: java.util.Iterator[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -194,59 +194,59 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def headOptional: IO[scala.Throwable, Optional[KeyVal[K, V]]] =
     asScala.headOption.map(_.map(KeyVal(_)).asJava)
 
-  def drop(count: Int): Stream[KeyVal[K, V]] =
-    new Stream(asScala.drop(count).map(_.asKeyVal))
+  def drop(count: Int): IOStream[KeyVal[K, V]] =
+    new IOStream(asScala.drop(count).map(_.asKeyVal))
 
-  def dropWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream.create(
+  def dropWhile(function: Predicate[KeyVal[K, V]]): IOStream[KeyVal[K, V]] =
+    Stream.fromScala(
       asScala
         .map(_.asKeyVal)
         .dropWhile(function.test)
     )
 
-  def take(count: Int): Stream[KeyVal[K, V]] =
-    Stream.create(asScala.take(count).map(_.asKeyVal))
+  def take(count: Int): IOStream[KeyVal[K, V]] =
+    Stream.fromScala(asScala.take(count).map(_.asKeyVal))
 
-  def takeWhile(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream.create(
+  def takeWhile(function: Predicate[KeyVal[K, V]]): IOStream[KeyVal[K, V]] =
+    Stream.fromScala(
       asScala
         .map(_.asKeyVal)
         .takeWhile(function.test)
     )
 
-  def map[B](function: JavaFunction[KeyVal[K, V], B]): Stream[B] =
-    Stream.create(
+  def map[B](function: JavaFunction[KeyVal[K, V], B]): IOStream[B] =
+    Stream.fromScala(
       asScala map {
         case (key: K, value: V) =>
           function.apply(KeyVal(key, value))
       }
     )
 
-  def flatMap[B](function: JavaFunction[KeyVal[K, V], Stream[B]]): Stream[B] =
-    Stream.create(
+  def flatMap[B](function: JavaFunction[KeyVal[K, V], IOStream[B]]): IOStream[B] =
+    Stream.fromScala(
       asScala.flatMap {
         case (key: K, value: V) =>
           function.apply(KeyVal(key, value)).asScala
       }
     )
 
-  def forEach(function: Consumer[KeyVal[K, V]]): Stream[Unit] =
-    Stream.create(
+  def forEach(function: Consumer[KeyVal[K, V]]): IOStream[Unit] =
+    Stream.fromScala(
       asScala foreach {
         case (key: K, value: V) =>
           function.accept(KeyVal(key, value))
       }
     )
 
-  def filter(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream.create(
+  def filter(function: Predicate[KeyVal[K, V]]): IOStream[KeyVal[K, V]] =
+    Stream.fromScala(
       asScala
         .map(_.asKeyVal)
         .filter(function.test)
     )
 
-  def filterNot(function: Predicate[KeyVal[K, V]]): Stream[KeyVal[K, V]] =
-    Stream.create(
+  def filterNot(function: Predicate[KeyVal[K, V]]): IOStream[KeyVal[K, V]] =
+    Stream.fromScala(
       asScala
         .map(_.asKeyVal)
         .filterNot(function.test)
@@ -258,8 +258,8 @@ case class Map[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def size: IO[scala.Throwable, Int] =
     asScala.size
 
-  def stream: Stream[KeyVal[K, V]] =
-    new Stream(asScala.stream.map(_.asKeyVal))
+  def stream: IOStream[KeyVal[K, V]] =
+    new IOStream(asScala.stream.map(_.asKeyVal))
 
   def sizeOfBloomFilterEntries: IO[scala.Throwable, Int] =
     asScala.sizeOfBloomFilterEntries

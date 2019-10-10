@@ -43,7 +43,7 @@ class IOLeftTest {
   );
 
   @Test
-  void isLeft() throws Throwable {
+  void isLeft() {
     assertFalse(io.isRight());
     assertThrows(FailedIO.class, () -> io.get());
     assertTrue(io.isLeft());
@@ -66,7 +66,7 @@ class IOLeftTest {
   }
 
   @Test
-  void flatMap() throws Throwable {
+  void flatMap() {
     IO<Throwable, Integer> map = io.flatMap(integer -> IO.run(() -> integer + 2));
     assertTrue(map.isLeft());
   }
@@ -131,7 +131,7 @@ class IOLeftTest {
   }
 
   @Test
-  void onLeftSideEffect() throws Throwable {
+  void onLeftSideEffect() {
     AtomicBoolean executed = new AtomicBoolean(false);
     IO<Throwable, Integer> recovered =
       io.onLeftSideEffect(

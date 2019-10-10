@@ -31,7 +31,7 @@ import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.IO
 import swaydb.java.data.slice.ByteSlice
-import swaydb.java.data.util.JavaConversions.{JavaFunction, _}
+import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
 import swaydb.{SwayDB, Tag}

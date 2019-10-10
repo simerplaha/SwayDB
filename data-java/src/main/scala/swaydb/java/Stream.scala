@@ -19,60 +19,28 @@
 
 package swaydb.java
 
-import java.util.Optional
-import java.util.function.{BiFunction, Consumer, Predicate}
-
-import swaydb.java.data.util.JavaConversions.JavaFunction
+import swaydb.Tag
+import swaydb.java.data.util.Java._
 
 import scala.collection.JavaConverters._
-import scala.compat.java8.FunctionConverters._
-import scala.compat.java8.OptionConverters._
+import scala.concurrent.ExecutionContext
 
 object Stream {
-  def create[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): Stream[A] =
-    new Stream(stream)
-}
+  def fromScala[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): IOStream[A] =
+    new IOStream(stream)
 
-class Stream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
-  def forEach(consumer: Consumer[A]): Stream[Unit] =
-    new Stream[Unit](asScala.foreach(consumer.asScala))
+  def fromScala[A](stream: swaydb.Stream[A, scala.concurrent.Future])(implicit ec: ExecutionContext): FutureStream[A] =
+    new FutureStream(stream)
 
-  def map[B](function: JavaFunction[A, B]): Stream[B] =
-    Stream.create(asScala.map(function.asScala))
+  def create[A](iterator: java.util.Iterator[A]): IOStream[A] =
+    new IOStream[A](swaydb.Stream(iterator.asScala.toIterable))
 
-  def flatMap[B](function: JavaFunction[A, Stream[B]]): Stream[B] =
-    Stream.create(asScala.flatMap(function.asScala(_).asScala))
+  def create[A](ioStreamer: IOStreamer[A]): IOStream[A] =
+    new IOStream(swaydb.Stream(ioStreamer.toScalaStreamer))
 
-  def drop(count: Int): Stream[A] =
-    Stream.create(asScala.drop(count))
-
-  def dropWhile(predicate: Predicate[A]): Stream[A] =
-    Stream.create(asScala.dropWhile(predicate.asScala))
-
-  def take(count: Int): Stream[A] =
-    Stream.create(asScala.take(count))
-
-  def takeWhile(predicate: Predicate[A]): Stream[A] =
-    Stream.create(asScala.takeWhile(predicate.asScala))
-
-  def filter(predicate: Predicate[A]): Stream[A] =
-    Stream.create(asScala.filter(predicate.asScala))
-
-  def filterNot(predicate: Predicate[A]): Stream[A] =
-    Stream.create(asScala.filterNot(predicate.asScala))
-
-  def lastOption: IO[Throwable, Optional[A]] =
-    new IO(asScala.lastOption.map(_.asJava))
-
-  def headOption: IO[Throwable, Optional[A]] =
-    new IO(asScala.headOption.map(_.asJava))
-
-  def foldLeft[B](initial: B, function: BiFunction[B, A, B]): IO[Throwable, B] =
-    new IO(asScala.foldLeft(initial)(function.asScala))
-
-  def size: IO[Throwable, Int] =
-    new IO(asScala.size)
-
-  def materialize: IO[Throwable, java.util.List[A]] =
-    new IO(asScala.materialize.map(_.asJava))
+  def create[A](ioStreamer: FutureStreamer[A]): FutureStream[A] = {
+    implicit val ec = ioStreamer.executorService.asScala
+    implicit val tag = Tag.future(ec)
+    new FutureStream(swaydb.Stream(ioStreamer.toScalaStreamer))
+  }
 }

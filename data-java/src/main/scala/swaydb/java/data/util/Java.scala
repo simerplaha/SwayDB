@@ -28,7 +28,7 @@ import scala.compat.java8.DurationConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-object JavaConversions {
+object Java {
 
   type JavaFunction[T, R] = java.util.function.Function[T, R]
 
