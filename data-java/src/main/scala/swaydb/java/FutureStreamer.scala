@@ -33,9 +33,9 @@ trait FutureStreamer[A] { parent =>
   def toScalaStreamer: Streamer[A, scala.concurrent.Future] =
     new Streamer[A, scala.concurrent.Future] {
       override def head: concurrent.Future[Option[A]] =
-        FutureConverters.toScala(CompletableFuture.supplyAsync(() => parent.head.get))
+        FutureConverters.toScala(CompletableFuture.supplyAsync(() => parent.head.get)) //TODO - is calling .get on a Java Future blocking?
 
       override def next(previous: A): concurrent.Future[Option[A]] =
-        FutureConverters.toScala(CompletableFuture.supplyAsync(() => parent.next(previous).get))
+        FutureConverters.toScala(CompletableFuture.supplyAsync(() => parent.next(previous).get)) //TODO - is calling .get on a Java Future blocking?
     }
 }

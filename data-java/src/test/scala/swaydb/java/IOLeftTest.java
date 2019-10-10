@@ -140,6 +140,8 @@ class IOLeftTest {
         }
       );
 
+    assertEquals(io, recovered);
+
     assertTrue(executed.get());
   }
 
