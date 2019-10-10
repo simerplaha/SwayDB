@@ -28,7 +28,8 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.IO
-import swaydb.java.data.util.Javaz.{JavaFunction, _}
+import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.util.JavaConversions.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
 import swaydb.{SwayDB, Tag}
@@ -50,7 +51,7 @@ object Map {
                          @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
                          @BeanProperty var deleteSegmentsEventually: Boolean = true,
                          @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         @BeanProperty var keyOrder: Comparator[Slice[java.lang.Byte]] = KeyOrder.defaultComparator.asInstanceOf[Comparator[Slice[java.lang.Byte]]],
+                         @BeanProperty var keyOrder: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
                          @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
                          keySerializer: Serializer[K],
                          valueSerializer: Serializer[V],
@@ -101,5 +102,4 @@ object Map {
       valueSerializer = SerializerConverter.toScala(valueSerializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
     )
-
 }

@@ -21,12 +21,14 @@ package swaydb.java.data.util
 
 import java.util.Comparator
 import java.util.concurrent.ExecutorService
-import scala.compat.java8.DurationConverters._
 
+import swaydb.java.data.slice.ByteSlice
+
+import scala.compat.java8.DurationConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-object Javaz {
+object JavaConversions {
 
   type JavaFunction[T, R] = java.util.function.Function[T, R]
 
@@ -37,6 +39,11 @@ object Javaz {
 
   implicit class ComparatorImplicit[T](comparator: Comparator[T]) {
     @inline def asScala: Ordering[T] =
+      Ordering.comparatorToOrdering(comparator)
+  }
+
+  implicit class ComparatorByteSliceImplicit(comparator: Comparator[ByteSlice]) {
+    @inline def asScala: Ordering[ByteSlice] =
       Ordering.comparatorToOrdering(comparator)
   }
 

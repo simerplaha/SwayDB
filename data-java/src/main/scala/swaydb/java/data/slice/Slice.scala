@@ -24,7 +24,7 @@ import java.util.{Comparator, Optional}
 import java.{lang, util}
 
 import swaydb.data.slice.{Slice => ScalaSlice}
-import swaydb.java.data.util.Javaz._
+import swaydb.java.data.util.JavaConversions._
 import swaydb.java.data.util.Pair
 
 import scala.collection.JavaConverters._

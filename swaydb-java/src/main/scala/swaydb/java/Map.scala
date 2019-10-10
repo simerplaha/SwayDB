@@ -24,7 +24,7 @@ import java.util.function.{BiFunction, Consumer, Predicate}
 import scala.collection.JavaConverters._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.java.data.util.Javaz._
+import swaydb.java.data.util.JavaConversions._
 import swaydb.java.data.util.KeyVal
 import swaydb.Prepare
 

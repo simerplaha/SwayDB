@@ -26,7 +26,7 @@ import java.util.function.{Consumer, Predicate}
 import swaydb.Prepare
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.java.data.util.Javaz._
+import swaydb.java.data.util.JavaConversions._
 import swaydb.java.data.util.Pair
 
 import scala.collection.JavaConverters._

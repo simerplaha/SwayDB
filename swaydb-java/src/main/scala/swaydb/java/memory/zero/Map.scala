@@ -28,7 +28,8 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.IO
-import swaydb.java.data.util.Javaz.{JavaFunction, _}
+import swaydb.java.data.slice.ByteSlice
+import swaydb.java.data.util.JavaConversions.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.serializers.Serializer
 
@@ -40,7 +41,7 @@ object Map {
 
   class Builder[K, V, F](@BeanProperty var mapSize: Int = 4.mb,
                          @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         @BeanProperty var keyOrder: Comparator[Slice[java.lang.Byte]] = KeyOrder.defaultComparator.asInstanceOf[Comparator[Slice[java.lang.Byte]]],
+                         @BeanProperty var keyOrder: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
                          keySerializer: Serializer[K],
                          valueSerializer: Serializer[V],
                          functionClassTag: ClassTag[F]) {

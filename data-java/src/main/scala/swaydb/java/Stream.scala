@@ -22,7 +22,7 @@ package swaydb.java
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
-import swaydb.java.data.util.Javaz.JavaFunction
+import swaydb.java.data.util.JavaConversions.JavaFunction
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.FunctionConverters._
@@ -34,8 +34,8 @@ object Stream {
 }
 
 class Stream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
-  def forEach(f: Consumer[A]): Stream[Unit] =
-    new Stream[Unit](asScala.foreach(f.asScala))
+  def forEach(consumer: Consumer[A]): Stream[Unit] =
+    new Stream[Unit](asScala.foreach(consumer.asScala))
 
   def map[B](function: JavaFunction[A, B]): Stream[B] =
     Stream(asScala.map(function.asScala))
@@ -67,8 +67,8 @@ class Stream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
   def headOption: IO[Throwable, Optional[A]] =
     IO(asScala.headOption.map(_.asJava))
 
-  def foldLeft[B](initial: B, f: BiFunction[B, A, B]): IO[Throwable, B] =
-    IO(asScala.foldLeft(initial)(f.asScala))
+  def foldLeft[B](initial: B, function: BiFunction[B, A, B]): IO[Throwable, B] =
+    IO(asScala.foldLeft(initial)(function.asScala))
 
   def size: IO[Throwable, Int] =
     IO(asScala.size)
