@@ -80,7 +80,7 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
 
     "collect" in {
       Stream[Int, T](1 to 1000)
-        .collect { case n % 2 == 0 => n }
+        .collect { case n if n % 2 == 0 => n }
         .materialize
         .await shouldBe (2 to 1000 by 2)
     }
