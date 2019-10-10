@@ -47,7 +47,6 @@ object DefaultMemoryConfig {
   def apply(mapSize: Int,
             segmentSize: Int,
             mightContainFalsePositiveRate: Double,
-            compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
             acceleration: LevelZeroMeter => Accelerator): SwayDBMemoryConfig =
     ConfigWizard

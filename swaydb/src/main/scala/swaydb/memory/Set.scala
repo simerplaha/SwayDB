@@ -44,13 +44,11 @@ object Set extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[A, F, T[_]](mapSize: Int = 4.mb,
-                        maxOpenSegments: Int = 100,
                         segmentSize: Int = 2.mb,
-                        memoryCacheSize: Int = 500.mb, //cacheSize for memory database is used for evicting decompressed key-values
+                        maxOpenSegments: Int = 100,
                         maxCachedKeyValuesPerSegment: Int = 10,
                         fileSweeperPollInterval: FiniteDuration = 10.seconds,
                         mightContainFalsePositiveRate: Double = 0.01,
-                        compressDuplicateValues: Boolean = false,
                         deleteSegmentsEventually: Boolean = true,
                         acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
                                                                                               functionClassTag: ClassTag[F],
@@ -63,7 +61,6 @@ object Set extends LazyLogging {
         mapSize = mapSize,
         segmentSize = segmentSize,
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
         deleteSegmentsEventually = deleteSegmentsEventually,
         acceleration = acceleration
       ),
@@ -73,12 +70,7 @@ object Set extends LazyLogging {
           interval = fileSweeperPollInterval,
           ec = fileSweeperEC
         ),
-      memoryCache =
-        MemoryCache.KeyValueCacheOnly(
-          cacheCapacity = memoryCacheSize,
-          maxCachedKeyValueCountPerSegment = Some(maxCachedKeyValuesPerSegment),
-          memorySweeper = None
-        )
+      memoryCache = MemoryCache.Disable
     ) map {
       db =>
         swaydb.Set[A, F, T](db.toTag)
