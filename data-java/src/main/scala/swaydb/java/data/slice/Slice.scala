@@ -214,7 +214,12 @@ case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
     Slice(asScala.sorted(comparator.asScala))
 
   override def equals(obj: Any): Boolean =
-    asScala.equals(obj)
+    obj match {
+      case slice: Slice[_] =>
+        asScala.equals(slice.asScala)
+
+      case _ => false
+    }
 
   override def hashCode(): Int =
     asScala.hashCode()

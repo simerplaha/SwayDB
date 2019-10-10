@@ -137,7 +137,12 @@ class ByteSlice(slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.
     SliceReader(slice.asScala.createReader())
 
   override def equals(obj: Any): Boolean =
-    super.equals(obj)
+    obj match {
+      case other: ByteSlice =>
+        asScala.equals(other.asScala)
+
+      case _ => false
+    }
 
   override def hashCode(): Int =
     super.hashCode()
