@@ -47,8 +47,7 @@ object Map extends LazyLogging {
                                                                                                  valueSerializer: Serializer[V],
                                                                                                  functionClassTag: ClassTag[F],
                                                                                                  tag: swaydb.Tag[T],
-                                                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                 ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Map[K, V, F, T]] =
+                                                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Error.Boot, swaydb.Map[K, V, F, T]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryZeroConfig(

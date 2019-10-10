@@ -45,8 +45,7 @@ object Set extends LazyLogging {
                         acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
                                                                                               functionClassTag: ClassTag[F],
                                                                                               tag: swaydb.Tag[T],
-                                                                                              keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                              ec: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[A, F, T]] =
+                                                                                              keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Error.Boot, swaydb.Set[A, F, T]] =
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryZeroConfig(
