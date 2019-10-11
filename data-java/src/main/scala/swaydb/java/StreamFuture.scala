@@ -32,33 +32,33 @@ import scala.compat.java8.FutureConverters._
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.ExecutionContext
 
-class FutureStream[A](val asScala: swaydb.Stream[A, scala.concurrent.Future])(implicit val ec: ExecutionContext) {
+class StreamFuture[A](val asScala: swaydb.Stream[A, scala.concurrent.Future])(implicit val ec: ExecutionContext) {
 
-  def forEach(consumer: Consumer[A]): FutureStream[Unit] =
-    new FutureStream[Unit](asScala.foreach(consumer.asScala))
+  def forEach(consumer: Consumer[A]): StreamFuture[Unit] =
+    new StreamFuture[Unit](asScala.foreach(consumer.asScala))
 
-  def map[B](function: JavaFunction[A, B]): FutureStream[B] =
+  def map[B](function: JavaFunction[A, B]): StreamFuture[B] =
     Stream.fromScala(asScala.map(function.asScala))
 
-  def flatMap[B](function: JavaFunction[A, FutureStream[B]]): FutureStream[B] =
+  def flatMap[B](function: JavaFunction[A, StreamFuture[B]]): StreamFuture[B] =
     Stream.fromScala(asScala.flatMap(function.asScala(_).asScala))
 
-  def drop(count: Int): FutureStream[A] =
+  def drop(count: Int): StreamFuture[A] =
     Stream.fromScala(asScala.drop(count))
 
-  def dropWhile(predicate: Predicate[A]): FutureStream[A] =
+  def dropWhile(predicate: Predicate[A]): StreamFuture[A] =
     Stream.fromScala(asScala.dropWhile(predicate.asScala))
 
-  def take(count: Int): FutureStream[A] =
+  def take(count: Int): StreamFuture[A] =
     Stream.fromScala(asScala.take(count))
 
-  def takeWhile(predicate: Predicate[A]): FutureStream[A] =
+  def takeWhile(predicate: Predicate[A]): StreamFuture[A] =
     Stream.fromScala(asScala.takeWhile(predicate.asScala))
 
-  def filter(predicate: Predicate[A]): FutureStream[A] =
+  def filter(predicate: Predicate[A]): StreamFuture[A] =
     Stream.fromScala(asScala.filter(predicate.asScala))
 
-  def filterNot(predicate: Predicate[A]): FutureStream[A] =
+  def filterNot(predicate: Predicate[A]): StreamFuture[A] =
     Stream.fromScala(asScala.filterNot(predicate.asScala))
 
   def lastOption: CompletionStage[Optional[A]] =

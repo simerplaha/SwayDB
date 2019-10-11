@@ -28,32 +28,32 @@ import scala.collection.JavaConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.compat.java8.OptionConverters._
 
-class IOStream[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
-  def forEach(consumer: Consumer[A]): IOStream[Unit] =
-    new IOStream[Unit](asScala.foreach(consumer.asScala))
+class StreamIO[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
+  def forEach(consumer: Consumer[A]): StreamIO[Unit] =
+    new StreamIO[Unit](asScala.foreach(consumer.asScala))
 
-  def map[B](function: JavaFunction[A, B]): IOStream[B] =
+  def map[B](function: JavaFunction[A, B]): StreamIO[B] =
     Stream.fromScala(asScala.map(function.asScala))
 
-  def flatMap[B](function: JavaFunction[A, IOStream[B]]): IOStream[B] =
+  def flatMap[B](function: JavaFunction[A, StreamIO[B]]): StreamIO[B] =
     Stream.fromScala(asScala.flatMap(function.asScala(_).asScala))
 
-  def drop(count: Int): IOStream[A] =
+  def drop(count: Int): StreamIO[A] =
     Stream.fromScala(asScala.drop(count))
 
-  def dropWhile(predicate: Predicate[A]): IOStream[A] =
+  def dropWhile(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.dropWhile(predicate.test))
 
-  def take(count: Int): IOStream[A] =
+  def take(count: Int): StreamIO[A] =
     Stream.fromScala(asScala.take(count))
 
-  def takeWhile(predicate: Predicate[A]): IOStream[A] =
+  def takeWhile(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.takeWhile(predicate.test))
 
-  def filter(predicate: Predicate[A]): IOStream[A] =
+  def filter(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.filter(predicate.test))
 
-  def filterNot(predicate: Predicate[A]): IOStream[A] =
+  def filterNot(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.filterNot(predicate.test))
 
   def lastOption: IO[Throwable, Optional[A]] =

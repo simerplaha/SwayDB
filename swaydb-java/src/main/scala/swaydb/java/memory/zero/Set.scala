@@ -47,7 +47,7 @@ object Set {
 
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
 
-    def start(): IO[Throwable, swaydb.java.Set[A, F]] =
+    def start(): IO[Throwable, swaydb.java.SetIO[A, F]] =
       IO.fromScala {
         swaydb.IO {
           val scalaMap =
@@ -60,7 +60,7 @@ object Set {
               keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]]
             ).get
 
-          swaydb.java.Set[A, F](scalaMap)
+          swaydb.java.SetIO[A, F](scalaMap)
         }
       }
   }

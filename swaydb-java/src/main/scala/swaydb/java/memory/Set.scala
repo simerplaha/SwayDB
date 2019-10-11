@@ -58,7 +58,7 @@ object Set {
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
-    def start(): IO[Throwable, swaydb.java.Set[A, F]] =
+    def start(): IO[Throwable, swaydb.java.SetIO[A, F]] =
       new IO(
         swaydb.IO {
           val scalaMap =
@@ -78,7 +78,7 @@ object Set {
               fileSweeperEC = fileSweeperEC
             ).get
 
-          swaydb.java.Set[A, F](scalaMap)
+          swaydb.java.SetIO[A, F](scalaMap)
         }
       )
   }

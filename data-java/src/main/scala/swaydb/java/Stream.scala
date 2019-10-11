@@ -26,21 +26,21 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 object Stream {
-  def fromScala[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): IOStream[A] =
-    new IOStream(stream)
+  def fromScala[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): StreamIO[A] =
+    new StreamIO(stream)
 
-  def fromScala[A](stream: swaydb.Stream[A, scala.concurrent.Future])(implicit ec: ExecutionContext): FutureStream[A] =
-    new FutureStream(stream)
+  def fromScala[A](stream: swaydb.Stream[A, scala.concurrent.Future])(implicit ec: ExecutionContext): StreamFuture[A] =
+    new StreamFuture(stream)
 
-  def create[A](iterator: java.util.Iterator[A]): IOStream[A] =
-    new IOStream[A](swaydb.Stream(iterator.asScala.toIterable))
+  def create[A](iterator: java.util.Iterator[A]): StreamIO[A] =
+    new StreamIO[A](swaydb.Stream(iterator.asScala.toIterable))
 
-  def create[A](ioStreamer: IOStreamer[A]): IOStream[A] =
-    new IOStream(swaydb.Stream(ioStreamer.toScalaStreamer))
+  def create[A](ioStreamer: IOStreamer[A]): StreamIO[A] =
+    new StreamIO(swaydb.Stream(ioStreamer.toScalaStreamer))
 
-  def create[A](ioStreamer: FutureStreamer[A]): FutureStream[A] = {
+  def create[A](ioStreamer: FutureStreamer[A]): StreamFuture[A] = {
     implicit val ec: ExecutionContext = ioStreamer.executorService.asScala
     implicit val tag: Tag.Async.Retryable[Future] = Tag.future(ec)
-    new FutureStream(swaydb.Stream(ioStreamer.toScalaStreamer))
+    new StreamFuture(swaydb.Stream(ioStreamer.toScalaStreamer))
   }
 }

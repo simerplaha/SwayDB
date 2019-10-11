@@ -14,6 +14,7 @@ val boopickleVersion = "1.3.1"
 val monixVersion = "3.0.0"
 val zioVersion = "1.0.0-RC14"
 val scalaJava8CompatVersion = "0.9.0"
+val junitJupiterVersion = "5.5.2"
 
 parallelExecution in ThisBuild := false
 
@@ -60,6 +61,11 @@ val testDependencies =
     "io.suzaku" %% "boopickle" % boopickleVersion % Test
   )
 
+val commonJavaDependencies =
+  Seq(
+    "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test
+  )
+
 val commonDependencies =
   Seq(
     "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
@@ -95,10 +101,9 @@ lazy val `data-java` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= Seq(
-        "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion,
-          "org.junit.jupiter" % "junit-jupiter-api" % "5.5.2" % Test
-      )
+      libraryDependencies ++=
+        commonJavaDependencies :+
+          "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
     ).dependsOn(data)
 
 lazy val swaydb =
@@ -171,6 +176,9 @@ lazy val `swaydb-java` =
     .settings(name := "java")
     .settings(commonSettings)
     .settings(publishSettings)
+    .settings(
+      libraryDependencies ++= commonJavaDependencies
+    )
     .dependsOn(swaydb, `data-java`)
 
 

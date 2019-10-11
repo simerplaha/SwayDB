@@ -39,7 +39,7 @@ import scala.concurrent.duration.Deadline
  *
  * For documentation check - http://swaydb.io/
  */
-case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
+case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
@@ -69,7 +69,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def add(elems: A*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.add(elems)
 
-  def add(elems: IOStream[A]): IO[scala.Throwable, swaydb.IO.Done] =
+  def add(elems: StreamIO[A]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.add(elems.asScala)
 
   def add(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -84,7 +84,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def remove(elems: A*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.remove(elems)
 
-  def remove(elems: IOStream[A]): IO[scala.Throwable, swaydb.IO.Done] =
+  def remove(elems: StreamIO[A]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.remove(elems.asScala)
 
   def remove(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -104,7 +104,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
       }
     }
 
-  def expire(elems: IOStream[Pair[A, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(elems: StreamIO[Pair[A, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire {
       elems.asScala.map {
         pair =>
@@ -135,7 +135,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def commit(prepare: Prepare[A, Nothing]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare)
 
-  def commit(prepare: IOStream[Prepare[A, Nothing]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit(prepare: StreamIO[Prepare[A, Nothing]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare.asScala)
 
   def commit(prepare: java.util.Iterator[Prepare[A, Nothing]]): IO[scala.Throwable, swaydb.IO.Done] =
@@ -165,40 +165,40 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
         Optional.empty[java.time.Duration]()
     }
 
-  def from(key: A): Set[A, F] =
-    Set(asScala.from(key))
+  def from(key: A): SetIO[A, F] =
+    SetIO(asScala.from(key))
 
-  def before(key: A): Set[A, F] =
-    Set(asScala.before(key))
+  def before(key: A): SetIO[A, F] =
+    SetIO(asScala.before(key))
 
-  def fromOrBefore(key: A): Set[A, F] =
-    Set(asScala.fromOrBefore(key))
+  def fromOrBefore(key: A): SetIO[A, F] =
+    SetIO(asScala.fromOrBefore(key))
 
-  def after(key: A): Set[A, F] =
-    Set(asScala.after(key))
+  def after(key: A): SetIO[A, F] =
+    SetIO(asScala.after(key))
 
-  def fromOrAfter(key: A): Set[A, F] =
-    Set(asScala.fromOrAfter(key))
+  def fromOrAfter(key: A): SetIO[A, F] =
+    SetIO(asScala.fromOrAfter(key))
 
   def headOptional: IO[scala.Throwable, Optional[A]] =
     asScala.headOption.map(_.asJava)
 
-  def drop(count: Int): IOStream[A] =
+  def drop(count: Int): StreamIO[A] =
     Stream.fromScala(asScala.drop(count))
 
-  def dropWhile(predicate: Predicate[A]): IOStream[A] =
+  def dropWhile(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.dropWhile(predicate.test))
 
-  def take(count: Int): IOStream[A] =
+  def take(count: Int): StreamIO[A] =
     Stream.fromScala(asScala.take(count))
 
-  def takeWhile(predicate: Predicate[A]): IOStream[A] =
+  def takeWhile(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.takeWhile(predicate.test))
 
-  def map[B](function: JavaFunction[A, B]): IOStream[B] =
+  def map[B](function: JavaFunction[A, B]): StreamIO[B] =
     Stream.fromScala(asScala.map(function.apply))
 
-  def flatMap[B](function: JavaFunction[A, IOStream[B]]): IOStream[B] =
+  def flatMap[B](function: JavaFunction[A, StreamIO[B]]): StreamIO[B] =
     Stream.fromScala(
       asScala.flatMap {
         item =>
@@ -206,13 +206,13 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
       }
     )
 
-  def forEach(consumer: Consumer[A]): IOStream[Unit] =
+  def forEach(consumer: Consumer[A]): StreamIO[Unit] =
     Stream.fromScala(asScala.foreach(consumer.accept))
 
-  def filter(predicate: Predicate[A]): IOStream[A] =
+  def filter(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.filter(predicate.test))
 
-  def filterNot(predicate: Predicate[A]): IOStream[A] =
+  def filterNot(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.filterNot(predicate.test))
 
   def foldLeft[B](initial: B, fold: JavaFunction[Pair[B, A], B]): IO[scala.Throwable, B] =
@@ -224,7 +224,7 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def size: IO[scala.Throwable, Int] =
     stream.size
 
-  def stream: IOStream[A] =
+  def stream: StreamIO[A] =
     Stream.fromScala(asScala.stream)
 
   def sizeOfBloomFilterEntries: IO[scala.Throwable, Int] =
@@ -239,8 +239,8 @@ case class Set[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def lastOptional: IO[scala.Throwable, Optional[A]] =
     asScala.lastOption.map(_.asJava)
 
-  def reverse: Set[A, F] =
-    Set(asScala.reverse)
+  def reverse: SetIO[A, F] =
+    SetIO(asScala.reverse)
 
   def asJava: util.Set[A] =
     asScala.asScala.asJava

@@ -71,7 +71,7 @@ object Map {
     implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
     implicit val fileSweeperEC = fileSweeperExecutorService.asScala
 
-    def start(): IO[Throwable, swaydb.java.Map[K, V, F]] =
+    def start(): IO[Throwable, swaydb.java.MapIO[K, V, F]] =
       IO.fromScala {
         swaydb.IO {
           val scalaMap =
@@ -102,7 +102,7 @@ object Map {
               fileSweeperEC = fileSweeperEC
             ).get
 
-          swaydb.java.Map[K, V, F](scalaMap)
+          swaydb.java.MapIO[K, V, F](scalaMap)
         }
       }
   }

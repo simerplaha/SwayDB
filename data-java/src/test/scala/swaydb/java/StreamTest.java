@@ -33,7 +33,7 @@ class StreamTest {
   @Test
   void mapIO() throws Throwable {
 
-    IOStream<Integer> stream = Stream.create(source.iterator());
+    StreamIO<Integer> stream = Stream.create(source.iterator());
 
     List<Integer> streamIntegers =
       stream
@@ -47,7 +47,7 @@ class StreamTest {
   @Test
   void flatMapIO() throws Throwable {
 
-    IOStream<Integer> stream = Stream.create(source.iterator());
+    StreamIO<Integer> stream = Stream.create(source.iterator());
 
     List<Integer> streamIntegers =
       stream
