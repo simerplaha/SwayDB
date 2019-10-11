@@ -289,6 +289,9 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     }
   }
 
+  def collectFirst[B](pf: PartialFunction[A, B]): T[Option[B]] =
+    collect(pf).headOption
+
   def filterNot(f: A => Boolean): Stream[A, T] =
     filter(!f(_))
 
