@@ -20,7 +20,7 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
-import java.util.Comparator
+import java.util.{Comparator, Optional}
 import java.util.concurrent.ExecutorService
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -62,16 +62,35 @@ object Map {
                          @BeanProperty var compressDuplicateValues: Boolean = true,
                          @BeanProperty var deleteSegmentsEventually: Boolean = true,
                          @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         @BeanProperty var keyOrder: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
+                         @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
+                         @BeanProperty var typedComparator: Optional[Comparator[K]] = Optional.empty[Comparator[K]](),
                          @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
                          keySerializer: Serializer[K],
                          valueSerializer: Serializer[V],
                          functionClassTag: ClassTag[F]) {
 
-    implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
-    implicit val fileSweeperEC = fileSweeperExecutorService.asScala
+    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] =
+      if (typedComparator.isPresent)
+        KeyOrder(
+          new Ordering[Slice[Byte]] {
+            val typedOrder = typedComparator.get()
 
-    def start(): IO[Throwable, swaydb.java.MapIO[K, V, F]] =
+            override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
+              val leftKey = keySerializer.read(left)
+              val rightKey = keySerializer.read(right)
+              typedOrder.compare(leftKey, rightKey)
+            }
+          }
+        )
+      else
+        KeyOrder(
+          (left: Slice[Byte], right: Slice[Byte]) =>
+            bytesComparator.compare(ByteSlice(left), ByteSlice(right))
+        )
+
+    implicit def fileSweeperEC = fileSweeperExecutorService.asScala
+
+    def create(): IO[Throwable, swaydb.java.MapIO[K, V, F]] =
       IO.fromScala {
         swaydb.IO {
           val scalaMap =
@@ -98,7 +117,7 @@ object Map {
               valueSerializer = valueSerializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]],
+              keyOrder = scalaKeyOrder,
               fileSweeperEC = fileSweeperEC
             ).get
 
@@ -107,7 +126,7 @@ object Map {
       }
   }
 
-  def enableFunctions[K, V, F](dir: Path,
+  def configFunctions[K, V, F](dir: Path,
                                keySerializer: JavaSerializer[K],
                                valueSerializer: JavaSerializer[V]): Builder[K, V, F] =
     new Builder(
@@ -117,9 +136,9 @@ object Map {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def disableFunctions[K, V](dir: Path,
-                             keySerializer: JavaSerializer[K],
-                             valueSerializer: JavaSerializer[V]): Builder[K, V, Functions.Disabled] =
+  def config[K, V](dir: Path,
+                   keySerializer: JavaSerializer[K],
+                   valueSerializer: JavaSerializer[V]): Builder[K, V, Functions.Disabled] =
     new Builder(
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),

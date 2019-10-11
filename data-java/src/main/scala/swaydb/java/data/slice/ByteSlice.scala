@@ -29,6 +29,9 @@ import swaydb.java.data.util.Pair._
 object ByteSlice {
   def apply(slice: Slice[Byte]): ByteSlice =
     new ByteSlice(slice)
+
+  def apply(slice: swaydb.data.slice.Slice[Byte]): ByteSlice =
+    new ByteSlice(Slice(slice))
 }
 
 class ByteSlice(slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.asInstanceOf[swaydb.data.slice.Slice[java.lang.Byte]]) {

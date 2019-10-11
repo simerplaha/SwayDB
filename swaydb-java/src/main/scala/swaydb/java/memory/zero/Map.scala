@@ -19,7 +19,7 @@
 
 package swaydb.java.memory.zero
 
-import java.util.Comparator
+import java.util.{Comparator, Optional}
 
 import swaydb.Tag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -41,14 +41,32 @@ object Map {
 
   class Builder[K, V, F](@BeanProperty var mapSize: Int = 4.mb,
                          @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         @BeanProperty var keyOrder: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
+                         @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
+                         @BeanProperty var typedComparator: Optional[Comparator[K]] = Optional.empty[Comparator[K]](),
                          keySerializer: Serializer[K],
                          valueSerializer: Serializer[V],
                          functionClassTag: ClassTag[F]) {
 
-    implicit val scalaKeyOrder = KeyOrder(keyOrder.asScala)
+    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] =
+      if (typedComparator.isPresent)
+        KeyOrder(
+          new Ordering[Slice[Byte]] {
+            val typedOrder = typedComparator.get()
 
-    def start(): IO[Throwable, swaydb.java.MapIO[K, V, F]] =
+            override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
+              val leftKey = keySerializer.read(left)
+              val rightKey = keySerializer.read(right)
+              typedOrder.compare(leftKey, rightKey)
+            }
+          }
+        )
+      else
+        KeyOrder(
+          (left: Slice[Byte], right: Slice[Byte]) =>
+            bytesComparator.compare(ByteSlice(left), ByteSlice(right))
+        )
+
+    def create(): IO[Throwable, swaydb.java.MapIO[K, V, F]] =
       IO.fromScala {
         swaydb.IO {
           val scalaMap =
@@ -59,7 +77,7 @@ object Map {
               valueSerializer = valueSerializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]]
+              keyOrder = scalaKeyOrder
             ).get
 
           swaydb.java.MapIO[K, V, F](scalaMap)
@@ -67,7 +85,7 @@ object Map {
       }
   }
 
-  def enableFunctions[K, V, F](keySerializer: JavaSerializer[K],
+  def configFunctions[K, V, F](keySerializer: JavaSerializer[K],
                                valueSerializer: JavaSerializer[V]): Builder[K, V, F] =
     new Builder(
       keySerializer = SerializerConverter.toScala(keySerializer),
@@ -75,8 +93,8 @@ object Map {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def disableFunctions[K, V](keySerializer: JavaSerializer[K],
-                             valueSerializer: JavaSerializer[V]): Builder[K, V, Functions.Disabled] =
+  def config[K, V](keySerializer: JavaSerializer[K],
+                   valueSerializer: JavaSerializer[V]): Builder[K, V, Functions.Disabled] =
     new Builder(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),

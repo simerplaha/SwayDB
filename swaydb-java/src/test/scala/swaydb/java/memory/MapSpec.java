@@ -21,16 +21,151 @@ package swaydb.java.memory;
 
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.ThrowingSupplier;
+import swaydb.data.util.Functions;
+import swaydb.java.MapIO;
+import swaydb.java.data.slice.ByteSlice;
+import swaydb.java.data.util.KeyVal;
+import swaydb.java.serializers.Serializer;
 
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.BiConsumer;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
-import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.*;
+import static swaydb.java.serializers.Default.intSerializer;
 
-public class MapSpec {
+class MapSpec {
 
+  @Test
+  void createMap() throws Throwable {
+    MapIO<Integer, Integer, Functions.Disabled> map =
+      Map
+        .config(intSerializer(), intSerializer())
+        .create()
+        .get();
+
+    assertDoesNotThrow(() -> map.put(1, 1).get());
+    assertEquals(map.get(1).get().get(), 1);
+    assertTrue(map.get(2).get().isEmpty());
+  }
+
+  @Test
+  void createMapWithCustomTypedComparator() throws Throwable {
+
+    Map.Config<Integer, Integer, Functions.Disabled> config =
+      Map.config(intSerializer(), intSerializer());
+
+    //reverse comparator
+    config.setTypedComparator(Optional.of((left, right) -> left.compareTo(right) * -1));
+
+    assertTrue(config.getTypedComparator().isPresent());
+
+    MapIO<Integer, Integer, Functions.Disabled> map =
+      config
+        .create()
+        .get();
+
+
+    assertDoesNotThrow(() -> map.put(1, 1).get());
+    assertDoesNotThrow(() -> map.put(2, 2).get());
+
+    List<Integer> integers = map
+      .stream()
+      .map(KeyVal::key).materialize()
+      .get();
+
+    assertEquals(Arrays.asList(2, 1), integers);
+  }
+
+  @Test
+  void createMapWithCustomSerializer() throws Throwable {
+    class Key {
+      Integer key;
+
+      Key setKey(Integer key) {
+        this.key = key;
+        return this;
+      }
+    }
+
+    class Value {
+      Integer value;
+
+      Value setValue(Integer value) {
+        this.value = value;
+        return this;
+      }
+    }
+
+    Key key1 = new Key().setKey(1);
+    Key key2 = new Key().setKey(2);
+
+    Value value1 = new Value().setValue(1);
+    Value value2 = new Value().setValue(2);
+
+    Serializer<Key> keySerializer = new Serializer<>() {
+      @Override
+      public byte[] write(Key data) {
+        byte[] bytes = {data.key.byteValue()};
+        return bytes;
+      }
+
+      @Override
+      public Key read(ByteSlice slice) {
+        if (slice.get(0) == 1) {
+          return key1;
+        } else {
+          return key2;
+        }
+      }
+    };
+
+    Serializer<Value> valueSerializer = new Serializer<>() {
+      @Override
+      public byte[] write(Value data) {
+        byte[] bytes = {data.value.byteValue()};
+        return bytes;
+      }
+
+      @Override
+      public Value read(ByteSlice slice) {
+        if (slice.get(0) == 1) {
+          return value1;
+        } else {
+          return value2;
+        }
+      }
+    };
+
+
+    Map.Config<Key, Value, Functions.Disabled> config =
+      Map.config(keySerializer, valueSerializer);
+
+    MapIO<Key, Value, Functions.Disabled> map =
+      config
+        .create()
+        .get();
+
+
+    assertDoesNotThrow(() -> map.put(key1, value1).get());
+    assertDoesNotThrow(() -> map.put(key2, value2).get());
+
+    List<Key> mapKeys =
+      map
+        .stream()
+        .map(KeyVal::key).materialize()
+        .get();
+
+    assertEquals(Arrays.asList(key1, key2), mapKeys);
+
+    List<Integer> setKeys =
+      map
+        .keys()
+        .stream()
+        .map(key -> key.key)
+        .materialize()
+        .get();
+
+    assertEquals(Arrays.asList(1, 2), setKeys);
+  }
 }
