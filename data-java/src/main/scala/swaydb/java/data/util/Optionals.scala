@@ -17,29 +17,20 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.memory;
+package swaydb.java.data.util
 
+import java.util.Optional
 
-import org.junit.jupiter.api.Test;
-import swaydb.data.util.Functions;
-import swaydb.java.SetIO;
+object Optionals {
 
-import static org.junit.jupiter.api.Assertions.*;
-import static swaydb.java.serializers.Default.intSerializer;
+  implicit class OptionalImplicits[T](optional: Optional[T]) {
+    @inline def isDefined =
+      optional.isPresent
 
-class SetSpec {
-
-  @Test
-  void createMap() throws Throwable {
-    SetIO<Integer, Functions.Disabled> set =
-      Set
-        .config(intSerializer())
-        .create()
-        .get();
-
-    assertDoesNotThrow(() -> set.add(1).get());
-    assertEquals(set.get(1).get().get(), 1);
-    assertFalse(set.get(2).get().isPresent());
+    /**
+     * Seems like Java8 does not have optional.isEmpty. So custom functions.
+     */
+    @inline def isEmpty =
+      !isDefined
   }
-
 }

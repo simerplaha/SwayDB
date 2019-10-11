@@ -46,7 +46,7 @@ class MapSpec {
 
     assertDoesNotThrow(() -> map.put(1, 1).get());
     assertEquals(map.get(1).get().get(), 1);
-    assertTrue(map.get(2).get().isEmpty());
+    assertFalse(map.get(2).get().isPresent());
   }
 
   @Test
@@ -103,7 +103,7 @@ class MapSpec {
     Value value1 = new Value().setValue(1);
     Value value2 = new Value().setValue(2);
 
-    Serializer<Key> keySerializer = new Serializer<>() {
+    Serializer<Key> keySerializer = new Serializer<Key>() {
       @Override
       public byte[] write(Key data) {
         byte[] bytes = {data.key.byteValue()};
@@ -120,7 +120,7 @@ class MapSpec {
       }
     };
 
-    Serializer<Value> valueSerializer = new Serializer<>() {
+    Serializer<Value> valueSerializer = new Serializer<Value>() {
       @Override
       public byte[] write(Value data) {
         byte[] bytes = {data.value.byteValue()};

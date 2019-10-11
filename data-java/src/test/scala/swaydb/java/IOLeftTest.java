@@ -155,6 +155,6 @@ class IOLeftTest {
   @Test
   void toOptional() {
     Optional<Integer> integer = io.toOptional();
-    assertTrue(integer.isEmpty());
+    assertFalse(integer.isPresent());
   }
 }
