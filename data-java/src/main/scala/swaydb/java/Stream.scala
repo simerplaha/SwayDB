@@ -23,7 +23,7 @@ import swaydb.Tag
 import swaydb.java.data.util.Java._
 
 import scala.collection.JavaConverters._
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 object Stream {
   def fromScala[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): IOStream[A] =
@@ -39,8 +39,8 @@ object Stream {
     new IOStream(swaydb.Stream(ioStreamer.toScalaStreamer))
 
   def create[A](ioStreamer: FutureStreamer[A]): FutureStream[A] = {
-    implicit val ec = ioStreamer.executorService.asScala
-    implicit val tag = Tag.future(ec)
+    implicit val ec: ExecutionContext = ioStreamer.executorService.asScala
+    implicit val tag: Tag.Async.Retryable[Future] = Tag.future(ec)
     new FutureStream(swaydb.Stream(ioStreamer.toScalaStreamer))
   }
 }
