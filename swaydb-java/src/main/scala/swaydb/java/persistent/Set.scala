@@ -38,6 +38,7 @@ import swaydb.{SwayDB, Tag}
 
 import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.reflect.ClassTag
 
@@ -82,11 +83,13 @@ object Set {
         )
       else
         KeyOrder(
-          (left: Slice[Byte], right: Slice[Byte]) =>
-            bytesComparator.compare(ByteSlice(left), ByteSlice(right))
+          new Ordering[Slice[Byte]] {
+            override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
+              bytesComparator.compare(ByteSlice(left), ByteSlice(right))
+          }
         )
 
-    implicit def fileSweeperEC = fileSweeperExecutorService.asScala
+    implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 
     def create(): IO[Throwable, swaydb.java.SetIO[A, F]] =
       IO.fromScala {

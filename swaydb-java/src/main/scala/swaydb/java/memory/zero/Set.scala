@@ -61,8 +61,10 @@ object Set {
         )
       else
         KeyOrder(
-          (left: Slice[Byte], right: Slice[Byte]) =>
-            bytesComparator.compare(ByteSlice(left), ByteSlice(right))
+          new Ordering[Slice[Byte]] {
+            override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
+              bytesComparator.compare(ByteSlice(left), ByteSlice(right))
+          }
         )
 
     def create(): IO[Throwable, swaydb.java.SetIO[A, F]] =
