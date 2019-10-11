@@ -21,10 +21,8 @@ package swaydb.java;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,13 +49,13 @@ class IOLeftTest {
   }
 
   @Test
-  void left() {
-    assertDoesNotThrow(() -> io.leftValue().get());
+  void leftIO() {
+    assertDoesNotThrow(() -> io.leftIO().get());
   }
 
   @Test
-  void right() {
-    assertThrows(UnsupportedOperationException.class, () -> io.rightValue().get());
+  void rightIO() {
+    assertThrows(UnsupportedOperationException.class, () -> io.rightIO().get());
   }
 
   @Test

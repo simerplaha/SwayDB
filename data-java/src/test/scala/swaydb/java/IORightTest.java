@@ -43,12 +43,12 @@ class IORightTest {
 
   @Test
   void left() {
-    assertThrows(UnsupportedOperationException.class, () -> io.leftValue().get());
+    assertThrows(UnsupportedOperationException.class, () -> io.leftIO().get());
   }
 
   @Test
   void right() throws Throwable {
-    assertEquals(1, io.rightValue().get());
+    assertEquals(1, io.rightIO().get());
   }
 
   @Test
