@@ -35,7 +35,7 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 sealed trait ActorRef[-T, S] { self =>
 
-  def ec: ExecutionContext
+  def executionContext: ExecutionContext
 
   def send(message: T): Unit
 
@@ -365,7 +365,7 @@ class Actor[-T, S](val state: S,
                    cached: Boolean,
                    execution: (T, Actor[T, S]) => Unit,
                    interval: Option[Interval],
-                   recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit val ec: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
+                   recovery: Option[(T, IO[Throwable, Actor.Error], Actor[T, S]) => Unit])(implicit val executionContext: ExecutionContext) extends ActorRef[T, S] with LazyLogging { self =>
 
   private val busy = new AtomicBoolean(false)
   private val weight = new AtomicInteger(0)
