@@ -91,7 +91,7 @@ object Set {
               blockSize = blockSize,
               compressDuplicateValues = compressDuplicateValues,
               deleteSegmentsEventually = deleteSegmentsEventually,
-              acceleration = acceleration.asScala,
+              acceleration = acceleration.asScala
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,

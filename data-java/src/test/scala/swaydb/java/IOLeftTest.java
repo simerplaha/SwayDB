@@ -33,14 +33,15 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class IOLeftTest {
 
-  private class FailedIO extends RuntimeException {
+  private static class FailedIO extends RuntimeException {
   }
 
-  IO<Throwable, Integer> io = IO.run(
-    () -> {
-      throw new FailedIO();
-    }
-  );
+  IO<Throwable, Integer> io =
+    IO.run(
+      () -> {
+        throw new FailedIO();
+      }
+    );
 
   @Test
   void isLeft() {
@@ -80,9 +81,7 @@ class IOLeftTest {
   @Test
   void or() throws Throwable {
     IO<Throwable, Integer> result =
-      io.or(
-        () -> IO.right(222)
-      );
+      io.or(() -> IO.right(222));
 
     assertEquals(222, result.get());
   }
@@ -102,7 +101,7 @@ class IOLeftTest {
 
 
   @Test
-  void filter() throws Throwable {
+  void filter() {
     IO<Throwable, Integer> existsNot = io.filter(integer -> integer == 12);
     assertTrue(existsNot.isLeft());
     assertThrows(FailedIO.class, () -> existsNot.get());
@@ -111,9 +110,7 @@ class IOLeftTest {
   @Test
   void recoverWith() throws Throwable {
     IO<Throwable, Integer> recovered =
-      io.recoverWith(
-        throwable -> IO.right(22222)
-      );
+      io.recoverWith(throwable -> IO.right(22222));
 
     assertTrue(recovered.isRight());
     assertEquals(recovered.get(), 22222);
@@ -122,9 +119,7 @@ class IOLeftTest {
   @Test
   void recover() throws Throwable {
     IO<Throwable, Integer> recovered =
-      io.recover(
-        throwable -> 22222
-      );
+      io.recover(throwable -> 22222);
 
     assertTrue(recovered.isRight());
     assertEquals(recovered.get(), 22222);
@@ -134,11 +129,7 @@ class IOLeftTest {
   void onLeftSideEffect() {
     AtomicBoolean executed = new AtomicBoolean(false);
     IO<Throwable, Integer> recovered =
-      io.onLeftSideEffect(
-        throwable -> {
-          executed.set(true);
-        }
-      );
+      io.onLeftSideEffect(throwable -> executed.set(true));
 
     assertEquals(io, recovered);
 
@@ -148,11 +139,7 @@ class IOLeftTest {
   @Test
   void onRightSideEffect() {
     AtomicBoolean executed = new AtomicBoolean(false);
-    io.onRightSideEffect(
-      throwable -> {
-        executed.set(true);
-      }
-    );
+    io.onRightSideEffect(throwable -> executed.set(true));
 
     assertFalse(executed.get());
   }
@@ -161,11 +148,7 @@ class IOLeftTest {
   void onCompleteSideEffect() {
     AtomicBoolean executed = new AtomicBoolean(false);
     IO<Throwable, Integer> recovered =
-      io.onCompleteSideEffect(
-        throwable -> {
-          executed.set(true);
-        }
-      );
+      io.onCompleteSideEffect(throwable -> executed.set(true));
 
     assertTrue(executed.get());
     assertTrue(recovered.isLeft());

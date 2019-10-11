@@ -73,7 +73,7 @@ object Map {
               fileSweeperPollInterval = fileSweeperPollInterval.toScala,
               mightContainFalsePositiveRate = mightContainFalsePositiveRate,
               deleteSegmentsEventually = deleteSegmentsEventually,
-              acceleration = acceleration.asScala,
+              acceleration = acceleration.asScala
             )(keySerializer = keySerializer,
               valueSerializer = valueSerializer,
               functionClassTag = functionClassTag,

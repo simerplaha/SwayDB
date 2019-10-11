@@ -93,7 +93,7 @@ object Map {
               mightContainFalsePositiveRate = mightContainFalsePositiveRate,
               compressDuplicateValues = compressDuplicateValues,
               deleteSegmentsEventually = deleteSegmentsEventually,
-              acceleration = acceleration.asScala,
+              acceleration = acceleration.asScala
             )(keySerializer = keySerializer,
               valueSerializer = valueSerializer,
               functionClassTag = functionClassTag,

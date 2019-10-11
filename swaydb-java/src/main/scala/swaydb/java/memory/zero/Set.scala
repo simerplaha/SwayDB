@@ -53,11 +53,11 @@ object Set {
           val scalaMap =
             swaydb.memory.zero.Set[A, F, swaydb.IO.ThrowableIO](
               mapSize = mapSize,
-              acceleration = acceleration.asScala,
+              acceleration = acceleration.asScala
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]],
+              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]]
             ).get
 
           swaydb.java.Set[A, F](scalaMap)

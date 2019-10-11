@@ -54,12 +54,12 @@ object Map {
           val scalaMap =
             swaydb.memory.zero.Map[K, V, F, swaydb.IO.ThrowableIO](
               mapSize = mapSize,
-              acceleration = acceleration.asScala,
+              acceleration = acceleration.asScala
             )(keySerializer = keySerializer,
               valueSerializer = valueSerializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]],
+              keyOrder = scalaKeyOrder.asInstanceOf[KeyOrder[Slice[Byte]]]
             ).get
 
           swaydb.java.Map[K, V, F](scalaMap)

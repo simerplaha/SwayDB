@@ -68,12 +68,7 @@ class IORightTest {
   @Test
   void orElseGet() {
     Integer result =
-      io.orElseGet(
-        () -> {
-          fail("Should not have executed this");
-          return null;
-        }
-      );
+      io.orElseGet(() -> fail("Should not have executed this"));
 
     assertEquals(1, result);
   }
@@ -81,12 +76,7 @@ class IORightTest {
   @Test
   void or() throws Throwable {
     IO<Throwable, Integer> result =
-      io.or(
-        () -> {
-          fail("Should not have executed this");
-          return null;
-        }
-      );
+      io.or(() -> fail("Should not have executed this"));
 
     assertEquals(1, result.get());
   }
@@ -119,12 +109,7 @@ class IORightTest {
   @Test
   void recoverWith() throws Throwable {
     IO<Throwable, Integer> recovered =
-      io.recoverWith(
-        throwable -> {
-          fail("Unexpected");
-          return null;
-        }
-      );
+      io.recoverWith(throwable -> fail("Unexpected"));
 
     assertTrue(recovered.isRight());
     assertEquals(recovered.get(), 1);
@@ -133,12 +118,7 @@ class IORightTest {
   @Test
   void recover() throws Throwable {
     IO<Throwable, Integer> recovered =
-      io.recover(
-        throwable -> {
-          fail("Unexpected");
-          return null;
-        }
-      );
+      io.recover(throwable -> fail("Unexpected"));
 
     assertTrue(recovered.isRight());
     assertEquals(recovered.get(), 1);
@@ -147,11 +127,7 @@ class IORightTest {
   @Test
   void onLeftSideEffect() throws Throwable {
     IO<Throwable, Integer> recovered =
-      io.onLeftSideEffect(
-        throwable -> {
-          fail("Unexpected");
-        }
-      );
+      io.onLeftSideEffect(throwable -> fail("Unexpected"));
 
     assertTrue(recovered.isRight());
     assertEquals(recovered.get(), 1);
@@ -161,11 +137,7 @@ class IORightTest {
   void onRightSideEffect() throws Throwable {
     AtomicBoolean executed = new AtomicBoolean(false);
     IO<Throwable, Integer> recovered =
-      io.onRightSideEffect(
-        throwable -> {
-          executed.set(true);
-        }
-      );
+      io.onRightSideEffect(throwable -> executed.set(true));
 
     assertTrue(executed.get());
     assertTrue(recovered.isRight());
@@ -176,11 +148,7 @@ class IORightTest {
   void onCompleteSideEffect() throws Throwable {
     AtomicBoolean executed = new AtomicBoolean(false);
     IO<Throwable, Integer> recovered =
-      io.onCompleteSideEffect(
-        throwable -> {
-          executed.set(true);
-        }
-      );
+      io.onCompleteSideEffect(throwable -> executed.set(true));
 
     assertTrue(executed.get());
     assertTrue(recovered.isRight());

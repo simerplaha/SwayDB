@@ -43,5 +43,4 @@ object Default {
 
   def stringSerializer(): Serializer[java.lang.String] =
     toJava(swaydb.serializers.Default.javaStringSerializer())
-
 }

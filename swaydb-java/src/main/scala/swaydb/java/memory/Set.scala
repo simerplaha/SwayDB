@@ -70,7 +70,7 @@ object Set {
               fileSweeperPollInterval = fileSweeperPollInterval.toScala,
               mightContainFalsePositiveRate = mightContainFalsePositiveRate,
               deleteSegmentsEventually = deleteSegmentsEventually,
-              acceleration = acceleration.asScala,
+              acceleration = acceleration.asScala
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
