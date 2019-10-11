@@ -259,35 +259,56 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         tag.collectFirst(previous, self)(f)
     }
 
-  def collect[B](pf: PartialFunction[A, B]): Stream[B, T] = {
+  def collect[B](pf: PartialFunction[A, B]): Stream[B, T] =
     new Stream[B, T] {
 
       var previousA: Option[A] = Option.empty
 
-      override def headOption: T[Option[B]] =
-        self.headOption map {
-          previousAOption =>
-            previousA = previousAOption
-            previousAOption.collect(pf)
-        }
+      def stepForward(startFrom: Option[A]): T[Option[B]] =
+        startFrom match {
+          case Some(startFrom) =>
+            var nextMatch = Option.empty[B]
 
-      /**
-        * Previous input parameter here is ignored so that parent stream can be read.
-        */
-      override private[swaydb] def next(previous: B): T[Option[B]] =
-        previousA match {
-          case Some(previous) =>
-            self.next(previous) map {
-              nextA =>
-                previousA = nextA
-                nextA.collect(pf)
-            }
+            //collectFirst is a stackSafe way reading the stream until a condition is met.
+            //use collectFirst to stream until the first match.
+            tag
+              .collectFirst(startFrom, self) {
+                nextA =>
+                  this.previousA = Some(nextA)
+                  nextMatch = this.previousA.collectFirst(pf)
+                  nextMatch.isDefined
+              }
+              .map {
+                _ =>
+                  //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
+                  nextMatch
+              }
 
           case None =>
             tag.none
         }
+
+      override def headOption: T[Option[B]] =
+        self.headOption flatMap {
+          headOption =>
+            //check if head satisfies the partial functions.
+            this.previousA = headOption //also store A in the current Stream so next() invocation starts from this A.
+            val previousAMayBe = previousA.collectFirst(pf) //check if headOption can be returned.
+
+            if (previousAMayBe.isDefined) //check if headOption satisfies the partial function.
+              tag.success(previousAMayBe) //yes it does. Return!
+            else if (headOption.isDefined) //headOption did not satisfy the partial function but check if headOption was defined and step forward.
+              stepForward(headOption) //headOption was defined so there might be more in the stream so step forward.
+            else //if there was no headOption then stream must be empty.
+              tag.none //empty stream.
+        }
+
+      /**
+       * Previous input parameter here is ignored so that parent stream can be read.
+       */
+      override private[swaydb] def next(previous: B): T[Option[B]] =
+        stepForward(previousA) //continue from previously read A.
     }
-  }
 
   def filterNot(f: A => Boolean): Stream[A, T] =
     filter(!f(_))

@@ -78,11 +78,18 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
         .await shouldBe (1 to 1000).map(_ + " one two three")
     }
 
-    "collect" in {
+    "collect conditional" in {
       Stream[Int, T](1 to 1000)
         .collect { case n if n % 2 == 0 => n }
         .materialize
         .await shouldBe (2 to 1000 by 2)
+    }
+
+    "collect all" in {
+      Stream[Int, T](1 to 1000)
+        .collect { case n => n }
+        .materialize
+        .await shouldBe (1 to 1000)
     }
 
     "drop, take and map" in {
