@@ -29,16 +29,17 @@ import swaydb.java.data.util.Java.JavaFunction
 import swaydb.{Scheduler, Tag}
 
 import scala.compat.java8.DurationConverters._
-import scala.compat.java8.FunctionConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
 
 object Actor {
 
-  class TerminateActor extends Throwable
+  final class TerminatedActor extends Throwable
 
-  class ActorRef[T, S](val asScala: swaydb.ActorRef[T, S]) {
+  trait ActorBase[T, S] {
     implicit val tag = Tag.future(asScala.executionContext)
+
+    def asScala: swaydb.ActorRef[T, S]
 
     def send(message: T): Unit =
       asScala.send(message)
@@ -88,62 +89,64 @@ object Actor {
 
     def terminateAndClear(): Unit =
       asScala.terminateAndClear()
+  }
 
-    def recover[M <: T](execution: TriFunctionVoid[M, Throwable, Actor[T, S]]): ActorRef[T, S] = {
+  final class ActorRef[T, S](override val asScala: swaydb.ActorRef[T, S]) extends ActorBase[T, S] {
+    def recover[M <: T](execution: TriFunctionVoid[M, Throwable, ActorInstance[T, S]]): ActorRef[T, S] = {
       val actorRefWithRecovery =
         asScala.recover[M, Throwable] {
           case (message, io, actor) =>
             val throwable: Throwable =
               io match {
                 case swaydb.IO.Right(_) =>
-                  new TerminateActor()
+                  new TerminatedActor()
 
                 case swaydb.IO.Left(value) =>
                   value
               }
-            execution.apply(message, throwable, new Actor(actor))
+            execution.apply(message, throwable, new ActorInstance(actor))
         }
 
       new ActorRef(actorRefWithRecovery)
     }
 
-    def terminateAndRecover[M <: T](execution: TriFunctionVoid[M, Throwable, Actor[T, S]]): ActorRef[T, S] = {
+    def terminateAndRecover[M <: T](execution: TriFunctionVoid[M, Throwable, ActorInstance[T, S]]): ActorRef[T, S] = {
       val actorRefWithRecovery =
         asScala.recover[M, Throwable] {
           case (message, io, actor) =>
             val throwable: Throwable =
               io match {
                 case swaydb.IO.Right(_) =>
-                  new TerminateActor()
+                  new TerminatedActor()
 
                 case swaydb.IO.Left(value) =>
                   value
               }
-            execution.apply(message, throwable, new Actor(actor))
+            execution.apply(message, throwable, new ActorInstance(actor))
         }
 
       new ActorRef(actorRefWithRecovery)
     }
   }
 
-  class Actor[T, S](override val asScala: swaydb.Actor[T, S]) extends ActorRef[T, S](asScala) {
+  final class ActorInstance[T, S](val asScala: swaydb.Actor[T, S]) extends ActorBase[T, S] {
     def state(): S = asScala.state
   }
 
-  def statelessFIFO[T](execution: BiConsumer[T, Actor[T, java.lang.Void]],
-                       executorService: ExecutorService): ActorRef[T, java.lang.Void] =
-    statefulFIFO[T, java.lang.Void](null, execution, executorService)
+  def createStatelessFIFO[T](execution: BiConsumer[T, ActorInstance[T, java.lang.Void]],
+                             executorService: ExecutorService): ActorRef[T, java.lang.Void] =
+    createStatefulFIFO[T, java.lang.Void](null, execution, executorService)
 
-  def statelessOrdered[T](execution: BiConsumer[T, Actor[T, java.lang.Void]],
-                          executorService: ExecutorService,
-                          comparator: Comparator[T]): ActorRef[T, java.lang.Void] =
-    statefulOrdered[T, java.lang.Void](null, execution, executorService, comparator)
+  def createStatelessOrdered[T](execution: BiConsumer[T, ActorInstance[T, java.lang.Void]],
+                                executorService: ExecutorService,
+                                comparator: Comparator[T]): ActorRef[T, java.lang.Void] =
+    createStatefulOrdered[T, java.lang.Void](null, execution, executorService, comparator)
 
-  def statefulFIFO[T, S](initialState: S,
-                         execution: BiConsumer[T, Actor[T, S]],
-                         executorService: ExecutorService): ActorRef[T, S] = {
+  def createStatefulFIFO[T, S](initialState: S,
+                               execution: BiConsumer[T, ActorInstance[T, S]],
+                               executorService: ExecutorService): ActorRef[T, S] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, S]) =
-      execution.accept(message, new Actor(actor))
+      execution.accept(message, new ActorInstance(actor))
 
     val scalaActorRef =
       swaydb.Actor[T, S](initialState)(execution = scalaExecution)(
@@ -154,12 +157,12 @@ object Actor {
     new ActorRef(scalaActorRef)
   }
 
-  def statefulOrdered[T, S](initialState: S,
-                            execution: BiConsumer[T, Actor[T, S]],
-                            executorService: ExecutorService,
-                            comparator: Comparator[T]): ActorRef[T, S] = {
+  def createStatefulOrdered[T, S](initialState: S,
+                                  execution: BiConsumer[T, ActorInstance[T, S]],
+                                  executorService: ExecutorService,
+                                  comparator: Comparator[T]): ActorRef[T, S] = {
     def scalaExecution(message: T, actor: swaydb.Actor[T, S]) =
-      execution.accept(message, new Actor(actor))
+      execution.accept(message, new ActorInstance(actor))
 
     val scalaActorRef =
       swaydb.Actor[T, S](initialState)(execution = scalaExecution)(
