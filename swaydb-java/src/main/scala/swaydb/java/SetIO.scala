@@ -123,13 +123,13 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction(function: F with swaydb.Function.GetKey[A, Nothing]): Unit =
+  def registerFunction(function: F with swaydb.PureFunction.GetKey[A, Nothing]): Unit =
     asScala.registerFunction(function)
 
-  def applyFunction(from: A, to: A, function: F with swaydb.Function.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction(from: A, to: A, function: F with swaydb.PureFunction.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.applyFunction(from, to, function)
 
-  def applyFunction(elem: A, function: F with swaydb.Function.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction(elem: A, function: F with swaydb.PureFunction.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.applyFunction(elem, function)
 
   def commit(prepare: Prepare[A, Nothing]*): IO[scala.Throwable, swaydb.IO.Done] =

@@ -111,13 +111,13 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction(function: F with swaydb.Function[K, V]): Unit =
+  def registerFunction(function: F with swaydb.PureFunction[K, V]): Unit =
     asScala.registerFunction(function)
 
-  def applyFunction(key: K, function: F with swaydb.Function[K, V]): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction(key: K, function: F with swaydb.PureFunction[K, V]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.applyFunction(key, function)
 
-  def applyFunction(from: K, to: K, function: F with swaydb.Function[K, V]): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction(from: K, to: K, function: F with swaydb.PureFunction[K, V]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.applyFunction(from, to, function)
 
   def commit(prepare: Prepare[K, V]*): IO[scala.Throwable, swaydb.IO.Done] =

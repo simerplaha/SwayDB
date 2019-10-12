@@ -37,7 +37,7 @@ protected object Key {
   case class Id(id: Int) extends Key
   sealed trait Function extends Key
 
-  case object IncrementValue extends Key.Function with swaydb.Function.GetValue[Int] {
+  case object IncrementValue extends Key.Function with swaydb.PureFunction.GetValue[Int] {
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Update[Int](value + 1)
 
@@ -45,7 +45,7 @@ protected object Key {
       Slice.writeInt(1)
   }
 
-  case object DoNothing extends Key.Function with swaydb.Function.GetValue[Int] {
+  case object DoNothing extends Key.Function with swaydb.PureFunction.GetValue[Int] {
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Nothing
 

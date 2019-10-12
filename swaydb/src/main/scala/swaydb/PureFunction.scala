@@ -23,14 +23,18 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-sealed trait Function[+K, +V] {
+sealed trait PureFunction[+K, +V] {
   /**
-   * This unique id is stored in the database when an update is submitted.
+   * This unique [[id]] of this function.
    *
-   * This can simply be an increment integer. For example:
+   * It is stored in the database and should be unique to each function.
+   *
+   * This can simply be the full class name if your application does not
+   * have conflict package names and class names.
+   *
+   * For example:
    * {{{
-   *   val id = new AtomicInteger(0)
-   *   Slice.writeInt(id.incrementAndGet())
+   *   Slice.writeString(this.getClass.getCanonicalName)
    * }}}
    *
    * @return a unique id for each function.
@@ -38,17 +42,23 @@ sealed trait Function[+K, +V] {
   def id: Slice[Byte]
 }
 
-object Function {
+/**
+ * Function types for SwayDB.
+ *
+ * Your registered functions ([[Map.registerFunction]]) should implement one of the these functions that
+ * informs SwayDB of target data for the on the applied key should be read to execute the function.
+ */
+object PureFunction {
 
-  trait GetValue[V] extends (V => Apply.Map[V]) with Function[Nothing, V] {
+  trait GetValue[V] extends (V => Apply.Map[V]) with PureFunction[Nothing, V] {
     override def apply(value: V): Apply.Map[V]
   }
 
-  trait GetKey[K, +V] extends ((K, Option[Deadline]) => Apply.Map[V]) with Function[K, V] {
+  trait GetKey[K, +V] extends ((K, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V] {
     override def apply(key: K, deadline: Option[Deadline]): Apply.Map[V]
   }
 
-  trait GetKeyValue[K, V] extends ((K, V, Option[Deadline]) => Apply.Map[V]) with Function[K, V] {
+  trait GetKeyValue[K, V] extends ((K, V, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V] {
     override def apply(key: K, value: V, deadline: Option[Deadline]): Apply.Map[V]
   }
 }
