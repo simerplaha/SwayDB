@@ -138,7 +138,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction(function: F with swaydb.PureFunction[K, V]): Unit =
+  def registerFunction(function: F with swaydb.PureFunction[K, V]): T[IO.Done] =
     (function: swaydb.PureFunction[K, V]) match {
       case function: swaydb.PureFunction.GetValue[V] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))

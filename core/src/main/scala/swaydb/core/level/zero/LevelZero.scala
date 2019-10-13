@@ -330,8 +330,8 @@ private[core] case class LevelZero(path: Path,
           IO.Defer.done
       }
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): SwayFunction =
-    functionStore.put(functionId, function)
+  def registerFunction(functionId: Slice[Byte], function: SwayFunction): IO.Defer[Error.Level, IO.Done] =
+    IO.Defer(functionStore.put(functionId, function))
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO.Done =
     if (!functionStore.exists(function))
