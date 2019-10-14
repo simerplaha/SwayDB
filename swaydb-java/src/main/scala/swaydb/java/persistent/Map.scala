@@ -120,7 +120,7 @@ object Map {
               valueSerializer = valueSerializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder,
+              keyOrder = Left(scalaKeyOrder),
               fileSweeperEC = fileSweeperEC
             ).get
 

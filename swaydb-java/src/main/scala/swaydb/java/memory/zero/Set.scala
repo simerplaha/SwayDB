@@ -77,7 +77,7 @@ object Set {
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder
+              keyOrder = Left(scalaKeyOrder)
             ).get
 
           swaydb.java.SetIO[A, F](scalaMap)

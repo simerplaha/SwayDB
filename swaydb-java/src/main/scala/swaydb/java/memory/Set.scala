@@ -96,7 +96,7 @@ object Set {
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder,
+              keyOrder = Left(scalaKeyOrder),
               fileSweeperEC = fileSweeperEC
             ).get
 

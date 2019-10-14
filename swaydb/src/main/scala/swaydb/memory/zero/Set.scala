@@ -28,9 +28,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO, SwayDB}
+import swaydb.{Error, IO, KeyOrderConverter}
 
-import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
@@ -45,7 +44,9 @@ object Set extends LazyLogging {
                         acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
                                                                                               functionClassTag: ClassTag[F],
                                                                                               tag: swaydb.Tag[T],
-                                                                                              keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[Error.Boot, swaydb.Set[A, F, T]] =
+                                                                                              keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.Set[A, F, T]] = {
+    implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
+
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryZeroConfig(
@@ -56,4 +57,5 @@ object Set extends LazyLogging {
       db =>
         swaydb.Set[A, F, T](db.toTag)
     }
+  }
 }
