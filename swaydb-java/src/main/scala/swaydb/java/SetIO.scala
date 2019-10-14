@@ -227,8 +227,8 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def stream: StreamIO[A] =
     Stream.fromScala(asScala.stream)
 
-  def sizeOfBloomFilterEntries: IO[scala.Throwable, Integer] =
-    asScala.sizeOfBloomFilterEntries.asInstanceOf[IO[scala.Throwable, Integer]]
+  def keyValueCount: IO[scala.Throwable, Integer] =
+    asScala.keyValueCount.asInstanceOf[IO[scala.Throwable, Integer]]
 
   def isEmpty: IO[scala.Throwable, java.lang.Boolean] =
     asScala.isEmpty.asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]

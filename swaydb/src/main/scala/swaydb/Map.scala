@@ -329,7 +329,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
         }
     }
 
-  def sizeOfBloomFilterEntries: T[Int] =
+  def keyValueCount: T[Int] =
     tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =
