@@ -20,7 +20,7 @@
 package swaydb.java
 
 import swaydb.java.data.slice.Slice
-import swaydb.{Apply, Map}
+import swaydb.{Map, Apply => ScalaApply}
 
 import scala.concurrent.duration.Deadline
 
@@ -53,16 +53,16 @@ object PureFunction {
 
   @FunctionalInterface
   trait GetValue[V] extends PureFunction[scala.Nothing, V] {
-    def apply(value: V): Apply.Map[V]
+    def apply(value: V): ScalaApply.Map[V]
   }
 
   @FunctionalInterface
   trait GetKey[K, V] extends PureFunction[K, V] {
-    def apply(key: K, deadline: Option[Deadline]): Apply.Map[V]
+    def apply(key: K, deadline: Option[Deadline]): ScalaApply.Map[V]
   }
 
   @FunctionalInterface
   trait GetKeyValue[K, V] extends PureFunction[K, V] {
-    def apply(key: K, value: V, deadline: Option[Deadline]): Apply.Map[V]
+    def apply(key: K, value: V, deadline: Option[Deadline]): ScalaApply.Map[V]
   }
 }

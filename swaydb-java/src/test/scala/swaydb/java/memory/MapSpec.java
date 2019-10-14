@@ -187,17 +187,19 @@ class MapSpec {
     assertEquals(map.get(1).get().get(), 1);
 
 
-//    map.registerFunction(new PureFunction.GetKey<Integer, Integer>() {
-//      @Override
-//      public Slice<Byte> id() {
-//        return null;
-//      }
+//    map.registerFunction(
+//      new PureFunction.GetKey<Integer, Integer>() {
+//        @Override
+//        public Apply.Map<Integer> apply(Integer key, Option<Deadline> deadline) {
+//          return null;
+//        }
 //
-//      @Override
-//      public Apply.Map<Integer> apply(Integer integer, Option<Deadline> deadlineOption) {
-//        return null;
+//        @Override
+//        public Slice<Byte> id() {
+//          return null;
+//        }
 //      }
-//    }).get();
+//    );
 
   }
 }
