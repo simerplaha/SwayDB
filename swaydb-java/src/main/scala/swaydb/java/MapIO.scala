@@ -269,8 +269,8 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def stream: StreamIO[KeyVal[K, V]] =
     new StreamIO(asScala.stream.map(_.asKeyVal))
 
-  def keyValueCount: IO[scala.Throwable, Integer] =
-    asScala.keyValueCount.asInstanceOf[swaydb.IO.ThrowableIO[Integer]]
+  def sizeOfBloomFilterEntries: IO[scala.Throwable, Integer] =
+    asScala.sizeOfBloomFilterEntries.asInstanceOf[swaydb.IO.ThrowableIO[Integer]]
 
   def isEmpty: IO[scala.Throwable, java.lang.Boolean] =
     asScala.isEmpty.asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]

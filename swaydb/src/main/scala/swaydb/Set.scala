@@ -256,7 +256,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
         } map (_.map(_.read[A]))
     }
 
-  def keyValueCount: T[Int] =
+  def sizeOfBloomFilterEntries: T[Int] =
     tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =

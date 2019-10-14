@@ -54,7 +54,7 @@ class MapSpec implements JavaEventually {
 
     assertTrue(map.contains(1).get());
 
-    assertEquals(1, map.keyValueCount().get());
+    assertEquals(1, map.sizeOfBloomFilterEntries().get());
     assertEquals(1, map.size().get());
 
 
