@@ -47,7 +47,7 @@ object Set {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
-    def createOrStart(): IO[Throwable, swaydb.java.SetIO[A, F]] =
+    def init(): IO[Throwable, swaydb.java.SetIO[A, F]] =
       IO.fromScala {
         swaydb.IO {
           val scalaMap =

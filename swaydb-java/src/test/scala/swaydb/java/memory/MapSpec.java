@@ -45,7 +45,7 @@ class MapSpec implements JavaEventually {
     MapIO<Integer, Integer, Functions.Disabled> map =
       Map
         .config(intSerializer(), intSerializer())
-        .createOrStart()
+        .init()
         .get();
 
     assertDoesNotThrow(() -> map.put(1, 1).get());
@@ -77,7 +77,7 @@ class MapSpec implements JavaEventually {
 
     MapIO<Integer, Integer, Functions.Disabled> map =
       config
-        .createOrStart()
+        .init()
         .get();
 
 
@@ -159,7 +159,7 @@ class MapSpec implements JavaEventually {
 
     MapIO<Key, Value, Functions.Disabled> map =
       config
-        .createOrStart()
+        .init()
         .get();
 
 
@@ -192,7 +192,7 @@ class MapSpec implements JavaEventually {
     MapIO<Integer, Integer, PureFunction<Integer, Integer>> map =
       Map
         .configWithFunctions(intSerializer(), intSerializer())
-        .createOrStart()
+        .init()
         .get();
 
     assertDoesNotThrow(() -> map.put(1, 1).get());
