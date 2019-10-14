@@ -30,7 +30,7 @@ import java.util.function.BiConsumer;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ActorTest {
+class ActorTest implements JavaEventually {
 
   @Test
   void createActor() throws InterruptedException {

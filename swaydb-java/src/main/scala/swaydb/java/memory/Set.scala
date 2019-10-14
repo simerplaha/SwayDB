@@ -60,7 +60,7 @@ object Set {
 
     implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 
-    def create(): IO[Throwable, swaydb.java.SetIO[A, F]] =
+    def createOrStart(): IO[Throwable, swaydb.java.SetIO[A, F]] =
       new IO(
         swaydb.IO {
           val scalaMap =

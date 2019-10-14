@@ -46,7 +46,7 @@ object IO {
     new IO(swaydb.IO.Right(right)(exceptionHandler))(exceptionHandler)
 
   def rightNeverException[L, R](right: R): IO[L, R] = {
-    implicit val neverException = swaydb.IO.ExceptionHandler.neverException[L]
+    implicit val throwException = swaydb.IO.ExceptionHandler.neverException[L]
     new IO(swaydb.IO.Right(right))
   }
 
@@ -54,7 +54,7 @@ object IO {
     new IO(swaydb.IO.Left(left))
 
   def leftNeverException[L, R](left: L): IO[L, R] = {
-    implicit val neverException = swaydb.IO.ExceptionHandler.neverException[L]
+    implicit val throwException = swaydb.IO.ExceptionHandler.neverException[L]
     new IO(swaydb.IO.Left(left))
   }
 

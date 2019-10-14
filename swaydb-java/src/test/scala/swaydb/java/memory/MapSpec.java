@@ -23,6 +23,7 @@ package swaydb.java.memory;
 import org.junit.jupiter.api.Test;
 import swaydb.data.util.Functions;
 import swaydb.java.IO;
+import swaydb.java.JavaEventually;
 import swaydb.java.MapIO;
 import swaydb.java.PureFunction;
 import swaydb.java.data.slice.ByteSlice;
@@ -37,20 +38,19 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
-class MapSpec {
+class MapSpec implements JavaEventually {
 
   @Test
   void createMap() {
     MapIO<Integer, Integer, Functions.Disabled> map =
       Map
         .config(intSerializer(), intSerializer())
-        .create()
+        .createOrStart()
         .get();
 
     assertDoesNotThrow(() -> map.put(1, 1).get());
     assertEquals(map.get(1).get().get(), 1);
     assertFalse(map.get(2).get().isPresent());
-
 
     assertTrue(map.contains(1).get());
 
@@ -77,7 +77,7 @@ class MapSpec {
 
     MapIO<Integer, Integer, Functions.Disabled> map =
       config
-        .create()
+        .createOrStart()
         .get();
 
 
@@ -159,7 +159,7 @@ class MapSpec {
 
     MapIO<Key, Value, Functions.Disabled> map =
       config
-        .create()
+        .createOrStart()
         .get();
 
 
@@ -192,7 +192,7 @@ class MapSpec {
     MapIO<Integer, Integer, PureFunction<Integer, Integer>> map =
       Map
         .configWithFunctions(intSerializer(), intSerializer())
-        .create()
+        .createOrStart()
         .get();
 
     assertDoesNotThrow(() -> map.put(1, 1).get());

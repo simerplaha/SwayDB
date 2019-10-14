@@ -35,7 +35,7 @@ class SetSpec {
     SetIO<Integer, Functions.Disabled> set =
       Set
         .config(intSerializer())
-        .create()
+        .createOrStart()
         .get();
 
     assertDoesNotThrow(() -> set.add(1).get());
@@ -57,7 +57,7 @@ class SetSpec {
     SetIO<Integer, PureFunction<Integer, Void>> set =
       Set
         .configWithFunctions(intSerializer())
-        .create()
+        .createOrStart()
         .get();
 
     set.close().get();
