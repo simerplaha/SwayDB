@@ -43,19 +43,19 @@ import scala.reflect.ClassTag
 
 object Set {
 
-  class Config[A, F](@BeanProperty var mapSize: Int = 4.mb,
-                     @BeanProperty var segmentSize: Int = 2.mb,
-                     @BeanProperty var maxOpenSegments: Int = 100,
-                     @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
-                     @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
-                     @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
-                     @BeanProperty var deleteSegmentsEventually: Boolean = true,
-                     @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                     @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
-                     @BeanProperty var typedComparator: Optional[Comparator[A]] = Optional.empty[Comparator[A]](),
-                     @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
-                     serializer: Serializer[A],
-                     functionClassTag: ClassTag[F]) {
+  class Config[A, F, SF](@BeanProperty var mapSize: Int = 4.mb,
+                         @BeanProperty var segmentSize: Int = 2.mb,
+                         @BeanProperty var maxOpenSegments: Int = 100,
+                         @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
+                         @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
+                         @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
+                         @BeanProperty var deleteSegmentsEventually: Boolean = true,
+                         @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                         @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
+                         @BeanProperty var typedComparator: Optional[Comparator[A]] = Optional.empty[Comparator[A]](),
+                         @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
+                         serializer: Serializer[A],
+                         functionClassTag: ClassTag[SF]) {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(bytesComparator, typedComparator, serializer)
 
@@ -65,7 +65,7 @@ object Set {
       new IO(
         swaydb.IO {
           val scalaMap =
-            swaydb.memory.Set[A, F, swaydb.IO.ThrowableIO](
+            swaydb.memory.Set[A, SF, swaydb.IO.ThrowableIO](
               mapSize = mapSize,
               segmentSize = segmentSize,
               maxOpenSegments = maxOpenSegments,
@@ -86,13 +86,13 @@ object Set {
       )
   }
 
-  def configWithFunctions[A, F](serializer: JavaSerializer[A]): Config[A, F] =
+  def configWithFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction[A, java.lang.Void], swaydb.PureFunction[A, Nothing]] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[A, Nothing]]]
     )
 
-  def config[A](serializer: JavaSerializer[A]): Config[A, Functions.Disabled] =
+  def config[A](serializer: JavaSerializer[A]): Config[A, Functions.Disabled, Functions.Disabled] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]

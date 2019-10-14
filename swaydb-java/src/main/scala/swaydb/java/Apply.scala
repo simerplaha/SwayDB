@@ -32,7 +32,7 @@ object Apply {
     ScalaApply.Nothing
 
   def remove[T](): ScalaApply.Map[T] with ScalaApply.Set[T] =
-    ScalaApply.Nothing
+    ScalaApply.Remove
 
   def expire[T](after: java.time.Duration): ScalaApply.Map[T] with ScalaApply.Set[T] =
     ScalaApply.Expire(after.toScala.fromNow)

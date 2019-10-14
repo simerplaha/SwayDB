@@ -69,11 +69,11 @@ object Map {
   }
 
   def configWithFunctions[K, V](keySerializer: JavaSerializer[K],
-                                valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction.GetKey[K, V], swaydb.PureFunction.GetKey[K, V]] =
+                                valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction.OnKey[K, V], swaydb.PureFunction.OnKey[K, V]] =
     new Builder(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.GetKey[K, V]]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[K, V]]]
     )
 
   def config[K, V](keySerializer: JavaSerializer[K],

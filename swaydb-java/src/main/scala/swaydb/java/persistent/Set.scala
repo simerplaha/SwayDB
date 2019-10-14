@@ -108,11 +108,11 @@ object Set {
   }
 
   def configWithFunctions[A](dir: Path,
-                             keySerializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.GetKey[A, scala.Nothing], swaydb.PureFunction.GetKey[A, scala.Nothing]] =
+                             keySerializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, scala.Nothing], swaydb.PureFunction.OnKey[A, scala.Nothing]] =
     new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.GetKey[A, scala.Nothing]]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, scala.Nothing]]]
     )
 
   def config[A](dir: Path,

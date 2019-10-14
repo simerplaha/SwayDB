@@ -238,13 +238,13 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
       }
     )
 
-  def forEach(function: Consumer[KeyVal[K, V]]): StreamIO[java.lang.Void] =
+  def forEach(function: Consumer[KeyVal[K, V]]): StreamIO[Unit] =
     Stream.fromScala(
       asScala foreach {
         case (key: K, value: V) =>
           function.accept(KeyVal(key, value))
       }
-    ).asInstanceOf[StreamIO[java.lang.Void]]
+    )
 
   def filter(function: Predicate[KeyVal[K, V]]): StreamIO[KeyVal[K, V]] =
     Stream.fromScala(
@@ -284,11 +284,11 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def reverse: MapIO[K, V, F] =
     copy(asScala.reverse)
 
-  def close(): IO[scala.Throwable, java.lang.Void] =
-    asScala.close().asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Void]]
+  def close(): IO[scala.Throwable, Unit] =
+    asScala.close()
 
-  def delete(): IO[scala.Throwable, java.lang.Void] =
-    asScala.delete().asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Void]]
+  def delete(): IO[scala.Throwable, Unit] =
+    asScala.delete()
 
   override def toString(): String =
     classOf[MapIO[_, _, _]].getClass.getSimpleName

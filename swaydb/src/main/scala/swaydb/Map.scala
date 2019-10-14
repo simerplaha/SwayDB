@@ -140,13 +140,13 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
 
   def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
     (function: swaydb.PureFunction[K, V]) match {
-      case function: swaydb.PureFunction.GetValue[V] =>
+      case function: swaydb.PureFunction.OnValue[V] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-      case function: swaydb.PureFunction.GetKey[K, V] =>
+      case function: swaydb.PureFunction.OnKey[K, V] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-      case function: swaydb.PureFunction.GetKeyValue[K, V] =>
+      case function: swaydb.PureFunction.OnKeyValue[K, V] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
     }
 

@@ -31,7 +31,6 @@ import swaydb.java.serializers.Serializer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
@@ -194,7 +193,7 @@ class MapSpec {
     assertEquals(map.get(1).get().get(), 1);
 
 
-    PureFunction.GetKey<Integer, Integer> getKey =
+    PureFunction.OnKey<Integer, Integer> getKey =
       (key, deadline) ->
         swaydb.java.Apply.update(10, Optional.empty());
 

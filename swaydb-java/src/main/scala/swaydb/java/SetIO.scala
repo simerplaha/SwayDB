@@ -45,8 +45,8 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
 
-  private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.GetKey[A, java.lang.Void], ThrowableIO] =
-    asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.GetKey[A, java.lang.Void], swaydb.IO.ThrowableIO]]
+  private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.OnKey[A, java.lang.Void], ThrowableIO] =
+    asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, java.lang.Void], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
     asScala.get(elem).map(_.asJava)
@@ -123,13 +123,13 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, java.lang.Void]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def registerFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.registerFunction(PureFunction.asScala(function))
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, java.lang.Void]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, java.lang.Void]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(elem, PureFunction.asScala(function))
 
   def commit(prepare: java.util.List[Prepare[A, java.lang.Void]]): IO[scala.Throwable, swaydb.IO.Done] =

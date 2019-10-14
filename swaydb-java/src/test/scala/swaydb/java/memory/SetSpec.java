@@ -52,35 +52,32 @@ class SetSpec {
     }).materialize().get();
 
 
-    PureFunction.GetKey<Integer, Void> getKey = (key, deadline) -> null;
-
+    PureFunction.OnKey<Integer, Void> getKey = (key, deadline) -> null;
 //    set.registerFunction(getKey); //does not compile
   }
 
-//  @Test
-//  void createMapWithFunctions() throws Throwable {
-//    SetIO<Integer, Functions.Disabled> set =
-//      Set
-//        .configWithFunctions(intSerializer())
-//        .create()
-//        .get();
-//
-//    assertDoesNotThrow(() -> set.add(1).get());
-//    assertEquals(set.get(1).get().get(), 1);
-//    assertFalse(set.get(2).get().isPresent());
-//
-//    set.forEach(new Consumer<Integer>() {
-//      @Override
-//      public void accept(Integer integer) {
-//        System.out.println("integer = " + integer);
-//      }
-//    }).materialize().get();
-//
-//
-//    PureFunction.GetKey<Integer, Void> getKey = (key, deadline) -> null;
-//
-////    set.registerFunction(getKey); //does not compile
-//  }
+  @Test
+  void createMapWithFunctions() throws Throwable {
+    SetIO<Integer, PureFunction<Integer, Void>> set =
+      Set
+        .configWithFunctions(intSerializer())
+        .create()
+        .get();
+
+    set.close().get();
+
+    assertDoesNotThrow(() -> set.add(1).get());
+    assertEquals(set.get(1).get().get(), 1);
+    assertFalse(set.get(2).get().isPresent());
+
+    PureFunction.OnKey<Integer, Void> removeKey =
+      (key, deadline) ->
+        swaydb.java.Apply.remove();
+
+    set.registerFunction(removeKey).get();
+
+    set.applyFunction(1, removeKey).get();
+  }
 
 
 }

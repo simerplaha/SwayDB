@@ -126,13 +126,13 @@ case class Set[A, F, T[_]](private val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.GetKey[A, Nothing]): T[IO.Done] =
+  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing]): T[IO.Done] =
     core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-  def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.GetKey[A, Nothing]): T[IO.Done] =
+  def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing]): T[IO.Done] =
     tag.point(core.function(from, to, function.id))
 
-  def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.GetKey[A, Nothing]): T[IO.Done] =
+  def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing]): T[IO.Done] =
     tag.point(core.function(elem, function.id))
 
   def commit(prepare: Prepare[A, Nothing]*): T[IO.Done] =

@@ -187,7 +187,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           val updatedProduct = product.copy(name = product.name + "-" + s"updated_${System.nanoTime()}")
 
           def createFunction() =
-            new PureFunction.GetKey[Long, Domain] with Functions {
+            new PureFunction.OnKey[Long, Domain] with Functions {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 if (key == productId)
                   Apply.Update(updatedProduct)
@@ -220,7 +220,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           val newDeadline = deadline.map(_ - 1.second) getOrElse 1.hour.fromNow
 
           def createFunction() =
-            new PureFunction.GetKey[Long, Domain] with Functions {
+            new PureFunction.OnKey[Long, Domain] with Functions {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Expire(newDeadline)
 
@@ -322,7 +322,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           val updatedProduct = Product(s"update_range_${System.nanoTime()}")
 
           def createFunction() =
-            new PureFunction.GetKey[Long, Domain] with Functions {
+            new PureFunction.OnKey[Long, Domain] with Functions {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Update(updatedProduct)
 
@@ -364,7 +364,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               1.hour.fromNow
 
           def createFunction() =
-            new PureFunction.GetKey[Long, Domain] with Functions {
+            new PureFunction.OnKey[Long, Domain] with Functions {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Expire(newDeadline)
 
@@ -399,7 +399,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           val (productToRemoveId, productToRemove) = randomCreatedProducts.head
 
           def createFunction() =
-            new PureFunction.GetKey[Long, Domain] with Functions {
+            new PureFunction.OnKey[Long, Domain] with Functions {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Remove
 
@@ -452,7 +452,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
           }
 
           def createFunction() =
-            new PureFunction.GetKey[Long, Domain] with Functions {
+            new PureFunction.OnKey[Long, Domain] with Functions {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Remove
 
