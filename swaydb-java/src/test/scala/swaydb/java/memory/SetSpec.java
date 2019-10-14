@@ -44,12 +44,10 @@ class SetSpec {
     assertEquals(set.get(1).get().get(), 1);
     assertFalse(set.get(2).get().isPresent());
 
-    set.forEach(new Consumer<Integer>() {
-      @Override
-      public void accept(Integer integer) {
-        System.out.println("integer = " + integer);
-      }
-    }).materialize().get();
+    set
+      .forEach(integer -> System.out.println("integer = " + integer))
+      .materialize()
+      .get();
 
 
     PureFunction.OnKey<Integer, Void> getKey = (key, deadline) -> null;
@@ -70,6 +68,11 @@ class SetSpec {
     assertEquals(set.get(1).get().get(), 1);
     assertFalse(set.get(2).get().isPresent());
 
+    set
+      .forEach(integer -> System.out.println("integer = " + integer))
+      .materialize()
+      .get();
+
     PureFunction.OnKey<Integer, Void> removeKey =
       (key, deadline) ->
         swaydb.java.Apply.remove();
@@ -77,6 +80,7 @@ class SetSpec {
     set.registerFunction(removeKey).get();
 
     set.applyFunction(1, removeKey).get();
+    assertTrue(set.isEmpty().get());
   }
 
 

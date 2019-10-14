@@ -51,14 +51,14 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
     asScala.get(elem).map(_.asJava)
 
-  def contains(elem: A): IO[scala.Throwable, Boolean] =
-    asScala.contains(elem)
+  def contains(elem: A): IO[scala.Throwable, java.lang.Boolean] =
+    asScala.contains(elem).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
-  def mightContain(elem: A): IO[scala.Throwable, Boolean] =
-    asScala.mightContain(elem)
+  def mightContain(elem: A): IO[scala.Throwable, java.lang.Boolean] =
+    asScala.mightContain(elem).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
-  def mightContainFunction(functionId: A): IO[scala.Throwable, Boolean] =
-    asScala mightContainFunction functionId
+  def mightContainFunction(functionId: A): IO[scala.Throwable, java.lang.Boolean] =
+    (asScala mightContainFunction functionId).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
   def add(elem: A): IO[scala.Throwable, swaydb.IO.Done] =
     asScala add elem
@@ -230,11 +230,11 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def sizeOfBloomFilterEntries: IO[scala.Throwable, Integer] =
     asScala.sizeOfBloomFilterEntries.asInstanceOf[IO[scala.Throwable, Integer]]
 
-  def isEmpty: IO[scala.Throwable, Boolean] =
-    asScala.isEmpty
+  def isEmpty: IO[scala.Throwable, java.lang.Boolean] =
+    asScala.isEmpty.asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
-  def nonEmpty: IO[scala.Throwable, Boolean] =
-    asScala.nonEmpty
+  def nonEmpty: IO[scala.Throwable, java.lang.Boolean] =
+    asScala.nonEmpty.asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
   def lastOptional: IO[scala.Throwable, Optional[A]] =
     asScala.lastOption.map(_.asJava)
