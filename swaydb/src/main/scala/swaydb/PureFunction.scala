@@ -40,7 +40,7 @@ sealed trait PureFunction[+K, +V] {
    * @return a unique id for each function.
    */
   def id: Slice[Byte] =
-    Slice.writeString(this.getClass.getSimpleName)
+    Slice.writeString(this.getClass.getName)
 }
 
 /**

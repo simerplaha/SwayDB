@@ -28,13 +28,13 @@ import scala.compat.java8.OptionConverters._
 
 object Apply {
 
-  def nothing(): ScalaApply.Map[Nothing] with ScalaApply.Set[Nothing] =
+  def nothing[T](): ScalaApply.Map[T] with ScalaApply.Set[T] =
     ScalaApply.Nothing
 
-  def remove(): ScalaApply.Map[Nothing] with ScalaApply.Set[Nothing] =
+  def remove[T](): ScalaApply.Map[T] with ScalaApply.Set[T] =
     ScalaApply.Nothing
 
-  def expire(after: java.time.Duration): ScalaApply.Map[Nothing] with ScalaApply.Set[Nothing] =
+  def expire[T](after: java.time.Duration): ScalaApply.Map[T] with ScalaApply.Set[T] =
     ScalaApply.Expire(after.toScala.fromNow)
 
   def update[V](value: V, expire: Optional[java.time.Duration]): ScalaApply.Map[V] =

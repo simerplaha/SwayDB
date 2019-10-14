@@ -21,14 +21,11 @@ package swaydb.java.memory;
 
 
 import org.junit.jupiter.api.Test;
-import scala.Option;
-import scala.concurrent.duration.Deadline;
-import swaydb.Apply;
 import swaydb.data.util.Functions;
+import swaydb.java.Apply;
 import swaydb.java.MapIO;
 import swaydb.java.PureFunction;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.data.slice.Slice;
 import swaydb.java.data.util.KeyVal;
 import swaydb.java.serializers.Serializer;
 
@@ -57,7 +54,7 @@ class MapSpec {
   @Test
   void createMapWithCustomTypedComparator() throws Throwable {
 
-    Map.Config<Integer, Integer, Functions.Disabled> config =
+    Map.Config<Integer, Integer, Functions.Disabled, Functions.Disabled> config =
       Map.config(intSerializer(), intSerializer());
 
     //reverse comparator
@@ -143,7 +140,7 @@ class MapSpec {
     };
 
 
-    Map.Config<Key, Value, Functions.Disabled> config =
+    Map.Config<Key, Value, Functions.Disabled, Functions.Disabled> config =
       Map.config(keySerializer, valueSerializer);
 
     MapIO<Key, Value, Functions.Disabled> map =
@@ -187,19 +184,15 @@ class MapSpec {
     assertEquals(map.get(1).get().get(), 1);
 
 
-//    map.registerFunction(
-//      new PureFunction.GetKey<Integer, Integer>() {
-//        @Override
-//        public Apply.Map<Integer> apply(Integer key, Option<Deadline> deadline) {
-//          return null;
-//        }
-//
-//        @Override
-//        public Slice<Byte> id() {
-//          return null;
-//        }
-//      }
-//    );
+    PureFunction.GetKey<Integer, Integer> getKey =
+      (key, deadline) ->
+        Apply.update(10, Optional.empty());
+
+    map.registerFunction(getKey).get();
+    map.applyFunction(1, getKey).get();
+
+    Integer integer = map.get(1).get().get();
+    System.out.println(integer);
 
   }
 }

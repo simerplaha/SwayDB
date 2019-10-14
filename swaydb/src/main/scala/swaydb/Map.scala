@@ -138,7 +138,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction[F2 <: F](function: F2)(implicit ev: F2 <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
     (function: swaydb.PureFunction[K, V]) match {
       case function: swaydb.PureFunction.GetValue[V] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
@@ -150,10 +150,10 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
     }
 
-  def applyFunction[F2 <: F](key: K, function: F2)(implicit ev: F2 <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
     tag.point(core.function(key, function.id))
 
-  def applyFunction[F2 <: F](from: K, to: K, function: F2)(implicit ev: F2 <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
     tag.point(core.function(from, to, function.id))
 
   def commit(prepare: Prepare[K, V]*): T[IO.Done] =
