@@ -21,12 +21,15 @@ package swaydb.java
 
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
+
+import swaydb.IO.ThrowableIO
+
 import scala.collection.JavaConverters._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
 import swaydb.java.data.util.KeyVal
-import swaydb.Prepare
+import swaydb.{IO, Prepare}
 
 import scala.compat.java8._
 import scala.compat.java8.OptionConverters._
@@ -111,7 +114,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, F, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction(function: F with swaydb.PureFunction[K, V]): Unit =
+  def registerFunction[F2 <: F with swaydb.PureFunction[K, V]](function: F2): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.registerFunction(function)
 
   def applyFunction(key: K, function: F with swaydb.PureFunction[K, V]): IO[scala.Throwable, swaydb.IO.Done] =

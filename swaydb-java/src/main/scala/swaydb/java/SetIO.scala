@@ -23,7 +23,8 @@ import java.util
 import java.util.Optional
 import java.util.function.{Consumer, Predicate}
 
-import swaydb.Prepare
+import swaydb.IO.ThrowableIO
+import swaydb.{IO, Prepare}
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
@@ -123,7 +124,7 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction(function: F with swaydb.PureFunction.GetKey[A, Nothing]): Unit =
+  def registerFunction[F2 <: F with swaydb.PureFunction.GetKey[A, Nothing]](function: F2): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.registerFunction(function)
 
   def applyFunction(from: A, to: A, function: F with swaydb.PureFunction.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =

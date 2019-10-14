@@ -19,6 +19,7 @@
 
 package swaydb.java.data.slice
 
+import java.nio.charset.{Charset, StandardCharsets}
 import java.util.function.{BiFunction, Predicate}
 import java.util.{Comparator, Optional}
 import java.{lang, util}
@@ -32,7 +33,28 @@ import scala.compat.java8.OptionConverters._
 import scala.reflect.ClassTag
 
 object Slice {
-  val emptyBytes: ScalaSlice[lang.Byte] = ScalaSlice.create[java.lang.Byte](0)
+  val emptyBytes: Slice[lang.Byte] = Slice.create[lang.Byte](0)
+
+  def writeInt(int: Int): Slice[Byte] =
+    Slice(ScalaSlice.writeInt(int))
+
+  def writeBoolean(boolean: Boolean): Slice[Byte] =
+    Slice(ScalaSlice.writeBoolean(boolean))
+
+  def writeUnsignedInt(int: Int): Slice[Byte] =
+    Slice(ScalaSlice.writeUnsignedInt(int))
+
+  def writeLong(long: Long): Slice[Byte] =
+    Slice(ScalaSlice.writeLong(long))
+
+  def writeUnsignedLong(long: Long): Slice[Byte] =
+    Slice(ScalaSlice.writeUnsignedLong(long))
+
+  def writeString(string: String): Slice[Byte] =
+    Slice(ScalaSlice.writeString(string, StandardCharsets.UTF_8))
+
+  def writeString(string: String, charsets: Charset): Slice[Byte] =
+    Slice(ScalaSlice.writeString(string, charsets))
 
   def fromByteArray(array: Array[java.lang.Byte]): Slice[java.lang.Byte] =
     Slice(swaydb.data.slice.Slice(array))

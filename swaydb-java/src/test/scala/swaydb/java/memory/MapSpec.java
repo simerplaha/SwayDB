@@ -21,9 +21,14 @@ package swaydb.java.memory;
 
 
 import org.junit.jupiter.api.Test;
+import scala.Option;
+import scala.concurrent.duration.Deadline;
+import swaydb.Apply;
 import swaydb.data.util.Functions;
 import swaydb.java.MapIO;
+import swaydb.java.PureFunction;
 import swaydb.java.data.slice.ByteSlice;
+import swaydb.java.data.slice.Slice;
 import swaydb.java.data.util.KeyVal;
 import swaydb.java.serializers.Serializer;
 
@@ -167,5 +172,32 @@ class MapSpec {
         .get();
 
     assertEquals(Arrays.asList(1, 2), setKeys);
+  }
+
+
+  @Test
+  void registerAndApplyFunction() throws Throwable {
+    MapIO<Integer, Integer, PureFunction<Integer, Integer>> map =
+      Map
+        .configWithFunctions(intSerializer(), intSerializer())
+        .create()
+        .get();
+
+    assertDoesNotThrow(() -> map.put(1, 1).get());
+    assertEquals(map.get(1).get().get(), 1);
+
+
+//    map.registerFunction(new PureFunction.GetKey<Integer, Integer>() {
+//      @Override
+//      public Slice<Byte> id() {
+//        return null;
+//      }
+//
+//      @Override
+//      public Apply.Map<Integer> apply(Integer integer, Option<Deadline> deadlineOption) {
+//        return null;
+//      }
+//    }).get();
+
   }
 }

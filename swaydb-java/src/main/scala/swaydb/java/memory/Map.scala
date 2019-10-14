@@ -109,12 +109,21 @@ object Map {
       )
   }
 
-  def configFunctions[K, V, F](keySerializer: JavaSerializer[K],
-                               valueSerializer: JavaSerializer[V]): Config[K, V, F] =
+  def configOfFunctions[K, V, F](keySerializer: JavaSerializer[K],
+                                 valueSerializer: JavaSerializer[V],
+                                 functionType: Class[F]): Config[K, V, F] =
     new Config(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
+    )
+
+  def configWithFunctions[K, V](keySerializer: JavaSerializer[K],
+                                valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V]] =
+    new Config(
+      keySerializer = SerializerConverter.toScala(keySerializer),
+      valueSerializer = SerializerConverter.toScala(valueSerializer),
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.java.PureFunction[K, V]]]
     )
 
   def config[K, V](keySerializer: JavaSerializer[K],

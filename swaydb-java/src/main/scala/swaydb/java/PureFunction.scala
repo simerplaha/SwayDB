@@ -17,9 +17,10 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb
+package swaydb.java
 
-import swaydb.data.slice.Slice
+import swaydb.java.data.slice.Slice
+import swaydb.{Apply, Map}
 
 import scala.concurrent.duration.Deadline
 
@@ -39,7 +40,7 @@ sealed trait PureFunction[+K, +V] {
    *
    * @return a unique id for each function.
    */
-  def id: Slice[Byte]
+  def id: Slice[java.lang.Byte]
 }
 
 /**
@@ -50,15 +51,18 @@ sealed trait PureFunction[+K, +V] {
  */
 object PureFunction {
 
-  trait GetValue[V] extends (V => Apply.Map[V]) with PureFunction[Nothing, V] {
-    override def apply(value: V): Apply.Map[V]
+  @FunctionalInterface
+  trait GetValue[V] extends PureFunction[scala.Nothing, V] {
+    def apply(value: V): Apply.Map[V]
   }
 
-  trait GetKey[K, +V] extends ((K, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V] {
-    override def apply(key: K, deadline: Option[Deadline]): Apply.Map[V]
+  @FunctionalInterface
+  trait GetKey[K, V] extends PureFunction[K, V] {
+    def apply(key: K, deadline: Option[Deadline]): Apply.Map[V]
   }
 
-  trait GetKeyValue[K, V] extends ((K, V, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V] {
-    override def apply(key: K, value: V, deadline: Option[Deadline]): Apply.Map[V]
+  @FunctionalInterface
+  trait GetKeyValue[K, V] extends PureFunction[K, V] {
+    def apply(key: K, value: V, deadline: Option[Deadline]): Apply.Map[V]
   }
 }
