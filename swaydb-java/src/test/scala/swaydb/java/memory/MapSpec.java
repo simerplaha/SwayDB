@@ -82,7 +82,8 @@ class MapSpec {
 
     List<Integer> integers = map
       .stream()
-      .map(KeyVal::key).materialize()
+      .map(KeyVal::key)
+      .materialize()
       .get();
 
     assertEquals(Arrays.asList(2, 1), integers);
@@ -164,7 +165,8 @@ class MapSpec {
     List<Key> mapKeys =
       map
         .stream()
-        .map(KeyVal::key).materialize()
+        .map(KeyVal::key)
+        .materialize()
         .get();
 
     assertEquals(Arrays.asList(key1, key2), mapKeys);
