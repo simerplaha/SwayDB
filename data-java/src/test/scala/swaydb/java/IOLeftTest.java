@@ -44,18 +44,18 @@ class IOLeftTest {
   @Test
   void isLeft() {
     assertFalse(io.isRight());
-    assertThrows(FailedIO.class, () -> io.get());
+    assertThrows(FailedIO.class, () -> io.tryGet());
     assertTrue(io.isLeft());
   }
 
   @Test
   void leftIO() {
-    assertDoesNotThrow(() -> io.leftIO().get());
+    assertDoesNotThrow(() -> io.leftIO().tryGet());
   }
 
   @Test
   void rightIO() {
-    assertThrows(UnsupportedOperationException.class, () -> io.rightIO().get());
+    assertThrows(UnsupportedOperationException.class, () -> io.rightIO().tryGet());
   }
 
   @Test
@@ -81,7 +81,7 @@ class IOLeftTest {
     IO<Throwable, Integer> result =
       io.or(() -> IO.right(222));
 
-    assertEquals(222, result.get());
+    assertEquals(222, result.tryGet());
   }
 
   @Test
@@ -102,7 +102,7 @@ class IOLeftTest {
   void filter() {
     IO<Throwable, Integer> existsNot = io.filter(integer -> integer == 12);
     assertTrue(existsNot.isLeft());
-    assertThrows(FailedIO.class, () -> existsNot.get());
+    assertThrows(FailedIO.class, () -> existsNot.tryGet());
   }
 
   @Test
@@ -111,7 +111,7 @@ class IOLeftTest {
       io.recoverWith(throwable -> IO.right(22222));
 
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 22222);
+    assertEquals(recovered.tryGet(), 22222);
   }
 
   @Test
@@ -120,7 +120,7 @@ class IOLeftTest {
       io.recover(throwable -> 22222);
 
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 22222);
+    assertEquals(recovered.tryGet(), 22222);
   }
 
   @Test

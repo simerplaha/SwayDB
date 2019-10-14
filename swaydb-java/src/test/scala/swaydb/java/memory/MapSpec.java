@@ -38,7 +38,7 @@ import static swaydb.java.serializers.Default.intSerializer;
 class MapSpec {
 
   @Test
-  void createMap() throws Throwable {
+  void createMap() {
     MapIO<Integer, Integer, Functions.Disabled> map =
       Map
         .config(intSerializer(), intSerializer())
@@ -74,17 +74,17 @@ class MapSpec {
     MapIO<Integer, Integer, Functions.Disabled> map =
       config
         .create()
-        .get();
+        .tryGet();
 
 
-    assertDoesNotThrow(() -> map.put(1, 1).get());
-    assertDoesNotThrow(() -> map.put(2, 2).get());
+    assertDoesNotThrow(() -> map.put(1, 1).tryGet());
+    assertDoesNotThrow(() -> map.put(2, 2).tryGet());
 
     List<Integer> integers = map
       .stream()
       .map(KeyVal::key)
       .materialize()
-      .get();
+      .tryGet();
 
     assertEquals(Arrays.asList(2, 1), integers);
   }
@@ -156,18 +156,18 @@ class MapSpec {
     MapIO<Key, Value, Functions.Disabled> map =
       config
         .create()
-        .get();
+        .tryGet();
 
 
-    assertDoesNotThrow(() -> map.put(key1, value1).get());
-    assertDoesNotThrow(() -> map.put(key2, value2).get());
+    assertDoesNotThrow(() -> map.put(key1, value1).tryGet());
+    assertDoesNotThrow(() -> map.put(key2, value2).tryGet());
 
     List<Key> mapKeys =
       map
         .stream()
         .map(KeyVal::key)
         .materialize()
-        .get();
+        .tryGet();
 
     assertEquals(Arrays.asList(key1, key2), mapKeys);
 
@@ -177,7 +177,7 @@ class MapSpec {
         .stream()
         .map(key -> key.key)
         .materialize()
-        .get();
+        .tryGet();
 
     assertEquals(Arrays.asList(1, 2), setKeys);
   }
@@ -189,20 +189,20 @@ class MapSpec {
       Map
         .configWithFunctions(intSerializer(), intSerializer())
         .create()
-        .get();
+        .tryGet();
 
-    assertDoesNotThrow(() -> map.put(1, 1).get());
-    assertEquals(map.get(1).get().get(), 1);
+    assertDoesNotThrow(() -> map.put(1, 1).tryGet());
+    assertEquals(map.get(1).tryGet().get(), 1);
 
 
     PureFunction.OnKey<Integer, Integer> getKey =
       (key, deadline) ->
         swaydb.java.Apply.update(10, Optional.empty());
 
-    map.registerFunction(getKey).get();
-    map.applyFunction(1, getKey).get();
+    map.registerFunction(getKey).tryGet();
+    map.applyFunction(1, getKey).tryGet();
 
-    Integer integer = map.get(1).get().get();
+    Integer integer = map.get(1).tryGet().get();
     System.out.println(integer);
   }
 }

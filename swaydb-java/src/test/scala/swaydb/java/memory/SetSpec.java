@@ -25,8 +25,6 @@ import swaydb.data.util.Functions;
 import swaydb.java.PureFunction;
 import swaydb.java.SetIO;
 
-import java.util.function.Consumer;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
@@ -38,16 +36,16 @@ class SetSpec {
       Set
         .config(intSerializer())
         .create()
-        .get();
+        .tryGet();
 
-    assertDoesNotThrow(() -> set.add(1).get());
-    assertEquals(set.get(1).get().get(), 1);
-    assertFalse(set.get(2).get().isPresent());
+    assertDoesNotThrow(() -> set.add(1).tryGet());
+    assertEquals(set.get(1).tryGet().get(), 1);
+    assertFalse(set.get(2).tryGet().isPresent());
 
     set
       .forEach(integer -> System.out.println("integer = " + integer))
       .materialize()
-      .get();
+      .tryGet();
 
 
     PureFunction.OnKey<Integer, Void> getKey = (key, deadline) -> null;
@@ -60,27 +58,27 @@ class SetSpec {
       Set
         .configWithFunctions(intSerializer())
         .create()
-        .get();
+        .tryGet();
 
-    set.close().get();
+    set.close().tryGet();
 
-    assertDoesNotThrow(() -> set.add(1).get());
-    assertEquals(set.get(1).get().get(), 1);
-    assertFalse(set.get(2).get().isPresent());
+    assertDoesNotThrow(() -> set.add(1).tryGet());
+    assertEquals(set.get(1).tryGet().get(), 1);
+    assertFalse(set.get(2).tryGet().isPresent());
 
     set
       .forEach(integer -> System.out.println("integer = " + integer))
       .materialize()
-      .get();
+      .tryGet();
 
     PureFunction.OnKey<Integer, Void> removeKey =
       (key, deadline) ->
         swaydb.java.Apply.remove();
 
-    set.registerFunction(removeKey).get();
+    set.registerFunction(removeKey).tryGet();
 
-    set.applyFunction(1, removeKey).get();
-    assertTrue(set.isEmpty().get());
+    set.applyFunction(1, removeKey).tryGet();
+    assertTrue(set.isEmpty().tryGet());
   }
 
 

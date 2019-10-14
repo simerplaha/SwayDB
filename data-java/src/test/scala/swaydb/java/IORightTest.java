@@ -37,32 +37,32 @@ class IORightTest {
   @Test
   void isRight() throws Throwable {
     assertTrue(io.isRight());
-    assertEquals(1, io.get());
+    assertEquals(1, io.tryGet());
     assertFalse(io.isLeft());
   }
 
   @Test
   void left() {
-    assertThrows(UnsupportedOperationException.class, () -> io.leftIO().get());
+    assertThrows(UnsupportedOperationException.class, () -> io.leftIO().tryGet());
   }
 
   @Test
   void right() throws Throwable {
-    assertEquals(1, io.rightIO().get());
+    assertEquals(1, io.rightIO().tryGet());
   }
 
   @Test
   void map() throws Throwable {
     IO<Throwable, Integer> map = io.map(integer -> integer + 1);
     assertTrue(map.isRight());
-    assertEquals(map.get(), 2);
+    assertEquals(map.tryGet(), 2);
   }
 
   @Test
   void flatMap() throws Throwable {
     IO<Throwable, Integer> map = io.flatMap(integer -> IO.run(() -> integer + 2));
     assertTrue(map.isRight());
-    assertEquals(map.get(), 3);
+    assertEquals(map.tryGet(), 3);
   }
 
   @Test
@@ -78,7 +78,7 @@ class IORightTest {
     IO<Throwable, Integer> result =
       io.or(() -> fail("Should not have executed this"));
 
-    assertEquals(1, result.get());
+    assertEquals(1, result.tryGet());
   }
 
   @Test
@@ -99,11 +99,11 @@ class IORightTest {
   void filter() throws Throwable {
     IO<Throwable, Integer> exists = io.filter(integer -> integer == 1);
     assertTrue(exists.isRight());
-    assertEquals(exists.get(), 1);
+    assertEquals(exists.tryGet(), 1);
 
     IO<Throwable, Integer> existsNot = io.filter(integer -> integer == 2);
     assertTrue(existsNot.isLeft());
-    assertThrows(NoSuchElementException.class, () -> existsNot.get());
+    assertThrows(NoSuchElementException.class, () -> existsNot.tryGet());
   }
 
   @Test
@@ -112,7 +112,7 @@ class IORightTest {
       io.recoverWith(throwable -> fail("Unexpected"));
 
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertEquals(recovered.tryGet(), 1);
   }
 
   @Test
@@ -121,7 +121,7 @@ class IORightTest {
       io.recover(throwable -> fail("Unexpected"));
 
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertEquals(recovered.tryGet(), 1);
   }
 
   @Test
@@ -130,7 +130,7 @@ class IORightTest {
       io.onLeftSideEffect(throwable -> fail("Unexpected"));
 
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertEquals(recovered.tryGet(), 1);
   }
 
   @Test
@@ -141,7 +141,7 @@ class IORightTest {
 
     assertTrue(executed.get());
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertEquals(recovered.tryGet(), 1);
   }
 
   @Test
@@ -152,7 +152,7 @@ class IORightTest {
 
     assertTrue(executed.get());
     assertTrue(recovered.isRight());
-    assertEquals(recovered.get(), 1);
+    assertEquals(recovered.tryGet(), 1);
   }
 
   @Test

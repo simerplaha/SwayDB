@@ -39,7 +39,7 @@ class StreamTest {
       stream
         .map(integer -> integer + 10)
         .materialize()
-        .get();
+        .tryGet();
 
     assertEquals(Arrays.asList(11, 12, 13, 14, 15), streamIntegers);
   }
@@ -53,7 +53,7 @@ class StreamTest {
       stream
         .flatMap(integer -> Stream.create(Collections.singletonList(integer + 20).iterator()))
         .materialize()
-        .get();
+        .tryGet();
 
     assertEquals(Arrays.asList(21, 22, 23, 24, 25), streamIntegers);
   }

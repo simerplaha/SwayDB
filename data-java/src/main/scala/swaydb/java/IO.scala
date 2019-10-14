@@ -57,6 +57,9 @@ object IO {
   case class Defer[E, R](asScala: swaydb.IO.Defer[E, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[E]) {
 
     @throws[Throwable]
+    def tryRun: R =
+      run
+
     def run: R =
       asScala.runIO.get
 
@@ -110,27 +113,36 @@ object IO {
 
 class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
 
-  def leftIO: IO[Throwable, L] =
-    new IO(asScala.left)
-
-  @throws[Throwable]
-  def leftValue: L =
-    asScala.left.get
-
-  def rightIO: IO[Throwable, R] =
-    new IO(asScala.right)
-
-  @throws[UnsupportedOperationException]
-  def rightValue: R =
-    asScala.right.get
-
   def isLeft: Boolean =
     asScala.isLeft
 
   def isRight: Boolean =
     asScala.isRight
 
+  def leftIO: IO[Throwable, L] =
+    new IO(asScala.left)
+
+  def rightIO: IO[Throwable, R] =
+    new IO(asScala.right)
+
   @throws[Throwable]
+  def tryGetLeft: L =
+    asScala.left.get
+
+  @throws[UnsupportedOperationException]
+  def tryGetRight: R =
+    asScala.right.get
+
+  @throws[Throwable]
+  def tryGet: R =
+    asScala.get
+
+  def getLeft =
+    asScala.left.get
+
+  def getRight: R =
+    get
+
   def get: R =
     asScala.get
 
