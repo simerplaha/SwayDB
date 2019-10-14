@@ -29,7 +29,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
-import swaydb.java.IO
+import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
@@ -68,26 +68,7 @@ object Set {
                       serializer: Serializer[A],
                       functionClassTag: ClassTag[F]) {
 
-    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] =
-      if (typedComparator.isPresent)
-        KeyOrder(
-          new Ordering[Slice[Byte]] {
-            val typedOrder = typedComparator.get()
-
-            override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
-              val leftKey = serializer.read(left)
-              val rightKey = serializer.read(right)
-              typedOrder.compare(leftKey, rightKey)
-            }
-          }
-        )
-      else
-        KeyOrder(
-          new Ordering[Slice[Byte]] {
-            override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
-              bytesComparator.compare(ByteSlice(left), ByteSlice(right))
-          }
-        )
+    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(bytesComparator, typedComparator, serializer)
 
     implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 
