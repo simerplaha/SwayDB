@@ -33,7 +33,6 @@ import swaydb.java.data.util.Pair
 import scala.collection.JavaConverters._
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.OptionConverters._
-import scala.concurrent.duration.Deadline
 
 /**
  * Set database API.
@@ -63,9 +62,6 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   def add(elem: A): IO[scala.Throwable, swaydb.IO.Done] =
     asScala add elem
-
-  def add(elem: A, expireAt: Deadline): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.add(elem, expireAt)
 
   def add(elem: A, expireAfter: java.time.Duration): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.add(elem, expireAfter.toScala)
@@ -158,7 +154,7 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
     asScala.elemSize(elem)
 
   def expiration(elem: A): IO[scala.Throwable, Optional[Deadline]] =
-    asScala.expiration(elem).map(_.asJava)
+    asScala.expiration(elem).map(_.map(_.asJava).asJava)
 
   def timeLeft(elem: A): IO[scala.Throwable, Optional[java.time.Duration]] =
     asScala.timeLeft(elem).map {

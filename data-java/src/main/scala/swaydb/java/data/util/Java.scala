@@ -63,4 +63,9 @@ object Java {
     @inline def asScalaDeadline: (K, Deadline) =
       (tuple._1, tuple._2.toScala.fromNow)
   }
+
+  implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
+    def asJava: swaydb.java.Deadline =
+      new swaydb.java.Deadline(deadline)
+  }
 }

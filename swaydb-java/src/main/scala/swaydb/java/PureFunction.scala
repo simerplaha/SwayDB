@@ -22,11 +22,10 @@ package swaydb.java
 import java.util.Optional
 
 import swaydb.java.data.slice.Slice
-import swaydb.java.data.util.Java.ScalaSlice
+import swaydb.java.data.util.Java._
 import swaydb.{Map, Apply => ScalaApply}
 
 import scala.compat.java8.OptionConverters._
-import scala.concurrent.duration.Deadline
 
 sealed trait PureFunction[+K, +V] {
   /**
@@ -47,7 +46,7 @@ sealed trait PureFunction[+K, +V] {
   def id: Slice[java.lang.Byte] =
     Slice.writeString(this.getClass.getName)
 
-  def asScala: swaydb.PureFunction[K, V] =
+  protected[swaydb] def asScala: swaydb.PureFunction[K, V] =
     this match {
       case function: PureFunction.GetValue[V] =>
         function.asScala
@@ -72,7 +71,7 @@ object PureFunction {
   trait GetValue[V] extends PureFunction[scala.Nothing, V] { self =>
     def apply(value: V): ScalaApply.Map[V]
 
-    override def asScala: swaydb.PureFunction.GetValue[V] =
+    protected[swaydb] final override def asScala: swaydb.PureFunction.GetValue[V] =
       new swaydb.PureFunction.GetValue[V] {
         override def id: ScalaSlice[Byte] =
           self.id.asInstanceOf[ScalaSlice[Byte]]
@@ -84,15 +83,15 @@ object PureFunction {
 
   @FunctionalInterface
   trait GetKey[K, V] extends PureFunction[K, V] { self =>
-    def apply(key: K, deadline: Optional[Deadline]): ScalaApply.Map[V]
+    def apply(key: K, deadline: Optional[swaydb.java.Deadline]): ScalaApply.Map[V]
 
-    override def asScala: swaydb.PureFunction.GetKey[K, V] =
+    protected[swaydb] final override def asScala: swaydb.PureFunction.GetKey[K, V] =
       new swaydb.PureFunction.GetKey[K, V] {
         override def id: ScalaSlice[Byte] =
           self.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
-        override def apply(key: K, deadline: Option[Deadline]): ScalaApply.Map[V] =
-          self.apply(key, deadline.asJava)
+        override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): ScalaApply.Map[V] =
+          self.apply(key, deadline.map(_.asJava).asJava)
       }
   }
 
@@ -100,13 +99,13 @@ object PureFunction {
   trait GetKeyValue[K, V] extends PureFunction[K, V] { self =>
     def apply(key: K, value: V, deadline: Optional[Deadline]): ScalaApply.Map[V]
 
-    override def asScala: swaydb.PureFunction[K, V] =
+    protected[swaydb] final override def asScala: swaydb.PureFunction[K, V] =
       new swaydb.PureFunction.GetKeyValue[K, V] {
         override def id: ScalaSlice[Byte] =
           self.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
-        override def apply(key: K, value: V, deadline: Option[Deadline]): ScalaApply.Map[V] =
-          self.apply(key, value, deadline.asJava)
+        override def apply(key: K, value: V, deadline: Option[scala.concurrent.duration.Deadline]): ScalaApply.Map[V] =
+          self.apply(key, value, deadline.map(_.asJava).asJava)
       }
   }
 }

@@ -21,9 +21,6 @@ package swaydb.java.memory;
 
 
 import org.junit.jupiter.api.Test;
-import scala.Option;
-import scala.concurrent.duration.Deadline;
-import swaydb.Apply;
 import swaydb.data.util.Functions;
 import swaydb.java.MapIO;
 import swaydb.java.PureFunction;
@@ -189,7 +186,6 @@ class MapSpec {
     PureFunction.GetKey<Integer, Integer> getKey =
       (key, deadline) ->
         swaydb.java.Apply.update(10, Optional.empty());
-
 
     map.registerFunction(getKey).get();
     map.applyFunction(1, getKey).get();

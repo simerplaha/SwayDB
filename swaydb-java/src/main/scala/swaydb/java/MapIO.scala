@@ -97,6 +97,9 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def expire(keys: java.util.Iterator[(K, java.time.Duration)]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(keys.asScala.map(_.asScalaDeadline).toIterable)
 
+  def expiration(key: K): swaydb.IO[Throwable, Optional[Deadline]] =
+    asScala.expiration(key).map(_.map(_.asJava).asJava)
+
   def update(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.update(key, value)
 
