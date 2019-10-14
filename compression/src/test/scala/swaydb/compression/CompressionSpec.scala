@@ -42,7 +42,7 @@ class CompressionSpec extends WordSpec {
   def assertUnsuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
     val bytes: Slice[Byte] = string
-    compression.compressor.compress(bytes).get shouldBe empty
+    compression.compressor.compress(bytes) shouldBe empty
   }
 
   "Compression" should {
