@@ -119,13 +119,13 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
     asScala.clear()
 
   def registerFunction[PF <: F with swaydb.java.PureFunction[K, V]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
-    asScalaTypeCast.registerFunction(function.asScala)
+    asScalaTypeCast.registerFunction(PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](key: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
-    asScalaTypeCast.applyFunction(key, function.asScala)
+    asScalaTypeCast.applyFunction(key, PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](from: K, to: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
-    asScalaTypeCast.applyFunction(from, to, function.asScala)
+    asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
 
   def commit(prepare: Prepare[K, V]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare)

@@ -124,13 +124,13 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
     asScala.clear()
 
   def registerFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, Nothing]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
-    asScalaTypeCast.registerFunction(function.asScala)
+    asScalaTypeCast.registerFunction(PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, Nothing]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
-    asScalaTypeCast.applyFunction(from, to, function.asScala)
+    asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, Nothing]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
-    asScalaTypeCast.applyFunction(elem, function.asScala)
+    asScalaTypeCast.applyFunction(elem, PureFunction.asScala(function))
 
   def commit(prepare: Prepare[A, Nothing]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare)
