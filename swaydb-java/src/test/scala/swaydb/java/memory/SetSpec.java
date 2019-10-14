@@ -31,21 +31,21 @@ import static swaydb.java.serializers.Default.intSerializer;
 class SetSpec {
 
   @Test
-  void createMap() throws Throwable {
+  void createMap() {
     SetIO<Integer, Functions.Disabled> set =
       Set
         .config(intSerializer())
         .create()
-        .tryGet();
+        .get();
 
-    assertDoesNotThrow(() -> set.add(1).tryGet());
-    assertEquals(set.get(1).tryGet().get(), 1);
-    assertFalse(set.get(2).tryGet().isPresent());
+    assertDoesNotThrow(() -> set.add(1).get());
+    assertEquals(set.get(1).get().get(), 1);
+    assertFalse(set.get(2).get().isPresent());
 
     set
       .forEach(integer -> System.out.println("integer = " + integer))
       .materialize()
-      .tryGet();
+      .get();
 
 
     PureFunction.OnKey<Integer, Void> getKey = (key, deadline) -> null;
@@ -53,32 +53,32 @@ class SetSpec {
   }
 
   @Test
-  void createMapWithFunctions() throws Throwable {
+  void createMapWithFunctions() {
     SetIO<Integer, PureFunction<Integer, Void>> set =
       Set
         .configWithFunctions(intSerializer())
         .create()
-        .tryGet();
+        .get();
 
-    set.close().tryGet();
+    set.close().get();
 
-    assertDoesNotThrow(() -> set.add(1).tryGet());
-    assertEquals(set.get(1).tryGet().get(), 1);
-    assertFalse(set.get(2).tryGet().isPresent());
+    assertDoesNotThrow(() -> set.add(1).get());
+    assertEquals(set.get(1).get().get(), 1);
+    assertFalse(set.get(2).get().isPresent());
 
     set
       .forEach(integer -> System.out.println("integer = " + integer))
       .materialize()
-      .tryGet();
+      .get();
 
     PureFunction.OnKey<Integer, Void> removeKey =
       (key, deadline) ->
         swaydb.java.Apply.remove();
 
-    set.registerFunction(removeKey).tryGet();
+    set.registerFunction(removeKey).get();
 
-    set.applyFunction(1, removeKey).tryGet();
-    assertTrue(set.isEmpty().tryGet());
+    set.applyFunction(1, removeKey).get();
+    assertTrue(set.isEmpty().get());
   }
 
 

@@ -61,7 +61,7 @@ class MapSpec {
   }
 
   @Test
-  void createMapWithCustomTypedComparator() throws Throwable {
+  void createMapWithCustomTypedComparator() {
 
     Map.Config<Integer, Integer, Functions.Disabled, Functions.Disabled> config =
       Map.config(intSerializer(), intSerializer());
@@ -74,23 +74,23 @@ class MapSpec {
     MapIO<Integer, Integer, Functions.Disabled> map =
       config
         .create()
-        .tryGet();
+        .get();
 
 
-    assertDoesNotThrow(() -> map.put(1, 1).tryGet());
-    assertDoesNotThrow(() -> map.put(2, 2).tryGet());
+    assertDoesNotThrow(() -> map.put(1, 1).get());
+    assertDoesNotThrow(() -> map.put(2, 2).get());
 
     List<Integer> integers = map
       .stream()
       .map(KeyVal::key)
       .materialize()
-      .tryGet();
+      .get();
 
     assertEquals(Arrays.asList(2, 1), integers);
   }
 
   @Test
-  void createMapWithCustomSerializer() throws Throwable {
+  void createMapWithCustomSerializer() {
     class Key {
       Integer key;
 
@@ -156,18 +156,18 @@ class MapSpec {
     MapIO<Key, Value, Functions.Disabled> map =
       config
         .create()
-        .tryGet();
+        .get();
 
 
-    assertDoesNotThrow(() -> map.put(key1, value1).tryGet());
-    assertDoesNotThrow(() -> map.put(key2, value2).tryGet());
+    assertDoesNotThrow(() -> map.put(key1, value1).get());
+    assertDoesNotThrow(() -> map.put(key2, value2).get());
 
     List<Key> mapKeys =
       map
         .stream()
         .map(KeyVal::key)
         .materialize()
-        .tryGet();
+        .get();
 
     assertEquals(Arrays.asList(key1, key2), mapKeys);
 
@@ -177,32 +177,32 @@ class MapSpec {
         .stream()
         .map(key -> key.key)
         .materialize()
-        .tryGet();
+        .get();
 
     assertEquals(Arrays.asList(1, 2), setKeys);
   }
 
 
   @Test
-  void registerAndApplyFunction() throws Throwable {
+  void registerAndApplyFunction() {
     MapIO<Integer, Integer, PureFunction<Integer, Integer>> map =
       Map
         .configWithFunctions(intSerializer(), intSerializer())
         .create()
-        .tryGet();
+        .get();
 
-    assertDoesNotThrow(() -> map.put(1, 1).tryGet());
-    assertEquals(map.get(1).tryGet().get(), 1);
+    assertDoesNotThrow(() -> map.put(1, 1).get());
+    assertEquals(map.get(1).get().get(), 1);
 
 
     PureFunction.OnKey<Integer, Integer> getKey =
       (key, deadline) ->
         swaydb.java.Apply.update(10, Optional.empty());
 
-    map.registerFunction(getKey).tryGet();
-    map.applyFunction(1, getKey).tryGet();
+    map.registerFunction(getKey).get();
+    map.applyFunction(1, getKey).get();
 
-    Integer integer = map.get(1).tryGet().get();
+    Integer integer = map.get(1).get().get();
     System.out.println(integer);
   }
 }
