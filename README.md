@@ -9,7 +9,7 @@
 [maven-badge]: https://img.shields.io/maven-central/v/io.swaydb/swaydb_2.12.svg
 [maven-link]: https://search.maven.org/search?q=g:io.swaydb%20AND%20a:swaydb_2.12
 
-[build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=develop
+[build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
 Embeddable persistent and in-memory database for resource efficiency, performance 
