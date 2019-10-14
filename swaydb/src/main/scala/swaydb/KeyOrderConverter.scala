@@ -31,10 +31,12 @@ protected object KeyOrderConverter {
         bytesKeyOrder
 
       case Right(typedKeyOrder) =>
-        (key1: Slice[Byte], key2: Slice[Byte]) => {
-          val typedKey1 = serializer.read(key1)
-          val typedKey2 = serializer.read(key2)
-          typedKeyOrder.compare(typedKey1, typedKey2)
+        new KeyOrder[Slice[Byte]] {
+          override def compare(key1: Slice[Byte], key2: Slice[Byte]): Int = {
+            val typedKey1 = serializer.read(key1)
+            val typedKey2 = serializer.read(key2)
+            typedKeyOrder.compare(typedKey1, typedKey2)
+          }
         }
     }
 }
