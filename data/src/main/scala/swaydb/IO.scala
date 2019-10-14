@@ -413,6 +413,18 @@ object IO {
   }
 
   object ExceptionHandler extends LazyLogging {
+
+    /**
+     * Creates an [[ExceptionHandler]] that throws Exceptions instead of converting it to a Type.
+     *
+     * This is current used only in Java.
+     */
+    def neverException[T] =
+      new ExceptionHandler[T] {
+        override def toException(f: T): Throwable = new Exception("neverException: Cannot convert to Exception.")
+        override def toError(e: Throwable): T = throw new Exception("neverException: Cannot convert Exception to Error.", e)
+      }
+
     def toException[E](error: E)(implicit errorHandler: IO.ExceptionHandler[E]): Throwable =
       errorHandler.toException(error)
 

@@ -19,7 +19,7 @@
 
 package swaydb.java.memory.zero
 
-import java.util.{Comparator, Optional}
+import java.util.Comparator
 
 import swaydb.Tag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -27,10 +27,10 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
-import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.java.data.slice.ByteSlice
-import swaydb.java.data.util.Java.{JavaFunction, _}
+import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
+import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.serializers.Serializer
 
 import scala.beans.BeanProperty
@@ -41,13 +41,12 @@ object Map {
 
   class Builder[K, V, F, SF](@BeanProperty var mapSize: Int = 4.mb,
                              @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                             @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
-                             @BeanProperty var typedComparator: Optional[Comparator[K]] = Optional.empty[Comparator[K]](),
+                             @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[K]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[K]](swaydb.java.SwayDB.defaultComparator),
                              keySerializer: Serializer[K],
                              valueSerializer: Serializer[V],
                              functionClassTag: ClassTag[SF]) {
 
-    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(bytesComparator, typedComparator, keySerializer)
+    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
     def create(): IO[Throwable, swaydb.java.MapIO[K, V, F]] =
       IO.fromScala {

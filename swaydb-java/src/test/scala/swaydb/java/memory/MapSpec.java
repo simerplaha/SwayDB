@@ -22,6 +22,7 @@ package swaydb.java.memory;
 
 import org.junit.jupiter.api.Test;
 import swaydb.data.util.Functions;
+import swaydb.java.IO;
 import swaydb.java.MapIO;
 import swaydb.java.PureFunction;
 import swaydb.java.data.slice.ByteSlice;
@@ -29,6 +30,7 @@ import swaydb.java.data.util.KeyVal;
 import swaydb.java.serializers.Serializer;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,10 +68,12 @@ class MapSpec {
     Map.Config<Integer, Integer, Functions.Disabled, Functions.Disabled> config =
       Map.config(intSerializer(), intSerializer());
 
-    //reverse comparator
-    config.setTypedComparator(Optional.of((left, right) -> left.compareTo(right) * -1));
+    Comparator<Integer> comparator =
+      (left, right) -> left.compareTo(right) * -1;
 
-    assertTrue(config.getTypedComparator().isPresent());
+    config.setComparator(IO.rightNeverException(comparator));
+
+    assertTrue(config.getComparator().isRight());
 
     MapIO<Integer, Integer, Functions.Disabled> map =
       config

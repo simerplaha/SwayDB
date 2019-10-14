@@ -34,7 +34,7 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.serializers.Serializer
 import swaydb.{SwayDB, Tag}
 
-import scala.beans.BeanProperty
+import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
@@ -50,16 +50,15 @@ object Map {
                             @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
                             @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
                             @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
-                            @BeanProperty var deleteSegmentsEventually: Boolean = true,
+                            @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
                             @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                            @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
-                            @BeanProperty var typedComparator: Optional[Comparator[K]] = Optional.empty[Comparator[K]](),
+                            @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[K]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[K]](swaydb.java.SwayDB.defaultComparator),
                             @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
                             keySerializer: Serializer[K],
                             valueSerializer: Serializer[V],
                             functionClassTag: ClassTag[SF]) {
 
-    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(bytesComparator, typedComparator, keySerializer)
+    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
     implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 

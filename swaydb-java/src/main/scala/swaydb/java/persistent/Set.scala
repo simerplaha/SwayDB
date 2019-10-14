@@ -20,7 +20,7 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
-import java.util.{Comparator, Optional}
+import java.util.Comparator
 import java.util.concurrent.ExecutorService
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -29,14 +29,14 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
-import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
+import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.serializers.Serializer
 import swaydb.{SwayDB, Tag}
 
-import scala.beans.BeanProperty
+import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -48,9 +48,9 @@ object Set {
                          @BeanProperty var maxOpenSegments: Int = 1000,
                          @BeanProperty var memoryCacheSize: Int = 100.mb,
                          @BeanProperty var mapSize: Int = 4.mb,
-                         @BeanProperty var mmapMaps: Boolean = true,
+                         @BooleanBeanProperty var mmapMaps: Boolean = true,
                          @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                         @BeanProperty var mmapAppendix: Boolean = true,
+                         @BooleanBeanProperty var mmapAppendix: Boolean = true,
                          @BeanProperty var mmapSegments: MMAP = MMAP.WriteAndRead,
                          @BeanProperty var segmentSize: Int = 2.mb,
                          @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
@@ -59,16 +59,15 @@ object Set {
                          @BeanProperty var fileSweeperPollInterval: FiniteDuration = 10.seconds,
                          @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
                          @BeanProperty var blockSize: Int = 4098,
-                         @BeanProperty var compressDuplicateValues: Boolean = true,
-                         @BeanProperty var deleteSegmentsEventually: Boolean = true,
+                         @BooleanBeanProperty var compressDuplicateValues: Boolean = true,
+                         @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
                          @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
-                         @BeanProperty var typedComparator: Optional[Comparator[A]] = Optional.empty[Comparator[A]](),
+                         @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
                          @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
                          serializer: Serializer[A],
                          functionClassTag: ClassTag[SF]) {
 
-    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(bytesComparator, typedComparator, serializer)
+    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
     implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 

@@ -19,7 +19,7 @@
 
 package swaydb.java
 
-import java.util.{Comparator, Optional}
+import java.util.Comparator
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -28,26 +28,26 @@ import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {
 
-  def toScalaKeyOrder[K](bytesComparator: Comparator[ByteSlice],
-                         typedComparator: Optional[Comparator[K]],
+  def toScalaKeyOrder[K](comparatorIO: IO[Comparator[ByteSlice], Comparator[K]],
                          keySerializer: Serializer[K]) =
-    if (typedComparator.isPresent)
+    if (comparatorIO.isRight)
       KeyOrder(
         new Ordering[Slice[Byte]] {
-          val typedOrder = typedComparator.get()
+          val comparator = comparatorIO.getRight
 
           override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
             val leftKey = keySerializer.read(left)
             val rightKey = keySerializer.read(right)
-            typedOrder.compare(leftKey, rightKey)
+            comparator.compare(leftKey, rightKey)
           }
         }
       )
     else
       KeyOrder(
         new Ordering[Slice[Byte]] {
+          val comparator = comparatorIO.getLeft
           override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
-            bytesComparator.compare(ByteSlice(left), ByteSlice(right))
+            comparator.compare(ByteSlice(left), ByteSlice(right))
         }
       )
 
