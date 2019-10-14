@@ -35,26 +35,26 @@ import scala.reflect.ClassTag
 object Slice {
   val emptyBytes: Slice[lang.Byte] = Slice.create[lang.Byte](0)
 
-  def writeInt(int: Int): Slice[Byte] =
-    Slice(ScalaSlice.writeInt(int))
+  def writeInt(integer: Int): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeInt(integer).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
-  def writeBoolean(boolean: Boolean): Slice[Byte] =
-    Slice(ScalaSlice.writeBoolean(boolean))
+  def writeBoolean(bool: Boolean): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeBoolean(bool).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
-  def writeUnsignedInt(int: Int): Slice[Byte] =
-    Slice(ScalaSlice.writeUnsignedInt(int))
+  def writeUnsignedInt(integer: Int): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeUnsignedInt(integer).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
-  def writeLong(long: Long): Slice[Byte] =
-    Slice(ScalaSlice.writeLong(long))
+  def writeLong(value: Long): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeLong(value).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
-  def writeUnsignedLong(long: Long): Slice[Byte] =
-    Slice(ScalaSlice.writeUnsignedLong(long))
+  def writeUnsignedLong(value: Long): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeUnsignedLong(value).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
-  def writeString(string: String): Slice[Byte] =
-    Slice(ScalaSlice.writeString(string, StandardCharsets.UTF_8))
+  def writeString(string: String): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeString(string, StandardCharsets.UTF_8).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
-  def writeString(string: String, charsets: Charset): Slice[Byte] =
-    Slice(ScalaSlice.writeString(string, charsets))
+  def writeString(string: String, charsets: Charset): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeString(string, charsets).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
   def fromByteArray(array: Array[java.lang.Byte]): Slice[java.lang.Byte] =
     Slice(swaydb.data.slice.Slice(array))
