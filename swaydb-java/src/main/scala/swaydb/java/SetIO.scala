@@ -24,7 +24,7 @@ import java.util.Optional
 import java.util.function.{Consumer, Predicate}
 
 import swaydb.IO.ThrowableIO
-import swaydb.{IO, Prepare}
+import swaydb.Prepare
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
@@ -40,11 +40,14 @@ import scala.concurrent.duration.Deadline
  *
  * For documentation check - http://swaydb.io/
  */
-case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
+case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
   private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
+
+  private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.GetKey[A, Nothing], ThrowableIO] =
+    asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.GetKey[A, Nothing], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
     asScala.get(elem).map(_.asJava)
@@ -124,14 +127,14 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction[F2 <: F with swaydb.PureFunction.GetKey[A, Nothing]](function: F2): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.registerFunction(function)
+  def registerFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, Nothing]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+    asScalaTypeCast.registerFunction(function.asScala)
 
-  def applyFunction(from: A, to: A, function: F with swaydb.PureFunction.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.applyFunction(from, to, function)
+  def applyFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, Nothing]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+    asScalaTypeCast.applyFunction(from, to, function.asScala)
 
-  def applyFunction(elem: A, function: F with swaydb.PureFunction.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.applyFunction(elem, function)
+  def applyFunction[PF <: F with swaydb.java.PureFunction.GetKey[A, Nothing]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+    asScalaTypeCast.applyFunction(elem, function.asScala)
 
   def commit(prepare: Prepare[A, Nothing]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare)

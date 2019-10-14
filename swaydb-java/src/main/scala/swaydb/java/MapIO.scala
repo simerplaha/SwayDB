@@ -22,6 +22,7 @@ package swaydb.java
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
+import swaydb.IO.ThrowableIO
 import swaydb.Prepare
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -42,6 +43,9 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
   private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
+
+  private def asScalaTypeCast: swaydb.Map[K, V, swaydb.PureFunction[K, V], ThrowableIO] =
+    asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V], swaydb.IO.ThrowableIO]]
 
   def put(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.put(key, value)
@@ -111,20 +115,14 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction[PF <: F with swaydb.java.PureFunction[K, V]](function: PF): IO[scala.Throwable, swaydb.IO.Done] = {
-    val scalaMap = asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V], swaydb.IO.ThrowableIO]]
-    scalaMap.registerFunction(function.asScala)
-  }
+  def registerFunction[PF <: F with swaydb.java.PureFunction[K, V]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+    asScalaTypeCast.registerFunction(function.asScala)
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](key: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] = {
-    val scalaMap = asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V], swaydb.IO.ThrowableIO]]
-    scalaMap.applyFunction(key, function.asScala)
-  }
+  def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](key: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+    asScalaTypeCast.applyFunction(key, function.asScala)
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](from: K, to: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] = {
-    val scalaMap = asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V], swaydb.IO.ThrowableIO]]
-    scalaMap.applyFunction(from, to, function.asScala)
-  }
+  def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](from: K, to: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+    asScalaTypeCast.applyFunction(from, to, function.asScala)
 
   def commit(prepare: Prepare[K, V]*): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.commit(prepare)

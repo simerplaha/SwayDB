@@ -44,29 +44,29 @@ import scala.reflect.ClassTag
 
 object Set {
 
-  class Builder[A, F](@BeanProperty var dir: Path,
-                      @BeanProperty var maxOpenSegments: Int = 1000,
-                      @BeanProperty var memoryCacheSize: Int = 100.mb,
-                      @BeanProperty var mapSize: Int = 4.mb,
-                      @BeanProperty var mmapMaps: Boolean = true,
-                      @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                      @BeanProperty var mmapAppendix: Boolean = true,
-                      @BeanProperty var mmapSegments: MMAP = MMAP.WriteAndRead,
-                      @BeanProperty var segmentSize: Int = 2.mb,
-                      @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
-                      @BeanProperty var otherDirs: Seq[Dir] = Seq.empty,
-                      @BeanProperty var memorySweeperPollInterval: FiniteDuration = 10.seconds,
-                      @BeanProperty var fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                      @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
-                      @BeanProperty var blockSize: Int = 4098,
-                      @BeanProperty var compressDuplicateValues: Boolean = true,
-                      @BeanProperty var deleteSegmentsEventually: Boolean = true,
-                      @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                      @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
-                      @BeanProperty var typedComparator: Optional[Comparator[A]] = Optional.empty[Comparator[A]](),
-                      @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
-                      serializer: Serializer[A],
-                      functionClassTag: ClassTag[F]) {
+  class Config[A, F, SF](@BeanProperty var dir: Path,
+                         @BeanProperty var maxOpenSegments: Int = 1000,
+                         @BeanProperty var memoryCacheSize: Int = 100.mb,
+                         @BeanProperty var mapSize: Int = 4.mb,
+                         @BeanProperty var mmapMaps: Boolean = true,
+                         @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                         @BeanProperty var mmapAppendix: Boolean = true,
+                         @BeanProperty var mmapSegments: MMAP = MMAP.WriteAndRead,
+                         @BeanProperty var segmentSize: Int = 2.mb,
+                         @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
+                         @BeanProperty var otherDirs: Seq[Dir] = Seq.empty,
+                         @BeanProperty var memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                         @BeanProperty var fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                         @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
+                         @BeanProperty var blockSize: Int = 4098,
+                         @BeanProperty var compressDuplicateValues: Boolean = true,
+                         @BeanProperty var deleteSegmentsEventually: Boolean = true,
+                         @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                         @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
+                         @BeanProperty var typedComparator: Optional[Comparator[A]] = Optional.empty[Comparator[A]](),
+                         @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
+                         serializer: Serializer[A],
+                         functionClassTag: ClassTag[SF]) {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(bytesComparator, typedComparator, serializer)
 
@@ -76,7 +76,7 @@ object Set {
       IO.fromScala {
         swaydb.IO {
           val scalaMap =
-            swaydb.persistent.Set[A, F, swaydb.IO.ThrowableIO](
+            swaydb.persistent.Set[A, SF, swaydb.IO.ThrowableIO](
               dir = dir,
               maxOpenSegments = maxOpenSegments,
               memoryCacheSize = memoryCacheSize,
@@ -107,17 +107,17 @@ object Set {
       }
   }
 
-  def configFunctions[A, F](dir: Path,
-                            keySerializer: JavaSerializer[A]): Builder[A, F] =
-    new Builder(
+  def configWithFunctions[A](dir: Path,
+                             keySerializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.GetKey[A, scala.Nothing], swaydb.PureFunction.GetKey[A, scala.Nothing]] =
+    new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.GetKey[A, scala.Nothing]]]
     )
 
   def config[A](dir: Path,
-                serializer: JavaSerializer[A]): Builder[A, Functions.Disabled] =
-    new Builder(
+                serializer: JavaSerializer[A]): Config[A, Functions.Disabled, Functions.Disabled] =
+    new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]

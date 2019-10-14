@@ -20,8 +20,8 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
-import java.util.{Comparator, Optional}
 import java.util.concurrent.ExecutorService
+import java.util.{Comparator, Optional}
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, MMAP, RecoveryMode}
@@ -29,10 +29,10 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
-import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
+import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.serializers.Serializer
 import swaydb.{SwayDB, Tag}
 
@@ -45,30 +45,30 @@ import scala.reflect.ClassTag
 
 object Map {
 
-  class Builder[K, V, F](@BeanProperty var dir: Path,
-                         @BeanProperty var maxOpenSegments: Int = 1000,
-                         @BeanProperty var memoryCacheSize: Int = 100.mb,
-                         @BeanProperty var blockSize: Int = 4098,
-                         @BeanProperty var mapSize: Int = 4.mb,
-                         @BeanProperty var mmapMaps: Boolean = true,
-                         @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                         @BeanProperty var mmapAppendix: Boolean = true,
-                         @BeanProperty var mmapSegments: MMAP = MMAP.WriteAndRead,
-                         @BeanProperty var segmentSize: Int = 2.mb,
-                         @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
-                         @BeanProperty var otherDirs: Seq[Dir] = Seq.empty,
-                         @BeanProperty var memorySweeperPollInterval: java.time.Duration = 10.seconds.toJava,
-                         @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
-                         @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
-                         @BeanProperty var compressDuplicateValues: Boolean = true,
-                         @BeanProperty var deleteSegmentsEventually: Boolean = true,
-                         @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
-                         @BeanProperty var typedComparator: Optional[Comparator[K]] = Optional.empty[Comparator[K]](),
-                         @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
-                         keySerializer: Serializer[K],
-                         valueSerializer: Serializer[V],
-                         functionClassTag: ClassTag[F]) {
+  class Config[K, V, F, SF](@BeanProperty var dir: Path,
+                            @BeanProperty var maxOpenSegments: Int = 1000,
+                            @BeanProperty var memoryCacheSize: Int = 100.mb,
+                            @BeanProperty var blockSize: Int = 4098,
+                            @BeanProperty var mapSize: Int = 4.mb,
+                            @BeanProperty var mmapMaps: Boolean = true,
+                            @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                            @BeanProperty var mmapAppendix: Boolean = true,
+                            @BeanProperty var mmapSegments: MMAP = MMAP.WriteAndRead,
+                            @BeanProperty var segmentSize: Int = 2.mb,
+                            @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
+                            @BeanProperty var otherDirs: Seq[Dir] = Seq.empty,
+                            @BeanProperty var memorySweeperPollInterval: java.time.Duration = 10.seconds.toJava,
+                            @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
+                            @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
+                            @BeanProperty var compressDuplicateValues: Boolean = true,
+                            @BeanProperty var deleteSegmentsEventually: Boolean = true,
+                            @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                            @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
+                            @BeanProperty var typedComparator: Optional[Comparator[K]] = Optional.empty[Comparator[K]](),
+                            @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
+                            keySerializer: Serializer[K],
+                            valueSerializer: Serializer[V],
+                            functionClassTag: ClassTag[SF]) {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(bytesComparator, typedComparator, keySerializer)
 
@@ -78,7 +78,7 @@ object Map {
       IO.fromScala {
         swaydb.IO {
           val scalaMap =
-            swaydb.persistent.Map[K, V, F, swaydb.IO.ThrowableIO](
+            swaydb.persistent.Map[K, V, SF, swaydb.IO.ThrowableIO](
               dir = dir,
               maxOpenSegments = maxOpenSegments,
               memoryCacheSize = memoryCacheSize,
@@ -112,18 +112,18 @@ object Map {
 
   def configFunctions[K, V, F](dir: Path,
                                keySerializer: JavaSerializer[K],
-                               valueSerializer: JavaSerializer[V]): Builder[K, V, F] =
-    new Builder(
+                               valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V], swaydb.PureFunction[K, V]] =
+    new Config(
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V]]]
     )
 
   def config[K, V](dir: Path,
                    keySerializer: JavaSerializer[K],
-                   valueSerializer: JavaSerializer[V]): Builder[K, V, Functions.Disabled] =
-    new Builder(
+                   valueSerializer: JavaSerializer[V]): Config[K, V, Functions.Disabled, Functions.Disabled] =
+    new Config(
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
