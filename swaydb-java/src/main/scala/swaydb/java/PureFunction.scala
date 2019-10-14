@@ -66,7 +66,13 @@ object PureFunction {
         }
 
       case function: PureFunction.GetKey[K, V] =>
-        asScala(function: PureFunction.GetKey[K, V])
+        new swaydb.PureFunction.GetKey[K, V] {
+          override def id: ScalaSlice[Byte] =
+            function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
+
+          override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): ScalaApply.Map[V] =
+            function.apply(key, deadline.map(_.asJava).asJava)
+        }
 
       case function: PureFunction.GetKeyValue[K, V] =>
         new swaydb.PureFunction.GetKeyValue[K, V] {
@@ -78,13 +84,13 @@ object PureFunction {
         }
     }
 
-  def asScala[K, V](function: PureFunction.GetKey[K, V]): swaydb.PureFunction.GetKey[K, V] =
-    new swaydb.PureFunction.GetKey[K, V] {
+  def asScala[K](function: PureFunction.GetKey[K, java.lang.Void]): swaydb.PureFunction.GetKey[K, Nothing] =
+    new swaydb.PureFunction.GetKey[K, Nothing] {
       override def id: ScalaSlice[Byte] =
         function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
-      override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): ScalaApply.Map[V] =
-        function.apply(key, deadline.map(_.asJava).asJava)
+      override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): ScalaApply.Map[Nothing] =
+        function.apply(key, deadline.map(_.asJava).asJava).asInstanceOf
     }
 
   @FunctionalInterface

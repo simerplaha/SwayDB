@@ -64,6 +64,14 @@ object Java {
       (tuple._1, tuple._2.toScala.fromNow)
   }
 
+  implicit class PairDurationImplicits[K](pair: Pair[K, java.time.Duration]) {
+    @inline def asScala: (K, FiniteDuration) =
+      (pair.left, pair.right.toScala)
+
+    @inline def asScalaDeadline: (K, Deadline) =
+      (pair.left, pair.right.toScala.fromNow)
+  }
+
   implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
     def asJava: swaydb.java.Deadline =
       new swaydb.java.Deadline(deadline)

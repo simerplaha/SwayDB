@@ -31,6 +31,7 @@ import swaydb.java.serializers.Serializer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
@@ -48,6 +49,16 @@ class MapSpec {
     assertDoesNotThrow(() -> map.put(1, 1).get());
     assertEquals(map.get(1).get().get(), 1);
     assertFalse(map.get(2).get().isPresent());
+
+
+    assertTrue(map.contains(1).get());
+
+    assertEquals(1, map.sizeOfBloomFilterEntries().get());
+    assertEquals(1, map.size().get());
+
+
+    map.remove(Arrays.asList(1, 1)).get();
+    assertEquals(0, map.size().get());
   }
 
   @Test

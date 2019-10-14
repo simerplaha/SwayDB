@@ -66,7 +66,7 @@ object Set {
       }
   }
 
-  def configFunctions[A, F](keySerializer: JavaSerializer[A]): Builder[A, F] =
+  def configWithFunctions[A, F](keySerializer: JavaSerializer[A]): Builder[A, F] =
     new Builder(
       serializer = SerializerConverter.toScala(keySerializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]

@@ -22,7 +22,10 @@ package swaydb.java.memory;
 
 import org.junit.jupiter.api.Test;
 import swaydb.data.util.Functions;
+import swaydb.java.PureFunction;
 import swaydb.java.SetIO;
+
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
@@ -40,6 +43,44 @@ class SetSpec {
     assertDoesNotThrow(() -> set.add(1).get());
     assertEquals(set.get(1).get().get(), 1);
     assertFalse(set.get(2).get().isPresent());
+
+    set.forEach(new Consumer<Integer>() {
+      @Override
+      public void accept(Integer integer) {
+        System.out.println("integer = " + integer);
+      }
+    }).materialize().get();
+
+
+    PureFunction.GetKey<Integer, Void> getKey = (key, deadline) -> null;
+
+//    set.registerFunction(getKey); //does not compile
   }
+
+//  @Test
+//  void createMapWithFunctions() throws Throwable {
+//    SetIO<Integer, Functions.Disabled> set =
+//      Set
+//        .configWithFunctions(intSerializer())
+//        .create()
+//        .get();
+//
+//    assertDoesNotThrow(() -> set.add(1).get());
+//    assertEquals(set.get(1).get().get(), 1);
+//    assertFalse(set.get(2).get().isPresent());
+//
+//    set.forEach(new Consumer<Integer>() {
+//      @Override
+//      public void accept(Integer integer) {
+//        System.out.println("integer = " + integer);
+//      }
+//    }).materialize().get();
+//
+//
+//    PureFunction.GetKey<Integer, Void> getKey = (key, deadline) -> null;
+//
+////    set.registerFunction(getKey); //does not compile
+//  }
+
 
 }
