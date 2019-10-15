@@ -22,6 +22,7 @@ package swaydb.java.memory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import swaydb.Prepare;
 import swaydb.data.util.Functions;
 import swaydb.java.*;
 import swaydb.java.data.slice.ByteSlice;
@@ -32,7 +33,6 @@ import swaydb.java.serializers.Serializer;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
-import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -75,8 +75,8 @@ class PersistentMapFunctionsDisabledTest extends MapTest {
 
 abstract class MapTest extends TestBase implements JavaEventually {
 
-  public abstract <K, V> MapIO<K, V, ?> createMap(Serializer<K> keySerializer,
-                                                  Serializer<V> valueSerializer) throws IOException;
+  public abstract <K, V> MapIO<K, V, Functions.Disabled> createMap(Serializer<K> keySerializer,
+                                                                   Serializer<V> valueSerializer) throws IOException;
 
   @Test
   void putTest() throws IOException {
@@ -261,7 +261,11 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void commitTest() throws IOException {
-    MapIO<Integer, Integer, ?> map = createMap(intSerializer(), intSerializer());
+    MapIO<Integer, Integer, PureFunction<Integer, Integer>> map =
+      Map
+        .configWithFunctions(intSerializer(), intSerializer())
+        .init()
+        .get();
 
     IntStream
       .rangeClosed(1, 1000)
@@ -270,7 +274,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
           map.put(integer, integer).get()
       );
 
-//    map.commit(Arrays.asList(Prepare.put(1, 2)));
+    List<swaydb.Prepare<Integer, Integer, PureFunction<Integer, Integer>>> puts = Arrays.asList(swaydb.java.Prepare.put(1, 2));
+    map.commit(puts);
 
     map.clear().get();
 
