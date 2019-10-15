@@ -84,21 +84,21 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def expire(from: K, to: K, after: java.time.Duration): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(from, to, after.toScala)
 
-  def expire(keys: java.util.List[KeyVal[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(keys: java.util.List[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(
       keys.asScala map {
         keyValue =>
-          (keyValue.key, keyValue.value.toScala.fromNow)
+          (keyValue.left, keyValue.right.toScala.fromNow)
       }
     )
 
-  def expire(keys: StreamIO[KeyVal[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(keys: StreamIO[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(keys.asScala.map(_.toScala))
 
   def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.expire(keys.asScala.map(_.asScalaDeadline).toIterable)
 
-  def expiration(key: K): swaydb.IO[Throwable, Optional[Deadline]] =
+  def expiration(key: K): IO[Throwable, Optional[Deadline]] =
     asScala.expiration(key).map(_.map(_.asJava).asJava)
 
   def update(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =

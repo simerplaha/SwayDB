@@ -57,8 +57,8 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def mightContain(elem: A): IO[scala.Throwable, java.lang.Boolean] =
     asScala.mightContain(elem).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
-  def mightContainFunction(functionId: A): IO[scala.Throwable, java.lang.Boolean] =
-    (asScala mightContainFunction functionId).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
+  def mightContainFunction(function: A): IO[scala.Throwable, java.lang.Boolean] =
+    (asScala mightContainFunction function).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
   def add(elem: A): IO[scala.Throwable, swaydb.IO.Done] =
     asScala add elem

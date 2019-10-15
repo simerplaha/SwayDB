@@ -35,6 +35,12 @@ object Stream {
   def create[A](iterator: java.util.Iterator[A]): StreamIO[A] =
     new StreamIO[A](swaydb.Stream(iterator.asScala.toIterable))
 
+  def create[A](iterator: java.util.List[A]): StreamIO[A] =
+    new StreamIO[A](swaydb.Stream(iterator.asScala))
+
+  def create[A](iterator: java.util.Collection[A]): StreamIO[A] =
+    new StreamIO[A](swaydb.Stream(iterator.asScala))
+
   def create[A](ioStreamer: IOStreamer[A]): StreamIO[A] =
     new StreamIO(swaydb.Stream(ioStreamer.toScalaStreamer))
 
