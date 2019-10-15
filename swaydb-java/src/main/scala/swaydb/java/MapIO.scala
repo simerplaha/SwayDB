@@ -27,10 +27,10 @@ import swaydb.Prepare
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
-import swaydb.java.data.util.KeyVal
+import swaydb.java.data.util.{KeyVal, Pair}
 
-import swaydb.java.data.util.Pair
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.OptionConverters._
 
@@ -128,14 +128,26 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](from: K, to: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
 
-  def commit(prepare: java.util.List[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.commit(prepare.asScala)
+  def commit[PF <: F with swaydb.java.PureFunction[K, V]](prepare: java.util.List[Prepare[K, V, PF]]): IO[scala.Throwable, swaydb.IO.Done] =
+    commit(prepare.iterator())
 
-  def commit(prepare: StreamIO[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.commit(prepare.asScala)
+  def commit[PF <: F with swaydb.java.PureFunction[K, V]](prepare: StreamIO[Prepare[K, V, PF]]): IO[scala.Throwable, swaydb.IO.Done] =
+    prepare
+      .asScala
+      .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V]]])(_ += Prepare.toScala(_))
+      .flatMap {
+        statements =>
+          asScalaTypeCast commit statements
+      }
 
-  def commit(prepare: java.util.Iterator[Prepare[K, V]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.commit(prepare.asScala.toIterable)
+  def commit[PF <: F with swaydb.java.PureFunction[K, V]](prepare: java.util.Iterator[Prepare[K, V, PF]]): IO[scala.Throwable, swaydb.IO.Done] = {
+    val prepareStatements =
+      prepare
+        .asScala
+        .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V]]])(_ += Prepare.toScala(_))
+
+    asScalaTypeCast commit prepareStatements
+  }
 
   def get(key: K): IO[scala.Throwable, Optional[V]] =
     asScala.get(key).map(_.asJava)

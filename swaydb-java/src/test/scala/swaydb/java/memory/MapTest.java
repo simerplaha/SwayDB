@@ -32,6 +32,7 @@ import swaydb.java.serializers.Serializer;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
+import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -257,6 +258,26 @@ abstract class MapTest extends TestBase implements JavaEventually {
     assertEquals(0, map.size().get());
     assertTrue(map.isEmpty().get());
   }
+
+  @Test
+  void commitTest() throws IOException {
+    MapIO<Integer, Integer, ?> map = createMap(intSerializer(), intSerializer());
+
+    IntStream
+      .rangeClosed(1, 1000)
+      .forEach(
+        integer ->
+          map.put(integer, integer).get()
+      );
+
+//    map.commit(Arrays.asList(Prepare.put(1, 2)));
+
+    map.clear().get();
+
+    assertEquals(0, map.size().get());
+    assertTrue(map.isEmpty().get());
+  }
+
 
   @Test
   void comparatorTest() {

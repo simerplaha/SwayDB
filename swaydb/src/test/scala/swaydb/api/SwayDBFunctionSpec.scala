@@ -146,6 +146,29 @@ sealed trait SwayDBFunctionSpec extends TestBase {
       db.close().get
     }
 
+    "batch commit updates" in {
+
+      val db = newDB()
+      db.registerFunction(Key.IncrementValue)
+
+      val puts: List[Prepare[Key.Id, Int, Nothing]] =
+        (1 to 1000).map(key => Prepare.Put(Key.Id(key), key)).toList
+
+      db.commit(puts).get
+
+      val prepareApplyFunction: List[Prepare[Key.Id, Nothing, Key.IncrementValue.type]] =
+        (1 to 1000).map(key => Prepare.ApplyFunction(Key.Id(key), Key.IncrementValue)).toList
+
+      db.commit(prepareApplyFunction).get
+
+      (1 to 1000) foreach {
+        key =>
+          db.get(Key.Id(key)).get should contain(key + 1)
+      }
+
+      db.close().get
+    }
+
     "Nothing should not update data" in {
 
       val db = newDB()

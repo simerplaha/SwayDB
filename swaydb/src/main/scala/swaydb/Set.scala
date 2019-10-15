@@ -135,13 +135,18 @@ case class Set[A, F, T[_]](private val core: Core[T],
   def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing]): T[IO.Done] =
     tag.point(core.function(elem, function.id))
 
-  def commit(prepare: Prepare[A, Nothing]*): T[IO.Done] =
+  def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing]): T[IO.Done] =
     tag.point(core.put(prepare))
 
-  def commit(prepare: Stream[Prepare[A, Nothing], T]): T[IO.Done] =
-    tag.point(prepare.materialize flatMap commit)
+  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], T])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing]): T[IO.Done] =
+    tag.point {
+      prepare.materialize flatMap {
+        statements =>
+          commit(statements)
+      }
+    }
 
-  def commit(prepare: Iterable[Prepare[A, Nothing]]): T[IO.Done] =
+  def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing]): T[IO.Done] =
     tag.point(core.put(prepare))
 
   def levelZeroMeter: LevelZeroMeter =

@@ -21,7 +21,7 @@ package swaydb
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-sealed trait Prepare[+K, +V]
+sealed trait Prepare[+K, +V, +F]
 
 object Prepare {
 
@@ -67,11 +67,11 @@ object Prepare {
   }
 
   object ApplyFunction {
-    def apply[K, V](key: K, functionId: K) =
-      new ApplyFunction(key, None, functionId)
+    def apply[K, F](key: K, function: F) =
+      new ApplyFunction(key, None, function)
 
-    def apply[K, V](from: K, to: K, functionId: K) =
-      new ApplyFunction(from, Some(to), functionId)
+    def apply[K, F](from: K, to: K, function: F) =
+      new ApplyFunction(from, Some(to), function)
   }
 
   object Add {
@@ -85,9 +85,9 @@ object Prepare {
       new Add(elem, Some(expireAt))
   }
 
-  case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Prepare[K, V]
-  case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Prepare[K, Nothing]
-  case class Update[K, V](from: K, to: Option[K], value: V) extends Prepare[K, V]
-  case class ApplyFunction[K](from: K, to: Option[K], functionId: K) extends Prepare[K, Nothing]
-  case class Add[T](elem: T, deadline: Option[Deadline]) extends Prepare[T, Nothing]
+  case class Put[K, V](key: K, value: V, deadline: Option[Deadline]) extends Prepare[K, V, Nothing]
+  case class Remove[K](from: K, to: Option[K], deadline: Option[Deadline]) extends Prepare[K, Nothing, Nothing]
+  case class Update[K, V](from: K, to: Option[K], value: V) extends Prepare[K, V, Nothing]
+  case class ApplyFunction[K, F](from: K, to: Option[K], function: F) extends Prepare[K, Nothing, F]
+  case class Add[T](elem: T, deadline: Option[Deadline]) extends Prepare[T, Nothing, Nothing]
 }

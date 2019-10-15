@@ -107,7 +107,7 @@ private[extensions] object Map {
                                      mapKeySerializer: Serializer[Key[K]],
                                      valueSerializer: Serializer[V],
                                      optionValueSerializer: Serializer[Option[V]],
-                                     keyOrder: KeyOrder[Slice[Byte]]): IO.ApiIO[Iterable[Prepare[Key[K], Option[V]]]] =
+                                     keyOrder: KeyOrder[Slice[Byte]]): IO.ApiIO[Iterable[Prepare[Key[K], Option[V], Nothing]]] =
   //batch to remove all SubMaps.
     childSubMapRanges(parentMap = Map[K, V](map, mapKey)).map(toPrepareRemove) flatMap {
       removeSubMapsBatches =>
@@ -236,16 +236,16 @@ class Map[K, V](mapKey: Seq[K],
       }
     }
 
-  def preparePut(key: K, value: V): Prepare[Key.MapEntry[K], Option[V]] =
+  def preparePut(key: K, value: V): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     preparePut(key, value, None)
 
-  def preparePut(key: K, value: V, expireAfter: FiniteDuration): Prepare[Key.MapEntry[K], Option[V]] =
+  def preparePut(key: K, value: V, expireAfter: FiniteDuration): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     preparePut(key, value, Some(expireAfter.fromNow))
 
-  def preparePut(key: K, value: V, deadline: Deadline): Prepare[Key.MapEntry[K], Option[V]] =
+  def preparePut(key: K, value: V, deadline: Deadline): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     preparePut(key, value, Some(deadline))
 
-  private def preparePut(key: K, value: V, deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V]] =
+  private def preparePut(key: K, value: V, deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     Prepare.Put(Key.MapEntry(mapKey, key), value = Some(value), deadline = deadline)
 
   def remove(key: K): IO.ApiIO[IO.Done] =
@@ -260,16 +260,16 @@ class Map[K, V](mapKey: Seq[K],
   def remove(keys: Iterable[K]): IO.ApiIO[IO.Done] =
     map.remove(keys.map(key => Key.MapEntry(mapKey, key)))
 
-  def prepareRemove(key: K): Prepare[Key.MapEntry[K], Option[V]] =
+  def prepareRemove(key: K): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     makeRemoveBatch(key, None, None)
 
-  def prepareRemove(from: K, to: K): Prepare[Key.MapEntry[K], Option[V]] =
+  def prepareRemove(from: K, to: K): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     makeRemoveBatch(from, Some(to), None)
 
-  def commit(entries: Prepare[Key.MapEntry[K], Option[V]]*) =
+  def commit(entries: Prepare[Key.MapEntry[K], Option[V], Nothing]*) =
     baseMap().commit(entries)
 
-  private def makeRemoveBatch(from: K, to: Option[K], deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V]] =
+  private def makeRemoveBatch(from: K, to: Option[K], deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     Prepare.Remove(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), deadline = deadline)
 
   /**
@@ -320,10 +320,10 @@ class Map[K, V](mapKey: Seq[K],
       }
     }
 
-  def commitPrepared(prepare: Prepare[K, V]*): IO.ApiIO[IO.Done] =
+  def commitPrepared(prepare: Prepare[K, V, Nothing]*): IO.ApiIO[IO.Done] =
     this.commit(prepare)
 
-  private def makeCommit(prepare: Prepare[K, V]): Prepare[Key.MapEntry[K], Option[V]] =
+  private def makeCommit(prepare: Prepare[K, V, Nothing]): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     prepare match {
       case Prepare.Put(key, value, deadline) =>
         preparePut(key, value, deadline)
@@ -335,16 +335,17 @@ class Map[K, V](mapKey: Seq[K],
         Prepare.Update(from = Key.MapEntry(mapKey, from), to = to.map(Key.MapEntry(mapKey, _)), value = Some(value))
 
       case Prepare.ApplyFunction(from, to, function) =>
-        Prepare.ApplyFunction(Key.MapEntry(mapKey, from), to.map(Key.MapEntry(mapKey, _)), functionId = Key.MapEntry(Seq.empty, function))
+        //        Prepare.ApplyFunction(Key.MapEntry(mapKey, from), to.map(Key.MapEntry(mapKey, _)), function = Key.MapEntry(Seq.empty, function))
+        throw new UnsupportedOperationException("Extensions do not have functions support yet.")
 
       case Prepare.Add(elem, deadline) =>
         Prepare.Add(elem = Key.MapEntry(mapKey, elem), deadline = deadline)
     }
 
-  private def makeCommit(prepare: Iterable[Prepare[K, V]]): Iterable[Prepare[Key.MapEntry[K], Option[V]]] =
+  private def makeCommit(prepare: Iterable[Prepare[K, V, Nothing]]): Iterable[Prepare[Key.MapEntry[K], Option[V], Nothing]] =
     prepare map makeCommit
 
-  def commit(prepare: Iterable[Prepare[K, V]]): IO.ApiIO[IO.Done] =
+  def commit(prepare: Iterable[Prepare[K, V, Nothing]]): IO.ApiIO[IO.Done] =
     map.commit(makeCommit(prepare))
 
   /**

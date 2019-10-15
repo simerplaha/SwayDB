@@ -87,7 +87,7 @@ private[swaydb] object Core {
       enableTimer = enableTimer
     )
 
-  private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
+  private def prepareToMapEntry(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]], Slice[Byte]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
       case (mapEntry, prepare) =>
         val nextEntry =
@@ -177,7 +177,7 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
    * @note If the default time order [[TimeOrder.long]] is used
    *       Times should always be unique and in incremental order for *ALL* key values.
    */
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]]]]): T[IO.Done] =
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]], Slice[Byte]]]): T[IO.Done] =
     if (entries.isEmpty)
       tag.failure(new IllegalArgumentException("Cannot write empty batch"))
     else

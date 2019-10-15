@@ -156,14 +156,19 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
   def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
     tag.point(core.function(from, to, function.id))
 
-  def commit(prepare: Prepare[K, V]*): T[IO.Done] =
-    tag.point(core.put(prepare))
+  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+    tag.point(core.put(preparesToUntyped(prepare)))
 
-  def commit(prepare: Stream[Prepare[K, V], T]): T[IO.Done] =
-    tag.point(prepare.materialize flatMap commit)
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], T])(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+    tag.point {
+      prepare.materialize flatMap {
+        prepares =>
+          commit(prepares)
+      }
+    }
 
-  def commit(prepare: Iterable[Prepare[K, V]]): T[IO.Done] =
-    tag.point(core.put(prepare))
+  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+    tag.point(core.put(preparesToUntyped(prepare)))
 
   /**
    * Returns target value for the input key.
