@@ -46,7 +46,7 @@ import scala.reflect.ClassTag
  */
 object SwayDB extends LazyLogging {
 
-  private implicit val memoryFunctionStore: FunctionStore = FunctionStore.memory()
+  private implicit def memoryFunctionStore: FunctionStore = FunctionStore.memory()
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   /**

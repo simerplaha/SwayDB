@@ -40,7 +40,7 @@ import scala.reflect.ClassTag
 object Map extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val functionStore: FunctionStore = FunctionStore.memory()
+  implicit def functionStore: FunctionStore = FunctionStore.memory()
 
   /**
    * A pre-configured, 8 Leveled, persistent database where Level1 accumulates a minimum of 10 Segments before

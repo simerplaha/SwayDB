@@ -41,7 +41,7 @@ import scala.reflect.ClassTag
 object Map extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val functionStore: FunctionStore = FunctionStore.memory()
+  implicit def functionStore: FunctionStore = FunctionStore.memory()
 
   def apply[K, V, F](dir: Path,
                      maxOpenSegments: Int = 1000,
