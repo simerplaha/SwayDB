@@ -81,7 +81,7 @@ db
 - [SwayDB.examples](https://github.com/simerplaha/SwayDB.examples) - Examples demonstrating features and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
-- [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
+- [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
 
 # Project status
 
