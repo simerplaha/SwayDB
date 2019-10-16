@@ -81,6 +81,18 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
         .await shouldBe ('a' to 'y')
     }
 
+    "tabulate" in {
+      Stream
+        .tabulate[Int, T](5)(_ + 1)
+        .materialize
+        .await shouldBe (1 to 5)
+
+      Stream
+        .tabulate[Int, T](0)(_ + 1)
+        .materialize
+        .await shouldBe empty
+    }
+
     "headOption" in {
       Stream[Int, T](1 to 100)
         .headOption

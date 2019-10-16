@@ -50,6 +50,22 @@ object Stream {
   def rangeUntil[T[_]](from: Char, to: Char)(implicit tag: Tag[T]): Stream[Char, T] =
     apply[Char, T](from until to)
 
+  def tabulate[A, T[_]](n: Int)(f: Int => A)(implicit tag: Tag[T]): Stream[A, T] =
+    apply[A, T](
+      new Iterator[A] {
+        var used = 0
+
+        override def hasNext: Boolean =
+          used < n
+
+        override def next(): A = {
+          val nextA = f(used)
+          used += 1
+          nextA
+        }
+      }
+    )
+
   def apply[A, T[_]](streamer: Streamer[A, T])(implicit tag: Tag[T]): Stream[A, T] =
     new Stream[A, T] {
       override def headOption(): T[Option[A]] =
@@ -63,10 +79,10 @@ object Stream {
    * Create a [[Stream]] from a collection.
    */
   def apply[A, T[_]](items: Iterable[A])(implicit tag: Tag[T]): Stream[A, T] =
+    apply[A, T](items.iterator)
+
+  def apply[A, T[_]](iterator: Iterator[A])(implicit tag: Tag[T]): Stream[A, T] =
     new Stream[A, T] {
-
-      private val iterator = items.iterator
-
       private def step(): T[Option[A]] =
         if (iterator.hasNext)
           tag.success(Some(iterator.next()))
