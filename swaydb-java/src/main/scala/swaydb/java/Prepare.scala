@@ -20,42 +20,16 @@
 package swaydb.java
 
 import java.time.Duration
+import java.util.Optional
 
-import swaydb.{Prepare => ScalaPrepare}
+import swaydb.java.data.util.Java._
 
 import scala.compat.java8.DurationConverters._
 
 object Prepare {
 
-  def put[K, V](key: K, value: V): ScalaPrepare.Put[K, V] =
-    ScalaPrepare.Put(key, value)
-
-  def put[K, V](key: K, value: V, expireAfter: Duration): ScalaPrepare.Put[K, V] =
-    ScalaPrepare.Put(key, value, expireAfter.toScala)
-
-  def remove[K](key: K): ScalaPrepare.Remove[K] =
-    ScalaPrepare.Remove(key)
-
-  def remove[K](fromKey: K, toKey: K): ScalaPrepare.Remove[K] =
-    ScalaPrepare.Remove(fromKey, toKey)
-
-  def expire[K](key: K, after: Duration): ScalaPrepare.Remove[K] =
-    ScalaPrepare.Expire(key, after.toScala)
-
-  def expire[K](fromKey: K, toKey: K, after: Duration): ScalaPrepare.Remove[K] =
-    ScalaPrepare.Expire(fromKey, toKey, after.toScala)
-
-  def update[K, V](key: K, value: V): ScalaPrepare.Update[K, V] =
-    ScalaPrepare.Update(key, value)
-
-  def update[K, V](fromKey: K, toKey: K, value: V): ScalaPrepare.Update[K, V] =
-    ScalaPrepare.Update(fromKey, toKey, value)
-
-  def applyFunction[K, F](key: K, function: F): ScalaPrepare.ApplyFunction[K, F] =
-    ScalaPrepare.ApplyFunction(key, function)
-
-  def applyFunction[K, F](fromKey: K, toKey: K, function: F): ScalaPrepare.ApplyFunction[K, F] =
-    ScalaPrepare.ApplyFunction(fromKey, toKey, function)
+  sealed trait Map[+K, +V, +F]
+  sealed trait Set[+K, +F]
 
   /**
    * Convert Prepare statements created in Java to of the type acceptable in Scala.
@@ -63,44 +37,47 @@ object Prepare {
    * This is required because of the [[PureFunction]] types in Java are different to Scala which
    * accept Scala vars.
    */
-  def toScala[K, V, F <: swaydb.java.PureFunction[K, V]](prepare: swaydb.Prepare[K, V, F]): swaydb.Prepare[K, V, swaydb.PureFunction[K, V]] =
+  def toScala[K, V, F <: swaydb.java.PureFunction[K, V]](prepare: Prepare.Map[K, V, F]): swaydb.Prepare[K, V, swaydb.PureFunction[K, V]] =
     prepare match {
-      case prepare: swaydb.Prepare.Put[K, V] =>
-        prepare
+      case Map.Put(key, value, expireAfter) =>
+        new swaydb.Prepare.Put(key, value, expireAfter.asScalaMap(_.toScala.fromNow))
 
-      case prepare: swaydb.Prepare.Remove[K] =>
-        prepare
+      case Map.Remove(from, to, expireAfter) =>
+        new swaydb.Prepare.Remove(from, to.asScala, expireAfter.asScalaMap(_.toScala.fromNow))
 
-      case prepare: swaydb.Prepare.Update[K, V] =>
-        prepare
+      case Map.Update(from, to, value) =>
+        new swaydb.Prepare.Update(from, to.asScala, value)
 
-      case prepare: swaydb.Prepare.ApplyFunction[K, F] =>
-        val scalaFunction = PureFunction.asScala(prepare.function)
-        swaydb.Prepare.ApplyFunction(prepare.from, prepare.to, scalaFunction)
-
-      case prepare: swaydb.Prepare.Add[K] =>
-        prepare
+      case Map.ApplyFunction(from, to, function) =>
+        new swaydb.Prepare.ApplyFunction(from, to.asScala, PureFunction.asScala(function))
     }
 
   /**
    * Converts java prepare statements with [[swaydb.java.PureFunction.OnKey]] to scala prepare statements with [[swaydb.PureFunction.OnKey]]
    */
-  def toScalaForSet[K, F <: swaydb.java.PureFunction.OnKey[K, java.lang.Void]](prepare: swaydb.Prepare[K, java.lang.Void, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing]] =
+  def toScala[K, F <: swaydb.java.PureFunction.OnKey[K, java.lang.Void]](prepare: Prepare.Set[K, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing]] =
     prepare match {
-      case prepare: swaydb.Prepare.Put[K, _] =>
-        prepare.asInstanceOf[swaydb.Prepare.Put[K, Nothing]]
+      case Set.Add(elem, expireAfter) =>
+        new swaydb.Prepare.Add(elem, expireAfter.asScalaMap(_.toScala.fromNow))
 
-      case prepare: swaydb.Prepare.Remove[K] =>
-        prepare.asInstanceOf[swaydb.Prepare.Remove[K]]
+      case Set.Remove(from, to, expireAfter) =>
+        new swaydb.Prepare.Remove(from, to.asScala, expireAfter.asScalaMap(_.toScala.fromNow))
 
-      case prepare: swaydb.Prepare.Update[K, _] =>
-        prepare.asInstanceOf[swaydb.Prepare.Update[K, Nothing]]
+      case Set.ApplyFunction(from, to, function) =>
+        new swaydb.Prepare.ApplyFunction(from, to.asScala, PureFunction.asScala(function))
 
-      case prepare: swaydb.Prepare.ApplyFunction[K, F] =>
-        val scalaFunction: swaydb.PureFunction.OnKey[K, Nothing] = PureFunction.asScala(prepare.function)
-        swaydb.Prepare.ApplyFunction(prepare.from, prepare.to, scalaFunction)
-
-      case prepare: swaydb.Prepare.Add[K] =>
-        prepare
     }
+
+  object Map {
+    case class Put[K, V, F](key: K, value: V, expireAfter: Optional[Duration]) extends Prepare.Map[K, V, F]
+    case class Remove[K, V, F](from: K, to: Optional[K], expireAfter: Optional[Duration]) extends Prepare.Map[K, V, F]
+    case class Update[K, V, F](from: K, to: Optional[K], value: V) extends Prepare.Map[K, V, F]
+    case class ApplyFunction[K, V, F](from: K, to: Optional[K], function: F) extends Prepare.Map[K, V, F]
+  }
+
+  object Set {
+    case class Add[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](elem: T, expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
+    case class Remove[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](from: T, to: Optional[T], expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
+    case class ApplyFunction[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](from: T, to: Optional[T], function: F) extends Prepare.Set[T, F]
+  }
 }

@@ -133,23 +133,23 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(elem, PureFunction.asScala(function))
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](prepare: java.util.List[Prepare[A, java.lang.Void, PF]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void], P <: Prepare.Set[A, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.IO.Done] =
     commit(prepare.iterator())
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](prepare: StreamIO[Prepare[A, java.lang.Void, PF]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void], P <: Prepare.Set[A, PF]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.IO.Done] =
     prepare
       .asScala
-      .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing]]])(_ += Prepare.toScalaForSet(_))
+      .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing]]])(_ += Prepare.toScala(_))
       .flatMap {
         statements =>
           asScalaTypeCast.commit(statements)
       }
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](prepare: java.util.Iterator[Prepare[A, java.lang.Void, PF]]): IO[scala.Throwable, swaydb.IO.Done] = {
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void], P <: Prepare.Set[A, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.IO.Done] = {
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing]]])(_ += Prepare.toScalaForSet(_))
+        .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing]]])(_ += Prepare.toScala(_))
 
     asScalaTypeCast commit prepareStatements
   }

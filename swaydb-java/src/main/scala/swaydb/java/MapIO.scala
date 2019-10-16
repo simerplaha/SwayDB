@@ -128,10 +128,10 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def applyFunction[PF <: F with swaydb.java.PureFunction[K, V]](from: K, to: K, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
 
-  def commit[PF <: F with swaydb.java.PureFunction[K, V]](prepare: java.util.List[Prepare[K, V, PF]]): IO[scala.Throwable, swaydb.IO.Done] =
-    commit(prepare.iterator())
+  def commit[PF <: F with swaydb.java.PureFunction[K, V], P <: Prepare.Map[K, V, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.IO.Done] =
+    commit[PF, P](prepare.iterator())
 
-  def commit[PF <: F with swaydb.java.PureFunction[K, V]](prepare: StreamIO[Prepare[K, V, PF]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit[PF <: F with swaydb.java.PureFunction[K, V], P <: Prepare.Map[K, V, PF]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.IO.Done] =
     prepare
       .asScala
       .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V]]])(_ += Prepare.toScala(_))
@@ -140,7 +140,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
           asScalaTypeCast commit statements
       }
 
-  def commit[PF <: F with swaydb.java.PureFunction[K, V]](prepare: java.util.Iterator[Prepare[K, V, PF]]): IO[scala.Throwable, swaydb.IO.Done] = {
+  def commit[PF <: F with swaydb.java.PureFunction[K, V], P <: Prepare.Map[K, V, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.IO.Done] = {
     val prepareStatements =
       prepare
         .asScala

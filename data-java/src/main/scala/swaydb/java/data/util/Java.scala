@@ -19,7 +19,7 @@
 
 package swaydb.java.data.util
 
-import java.util.Comparator
+import java.util.{Comparator, Optional}
 import java.util.concurrent.ExecutorService
 
 import swaydb.java.data.slice.ByteSlice
@@ -75,5 +75,19 @@ object Java {
   implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
     def asJava: swaydb.java.Deadline =
       new swaydb.java.Deadline(deadline)
+  }
+
+  implicit class OptionalConverter[T](optional: Optional[T]) {
+    def asScala: Option[T] =
+      if (optional.isPresent)
+        Some(optional.get())
+      else
+        None
+
+    def asScalaMap[B](map: T => B): Option[B] =
+      if (optional.isPresent)
+        Some(map(optional.get()))
+      else
+        None
   }
 }

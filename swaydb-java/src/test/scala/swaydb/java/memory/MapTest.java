@@ -22,7 +22,6 @@ package swaydb.java.memory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import swaydb.Prepare;
 import swaydb.data.util.Functions;
 import swaydb.java.*;
 import swaydb.java.data.slice.ByteSlice;
@@ -274,13 +273,23 @@ abstract class MapTest extends TestBase implements JavaEventually {
           map.put(integer, integer).get()
       );
 
-//    List<swaydb.Prepare<Integer, Integer, PureFunction<Integer, Integer>>> puts = Arrays.asList(swaydb.java.Prepare.put(1, 2));
-//    map.commit(puts);
 
-    map.clear().get();
+    PureFunction.OnKey<Integer, Integer> function =
+      (key, deadline) ->
+        swaydb.java.Apply.update(10, Optional.empty());
 
-    assertEquals(0, map.size().get());
-    assertTrue(map.isEmpty().get());
+    map.registerFunction(function);
+
+    List<Prepare.Map<Integer, Integer, PureFunction<Integer, Integer>>> puts =
+      Arrays.asList(
+        PrepareForMap.put(1, 2),
+        PrepareForMap.applyFunction(2, function)
+      );
+
+    map.commit(puts).get();
+
+    assertEquals(2, map.get(1).get().get());
+    assertEquals(10, map.get(2).get().get());
   }
 
 
