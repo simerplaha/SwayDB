@@ -24,7 +24,7 @@ lazy val commonSettings = Seq(
 )
 
 val publishSettings = Seq[Setting[_]](
-  crossScalaVersions := Seq("2.11.10", "2.12.10"),
+  crossScalaVersions := Seq("2.11.12", "2.12.10"),
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
   licenses := Seq("AGPL3" -> url("https://www.gnu.org/licenses/agpl-3.0.en.html")),
