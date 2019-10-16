@@ -32,7 +32,7 @@ import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{IO, KeyOrderConverter, Return}
 import swaydb.serializers.Serializer
-import swaydb.{SwayDB, Tag}
+import swaydb.{Apply, SwayDB, Tag}
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.DurationConverters._
@@ -90,11 +90,11 @@ object Map {
   }
 
   def configWithFunctions[K, V](keySerializer: JavaSerializer[K],
-                                valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] =
-    new Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]](
+                                valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, Apply.Map[V]]] =
+    new Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, Apply.Map[V]]](
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
     )
 
   def config[K, V](keySerializer: JavaSerializer[K],

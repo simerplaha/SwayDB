@@ -21,7 +21,6 @@ package swaydb.java.memory;
 
 
 import org.junit.jupiter.api.Test;
-import swaydb.Apply;
 import swaydb.data.util.Functions;
 import swaydb.java.PureFunction;
 import swaydb.java.Return;

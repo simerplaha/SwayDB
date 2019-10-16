@@ -167,7 +167,7 @@ object SwayDB extends LazyLogging {
         swaydb.Set[T, F, IO.ApiIO](db)
     }
 
-  private def toCoreFunctionOutput[V](output: swaydb.Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
+  private def toCoreFunctionOutput[V](output: Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
     output match {
       case Apply.Nothing =>
         SwayFunctionOutput.Nothing

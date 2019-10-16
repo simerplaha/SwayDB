@@ -429,7 +429,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     PureFunction.OnValue<Integer, Integer, Return.Map<Integer>> onValue =
       value ->
-        new Return.Update(value, Optional.empty());
+        Return.update(value + 1);
 
     map.registerFunction(getKey).get();
     map.registerFunction(onValue).get();

@@ -21,7 +21,7 @@ package swaydb.java.memory.zero
 
 import java.util.Comparator
 
-import swaydb.Tag
+import swaydb.{Apply, Tag}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -68,11 +68,11 @@ object Map {
   }
 
   def configWithFunctions[K, V](keySerializer: JavaSerializer[K],
-                                valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction.OnKey[K, V, Return.Map[V]], swaydb.PureFunction.OnKey[K, V, swaydb.Apply.Map[V]]] =
+                                valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction.OnKey[K, V, Return.Map[V]], swaydb.PureFunction.OnKey[K, V, Apply.Map[V]]] =
     new Builder(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[K, V, swaydb.Apply.Map[V]]]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[K, V, Apply.Map[V]]]]
     )
 
   def config[K, V](keySerializer: JavaSerializer[K],

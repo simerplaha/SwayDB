@@ -21,7 +21,7 @@ package swaydb.java
 
 import java.util.Optional
 
-import swaydb.Map
+import swaydb.{Apply, Map}
 import swaydb.java.data.slice.Slice
 import swaydb.java.data.util.Java._
 
@@ -56,42 +56,42 @@ sealed trait PureFunction[+K, +V, R <: Return[V]] {
  */
 object PureFunction {
 
-  def asScala[K, V, R <: Return.Map[V]](function: PureFunction[K, V, R]): swaydb.PureFunction[K, V, swaydb.Apply.Map[V]] =
+  def asScala[K, V, R <: Return.Map[V]](function: PureFunction[K, V, R]): swaydb.PureFunction[K, V, Apply.Map[V]] =
     function match {
       case function: PureFunction.OnValue[K, V, Return.Map[V]] =>
-        new swaydb.PureFunction.OnValue[V, swaydb.Apply.Map[V]] {
+        new swaydb.PureFunction.OnValue[V, Apply.Map[V]] {
           override def id: ScalaSlice[Byte] =
             function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
-          override def apply(value: V): swaydb.Apply.Map[V] =
+          override def apply(value: V): Apply.Map[V] =
             Return.toScalaMap(function.apply(value))
         }
 
       case function: PureFunction.OnKey[K, V, Return.Map[V]] =>
-        new swaydb.PureFunction.OnKey[K, V, swaydb.Apply.Map[V]] {
+        new swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] {
           override def id: ScalaSlice[Byte] =
             function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
-          override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): swaydb.Apply.Map[V] =
+          override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
             Return.toScalaMap(function.apply(key, deadline.map(_.asJava).asJava))
         }
 
       case function: PureFunction.OnKeyValue[K, V, Return.Map[V]] =>
-        new swaydb.PureFunction.OnKeyValue[K, V, swaydb.Apply.Map[V]] {
+        new swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] {
           override def id: ScalaSlice[Byte] =
             function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
-          override def apply(key: K, value: V, deadline: Option[scala.concurrent.duration.Deadline]): swaydb.Apply.Map[V] =
+          override def apply(key: K, value: V, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
             Return.toScalaMap(function.apply(key, value, deadline.map(_.asJava).asJava))
         }
     }
 
-  def asScala[K, R <: Return.Set[Void]](function: PureFunction.OnKey[K, Void, R]): swaydb.PureFunction.OnKey[K, Nothing, swaydb.Apply.Set[Nothing]] =
-    new swaydb.PureFunction.OnKey[K, Nothing, swaydb.Apply.Set[Nothing]] {
+  def asScala[K, R <: Return.Set[Void]](function: PureFunction.OnKey[K, Void, R]): swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]] =
+    new swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]] {
       override def id: ScalaSlice[Byte] =
         function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
-      override def apply(key: K, deadline: Option[duration.Deadline]): swaydb.Apply.Set[Nothing] =
+      override def apply(key: K, deadline: Option[duration.Deadline]): Apply.Set[Nothing] =
         Return.toScalaSet(function.apply(key, deadline.map(_.asJava).asJava))
     }
 

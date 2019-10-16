@@ -22,6 +22,7 @@ package swaydb.java
 import java.time.Duration
 import java.util.Optional
 
+import swaydb.Apply
 import swaydb.java.data.util.Java._
 
 import scala.compat.java8.DurationConverters._
@@ -37,7 +38,7 @@ object Prepare {
    * This is required because of the [[PureFunction]] types in Java are different to Scala which
    * accept Scala vars.
    */
-  def toScala[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](prepare: Prepare.Map[K, V, F]): swaydb.Prepare[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] =
+  def toScala[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](prepare: Prepare.Map[K, V, F]): swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]] =
     prepare match {
       case Map.Put(key, value, expireAfter) =>
         new swaydb.Prepare.Put(key, value, expireAfter.asScalaMap(_.toScala.fromNow))
@@ -55,7 +56,7 @@ object Prepare {
   /**
    * Converts java prepare statements with [[swaydb.java.PureFunction.OnKey]] to scala prepare statements with [[swaydb.PureFunction.OnKey]]
    */
-  def toScala[K, F <: swaydb.java.PureFunction.OnKey[K, Void, Return.Set[Void]]](prepare: Prepare.Set[K, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing, swaydb.Apply.Set[Nothing]]] =
+  def toScala[K, F <: swaydb.java.PureFunction.OnKey[K, Void, Return.Set[Void]]](prepare: Prepare.Set[K, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]]] =
     prepare match {
       case Set.Add(elem, expireAfter) =>
         new swaydb.Prepare.Add(elem, expireAfter.asScalaMap(_.toScala.fromNow))

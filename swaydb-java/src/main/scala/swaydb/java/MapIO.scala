@@ -23,7 +23,7 @@ import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
 import swaydb.IO.ThrowableIO
-import swaydb.Prepare
+import swaydb.{Apply, Prepare}
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
@@ -45,8 +45,8 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
 
   @inline private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
 
-  @inline private def asScalaTypeCast: swaydb.Map[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]], ThrowableIO] =
-    asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]], swaydb.IO.ThrowableIO]]
+  @inline private def asScalaTypeCast: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], ThrowableIO] =
+    asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], swaydb.IO.ThrowableIO]]
 
   def put(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.put(key, value)
@@ -134,7 +134,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   def commit[PF <: F with swaydb.java.PureFunction[K, V, Return.Map[V]], P <: Prepare.Map[K, V, PF]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.IO.Done] =
     prepare
       .asScala
-      .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]]])(_ += Prepare.toScala(_))
+      .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
       .flatMap {
         statements =>
           asScalaTypeCast commit statements
@@ -144,7 +144,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
 
     asScalaTypeCast commit prepareStatements
   }

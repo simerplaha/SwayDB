@@ -22,6 +22,7 @@ package swaydb.java
 import java.time.Duration
 import java.util.Optional
 
+import swaydb.Apply
 import swaydb.java.data.util.Java._
 
 import scala.compat.java8.DurationConverters._
@@ -63,30 +64,30 @@ object Return {
 
   final case class Update[V](value: V, expireAfter: Optional[Duration]) extends Map[V]
 
-  def toScalaMap[V](returnValue: Return.Map[V]): swaydb.Apply.Map[V] =
+  def toScalaMap[V](returnValue: Return.Map[V]): Apply.Map[V] =
     returnValue match {
       case Nothing() =>
-        swaydb.Apply.Nothing
+        Apply.Nothing
 
       case Remove() =>
-        swaydb.Apply.Remove
+        Apply.Remove
 
       case Expire(expireAfter) =>
-        swaydb.Apply.Expire(expireAfter.toScala)
+        Apply.Expire(expireAfter.toScala)
 
       case Update(value, expireAfter) =>
-        new swaydb.Apply.Update(value, expireAfter.asScalaMap(_.toScala.fromNow))
+        new Apply.Update(value, expireAfter.asScalaMap(_.toScala.fromNow))
     }
 
-  def toScalaSet(returnValue: Return.Set[java.lang.Void]): swaydb.Apply.Set[scala.Nothing] =
+  def toScalaSet(returnValue: Return.Set[java.lang.Void]): Apply.Set[scala.Nothing] =
     returnValue match {
       case Nothing() =>
-        swaydb.Apply.Nothing
+        Apply.Nothing
 
       case Remove() =>
-        swaydb.Apply.Remove
+        Apply.Remove
 
       case Expire(expireAfter) =>
-        swaydb.Apply.Expire(expireAfter.toScala)
+        Apply.Expire(expireAfter.toScala)
     }
 }
