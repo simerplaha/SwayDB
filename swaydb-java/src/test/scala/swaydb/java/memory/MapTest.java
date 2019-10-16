@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import swaydb.java.*;
 import swaydb.java.data.slice.ByteSlice;
+import swaydb.java.data.slice.Slice;
 import swaydb.java.data.util.KeyVal;
 import swaydb.java.data.util.Pair;
 import swaydb.java.serializers.Serializer;
@@ -177,7 +178,18 @@ abstract class MapTest extends TestBase implements JavaEventually {
       );
 
     //remove range
-    map.remove(11, 100).get();
+    map.remove(11, 50).get();
+
+    //range key-values do not exists.
+    IntStream
+      .rangeClosed(0, 50)
+      .forEach(
+        integer ->
+          assertFalse(map.get(integer).get().isPresent())
+      );
+
+    //remove range
+    map.commit(Stream.range(51, 100).map(Prepare::removeFromMap)).get();
 
     //non exist
     IntStream
@@ -363,23 +375,53 @@ abstract class MapTest extends TestBase implements JavaEventually {
   void commitTest() throws IOException {
     MapIO<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map = createMap(intSerializer(), intSerializer());
 
-    final Iterator<Prepare.PutInMap<Integer, Integer, Void>> putStream = null;
+    //create a 100 key-values
+    map.put(Stream.range(1, 100).map(KeyVal::create)).get();
 
-//    List<Prepare.Map<Integer, Integer, Void>> puts = Arrays.asList(Prepare.putInMap(1, 1));
+    map.commit(
+      Arrays.asList(
+        Prepare.putInMap(1, 11),
+        Prepare.putInMap(2, 22),
+        Prepare.putInMap(10, 100, Duration.ofSeconds(3)),
+        Prepare.removeFromMap(3, 3),
+        Prepare.putInMap(4, 44),
+        Prepare.updateInMap(50, 1000),
+        Prepare.updateInMap(51, 60, Integer.MAX_VALUE),
+        Prepare.expireFromMap(2, Duration.ofSeconds(3)),
+        Prepare.expireFromMap(61, 70, Duration.ofSeconds(3))
+      )
+    ).get();
 
+    //expected expirations to occur after 3 seconds. But do normal asserts first.
 
-//    map.commit(putStream).get();
-//
-//    List<Prepare.Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>>> puts =
-//      Arrays.asList(
-//        Prepare.putInMap(1, 2),
-//        Prepare.applyFunctionInMap(2, function)
-//      );
-//
-//    map.commit(puts).get();
-//
-//    assertEquals(2, map.get(1).get().get());
-//    assertEquals(10, map.get(2).get().get());
+    assertEquals(11, map.get(1).get().get());
+    assertEquals(22, map.get(2).get().get());
+    assertEquals(100, map.get(10).get().get());
+    assertFalse(map.get(3).get().isPresent());
+    assertEquals(44, map.get(4).get().get());
+    assertEquals(1000, map.get(50).get().get());
+
+    IntStream
+      .rangeClosed(51, 60)
+      .forEach(
+        integer ->
+          assertEquals(Integer.MAX_VALUE, map.get(integer).get().get())
+      );
+
+    eventuallyInSeconds(
+      4,
+      () -> {
+        assertFalse(map.get(2).get().isPresent());
+        assertFalse(map.get(10).get().isPresent());
+        IntStream
+          .rangeClosed(61, 70)
+          .forEach(
+            integer ->
+              assertFalse(map.get(integer).get().isPresent())
+          );
+        return false;
+      }
+    );
   }
 
   @Test
@@ -508,22 +550,72 @@ abstract class MapTest extends TestBase implements JavaEventually {
         .init()
         .get();
 
-    assertDoesNotThrow(() -> map.put(1, 1).get());
-    assertEquals(map.get(1).get().get(), 1);
+    map.put(Stream.range(1, 100).map(KeyVal::create)).get();
 
-    PureFunction.OnKey<Integer, Integer, Return.Map<Integer>> getKey =
+    PureFunction.OnKey<Integer, Integer, Return.Map<Integer>> updateValueTo10 =
       (key, deadline) ->
         Return.update(10);
 
-    PureFunction.OnValue<Integer, Integer, Return.Map<Integer>> onValue =
+    PureFunction.OnValue<Integer, Integer, Return.Map<Integer>> incrementBy1 =
       value ->
         Return.update(value + 1);
 
-    map.registerFunction(getKey).get();
-    map.registerFunction(onValue).get();
-    map.applyFunction(1, getKey).get();
+    PureFunction.OnKeyValue<Integer, Integer, Return.Map<Integer>> removeMod0OrIncrementBy1 =
+      (key, value, deadline) -> {
+        if (key % 10 == 0) {
+          return Return.remove();
+        } else {
+          return Return.update(value + 1);
+        }
+      };
 
-    Integer integer = map.get(1).get().get();
-    System.out.println(integer);
+    //this will not compile since the return type specified is a Set - expected!
+//    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> set = null;
+//    map.registerFunction(set).get();
+
+    map.registerFunction(updateValueTo10).get();
+    map.registerFunction(incrementBy1).get();
+    map.registerFunction(removeMod0OrIncrementBy1).get();
+
+    map.applyFunction(1, updateValueTo10).get();
+    assertEquals(10, map.get(1).get().get());
+
+    map.applyFunction(10, 20, incrementBy1).get();
+    IntStream
+      .rangeClosed(10, 20)
+      .forEach(
+        integer ->
+          assertEquals(integer + 1, map.get(integer).get().get())
+      );
+
+    map.applyFunction(21, 50, removeMod0OrIncrementBy1).get();
+    IntStream
+      .rangeClosed(21, 50)
+      .forEach(
+        integer -> {
+          if (integer % 10 == 0) {
+            assertFalse(map.get(integer).get().isPresent());
+          } else {
+            assertEquals(integer + 1, map.get(integer).get().get());
+          }
+        }
+      );
+
+    //untouched 51 - 100. Overlapping functions executions.
+    map.commit(
+      Arrays.asList(
+        Prepare.applyFunctionInMap(51, updateValueTo10),
+        Prepare.applyFunctionInMap(52, 100, updateValueTo10),
+        Prepare.applyFunctionInMap(51, 100, incrementBy1),
+        Prepare.applyFunctionInMap(51, 100, removeMod0OrIncrementBy1)
+      )
+    ).get();
+
+    assertEquals(12, map.get(51).get().get());
+    assertFalse(map.get(60).get().isPresent());
+    assertFalse(map.get(70).get().isPresent());
+    assertFalse(map.get(80).get().isPresent());
+    assertFalse(map.get(90).get().isPresent());
+    assertFalse(map.get(100).get().isPresent());
   }
 }

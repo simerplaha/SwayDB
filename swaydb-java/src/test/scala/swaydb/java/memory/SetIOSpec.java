@@ -80,6 +80,4 @@ class SetIOSpec {
     set.applyFunction(1, removeKey).get();
     assertTrue(set.isEmpty().get());
   }
-
-
 }

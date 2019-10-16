@@ -36,6 +36,12 @@ object Pair {
 
   def apply[L, R](left: L, right: R): Pair[L, R] =
     new Pair(left, right)
+
+  def create[L, R](left: L, right: R): Pair[L, R] =
+    new Pair(left, right)
+
+  def create[I](leftAndRight: I): Pair[I, I] =
+    new Pair(leftAndRight, leftAndRight)
 }
 
 class Pair[+L, +R](val left: L, val right: R) {

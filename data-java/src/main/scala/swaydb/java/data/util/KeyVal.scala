@@ -26,6 +26,8 @@ object KeyVal {
   def create[K, V](key: K, value: V): KeyVal[K, V] =
     new KeyVal(key, value)
 
+  def create[T](keyAndVal: T): KeyVal[T, T] =
+    new KeyVal(keyAndVal, keyAndVal)
 }
 
 case class KeyVal[+K, +V](key: K, value: V) extends Pair(key, value)
