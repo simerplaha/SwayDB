@@ -162,6 +162,13 @@ class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: sway
   def flatMap[B](function: JavaFunction[R, IO[L, B]]): IO[L, B] =
     new IO(asScala.flatMap[L, B](result => function.apply(result).asScala))
 
+  /**
+   * Difference between [[map]] and [[transform]] is that [[transform]] does not
+   * recovery from exception if the function F throws an Exception.
+   */
+  def transform[B](function: JavaFunction[R, B]): IO[L, B] =
+    new IO(asScala.transform(result => function.apply(result)))
+
   def andThen[B](supplier: Supplier[B]): IO[L, B] =
     new IO(asScala.andThen(supplier.get()))
 

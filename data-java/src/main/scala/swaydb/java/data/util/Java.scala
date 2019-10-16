@@ -78,16 +78,37 @@ object Java {
   }
 
   implicit class OptionalConverter[T](optional: Optional[T]) {
-    def asScala: Option[T] =
+    @inline def asScala: Option[T] =
       if (optional.isPresent)
         Some(optional.get())
+
       else
         None
 
-    def asScalaMap[B](map: T => B): Option[B] =
+    @inline def asScalaMap[B](map: T => B): Option[B] =
       if (optional.isPresent)
         Some(map(optional.get()))
       else
         None
+  }
+
+  implicit class OptionConverter[T](option: Option[T]) {
+    @inline def asJava: Optional[T] =
+      option match {
+        case Some(value) =>
+          Optional.of(value)
+
+        case None =>
+          Optional.empty()
+      }
+
+    @inline def asJavaMap[B](map: T => B): Optional[B] =
+      option match {
+        case Some(value) =>
+          Optional.of(map(value))
+
+        case None =>
+          Optional.empty()
+      }
   }
 }

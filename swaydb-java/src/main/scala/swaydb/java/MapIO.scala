@@ -32,7 +32,6 @@ import swaydb.{Apply, Prepare}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
-import scala.compat.java8.OptionConverters._
 
 /**
  * IOMap database API.
@@ -99,7 +98,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
     asScala.expire(keys.asScala.map(_.asScalaDeadline).toIterable)
 
   def expiration(key: K): IO[Throwable, Optional[Deadline]] =
-    asScala.expiration(key).map(_.map(_.asJava).asJava)
+    asScala.expiration(key).transform(_.asJavaMap(_.asJava))
 
   def update(key: K, value: V): IO[scala.Throwable, swaydb.Done] =
     asScala.update(key, value)
@@ -150,13 +149,13 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
   }
 
   def get(key: K): IO[scala.Throwable, Optional[V]] =
-    asScala.get(key).map(_.asJava)
+    asScala.get(key).transform(_.asJava)
 
   def getKey(key: K): IO[scala.Throwable, Optional[K]] =
-    asScala.getKey(key).map(_.asJava)
+    asScala.getKey(key).transform(_.asJava)
 
   def getKeyValue(key: K): IO[scala.Throwable, Optional[KeyVal[K, V]]] =
-    asScala.getKeyValue(key).map(_.map(KeyVal(_)).asJava)
+    asScala.getKeyValue(key).transform(_.asJavaMap(KeyVal(_)))
 
   def contains(key: K): IO[scala.Throwable, java.lang.Boolean] =
     asScala.contains(key).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
@@ -186,15 +185,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
     asScala.valueSize(value)
 
   def timeLeft(key: K): IO[scala.Throwable, Optional[java.time.Duration]] =
-    new IO(
-      asScala.timeLeft(key).map {
-        case Some(duration) =>
-          Optional.of(duration.toJava)
-
-        case None =>
-          Optional.empty()
-      }
-    )
+    new IO(asScala.timeLeft(key).transform(_.asJavaMap(_.toJava)))
 
   def from(key: K): MapIO[K, V, F] =
     copy(asScala.from(key))
@@ -212,7 +203,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
     copy(asScala.fromOrAfter(key))
 
   def headOptional: IO[scala.Throwable, Optional[KeyVal[K, V]]] =
-    asScala.headOption.map(_.map(KeyVal(_)).asJava)
+    asScala.headOption.transform(_.asJavaMap(KeyVal(_)))
 
   def drop(count: Integer): StreamIO[KeyVal[K, V]] =
     new StreamIO(asScala.drop(count).map(_.asKeyVal))
@@ -291,7 +282,7 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
     asScala.nonEmpty.asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
 
   def lastOptional: IO[scala.Throwable, Optional[KeyVal[K, V]]] =
-    asScala.lastOption.map(_.map(KeyVal(_)).asJava)
+    asScala.lastOption.transform(_.asJavaMap(KeyVal(_)))
 
   def reverse: MapIO[K, V, F] =
     copy(asScala.reverse)

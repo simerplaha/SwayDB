@@ -51,7 +51,7 @@ sealed trait PureFunction[+K, +V, R <: Return[V]] {
 /**
  * Function types for SwayDB.
  *
- * Your registered functions ([[Map.registerFunction]]) should implement one of the these functions that
+ * Your registered functions ([[MapInterface.registerFunction]]) should implement one of the these functions that
  * informs SwayDB of target data for the on the applied key should be read to execute the function.
  */
 object PureFunction {

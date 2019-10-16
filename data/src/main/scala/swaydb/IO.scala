@@ -51,6 +51,12 @@ sealed trait IO[+L, +R] {
 
   def map[B](f: R => B): IO[L, B]
 
+  /**
+   * Difference between [[map]] and [[transform]] is that [[transform]] does not
+   * recovery from exception if the function F throws an Exception.
+   */
+  def transform[B](f: R => B): IO[L, B]
+
   def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B]
 
   def and[L2 >: L : IO.ExceptionHandler, B](io: => IO[L2, B]): IO[L2, B]
@@ -540,6 +546,13 @@ object IO {
     override def map[B](f: R => B): IO[L, B] =
       IO[L, B](f(get))
 
+    /**
+     * Difference between [[map]] and [[transform]] is that [[transform]] does not
+     * recovery from exception if the function F throws an Exception.
+     */
+    def transform[B](f: R => B): IO[L, B] =
+      IO.Right[L, B](f(get))
+
     override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO[F, B] =
       IO.Catch(f(get))
 
@@ -654,6 +667,9 @@ object IO {
       ()
 
     override def map[B](f: R => B): IO.Left[L, B] =
+      this.asInstanceOf[IO.Left[L, B]]
+
+    def transform[B](f: R => B): IO[L, B] =
       this.asInstanceOf[IO.Left[L, B]]
 
     override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO.Left[F, B] =
