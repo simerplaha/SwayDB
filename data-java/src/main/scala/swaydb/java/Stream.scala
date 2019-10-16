@@ -44,6 +44,18 @@ object Stream {
   def create[A](ioStreamer: IOStreamer[A]): StreamIO[A] =
     new StreamIO(swaydb.Stream(ioStreamer.toScalaStreamer))
 
+  def range(from: Integer, to: Integer): StreamIO[Integer] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, to).asInstanceOf[swaydb.Stream[Integer, swaydb.IO.ThrowableIO]])
+
+  def rangeUntil(from: Integer, toExclusive: Integer): StreamIO[Integer] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, toExclusive).asInstanceOf[swaydb.Stream[Integer, swaydb.IO.ThrowableIO]])
+
+  def range(from: Character, to: Character): StreamIO[Character] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, to).asInstanceOf[swaydb.Stream[Character, swaydb.IO.ThrowableIO]])
+
+  def rangeUntil(from: Character, toExclusive: Character): StreamIO[Character] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, toExclusive).asInstanceOf[swaydb.Stream[Character, swaydb.IO.ThrowableIO]])
+
   def create[A](ioStreamer: FutureStreamer[A]): StreamFuture[A] = {
     implicit val ec: ExecutionContext = ioStreamer.executorService.asScala
     implicit val tag: Tag.Async.Retryable[Future] = Tag.future(ec)

@@ -361,20 +361,14 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void commitTest() throws IOException {
-//    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
-//
-//    final java.util.stream.Stream<Prepare.Map.Put<Integer, Integer, Object>> putStream =
-//      IntStream
-//        .rangeClosed(1, 100)
-//        .mapToObj(
-//          integer ->
-//            Prepare.putInMap(integer, integer)
-//        );
-//
+    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+
+    final Iterator<Prepare.PutInMap<Integer, Integer, Void>> putStream = null;
+
 //    List<Prepare.Map<Integer, Integer, Void>> puts = Arrays.asList(Prepare.putInMap(1, 1));
-//
-//
-//    map.commit(puts.iterator()).get();
+
+
+//    map.commit(putStream).get();
 //
 //    List<Prepare.Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>>> puts =
 //      Arrays.asList(

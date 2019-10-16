@@ -38,6 +38,18 @@ object Stream {
   def empty[A, T[_]](implicit tag: Tag[T]): Stream[A, T] =
     apply[A, T](Iterable.empty)
 
+  def range[T[_]](from: Int, to: Int)(implicit tag: Tag[T]): Stream[Int, T] =
+    apply[Int, T](from to to)
+
+  def range[T[_]](from: Char, to: Char)(implicit tag: Tag[T]): Stream[Char, T] =
+    apply[Char, T](from to to)
+
+  def rangeUntil[T[_]](from: Int, toExclusive: Int)(implicit tag: Tag[T]): Stream[Int, T] =
+    apply[Int, T](from until toExclusive)
+
+  def rangeUntil[T[_]](from: Char, to: Char)(implicit tag: Tag[T]): Stream[Char, T] =
+    apply[Char, T](from until to)
+
   def apply[A, T[_]](streamer: Streamer[A, T])(implicit tag: Tag[T]): Stream[A, T] =
     new Stream[A, T] {
       override def headOption(): T[Option[A]] =

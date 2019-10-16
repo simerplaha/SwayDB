@@ -57,6 +57,30 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
         .await shouldBe empty
     }
 
+    "range" in {
+      Stream
+        .range[T](1, 100)
+        .materialize
+        .await shouldBe (1 to 100)
+
+      Stream
+        .range[T]('a', 'z')
+        .materialize
+        .await shouldBe ('a' to 'z')
+    }
+
+    "rangeUntil" in {
+      Stream
+        .rangeUntil[T](1, 100)
+        .materialize
+        .await shouldBe (1 to 99)
+
+      Stream
+        .rangeUntil[T]('a', 'z')
+        .materialize
+        .await shouldBe ('a' to 'y')
+    }
+
     "headOption" in {
       Stream[Int, T](1 to 100)
         .headOption
