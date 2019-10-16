@@ -17,15 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.data.util
+package swaydb.java
 
-object KeyVal {
-  def apply[K, V](keyVal: (K, V)): KeyVal[K, V] =
-    new KeyVal(keyVal._1, keyVal._2)
+@FunctionalInterface
+trait Executor[T] {
 
-  def create[K, V](key: K, value: V): KeyVal[K, V] =
-    new KeyVal(key, value)
+  def test(): Unit
 
 }
-
-case class KeyVal[+K, +V](key: K, value: V) extends Pair(key, value)

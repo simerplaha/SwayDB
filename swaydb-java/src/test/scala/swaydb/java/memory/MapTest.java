@@ -30,11 +30,7 @@ import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.function.Supplier;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -92,6 +88,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
     map.put(Arrays.asList(new KeyVal<>(6, 6), new KeyVal<>(7, 7)).iterator()).get();
     map.put(Stream.create(Arrays.asList(new KeyVal<>(8, 8), new KeyVal<>(9, 9)))).get();
 
+    map.commit(Arrays.asList(Prepare.putInMap(10, 10), Prepare.putInMap(11, 11))).get();
+
     HashMap<Integer, Integer> actualKeyValues = new HashMap<>();
 
     map
@@ -105,7 +103,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
     HashMap<Integer, Integer> expectedKeyValues = new HashMap<>();
 
     IntStream
-      .rangeClosed(1, 9)
+      .rangeClosed(1, 11)
       .forEach(
         integer ->
           expectedKeyValues.put(integer, integer)
@@ -113,7 +111,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     //contains test
     IntStream
-      .rangeClosed(1, 9)
+      .rangeClosed(1, 11)
       .forEach(
         integer -> {
           assertTrue(map.contains(integer).get());
@@ -121,13 +119,73 @@ abstract class MapTest extends TestBase implements JavaEventually {
         }
       );
 
-    assertEquals(9, actualKeyValues.size());
+    assertEquals(11, actualKeyValues.size());
     assertEquals(expectedKeyValues, actualKeyValues);
 
-    eventuallyInSeconds(3, (Supplier<Void>) () -> {
-      assertFalse(map.get(3).get().isPresent());
-      return null;
-    });
+    eventuallyInSeconds(3,
+      () -> {
+        boolean present = map.get(3).get().isPresent();
+        assertFalse(present);
+        return present;
+      });
+  }
+
+  @Test
+  void removeTest() throws IOException {
+    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+
+    //put 100 key-values
+    IntStream
+      .rangeClosed(1, 100)
+      .forEach(
+        integer ->
+          map.put(integer, integer).get()
+      );
+
+
+    //they should exist.
+    IntStream
+      .rangeClosed(1, 100)
+      .forEach(
+        integer ->
+          assertEquals(integer, map.get(integer).get().get())
+      );
+
+
+    //remove 10 key-values one by one
+    IntStream
+      .rangeClosed(1, 10)
+      .forEach(
+        integer ->
+          map.remove(integer).get()
+      );
+
+    //removed key-values do not exist.
+    IntStream
+      .rangeClosed(1, 10)
+      .forEach(
+        integer ->
+          assertFalse(map.get(integer).get().isPresent())
+      );
+
+    //others exist
+    IntStream
+      .rangeClosed(11, 100)
+      .forEach(
+        integer ->
+          assertEquals(integer, map.get(integer).get().get())
+      );
+
+    //remove range
+    map.remove(11, 100).get();
+
+    //non exist
+    IntStream
+      .rangeClosed(0, 100)
+      .forEach(
+        integer ->
+          assertFalse(map.get(integer).get().isPresent())
+      );
   }
 
   @Test
@@ -151,21 +209,39 @@ abstract class MapTest extends TestBase implements JavaEventually {
     map.put(Arrays.asList(new KeyVal<>(5, 5), new KeyVal<>(6, 6))).get();
     map.expire(Stream.create(Arrays.asList(new Pair<>(5, expireAfter), new Pair<>(6, expireAfter)))).get();
 
-    assertEquals(6, map.size().get());
+    map.commit(
+      Arrays.asList(
+        Prepare.putInMap(7, 7),
+        Prepare.putInMap(8, 8),
+        Prepare.expireFromMap(7, Duration.ofSeconds(2)),
+        Prepare.expireFromMap(8, Duration.ofSeconds(2))
+      )
+    ).get();
 
-    eventuallyInSeconds(3, (Supplier<Void>) () -> {
-      assertTrue(map.isEmpty().get());
-      assertEquals(0, map.size().get());
+    assertEquals(8, map.size().get());
 
-      IntStream
-        .rangeClosed(1, 6)
-        .forEach(
-          integer ->
-            assertFalse(map.get(integer).get().isPresent())
-        );
+    IntStream
+      .rangeClosed(1, 8)
+      .forEach(
+        integer ->
+          assertTrue(map.get(integer).get().isPresent())
+      );
 
-      return null;
-    });
+    eventuallyInSeconds(
+      3,
+      () -> {
+        assertTrue(map.isEmpty().get());
+        assertEquals(0, map.size().get());
+
+        IntStream
+          .rangeClosed(1, 8)
+          .forEach(
+            integer ->
+              assertFalse(map.get(integer).get().isPresent())
+          );
+
+        return true;
+      });
   }
 
   @Test
@@ -206,10 +282,10 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     eventuallyInSeconds(
       2,
-      (Supplier<Void>) () -> {
+      () -> {
         assertEquals(0, map.size().get());
         assertTrue(map.isEmpty().get());
-        return null;
+        return true;
       }
     );
   }
@@ -220,24 +296,47 @@ abstract class MapTest extends TestBase implements JavaEventually {
     MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     IntStream
-      .rangeClosed(1, 10)
+      .rangeClosed(1, 100)
       .forEach(
         integer ->
           map.put(integer, integer).get()
       );
 
     IntStream
-      .rangeClosed(1, 10)
+      .rangeClosed(1, 50)
       .forEach(
         integer ->
           map.update(integer, integer + 1).get()
       );
 
+    StreamIO<KeyVal<Integer, Integer>> updateStream =
+      Stream
+        .create(IntStream.rangeClosed(51, 80).iterator())
+        .map(
+          integer ->
+            KeyVal.create(integer, integer + 1)
+        );
+
+    //update via stream
+    map.update(updateStream).get();
+
+    //update via range.
+    map.update(81, 90, 0).get();
+
+    map.commit(Collections.singletonList(Prepare.updateInMap(91, 100, 0))).get();
+
     IntStream
-      .rangeClosed(1, 10)
+      .rangeClosed(1, 80)
       .forEach(
         integer ->
           assertEquals(integer + 1, map.get(integer).get().get())
+      );
+
+    IntStream
+      .rangeClosed(81, 100)
+      .forEach(
+        integer ->
+          assertEquals(0, map.get(integer).get().get())
       );
   }
 
@@ -261,39 +360,33 @@ abstract class MapTest extends TestBase implements JavaEventually {
   }
 
   @Test
-  void commitTest() {
-    MapIO<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
-      Map
-        .configWithFunctions(intSerializer(), intSerializer())
-        .init()
-        .get();
-
-    IntStream
-      .rangeClosed(1, 1000)
-      .forEach(
-        integer ->
-          map.put(integer, integer).get()
-      );
-
-
-    PureFunction.OnKey<Integer, Integer, Return.Map<Integer>> function =
-      (key, deadline) ->
-        Return.update(10);
-
-    map.registerFunction(function);
-
-    List<Prepare.Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>>> puts =
-      Arrays.asList(
-        PrepareForMap.put(1, 2),
-        PrepareForMap.applyFunction(2, function)
-      );
-
-    map.commit(puts).get();
-
-    assertEquals(2, map.get(1).get().get());
-    assertEquals(10, map.get(2).get().get());
+  void commitTest() throws IOException {
+//    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+//
+//    final java.util.stream.Stream<Prepare.Map.Put<Integer, Integer, Object>> putStream =
+//      IntStream
+//        .rangeClosed(1, 100)
+//        .mapToObj(
+//          integer ->
+//            Prepare.putInMap(integer, integer)
+//        );
+//
+//    List<Prepare.Map<Integer, Integer, Void>> puts = Arrays.asList(Prepare.putInMap(1, 1));
+//
+//
+//    map.commit(puts.iterator()).get();
+//
+//    List<Prepare.Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>>> puts =
+//      Arrays.asList(
+//        Prepare.putInMap(1, 2),
+//        Prepare.applyFunctionInMap(2, function)
+//      );
+//
+//    map.commit(puts).get();
+//
+//    assertEquals(2, map.get(1).get().get());
+//    assertEquals(10, map.get(2).get().get());
   }
-
 
   @Test
   void comparatorTest() {

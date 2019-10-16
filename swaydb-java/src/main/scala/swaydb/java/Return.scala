@@ -58,13 +58,7 @@ object Return {
   def update[V](value: V): Update[V] =
     Update[V](value, Optional.empty())
 
-  final case class Nothing[V]() extends Map[V] with Set[V]
-  final case class Remove[V]() extends Map[V] with Set[V]
-  final case class Expire[V](expireAfter: Duration) extends Map[V] with Set[V]
-
-  final case class Update[V](value: V, expireAfter: Optional[Duration]) extends Map[V]
-
-  def toScalaMap[V](returnValue: Return.Map[V]): Apply.Map[V] =
+  protected def toScalaMap[V](returnValue: Return.Map[V]): Apply.Map[V] =
     returnValue match {
       case Nothing() =>
         Apply.Nothing
@@ -79,7 +73,7 @@ object Return {
         new Apply.Update(value, expireAfter.asScalaMap(_.toScala.fromNow))
     }
 
-  def toScalaSet(returnValue: Return.Set[java.lang.Void]): Apply.Set[scala.Nothing] =
+  protected def toScalaSet(returnValue: Return.Set[java.lang.Void]): Apply.Set[scala.Nothing] =
     returnValue match {
       case Nothing() =>
         Apply.Nothing
@@ -90,4 +84,11 @@ object Return {
       case Expire(expireAfter) =>
         Apply.Expire(expireAfter.toScala)
     }
+
+  final case class Nothing[V]() extends Map[V] with Set[V]
+  final case class Remove[V]() extends Map[V] with Set[V]
+  final case class Expire[V](expireAfter: Duration) extends Map[V] with Set[V]
+
+  //For Maps only.
+  final case class Update[V](value: V, expireAfter: Optional[Duration]) extends Map[V]
 }

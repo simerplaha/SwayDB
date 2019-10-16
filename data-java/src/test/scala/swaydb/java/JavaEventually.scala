@@ -19,7 +19,7 @@
 
 package swaydb.java
 
-import java.util.function.Supplier
+import java.util.function.{Consumer, Supplier}
 
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration

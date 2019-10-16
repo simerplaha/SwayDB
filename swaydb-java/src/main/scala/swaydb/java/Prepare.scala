@@ -32,6 +32,60 @@ object Prepare {
   sealed trait Map[+K, +V, +F]
   sealed trait Set[+K, +F]
 
+  def putInMap[K, V, F](key: K, value: V): Map.Put[K, V, F] =
+    Map.Put(key, value, Optional.empty())
+
+  def putInMap[K, V, F](key: K, value: V, expireAfter: Duration): Map.Put[K, V, F] =
+    Map.Put(key, value, Optional.of(expireAfter))
+
+  def removeFromMap[K, V, F](key: K): Map.Remove[K, V, F] =
+    Map.Remove(key, Optional.empty(), Optional.empty())
+
+  def removeFromMap[K, V, F](fromKey: K, toKey: K): Map.Remove[K, V, F] =
+    Map.Remove(fromKey, Optional.of(toKey), Optional.empty())
+
+  def expireFromMap[K, V, F](key: K, after: Duration): Map.Remove[K, V, F] =
+    Map.Remove(key, Optional.empty(), Optional.of(after))
+
+  def expireFromMap[K, V, F](fromKey: K, toKey: K, after: Duration): Map.Remove[K, V, F] =
+    Map.Remove(fromKey, Optional.of(toKey), Optional.of(after))
+
+  def updateInMap[K, V, F](key: K, value: V): Map.Update[K, V, F] =
+    Map.Update(key, Optional.empty(), value)
+
+  def updateInMap[K, V, F](fromKey: K, toKey: K, value: V): Map.Update[K, V, F] =
+    Map.Update(fromKey, Optional.of(toKey), value)
+
+  def applyFunctionInMap[K, V, F](key: K, function: F): Map.ApplyFunction[K, V, F] =
+    Map.ApplyFunction(key, Optional.empty(), function)
+
+  def applyFunctionInMap[K, V, F](fromKey: K, toKey: K, function: F): Map.ApplyFunction[K, V, F] =
+    Map.ApplyFunction(fromKey, Optional.of(toKey), function)
+
+  def addToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T): Set.Add[T, F] =
+    Set.Add[T, F](elem, Optional.empty())
+
+  def addToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T, expireAfter: Duration): Set.Add[T, F] =
+    Set.Add[T, F](elem, Optional.of(expireAfter))
+
+  def removeFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T): Set.Remove[T, F] =
+    Set.Remove[T, F](elem, Optional.empty(), Optional.empty())
+
+  def removeFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](fromElem: T, toElem: T): Set.Remove[T, F] =
+    Set.Remove[T, F](fromElem, Optional.of(toElem), Optional.empty())
+
+  def expireFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T, after: Duration): Set.Remove[T, F] =
+    Set.Remove[T, F](elem, Optional.empty(), Optional.of(after))
+
+  def expireFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](fromElem: T, toElem: T, after: Duration): Set.Remove[T, F] =
+    Set.Remove[T, F](fromElem, Optional.of(toElem), Optional.of(after))
+
+  def applyFunctionInSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T, function: F): Set.ApplyFunction[T, F] =
+    Set.ApplyFunction[T, F](elem, Optional.empty(), function)
+
+  def applyFunctionInSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](fromElem: T, toElem: T, function: F): Set.ApplyFunction[T, F] =
+    Set.ApplyFunction[T, F](fromElem, Optional.of(toElem), function)
+
   /**
    * Convert Prepare statements created in Java to of the type acceptable in Scala.
    *
