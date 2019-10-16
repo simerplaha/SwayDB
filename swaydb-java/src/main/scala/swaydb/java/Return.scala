@@ -58,7 +58,7 @@ object Return {
   def update[V](value: V): Update[V] =
     Update[V](value, Optional.empty())
 
-  protected def toScalaMap[V](returnValue: Return.Map[V]): Apply.Map[V] =
+  private[java] def toScalaMap[V](returnValue: Return.Map[V]): Apply.Map[V] =
     returnValue match {
       case Nothing() =>
         Apply.Nothing
@@ -73,7 +73,7 @@ object Return {
         new Apply.Update(value, expireAfter.asScalaMap(_.toScala.fromNow))
     }
 
-  protected def toScalaSet(returnValue: Return.Set[java.lang.Void]): Apply.Set[scala.Nothing] =
+  private[java] def toScalaSet(returnValue: Return.Set[java.lang.Void]): Apply.Set[scala.Nothing] =
     returnValue match {
       case Nothing() =>
         Apply.Nothing
