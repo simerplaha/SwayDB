@@ -32,7 +32,7 @@ class SetIOSpec {
 
   @Test
   void createMap() {
-    SetIO<Integer, Void> set =
+    SetIO<Integer, PureFunction.VoidS<Integer>> set =
       Set
         .config(intSerializer())
         .init()
@@ -54,7 +54,7 @@ class SetIOSpec {
 
   @Test
   void createMapWithFunctions() {
-    SetIO<Integer, PureFunction<Integer, Void, Return.Set<Void>>> set =
+    SetIO<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set =
       Set
         .configWithFunctions(intSerializer())
         .init()

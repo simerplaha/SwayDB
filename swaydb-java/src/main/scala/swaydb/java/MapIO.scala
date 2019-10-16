@@ -165,7 +165,7 @@ case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](_asSc
   def mightContainFunction(functionId: K): IO[scala.Throwable, java.lang.Boolean] =
     asScala.mightContainFunction(functionId)
 
-  def keys: SetIO[K, Void] =
+  def keys: SetIO[K, PureFunction.VoidS[K]] =
     SetIO(asScala.keys)
 
   def level0Meter: LevelZeroMeter =

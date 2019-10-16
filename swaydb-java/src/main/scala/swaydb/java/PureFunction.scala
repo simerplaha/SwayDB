@@ -57,12 +57,12 @@ object PureFunction {
 
   def asScala[K, V, R <: Return.Map[V]](function: PureFunction[K, V, R]): swaydb.PureFunction[K, V, Apply.Map[V]] =
     function match {
-      case _: Disabled[_, _] =>
+      case _: VoidM[_, _] =>
 
         /**
          * currently there is no type-safe way to omit this type from [[MapIO]] & [[SetIO]] classes.
          *
-         * These functions work very well in Scala but in Scala to add safety to user's APIs [[Disabled]] type is required.
+         * These functions work very well in Scala but in Scala to add safety to user's APIs [[VoidM]] type is required.
          */
         throw new Exception("Disabled function type cannot be applied.")
 
@@ -107,7 +107,15 @@ object PureFunction {
         Return.toScalaSet(function.apply(key, deadline.asJavaMap(_.asJava)))
     }
 
-  final abstract class Disabled[K, V] extends PureFunction[K, V, Return.Map[V]]
+  /**
+   * Type used to indicate disabled functions for [[swaydb.java.MapIO]]
+   */
+  final abstract class VoidM[K, V] extends PureFunction[K, V, Return.Map[V]]
+
+  /**
+   * Type used to indicate disabled functions for [[swaydb.java.SetIO]]
+   */
+  final abstract class VoidS[K] extends PureFunction.OnKey[K, Void, Return.Set[Void]]
 
   sealed trait Enabled[K, V, R <: Return[V]] extends PureFunction[K, V, R]
 
