@@ -28,6 +28,7 @@ import scala.compat.java8.OptionConverters._
 
 trait IOStreamer[A] { parent =>
   def head: IO[Throwable, Optional[A]]
+
   def next(previous: A): IO[Throwable, Optional[A]]
 
   def toScalaStreamer: Streamer[A, ThrowableIO] =
