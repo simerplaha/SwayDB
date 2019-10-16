@@ -40,12 +40,12 @@ import ScalaMapToJavaMapOutputConverter._
  *
  * For documentation check - http://swaydb.io/
  */
-case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
+case class SetIO[A, F](_asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  @inline private def asScalaTypeCasted: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], ThrowableIO] =
-    asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], swaydb.IO.ThrowableIO]]
+  private val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], ThrowableIO] =
+    _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
     asScala.get(elem).transform(_.asJava)
@@ -123,13 +123,13 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
     asScala.clear()
 
   def registerFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](function: PF): IO[scala.Throwable, swaydb.Done] =
-    asScalaTypeCasted.registerFunction(PureFunction.asScala(function))
+    asScala.registerFunction(PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.Done] =
-    asScalaTypeCasted.applyFunction(from, to, PureFunction.asScala(function))
+    asScala.applyFunction(from, to, PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](elem: A, function: PF): IO[scala.Throwable, swaydb.Done] =
-    asScalaTypeCasted.applyFunction(elem, PureFunction.asScala(function))
+    asScala.applyFunction(elem, PureFunction.asScala(function))
 
   def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.Done] =
     commit[PF, P](prepare.iterator())
@@ -140,7 +140,7 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
       .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
       .flatMap {
         statements =>
-          asScalaTypeCasted.commit(statements)
+          asScala.commit(statements)
       }
 
   def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.Done] = {
@@ -149,7 +149,7 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
         .asScala
         .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
 
-    asScalaTypeCasted commit prepareStatements
+    asScala commit prepareStatements
   }
 
   def levelZeroMeter: LevelZeroMeter =
