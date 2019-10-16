@@ -124,8 +124,7 @@ object IO {
    */
   type BootIO[T] = IO[Error.Boot, T]
 
-  final case class Done()
-  val done: Done = Done()
+  val done: Done = Done.instance
 
   val unit: IO.Right[Nothing, Unit] = IO.Right()(IO.ExceptionHandler.Nothing)
   val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right()(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)

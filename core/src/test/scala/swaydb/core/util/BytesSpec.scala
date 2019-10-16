@@ -21,6 +21,7 @@ package swaydb.core.util
 
 import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.Done
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -86,15 +87,15 @@ class BytesSpec extends WordSpec with Matchers {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
 
-      Bytes.compressFull(Some(previous), next).value shouldBe Done
-      Bytes.compressExact(previous, next).value shouldBe Done
+      Bytes.compressFull(Some(previous), next).value shouldBe Done.instance
+      Bytes.compressExact(previous, next).value shouldBe Done.instance
     }
 
     "return empty bytes when all the bytes were compressed and next key's size is smaller" in {
       val previous: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte, 4.toByte))
       val next: Slice[Byte] = Slice(Array(1.toByte, 2.toByte, 3.toByte))
 
-      Bytes.compressFull(Some(previous), next).value shouldBe Done
+      Bytes.compressFull(Some(previous), next).value shouldBe Done.instance
       Bytes.compressExact(previous, next) shouldBe empty
     }
 

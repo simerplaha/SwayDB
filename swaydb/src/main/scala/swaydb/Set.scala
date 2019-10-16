@@ -58,58 +58,58 @@ case class Set[A, F, T[_]](private val core: Core[T],
   def mightContainFunction(functionId: A): T[Boolean] =
     tag.point(core mightContainFunction functionId)
 
-  def add(elem: A): T[IO.Done] =
+  def add(elem: A): T[Done] =
     tag.point(core.put(key = elem))
 
-  def add(elem: A, expireAt: Deadline): T[IO.Done] =
+  def add(elem: A, expireAt: Deadline): T[Done] =
     tag.point(core.put(elem, None, expireAt))
 
-  def add(elem: A, expireAfter: FiniteDuration): T[IO.Done] =
+  def add(elem: A, expireAfter: FiniteDuration): T[Done] =
     tag.point(core.put(elem, None, expireAfter.fromNow))
 
-  def add(elems: A*): T[IO.Done] =
+  def add(elems: A*): T[Done] =
     add(elems)
 
-  def add(elems: Stream[A, T]): T[IO.Done] =
+  def add(elems: Stream[A, T]): T[Done] =
     tag.point(elems.materialize flatMap add)
 
-  def add(elems: Iterable[A]): T[IO.Done] =
+  def add(elems: Iterable[A]): T[Done] =
     tag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
 
-  def remove(elem: A): T[IO.Done] =
+  def remove(elem: A): T[Done] =
     tag.point(core.remove(elem))
 
-  def remove(from: A, to: A): T[IO.Done] =
+  def remove(from: A, to: A): T[Done] =
     tag.point(core.remove(from, to))
 
-  def remove(elems: A*): T[IO.Done] =
+  def remove(elems: A*): T[Done] =
     remove(elems)
 
-  def remove(elems: Stream[A, T]): T[IO.Done] =
+  def remove(elems: Stream[A, T]): T[Done] =
     tag.point(elems.materialize flatMap remove)
 
-  def remove(elems: Iterable[A]): T[IO.Done] =
+  def remove(elems: Iterable[A]): T[Done] =
     tag.point(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
-  def expire(elem: A, after: FiniteDuration): T[IO.Done] =
+  def expire(elem: A, after: FiniteDuration): T[Done] =
     tag.point(core.remove(elem, after.fromNow))
 
-  def expire(elem: A, at: Deadline): T[IO.Done] =
+  def expire(elem: A, at: Deadline): T[Done] =
     tag.point(core.remove(elem, at))
 
-  def expire(from: A, to: A, after: FiniteDuration): T[IO.Done] =
+  def expire(from: A, to: A, after: FiniteDuration): T[Done] =
     tag.point(core.remove(from, to, after.fromNow))
 
-  def expire(from: A, to: A, at: Deadline): T[IO.Done] =
+  def expire(from: A, to: A, at: Deadline): T[Done] =
     tag.point(core.remove(from, to, at))
 
-  def expire(elems: (A, Deadline)*): T[IO.Done] =
+  def expire(elems: (A, Deadline)*): T[Done] =
     expire(elems)
 
-  def expire(elems: Stream[(A, Deadline), T]): T[IO.Done] =
+  def expire(elems: Stream[(A, Deadline), T]): T[Done] =
     tag.point(elems.materialize flatMap expire)
 
-  def expire(elems: Iterable[(A, Deadline)]): T[IO.Done] =
+  def expire(elems: Iterable[(A, Deadline)]): T[Done] =
     tag.point {
       core.put {
         elems map {
@@ -123,22 +123,22 @@ case class Set[A, F, T[_]](private val core: Core[T],
       }
     }
 
-  def clear(): T[IO.Done] =
+  def clear(): T[Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[IO.Done] =
+  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-  def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[IO.Done] =
+  def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     tag.point(core.function(from, to, function.id))
 
-  def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[IO.Done] =
+  def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     tag.point(core.function(elem, function.id))
 
-  def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[IO.Done] =
+  def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     tag.point(core.put(prepare))
 
-  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], T])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[IO.Done] =
+  def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], T])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     tag.point {
       prepare.materialize flatMap {
         statements =>
@@ -146,7 +146,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
       }
     }
 
-  def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[IO.Done] =
+  def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     tag.point(core.put(prepare))
 
   def levelZeroMeter: LevelZeroMeter =

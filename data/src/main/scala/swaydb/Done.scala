@@ -17,7 +17,9 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb
 
-sealed trait Done
-case object Done extends Done
+final case class Done()
+object Done {
+  val instance: Done = Done()
+}

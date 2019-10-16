@@ -22,6 +22,7 @@ package swaydb.java.memory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import swaydb.Done;
 import swaydb.java.*;
 import swaydb.java.data.slice.ByteSlice;
 import swaydb.java.data.util.KeyVal;

@@ -27,7 +27,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
-import swaydb.{From, IO, Prepare}
+import swaydb.{Done, From, IO, Prepare}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -216,19 +216,19 @@ class Map[K, V](mapKey: Seq[K],
         )
     }
 
-  def put(key: K, value: V): IO.ApiIO[IO.Done] =
+  def put(key: K, value: V): IO.ApiIO[Done] =
     map.put(key = Key.MapEntry(mapKey, key), value = Some(value))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): IO.ApiIO[IO.Done] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): IO.ApiIO[Done] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAfter.fromNow)
 
-  def put(key: K, value: V, expireAt: Deadline): IO.ApiIO[IO.Done] =
+  def put(key: K, value: V, expireAt: Deadline): IO.ApiIO[Done] =
     map.put(Key.MapEntry(mapKey, key), Some(value), expireAt)
 
-  def put(keyValues: (K, V)*): IO.ApiIO[IO.Done] =
+  def put(keyValues: (K, V)*): IO.ApiIO[Done] =
     put(keyValues)
 
-  def put(keyValues: Iterable[(K, V)]): IO.ApiIO[IO.Done] =
+  def put(keyValues: Iterable[(K, V)]): IO.ApiIO[Done] =
     map.put {
       keyValues map {
         case (key, value) =>
@@ -248,16 +248,16 @@ class Map[K, V](mapKey: Seq[K],
   private def preparePut(key: K, value: V, deadline: Option[Deadline]): Prepare[Key.MapEntry[K], Option[V], Nothing] =
     Prepare.Put(Key.MapEntry(mapKey, key), value = Some(value), deadline = deadline)
 
-  def remove(key: K): IO.ApiIO[IO.Done] =
+  def remove(key: K): IO.ApiIO[Done] =
     map.remove(Key.MapEntry(mapKey, key))
 
-  def remove(from: K, to: K): IO.ApiIO[IO.Done] =
+  def remove(from: K, to: K): IO.ApiIO[Done] =
     map.remove(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to))
 
-  def remove(keys: K*): IO.ApiIO[IO.Done] =
+  def remove(keys: K*): IO.ApiIO[Done] =
     remove(keys)
 
-  def remove(keys: Iterable[K]): IO.ApiIO[IO.Done] =
+  def remove(keys: Iterable[K]): IO.ApiIO[Done] =
     map.remove(keys.map(key => Key.MapEntry(mapKey, key)))
 
   def prepareRemove(key: K): Prepare[Key.MapEntry[K], Option[V], Nothing] =
@@ -275,7 +275,7 @@ class Map[K, V](mapKey: Seq[K],
   /**
    * Removes all key-values from the current Map. SubMaps and subMap's key-values or not altered.
    */
-  def clear(): IO.ApiIO[IO.Done] = {
+  def clear(): IO.ApiIO[Done] = {
     val (start, end) = Map.entriesRangeKeys(mapKey)
     map.commit(
       //remove key-value entries, but also re-insert the start and end entries for the Map.
@@ -285,34 +285,34 @@ class Map[K, V](mapKey: Seq[K],
     )
   }
 
-  def expire(key: K, after: FiniteDuration): IO.ApiIO[IO.Done] =
+  def expire(key: K, after: FiniteDuration): IO.ApiIO[Done] =
     map.expire(Key.MapEntry(mapKey, key), after.fromNow)
 
-  def expire(key: K, at: Deadline): IO.ApiIO[IO.Done] =
+  def expire(key: K, at: Deadline): IO.ApiIO[Done] =
     map.expire(Key.MapEntry(mapKey, key), at)
 
-  def expire(from: K, to: K, after: FiniteDuration): IO.ApiIO[IO.Done] =
+  def expire(from: K, to: K, after: FiniteDuration): IO.ApiIO[Done] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), after.fromNow)
 
-  def expire(from: K, to: K, at: Deadline): IO.ApiIO[IO.Done] =
+  def expire(from: K, to: K, at: Deadline): IO.ApiIO[Done] =
     map.expire(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), at)
 
-  def expire(keys: (K, Deadline)*): IO.ApiIO[IO.Done] =
+  def expire(keys: (K, Deadline)*): IO.ApiIO[Done] =
     expire(keys)
 
-  def expire(keys: Iterable[(K, Deadline)]): IO.ApiIO[IO.Done] =
+  def expire(keys: Iterable[(K, Deadline)]): IO.ApiIO[Done] =
     map.expire(keys.map(keyDeadline => (Key.MapEntry(mapKey, keyDeadline._1), keyDeadline._2)))
 
-  def update(key: K, value: V): IO.ApiIO[IO.Done] =
+  def update(key: K, value: V): IO.ApiIO[Done] =
     map.update(Key.MapEntry(mapKey, key), Some(value))
 
-  def update(from: K, to: K, value: V): IO.ApiIO[IO.Done] =
+  def update(from: K, to: K, value: V): IO.ApiIO[Done] =
     map.update(Key.MapEntry(mapKey, from), Key.MapEntry(mapKey, to), Some(value))
 
-  def update(keyValues: (K, V)*): IO.ApiIO[IO.Done] =
+  def update(keyValues: (K, V)*): IO.ApiIO[Done] =
     update(keyValues)
 
-  def update(keyValues: Iterable[(K, V)]): IO.ApiIO[IO.Done] =
+  def update(keyValues: Iterable[(K, V)]): IO.ApiIO[Done] =
     map.update {
       keyValues map {
         case (key, value) =>
@@ -320,7 +320,7 @@ class Map[K, V](mapKey: Seq[K],
       }
     }
 
-  def commitPrepared(prepare: Prepare[K, V, Nothing]*): IO.ApiIO[IO.Done] =
+  def commitPrepared(prepare: Prepare[K, V, Nothing]*): IO.ApiIO[Done] =
     this.commit(prepare)
 
   private def makeCommit(prepare: Prepare[K, V, Nothing]): Prepare[Key.MapEntry[K], Option[V], Nothing] =
@@ -345,7 +345,7 @@ class Map[K, V](mapKey: Seq[K],
   private def makeCommit(prepare: Iterable[Prepare[K, V, Nothing]]): Iterable[Prepare[Key.MapEntry[K], Option[V], Nothing]] =
     prepare map makeCommit
 
-  def commit(prepare: Iterable[Prepare[K, V, Nothing]]): IO.ApiIO[IO.Done] =
+  def commit(prepare: Iterable[Prepare[K, V, Nothing]]): IO.ApiIO[Done] =
     map.commit(makeCommit(prepare))
 
   /**

@@ -35,7 +35,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.{IO, Prepare, Tag}
+import swaydb.{Done, IO, Prepare, Tag}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
@@ -156,16 +156,16 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
       }
     }
 
-  def put(key: Slice[Byte]): T[IO.Done] =
+  def put(key: Slice[Byte]): T[Done] =
     serial.execute(zero.put(key))
 
-  def put(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
+  def put(key: Slice[Byte], value: Slice[Byte]): T[Done] =
     serial.execute(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): T[Done] =
     serial.execute(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[IO.Done] =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): T[Done] =
     serial.execute(zero.put(key, value, removeAt))
 
   /**
@@ -177,43 +177,43 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
    * @note If the default time order [[TimeOrder.long]] is used
    *       Times should always be unique and in incremental order for *ALL* key values.
    */
-  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]], Slice[Byte]]]): T[IO.Done] =
+  def put(entries: Iterable[Prepare[Slice[Byte], Option[Slice[Byte]], Slice[Byte]]]): T[Done] =
     if (entries.isEmpty)
       tag.failure(new IllegalArgumentException("Cannot write empty batch"))
     else
       serial.execute(zero.put(Core.prepareToMapEntry(entries)(_).get)) //Gah .get!
 
-  def remove(key: Slice[Byte]): T[IO.Done] =
+  def remove(key: Slice[Byte]): T[Done] =
     serial.execute(zero.remove(key))
 
-  def remove(key: Slice[Byte], at: Deadline): T[IO.Done] =
+  def remove(key: Slice[Byte], at: Deadline): T[Done] =
     serial.execute(zero.remove(key, at))
 
-  def remove(from: Slice[Byte], to: Slice[Byte]): T[IO.Done] =
+  def remove(from: Slice[Byte], to: Slice[Byte]): T[Done] =
     serial.execute(zero.remove(from, to))
 
-  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[IO.Done] =
+  def remove(from: Slice[Byte], to: Slice[Byte], at: Deadline): T[Done] =
     serial.execute(zero.remove(from, to, at))
 
-  def update(key: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
+  def update(key: Slice[Byte], value: Slice[Byte]): T[Done] =
     serial.execute(zero.update(key, value))
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): T[Done] =
     serial.execute(zero.update(key, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[IO.Done] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): T[Done] =
     serial.execute(zero.update(fromKey, to, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[IO.Done] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): T[Done] =
     serial.execute(zero.update(fromKey, to, value))
 
-  def function(key: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
+  def function(key: Slice[Byte], function: Slice[Byte]): T[Done] =
     serial.execute(zero.applyFunction(key, function))
 
-  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[IO.Done] =
+  def function(from: Slice[Byte], to: Slice[Byte], function: Slice[Byte]): T[Done] =
     serial.execute(zero.applyFunction(from, to, function))
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): T[IO.Done] =
+  def registerFunction(functionId: Slice[Byte], function: SwayFunction): T[Done] =
     zero.registerFunction(functionId, function).run
 
   def head(readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
@@ -292,7 +292,7 @@ private[swaydb] class Core[T[_]](zero: LevelZero,
   def delete(): T[Unit] =
     onClose.flatMapIO(_ => zero.delete).run
 
-  def clear(readState: ReadState): T[IO.Done] =
+  def clear(readState: ReadState): T[Done] =
     zero.clear(readState).run
 
   def toTag[X[_]](implicit tag: Tag[X]): Core[X] =
