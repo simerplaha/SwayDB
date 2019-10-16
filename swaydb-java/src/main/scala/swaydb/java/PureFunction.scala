@@ -25,7 +25,6 @@ import swaydb.java.data.slice.Slice
 import swaydb.java.data.util.Java._
 import swaydb.{Apply, Map}
 
-import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration
 
 sealed trait PureFunction[+K, +V, R <: Return[V]] {
@@ -51,7 +50,7 @@ sealed trait PureFunction[+K, +V, R <: Return[V]] {
 /**
  * Function types for SwayDB.
  *
- * Your registered functions ([[MapInterface.registerFunction]]) should implement one of the these functions that
+ * Your registered functions ([[MapIO.registerFunction]]) should implement one of the these functions that
  * informs SwayDB of target data for the on the applied key should be read to execute the function.
  */
 object PureFunction {
@@ -73,7 +72,7 @@ object PureFunction {
             function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
           override def apply(key: K, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
-            Return.toScalaMap(function.apply(key, deadline.map(_.asJava).asJava))
+            Return.toScalaMap(function.apply(key, deadline.asJavaMap(_.asJava)))
         }
 
       case function: PureFunction.OnKeyValue[K, V, Return.Map[V]] =>
@@ -82,7 +81,7 @@ object PureFunction {
             function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
           override def apply(key: K, value: V, deadline: Option[scala.concurrent.duration.Deadline]): Apply.Map[V] =
-            Return.toScalaMap(function.apply(key, value, deadline.map(_.asJava).asJava))
+            Return.toScalaMap(function.apply(key, value, deadline.asJavaMap(_.asJava)))
         }
     }
 
@@ -92,7 +91,7 @@ object PureFunction {
         function.id.asScala.asInstanceOf[ScalaSlice[Byte]]
 
       override def apply(key: K, deadline: Option[duration.Deadline]): Apply.Set[Nothing] =
-        Return.toScalaSet(function.apply(key, deadline.map(_.asJava).asJava))
+        Return.toScalaSet(function.apply(key, deadline.asJavaMap(_.asJava)))
     }
 
   @FunctionalInterface

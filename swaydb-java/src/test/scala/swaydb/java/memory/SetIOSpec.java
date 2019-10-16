@@ -28,7 +28,7 @@ import swaydb.java.SetIO;
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
-class SetSpec {
+class SetIOSpec {
 
   @Test
   void createMap() {

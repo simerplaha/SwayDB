@@ -22,7 +22,6 @@ package swaydb.java.memory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import swaydb.Done;
 import swaydb.java.*;
 import swaydb.java.data.slice.ByteSlice;
 import swaydb.java.data.util.KeyVal;
@@ -35,7 +34,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -263,7 +261,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   }
 
   @Test
-  void commitTest() throws IOException {
+  void commitTest() {
     MapIO<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
       Map
         .configWithFunctions(intSerializer(), intSerializer())

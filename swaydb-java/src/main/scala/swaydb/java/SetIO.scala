@@ -33,6 +33,7 @@ import swaydb.{Apply, Prepare}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
+import ScalaMapToJavaMapOutputConverter._
 
 /**
  * Set database API.
@@ -43,22 +44,20 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  @inline private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
-
-  @inline private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], ThrowableIO] =
+  @inline private def asScalaTypeCasted: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], ThrowableIO] =
     asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
     asScala.get(elem).transform(_.asJava)
 
   def contains(elem: A): IO[scala.Throwable, java.lang.Boolean] =
-    asScala.contains(elem).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
+    asScala.contains(elem)
 
   def mightContain(elem: A): IO[scala.Throwable, java.lang.Boolean] =
-    asScala.mightContain(elem).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
+    asScala.mightContain(elem)
 
   def mightContainFunction(function: A): IO[scala.Throwable, java.lang.Boolean] =
-    (asScala mightContainFunction function).asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
+    (asScala mightContainFunction function)
 
   def add(elem: A): IO[scala.Throwable, swaydb.Done] =
     asScala add elem
@@ -124,13 +123,13 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
     asScala.clear()
 
   def registerFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](function: PF): IO[scala.Throwable, swaydb.Done] =
-    asScalaTypeCast.registerFunction(PureFunction.asScala(function))
+    asScalaTypeCasted.registerFunction(PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.Done] =
-    asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
+    asScalaTypeCasted.applyFunction(from, to, PureFunction.asScala(function))
 
   def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](elem: A, function: PF): IO[scala.Throwable, swaydb.Done] =
-    asScalaTypeCast.applyFunction(elem, PureFunction.asScala(function))
+    asScalaTypeCasted.applyFunction(elem, PureFunction.asScala(function))
 
   def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.Done] =
     commit[PF, P](prepare.iterator())
@@ -141,7 +140,7 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
       .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
       .flatMap {
         statements =>
-          asScalaTypeCast.commit(statements)
+          asScalaTypeCasted.commit(statements)
       }
 
   def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.Done] = {
@@ -150,7 +149,7 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
         .asScala
         .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
 
-    asScalaTypeCast commit prepareStatements
+    asScalaTypeCasted commit prepareStatements
   }
 
   def levelZeroMeter: LevelZeroMeter =
@@ -228,19 +227,19 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
     }
 
   def size: IO[scala.Throwable, Integer] =
-    stream.size.asInstanceOf[IO[scala.Throwable, Integer]]
+    stream.size
 
   def stream: StreamIO[A] =
     Stream.fromScala(asScala.stream)
 
   def sizeOfBloomFilterEntries: IO[scala.Throwable, Integer] =
-    asScala.sizeOfBloomFilterEntries.asInstanceOf[IO[scala.Throwable, Integer]]
+    asScala.sizeOfBloomFilterEntries
 
   def isEmpty: IO[scala.Throwable, java.lang.Boolean] =
-    asScala.isEmpty.asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
+    asScala.isEmpty
 
   def nonEmpty: IO[scala.Throwable, java.lang.Boolean] =
-    asScala.nonEmpty.asInstanceOf[swaydb.IO.ThrowableIO[java.lang.Boolean]]
+    asScala.nonEmpty
 
   def lastOptional: IO[scala.Throwable, Optional[A]] =
     asScala.lastOption.transform(_.asJava)
