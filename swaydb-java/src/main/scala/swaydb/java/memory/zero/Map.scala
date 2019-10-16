@@ -30,7 +30,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{IO, KeyOrderConverter}
+import swaydb.java.{IO, KeyOrderConverter, Return}
 import swaydb.serializers.Serializer
 
 import scala.beans.BeanProperty
@@ -68,7 +68,7 @@ object Map {
   }
 
   def configWithFunctions[K, V](keySerializer: JavaSerializer[K],
-                                valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction.OnKey[K, V, swaydb.Apply.Map[V]], swaydb.PureFunction.OnKey[K, V, swaydb.Apply.Map[V]]] =
+                                valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction.OnKey[K, V, Return.Map[V]], swaydb.PureFunction.OnKey[K, V, swaydb.Apply.Map[V]]] =
     new Builder(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),

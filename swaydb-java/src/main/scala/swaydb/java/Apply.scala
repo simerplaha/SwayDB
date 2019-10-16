@@ -26,18 +26,40 @@ import swaydb.{Apply => ScalaApply}
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.OptionConverters._
 
+sealed trait Apply[+V]
 object Apply {
 
-  def nothing[T](): ScalaApply.Map[T] with ScalaApply.Set[T] =
+  /**
+   * Function outputs for Map
+   */
+  sealed trait Map[+V] extends Apply[V]
+
+  /**
+   * Function outputs for Set
+   */
+  sealed trait Set[+V] extends Apply[V]
+
+  def nothingOnMap[T](): ScalaApply.Map[T] =
     ScalaApply.Nothing
 
-  def remove[T](): ScalaApply.Map[T] with ScalaApply.Set[T] =
+  def nothingOnSet[T](): ScalaApply.Set[T] =
+    ScalaApply.Nothing
+
+  def removeFromMap[T](): ScalaApply.Map[T] =
+    ScalaApply.Remove
+
+  def removeFromSet[T](): ScalaApply.Set[T] =
     ScalaApply.Remove
 
   def expire[T](after: java.time.Duration): ScalaApply.Map[T] with ScalaApply.Set[T] =
     ScalaApply.Expire(after.toScala.fromNow)
 
-  def update[V](value: V, expire: Optional[java.time.Duration]): ScalaApply.Map[V] =
-    ScalaApply.Update(value, expire.asScala.map(_.toScala.fromNow))
+  def expireFromMap[T](after: java.time.Duration): ScalaApply.Map[T] =
+    ScalaApply.Expire(after.toScala.fromNow)
 
+  def expireFromSet[T](after: java.time.Duration): ScalaApply.Set[T] =
+    ScalaApply.Expire(after.toScala.fromNow)
+
+  def updateInMap[V](value: V, expire: Optional[java.time.Duration]): ScalaApply.Map[V] =
+    ScalaApply.Update(value, expire.asScala.map(_.toScala.fromNow))
 }

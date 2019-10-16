@@ -124,19 +124,19 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def registerFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.registerFunction(PureFunction.asScala(function))
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(elem, PureFunction.asScala(function))
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.IO.Done] =
     commit[PF, P](prepare.iterator())
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]], P <: Prepare.Set[A, PF]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], P <: Prepare.Set[A, PF]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.IO.Done] =
     prepare
       .asScala
       .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, swaydb.Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
@@ -145,7 +145,7 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
           asScalaTypeCast.commit(statements)
       }
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.IO.Done] = {
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.IO.Done] = {
     val prepareStatements =
       prepare
         .asScala

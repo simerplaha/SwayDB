@@ -19,18 +19,18 @@
 
 package swaydb.java.memory
 
+import java.util.Comparator
 import java.util.concurrent.ExecutorService
-import java.util.{Comparator, Optional}
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
-import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
+import swaydb.java.{IO, KeyOrderConverter, Return}
 import swaydb.serializers.Serializer
 import swaydb.{SwayDB, Tag}
 
@@ -90,8 +90,8 @@ object Map {
   }
 
   def configWithFunctions[K, V](keySerializer: JavaSerializer[K],
-                                valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, swaydb.Apply.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] =
-    new Config[K, V, swaydb.java.PureFunction[K, V, swaydb.Apply.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]](
+                                valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] =
+    new Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]](
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]]]
