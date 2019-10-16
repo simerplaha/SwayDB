@@ -37,7 +37,7 @@ object Prepare {
    * This is required because of the [[PureFunction]] types in Java are different to Scala which
    * accept Scala vars.
    */
-  def toScala[K, V, F <: swaydb.java.PureFunction[K, V]](prepare: Prepare.Map[K, V, F]): swaydb.Prepare[K, V, swaydb.PureFunction[K, V]] =
+  def toScala[K, V, F <: swaydb.java.PureFunction[K, V, swaydb.Apply.Map[V]]](prepare: Prepare.Map[K, V, F]): swaydb.Prepare[K, V, swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] =
     prepare match {
       case Map.Put(key, value, expireAfter) =>
         new swaydb.Prepare.Put(key, value, expireAfter.asScalaMap(_.toScala.fromNow))
@@ -55,7 +55,7 @@ object Prepare {
   /**
    * Converts java prepare statements with [[swaydb.java.PureFunction.OnKey]] to scala prepare statements with [[swaydb.PureFunction.OnKey]]
    */
-  def toScala[K, F <: swaydb.java.PureFunction.OnKey[K, java.lang.Void]](prepare: Prepare.Set[K, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing]] =
+  def toScala[K, F <: swaydb.java.PureFunction.OnKey[K, Void, swaydb.Apply.Set[Void]]](prepare: Prepare.Set[K, F]): swaydb.Prepare[K, Nothing, swaydb.PureFunction.OnKey[K, Nothing, swaydb.Apply.Set[Nothing]]] =
     prepare match {
       case Set.Add(elem, expireAfter) =>
         new swaydb.Prepare.Add(elem, expireAfter.asScalaMap(_.toScala.fromNow))
@@ -65,7 +65,6 @@ object Prepare {
 
       case Set.ApplyFunction(from, to, function) =>
         new swaydb.Prepare.ApplyFunction(from, to.asScala, PureFunction.asScala(function))
-
     }
 
   object Map {
@@ -76,8 +75,8 @@ object Prepare {
   }
 
   object Set {
-    case class Add[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](elem: T, expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
-    case class Remove[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](from: T, to: Optional[T], expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
-    case class ApplyFunction[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](from: T, to: Optional[T], function: F) extends Prepare.Set[T, F]
+    case class Add[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](elem: T, expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
+    case class Remove[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](from: T, to: Optional[T], expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
+    case class ApplyFunction[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](from: T, to: Optional[T], function: F) extends Prepare.Set[T, F]
   }
 }

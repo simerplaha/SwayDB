@@ -46,8 +46,8 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   @inline private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
 
-  @inline private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing], ThrowableIO] =
-    asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing], swaydb.IO.ThrowableIO]]
+  @inline private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, swaydb.Apply.Set[Nothing]], ThrowableIO] =
+    asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, swaydb.Apply.Set[Nothing]], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
     asScala.get(elem).map(_.asJava)
@@ -124,32 +124,32 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
   def clear(): IO[scala.Throwable, swaydb.IO.Done] =
     asScala.clear()
 
-  def registerFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def registerFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]]](function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.registerFunction(PureFunction.asScala(function))
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]]](from: A, to: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(from, to, PureFunction.asScala(function))
 
-  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
+  def applyFunction[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]]](elem: A, function: PF): IO[scala.Throwable, swaydb.IO.Done] =
     asScalaTypeCast.applyFunction(elem, PureFunction.asScala(function))
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void], P <: Prepare.Set[A, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.IO.Done] =
-    commit(prepare.iterator())
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.IO.Done] =
+    commit[PF, P](prepare.iterator())
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void], P <: Prepare.Set[A, PF]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.IO.Done] =
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]], P <: Prepare.Set[A, PF]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.IO.Done] =
     prepare
       .asScala
-      .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing]]])(_ += Prepare.toScala(_))
+      .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, swaydb.Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
       .flatMap {
         statements =>
           asScalaTypeCast.commit(statements)
       }
 
-  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, java.lang.Void], P <: Prepare.Set[A, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.IO.Done] = {
+  def commit[PF <: F with swaydb.java.PureFunction.OnKey[A, Void, swaydb.Apply.Set[Void]], P <: Prepare.Set[A, PF]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.IO.Done] = {
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, swaydb.Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
 
     asScalaTypeCast commit prepareStatements
   }
@@ -219,8 +219,8 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
       }
     )
 
-  def forEach(consumer: Consumer[A]): StreamIO[java.lang.Void] =
-    Stream.fromScala(asScala.foreach(consumer.accept)).asInstanceOf[StreamIO[java.lang.Void]]
+  def forEach(consumer: Consumer[A]): StreamIO[Void] =
+    Stream.fromScala(asScala.foreach(consumer.accept)).asInstanceOf[StreamIO[Void]]
 
   def filter(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.filter(predicate.test))

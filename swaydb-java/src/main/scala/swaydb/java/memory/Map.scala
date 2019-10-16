@@ -90,11 +90,11 @@ object Map {
   }
 
   def configWithFunctions[K, V](keySerializer: JavaSerializer[K],
-                                valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V], swaydb.PureFunction[K, V]] =
-    new Config[K, V, swaydb.java.PureFunction[K, V], swaydb.PureFunction[K, V]](
+                                valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, swaydb.Apply.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]] =
+    new Config[K, V, swaydb.java.PureFunction[K, V, swaydb.Apply.Map[V]], swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]](
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V]]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, swaydb.Apply.Map[V]]]]
     )
 
   def config[K, V](keySerializer: JavaSerializer[K],

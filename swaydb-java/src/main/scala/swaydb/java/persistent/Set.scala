@@ -34,7 +34,7 @@ import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{IO, KeyOrderConverter}
 import swaydb.serializers.Serializer
-import swaydb.{SwayDB, Tag}
+import swaydb.{Apply, SwayDB, Tag}
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.FunctionConverters._
@@ -107,11 +107,11 @@ object Set {
   }
 
   def configWithFunctions[A](dir: Path,
-                             keySerializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, scala.Nothing], swaydb.PureFunction.OnKey[A, scala.Nothing]] =
+                             keySerializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Apply.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =
     new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, scala.Nothing]]]
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
     )
 
   def config[A](dir: Path,

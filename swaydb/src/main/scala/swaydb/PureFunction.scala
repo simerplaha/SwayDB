@@ -23,7 +23,7 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-sealed trait PureFunction[+K, +V] {
+sealed trait PureFunction[+K, +V, R <: Apply[V]] {
   /**
    * This unique [[id]] of this function.
    *
@@ -51,15 +51,15 @@ sealed trait PureFunction[+K, +V] {
  */
 object PureFunction {
 
-  trait OnValue[V] extends (V => Apply.Map[V]) with PureFunction[Nothing, V] {
-    override def apply(value: V): Apply.Map[V]
+  trait OnValue[V, R <: Apply[V]] extends (V => R) with PureFunction[Nothing, V, R] {
+    override def apply(value: V): R
   }
 
-  trait OnKey[K, +V] extends ((K, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V] {
-    override def apply(key: K, deadline: Option[Deadline]): Apply.Map[V]
+  trait OnKey[K, +V, R <: Apply[V]] extends ((K, Option[Deadline]) => R) with PureFunction[K, V, R] {
+    override def apply(key: K, deadline: Option[Deadline]): R
   }
 
-  trait OnKeyValue[K, V] extends ((K, V, Option[Deadline]) => Apply.Map[V]) with PureFunction[K, V] {
-    override def apply(key: K, value: V, deadline: Option[Deadline]): Apply.Map[V]
+  trait OnKeyValue[K, V, R <: Apply[V]] extends ((K, V, Option[Deadline]) => R) with PureFunction[K, V, R] {
+    override def apply(key: K, value: V, deadline: Option[Deadline]): R
   }
 }

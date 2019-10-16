@@ -22,6 +22,7 @@ package swaydb.java.memory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import swaydb.Apply;
 import swaydb.data.util.Functions;
 import swaydb.java.*;
 import swaydb.java.data.slice.ByteSlice;
@@ -260,7 +261,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void commitTest() throws IOException {
-    MapIO<Integer, Integer, PureFunction<Integer, Integer>> map =
+    MapIO<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> map =
       Map
         .configWithFunctions(intSerializer(), intSerializer())
         .init()
@@ -274,13 +275,13 @@ abstract class MapTest extends TestBase implements JavaEventually {
       );
 
 
-    PureFunction.OnKey<Integer, Integer> function =
+    PureFunction.OnKey<Integer, Integer, Apply.Map<Integer>> function =
       (key, deadline) ->
         swaydb.java.Apply.update(10, Optional.empty());
 
     map.registerFunction(function);
 
-    List<Prepare.Map<Integer, Integer, PureFunction<Integer, Integer>>> puts =
+    List<Prepare.Map<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>>> puts =
       Arrays.asList(
         PrepareForMap.put(1, 2),
         PrepareForMap.applyFunction(2, function)
@@ -414,7 +415,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    MapIO<Integer, Integer, PureFunction<Integer, Integer>> map =
+    MapIO<Integer, Integer, PureFunction<Integer, Integer, Apply.Map<Integer>>> map =
       Map
         .configWithFunctions(intSerializer(), intSerializer())
         .init()
@@ -423,7 +424,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
     assertDoesNotThrow(() -> map.put(1, 1).get());
     assertEquals(map.get(1).get().get(), 1);
 
-    PureFunction.OnKey<Integer, Integer> getKey =
+    PureFunction.OnKey<Integer, Integer, Apply.Map<Integer>> getKey =
       (key, deadline) ->
         swaydb.java.Apply.update(10, Optional.empty());
 

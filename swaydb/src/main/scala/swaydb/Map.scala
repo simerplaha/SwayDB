@@ -138,28 +138,28 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
   def clear(): T[IO.Done] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
-    (function: swaydb.PureFunction[K, V]) match {
-      case function: swaydb.PureFunction.OnValue[V] =>
+  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[IO.Done] =
+    (function: swaydb.PureFunction[K, V, Apply.Map[V]]) match {
+      case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-      case function: swaydb.PureFunction.OnKey[K, V] =>
+      case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
-      case function: swaydb.PureFunction.OnKeyValue[K, V] =>
+      case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
     }
 
-  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[IO.Done] =
     tag.point(core.function(key, function.id))
 
-  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[IO.Done] =
     tag.point(core.function(from, to, function.id))
 
-  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[IO.Done] =
     tag.point(core.put(preparesToUntyped(prepare)))
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], T])(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], T])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[IO.Done] =
     tag.point {
       prepare.materialize flatMap {
         prepares =>
@@ -167,7 +167,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
       }
     }
 
-  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V]): T[IO.Done] =
+  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[IO.Done] =
     tag.point(core.put(preparesToUntyped(prepare)))
 
   /**

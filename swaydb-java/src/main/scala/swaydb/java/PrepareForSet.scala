@@ -26,28 +26,28 @@ import swaydb.java.Prepare.Set.{Add, ApplyFunction, Remove}
 
 object PrepareForSet {
 
-  def add[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](elem: T): Add[T, F] =
+  def add[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](elem: T): Add[T, F] =
     Add[T, F](elem, Optional.empty())
 
-  def add[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](elem: T, expireAfter: Duration): Add[T, F] =
+  def add[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](elem: T, expireAfter: Duration): Add[T, F] =
     Add[T, F](elem, Optional.of(expireAfter))
 
-  def remove[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](elem: T): Remove[T, F] =
+  def remove[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](elem: T): Remove[T, F] =
     Remove[T, F](elem, Optional.empty(), Optional.empty())
 
-  def remove[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](fromElem: T, toElem: T): Remove[T, F] =
+  def remove[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](fromElem: T, toElem: T): Remove[T, F] =
     Remove[T, F](fromElem, Optional.of(toElem), Optional.empty())
 
-  def expire[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](elem: T, after: Duration): Remove[T, F] =
+  def expire[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](elem: T, after: Duration): Remove[T, F] =
     Remove[T, F](elem, Optional.empty(), Optional.of(after))
 
-  def expire[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](fromElem: T, toElem: T, after: Duration): Remove[T, F] =
+  def expire[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](fromElem: T, toElem: T, after: Duration): Remove[T, F] =
     Remove[T, F](fromElem, Optional.of(toElem), Optional.of(after))
 
-  def applyFunction[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](elem: T, function: F): ApplyFunction[T, F] =
+  def applyFunction[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](elem: T, function: F): ApplyFunction[T, F] =
     ApplyFunction[T, F](elem, Optional.empty(), function)
 
-  def applyFunction[T, F <: swaydb.java.PureFunction.OnKey[T, java.lang.Void]](fromElem: T, toElem: T, function: F): ApplyFunction[T, F] =
+  def applyFunction[T, F <: swaydb.java.PureFunction.OnKey[T, Void, swaydb.Apply.Set[Void]]](fromElem: T, toElem: T, function: F): ApplyFunction[T, F] =
     ApplyFunction[T, F](fromElem, Optional.of(toElem), function)
 
 }
