@@ -274,8 +274,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
           map.put(integer, integer).get()
       );
 
-    List<swaydb.Prepare<Integer, Integer, PureFunction<Integer, Integer>>> puts = Arrays.asList(swaydb.java.Prepare.put(1, 2));
-    map.commit(puts);
+//    List<swaydb.Prepare<Integer, Integer, PureFunction<Integer, Integer>>> puts = Arrays.asList(swaydb.java.Prepare.put(1, 2));
+//    map.commit(puts);
 
     map.clear().get();
 

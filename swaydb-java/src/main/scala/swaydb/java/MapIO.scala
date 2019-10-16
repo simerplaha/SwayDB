@@ -43,9 +43,9 @@ case class MapIO[K, V, F](asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
+  @inline private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
 
-  private def asScalaTypeCast: swaydb.Map[K, V, swaydb.PureFunction[K, V], ThrowableIO] =
+  @inline private def asScalaTypeCast: swaydb.Map[K, V, swaydb.PureFunction[K, V], ThrowableIO] =
     asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V], swaydb.IO.ThrowableIO]]
 
   def put(key: K, value: V): IO[scala.Throwable, swaydb.IO.Done] =

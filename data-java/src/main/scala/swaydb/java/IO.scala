@@ -210,7 +210,7 @@ class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: sway
     new IO(
       asScala.onCompleteSideEffect {
         io =>
-          consumer.accept(new IO(io)) //fixme - is will use this be enough?
+          consumer.accept(new IO(io)) //fixme - is using `this` be enough?
       }
     )
 

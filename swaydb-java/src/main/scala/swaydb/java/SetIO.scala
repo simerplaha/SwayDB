@@ -44,9 +44,9 @@ case class SetIO[A, F](asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
+  @inline private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
 
-  private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing], ThrowableIO] =
+  @inline private def asScalaTypeCast: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing], ThrowableIO] =
     asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
