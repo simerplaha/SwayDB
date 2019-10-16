@@ -38,11 +38,11 @@ import scala.reflect.ClassTag
 
 object Set {
 
-  class Builder[A, F](@BeanProperty var mapSize: Int = 4.mb,
-                      @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                      @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
-                      serializer: Serializer[A],
-                      functionClassTag: ClassTag[F]) {
+  class Config[A, F](@BeanProperty var mapSize: Int = 4.mb,
+                     @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                     @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
+                     serializer: Serializer[A],
+                     functionClassTag: ClassTag[F]) {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
@@ -64,14 +64,14 @@ object Set {
       }
   }
 
-  def configWithFunctions[A, F](keySerializer: JavaSerializer[A]): Builder[A, F] =
-    new Builder(
+  def configWithFunctions[A, F](keySerializer: JavaSerializer[A]): Config[A, F] =
+    new Config(
       serializer = SerializerConverter.toScala(keySerializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def config[A](serializer: JavaSerializer[A]): Builder[A, Void] =
-    new Builder(
+  def config[A](serializer: JavaSerializer[A]): Config[A, Void] =
+    new Config(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
     )

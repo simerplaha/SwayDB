@@ -39,9 +39,9 @@ import static swaydb.java.serializers.Default.intSerializer;
 
 class MemoryMapFunctionsDisabledTest extends MapTest {
 
-  public <K, V> MapIO<K, V, Void> createMap(Serializer<K> keySerializer,
-                                            Serializer<V> valueSerializer) {
-    MapIO<K, V, Void> map =
+  public <K, V> MapIO<K, V, PureFunction.Disabled<K, V, Return.Map<V>>> createMap(Serializer<K> keySerializer,
+                                                                                  Serializer<V> valueSerializer) {
+    MapIO<K, V, PureFunction.Disabled<K, V, Return.Map<V>>> map =
       swaydb.java.memory.Map
         .config(keySerializer, valueSerializer)
         .init()
@@ -58,9 +58,9 @@ class PersistentMapFunctionsDisabledTest extends MapTest {
     deleteTestDir();
   }
 
-  public <K, V> MapIO<K, V, Void> createMap(Serializer<K> keySerializer,
-                                            Serializer<V> valueSerializer) throws IOException {
-    MapIO<K, V, Void> map =
+  public <K, V> MapIO<K, V, PureFunction.Disabled<K, V, Return.Map<V>>> createMap(Serializer<K> keySerializer,
+                                                                                  Serializer<V> valueSerializer) throws IOException {
+    MapIO<K, V, PureFunction.Disabled<K, V, Return.Map<V>>> map =
       swaydb.java.persistent.Map
         .config(testDir(), keySerializer, valueSerializer)
         .init()
@@ -72,8 +72,8 @@ class PersistentMapFunctionsDisabledTest extends MapTest {
 
 abstract class MapTest extends TestBase implements JavaEventually {
 
-  public abstract <K, V> MapIO<K, V, Void> createMap(Serializer<K> keySerializer,
-                                                     Serializer<V> valueSerializer) throws IOException;
+  public abstract <K, V> MapIO<K, V, PureFunction.Disabled<K, V, Return.Map<V>>> createMap(Serializer<K> keySerializer,
+                                                                                           Serializer<V> valueSerializer) throws IOException;
 
   @Test
   void putTest() throws IOException {
@@ -132,7 +132,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void removeTest() throws IOException {
-    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+    MapIO<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>> map = createMap(intSerializer(), intSerializer());
 
     //put 100 key-values
     IntStream
@@ -190,7 +190,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void expireTest() throws IOException {
-    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+    MapIO<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>> map = createMap(intSerializer(), intSerializer());
 
     Duration expireAfter = Duration.ofSeconds(2);
 
@@ -246,7 +246,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void expireRangeShouldClearAllKeyValuesTest() throws IOException {
-    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+    MapIO<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>> map = createMap(intSerializer(), intSerializer());
 
     int maxKeyValues = 10000;
 
@@ -293,7 +293,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void updateTest() throws IOException {
-    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+    MapIO<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>> map = createMap(intSerializer(), intSerializer());
 
     IntStream
       .rangeClosed(1, 100)
@@ -342,7 +342,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void clearTest() throws IOException {
-    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+    MapIO<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>> map = createMap(intSerializer(), intSerializer());
 
     IntStream
       .rangeClosed(1, 100000)
@@ -361,7 +361,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void commitTest() throws IOException {
-    MapIO<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
+    MapIO<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>> map = createMap(intSerializer(), intSerializer());
 
     final Iterator<Prepare.PutInMap<Integer, Integer, Void>> putStream = null;
 
@@ -385,7 +385,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   @Test
   void comparatorTest() {
 
-    Map.Config<Integer, Integer, Void, Void> config =
+    Map.Config<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>, Void> config =
       Map.config(intSerializer(), intSerializer());
 
     Comparator<Integer> comparator =
@@ -395,7 +395,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     assertTrue(config.getComparator().isRight());
 
-    MapIO<Integer, Integer, Void> map =
+    MapIO<Integer, Integer, PureFunction.Disabled<Integer, Integer, Return.Map<Integer>>> map =
       config
         .init()
         .get();
@@ -473,7 +473,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
     };
 
 
-    MapIO<Key, Value, Void> map =
+    MapIO<Key, Value, PureFunction.Disabled<Key, Value, Return.Map<Value>>> map =
       createMap(keySerializer, valueSerializer);
 
     assertDoesNotThrow(() -> map.put(key1, value1).get());
