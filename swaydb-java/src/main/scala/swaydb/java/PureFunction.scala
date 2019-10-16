@@ -21,13 +21,13 @@ package swaydb.java
 
 import java.util.Optional
 
+import swaydb.Apply
 import swaydb.java.data.slice.Slice
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Map}
 
 import scala.concurrent.duration
 
-sealed trait PureFunction[+K, +V, R <: Return[V]] {
+sealed trait PureFunction[+K, +V, +R <: Return[V]] {
   /**
    * This unique [[id]] of this function.
    *
@@ -57,7 +57,7 @@ object PureFunction {
 
   def asScala[K, V, R <: Return.Map[V]](function: PureFunction[K, V, R]): swaydb.PureFunction[K, V, Apply.Map[V]] =
     function match {
-      case _: Disabled[_, _, _] =>
+      case _: Disabled[_, _] =>
 
         /**
          * currently there is no type-safe way to omit this type from [[MapIO]] & [[SetIO]] classes.
@@ -107,7 +107,7 @@ object PureFunction {
         Return.toScalaSet(function.apply(key, deadline.asJavaMap(_.asJava)))
     }
 
-  final abstract class Disabled[K, V, R <: Return[V]] extends PureFunction[K, V, R]
+  final abstract class Disabled[K, V] extends PureFunction[K, V, Return.Map[V]]
 
   sealed trait Enabled[K, V, R <: Return[V]] extends PureFunction[K, V, R]
 

@@ -97,8 +97,8 @@ object Map {
     )
 
   def config[K, V](keySerializer: JavaSerializer[K],
-                   valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction.Disabled[K, V, Return.Map[V]], Void] =
-    new Config[K, V, swaydb.java.PureFunction.Disabled[K, V, Return.Map[V]], Void](
+                   valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction.Disabled[K, V], Void] =
+    new Config[K, V, swaydb.java.PureFunction.Disabled[K, V], Void](
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]

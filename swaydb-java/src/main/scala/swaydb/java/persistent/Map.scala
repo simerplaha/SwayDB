@@ -120,8 +120,8 @@ object Map {
 
   def config[K, V](dir: Path,
                    keySerializer: JavaSerializer[K],
-                   valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction.Disabled[K, V, Return.Map[V]], Void] =
-    new Config[K, V, swaydb.java.PureFunction.Disabled[K, V, Return.Map[V]], Void](
+                   valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction.Disabled[K, V], Void] =
+    new Config[K, V, swaydb.java.PureFunction.Disabled[K, V], Void](
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
