@@ -23,8 +23,7 @@ import java.util.Optional
 
 import swaydb.IO.ThrowableIO
 import swaydb.Streamer
-
-import scala.compat.java8.OptionConverters._
+import swaydb.java.data.util.Java._
 
 trait IOStreamer[A] { parent =>
   def head: IO[Throwable, Optional[A]]
@@ -34,9 +33,9 @@ trait IOStreamer[A] { parent =>
   def toScalaStreamer: Streamer[A, ThrowableIO] =
     new Streamer[A, swaydb.IO.ThrowableIO] {
       override def head: ThrowableIO[Option[A]] =
-        parent.head.asScala.map(a => a.asScala)
+        parent.head.asScala.transform(a => a.asScala)
 
       override def next(previous: A): ThrowableIO[Option[A]] =
-        parent.next(previous).asScala.map(_.asScala)
+        parent.next(previous).asScala.transform(_.asScala)
     }
 }
