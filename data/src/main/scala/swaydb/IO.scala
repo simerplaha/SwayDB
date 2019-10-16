@@ -124,8 +124,8 @@ object IO {
    */
   type BootIO[T] = IO[Error.Boot, T]
 
-  sealed trait Done
-  final case object Done extends Done
+  final case class Done()
+  val done: Done = Done()
 
   val unit: IO.Right[Nothing, Unit] = IO.Right()(IO.ExceptionHandler.Nothing)
   val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right()(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
@@ -138,7 +138,7 @@ object IO {
   val zeroZero: IO[Nothing, IO.Right[Nothing, Int]] = IO.Right(IO.Right(0)(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
   val emptyBytes: IO.Right[Nothing, Slice[Byte]] = IO.Right(Slice.emptyBytes)(IO.ExceptionHandler.Nothing)
   val emptySeqBytes: IO.Right[Nothing, Seq[Slice[Byte]]] = IO.Right(Seq.empty[Slice[Byte]])(IO.ExceptionHandler.Nothing)
-  val done: IO.Right[Nothing, Done] = IO.Right(Done)(IO.ExceptionHandler.Nothing)
+  val doneIO: IO.Right[Nothing, Done] = IO.Right(done)(IO.ExceptionHandler.Nothing)
 
   implicit class IterableIOImplicit[E: IO.ExceptionHandler, A: ClassTag](iterable: Iterable[A]) {
 
@@ -762,7 +762,7 @@ object IO {
     val maxRecoveriesBeforeWarn = 5
 
     val none: IO.Defer[Nothing, None.type] = new IO.Defer[Nothing, None.type](() => None, None)(swaydb.IO.ExceptionHandler.Nothing)
-    val done: IO.Defer[Nothing, Done] = new IO.Defer[Nothing, Done](() => Done, None)(swaydb.IO.ExceptionHandler.Nothing)
+    val done: IO.Defer[Nothing, Done] = new IO.Defer[Nothing, Done](() => IO.done, None)(swaydb.IO.ExceptionHandler.Nothing)
     val unit: IO.Defer[Nothing, Unit] = new IO.Defer[Nothing, Unit](() => (), None)(swaydb.IO.ExceptionHandler.Nothing)
     val zero: IO.Defer[Nothing, Int] = new IO.Defer[Nothing, Int](() => 0, None)(swaydb.IO.ExceptionHandler.Nothing)
 

@@ -84,7 +84,7 @@ class MemoryStore extends FunctionStore {
 
   override def put(functionId: Slice[Byte], function: SwayFunction): IO.Done = {
     if (functions.putIfAbsent(functionId, function) == null)
-      IO.Done
+      IO.done
     else
       throw new Exception("Another with the same functionId exists.")
   }

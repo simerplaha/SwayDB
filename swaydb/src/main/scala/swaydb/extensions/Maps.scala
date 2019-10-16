@@ -107,7 +107,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
       case Some(map) =>
         map.clear()
       case None =>
-        IO.done
+        IO.doneIO
     }
 
   def contains(key: K): IO.ApiIO[Boolean] =

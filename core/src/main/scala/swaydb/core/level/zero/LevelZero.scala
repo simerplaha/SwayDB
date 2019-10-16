@@ -204,7 +204,7 @@ private[core] case class LevelZero(path: Path,
       throw new IllegalArgumentException("key cannot be empty.")
     } else {
       block
-      IO.Done
+      IO.done
     }
 
   def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): IO.Done =
@@ -216,7 +216,7 @@ private[core] case class LevelZero(path: Path,
       throw new IllegalArgumentException("fromKey should be less than toKey.")
     else {
       block
-      IO.Done
+      IO.done
     }
 
   def put(key: Slice[Byte]): IO.Done =
@@ -241,7 +241,7 @@ private[core] case class LevelZero(path: Path,
 
   def put(entry: Timer => MapEntry[Slice[Byte], Memory]): IO.Done = {
     maps write entry
-    IO.Done
+    IO.done
   }
 
   def remove(key: Slice[Byte]): IO.Done =
