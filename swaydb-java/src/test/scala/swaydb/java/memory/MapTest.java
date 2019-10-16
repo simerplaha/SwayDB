@@ -24,7 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import swaydb.java.*;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.data.slice.Slice;
 import swaydb.java.data.util.KeyVal;
 import swaydb.java.data.util.Pair;
 import swaydb.java.serializers.Serializer;
@@ -38,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
 
-class MemoryMapFunctionsDisabledTest extends MapTest {
+class MemoryMapTest extends MapTest {
 
   public <K, V> MapIO<K, V, PureFunction.VoidM<K, V>> createMap(Serializer<K> keySerializer,
                                                                 Serializer<V> valueSerializer) {
@@ -52,7 +51,7 @@ class MemoryMapFunctionsDisabledTest extends MapTest {
   }
 }
 
-class PersistentMapFunctionsDisabledTest extends MapTest {
+class PersistentMapTest extends MapTest {
 
   @AfterEach
   void deleteDir() throws IOException {
@@ -392,7 +391,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
       )
     ).get();
 
-    //expected expirations to occur after 3 seconds. But do normal asserts first.
+    //expected expiration to occur after 3 seconds. But do normal asserts first.
 
     assertEquals(11, map.get(1).get().get());
     assertEquals(22, map.get(2).get().get());
