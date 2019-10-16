@@ -25,7 +25,6 @@ import java.util.concurrent.ExecutorService
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.{JavaFunction, _}
@@ -91,10 +90,10 @@ object Set {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[A, Void, Apply.Set[Void]]]]
     )
 
-  def config[A](serializer: JavaSerializer[A]): Config[A, Functions.Disabled, Functions.Disabled] =
+  def config[A](serializer: JavaSerializer[A]): Config[A, Void, Void] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
+      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
     )
 
 }

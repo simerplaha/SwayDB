@@ -21,9 +21,9 @@ package swaydb.java
 
 import java.util.Optional
 
-import swaydb.{Apply, Map}
 import swaydb.java.data.slice.Slice
 import swaydb.java.data.util.Java._
+import swaydb.{Apply, Map}
 
 import scala.compat.java8.OptionConverters._
 import scala.concurrent.duration

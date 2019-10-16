@@ -23,8 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 
 object Functions extends LazyLogging {
 
-  final abstract class Disabled
-
   def safe[T](default: => T, function: => T): T =
     try
       function

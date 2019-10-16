@@ -25,7 +25,6 @@ import swaydb.Tag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
@@ -71,9 +70,9 @@ object Set {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
     )
 
-  def config[A](serializer: JavaSerializer[A]): Builder[A, Functions.Disabled] =
+  def config[A](serializer: JavaSerializer[A]): Builder[A, Void] =
     new Builder(
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
+      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
     )
 }

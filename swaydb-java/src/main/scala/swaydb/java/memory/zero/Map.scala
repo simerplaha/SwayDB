@@ -21,17 +21,16 @@ package swaydb.java.memory.zero
 
 import java.util.Comparator
 
-import swaydb.{Apply, Tag}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{IO, KeyOrderConverter, Return}
 import swaydb.serializers.Serializer
+import swaydb.{Apply, Tag}
 
 import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
@@ -76,10 +75,10 @@ object Map {
     )
 
   def config[K, V](keySerializer: JavaSerializer[K],
-                   valueSerializer: JavaSerializer[V]): Builder[K, V, Functions.Disabled, Functions.Disabled] =
+                   valueSerializer: JavaSerializer[V]): Builder[K, V, Void, Void] =
     new Builder(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
+      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
     )
 }

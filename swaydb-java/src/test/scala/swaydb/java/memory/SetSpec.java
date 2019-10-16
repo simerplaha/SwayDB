@@ -21,7 +21,6 @@ package swaydb.java.memory;
 
 
 import org.junit.jupiter.api.Test;
-import swaydb.data.util.Functions;
 import swaydb.java.PureFunction;
 import swaydb.java.Return;
 import swaydb.java.SetIO;
@@ -33,7 +32,7 @@ class SetSpec {
 
   @Test
   void createMap() {
-    SetIO<Integer, Functions.Disabled> set =
+    SetIO<Integer, Void> set =
       Set
         .config(intSerializer())
         .init()

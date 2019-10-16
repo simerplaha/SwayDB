@@ -27,7 +27,6 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.{Dir, MMAP, RecoveryMode}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.{JavaFunction, _}
@@ -115,11 +114,11 @@ object Set {
     )
 
   def config[A](dir: Path,
-                serializer: JavaSerializer[A]): Config[A, Functions.Disabled, Functions.Disabled] =
+                serializer: JavaSerializer[A]): Config[A, Void, Void] =
     new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
+      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
     )
 
 }
