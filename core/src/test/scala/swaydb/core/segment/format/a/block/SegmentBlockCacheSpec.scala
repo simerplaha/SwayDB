@@ -35,7 +35,7 @@ class SegmentBlockCacheSpec extends TestBase {
 
   "it" should {
     "return distinct Readers" in {
-      runThis(1000.times, log = true) {
+      runThis(10.times, log = true) {
         val keyValues = Slice(Transient.put(1, 1))
         val blockCache = getSegmentBlockCache(keyValues)
         blockCache.isCached shouldBe false
