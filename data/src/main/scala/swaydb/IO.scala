@@ -53,6 +53,10 @@ sealed trait IO[+L, +R] {
 
   def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B]
 
+  def and[L2 >: L : IO.ExceptionHandler, B](io: => IO[L2, B]): IO[L2, B]
+
+  def andThen[B](io: => B): IO[L, B]
+
   def exists(f: R => Boolean): Boolean
 
   def filter(p: R => Boolean): IO[L, R]
@@ -539,6 +543,12 @@ object IO {
     override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO[F, B] =
       IO.Catch(f(get))
 
+    override def and[L2 >: L : ExceptionHandler, B](io: => IO[L2, B]): IO[L2, B] =
+      io
+
+    override def andThen[B](io: => B): IO[L, B] =
+      IO[L, B](io)
+
     override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO[F, B] =
       get
 
@@ -581,6 +591,7 @@ object IO {
 
     override def exceptionHandler: ExceptionHandler[_] =
       this.exceptionHandler
+
   }
 
   @inline final def throwable(message: String): Throwable =
@@ -648,6 +659,12 @@ object IO {
     override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO.Left[F, B] =
       this.asInstanceOf[IO.Left[F, B]]
 
+    override def and[F >: L : ExceptionHandler, B](io: => IO[F, B]): IO[F, B] =
+      this.asInstanceOf[IO.Left[F, B]]
+
+    override def andThen[B](io: => B): IO[L, B] =
+      this.asInstanceOf[IO.Left[L, B]]
+
     override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO.Left[F, B] =
       this.asInstanceOf[IO.Left[F, B]]
 
@@ -704,6 +721,7 @@ object IO {
 
     override def exceptionHandler: ExceptionHandler[_] =
       this.exceptionHandler
+
   }
 
   def fromFuture[L: IO.ExceptionHandler, R](future: Future[R])(implicit ec: ExecutionContext): IO.Defer[L, R] = {

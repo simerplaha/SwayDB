@@ -75,6 +75,18 @@ class IOLeftSpec extends WordSpec with Matchers {
     } shouldBe IO.Left(error)
   }
 
+  "andThen" in {
+    IO.Left(error) andThen {
+      fail()
+    } shouldBe IO.Left(error)
+  }
+
+  "and" in {
+    IO.Left(error).and {
+      fail()
+    } shouldBe IO.Left(error)
+  }
+
   "recover" in {
     IO.Left(error).recover {
       case error =>

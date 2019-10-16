@@ -162,6 +162,11 @@ class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: sway
   def flatMap[B](function: JavaFunction[R, IO[L, B]]): IO[L, B] =
     new IO(asScala.flatMap[L, B](result => function.apply(result).asScala))
 
+  def andThen[B](function: Supplier[B]): IO[L, B] =
+    new IO(asScala.andThen(function.get()))
+
+  def and[B](supplier: Supplier[IO[L, B]]): IO[L, B] =
+    new IO(asScala.and[L, B](supplier.get().asScala))
 
   def orElseGet[B >: R](supplier: Supplier[B]): B =
     asScala.getOrElse(supplier.get())

@@ -116,6 +116,40 @@ class IORightSpec extends WordSpec with Matchers {
     } shouldBe IO.Left(error)
   }
 
+  "andThen" in {
+    IO.Right(1).andThen(2) shouldBe IO.Right(2)
+  }
+
+  "andThen throws exception" in {
+    IO.Right(1).andThen(throw error.exception) shouldBe IO.Left(error)
+  }
+
+  "and on Success" in {
+    IO.Right(1) and {
+      IO.Right(2)
+    } shouldBe IO.Right(2)
+
+    IO.Right(1) and {
+      IO.Right(2) flatMap {
+        two =>
+          two shouldBe 2
+          IO.Right(two + 1)
+      }
+    } shouldBe IO.Right(3)
+  }
+
+  "and on Failure" in {
+    IO.Right(1) and {
+      IO.Left(error)
+    } shouldBe IO.Left(error)
+
+    IO.Right(1) and {
+      IO.Right(2) and {
+        IO.Left(error)
+      }
+    } shouldBe IO.Left(error)
+  }
+
   "flatten" in {
 
     val nested = IO.Right(IO.Right(IO.Right(IO.Right(1))))
