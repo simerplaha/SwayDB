@@ -22,6 +22,8 @@ package swaydb.java;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import swaydb.data.java.JavaEventually;
+import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
 import swaydb.java.data.util.Pair;
 import swaydb.java.memory.Set;

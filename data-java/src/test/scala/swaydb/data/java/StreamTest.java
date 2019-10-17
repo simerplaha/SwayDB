@@ -17,9 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java;
+package swaydb.data.java;
 
 import org.junit.jupiter.api.Test;
+import swaydb.java.Stream;
+import swaydb.java.StreamIO;
 
 import java.util.Arrays;
 import java.util.Collections;

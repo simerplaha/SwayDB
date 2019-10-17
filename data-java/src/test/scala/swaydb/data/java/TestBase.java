@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java;
+package swaydb.data.java;
 
 import java.io.IOException;
 import java.nio.file.*;

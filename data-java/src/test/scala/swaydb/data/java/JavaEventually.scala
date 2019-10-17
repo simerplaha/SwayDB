@@ -17,14 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java
+package swaydb.data.java
 
-import java.util.function.{Consumer, Supplier}
+import java.util.function.Supplier
 
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
 
 trait JavaEventually {
 
