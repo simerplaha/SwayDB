@@ -27,7 +27,6 @@ import swaydb.IO.ThrowableIO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.data.util.Java._
-import swaydb.java.data.util.Pair
 import swaydb.{Apply, Prepare}
 
 import scala.collection.JavaConverters._

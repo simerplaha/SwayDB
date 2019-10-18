@@ -19,9 +19,10 @@
 
 package swaydb.java.data.util
 
-import java.util.{Comparator, Optional}
 import java.util.concurrent.ExecutorService
+import java.util.{Comparator, Optional}
 
+import swaydb.java.{KeyVal, Pair}
 import swaydb.java.data.slice.ByteSlice
 
 import scala.compat.java8.DurationConverters._

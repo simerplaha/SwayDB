@@ -25,8 +25,6 @@ import org.junit.jupiter.api.Test;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.data.util.KeyVal;
-import swaydb.java.data.util.Pair;
 import swaydb.java.memory.Map;
 import swaydb.java.serializers.Serializer;
 

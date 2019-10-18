@@ -17,15 +17,14 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.data.util
+package swaydb.java
 
 import scala.compat.java8.DurationConverters._
-import scala.concurrent.duration.Deadline
 
 object Pair {
 
   implicit class PairImplicit[K](keyVal: Pair[K, java.time.Duration]) {
-    def toScala: (K, Deadline) =
+    def toScala: (K, scala.concurrent.duration.Deadline) =
       (keyVal.left, keyVal.right.toScala.fromNow)
   }
 

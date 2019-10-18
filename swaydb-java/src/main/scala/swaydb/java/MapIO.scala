@@ -25,14 +25,13 @@ import java.util.function.{BiFunction, Consumer, Predicate}
 import swaydb.IO.ThrowableIO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.java.ScalaMapToJavaMapOutputConverter._
 import swaydb.java.data.util.Java._
-import swaydb.java.data.util.{KeyVal, Pair}
 import swaydb.{Apply, Prepare}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
-import ScalaMapToJavaMapOutputConverter._
 
 /**
  * IOMap database API.
