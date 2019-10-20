@@ -16,7 +16,12 @@ val zioVersion = "1.0.0-RC15"
 val scalaJava8CompatVersion = "0.9.0"
 val junitJupiterVersion = "5.5.2"
 
+val scala211 = "2.11.12"
+val scala212 = "2.12.10"
+val scala213 = "2.13.1"
+
 parallelExecution in ThisBuild := false
+scalaVersion in ThisBuild := scala213
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
@@ -24,7 +29,7 @@ lazy val commonSettings = Seq(
 )
 
 val publishSettings = Seq[Setting[_]](
-  crossScalaVersions := Seq("2.11.12", "2.12.10"),
+  crossScalaVersions := Seq(scala211, scala212, scala213),
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
   licenses := Seq("AGPL3" -> url("https://www.gnu.org/licenses/agpl-3.0.en.html")),
