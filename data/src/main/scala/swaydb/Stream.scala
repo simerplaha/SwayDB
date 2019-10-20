@@ -19,11 +19,8 @@
 
 package swaydb
 
-import swaydb.Stream.StreamBuilder
 import swaydb.Tag.Implicits._
 
-import scala.collection.generic.CanBuildFrom
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -91,45 +88,6 @@ object Stream {
 
       override def headOption(): T[Option[A]] = step()
       override private[swaydb] def next(previous: A): T[Option[A]] = step()
-    }
-
-  class StreamBuilder[A, T[_]](implicit tag: Tag[T]) extends mutable.Builder[A, Stream[A, T]] {
-    private val items: ListBuffer[A] = ListBuffer.empty[A]
-
-    override def +=(x: A): this.type = {
-      items += x
-      this
-    }
-
-    def asSeq: Seq[A] =
-      items
-
-    override def clear(): Unit =
-      items.clear()
-
-    override def result: Stream[A, T] =
-      new Stream[A, T] {
-
-        private val iterator = items.iterator
-
-        def step(): T[Option[A]] =
-          if (iterator.hasNext)
-            tag.success(Some(iterator.next()))
-          else
-            tag.none
-
-        override def headOption: T[Option[A]] = step()
-        override private[swaydb] def next(previous: A): T[Option[A]] = step()
-      }
-  }
-
-  implicit def canBuildFrom[A, T[_]](implicit tag: Tag[T]): CanBuildFrom[Stream[A, T], A, Stream[A, T]] =
-    new CanBuildFrom[Stream[A, T], A, Stream[A, T]] {
-      override def apply(from: Stream[A, T]) =
-        new StreamBuilder()
-
-      override def apply(): mutable.Builder[A, Stream[A, T]] =
-        new StreamBuilder()
     }
 }
 
@@ -411,11 +369,11 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   /**
    * Materialises/closes and processes the stream to a [[Seq]].
    */
-  def materialize: T[Seq[A]] =
-    foldLeft(new StreamBuilder[A, T]()) {
+  def materialize: T[ListBuffer[A]] =
+    foldLeft(scala.collection.mutable.ListBuffer.empty[A]) {
       (buffer, item) =>
         buffer += item
-    } map (_.asSeq)
+    }
 
   /**
    * Given a [[Tag.Converter]] this function converts the current Stream to another type.

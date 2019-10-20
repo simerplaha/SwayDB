@@ -162,14 +162,14 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
-        map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory]))
+        map.write(MapEntry.Put(keyValue.key, keyValue))
     }
 
     "succeed" when {
       "writing to an empty Level by copying to last Level" in {
         val nextLevel = mock[NextLevel]
 
-        nextLevel.isTrash _ expects() returning false
+        (nextLevel.isTrash _).expects() returning false
 
         (nextLevel.isCopyable(_: Map[Slice[Byte], Memory])) expects * onCall {
           putMap: Map[Slice[Byte], Memory] =>
@@ -194,7 +194,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory])
         val map = TestMap(lastLevelKeyValues)
 
-        nextLevel.isTrash _ expects() returning false
+        (nextLevel.isTrash _).expects() returning false
 
         (nextLevel.isCopyable(_: Map[Slice[Byte], Memory])) expects * onCall {
           putMap: Map[Slice[Byte], Memory] =>

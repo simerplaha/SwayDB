@@ -28,6 +28,7 @@ import swaydb.core.TestData._
 
 import scala.concurrent.duration._
 import scala.util.Random
+import scala.collection.parallel.CollectionConverters._
 
 class LazySpec extends WordSpec with Matchers with MockFactory {
 
@@ -94,7 +95,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         val value = Random.nextInt()
 
         val mockValueFunction = mockFunction[Int]
-        mockValueFunction expects() returning value //this function is only invoked once.
+        mockValueFunction.expects() returning value //this function is only invoked once.
 
         val lazyValue = Lazy.value[Int](synchronised = true, stored = true, None)
 
@@ -119,7 +120,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         val value = Random.nextInt()
 
         val mockValueFunction = mockFunction[Int]
-        mockValueFunction expects() returning value repeat (2 to 100) //this function is invoked more than once.
+        mockValueFunction.expects() returning value repeat (2 to 100) //this function is invoked more than once.
 
         val lazyValue = Lazy.value[Int](synchronised = false, stored = true, None)
 
@@ -212,7 +213,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         implicit val exception = swaydb.IO.ExceptionHandler.Throwable
 
         val mockValueFunction = mockFunction[Int]
-        mockValueFunction expects() returning value //this function is only invoked once.
+        mockValueFunction.expects() returning value //this function is only invoked once.
 
         val initialValue = eitherOne(None, Some(randomIntMax()))
 
@@ -249,7 +250,7 @@ class LazySpec extends WordSpec with Matchers with MockFactory {
         implicit val exception = swaydb.IO.ExceptionHandler.Throwable
 
         val mockValueFunction = mockFunction[Int]
-        mockValueFunction expects() returning value repeat (2 to 100) //this function is invoked more than once.
+        mockValueFunction.expects() returning value repeat (2 to 100) //this function is invoked more than once.
 
         val initialValue = eitherOne(None, Some(randomIntMax()))
 

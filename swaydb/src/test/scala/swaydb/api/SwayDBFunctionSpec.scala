@@ -28,6 +28,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration.Deadline
+import scala.collection.parallel.CollectionConverters._
 
 protected sealed trait Key
 protected object Key {

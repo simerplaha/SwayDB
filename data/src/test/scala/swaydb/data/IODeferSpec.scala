@@ -290,7 +290,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
 
     "recoverable & non-recoverable failure" in {
       val value1 = mockFunction[Int]("value1")
-      value1 expects() returning 1
+      value1.expects() returning 1
 
       val value2 = mockFunction[Int, Int]("value2")
       value2 expects 1 returning 2
@@ -690,7 +690,7 @@ class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactor
               Thread.sleep(sleeping.seconds.toMillis)
               1
             }
-          else if(Random.nextBoolean())
+          else if (Random.nextBoolean())
             IO.Defer[Error.Segment, Int] {
               if (Random.nextBoolean()) {
                 1

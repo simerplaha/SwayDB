@@ -167,7 +167,7 @@ class PathsDistributorSpec extends TestBase with MockFactory {
     "return paths based on the distribution ratio" in {
 
       val segments = mockFunction[Iterable[Segment]]
-      segments expects() returning Seq() repeat 100.times
+      segments.expects() returning Seq() repeat 100.times
 
       val distributor =
         PathsDistributor(
@@ -206,7 +206,7 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       val path3 = Effect.createDirectoriesIfAbsent(path.resolve("3"))
 
       val segments = mockFunction[Iterable[Segment]]
-      segments expects() returning Seq()
+      segments.expects() returning Seq()
 
       val distributor =
         PathsDistributor(
@@ -229,7 +229,7 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       distributor.next shouldBe path3
 
       //second batch, where each Path has 1 Segment = a total of 3 Segments. Distribution ratio for path2 is 2 and but it contains only 1 Segment.
-      segments expects() returning
+      segments.expects() returning
         Seq(
           TestSegment(path = path1.resolve("1.seg")).runRandomIO.right.value,
           TestSegment(path = path2.resolve("2.seg")).runRandomIO.right.value,
@@ -239,7 +239,7 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       distributor.next shouldBe path2
 
       //third batch. Distribution is fixed, goes back to returning normal paths based on the default distribution ratio.
-      segments expects() returning Seq()
+      segments.expects() returning Seq()
       distributor.next shouldBe path1
       distributor.next shouldBe path2
       distributor.next shouldBe path2
@@ -248,7 +248,7 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       distributor.next shouldBe path3
 
       //4ht batch, path3 contains none but path1 and path2 have one Segment.
-      segments expects() returning
+      segments.expects() returning
         Seq(
           TestSegment(path = path1.resolve("11.seg")).runRandomIO.right.value,
           TestSegment(path = path2.resolve("22.seg")).runRandomIO.right.value,
@@ -263,7 +263,7 @@ class PathsDistributorSpec extends TestBase with MockFactory {
       distributor.next shouldBe path3
 
       //5th batch. Distribution is fixed all Paths contains equally distributed Segments based on distribution ration.
-      segments expects() returning
+      segments.expects() returning
         Seq(
           TestSegment(path = path1.resolve("111.seg")).runRandomIO.right.value,
           TestSegment(path = path2.resolve("2222222.seg")).runRandomIO.right.value,

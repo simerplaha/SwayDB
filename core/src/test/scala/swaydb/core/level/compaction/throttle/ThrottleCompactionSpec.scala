@@ -212,7 +212,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
     "not run compaction" when {
       "level is not the last Level" in {
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns true repeat 20.times
+        (level.hasNextLevel _).expects() returns true repeat 20.times
 
         runThis(20.times) {
           ThrottleCompaction.runLastLevelCompaction(
@@ -226,7 +226,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
       "remaining compactions are 0" in {
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns true repeat 20.times
+        (level.hasNextLevel _).expects() returns true repeat 20.times
 
         runThis(20.times) {
           ThrottleCompaction.runLastLevelCompaction(
@@ -255,11 +255,11 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                 )
               else
                 None
-          })(collection.breakOut)
+          }).to(ListBuffer)
 
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns false repeat 6.times
-        level.segmentsInLevel _ expects() returning segments repeat 5.times
+        (level.hasNextLevel _).expects() returns false repeat 6.times
+        (level.segmentsInLevel _).expects() returning segments repeat 5.times
 
         (level.refresh(_: Segment)(_: ExecutionContext)) expects(*, *) onCall {
           (segment: Segment, _) =>
@@ -293,12 +293,12 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                 )
               else
                 None
-          })(collection.breakOut)
+          }).to(ListBuffer)
 
         val level = mock[NextLevel]("level")
-        level.hasNextLevel _ expects() returns false repeated 2.times
+        (level.hasNextLevel _).expects() returns false repeated 2.times
 
-        level.optimalSegmentsToCollapse _ expects * onCall {
+        (level.optimalSegmentsToCollapse _).expects(*) onCall {
           count: Int =>
             segments.take(count)
         }

@@ -27,6 +27,8 @@ import swaydb.core.RunThis._
 import swaydb.core.util.Benchmark
 import swaydb.data.Reserve
 
+import scala.collection.parallel.CollectionConverters._
+
 class CachePerformanceSpec extends WordSpec with Matchers {
 
   val range = 1 to 1000000

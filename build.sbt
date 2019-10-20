@@ -15,6 +15,7 @@ val monixVersion = "3.0.0"
 val zioVersion = "1.0.0-RC15"
 val scalaJava8CompatVersion = "0.9.0"
 val junitJupiterVersion = "5.5.2"
+val scalaParallelCollectionsVersion = "0.2.0"
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.10"
@@ -25,7 +26,8 @@ scalaVersion in ThisBuild := scala213
 
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
-  scalaVersion := scalaVersion.value
+  scalaVersion := scalaVersion.value,
+  scalacOptions ++= Seq("-language:postfixOps")
 )
 
 val publishSettings = Seq[Setting[_]](
@@ -63,7 +65,8 @@ val testDependencies =
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
     "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test,
-    "io.suzaku" %% "boopickle" % boopickleVersion % Test
+    "io.suzaku" %% "boopickle" % boopickleVersion % Test,
+    "org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion % Test
   )
 
 val commonJavaDependencies =

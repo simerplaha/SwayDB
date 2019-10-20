@@ -19,8 +19,9 @@
 
 package swaydb.core
 
+import java.util.concurrent.ForkJoinPool
+
 import scala.concurrent.ExecutionContext
-import scala.concurrent.forkjoin.ForkJoinPool
 
 object TestExecutionContext {
 

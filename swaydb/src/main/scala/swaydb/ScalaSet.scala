@@ -66,23 +66,23 @@ private[swaydb] object ScalaSet {
       override def lastOption: Option[A] =
         db.lastOption.get
 
-      override def +=(elem: A): this.type = {
+      override def addOne(elem: A): this.type = {
         db.add(elem).get
         this
       }
 
-      override def -=(elem: A): this.type = {
+      override def subtractOne(elem: A): this.type = {
         db.remove(elem).get
         this
       }
 
-      override def --=(xs: TraversableOnce[A]): this.type = {
-        db.remove(xs.toIterable).get
+      override def subtractAll(xs: IterableOnce[A]): this.type = {
+        db.remove(xs.iterator).get
         this
       }
 
-      override def ++=(xs: TraversableOnce[A]): this.type = {
-        db.add(xs.toIterable).get
+      override def addAll(xs: IterableOnce[A]): this.type = {
+        db.add(xs.iterator).get
         this
       }
 

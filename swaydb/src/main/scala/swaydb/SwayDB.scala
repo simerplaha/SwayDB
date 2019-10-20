@@ -20,7 +20,7 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, ForkJoinPool}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.Core
@@ -38,7 +38,6 @@ import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.forkjoin.ForkJoinPool
 import scala.reflect.ClassTag
 
 /**

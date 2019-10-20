@@ -20,6 +20,7 @@
 package swaydb.configs.level
 
 import java.nio.file.Path
+import java.util.concurrent.ForkJoinPool
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
@@ -27,7 +28,6 @@ import swaydb.data.config._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.forkjoin.ForkJoinPool
 
 object DefaultPersistentConfig {
 

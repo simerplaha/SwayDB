@@ -31,6 +31,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.CollectionConverters._
 
 class ValuesBlockSpec extends TestBase {
 

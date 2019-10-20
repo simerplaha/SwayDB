@@ -54,6 +54,7 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, Dir, IOStrategy, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -1507,11 +1508,14 @@ object TestData {
 
   def randomBytes(size: Int = 10) = Array.fill(size)(randomByte())
 
-  def randomByteChunks(size: Int = 10, sizePerChunk: Int = 10): Slice[Slice[Byte]] =
-    (1 to size).map({
+  def randomByteChunks(size: Int = 10, sizePerChunk: Int = 10): Slice[Slice[Byte]] = {
+    val slice = Slice.create[Slice[Byte]](size)
+    (1 to size) foreach {
       _ =>
-        Slice(randomBytes(sizePerChunk))
-    })(collection.breakOut)
+        slice add Slice(randomBytes(sizePerChunk))
+    }
+    slice
+  }
 
   def randomBytesSlice(size: Int = 10) = Slice(randomBytes(size))
 
@@ -2381,13 +2385,13 @@ object TestData {
             else
               None
         }
-    }(collection.breakOut)
+    }.to(new SliceFactory(keyValues.size))
 
   def getPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] =
     keyValues.flatMap {
       keyValue =>
         keyValue.asPut
-    }(collection.breakOut)
+    }.to(new SliceFactory(keyValues.size))
 
   /**
    * Randomly updates all key-values using one of the many update methods.
@@ -2445,7 +2449,7 @@ object TestData {
         } else {
           None
         }
-    })(collection.breakOut)
+    }).to(new SliceFactory(keyValues.size))
   }
 
   implicit class HigherImplicits(higher: Higher.type) {

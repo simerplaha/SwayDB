@@ -94,7 +94,7 @@ private[core] object PathsDistributor {
             actualSize = actualSize,
             expectedSize = 0
           )
-      })(collection.breakOut)
+      }).to(Array)
 
     (distributions, totalSize)
   }
@@ -155,7 +155,12 @@ private[core] class PathsDistributor(var dirs: Seq[Dir],
   def distributePaths: util.List[Path] = {
     val (distributions, totalSize) = getDistributions(dirs, segments)
     val distributionResult = distribute(totalSize, distributions)
-    val paths: Seq[Path] = distributionResult.flatMap(dist => Array.fill(dist.missing)(dist.path))
+    val paths: Seq[Path] =
+      distributionResult flatMap {
+        case dist: Distribution =>
+          Seq.fill(dist.missing)(dist.path)
+      }
+
     if (paths.nonEmpty) {
       //      logger.trace(s"{} Un-even distribution. Prioritizing paths {}", head.path, paths.mkString(", "))
       paths.asJava

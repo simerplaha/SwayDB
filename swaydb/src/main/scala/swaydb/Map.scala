@@ -57,6 +57,9 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(keyValues.materialize flatMap put)
 
   def put(keyValues: Iterable[(K, V)]): T[Done] =
+    put(keyValues.iterator)
+
+  def put(keyValues: Iterator[(K, V)]): T[Done] =
     tag.point {
       core.put {
         keyValues map {
@@ -79,6 +82,9 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(keys.materialize flatMap remove)
 
   def remove(keys: Iterable[K]): T[Done] =
+    remove(keys.iterator)
+
+  def remove(keys: Iterator[K]): T[Done] =
     tag.point(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
   def expire(key: K, after: FiniteDuration): T[Done] =
@@ -100,6 +106,9 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(keys.materialize flatMap expire)
 
   def expire(keys: Iterable[(K, Deadline)]): T[Done] =
+    expire(keys.iterator)
+
+  def expire(keys: Iterator[(K, Deadline)]): T[Done] =
     tag.point {
       core.put {
         keys map {
@@ -126,6 +135,9 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(keyValues.materialize flatMap update)
 
   def update(keyValues: Iterable[(K, V)]): T[Done] =
+    update(keyValues.iterator)
+
+  def update(keyValues: Iterator[(K, V)]): T[Done] =
     tag.point {
       core.put {
         keyValues map {
@@ -157,7 +169,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(core.function(from, to, function.id))
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
-    tag.point(core.put(preparesToUntyped(prepare)))
+    tag.point(core.put(preparesToUntyped(prepare).iterator))
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], T])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
     tag.point {
@@ -168,7 +180,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
-    tag.point(core.put(preparesToUntyped(prepare)))
+    tag.point(core.put(preparesToUntyped(prepare).iterator))
 
   /**
    * Returns target value for the input key.

@@ -23,16 +23,16 @@ import java.util
 import java.util.Optional
 import java.util.function.{Consumer, Predicate}
 
+import swaydb.Apply
 import swaydb.IO.ThrowableIO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.java.ScalaMapToJavaMapOutputConverter._
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Prepare}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
-import ScalaMapToJavaMapOutputConverter._
 
 /**
  * Set database API.
@@ -136,7 +136,7 @@ case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void
   def commit[P <: Prepare.Set[A, F]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.Done] =
     prepare
       .asScala
-      .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
+      .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
       .flatMap {
         statements =>
           asScala.commit(statements)
@@ -146,7 +146,7 @@ case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
 
     asScala commit prepareStatements
   }

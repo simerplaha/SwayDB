@@ -65,23 +65,23 @@ private[swaydb] object ScalaMap {
       override def lastOption: Option[(K, V)] =
         db.lastOption.get
 
-      override def +=(kv: (K, V)): this.type = {
+      override def addOne(kv: (K, V)): this.type = {
         db.put(kv._1, kv._2).get
         this
       }
 
-      override def -=(key: K): this.type = {
+      override def subtractOne(key: K): this.type = {
         db.remove(key).get
         this
       }
 
-      override def --=(xs: TraversableOnce[K]): this.type = {
-        db.remove(xs.toIterable).get
+      override def subtractAll(xs: IterableOnce[K]): this.type = {
+        db.remove(xs.iterator).get
         this
       }
 
-      override def ++=(xs: TraversableOnce[(K, V)]): this.type = {
-        db.put(xs.toIterable).get
+      override def addAll(xs: IterableOnce[(K, V)]): this.type = {
+        db.put(xs.iterator).get
         this
       }
 

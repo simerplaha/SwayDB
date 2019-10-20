@@ -312,10 +312,10 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val nextLevel = mock[NextLevel]
 
         //no key-values value forwarded to next Level
-        nextLevel.isTrash _ expects() returning false
-        nextLevel.close _ expects() returning IO.unit
-        nextLevel.releaseLocks _ expects() returning IO.unit
-        nextLevel.closeSegments _ expects() returning IO.unit
+        (nextLevel.isTrash _).expects() returning false
+        (nextLevel.close _).expects() returning IO.unit
+        (nextLevel.releaseLocks _).expects() returning IO.unit
+        (nextLevel.closeSegments _).expects() returning IO.unit
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
@@ -330,7 +330,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "upper level has no overlapping Segments and nextLevel allows Segment copying" in {
         val nextLevel = mock[NextLevel]
-        nextLevel.isTrash _ expects() returning false
+        (nextLevel.isTrash _).expects() returning false
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
@@ -342,7 +342,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
         val segment = TestSegment(keyValues2).runRandomIO.right.value
 
-        nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
+        (nextLevel.partitionUnreservedCopyable _).expects(*) onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
             segments.head.path shouldBe segment.path
@@ -364,7 +364,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "upper level has no overlapping Segments and nextLevel does not allows Segment copying due to reserved Segments" in {
         val nextLevel = mock[NextLevel]
-        nextLevel.isTrash _ expects() returning false
+        (nextLevel.isTrash _).expects() returning false
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
@@ -376,7 +376,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
         val segment = TestSegment(keyValues2).runRandomIO.right.value
 
-        nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
+        (nextLevel.partitionUnreservedCopyable _).expects(*) onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
             segments.head.path shouldBe segment.path
@@ -391,7 +391,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "lower level can copy 1 of 2 Segments" in {
         val nextLevel = mock[NextLevel]
-        nextLevel.isTrash _ expects() returning false
+        (nextLevel.isTrash _).expects() returning false
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
@@ -404,7 +404,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val segment2 = TestSegment(keyValues2.head).runRandomIO.right.value
         val segment3 = TestSegment(keyValues2.last.updateStats).runRandomIO.right.value
 
-        nextLevel.partitionUnreservedCopyable _ expects * onCall {
+        (nextLevel.partitionUnreservedCopyable _).expects(*) onCall {
           segments: Iterable[Segment] =>
             segments should have size 2
             segments.head.path shouldBe segment2.path
@@ -429,7 +429,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "lower level can copy all Segments but fails to copy" in {
         val nextLevel = mock[NextLevel]
-        nextLevel.isTrash _ expects() returning false
+        (nextLevel.isTrash _).expects() returning false
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
@@ -441,7 +441,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey))
         val segment = TestSegment(keyValues2).runRandomIO.right.value
 
-        nextLevel.partitionUnreservedCopyable _ expects * onCall { //check if it can copied into next Level
+        (nextLevel.partitionUnreservedCopyable _).expects(*) onCall { //check if it can copied into next Level
           segments: Iterable[Segment] =>
             segments should have size 1
             segments.head.path shouldBe segment.path //new segments gets requested to push forward.

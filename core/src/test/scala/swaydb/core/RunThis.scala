@@ -25,6 +25,7 @@ import swaydb.core.util.FiniteDurations._
 import scala.concurrent.duration.{Deadline, FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Random
+import scala.collection.parallel.CollectionConverters._
 
 object RunThis extends Eventually {
 

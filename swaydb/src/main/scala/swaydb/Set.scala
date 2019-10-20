@@ -74,6 +74,9 @@ case class Set[A, F, T[_]](private val core: Core[T],
     tag.point(elems.materialize flatMap add)
 
   def add(elems: Iterable[A]): T[Done] =
+    add(elems.iterator)
+
+  def add(elems: Iterator[A]): T[Done] =
     tag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
 
   def remove(elem: A): T[Done] =
@@ -89,6 +92,9 @@ case class Set[A, F, T[_]](private val core: Core[T],
     tag.point(elems.materialize flatMap remove)
 
   def remove(elems: Iterable[A]): T[Done] =
+    remove(elems.iterator)
+
+  def remove(elems: Iterator[A]): T[Done] =
     tag.point(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
   def expire(elem: A, after: FiniteDuration): T[Done] =
@@ -110,6 +116,9 @@ case class Set[A, F, T[_]](private val core: Core[T],
     tag.point(elems.materialize flatMap expire)
 
   def expire(elems: Iterable[(A, Deadline)]): T[Done] =
+    expire(elems.iterator)
+
+  def expire(elems: Iterator[(A, Deadline)]): T[Done] =
     tag.point {
       core.put {
         elems map {
@@ -136,7 +145,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
     tag.point(core.function(elem, function.id))
 
   def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
-    tag.point(core.put(prepare))
+    tag.point(core.put(preparesToUntyped(prepare).iterator))
 
   def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], T])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     tag.point {
@@ -147,7 +156,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
-    tag.point(core.put(prepare))
+    tag.point(core.put(preparesToUntyped(prepare).iterator))
 
   def levelZeroMeter: LevelZeroMeter =
     core.levelZeroMeter

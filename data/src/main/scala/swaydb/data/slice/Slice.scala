@@ -26,11 +26,11 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.IO
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.util.{ByteSizeOf, Bytez}
 
 import scala.annotation.tailrec
-import scala.collection.generic.CanBuildFrom
-import scala.collection.{IterableLike, mutable}
+import scala.collection.{IterableFactory, IterableFactoryDefaults, IterableOnce, IterableOps, StrictOptimizedIterableOps, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
@@ -365,44 +365,27 @@ object Slice {
     }
   }
 
-  class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
-    //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-    protected var slice: Slice[T] = Slice.create[T]((sizeHint * 2) max 100)
+  class SliceFactory(capacity: Int) extends IterableFactory[Slice] {
 
-    def extendSlice(by: Int) = {
-      val extendedSlice = Slice.create[T](slice.size * by)
-      extendedSlice addAll slice
-      slice = extendedSlice
-    }
+    def from[A](source: IterableOnce[A]): Slice[A] =
+      source match {
+        case slice: Slice[A] if slice.size == capacity =>
+          slice
 
-    @tailrec
-    final def +=(x: T): this.type =
-      try {
-        slice add x
-        this
-      } catch {
-        case _: ArrayIndexOutOfBoundsException => //Extend slice.
-          extendSlice(by = 2)
-          +=(x)
-        case ex: Throwable =>
-          throw ex
+        case _ =>
+          (newBuilder[A] ++= source).result()
       }
 
-    def clear() =
-      slice = Slice.empty[T]
+    def empty[A]: Slice[A] = Slice.create(capacity)
 
-    def result: Slice[T] =
-      slice.close()
+    def newBuilder[A]: mutable.Builder[A, Slice[A]] =
+      new mutable.ImmutableBuilder[A, Slice[A]](empty) {
+        def addOne(elem: A): this.type = {
+          elems = elems :+ elem
+          this
+        }
+      }
   }
-
-  implicit def canBuildFrom[T: ClassTag]: CanBuildFrom[Slice[_], T, Slice[T]] =
-    new CanBuildFrom[Slice[_], T, Slice[T]] {
-      def apply(from: Slice[_]) =
-        new SliceBuilder[T](from.size)
-
-      def apply() =
-        new SliceBuilder[T](100)
-    }
 }
 
 /**
@@ -415,10 +398,15 @@ object Slice {
  * @param written    items written
  * @tparam T The type of this Slice
  */
+//@formatter:off
 class Slice[+T] private(array: Array[T],
                         val fromOffset: Int,
                         val toOffset: Int,
-                        private var written: Int)(implicit classTag: ClassTag[T]) extends Iterable[T] with IterableLike[T, Slice[T]] { self =>
+                        private var written: Int)(implicit classTag: ClassTag[T]) extends collection.immutable.Iterable[T]
+                                                                                     with IterableOps[T, Slice, Slice[T]]
+                                                                                     with IterableFactoryDefaults[T, Slice]
+                                                                                     with StrictOptimizedIterableOps[T, Slice, Slice[T]] { self =>
+//@formatter:on
 
   private var writePosition = fromOffset + written
 
@@ -439,6 +427,11 @@ class Slice[+T] private(array: Array[T],
 
   override def nonEmpty =
     !isEmpty
+
+  @`inline` def :+[B >: T](elem: B): Slice[B] = {
+    insert(elem)
+    this
+  }
 
   /**
    * Create a new Slice for the offsets.
@@ -805,8 +798,7 @@ class Slice[+T] private(array: Array[T],
   def currentWritePosition =
     writePosition
 
-  override protected[this] def newBuilder: scala.collection.mutable.Builder[T, Slice[T]] =
-    new Slice.SliceBuilder[T](array.length max 100)
+  override val iterableFactory: IterableFactory[Slice] = new SliceFactory(size)
 
   override def equals(that: Any): Boolean =
     that match {

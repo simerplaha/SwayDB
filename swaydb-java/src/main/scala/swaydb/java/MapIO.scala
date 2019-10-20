@@ -22,16 +22,16 @@ package swaydb.java
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
+import swaydb.Apply
 import swaydb.IO.ThrowableIO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.java.ScalaMapToJavaMapOutputConverter._
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Prepare}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * IOMap database API.
@@ -131,7 +131,7 @@ case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](_asSc
   def commit[P <: Prepare.Map[K, V, F]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.Done] =
     prepare
       .asScala
-      .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
+      .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
       .flatMap {
         statements =>
           asScala commit statements
@@ -141,7 +141,7 @@ case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](_asSc
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
 
     asScala commit prepareStatements
   }
