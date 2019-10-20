@@ -22,12 +22,11 @@ val scala211 = "2.11.12"
 val scala212 = "2.12.10"
 val scala213 = "2.13.1"
 
-parallelExecution in ThisBuild := false
-scalaVersion in ThisBuild := scala213
-
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
   scalaVersion := scalaVersion.value,
+  scalaVersion in ThisBuild := scala213,
+  parallelExecution in ThisBuild := false,
   scalacOptions ++= Seq("-language:postfixOps"),
   unmanagedSourceDirectories in Compile += {
     val sourceDir = (sourceDirectory in Compile).value
