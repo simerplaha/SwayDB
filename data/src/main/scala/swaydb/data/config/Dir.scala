@@ -20,6 +20,7 @@
 package swaydb.data.config
 
 import java.nio.file.Path
+import scala.collection.compat._
 
 trait DistributionDir {
   val path: Path

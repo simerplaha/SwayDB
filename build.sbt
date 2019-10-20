@@ -16,6 +16,7 @@ val zioVersion = "1.0.0-RC15"
 val scalaJava8CompatVersion = "0.9.0"
 val junitJupiterVersion = "5.5.2"
 val scalaParallelCollectionsVersion = "0.2.0"
+val scalaCollectionsCompact = "2.1.1"
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.10"
@@ -27,7 +28,14 @@ scalaVersion in ThisBuild := scala213
 lazy val commonSettings = Seq(
   organization := "io.swaydb",
   scalaVersion := scalaVersion.value,
-  scalacOptions ++= Seq("-language:postfixOps")
+  scalacOptions ++= Seq("-language:postfixOps"),
+  unmanagedSourceDirectories in Compile += {
+    val sourceDir = (sourceDirectory in Compile).value
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, n)) if n >= 13 => sourceDir / "scala-2.13"
+      case _                       => sourceDir / "scala-2.12"
+    }
+  }
 )
 
 val publishSettings = Seq[Setting[_]](
@@ -84,7 +92,8 @@ val commonJavaDependencies =
 
 def commonDependencies(scalaVersion: String) =
   Seq(
-    "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
+    "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact
   ) ++ testDependencies(scalaVersion)
 
 lazy val SwayDB =

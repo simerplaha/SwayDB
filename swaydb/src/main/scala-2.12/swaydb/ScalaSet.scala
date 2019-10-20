@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Simer Plaha (@simerplaha) 
+ * Copyright (c) 2019 Simer Plaha (@simerplaha)
  *
  * This file is a part of SwayDB.
  *
@@ -10,7 +10,7 @@
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -19,7 +19,8 @@
 
 package swaydb
 
-import scala.collection.{TraversableOnce, mutable}
+import scala.collection.compat.IterableOnce
+import scala.collection.mutable
 
 /**
  * Scala collections are blocking and requires an IO Set from SwayDB to build a Set.
@@ -66,23 +67,23 @@ private[swaydb] object ScalaSet {
       override def lastOption: Option[A] =
         db.lastOption.get
 
-      override def addOne(elem: A): this.type = {
+      override def +=(elem: A): this.type = {
         db.add(elem).get
         this
       }
 
-      override def subtractOne(elem: A): this.type = {
+      override def -=(elem: A): this.type = {
         db.remove(elem).get
         this
       }
 
-      override def subtractAll(xs: IterableOnce[A]): this.type = {
-        db.remove(xs.iterator).get
+      override def --=(xs: TraversableOnce[A]): this.type = {
+        db.remove(xs.toIterable).get
         this
       }
 
-      override def addAll(xs: IterableOnce[A]): this.type = {
-        db.add(xs.iterator).get
+      override def ++=(xs: TraversableOnce[A]): this.type = {
+        db.add(xs.toIterable).get
         this
       }
 

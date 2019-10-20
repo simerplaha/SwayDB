@@ -94,13 +94,13 @@ private[swaydb] object DecompressorId {
     SealedList.list[LZ4DecompressorId] map {
       compressionType =>
         compressionType.id -> compressionType
-    } to Map
+    } toMap
 
   private[swaydb] def otherDecompressors(): Map[Int, DecompressorId] =
     SealedList.list[DecompressorId] map {
       compressionType =>
         compressionType.id -> compressionType
-    } to Map
+    } toMap
 
   private[swaydb] val decompressors: Map[Int, DecompressorId] =
     lz4Decompressors() ++ otherDecompressors()

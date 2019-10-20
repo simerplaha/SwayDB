@@ -10,7 +10,7 @@
  *
  * SwayDB is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -19,7 +19,8 @@
 
 package swaydb
 
-import scala.collection.{TraversableOnce, mutable}
+import scala.collection.compat.IterableOnce
+import scala.collection.mutable
 
 /**
  * Scala collections are blocking and requires an IO Map from SwayDB to build a Map.
@@ -65,23 +66,23 @@ private[swaydb] object ScalaMap {
       override def lastOption: Option[(K, V)] =
         db.lastOption.get
 
-      override def addOne(kv: (K, V)): this.type = {
+      override def +=(kv: (K, V)): this.type = {
         db.put(kv._1, kv._2).get
         this
       }
 
-      override def subtractOne(key: K): this.type = {
+      override def -=(key: K): this.type = {
         db.remove(key).get
         this
       }
 
-      override def subtractAll(xs: IterableOnce[K]): this.type = {
-        db.remove(xs.iterator).get
+      override def --=(xs: TraversableOnce[K]): this.type = {
+        db.remove(xs.toIterable).get
         this
       }
 
-      override def addAll(xs: IterableOnce[(K, V)]): this.type = {
-        db.put(xs.iterator).get
+      override def ++=(xs: TraversableOnce[(K, V)]): this.type = {
+        db.put(xs.toIterable).get
         this
       }
 
