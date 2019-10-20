@@ -60,24 +60,32 @@ val publishSettings = Seq[Setting[_]](
   )
 )
 
-val testDependencies =
+def scalaParallelCollections(scalaVersion: String) =
+  CrossVersion.partialVersion(scalaVersion) match {
+    case Some((2, major)) if major >= 13 =>
+      Some("org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion % Test)
+
+    case _ =>
+      None
+  }
+
+def testDependencies(scalaVersion: String) =
   Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
     "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test,
-    "io.suzaku" %% "boopickle" % boopickleVersion % Test,
-    "org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion % Test
-  )
+    "io.suzaku" %% "boopickle" % boopickleVersion % Test
+  ) ++ scalaParallelCollections(scalaVersion)
 
 val commonJavaDependencies =
   Seq(
     "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test
   )
 
-val commonDependencies =
+def commonDependencies(scalaVersion: String) =
   Seq(
     "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
-  ) ++ testDependencies
+  ) ++ testDependencies(scalaVersion)
 
 lazy val SwayDB =
   (project in file("."))
@@ -93,7 +101,7 @@ lazy val core =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
@@ -101,7 +109,7 @@ lazy val data =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(macros % "compile-internal")
 
 lazy val `data-java` =
@@ -120,7 +128,7 @@ lazy val swaydb =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies
+        commonDependencies(scalaVersion.value)
           :+ "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
 
     ).dependsOn(core % "test->test;compile->compile", serializers, configs)
@@ -141,14 +149,14 @@ lazy val `core-stress` =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= testDependencies
+      libraryDependencies ++= testDependencies(scalaVersion.value)
     ).dependsOn(core)
 
 lazy val `core-performance` =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= testDependencies
+      libraryDependencies ++= testDependencies(scalaVersion.value)
     ).dependsOn(core)
 
 lazy val compression =
@@ -157,7 +165,7 @@ lazy val compression =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies
+        commonDependencies(scalaVersion.value)
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
@@ -175,7 +183,7 @@ lazy val `swaydb-stress` =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 
@@ -194,7 +202,7 @@ lazy val benchmark =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 
