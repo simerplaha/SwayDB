@@ -36,6 +36,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import scala.collection.compat._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext

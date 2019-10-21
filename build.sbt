@@ -16,7 +16,7 @@ val zioVersion = "1.0.0-RC15"
 val scalaJava8CompatVersion = "0.9.0"
 val junitJupiterVersion = "5.5.2"
 val scalaParallelCollectionsVersion = "0.2.0"
-val scalaCollectionsCompact = "2.1.1"
+val scalaCollectionsCompact = "2.1.2"
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.10"

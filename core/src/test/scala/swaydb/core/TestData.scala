@@ -48,13 +48,12 @@ import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
-import swaydb.data.{MaxKey, slice}
+import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, Dir, IOStrategy, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -447,13 +446,19 @@ object TestData {
   }
 
   implicit class TransientsToMemory(keyValues: Iterable[KeyValue]) {
-    def toMemory: Slice[Memory] =
-      keyValues.map {
+    def toMemory: Slice[Memory] = {
+      val slice = Slice.create[Memory](keyValues.size)
+
+      keyValues foreach {
         case readOnly: ReadOnly =>
-          readOnly.toMemory
+          slice add readOnly.toMemory
+
         case writeOnly: Transient =>
-          writeOnly.toMemory
-      }.to(new slice.Slice.SliceFactory(keyValues.size))
+          slice add writeOnly.toMemory
+      }
+
+      slice
+    }
   }
 
   implicit class ReadOnlyToMemory(keyValues: Iterable[KeyValue.ReadOnly]) {
@@ -2378,23 +2383,27 @@ object TestData {
         MaxKey.Range(last.fromKey, last.toKey)
     }
 
-  def unexpiredPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] =
-    keyValues.flatMap {
+  def unexpiredPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] = {
+    val slice = Slice.create[KeyValue.ReadOnly.Put](keyValues.size)
+    keyValues foreach {
       keyValue =>
-        keyValue.asPut flatMap {
+        keyValue.asPut foreach {
           put =>
             if (put.hasTimeLeft())
-              Some(put)
-            else
-              None
+              slice add put
         }
-    }.to(new SliceFactory(keyValues.size))
+    }
+    slice
+  }
 
-  def getPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] =
-    keyValues.flatMap {
+  def getPuts(keyValues: Iterable[KeyValue]): Slice[KeyValue.ReadOnly.Put] = {
+    val slice = Slice.create[KeyValue.ReadOnly.Put](keyValues.size)
+    keyValues foreach {
       keyValue =>
-        keyValue.asPut
-    }.to(new SliceFactory(keyValues.size))
+        keyValue.asPut foreach slice.add
+    }
+    slice
+  }
 
   /**
    * Randomly updates all key-values using one of the many update methods.
@@ -2406,11 +2415,12 @@ object TestData {
                    deadline: Option[Deadline],
                    randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
     var keyUsed = keyValues.head.key.readInt() - 1
-    keyValues.flatMap({
+    val updateSlice = Slice.create[Memory](keyValues.size)
+
+    keyValues foreach {
       keyValue =>
         if (randomlyDropUpdates && randomBoolean()) {
           keyUsed = keyValue.key.readInt()
-          None
         } else if (keyUsed < keyValue.key.readInt()) {
           eitherOne(
             left = {
@@ -2448,11 +2458,11 @@ object TestData {
                 )
               )
             }
-          )
-        } else {
-          None
+          ) foreach updateSlice.add
         }
-    }).to(new SliceFactory(keyValues.size))
+    }
+
+    updateSlice
   }
 
   implicit class HigherImplicits(higher: Higher.type) {

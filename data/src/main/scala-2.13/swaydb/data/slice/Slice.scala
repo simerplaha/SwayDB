@@ -26,7 +26,7 @@ import java.nio.charset.{Charset, StandardCharsets}
 import swaydb.IO
 import swaydb.data.{MaxKey, slice}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice.SliceFactory
+import swaydb.data.slice.Slice.SliceBuilder
 import swaydb.data.util.{ByteSizeOf, Bytez}
 
 import scala.annotation.tailrec
@@ -816,8 +816,8 @@ class Slice[+T] private(array: Array[T],
   def currentWritePosition =
     writePosition
 
-  override def evidenceIterableFactory: SliceFactory =
-    new SliceFactory(size)
+  override def evidenceIterableFactory: SliceBuilder =
+    new SliceBuilder(size)
 
   //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
   override def iterableFactory: IterableFactory[Slice] =
