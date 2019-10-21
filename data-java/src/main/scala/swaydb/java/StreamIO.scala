@@ -64,6 +64,9 @@ class StreamIO[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
   def foldLeft[B](initial: B, function: BiFunction[B, A, B]): IO[Throwable, B] =
     new IO(asScala.foldLeft(initial)(function.asScala))
 
+  def count(predicate: Predicate[A]): IO[Throwable, Int] =
+    new IO(asScala.count(predicate.test))
+
   def size: IO[Throwable, Int] =
     new IO(asScala.size)
 

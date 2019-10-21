@@ -69,6 +69,9 @@ class StreamFuture[A](val asScala: swaydb.Stream[A, scala.concurrent.Future])(im
   def foldLeft[B](initial: B, function: BiFunction[B, A, B]): CompletionStage[B] =
     asScala.foldLeft(initial)(function.asScala).toJava
 
+  def count(predicate: Predicate[A]): CompletionStage[Int] =
+    asScala.count(predicate.test).toJava
+
   def size: CompletionStage[Int] =
     asScala.size.toJava
 
