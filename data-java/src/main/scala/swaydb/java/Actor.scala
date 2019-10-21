@@ -44,10 +44,10 @@ object Actor {
     def send(message: T): Unit =
       asScala.send(message)
 
-    def ask[R](message: JavaFunction[ActorRef[R, java.lang.Void], T]): CompletionStage[R] =
+    def ask[R](message: JavaFunction[ActorRef[R, Void], T]): CompletionStage[R] =
       asScala.ask[R, scala.concurrent.Future] {
         actor: swaydb.ActorRef[R, Unit] =>
-          message.apply(new ActorRef[R, java.lang.Void](actor.asInstanceOf[swaydb.ActorRef[R, java.lang.Void]]))
+          message.apply(new ActorRef[R, Void](actor.asInstanceOf[swaydb.ActorRef[R, Void]]))
       }.toJava
 
     /**
@@ -56,12 +56,12 @@ object Actor {
     def send(message: T, delay: java.time.Duration, scheduler: Scheduler): TimerTask =
       asScala.send(message, delay.toScala)(scheduler)
 
-    def ask[R](message: JavaFunction[ActorRef[R, java.lang.Void], T], delay: java.time.Duration, scheduler: Scheduler): swaydb.Actor.Task[R, CompletionStage] = {
+    def ask[R](message: JavaFunction[ActorRef[R, Void], T], delay: java.time.Duration, scheduler: Scheduler): swaydb.Actor.Task[R, CompletionStage] = {
       val javaFuture =
         asScala.ask[R, scala.concurrent.Future](
           message =
             (actor: swaydb.ActorRef[R, Unit]) =>
-              message.apply(new ActorRef[R, java.lang.Void](actor.asInstanceOf[swaydb.ActorRef[R, java.lang.Void]])),
+              message.apply(new ActorRef[R, Void](actor.asInstanceOf[swaydb.ActorRef[R, Void]])),
           delay =
             delay.toScala
         )(scheduler, tag)
@@ -133,14 +133,14 @@ object Actor {
     def state(): S = asScala.state
   }
 
-  def createStatelessFIFO[T](execution: BiConsumer[T, ActorInstance[T, java.lang.Void]],
-                             executorService: ExecutorService): ActorRef[T, java.lang.Void] =
-    createStatefulFIFO[T, java.lang.Void](null, execution, executorService)
+  def createStatelessFIFO[T](execution: BiConsumer[T, ActorInstance[T, Void]],
+                             executorService: ExecutorService): ActorRef[T, Void] =
+    createStatefulFIFO[T, Void](null, execution, executorService)
 
-  def createStatelessOrdered[T](execution: BiConsumer[T, ActorInstance[T, java.lang.Void]],
+  def createStatelessOrdered[T](execution: BiConsumer[T, ActorInstance[T, Void]],
                                 executorService: ExecutorService,
-                                comparator: Comparator[T]): ActorRef[T, java.lang.Void] =
-    createStatefulOrdered[T, java.lang.Void](null, execution, executorService, comparator)
+                                comparator: Comparator[T]): ActorRef[T, Void] =
+    createStatefulOrdered[T, Void](null, execution, executorService, comparator)
 
   def createStatefulFIFO[T, S](initialState: S,
                                execution: BiConsumer[T, ActorInstance[T, S]],

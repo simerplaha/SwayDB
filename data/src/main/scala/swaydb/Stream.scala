@@ -19,11 +19,8 @@
 
 package swaydb
 
-import swaydb.Stream.StreamBuilder
 import swaydb.Tag.Implicits._
 
-import scala.collection.generic.CanBuildFrom
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -38,6 +35,34 @@ object Stream {
   def empty[A, T[_]](implicit tag: Tag[T]): Stream[A, T] =
     apply[A, T](Iterable.empty)
 
+  def range[T[_]](from: Int, to: Int)(implicit tag: Tag[T]): Stream[Int, T] =
+    apply[Int, T](from to to)
+
+  def range[T[_]](from: Char, to: Char)(implicit tag: Tag[T]): Stream[Char, T] =
+    apply[Char, T](from to to)
+
+  def rangeUntil[T[_]](from: Int, toExclusive: Int)(implicit tag: Tag[T]): Stream[Int, T] =
+    apply[Int, T](from until toExclusive)
+
+  def rangeUntil[T[_]](from: Char, to: Char)(implicit tag: Tag[T]): Stream[Char, T] =
+    apply[Char, T](from until to)
+
+  def tabulate[A, T[_]](n: Int)(f: Int => A)(implicit tag: Tag[T]): Stream[A, T] =
+    apply[A, T](
+      new Iterator[A] {
+        var used = 0
+
+        override def hasNext: Boolean =
+          used < n
+
+        override def next(): A = {
+          val nextA = f(used)
+          used += 1
+          nextA
+        }
+      }
+    )
+
   def apply[A, T[_]](streamer: Streamer[A, T])(implicit tag: Tag[T]): Stream[A, T] =
     new Stream[A, T] {
       override def headOption(): T[Option[A]] =
@@ -51,10 +76,10 @@ object Stream {
    * Create a [[Stream]] from a collection.
    */
   def apply[A, T[_]](items: Iterable[A])(implicit tag: Tag[T]): Stream[A, T] =
+    apply[A, T](items.iterator)
+
+  def apply[A, T[_]](iterator: Iterator[A])(implicit tag: Tag[T]): Stream[A, T] =
     new Stream[A, T] {
-
-      private val iterator = items.iterator
-
       private def step(): T[Option[A]] =
         if (iterator.hasNext)
           tag.success(Some(iterator.next()))
@@ -63,45 +88,6 @@ object Stream {
 
       override def headOption(): T[Option[A]] = step()
       override private[swaydb] def next(previous: A): T[Option[A]] = step()
-    }
-
-  class StreamBuilder[A, T[_]](implicit tag: Tag[T]) extends mutable.Builder[A, Stream[A, T]] {
-    private val items: ListBuffer[A] = ListBuffer.empty[A]
-
-    override def +=(x: A): this.type = {
-      items += x
-      this
-    }
-
-    def asSeq: Seq[A] =
-      items
-
-    override def clear(): Unit =
-      items.clear()
-
-    override def result: Stream[A, T] =
-      new Stream[A, T] {
-
-        private val iterator = items.iterator
-
-        def step(): T[Option[A]] =
-          if (iterator.hasNext)
-            tag.success(Some(iterator.next()))
-          else
-            tag.none
-
-        override def headOption: T[Option[A]] = step()
-        override private[swaydb] def next(previous: A): T[Option[A]] = step()
-      }
-  }
-
-  implicit def canBuildFrom[A, T[_]](implicit tag: Tag[T]): CanBuildFrom[Stream[A, T], A, Stream[A, T]] =
-    new CanBuildFrom[Stream[A, T], A, Stream[A, T]] {
-      override def apply(from: Stream[A, T]) =
-        new StreamBuilder()
-
-      override def apply(): mutable.Builder[A, Stream[A, T]] =
-        new StreamBuilder()
     }
 }
 
@@ -123,8 +109,8 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   def headOption: T[Option[A]]
   private[swaydb] def next(previous: A): T[Option[A]]
 
-  def take(count: Int): Stream[A, T] =
-    if (count == 0)
+  def take(c: Int): Stream[A, T] =
+    if (c == 0)
       Stream.empty
     else
       new Stream[A, T] {
@@ -135,7 +121,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         //flag to count how many were taken.
         private var taken = 1
         override private[swaydb] def next(previous: A): T[Option[A]] =
-          if (taken == count)
+          if (taken == c)
             tag.none
           else
             tag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
@@ -166,18 +152,18 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         }
     }
 
-  def drop(count: Int): Stream[A, T] =
-    if (count == 0)
+  def drop(c: Int): Stream[A, T] =
+    if (c == 0)
       self
     else
       new Stream[A, T] {
         override def headOption: T[Option[A]] =
           self.headOption flatMap {
             case Some(head) =>
-              if (count == 1)
+              if (c == 1)
                 next(head)
               else
-                tag.foldLeft(Option.empty[A], Some(head), self, count - 1, takeOne) {
+                tag.foldLeft(Option.empty[A], Some(head), self, c - 1, takeOne) {
                   case (_, next) =>
                     Some(next)
                 }
@@ -259,35 +245,62 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         tag.collectFirst(previous, self)(f)
     }
 
-  def collect[B](pf: PartialFunction[A, B]): Stream[B, T] = {
+  def collect[B](pf: PartialFunction[A, B]): Stream[B, T] =
     new Stream[B, T] {
 
       var previousA: Option[A] = Option.empty
 
-      override def headOption: T[Option[B]] =
-        self.headOption map {
-          previousAOption =>
-            previousA = previousAOption
-            previousAOption.collect(pf)
-        }
+      def stepForward(startFrom: Option[A]): T[Option[B]] =
+        startFrom match {
+          case Some(startFrom) =>
+            var nextMatch = Option.empty[B]
 
-      /**
-        * Previous input parameter here is ignored so that parent stream can be read.
-        */
-      override private[swaydb] def next(previous: B): T[Option[B]] =
-        previousA match {
-          case Some(previous) =>
-            self.next(previous) map {
-              nextA =>
-                previousA = nextA
-                nextA.collect(pf)
-            }
+            //collectFirst is a stackSafe way reading the stream until a condition is met.
+            //use collectFirst to stream until the first match.
+            tag
+              .collectFirst(startFrom, self) {
+                nextA =>
+                  this.previousA = Some(nextA)
+                  nextMatch = this.previousA.collectFirst(pf)
+                  nextMatch.isDefined
+              }
+              .map {
+                _ =>
+                  //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
+                  nextMatch
+              }
 
           case None =>
             tag.none
         }
+
+      override def headOption: T[Option[B]] =
+        self.headOption flatMap {
+          headOption =>
+            //check if head satisfies the partial functions.
+            this.previousA = headOption //also store A in the current Stream so next() invocation starts from this A.
+            val previousAMayBe = previousA.collectFirst(pf) //check if headOption can be returned.
+
+            if (previousAMayBe.isDefined) //check if headOption satisfies the partial function.
+              tag.success(previousAMayBe) //yes it does. Return!
+            else if (headOption.isDefined) //headOption did not satisfy the partial function but check if headOption was defined and step forward.
+              stepForward(headOption) //headOption was defined so there might be more in the stream so step forward.
+            else //if there was no headOption then stream must be empty.
+              tag.none //empty stream.
+        }
+
+      /**
+       * Previous input parameter here is ignored so that parent stream can be read.
+       */
+      override private[swaydb] def next(previous: B): T[Option[B]] =
+        stepForward(previousA) //continue from previously read A.
     }
-  }
+
+  def count(f: A => Boolean): T[Int] =
+    foldLeft(0) {
+      case (c, item) if f(item) => c + 1
+      case (c, _) => c
+    }
 
   def collectFirst[B](pf: PartialFunction[A, B]): T[Option[B]] =
     collect(pf).headOption
@@ -365,11 +378,11 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   /**
    * Materialises/closes and processes the stream to a [[Seq]].
    */
-  def materialize: T[Seq[A]] =
-    foldLeft(new StreamBuilder[A, T]()) {
+  def materialize: T[ListBuffer[A]] =
+    foldLeft(scala.collection.mutable.ListBuffer.empty[A]) {
       (buffer, item) =>
         buffer += item
-    } map (_.asSeq)
+    }
 
   /**
    * Given a [[Tag.Converter]] this function converts the current Stream to another type.

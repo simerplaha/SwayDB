@@ -32,7 +32,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.extensions.{Extend, Key}
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO, SwayDB, extensions}
+import swaydb.{Error, IO, KeyOrderConverter, SwayDB, extensions}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -41,7 +41,7 @@ import scala.reflect.ClassTag
 object Map extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val functionStore: FunctionStore = FunctionStore.memory()
+  implicit def functionStore: FunctionStore = FunctionStore.memory()
 
   def apply[K, V, F](dir: Path,
                      maxOpenSegments: Int = 1000,
@@ -63,9 +63,11 @@ object Map extends LazyLogging {
                      acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                            valueSerializer: Serializer[V],
                                                                                            functionClassTag: ClassTag[F],
-                                                                                           keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                           keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
                                                                                            fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                           memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] =
+                                                                                           memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, IO.ApiIO[extensions.Map[K, V]]] = {
+    implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
+
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultPersistentConfig(
@@ -113,7 +115,8 @@ object Map extends LazyLogging {
         Extend(map = map)(
           keySerializer = keySerializer,
           optionValueSerializer = optionValueSerializer,
-          keyOrder = Key.ordering(keyOrder)
+          keyOrder = Key.ordering(bytesKeyOrder)
         )
     }
+  }
 }

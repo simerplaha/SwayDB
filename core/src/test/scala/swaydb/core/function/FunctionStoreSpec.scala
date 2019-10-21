@@ -35,8 +35,18 @@ class FunctionStoreSpec extends FlatSpec with Matchers {
         val function = SwayFunction.Key(_ => SwayFunctionOutput.Update(Some(i), None))
 
         store.put(i, function)
-        store.exists(i) should be
+        store.exists(i) shouldBe true
         store.get(i).get.asInstanceOf[SwayFunction.Key].f(i) shouldBe SwayFunctionOutput.Update(Some(i), None)
+    }
+  }
+
+  it should "not allow duplicate functions" in {
+
+    val key = 0
+    val function = SwayFunction.Key(_ => SwayFunctionOutput.Update(Some(key), None))
+    store.put(key, function)
+    assertThrows[Exception] {
+      store.put(key, function)
     }
   }
 }

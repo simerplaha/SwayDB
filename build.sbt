@@ -6,25 +6,42 @@ import xerial.sbt.Sonatype._
 val lz4Version = "1.6.0"
 val snappyVersion = "1.1.7.3"
 val logbackClassicVersion = "1.2.3"
-val scalaLoggingVersion = "3.9.0"
+val scalaLoggingVersion = "3.9.2"
 val scalaMockVersion = "4.4.0"
 val scalaTestVersion = "3.0.8"
 val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
 val monixVersion = "3.0.0"
-val zioVersion = "1.0.0-RC14"
+val zioVersion = "1.0.0-RC15"
 val scalaJava8CompatVersion = "0.9.0"
 val junitJupiterVersion = "5.5.2"
+val scalaParallelCollectionsVersion = "0.2.0"
+val scalaCollectionsCompact = "2.1.1"
 
-parallelExecution in ThisBuild := false
+val scala211 = "2.11.12"
+val scala212 = "2.12.10"
+val scala213 = "2.13.1"
 
-lazy val commonSettings = Seq(
+val commonSettings = Seq(
   organization := "io.swaydb",
-  scalaVersion := scalaVersion.value
+  scalaVersion := scalaVersion.value,
+  scalaVersion in ThisBuild := scala213,
+  parallelExecution in ThisBuild := false,
+  scalacOptions ++= Seq("-language:postfixOps"),
+  unmanagedSourceDirectories in Compile += {
+    val sourceDir = (sourceDirectory in Compile).value
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, n)) if n >= 13 =>
+        sourceDir / "scala-2.13"
+
+      case _ =>
+        sourceDir / "scala-2.12"
+    }
+  }
 )
 
 val publishSettings = Seq[Setting[_]](
-  crossScalaVersions := Seq("2.11.12", "2.12.10"),
+  crossScalaVersions := Seq(scala211, scala212, scala213),
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
   licenses := Seq("AGPL3" -> url("https://www.gnu.org/licenses/agpl-3.0.en.html")),
@@ -53,23 +70,33 @@ val publishSettings = Seq[Setting[_]](
   )
 )
 
-val testDependencies =
+def scalaParallelCollections(scalaVersion: String) =
+  CrossVersion.partialVersion(scalaVersion) match {
+    case Some((2, major)) if major >= 13 =>
+      Some("org.scala-lang.modules" %% "scala-parallel-collections" % scalaParallelCollectionsVersion % Test)
+
+    case _ =>
+      None
+  }
+
+def testDependencies(scalaVersion: String) =
   Seq(
     "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
     "org.scalamock" %% "scalamock" % scalaMockVersion % Test,
     "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test,
     "io.suzaku" %% "boopickle" % boopickleVersion % Test
-  )
+  ) ++ scalaParallelCollections(scalaVersion)
 
 val commonJavaDependencies =
   Seq(
     "org.junit.jupiter" % "junit-jupiter-api" % junitJupiterVersion % Test
   )
 
-val commonDependencies =
+def commonDependencies(scalaVersion: String) =
   Seq(
-    "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
-  ) ++ testDependencies
+    "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact
+  ) ++ testDependencies(scalaVersion)
 
 lazy val SwayDB =
   (project in file("."))
@@ -77,7 +104,7 @@ lazy val SwayDB =
     .settings(commonSettings)
     .settings(publishSettings)
     .dependsOn(swaydb)
-    .aggregate(swaydb, core, compression, data, configs, serializers, `swaydb-monix`, `swaydb-zio`, `swaydb-java`)
+    .aggregate(swaydb, core, compression, data, configs, serializers, `swaydb-monix`, `swaydb-zio`, `data-java`, `swaydb-java`)
 
 lazy val core =
   project
@@ -85,7 +112,7 @@ lazy val core =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(data, macros % "test->test;compile-internal", compression, configs % "test->test", serializers % "test->test")
 
 lazy val data =
@@ -93,7 +120,7 @@ lazy val data =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(macros % "compile-internal")
 
 lazy val `data-java` =
@@ -112,7 +139,7 @@ lazy val swaydb =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies
+        commonDependencies(scalaVersion.value)
           :+ "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
 
     ).dependsOn(core % "test->test;compile->compile", serializers, configs)
@@ -133,14 +160,14 @@ lazy val `core-stress` =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= testDependencies
+      libraryDependencies ++= testDependencies(scalaVersion.value)
     ).dependsOn(core)
 
 lazy val `core-performance` =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= testDependencies
+      libraryDependencies ++= testDependencies(scalaVersion.value)
     ).dependsOn(core)
 
 lazy val compression =
@@ -149,7 +176,7 @@ lazy val compression =
     .settings(publishSettings)
     .settings(
       libraryDependencies ++=
-        commonDependencies
+        commonDependencies(scalaVersion.value)
           :+ "org.lz4" % "lz4-java" % lz4Version
           :+ "org.xerial.snappy" % "snappy-java" % snappyVersion
     )
@@ -167,7 +194,7 @@ lazy val `swaydb-stress` =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 
@@ -181,12 +208,11 @@ lazy val `swaydb-java` =
     )
     .dependsOn(swaydb, `data-java`)
 
-
 lazy val benchmark =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= commonDependencies
+      libraryDependencies ++= commonDependencies(scalaVersion.value)
     ).dependsOn(core, configs)
     .dependsOn(swaydb, core % "test->test")
 

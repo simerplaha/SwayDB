@@ -35,8 +35,29 @@ object Stream {
   def create[A](iterator: java.util.Iterator[A]): StreamIO[A] =
     new StreamIO[A](swaydb.Stream(iterator.asScala.toIterable))
 
+  def create[A](iterator: java.util.List[A]): StreamIO[A] =
+    new StreamIO[A](swaydb.Stream(iterator.asScala))
+
+  def create[A](iterator: java.util.Collection[A]): StreamIO[A] =
+    new StreamIO[A](swaydb.Stream(iterator.asScala))
+
   def create[A](ioStreamer: IOStreamer[A]): StreamIO[A] =
     new StreamIO(swaydb.Stream(ioStreamer.toScalaStreamer))
+
+  def range(from: Integer, to: Integer): StreamIO[Integer] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, to).asInstanceOf[swaydb.Stream[Integer, swaydb.IO.ThrowableIO]])
+
+  def rangeUntil(from: Integer, toExclusive: Integer): StreamIO[Integer] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, toExclusive).asInstanceOf[swaydb.Stream[Integer, swaydb.IO.ThrowableIO]])
+
+  def range(from: Character, to: Character): StreamIO[Character] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, to).asInstanceOf[swaydb.Stream[Character, swaydb.IO.ThrowableIO]])
+
+  def rangeUntil(from: Character, toExclusive: Character): StreamIO[Character] =
+    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, toExclusive).asInstanceOf[swaydb.Stream[Character, swaydb.IO.ThrowableIO]])
+
+  def tabulate[T](count: Int, function: JavaFunction[Int, T]): StreamIO[T] =
+    new StreamIO(swaydb.Stream.tabulate[T, swaydb.IO.ThrowableIO](count)(function.apply))
 
   def create[A](ioStreamer: FutureStreamer[A]): StreamFuture[A] = {
     implicit val ec: ExecutionContext = ioStreamer.executorService.asScala

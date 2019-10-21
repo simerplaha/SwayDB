@@ -234,9 +234,9 @@ object ValueSerializer {
   /**
    * Serializer for a tuple of Option bytes and sequence bytes.
    */
-  implicit object SeqOfBytesSerializer extends ValueSerializer[Seq[Slice[Byte]]] {
+  implicit object SeqOfBytesSerializer extends ValueSerializer[Iterable[Slice[Byte]]] {
 
-    override def write(values: Seq[Slice[Byte]], bytes: Slice[Byte]): Unit =
+    override def write(values: Iterable[Slice[Byte]], bytes: Slice[Byte]): Unit =
       values foreach {
         value =>
           bytes
@@ -244,13 +244,13 @@ object ValueSerializer {
             .addAll(value)
       }
 
-    override def bytesRequired(values: Seq[Slice[Byte]]): Int =
+    override def bytesRequired(values: Iterable[Slice[Byte]]): Int =
       values.foldLeft(0) {
         case (size, valueBytes) =>
           size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size
       }
 
-    override def read(reader: ReaderBase): Seq[Slice[Byte]] =
+    override def read(reader: ReaderBase): Iterable[Slice[Byte]] =
       reader.foldLeft(ListBuffer.empty[Slice[Byte]]) {
         case (result, reader) =>
           val size = reader.readUnsignedInt()

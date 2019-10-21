@@ -23,8 +23,8 @@ import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
-import swaydb.java.data.util.Pair
-import swaydb.java.data.util.Pair._
+import swaydb.java.Pair
+import swaydb.java.Pair._
 
 object ByteSlice {
   def apply(slice: Slice[Byte]): ByteSlice =

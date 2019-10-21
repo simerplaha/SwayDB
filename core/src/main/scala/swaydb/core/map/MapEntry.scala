@@ -138,7 +138,7 @@ private[swaydb] object MapEntry {
         //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
 
         override def applyTo[T >: V](skipList: SkipList.Concurrent[K, T]): Unit = {
-          val batches: Seq[SkipList.Batch[K, V]] =
+          val batches: ListBuffer[SkipList.Batch[K, V]] =
             _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] map {
               case MapEntry.Put(key, value) =>
                 SkipList.Batch.Put[K, V](key, value)

@@ -262,7 +262,7 @@ private[core] object BinarySearchIndexBlock {
   def write(value: Int,
             state: State): Unit =
     if (value == state.previouslyWritten) { //do not write duplicate entries.
-      Unit
+      ()
     } else {
       if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize
       //if the size of largest value is less than 4 bytes, write them as unsigned.

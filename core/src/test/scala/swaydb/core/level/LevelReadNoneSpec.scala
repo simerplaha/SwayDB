@@ -29,6 +29,7 @@ import swaydb.core.data.{Memory, Value}
 import swaydb.core.segment.ReadState
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.slice.Slice.SliceFactory
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -104,7 +105,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
               (1 to keyValuesCount).map {
                 key =>
                   randomPutKeyValue(key, deadline = Some(expiredDeadline()))(testTimer)
-              }(collection.breakOut),
+              }.to(new SliceFactory(keyValuesCount)),
 
           assertAllLevels =
             (level0KeyValues, _, _, level) =>

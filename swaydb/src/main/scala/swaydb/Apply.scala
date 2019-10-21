@@ -19,7 +19,7 @@
 
 package swaydb
 
-import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
  * Output of functions
@@ -39,15 +39,23 @@ object Apply {
 
   case object Nothing extends Map[Nothing] with Set[Nothing]
   case object Remove extends Map[Nothing] with Set[Nothing]
-  case class Expire(deadline: Deadline) extends Map[Nothing] with Set[Nothing]
+  object Expire {
+    def apply(after: FiniteDuration): Expire =
+      new Expire(after.fromNow)
+  }
+
+  final case class Expire(deadline: Deadline) extends Map[Nothing] with Set[Nothing]
 
   object Update {
     def apply[V](value: V): Update[V] =
       new Update(value, None)
 
-    def apply[V](value: V, deadline: Deadline): Update[V] =
-      new Update(value, Some(deadline))
+    def apply[V](value: V, expireAfter: FiniteDuration): Update[V] =
+      new Update(value, Some(expireAfter.fromNow))
+
+    def apply[V](value: V, expireAt: Deadline): Update[V] =
+      new Update(value, Some(expireAt))
   }
 
-  case class Update[V](value: V, deadline: Option[Deadline]) extends Map[V]
+  final case class Update[V](value: V, deadline: Option[Deadline]) extends Map[V]
 }

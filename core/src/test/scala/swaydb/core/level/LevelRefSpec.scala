@@ -38,9 +38,9 @@ class LevelRefSpec extends TestBase with MockFactory {
       val level0 = mock[LevelRef]
       val level1 = mock[NextLevel]
 
-      level0.inMemory _ expects() returning true
-      level0.nextLevel _ expects() returning Some(level1)
-      level1.inMemory _ expects() returning false
+      (level0.inMemory _).expects() returning true
+      (level0.nextLevel _).expects() returning Some(level1)
+      (level1.inMemory _).expects() returning false
 
       LevelRef.firstPersistentLevel(Some(level0)) should contain(level1)
     }
@@ -84,7 +84,7 @@ class LevelRefSpec extends TestBase with MockFactory {
       val level1 = TestLevel(nextLevel = Some(level2))
       val level0 = TestLevelZero(nextLevel = Some(level1))
 
-      def paths(level: LevelRef): Seq[Path] =
+      def paths(level: LevelRef): Iterable[Path] =
         level.foldLeftLevels(ListBuffer.empty[Path]) {
           case (paths, level) =>
             paths += level.rootPath

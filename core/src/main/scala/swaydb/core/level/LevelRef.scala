@@ -114,7 +114,7 @@ object LevelRef {
     currentT
   }
 
-  def map[T](level: LevelRef, f: LevelRef => T): Seq[T] = {
+  def map[T](level: LevelRef, f: LevelRef => T): Iterable[T] = {
     val buffer = ListBuffer.empty[T]
     foreach(
       level = level,
@@ -125,7 +125,7 @@ object LevelRef {
     buffer
   }
 
-  def mapRight[T](level: LevelRef, f: LevelRef => T): Seq[T] = {
+  def mapRight[T](level: LevelRef, f: LevelRef => T): Iterable[T] = {
     val buffer = ListBuffer.empty[T]
     foreachRight(
       level = level,
@@ -192,7 +192,7 @@ private[core] trait LevelRef {
   def foldLeftLevels[T](initial: T)(f: (T, LevelRef) => T): T =
     LevelRef.foldLeft(this, initial, f)
 
-  def mapLevels[T](f: LevelRef => T): Seq[T] =
+  def mapLevels[T](f: LevelRef => T): Iterable[T] =
     LevelRef.map(this, f)
 
   def foreachRightLevel[T](f: LevelRef => T): Unit =
@@ -201,7 +201,7 @@ private[core] trait LevelRef {
   def foldRightLevels[T](initial: T)(f: (T, LevelRef) => T): T =
     LevelRef.foldRight(this, initial, f)
 
-  def mapRightLevels[T](f: LevelRef => T): Seq[T] =
+  def mapRightLevels[T](f: LevelRef => T): Iterable[T] =
     LevelRef.mapRight(this, f)
 
   def reverseLevels: ListBuffer[LevelRef] = {

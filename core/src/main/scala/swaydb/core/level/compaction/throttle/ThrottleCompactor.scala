@@ -95,7 +95,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                       state = state
                     )(state.scheduler)
                   )
-              } head
+              }.head
         }
 
   def scheduleNextWakeUp(state: ThrottleState,

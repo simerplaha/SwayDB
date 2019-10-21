@@ -22,11 +22,10 @@ package swaydb.java
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
-import swaydb.java.data.util.Java.JavaFunction
+import swaydb.java.data.util.Java._
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.FunctionConverters._
-import scala.compat.java8.OptionConverters._
 
 class StreamIO[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
   def forEach(consumer: Consumer[A]): StreamIO[Unit] =

@@ -55,6 +55,7 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import scala.collection.parallel.CollectionConverters._
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._

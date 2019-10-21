@@ -17,9 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java;
+package swaydb.data.java;
 
 import org.junit.jupiter.api.Test;
+import swaydb.java.Stream;
+import swaydb.java.StreamIO;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,7 +41,7 @@ class StreamTest {
       stream
         .map(integer -> integer + 10)
         .materialize()
-        .get();
+        .tryGet();
 
     assertEquals(Arrays.asList(11, 12, 13, 14, 15), streamIntegers);
   }
@@ -53,7 +55,7 @@ class StreamTest {
       stream
         .flatMap(integer -> Stream.create(Collections.singletonList(integer + 20).iterator()))
         .materialize()
-        .get();
+        .tryGet();
 
     assertEquals(Arrays.asList(21, 22, 23, 24, 25), streamIntegers);
   }

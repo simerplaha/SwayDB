@@ -43,7 +43,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
-import swaydb.{Error, IO, Tag}
+import swaydb.{Done, Error, IO, Tag}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -199,15 +199,15 @@ private[core] case class LevelZero(path: Path,
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
-  def assertRun(key: Slice[Byte])(block: => Unit): IO.Done =
+  def assertRun(key: Slice[Byte])(block: => Unit): Done =
     if (key.isEmpty) {
       throw new IllegalArgumentException("key cannot be empty.")
     } else {
       block
-      IO.Done
+      IO.done
     }
 
-  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): IO.Done =
+  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): Done =
     if (fromKey.isEmpty)
       throw new IllegalArgumentException("fromKey cannot be empty.")
     else if (toKey.isEmpty)
@@ -216,45 +216,45 @@ private[core] case class LevelZero(path: Path,
       throw new IllegalArgumentException("fromKey should be less than toKey.")
     else {
       block
-      IO.Done
+      IO.done
     }
 
-  def put(key: Slice[Byte]): IO.Done =
+  def put(key: Slice[Byte]): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, None, None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): IO.Done =
+  def put(key: Slice[Byte], value: Slice[Byte]): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, Some(value), None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): IO.Done =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): IO.Done =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
     }
 
-  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): IO.Done = {
+  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): Done = {
     maps write entry
-    IO.Done
+    IO.done
   }
 
-  def remove(key: Slice[Byte]): IO.Done =
+  def remove(key: Slice[Byte]): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
     }
 
-  def remove(key: Slice[Byte], at: Deadline): IO.Done =
+  def remove(key: Slice[Byte], at: Deadline): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): IO.Done =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): Done =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         remove(fromKey)
@@ -267,7 +267,7 @@ private[core] case class LevelZero(path: Path,
           }
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): IO.Done =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): Done =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         remove(fromKey)
@@ -280,20 +280,20 @@ private[core] case class LevelZero(path: Path,
           }
     }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): IO.Done =
+  def update(key: Slice[Byte], value: Slice[Byte]): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, Some(value), None, timer.next)))
     }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): IO.Done =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Done =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     }
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): IO.Done =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): Done =
     update(fromKey, toKey, Some(value))
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): IO.Done =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): Done =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         update(fromKey, value)
@@ -313,7 +313,7 @@ private[core] case class LevelZero(path: Path,
           }
     }
 
-  def clear(readState: ReadState): IO.Defer[swaydb.Error.Level, IO.Done] =
+  def clear(readState: ReadState): IO.Defer[swaydb.Error.Level, Done] =
     headKey(readState)
       .flatMap {
         case Some(headKey) =>
@@ -330,10 +330,10 @@ private[core] case class LevelZero(path: Path,
           IO.Defer.done
       }
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): SwayFunction =
-    functionStore.put(functionId, function)
+  def registerFunction(functionId: Slice[Byte], function: SwayFunction): IO.Defer[Error.Level, Done] =
+    IO.Defer(functionStore.put(functionId, function))
 
-  def applyFunction(key: Slice[Byte], function: Slice[Byte]): IO.Done =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): Done =
     if (!functionStore.exists(function))
       throw new IllegalArgumentException("Function does not exists in function store.")
     else
@@ -347,7 +347,7 @@ private[core] case class LevelZero(path: Path,
         }
       }
 
-  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): IO.Done =
+  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): Done =
     if (!functionStore.exists(function))
       throw new IllegalArgumentException("Function does not exists in function store.")
     else

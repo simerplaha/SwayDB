@@ -9,29 +9,13 @@
 [maven-badge]: https://img.shields.io/maven-central/v/io.swaydb/swaydb_2.12.svg
 [maven-link]: https://search.maven.org/search?q=g:io.swaydb%20AND%20a:swaydb_2.12
 
-[build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=develop
+[build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
 Embeddable persistent and in-memory database for resource efficiency, performance 
 and easy data management with simple collections API.
 
-[Documentation - SwayDB.io](http://swaydb.io). 
-
-Note - documentation website is not yet updated for latest version: `v0.10.3`.
-Refer to [SwayDB.examples](https://github.com/simerplaha/SwayDB.examples) instead. 
-
-## Setup
-
-```scala
-libraryDependencies += "io.swaydb" %% "swaydb" % "0.10.3"
-
-//for monix support
-libraryDependencies += "io.swaydb" %% "monix" % "0.10.3"
-
-//for zio support
-libraryDependencies += "io.swaydb" %% "zio" % "0.10.3"
-```
-
+[Documentation - SwayDB.io](http://swaydb.io) (documentation is being updated for latest version). 
 
 ## Performance (old benchmark for v0.2 - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
@@ -44,7 +28,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 ## Features
 
-- [Java](https://github.com/simerplaha/SwayDB.java) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin) wrappers.
+- [Java](http://swaydb.io/quick-start/?language=java/) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin) APIs.
 - Single or multiple disks persistent, in-memory or periodically persistent.
 - Simple Stream based iteration following Scala collections APIs.
 - Atomic updates and inserts.
@@ -58,30 +42,15 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 [Read more](http://swaydb.io/).
 
-## Demo Streaming API
-```scala
-//Iteration: fetch all key-values withing range 10 to 90, update values and batch write updated key-values
-db
-  .from(10)
-  .takeWhile {
-    case (key, value) =>
-      key <= 90
-  }
-  .map {
-    case (key, value) =>
-      (key, value + "_updated")
-  }
-  .materialize
-  .flatMap(db.put) //write updated key-values to database
-```
 ## Quick start
-[Quick start demo](http://swaydb.io/quick-start).
+[Quick start APP](http://swaydb.io/quick-start/?language=scala/).
 
 ## Related GitHub projects
-- [SwayDB.examples](https://github.com/simerplaha/SwayDB.examples) - Examples demonstrating features and APIs.
+- [SwayDB.java.examples](https://github.com/simerplaha/SwayDB.java.examples) - Java examples demonstrating features and APIs.
+- [SwayDB.scala.examples](https://github.com/simerplaha/SwayDB.scala.examples) - Scala examples demonstrating features and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
-- [SwayDB.io](https://github.com/simerplaha/SwayDB.io) - Website code.
+- [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
 
 # Project status
 

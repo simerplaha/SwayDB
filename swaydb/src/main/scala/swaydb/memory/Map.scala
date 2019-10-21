@@ -29,7 +29,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, SwayDB}
+import swaydb.{IO, KeyOrderConverter, SwayDB}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -38,7 +38,7 @@ import scala.reflect.ClassTag
 object Map extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit val functionStore: FunctionStore = FunctionStore.memory()
+  implicit def functionStore: FunctionStore = FunctionStore.memory()
 
   def apply[K, V, F, T[_]](mapSize: Int = 4.mb,
                            segmentSize: Int = 2.mb,
@@ -52,8 +52,10 @@ object Map extends LazyLogging {
                                                                                                  valueSerializer: Serializer[V],
                                                                                                  functionClassTag: ClassTag[F],
                                                                                                  tag: swaydb.Tag[T],
-                                                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                 fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, T]] =
+                                                                                                 keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
+                                                                                                 fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, T]] = {
+    implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
+
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryConfig(
@@ -79,4 +81,5 @@ object Map extends LazyLogging {
       db =>
         swaydb.Map[K, V, F, T](db.toTag)
     }
+  }
 }

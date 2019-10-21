@@ -33,14 +33,6 @@ private[core] object RangeFilter {
   case class State(uncommonBytesToTake: Int,
                    filters: mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]])
 
-  val emptyImmutable =
-    new mutable.Map[Int, Iterable[(Slice[Byte], Slice[Byte])]] {
-      override def +=(kv: (Int, Iterable[(Slice[Byte], Slice[Byte])])): this.type = throw new NotImplementedError("emptyRangeFilter")
-      override def -=(key: Int): this.type = throw new NotImplementedError("emptyRangeFilter")
-      override def get(key: Int): Option[Iterable[(Slice[Byte], Slice[Byte])]] = None
-      override val iterator: Iterator[(Int, Iterable[(Slice[Byte], Slice[Byte])])] = Iterator.empty
-    }
-
   def createState(uncommonBytesToStore: Int): Option[RangeFilter.State] =
     if (uncommonBytesToStore == 0)
       None

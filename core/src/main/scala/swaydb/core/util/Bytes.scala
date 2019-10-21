@@ -19,6 +19,7 @@
 
 package swaydb.core.util
 
+import swaydb.Done
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
@@ -83,7 +84,7 @@ private[swaydb] object Bytes extends Bytez {
     else
       compress(previous, next, next.size) map {
         _ =>
-          Done
+          Done.instance
       }
 
   def compressExact(previous: Slice[Byte],

@@ -51,7 +51,17 @@ sealed trait IO[+L, +R] {
 
   def map[B](f: R => B): IO[L, B]
 
+  /**
+   * Difference between [[map]] and [[transform]] is that [[transform]] does not
+   * recovery from exception if the function F throws an Exception.
+   */
+  def transform[B](f: R => B): IO[L, B]
+
   def flatMap[L2 >: L : IO.ExceptionHandler, B](f: R => IO[L2, B]): IO[L2, B]
+
+  def and[L2 >: L : IO.ExceptionHandler, B](io: => IO[L2, B]): IO[L2, B]
+
+  def andThen[B](io: => B): IO[L, B]
 
   def exists(f: R => Boolean): Boolean
 
@@ -124,8 +134,7 @@ object IO {
    */
   type BootIO[T] = IO[Error.Boot, T]
 
-  sealed trait Done
-  final case object Done extends Done
+  val done: Done = Done.instance
 
   val unit: IO.Right[Nothing, Unit] = IO.Right()(IO.ExceptionHandler.Nothing)
   val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right()(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
@@ -138,7 +147,7 @@ object IO {
   val zeroZero: IO[Nothing, IO.Right[Nothing, Int]] = IO.Right(IO.Right(0)(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
   val emptyBytes: IO.Right[Nothing, Slice[Byte]] = IO.Right(Slice.emptyBytes)(IO.ExceptionHandler.Nothing)
   val emptySeqBytes: IO.Right[Nothing, Seq[Slice[Byte]]] = IO.Right(Seq.empty[Slice[Byte]])(IO.ExceptionHandler.Nothing)
-  val done: IO.Right[Nothing, Done] = IO.Right(Done)(IO.ExceptionHandler.Nothing)
+  val doneIO: IO.Right[Nothing, Done] = IO.Right(done)(IO.ExceptionHandler.Nothing)
 
   implicit class IterableIOImplicit[E: IO.ExceptionHandler, A: ClassTag](iterable: Iterable[A]) {
 
@@ -413,6 +422,18 @@ object IO {
   }
 
   object ExceptionHandler extends LazyLogging {
+
+    /**
+     * Creates an [[ExceptionHandler]] that throws Exceptions instead of converting it to a Type.
+     *
+     * This is current used only in Java.
+     */
+    def neverException[T] =
+      new ExceptionHandler[T] {
+        override def toException(f: T): Throwable = new Exception("neverException: Cannot convert to Exception.")
+        override def toError(e: Throwable): T = throw new Exception("neverException: Cannot convert Exception to Error.", e)
+      }
+
     def toException[E](error: E)(implicit errorHandler: IO.ExceptionHandler[E]): Throwable =
       errorHandler.toException(error)
 
@@ -525,8 +546,21 @@ object IO {
     override def map[B](f: R => B): IO[L, B] =
       IO[L, B](f(get))
 
+    /**
+     * Difference between [[map]] and [[transform]] is that [[transform]] does not
+     * recovery from exception if the function F throws an Exception.
+     */
+    def transform[B](f: R => B): IO[L, B] =
+      IO.Right[L, B](f(get))
+
     override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO[F, B] =
       IO.Catch(f(get))
+
+    override def and[L2 >: L : ExceptionHandler, B](io: => IO[L2, B]): IO[L2, B] =
+      io
+
+    override def andThen[B](io: => B): IO[L, B] =
+      IO[L, B](io)
 
     override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO[F, B] =
       get
@@ -570,6 +604,7 @@ object IO {
 
     override def exceptionHandler: ExceptionHandler[_] =
       this.exceptionHandler
+
   }
 
   @inline final def throwable(message: String): Throwable =
@@ -634,8 +669,17 @@ object IO {
     override def map[B](f: R => B): IO.Left[L, B] =
       this.asInstanceOf[IO.Left[L, B]]
 
+    def transform[B](f: R => B): IO[L, B] =
+      this.asInstanceOf[IO.Left[L, B]]
+
     override def flatMap[F >: L : IO.ExceptionHandler, B](f: R => IO[F, B]): IO.Left[F, B] =
       this.asInstanceOf[IO.Left[F, B]]
+
+    override def and[F >: L : ExceptionHandler, B](io: => IO[F, B]): IO[F, B] =
+      this.asInstanceOf[IO.Left[F, B]]
+
+    override def andThen[B](io: => B): IO[L, B] =
+      this.asInstanceOf[IO.Left[L, B]]
 
     override def flatten[F, B](implicit ev: R <:< IO[F, B]): IO.Left[F, B] =
       this.asInstanceOf[IO.Left[F, B]]
@@ -693,6 +737,7 @@ object IO {
 
     override def exceptionHandler: ExceptionHandler[_] =
       this.exceptionHandler
+
   }
 
   def fromFuture[L: IO.ExceptionHandler, R](future: Future[R])(implicit ec: ExecutionContext): IO.Defer[L, R] = {
@@ -750,7 +795,7 @@ object IO {
     val maxRecoveriesBeforeWarn = 5
 
     val none: IO.Defer[Nothing, None.type] = new IO.Defer[Nothing, None.type](() => None, None)(swaydb.IO.ExceptionHandler.Nothing)
-    val done: IO.Defer[Nothing, Done] = new IO.Defer[Nothing, Done](() => Done, None)(swaydb.IO.ExceptionHandler.Nothing)
+    val done: IO.Defer[Nothing, Done] = new IO.Defer[Nothing, Done](() => IO.done, None)(swaydb.IO.ExceptionHandler.Nothing)
     val unit: IO.Defer[Nothing, Unit] = new IO.Defer[Nothing, Unit](() => (), None)(swaydb.IO.ExceptionHandler.Nothing)
     val zero: IO.Defer[Nothing, Int] = new IO.Defer[Nothing, Int](() => 0, None)(swaydb.IO.ExceptionHandler.Nothing)
 

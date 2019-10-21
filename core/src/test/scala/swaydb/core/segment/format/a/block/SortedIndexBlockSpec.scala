@@ -36,6 +36,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.parallel.CollectionConverters._
 
 class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 

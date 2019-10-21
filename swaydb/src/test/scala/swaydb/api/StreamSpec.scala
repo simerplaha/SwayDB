@@ -57,10 +57,52 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
         .await shouldBe empty
     }
 
+    "range" in {
+      Stream
+        .range[T](1, 100)
+        .materialize
+        .await shouldBe (1 to 100)
+
+      Stream
+        .range[T]('a', 'z')
+        .materialize
+        .await shouldBe ('a' to 'z')
+    }
+
+    "rangeUntil" in {
+      Stream
+        .rangeUntil[T](1, 100)
+        .materialize
+        .await shouldBe (1 to 99)
+
+      Stream
+        .rangeUntil[T]('a', 'z')
+        .materialize
+        .await shouldBe ('a' to 'y')
+    }
+
+    "tabulate" in {
+      Stream
+        .tabulate[Int, T](5)(_ + 1)
+        .materialize
+        .await shouldBe (1 to 5)
+
+      Stream
+        .tabulate[Int, T](0)(_ + 1)
+        .materialize
+        .await shouldBe empty
+    }
+
     "headOption" in {
       Stream[Int, T](1 to 100)
         .headOption
         .await should contain(1)
+    }
+
+    "count" in {
+      Stream[Int, T](1 to 100)
+        .count(_ % 2 == 0)
+        .await shouldBe 50
     }
 
     "lastOptionLinear" in {
@@ -78,7 +120,7 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
         .await shouldBe (1 to 1000).map(_ + " one two three")
     }
 
-    "collect" in {
+    "collect conditional" in {
       Stream[Int, T](1 to 1000)
         .collect { case n if n % 2 == 0 => n }
         .materialize
@@ -88,7 +130,14 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
     "collectFirst" in {
       Stream[Int, T](1 to 1000)
         .collectFirst { case n if n % 2 == 0 => n }
-        .await shouldBe 2
+        .await should contain(2)
+    }
+    
+    "collect all" in {
+      Stream[Int, T](1 to 1000)
+        .collect { case n => n }
+        .materialize
+        .await shouldBe (1 to 1000)
     }
 
     "drop, take and map" in {

@@ -28,6 +28,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 
 import scala.concurrent.duration.Deadline
+import scala.collection.parallel.CollectionConverters._
 
 protected sealed trait Key
 protected object Key {
@@ -37,7 +38,7 @@ protected object Key {
   case class Id(id: Int) extends Key
   sealed trait Function extends Key
 
-  case object IncrementValue extends Key.Function with swaydb.Function.GetValue[Int] {
+  case object IncrementValue extends Key.Function with swaydb.PureFunction.OnValue[Int, Apply.Map[Int]] {
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Update[Int](value + 1)
 
@@ -45,7 +46,7 @@ protected object Key {
       Slice.writeInt(1)
   }
 
-  case object DoNothing extends Key.Function with swaydb.Function.GetValue[Int] {
+  case object DoNothing extends Key.Function with swaydb.PureFunction.OnValue[Int, Apply.Map[Int]] {
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Nothing
 
@@ -141,6 +142,29 @@ sealed trait SwayDBFunctionSpec extends TestBase {
       (1 to 1000).par foreach {
         i =>
           db.get(Key.Id(i)).get should contain(100)
+      }
+
+      db.close().get
+    }
+
+    "batch commit updates" in {
+
+      val db = newDB()
+      db.registerFunction(Key.IncrementValue)
+
+      val puts: List[Prepare[Key.Id, Int, Nothing]] =
+        (1 to 1000).map(key => Prepare.Put(Key.Id(key), key)).toList
+
+      db.commit(puts).get
+
+      val prepareApplyFunction: List[Prepare[Key.Id, Nothing, Key.IncrementValue.type]] =
+        (1 to 1000).map(key => Prepare.ApplyFunction(Key.Id(key), Key.IncrementValue)).toList
+
+      db.commit(prepareApplyFunction).get
+
+      (1 to 1000) foreach {
+        key =>
+          db.get(Key.Id(key)).get should contain(key + 1)
       }
 
       db.close().get

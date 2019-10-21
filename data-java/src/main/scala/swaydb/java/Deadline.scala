@@ -17,29 +17,27 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java.memory;
+package swaydb.java
 
+import scala.compat.java8.DurationConverters._
+import scala.concurrent.duration.{Deadline => ScalaDeadline}
 
-import org.junit.jupiter.api.Test;
-import swaydb.data.util.Functions;
-import swaydb.java.SetIO;
+object Deadline {
+  def apply(scalaDeadline: ScalaDeadline) =
+    new Deadline(scalaDeadline)
+}
 
-import static org.junit.jupiter.api.Assertions.*;
-import static swaydb.java.serializers.Default.intSerializer;
+class Deadline(asScala: ScalaDeadline) {
 
-class SetSpec {
+  def timeLeft =
+    asScala.timeLeft.toJava
 
-  @Test
-  void createMap() throws Throwable {
-    SetIO<Integer, Functions.Disabled> set =
-      Set
-        .config(intSerializer())
-        .create()
-        .get();
+  def time =
+    asScala.time.toJava
 
-    assertDoesNotThrow(() -> set.add(1).get());
-    assertEquals(set.get(1).get().get(), 1);
-    assertTrue(set.get(2).get().isEmpty());
-  }
+  def hasTimeLeft =
+    asScala.hasTimeLeft()
 
+  def isOverdue =
+    asScala.isOverdue()
 }

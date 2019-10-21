@@ -32,6 +32,7 @@ import swaydb.data.config.IOStrategy
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
+import scala.collection.parallel.CollectionConverters._
 
 class CacheSpec extends WordSpec with Matchers with MockFactory {
 
@@ -134,11 +135,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         mapNotStoredCache.value(fail()) shouldBe IO.Right(124)
         mapNotStoredCache.isCached shouldBe cache.isCached
 
-//        val mapStoredCache = cache.mapConcurrentStored(int => IO(int + 5))
-//        mapStoredCache.getIO() shouldBe Some(IO.Right(128))
-//        mapStoredCache.value(fail()) shouldBe IO.Right(128)
-//        mapStoredCache.value(fail()) shouldBe IO.Right(128)
-//        mapStoredCache.isCached shouldBe cache.isCached
+        //        val mapStoredCache = cache.mapConcurrentStored(int => IO(int + 5))
+        //        mapStoredCache.getIO() shouldBe Some(IO.Right(128))
+        //        mapStoredCache.value(fail()) shouldBe IO.Right(128)
+        //        mapStoredCache.value(fail()) shouldBe IO.Right(128)
+        //        mapStoredCache.isCached shouldBe cache.isCached
 
         val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), stored = true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2)))
         flatMapStoredCache.value() shouldBe IO.Right(125)
@@ -167,12 +168,12 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
         mapNotStoredCache.isCached shouldBe false
 
-//        mapStoredCache.isCached shouldBe true
+        //        mapStoredCache.isCached shouldBe true
         flatMapStoredCache.isCached shouldBe true
 
-//        mapStoredCache.clear()
-//        mapStoredCache.isCached shouldBe false
-//        mapStoredCache.getIO() shouldBe empty
+        //        mapStoredCache.clear()
+        //        mapStoredCache.isCached shouldBe false
+        //        mapStoredCache.getIO() shouldBe empty
 
         flatMapStoredCache.clear()
         flatMapStoredCache.isCached shouldBe false
@@ -343,60 +344,60 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
       mapCache.isCached shouldBe false
     }
 
-//    "store cache value on mapStored" in {
-//      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
-//        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
-//        val rootCache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = false, None)((_, self) => mock.apply())
-//        //ensure rootCache is not stored
-//        mock.expects() returning IO(1)
-//        mock.expects() returning IO(2)
-//
-//        rootCache.isCached shouldBe false
-//        rootCache.value() shouldBe IO(1)
-//        rootCache.isCached shouldBe false
-//        rootCache.value() shouldBe IO(2)
-//        rootCache.isCached shouldBe false
-//
-//        mock.expects() returning IO(3)
-//        //run stored
-//        val storedCache = rootCache.mapConcurrentStored {
-//          previous =>
-//            previous shouldBe 3
-//            IO(100)
-//        }
-//        storedCache.value() shouldBe IO(100)
-//        storedCache.isCached shouldBe true
-//        //rootCache not value is not read
-//        storedCache.value(fail()) shouldBe IO(100)
-//        //original rootCache is still empty
-//        rootCache.isCached shouldBe false
-//
-//        //run stored
-//        val storedCache2 = storedCache.mapConcurrentStored {
-//          previous =>
-//            //stored rootCache's value is received
-//            previous shouldBe 100
-//            IO(200)
-//        }
-//        storedCache2.value() shouldBe IO(200)
-//        storedCache2.isCached shouldBe true
-//        //rootCache not value is not read
-//        storedCache2.value(fail()) shouldBe IO(200)
-//        storedCache.value(fail()) shouldBe IO(100)
-//        //original rootCache is still empty
-//        rootCache.isCached shouldBe false
-//        storedCache2.isCached shouldBe true
-//        storedCache.isCached shouldBe true
-//
-//        //clearing child cache, clears it all.
-//        storedCache2.clear()
-//        storedCache2.isCached shouldBe false
-//        storedCache.isCached shouldBe false
-//        rootCache.isCached shouldBe false
-//      }
-//
-//      runTestForAllCombinations(doTest)
-//    }
+    //    "store cache value on mapStored" in {
+    //      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
+    //        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
+    //        val rootCache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = false, None)((_, self) => mock.apply())
+    //        //ensure rootCache is not stored
+    //        mock.expects() returning IO(1)
+    //        mock.expects() returning IO(2)
+    //
+    //        rootCache.isCached shouldBe false
+    //        rootCache.value() shouldBe IO(1)
+    //        rootCache.isCached shouldBe false
+    //        rootCache.value() shouldBe IO(2)
+    //        rootCache.isCached shouldBe false
+    //
+    //        mock.expects() returning IO(3)
+    //        //run stored
+    //        val storedCache = rootCache.mapConcurrentStored {
+    //          previous =>
+    //            previous shouldBe 3
+    //            IO(100)
+    //        }
+    //        storedCache.value() shouldBe IO(100)
+    //        storedCache.isCached shouldBe true
+    //        //rootCache not value is not read
+    //        storedCache.value(fail()) shouldBe IO(100)
+    //        //original rootCache is still empty
+    //        rootCache.isCached shouldBe false
+    //
+    //        //run stored
+    //        val storedCache2 = storedCache.mapConcurrentStored {
+    //          previous =>
+    //            //stored rootCache's value is received
+    //            previous shouldBe 100
+    //            IO(200)
+    //        }
+    //        storedCache2.value() shouldBe IO(200)
+    //        storedCache2.isCached shouldBe true
+    //        //rootCache not value is not read
+    //        storedCache2.value(fail()) shouldBe IO(200)
+    //        storedCache.value(fail()) shouldBe IO(100)
+    //        //original rootCache is still empty
+    //        rootCache.isCached shouldBe false
+    //        storedCache2.isCached shouldBe true
+    //        storedCache.isCached shouldBe true
+    //
+    //        //clearing child cache, clears it all.
+    //        storedCache2.clear()
+    //        storedCache2.isCached shouldBe false
+    //        storedCache.isCached shouldBe false
+    //        rootCache.isCached shouldBe false
+    //      }
+    //
+    //      runTestForAllCombinations(doTest)
+    //    }
 
     "concurrent access to reserved io" should {
       "not be allowed" in {

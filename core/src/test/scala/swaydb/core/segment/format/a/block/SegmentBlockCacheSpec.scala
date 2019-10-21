@@ -22,6 +22,7 @@ import swaydb.serializers._
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.Random
+import scala.collection.parallel.CollectionConverters._
 
 class SegmentBlockCacheSpec extends TestBase {
   implicit val order = KeyOrder.default
@@ -35,7 +36,7 @@ class SegmentBlockCacheSpec extends TestBase {
 
   "it" should {
     "return distinct Readers" in {
-      runThis(1000.times, log = true) {
+      runThis(10.times, log = true) {
         val keyValues = Slice(Transient.put(1, 1))
         val blockCache = getSegmentBlockCache(keyValues)
         blockCache.isCached shouldBe false

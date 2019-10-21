@@ -19,9 +19,10 @@
 
 package swaydb.java.data.util
 
-import java.util.Comparator
 import java.util.concurrent.ExecutorService
+import java.util.{Comparator, Optional}
 
+import swaydb.java.{KeyVal, Pair}
 import swaydb.java.data.slice.ByteSlice
 
 import scala.compat.java8.DurationConverters._
@@ -31,6 +32,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 object Java {
 
   type JavaFunction[T, R] = java.util.function.Function[T, R]
+  type ScalaSlice[T] = swaydb.data.slice.Slice[T]
 
   implicit class ExecutorServiceImplicit(service: ExecutorService) {
     @inline def asScala: ExecutionContext =
@@ -61,5 +63,53 @@ object Java {
 
     @inline def asScalaDeadline: (K, Deadline) =
       (tuple._1, tuple._2.toScala.fromNow)
+  }
+
+  implicit class PairDurationImplicits[K](pair: Pair[K, java.time.Duration]) {
+    @inline def asScala: (K, FiniteDuration) =
+      (pair.left, pair.right.toScala)
+
+    @inline def asScalaDeadline: (K, Deadline) =
+      (pair.left, pair.right.toScala.fromNow)
+  }
+
+  implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
+    def asJava: swaydb.java.Deadline =
+      new swaydb.java.Deadline(deadline)
+  }
+
+  implicit class OptionalConverter[T](optional: Optional[T]) {
+    @inline def asScala: Option[T] =
+      if (optional.isPresent)
+        Some(optional.get())
+
+      else
+        None
+
+    @inline def asScalaMap[B](map: T => B): Option[B] =
+      if (optional.isPresent)
+        Some(map(optional.get()))
+      else
+        None
+  }
+
+  implicit class OptionConverter[T](option: Option[T]) {
+    @inline def asJava: Optional[T] =
+      option match {
+        case Some(value) =>
+          Optional.of(value)
+
+        case None =>
+          Optional.empty()
+      }
+
+    @inline def asJavaMap[B](map: T => B): Optional[B] =
+      option match {
+        case Some(value) =>
+          Optional.of(map(value))
+
+        case None =>
+          Optional.empty()
+      }
   }
 }

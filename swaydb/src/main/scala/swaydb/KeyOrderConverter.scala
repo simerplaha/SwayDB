@@ -17,7 +17,26 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb
 
-sealed trait Done
-case object Done extends Done
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.serializers.Serializer
+
+protected object KeyOrderConverter {
+
+  def typedToBytes[K](keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]])(implicit serializer: Serializer[K]): KeyOrder[Slice[Byte]] =
+    keyOrder match {
+      case Left(bytesKeyOrder) =>
+        bytesKeyOrder
+
+      case Right(typedKeyOrder) =>
+        new KeyOrder[Slice[Byte]] {
+          override def compare(key1: Slice[Byte], key2: Slice[Byte]): Int = {
+            val typedKey1 = serializer.read(key1)
+            val typedKey2 = serializer.read(key2)
+            typedKeyOrder.compare(typedKey1, typedKey2)
+          }
+        }
+    }
+}

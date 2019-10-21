@@ -133,10 +133,11 @@ case object PendingApplyUpdateRange extends RangeValueId {
 }
 
 object RangeValueId {
-  val ids = SealedList.list[RangeValueId] map {
-    rangeId =>
-      rangeId.id -> rangeId
-  } toMap
+  val ids: Map[Int, RangeValueId] =
+    SealedList.list[RangeValueId].map {
+      rangeId =>
+        rangeId.id -> rangeId
+    }.toMap
 
   def apply(id: Int): IO[swaydb.Error.Fatal, RangeValueId] =
     ids.get(id)

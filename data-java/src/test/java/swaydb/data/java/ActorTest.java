@@ -17,10 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java;
+package swaydb.data.java;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.ThrowingSupplier;
+import swaydb.java.Actor;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
@@ -30,7 +31,7 @@ import java.util.function.BiConsumer;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ActorTest {
+class ActorTest implements JavaEventually {
 
   @Test
   void createActor() throws InterruptedException {

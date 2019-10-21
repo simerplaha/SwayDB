@@ -27,6 +27,7 @@ import swaydb.core.util.Benchmark
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, ActorRef, Scheduler}
 
+import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 
 class ActorPerformanceSpec extends WordSpec with Matchers {

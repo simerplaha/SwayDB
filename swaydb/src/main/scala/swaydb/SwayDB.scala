@@ -20,7 +20,7 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, ForkJoinPool}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.Core
@@ -38,7 +38,6 @@ import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.forkjoin.ForkJoinPool
 import scala.reflect.ClassTag
 
 /**
@@ -46,7 +45,7 @@ import scala.reflect.ClassTag
  */
 object SwayDB extends LazyLogging {
 
-  private implicit val memoryFunctionStore: FunctionStore = FunctionStore.memory()
+  private implicit def memoryFunctionStore: FunctionStore = FunctionStore.memory()
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   /**
@@ -167,7 +166,7 @@ object SwayDB extends LazyLogging {
         swaydb.Set[T, F, IO.ApiIO](db)
     }
 
-  private def toCoreFunctionOutput[V](output: swaydb.Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
+  private def toCoreFunctionOutput[V](output: Apply[V])(implicit valueSerializer: Serializer[V]): SwayFunctionOutput =
     output match {
       case Apply.Nothing =>
         SwayFunctionOutput.Nothing

@@ -24,7 +24,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.extensions.stream.{MapKeysStream, MapStream}
 import swaydb.serializers.Serializer
-import swaydb.{From, IO}
+import swaydb.{Done, From, IO}
 
 //@formatter:off
 class Maps[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
@@ -81,7 +81,7 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
     }
   }
 
-  def remove(key: K): IO.ApiIO[IO.Done] =
+  def remove(key: K): IO.ApiIO[Done] =
     Map.removeMap(map, mapKey :+ key) flatMap map.commit
 
   def get(key: K): IO.ApiIO[Option[Map[K, V]]] = {
@@ -102,12 +102,12 @@ class Maps[K, V](map: swaydb.Map[Key[K], Option[V], Nothing, IO.ApiIO],
   /**
    * Removes all key-values from the target Map.
    */
-  def clear(key: K): IO.ApiIO[IO.Done] =
+  def clear(key: K): IO.ApiIO[Done] =
     get(key) flatMap {
       case Some(map) =>
         map.clear()
       case None =>
-        IO.done
+        IO.doneIO
     }
 
   def contains(key: K): IO.ApiIO[Boolean] =

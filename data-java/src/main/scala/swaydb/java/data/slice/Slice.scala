@@ -19,20 +19,41 @@
 
 package swaydb.java.data.slice
 
+import java.nio.charset.{Charset, StandardCharsets}
 import java.util.function.{BiFunction, Predicate}
 import java.util.{Comparator, Optional}
 import java.{lang, util}
 
 import swaydb.data.slice.{Slice => ScalaSlice}
+import swaydb.java.Pair
 import swaydb.java.data.util.Java._
-import swaydb.java.data.util.Pair
 
 import scala.collection.JavaConverters._
-import scala.compat.java8.OptionConverters._
 import scala.reflect.ClassTag
 
 object Slice {
-  val emptyBytes: ScalaSlice[lang.Byte] = ScalaSlice.create[java.lang.Byte](0)
+  val emptyBytes: Slice[lang.Byte] = Slice.create[lang.Byte](0)
+
+  def writeInt(integer: Int): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeInt(integer).asInstanceOf[ScalaSlice[java.lang.Byte]])
+
+  def writeBoolean(bool: Boolean): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeBoolean(bool).asInstanceOf[ScalaSlice[java.lang.Byte]])
+
+  def writeUnsignedInt(integer: Int): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeUnsignedInt(integer).asInstanceOf[ScalaSlice[java.lang.Byte]])
+
+  def writeLong(value: Long): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeLong(value).asInstanceOf[ScalaSlice[java.lang.Byte]])
+
+  def writeUnsignedLong(value: Long): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeUnsignedLong(value).asInstanceOf[ScalaSlice[java.lang.Byte]])
+
+  def writeString(string: String): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeString(string, StandardCharsets.UTF_8).asInstanceOf[ScalaSlice[java.lang.Byte]])
+
+  def writeString(string: String, charsets: Charset): Slice[java.lang.Byte] =
+    Slice(ScalaSlice.writeString(string, charsets).asInstanceOf[ScalaSlice[java.lang.Byte]])
 
   def fromByteArray(array: Array[java.lang.Byte]): Slice[java.lang.Byte] =
     Slice(swaydb.data.slice.Slice(array))

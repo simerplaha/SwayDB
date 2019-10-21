@@ -23,10 +23,9 @@ import java.util.Optional
 import java.util.concurrent.CompletionStage
 import java.util.function.{Consumer, Predicate, Supplier}
 
-import swaydb.java.data.util.Java.JavaFunction
+import swaydb.java.data.util.Java._
 
 import scala.compat.java8.FutureConverters._
-import scala.compat.java8.OptionConverters._
 
 object IO {
 
@@ -45,8 +44,18 @@ object IO {
   def right[L, R](right: R, exceptionHandler: swaydb.IO.ExceptionHandler[L]): IO[L, R] =
     new IO(swaydb.IO.Right(right)(exceptionHandler))(exceptionHandler)
 
+  def rightNeverException[L, R](right: R): IO[L, R] = {
+    implicit val throwException = swaydb.IO.ExceptionHandler.neverException[L]
+    new IO(swaydb.IO.Right(right))
+  }
+
   def left[R](left: Throwable): IO[Throwable, R] =
     new IO(swaydb.IO.Left(left))
+
+  def leftNeverException[L, R](left: L): IO[L, R] = {
+    implicit val throwException = swaydb.IO.ExceptionHandler.neverException[L]
+    new IO(swaydb.IO.Left(left))
+  }
 
   def left[L, R](left: L, exceptionHandler: swaydb.IO.ExceptionHandler[L]): IO[L, R] =
     new IO(swaydb.IO.Left(left)(exceptionHandler))(exceptionHandler)
@@ -57,6 +66,9 @@ object IO {
   case class Defer[E, R](asScala: swaydb.IO.Defer[E, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[E]) {
 
     @throws[Throwable]
+    def tryRun: R =
+      run
+
     def run: R =
       asScala.runIO.get
 
@@ -110,27 +122,36 @@ object IO {
 
 class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
 
-  def leftIO: IO[Throwable, L] =
-    new IO(asScala.left)
-
-  @throws[Throwable]
-  def leftValue: L =
-    asScala.left.get
-
-  def rightIO: IO[Throwable, R] =
-    new IO(asScala.right)
-
-  @throws[UnsupportedOperationException]
-  def rightValue: R =
-    asScala.right.get
-
   def isLeft: Boolean =
     asScala.isLeft
 
   def isRight: Boolean =
     asScala.isRight
 
+  def leftIO: IO[Throwable, L] =
+    new IO(asScala.left)
+
+  def rightIO: IO[Throwable, R] =
+    new IO(asScala.right)
+
   @throws[Throwable]
+  def tryGetLeft: L =
+    asScala.left.get
+
+  @throws[UnsupportedOperationException]
+  def tryGetRight: R =
+    asScala.right.get
+
+  @throws[Throwable]
+  def tryGet: R =
+    asScala.get
+
+  def getLeft =
+    asScala.left.get
+
+  def getRight: R =
+    get
+
   def get: R =
     asScala.get
 
@@ -139,6 +160,19 @@ class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: sway
 
   def flatMap[B](function: JavaFunction[R, IO[L, B]]): IO[L, B] =
     new IO(asScala.flatMap[L, B](result => function.apply(result).asScala))
+
+  /**
+   * Difference between [[map]] and [[transform]] is that [[transform]] does not
+   * recovery from exception if the function F throws an Exception.
+   */
+  def transform[B](function: JavaFunction[R, B]): IO[L, B] =
+    new IO(asScala.transform(result => function.apply(result)))
+
+  def andThen[B](supplier: Supplier[B]): IO[L, B] =
+    new IO(asScala.andThen(supplier.get()))
+
+  def and[B](supplier: Supplier[IO[L, B]]): IO[L, B] =
+    new IO(asScala.and[L, B](supplier.get().asScala))
 
   def orElseGet[B >: R](supplier: Supplier[B]): B =
     asScala.getOrElse(supplier.get())
@@ -188,7 +222,7 @@ class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: sway
     new IO(
       asScala.onCompleteSideEffect {
         io =>
-          consumer.accept(new IO(io)) //fixme - is will use this be enough?
+          consumer.accept(new IO(io)) //fixme - is using `this` be enough?
       }
     )
 

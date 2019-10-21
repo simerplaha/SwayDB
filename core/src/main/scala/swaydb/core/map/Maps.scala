@@ -128,14 +128,14 @@ private[core] object Maps extends LazyLogging {
                                                               functionStore: FunctionStore,
                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                               mapReader: MapEntryReader[MapEntry[K, V]],
-                                                              skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, Seq[Map[K, V]]] = {
+                                                              skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, ListBuffer[Map[K, V]]] = {
     /**
      * Performs corruption handling based on the the value set for [[RecoveryMode]].
      */
     def applyRecoveryMode(exception: Throwable,
                           mapPath: Path,
                           otherMapsPaths: List[Path],
-                          recoveredMaps: ListBuffer[Map[K, V]]): IO[swaydb.Error.Map, Seq[Map[K, V]]] =
+                          recoveredMaps: ListBuffer[Map[K, V]]): IO[swaydb.Error.Map, ListBuffer[Map[K, V]]] =
       exception match {
         case exception: IllegalStateException =>
           recovery match {
@@ -182,7 +182,7 @@ private[core] object Maps extends LazyLogging {
      */
     @tailrec
     def doRecovery(maps: List[Path],
-                   recoveredMaps: ListBuffer[Map[K, V]]): IO[swaydb.Error.Map, Seq[Map[K, V]]] =
+                   recoveredMaps: ListBuffer[Map[K, V]]): IO[swaydb.Error.Map, ListBuffer[Map[K, V]]] =
       maps match {
         case Nil =>
           IO.Right(recoveredMaps)

@@ -20,6 +20,7 @@
 package swaydb.data.config
 
 import java.nio.file.Path
+import scala.collection.compat._
 
 trait DistributionDir {
   val path: Path
@@ -34,12 +35,12 @@ object Dir {
   implicit class DirsImplicits(dirs: Iterable[Dir]) {
 
     def pathsSet: Set[Path] =
-      dirs.map(_.path)(collection.breakOut)
+      dirs.map(_.path).to(Set)
 
     def pathsList: Seq[Path] =
       dirs.flatMap {
         dir =>
           Seq.fill(dir.distributionRatio)(dir.path)
-      }(collection.breakOut)
+      }.to(Seq)
   }
 }

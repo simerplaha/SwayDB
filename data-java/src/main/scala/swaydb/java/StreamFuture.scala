@@ -24,12 +24,11 @@ import java.util.Optional
 import java.util.concurrent.CompletionStage
 import java.util.function.{BiFunction, Consumer, Predicate}
 
-import swaydb.java.data.util.Java.JavaFunction
+import swaydb.java.data.util.Java._
 
 import scala.collection.JavaConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.compat.java8.FutureConverters._
-import scala.compat.java8.OptionConverters._
 import scala.concurrent.ExecutionContext
 
 class StreamFuture[A](val asScala: swaydb.Stream[A, scala.concurrent.Future])(implicit val ec: ExecutionContext) {
@@ -62,7 +61,7 @@ class StreamFuture[A](val asScala: swaydb.Stream[A, scala.concurrent.Future])(im
     Stream.fromScala(asScala.filterNot(predicate.asScala))
 
   def lastOption: CompletionStage[Optional[A]] =
-    asScala.lastOption.map(_.asJava).toJava
+    asScala.lastOption.transform(_.asJava, ex => ex).toJava
 
   def headOption: CompletionStage[Optional[A]] =
     asScala.headOption.map(_.asJava).toJava

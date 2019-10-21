@@ -30,6 +30,7 @@ import swaydb.data.config.ActorConfig.QueueOrder
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.collection.parallel.CollectionConverters._
 
 class ActorSpec extends WordSpec with Matchers {
 

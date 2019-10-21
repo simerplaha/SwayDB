@@ -19,19 +19,18 @@
 
 package swaydb.java.memory.zero
 
-import java.util.{Comparator, Optional}
+import java.util.Comparator
 
-import swaydb.Tag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.Functions
 import swaydb.data.util.StorageUnits._
-import swaydb.java.IO
 import swaydb.java.data.slice.ByteSlice
-import swaydb.java.data.util.Java.{JavaFunction, _}
+import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
+import swaydb.java.{IO, KeyOrderConverter, PureFunction, Return}
 import swaydb.serializers.Serializer
+import swaydb.{Apply, Tag}
 
 import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
@@ -39,45 +38,25 @@ import scala.reflect.ClassTag
 
 object Set {
 
-  class Builder[A, F](@BeanProperty var mapSize: Int = 4.mb,
-                      @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                      @BeanProperty var bytesComparator: Comparator[ByteSlice] = swaydb.java.SwayDB.defaultComparator,
-                      @BeanProperty var typedComparator: Optional[Comparator[A]] = Optional.empty[Comparator[A]](),
-                      serializer: Serializer[A],
-                      functionClassTag: ClassTag[F]) {
+  class Config[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], SF](@BeanProperty var mapSize: Int = 4.mb,
+                                                                                      @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                                                                                      @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
+                                                                                      serializer: Serializer[A],
+                                                                                      functionClassTag: ClassTag[SF]) {
 
-    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] =
-      if (typedComparator.isPresent)
-        KeyOrder(
-          new Ordering[Slice[Byte]] {
-            val typedOrder = typedComparator.get()
+    implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
-            override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
-              val leftKey = serializer.read(left)
-              val rightKey = serializer.read(right)
-              typedOrder.compare(leftKey, rightKey)
-            }
-          }
-        )
-      else
-        KeyOrder(
-          new Ordering[Slice[Byte]] {
-            override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
-              bytesComparator.compare(ByteSlice(left), ByteSlice(right))
-          }
-        )
-
-    def create(): IO[Throwable, swaydb.java.SetIO[A, F]] =
+    def init(): IO[Throwable, swaydb.java.SetIO[A, F]] =
       IO.fromScala {
         swaydb.IO {
           val scalaMap =
-            swaydb.memory.zero.Set[A, F, swaydb.IO.ThrowableIO](
+            swaydb.memory.zero.Set[A, SF, swaydb.IO.ThrowableIO](
               mapSize = mapSize,
               acceleration = acceleration.asScala
             )(serializer = serializer,
               functionClassTag = functionClassTag,
               tag = Tag.throwableIO,
-              keyOrder = scalaKeyOrder
+              keyOrder = Left(scalaKeyOrder)
             ).get
 
           swaydb.java.SetIO[A, F](scalaMap)
@@ -85,15 +64,15 @@ object Set {
       }
   }
 
-  def configFunctions[A, F](keySerializer: JavaSerializer[A]): Builder[A, F] =
-    new Builder(
-      serializer = SerializerConverter.toScala(keySerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[F]]
+  def configWithFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =
+    new Config(
+      serializer = SerializerConverter.toScala(serializer),
+      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
     )
 
-  def config[A](serializer: JavaSerializer[A]): Builder[A, Functions.Disabled] =
-    new Builder(
+  def config[A](serializer: JavaSerializer[A]): Config[A, PureFunction.VoidS[A], Void] =
+    new Config[A, swaydb.java.PureFunction.VoidS[A], Void](
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Functions.Disabled]]
+      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
     )
 }

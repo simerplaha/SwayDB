@@ -23,88 +23,78 @@ import java.util
 import java.util.Optional
 import java.util.function.{Consumer, Predicate}
 
-import swaydb.Prepare
+import swaydb.Apply
+import swaydb.IO.ThrowableIO
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.java.ScalaMapToJavaMapOutputConverter._
 import swaydb.java.data.util.Java._
-import swaydb.java.data.util.Pair
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
-import scala.compat.java8.OptionConverters._
-import scala.concurrent.duration.Deadline
 
 /**
  * Set database API.
  *
  * For documentation check - http://swaydb.io/
  */
-case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
+case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](_asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  private implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
+  private val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], ThrowableIO] =
+    _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
-    asScala.get(elem).map(_.asJava)
+    asScala.get(elem).transform(_.asJava)
 
-  def contains(elem: A): IO[scala.Throwable, Boolean] =
+  def contains(elem: A): IO[scala.Throwable, java.lang.Boolean] =
     asScala.contains(elem)
 
-  def mightContain(elem: A): IO[scala.Throwable, Boolean] =
+  def mightContain(elem: A): IO[scala.Throwable, java.lang.Boolean] =
     asScala.mightContain(elem)
 
-  def mightContainFunction(functionId: A): IO[scala.Throwable, Boolean] =
-    asScala mightContainFunction functionId
+  def mightContainFunction(function: A): IO[scala.Throwable, java.lang.Boolean] =
+    (asScala mightContainFunction function)
 
-  def add(elem: A): IO[scala.Throwable, swaydb.IO.Done] =
+  def add(elem: A): IO[scala.Throwable, swaydb.Done] =
     asScala add elem
 
-  def add(elem: A, expireAt: Deadline): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.add(elem, expireAt)
-
-  def add(elem: A, expireAfter: java.time.Duration): IO[scala.Throwable, swaydb.IO.Done] =
+  def add(elem: A, expireAfter: java.time.Duration): IO[scala.Throwable, swaydb.Done] =
     asScala.add(elem, expireAfter.toScala)
 
-  def add(elems: A*): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.add(elems)
-
-  def add(elems: StreamIO[A]): IO[scala.Throwable, swaydb.IO.Done] =
+  def add(elems: java.util.List[A]): IO[scala.Throwable, swaydb.Done] =
     asScala.add(elems.asScala)
 
-  def add(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.IO.Done] =
+  def add(elems: StreamIO[A]): IO[scala.Throwable, swaydb.Done] =
+    asScala.add(elems.asScala)
+
+  def add(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.Done] =
     asScala.add(elems.asScala.toIterable)
 
-  def remove(elem: A): IO[scala.Throwable, swaydb.IO.Done] =
+  def remove(elem: A): IO[scala.Throwable, swaydb.Done] =
     asScala.remove(elem)
 
-  def remove(from: A, to: A): IO[scala.Throwable, swaydb.IO.Done] =
+  def remove(from: A, to: A): IO[scala.Throwable, swaydb.Done] =
     asScala.remove(from, to)
 
-  def remove(elems: A*): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.remove(elems)
-
-  def remove(elems: StreamIO[A]): IO[scala.Throwable, swaydb.IO.Done] =
+  def remove(elems: java.util.List[A]): IO[scala.Throwable, swaydb.Done] =
     asScala.remove(elems.asScala)
 
-  def remove(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.IO.Done] =
+  def remove(elems: StreamIO[A]): IO[scala.Throwable, swaydb.Done] =
+    asScala.remove(elems.asScala)
+
+  def remove(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.Done] =
     asScala.remove(elems.asScala.toIterable)
 
-  def expire(elem: A, after: java.time.Duration): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(elem: A, after: java.time.Duration): IO[scala.Throwable, swaydb.Done] =
     asScala.expire(elem, after.toScala)
 
-  def expire(from: A, to: A, after: java.time.Duration): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(from: A, to: A, after: java.time.Duration): IO[scala.Throwable, swaydb.Done] =
     asScala.expire(from, to, after.toScala)
 
-  def expire(elems: Pair[A, java.time.Duration]*): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.expire {
-      elems.map {
-        pair =>
-          (pair.left, pair.right.toScala.fromNow)
-      }
-    }
-
-  def expire(elems: StreamIO[Pair[A, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(elems: java.util.List[Pair[A, java.time.Duration]]): IO[scala.Throwable, swaydb.Done] =
     asScala.expire {
       elems.asScala.map {
         pair =>
@@ -112,7 +102,15 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
       }
     }
 
-  def expire(elems: java.util.Iterator[Pair[A, java.time.Duration]]): IO[scala.Throwable, swaydb.IO.Done] =
+  def expire(elems: StreamIO[Pair[A, java.time.Duration]]): IO[scala.Throwable, swaydb.Done] =
+    asScala.expire {
+      elems.asScala.map {
+        pair =>
+          (pair.left, pair.right.toScala.fromNow)
+      }
+    }
+
+  def expire(elems: java.util.Iterator[Pair[A, java.time.Duration]]): IO[scala.Throwable, swaydb.Done] =
     asScala.expire {
       elems.asScala map {
         pair =>
@@ -120,50 +118,56 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
       } toIterable
     }
 
-  def clear(): IO[scala.Throwable, swaydb.IO.Done] =
+  def clear(): IO[scala.Throwable, swaydb.Done] =
     asScala.clear()
 
-  def registerFunction(function: F with swaydb.Function.GetKey[A, Nothing]): Unit =
-    asScala.registerFunction(function)
+  def registerFunction(function: F): IO[scala.Throwable, swaydb.Done] =
+    asScala.registerFunction(PureFunction.asScala(function))
 
-  def applyFunction(from: A, to: A, function: F with swaydb.Function.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.applyFunction(from, to, function)
+  def applyFunction(from: A, to: A, function: F): IO[scala.Throwable, swaydb.Done] =
+    asScala.applyFunction(from, to, PureFunction.asScala(function))
 
-  def applyFunction(elem: A, function: F with swaydb.Function.GetKey[A, Nothing]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.applyFunction(elem, function)
+  def applyFunction(elem: A, function: F): IO[scala.Throwable, swaydb.Done] =
+    asScala.applyFunction(elem, PureFunction.asScala(function))
 
-  def commit(prepare: Prepare[A, Nothing]*): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.commit(prepare)
+  def commit[P <: Prepare.Set[A, F]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.Done] =
+    commit[P](prepare.iterator())
 
-  def commit(prepare: StreamIO[Prepare[A, Nothing]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.commit(prepare.asScala)
+  def commit[P <: Prepare.Set[A, F]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.Done] =
+    prepare
+      .asScala
+      .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
+      .flatMap {
+        statements =>
+          asScala.commit(statements)
+      }
 
-  def commit(prepare: java.util.Iterator[Prepare[A, Nothing]]): IO[scala.Throwable, swaydb.IO.Done] =
-    asScala.commit(prepare.asScala.toIterable)
+  def commit[P <: Prepare.Set[A, F]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.Done] = {
+    val prepareStatements =
+      prepare
+        .asScala
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
+
+    asScala commit prepareStatements
+  }
 
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
 
-  def levelMeter(levelNumber: Int): Optional[LevelMeter] =
+  def levelMeter(levelNumber: Integer): Optional[LevelMeter] =
     asScala.levelMeter(levelNumber).asJava
 
   def sizeOfSegments: Long =
     asScala.sizeOfSegments
 
-  def elemSize(elem: A): Int =
+  def elemSize(elem: A): Integer =
     asScala.elemSize(elem)
 
   def expiration(elem: A): IO[scala.Throwable, Optional[Deadline]] =
-    asScala.expiration(elem).map(_.asJava)
+    asScala.expiration(elem).transform(_.asJavaMap(_.asJava))
 
   def timeLeft(elem: A): IO[scala.Throwable, Optional[java.time.Duration]] =
-    asScala.timeLeft(elem).map {
-      case Some(timeLeft) =>
-        Optional.of(timeLeft.toJava)
-
-      case None =>
-        Optional.empty[java.time.Duration]()
-    }
+    asScala.timeLeft(elem).transform(_.asJavaMap(_.toJava))
 
   def from(key: A): SetIO[A, F] =
     SetIO(asScala.from(key))
@@ -181,15 +185,15 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
     SetIO(asScala.fromOrAfter(key))
 
   def headOptional: IO[scala.Throwable, Optional[A]] =
-    asScala.headOption.map(_.asJava)
+    asScala.headOption.transform(_.asJava)
 
-  def drop(count: Int): StreamIO[A] =
+  def drop(count: Integer): StreamIO[A] =
     Stream.fromScala(asScala.drop(count))
 
   def dropWhile(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.dropWhile(predicate.test))
 
-  def take(count: Int): StreamIO[A] =
+  def take(count: Integer): StreamIO[A] =
     Stream.fromScala(asScala.take(count))
 
   def takeWhile(predicate: Predicate[A]): StreamIO[A] =
@@ -206,8 +210,8 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
       }
     )
 
-  def forEach(consumer: Consumer[A]): StreamIO[Unit] =
-    Stream.fromScala(asScala.foreach(consumer.accept))
+  def forEach(consumer: Consumer[A]): StreamIO[Void] =
+    Stream.fromScala(asScala.foreach(consumer.accept)).asInstanceOf[StreamIO[Void]]
 
   def filter(predicate: Predicate[A]): StreamIO[A] =
     Stream.fromScala(asScala.filter(predicate.test))
@@ -221,23 +225,23 @@ case class SetIO[A, F](asScala: swaydb.Set[A, F, swaydb.IO.ThrowableIO]) {
         fold.apply(Pair(b, a))
     }
 
-  def size: IO[scala.Throwable, Int] =
+  def size: IO[scala.Throwable, Integer] =
     stream.size
 
   def stream: StreamIO[A] =
     Stream.fromScala(asScala.stream)
 
-  def sizeOfBloomFilterEntries: IO[scala.Throwable, Int] =
+  def sizeOfBloomFilterEntries: IO[scala.Throwable, Integer] =
     asScala.sizeOfBloomFilterEntries
 
-  def isEmpty: IO[scala.Throwable, Boolean] =
+  def isEmpty: IO[scala.Throwable, java.lang.Boolean] =
     asScala.isEmpty
 
-  def nonEmpty: IO[scala.Throwable, Boolean] =
+  def nonEmpty: IO[scala.Throwable, java.lang.Boolean] =
     asScala.nonEmpty
 
   def lastOptional: IO[scala.Throwable, Optional[A]] =
-    asScala.lastOption.map(_.asJava)
+    asScala.lastOption.transform(_.asJava)
 
   def reverse: SetIO[A, F] =
     SetIO(asScala.reverse)
