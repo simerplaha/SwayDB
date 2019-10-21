@@ -379,7 +379,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
    * Materialises/closes and processes the stream to a [[Seq]].
    */
   def materialize: T[ListBuffer[A]] =
-    foldLeft(scala.collection.mutable.ListBuffer.empty[A]) {
+    foldLeft(ListBuffer.empty[A]) {
       (buffer, item) =>
         buffer += item
     }

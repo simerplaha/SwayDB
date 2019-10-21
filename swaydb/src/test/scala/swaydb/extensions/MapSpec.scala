@@ -124,7 +124,7 @@ sealed trait MapSpec extends TestBaseEmbedded {
       rootMap.stream.materialize.runRandomIO.right.value shouldBe ListBuffer((1, "one"), (2, "two"))
 
       //assert
-      rootMap.baseMap().stream.materialize.runRandomIO.right.value shouldBe
+      rootMap.baseMap().stream.materialize.runRandomIO.right.value should contain theSameElementsInOrderAs
         List(
           (Key.MapStart(Seq.empty), None),
           (Key.MapEntriesStart(Seq.empty), None),
@@ -813,8 +813,8 @@ sealed trait MapSpec extends TestBaseEmbedded {
         fourth.put(3, "fourth three").runRandomIO.right.value
 
         /**
-          * Assert that the all maps' content is accurate
-          */
+         * Assert that the all maps' content is accurate
+         */
         second.stream.materialize.runRandomIO.right.value shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
         third.stream.materialize.runRandomIO.right.value shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
         fourth.stream.materialize.runRandomIO.right.value shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
