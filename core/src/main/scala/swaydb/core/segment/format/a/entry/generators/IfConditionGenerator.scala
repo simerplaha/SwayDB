@@ -25,7 +25,7 @@ import java.nio.file.{Files, Paths}
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Generates if conditions for all readers.

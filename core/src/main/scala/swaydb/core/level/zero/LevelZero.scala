@@ -46,7 +46,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.{Done, Error, IO, Tag}
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.{Deadline, _}
 
 private[core] object LevelZero extends LazyLogging {

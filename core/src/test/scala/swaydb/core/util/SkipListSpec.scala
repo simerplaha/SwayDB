@@ -22,7 +22,7 @@ package swaydb.core.util
 import org.scalatest.{FlatSpec, Matchers}
 import swaydb.data.order.KeyOrder
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 
 class MinMaxSkipListSpec extends SkipListSpec {

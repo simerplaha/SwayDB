@@ -39,7 +39,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class MapsSpec extends TestBase {
 

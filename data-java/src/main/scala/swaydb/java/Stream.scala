@@ -22,7 +22,7 @@ package swaydb.java
 import swaydb.Tag
 import swaydb.java.data.util.Java._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 object Stream {

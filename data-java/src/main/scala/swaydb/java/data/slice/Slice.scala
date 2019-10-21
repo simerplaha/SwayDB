@@ -28,7 +28,7 @@ import swaydb.data.slice.{Slice => ScalaSlice}
 import swaydb.java.Pair
 import swaydb.java.data.util.Java._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 object Slice {

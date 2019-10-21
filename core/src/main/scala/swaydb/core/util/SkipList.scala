@@ -29,7 +29,7 @@ import swaydb.data.slice.Slice
 import swaydb.{IO, Tagged}
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.Random

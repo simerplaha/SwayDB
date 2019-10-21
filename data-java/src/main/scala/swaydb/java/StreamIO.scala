@@ -24,7 +24,7 @@ import java.util.function.{BiFunction, Consumer, Predicate}
 
 import swaydb.java.data.util.Java._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.compat.java8.FunctionConverters._
 
 class StreamIO[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {

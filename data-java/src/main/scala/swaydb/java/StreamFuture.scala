@@ -26,7 +26,7 @@ import java.util.function.{BiFunction, Consumer, Predicate}
 
 import swaydb.java.data.util.Java._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.compat.java8.FunctionConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext

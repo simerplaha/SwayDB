@@ -30,7 +30,7 @@ import swaydb.data.compaction.LevelMeter
 import swaydb.java.ScalaMapToJavaMapOutputConverter._
 import swaydb.java.data.util.Java._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
 
