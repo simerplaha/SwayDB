@@ -109,8 +109,8 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   def headOption: T[Option[A]]
   private[swaydb] def next(previous: A): T[Option[A]]
 
-  def take(count: Int): Stream[A, T] =
-    if (count == 0)
+  def take(c: Int): Stream[A, T] =
+    if (c == 0)
       Stream.empty
     else
       new Stream[A, T] {
@@ -121,7 +121,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         //flag to count how many were taken.
         private var taken = 1
         override private[swaydb] def next(previous: A): T[Option[A]] =
-          if (taken == count)
+          if (taken == c)
             tag.none
           else
             tag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
@@ -152,18 +152,18 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         }
     }
 
-  def drop(count: Int): Stream[A, T] =
-    if (count == 0)
+  def drop(c: Int): Stream[A, T] =
+    if (c == 0)
       self
     else
       new Stream[A, T] {
         override def headOption: T[Option[A]] =
           self.headOption flatMap {
             case Some(head) =>
-              if (count == 1)
+              if (c == 1)
                 next(head)
               else
-                tag.foldLeft(Option.empty[A], Some(head), self, count - 1, takeOne) {
+                tag.foldLeft(Option.empty[A], Some(head), self, c - 1, takeOne) {
                   case (_, next) =>
                     Some(next)
                 }
@@ -294,6 +294,12 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
        */
       override private[swaydb] def next(previous: B): T[Option[B]] =
         stepForward(previousA) //continue from previously read A.
+    }
+
+  def count(f: A => Boolean): T[Int] =
+    foldLeft(0) {
+      case (c, item) if f(item) => c + 1
+      case (c, _) => c
     }
 
   def filterNot(f: A => Boolean): Stream[A, T] =

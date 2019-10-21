@@ -99,6 +99,12 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
         .await should contain(1)
     }
 
+    "count" in {
+      Stream[Int, T](1 to 100)
+        .count(_ % 2 == 0)
+        .await shouldBe 50
+    }
+
     "lastOptionLinear" in {
       Stream[Int, T](1 to 100)
         .lastOption
