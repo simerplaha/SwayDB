@@ -24,14 +24,14 @@ import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.IO
-import swaydb.data.{MaxKey, slice}
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice.SliceBuilder
+import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.util.{ByteSizeOf, Bytez}
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
-import scala.collection.{ClassTagIterableFactory, EvidenceIterableFactory, EvidenceIterableFactoryDefaults, IterableFactory, IterableFactoryDefaults, IterableOnce, IterableOps, StrictOptimizedIterableOps, immutable, mutable}
+import scala.collection.{ClassTagIterableFactory, EvidenceIterableFactoryDefaults, IterableFactory, IterableOnce, IterableOps, StrictOptimizedIterableOps, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
@@ -816,8 +816,8 @@ class Slice[+T] private(array: Array[T],
   def currentWritePosition =
     writePosition
 
-  override def evidenceIterableFactory: SliceBuilder =
-    new SliceBuilder(size)
+  override def evidenceIterableFactory: SliceFactory =
+    new SliceFactory(size)
 
   //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
   override def iterableFactory: IterableFactory[Slice] =
