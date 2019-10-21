@@ -651,7 +651,7 @@ object CommonAssertions {
 
   def assertLower(keyValuesIterable: Iterable[KeyValue],
                   level: LevelRef) = {
-    val keyValues = keyValuesIterable.toArray
+    val keyValues = keyValuesIterable.toSlice
 
     @tailrec
     def assertLowers(index: Int) {

@@ -402,8 +402,12 @@ object TestData {
   }
 
   implicit class ToSlice[T: ClassTag](items: Iterable[T]) {
-    def toSlice: Slice[T] =
-      Slice.empty[T] ++ items
+    def toSlice: Slice[T] = {
+      val slice = Slice.create[T](items.size)
+      items foreach slice.add
+      slice
+    }
+
   }
 
   implicit class TransientToMemory(keyValue: Transient) {

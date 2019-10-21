@@ -24,13 +24,14 @@ import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
 import swaydb.IO
-import swaydb.data.MaxKey
+import swaydb.data.{MaxKey, slice}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.util.{ByteSizeOf, Bytez}
 
 import scala.annotation.tailrec
-import scala.collection.{IterableFactory, IterableFactoryDefaults, IterableOnce, IterableOps, StrictOptimizedIterableOps, mutable}
+import scala.annotation.unchecked.uncheckedVariance
+import scala.collection.{ClassTagIterableFactory, EvidenceIterableFactory, EvidenceIterableFactoryDefaults, IterableFactory, IterableFactoryDefaults, IterableOnce, IterableOps, StrictOptimizedIterableOps, immutable, mutable}
 import scala.reflect.ClassTag
 import scala.util.hashing.MurmurHash3
 
@@ -365,20 +366,21 @@ object Slice {
     }
   }
 
-  class SliceFactory(sizeHint: Int) extends IterableFactory[Slice] { self =>
+  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Slice] { self =>
 
-    def from[A](source: IterableOnce[A]): Slice[A] =
+    def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Slice[A] =
       (newBuilder[A] ++= source).result()
 
-    def empty[A]: Slice[A] = Slice.create(sizeHint)
+    def empty[A](implicit evidence: ClassTag[A]): Slice[A] =
+      Slice.create[A](sizeHint)
 
-    def newBuilder[A]: mutable.Builder[A, Slice[A]] =
+    def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Slice[A]] =
       new mutable.Builder[A, Slice[A]] {
         //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-        protected var slice: Slice[A] = Slice.create((self.sizeHint * 2) max 100)
+        protected var slice: Slice[A] = Slice.create[A]((self.sizeHint * 2) max 100)
 
         def extendSlice(by: Int) = {
-          val extendedSlice = Slice.create(slice.size * by)
+          val extendedSlice = Slice.create[A](slice.size * by)
           extendedSlice addAll slice
           slice = extendedSlice
         }
@@ -395,7 +397,7 @@ object Slice {
           }
 
         def clear() =
-          slice = Slice.empty
+          slice = Slice.empty[A]
 
         def result: Slice[A] =
           slice.close()
@@ -418,10 +420,10 @@ object Slice {
 class Slice[+T] private(array: Array[T],
                         val fromOffset: Int,
                         val toOffset: Int,
-                        private var written: Int)(implicit classTag: ClassTag[T]) extends collection.immutable.Iterable[T]
-                                                                                     with IterableOps[T, Slice, Slice[T]]
-                                                                                     with IterableFactoryDefaults[T, Slice]
-                                                                                     with StrictOptimizedIterableOps[T, Slice, Slice[T]] { self =>
+                        private var written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends collection.immutable.Iterable[T]
+                                                                                                                 with IterableOps[T, Slice, Slice[T]]
+                                                                                                                 with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
+                                                                                                                 with StrictOptimizedIterableOps[T, Slice, Slice[T]] { self =>
 //@formatter:on
 
   private var writePosition = fromOffset + written
@@ -814,8 +816,12 @@ class Slice[+T] private(array: Array[T],
   def currentWritePosition =
     writePosition
 
-  override def iterableFactory: IterableFactory[Slice] =
+  override def evidenceIterableFactory: SliceFactory =
     new SliceFactory(size)
+
+  //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
+  override def iterableFactory: IterableFactory[Slice] =
+    new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
 
   override def equals(that: Any): Boolean =
     that match {
