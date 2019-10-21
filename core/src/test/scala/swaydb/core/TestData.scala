@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
-import swaydb.data.MaxKey
+import swaydb.data.{MaxKey, slice}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, Dir, IOStrategy, RecoveryMode}
@@ -403,7 +403,7 @@ object TestData {
 
   implicit class ToSlice[T: ClassTag](items: Iterable[T]) {
     def toSlice: Slice[T] =
-      Slice.empty ++ items
+      Slice.empty[T] ++ items
   }
 
   implicit class TransientToMemory(keyValue: Transient) {
@@ -443,14 +443,13 @@ object TestData {
   }
 
   implicit class TransientsToMemory(keyValues: Iterable[KeyValue]) {
-    def toMemory: Slice[Memory] = {
-      keyValues map {
+    def toMemory: Slice[Memory] =
+      keyValues.map {
         case readOnly: ReadOnly =>
           readOnly.toMemory
         case writeOnly: Transient =>
           writeOnly.toMemory
-      } toSlice
-    }
+      }.to(new slice.Slice.SliceFactory(keyValues.size))
   }
 
   implicit class ReadOnlyToMemory(keyValues: Iterable[KeyValue.ReadOnly]) {

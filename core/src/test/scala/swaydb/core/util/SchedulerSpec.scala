@@ -86,7 +86,11 @@ class SchedulerSpec extends WordSpec with Matchers with Eventually {
 
       val scheduler = Scheduler()
 
-      scheduler.futureFromIO(100.millisecond)(IO(Thread.currentThread().getName))
+      scheduler.futureFromIO(100.millisecond) {
+        IO {
+          tryThread = Thread.currentThread().getName
+        }
+      }
 
       val currentThread = Thread.currentThread().getName
 
@@ -105,7 +109,9 @@ class SchedulerSpec extends WordSpec with Matchers with Eventually {
 
       val scheduler = Scheduler()
 
-      scheduler.future(100.millisecond)(Thread.currentThread().getName)
+      scheduler.future(100.millisecond) {
+        futureThread = Thread.currentThread().getName
+      }
 
       val currentThread = Thread.currentThread().getName
 

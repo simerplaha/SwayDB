@@ -365,25 +365,40 @@ object Slice {
     }
   }
 
-  class SliceFactory(capacity: Int) extends IterableFactory[Slice] {
+  class SliceFactory(sizeHint: Int) extends IterableFactory[Slice] { self =>
 
     def from[A](source: IterableOnce[A]): Slice[A] =
-      source match {
-        case slice: Slice[A] if slice.size == capacity =>
-          slice
+      (newBuilder[A] ++= source).result()
 
-        case _ =>
-          (newBuilder[A] ++= source).result()
-      }
-
-    def empty[A]: Slice[A] = Slice.create(capacity)
+    def empty[A]: Slice[A] = Slice.create(sizeHint)
 
     def newBuilder[A]: mutable.Builder[A, Slice[A]] =
-      new mutable.ImmutableBuilder[A, Slice[A]](empty) {
-        def addOne(elem: A): this.type = {
-          elems = elems :+ elem
-          this
+      new mutable.Builder[A, Slice[A]] {
+        //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
+        protected var slice: Slice[A] = Slice.create((self.sizeHint * 2) max 100)
+
+        def extendSlice(by: Int) = {
+          val extendedSlice = Slice.create(slice.size * by)
+          extendedSlice addAll slice
+          slice = extendedSlice
         }
+
+        @tailrec
+        override def addOne(x: A): this.type =
+          try {
+            slice add x
+            this
+          } catch {
+            case _: ArrayIndexOutOfBoundsException => //Extend slice.
+              extendSlice(by = 2)
+              addOne(x)
+          }
+
+        def clear() =
+          slice = Slice.empty
+
+        def result: Slice[A] =
+          slice.close()
       }
   }
 }
@@ -398,6 +413,7 @@ object Slice {
  * @param written    items written
  * @tparam T The type of this Slice
  */
+
 //@formatter:off
 class Slice[+T] private(array: Array[T],
                         val fromOffset: Int,
@@ -798,7 +814,8 @@ class Slice[+T] private(array: Array[T],
   def currentWritePosition =
     writePosition
 
-  override val iterableFactory: IterableFactory[Slice] = new SliceFactory(size)
+  override def iterableFactory: IterableFactory[Slice] =
+    new SliceFactory(size)
 
   override def equals(that: Any): Boolean =
     that match {
@@ -820,4 +837,5 @@ class Slice[+T] private(array: Array[T],
     }
     MurmurHash3.finalizeHash(seed, size)
   }
+
 }

@@ -384,8 +384,6 @@ object Slice {
         case _: ArrayIndexOutOfBoundsException => //Extend slice.
           extendSlice(by = 2)
           +=(x)
-        case ex: Throwable =>
-          throw ex
       }
 
     def clear() =
