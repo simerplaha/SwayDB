@@ -12,10 +12,10 @@
 [build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
-Embeddable persistent and in-memory database for resource efficiency, performance 
-and easy data management with simple collections API.
+Embeddable persistent and in-memory database. Resource efficiency, performance 
+and easy data management with simple functional APIs.
 
-[Documentation - SwayDB.io](http://swaydb.io) (documentation is being updated for latest version). 
+[See documentation - SwayDB.io](http://swaydb.io) (currently being updated for latest version). 
 
 ## Performance (old benchmark for v0.2 - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
@@ -30,23 +30,28 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 - [Java](http://swaydb.io/quick-start/?language=java/) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin) APIs.
 - Single or multiple disks persistent, in-memory or periodically persistent.
-- Simple Stream based iteration following Scala collections APIs.
-- Atomic updates and inserts.
+- Simple data types - `Map[K, V]` & `Set[T]`.
+- Simple Stream based iteration following collections APIs.
+- Atomic updates and inserts with [transactions](http://swaydb.io/api/write/transaction/?language=scala/).
 - Custom updates using [JVM function](http://www.swaydb.io/api/write/registerFunction/).
 - TTL - auto [expiring](http://www.swaydb.io/api/write/expire/) key-values.
 - Range [update, remove & expire](http://www.swaydb.io/api/write/update-range/).
+- Non-blocking with customisable non-blocking or blocking APIs.
 - Key only iterations (Lazily fetched values).
-- Supported data types - `Map[K, V]` & `Set[T]`.
-- [Configurable](http://www.swaydb.io/configuring-levels/) levels.
+- [Configurable compression](http://swaydb.io/configuring-levels/compressionStrategy/?language=scala/) with LZ4 & Snappy
+- [Configurable](http://www.swaydb.io/configuring-levels/) core internals.
 - Duplicate values can be eliminated with [compressDuplicateValues](http://www.swaydb.io/configuring-levels/compressDuplicateValues/).
+- A small type-safe [Actor](http://swaydb.io/actor/?language=scala/) implementation.
+- [IO](http://swaydb.io/io/?language=scala/) type for type-safe error handling. 
 
 [Read more](http://swaydb.io/).
 
 ## Quick start
-[Quick start APP](http://swaydb.io/quick-start/?language=scala/).
+[Quick start App](http://swaydb.io/quick-start/?language=scala/).
 
 ## Related GitHub projects
 - [SwayDB.java.examples](https://github.com/simerplaha/SwayDB.java.examples) - Java examples demonstrating features and APIs.
+- [SwayDB.kotlin.examples](https://github.com/simerplaha/SwayDB.kotlin.examples) - Kotlin examples demonstrating features and APIs.
 - [SwayDB.scala.examples](https://github.com/simerplaha/SwayDB.scala.examples) - Scala examples demonstrating features and APIs.
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
@@ -54,7 +59,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 # Project status
 
-Undergoing frequent changes & beta testing.
+Undergoing frequent changes & beta testing. Backward binary compatibility is not yet a priority for minor releases unless it's requested.
 
 # Project support
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
