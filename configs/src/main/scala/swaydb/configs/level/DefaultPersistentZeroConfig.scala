@@ -33,7 +33,7 @@ object DefaultPersistentZeroConfig {
 
   private lazy val compactionExecutionContext =
     new ExecutionContext {
-      val threadPool = Executors.newSingleThreadExecutor()
+      val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 
       def execute(runnable: Runnable) =
         threadPool execute runnable
