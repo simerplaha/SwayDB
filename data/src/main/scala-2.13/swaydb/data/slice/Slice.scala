@@ -429,7 +429,7 @@ class Slice[+T] private(array: Array[T],
   private var writePosition = fromOffset + written
 
   def classTag: ClassTag[_] =
-    this.classTag
+    this.iterableEvidence
 
   val allocatedSize =
     toOffset - fromOffset + 1
