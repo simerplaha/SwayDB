@@ -33,7 +33,7 @@ object Scheduler {
    * @param isDaemon true if the associated thread should run as a daemon
    */
   def apply(name: Option[String] = None,
-            isDaemon: Boolean = false)(implicit ec: ExecutionContext): Scheduler =
+            isDaemon: Boolean = true)(implicit ec: ExecutionContext): Scheduler =
     name map {
       name =>
         new Scheduler(new Timer(name, isDaemon))
