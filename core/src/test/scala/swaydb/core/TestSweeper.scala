@@ -66,5 +66,5 @@ private[swaydb] object TestSweeper {
     orNone(blockCache)
 
   val fileSweeper: FileSweeper.Enabled =
-    FileSweeper(1000, ActorConfig.TimeLoop(10.seconds, level0PushDownPool))
+    FileSweeper(100, ActorConfig.TimeLoop(10.seconds, level0PushDownPool))
 }
