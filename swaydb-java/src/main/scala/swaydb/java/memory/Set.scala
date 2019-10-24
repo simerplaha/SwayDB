@@ -81,7 +81,7 @@ object Set {
 
           swaydb.java.SetIO[A, F](scalaMap)
         }
-      )
+      )(IO.throwableExceptionHandler)
   }
 
   def configWithFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =

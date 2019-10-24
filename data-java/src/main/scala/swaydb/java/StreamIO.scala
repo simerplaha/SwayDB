@@ -28,6 +28,8 @@ import scala.jdk.CollectionConverters._
 import scala.compat.java8.FunctionConverters._
 
 class StreamIO[A](val asScala: swaydb.Stream[A, swaydb.IO.ThrowableIO]) {
+  implicit val javaThrowableExceptionHandler = swaydb.java.IO.throwableExceptionHandler
+
   def forEach(consumer: Consumer[A]): StreamIO[Unit] =
     new StreamIO[Unit](asScala.foreach(consumer.asScala))
 

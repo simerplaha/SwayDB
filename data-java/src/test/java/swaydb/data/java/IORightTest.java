@@ -53,6 +53,14 @@ class IORightTest {
   }
 
   @Test
+  void neverException() {
+    IO<Integer, String> right = IO.rightNeverException("Some value");
+    assertTrue(right.isRight());
+    assertFalse(right.isLeft());
+    assertEquals("Some value", right.get());
+  }
+
+  @Test
   void map() throws Throwable {
     IO<Throwable, Integer> map = io.map(integer -> integer + 1);
     assertTrue(map.isRight());

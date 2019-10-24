@@ -183,7 +183,7 @@ case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](_asSc
     asScala.valueSize(value)
 
   def timeLeft(key: K): IO[scala.Throwable, Optional[java.time.Duration]] =
-    new IO(asScala.timeLeft(key).transform(_.asJavaMap(_.toJava)))
+    new IO(asScala.timeLeft(key).transform(_.asJavaMap(_.toJava)))(IO.throwableExceptionHandler)
 
   def from(key: K): MapIO[K, V, F] =
     copy(asScala.from(key))

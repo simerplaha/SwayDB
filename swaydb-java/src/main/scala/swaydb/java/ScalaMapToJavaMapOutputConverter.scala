@@ -21,13 +21,13 @@ package swaydb.java
 
 protected object ScalaMapToJavaMapOutputConverter {
 
-  @inline implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)
+  @inline implicit def toIO[Throwable, R](io: swaydb.IO[scala.Throwable, R]): IO[scala.Throwable, R] = new IO[scala.Throwable, R](io)(IO.throwableExceptionHandler)
 
   @inline implicit def toIOBoolean[Throwable](io: swaydb.IO[scala.Throwable, Boolean]): IO[scala.Throwable, java.lang.Boolean] =
-    new IO[scala.Throwable, java.lang.Boolean](io.asInstanceOf[swaydb.IO[scala.Throwable, java.lang.Boolean]])
+    new IO[scala.Throwable, java.lang.Boolean](io.asInstanceOf[swaydb.IO[scala.Throwable, java.lang.Boolean]])(IO.throwableExceptionHandler)
 
   @inline implicit def toIOInteger[Throwable](io: swaydb.IO[scala.Throwable, scala.Int]): IO[scala.Throwable, java.lang.Integer] =
-    new IO[scala.Throwable, java.lang.Integer](io.asInstanceOf[swaydb.IO[scala.Throwable, java.lang.Integer]])
+    new IO[scala.Throwable, java.lang.Integer](io.asInstanceOf[swaydb.IO[scala.Throwable, java.lang.Integer]])(IO.throwableExceptionHandler)
 
   @inline implicit def fromJavaScalaIntToInteger[Throwable](io: swaydb.java.IO[scala.Throwable, scala.Int]): IO[scala.Throwable, java.lang.Integer] =
     io.asInstanceOf[swaydb.java.IO[scala.Throwable, java.lang.Integer]]

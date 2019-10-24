@@ -29,41 +29,118 @@ import scala.compat.java8.FutureConverters._
 
 object IO {
 
-  def fromScala[L, R](io: swaydb.IO[L, R], exceptionHandler: swaydb.IO.ExceptionHandler[L]) =
+  trait ExceptionHandler[E] {
+    def toException(error: E): Throwable
+    def toError(exception: Throwable): E
+  }
+
+  val throwableExceptionHandler: ExceptionHandler[Throwable] =
+    fromScala(swaydb.IO.ExceptionHandler.Throwable)
+
+  val integerNeverExceptionHandler: ExceptionHandler[Integer] =
+    fromScala(swaydb.IO.ExceptionHandler.neverException)
+
+  val stringNeverExceptionHandler: ExceptionHandler[java.lang.String] =
+    fromScala(swaydb.IO.ExceptionHandler.neverException)
+
+  val longNeverExceptionHandler: ExceptionHandler[java.lang.Long] =
+    fromScala(swaydb.IO.ExceptionHandler.neverException)
+
+  val doubleNeverExceptionHandler: ExceptionHandler[java.lang.Double] =
+    fromScala(swaydb.IO.ExceptionHandler.neverException)
+
+  val booleanNeverExceptionHandler: ExceptionHandler[java.lang.Boolean] =
+    fromScala(swaydb.IO.ExceptionHandler.neverException)
+
+  val characterNeverExceptionHandler: ExceptionHandler[java.lang.Character] =
+    fromScala(swaydb.IO.ExceptionHandler.neverException)
+
+  val byteNeverExceptionHandler: ExceptionHandler[java.lang.Byte] =
+    fromScala(swaydb.IO.ExceptionHandler.neverException)
+
+  def neverExceptionHandler[T](): ExceptionHandler[T] =
+    fromScala[T](swaydb.IO.ExceptionHandler.neverException[T])
+
+  def fromScala[T](exceptionHandler: swaydb.IO.ExceptionHandler[T]): swaydb.java.IO.ExceptionHandler[T] =
+    new ExceptionHandler[T] {
+      override def toException(error: T): Throwable =
+        exceptionHandler.toException(error)
+
+      override def toError(exception: Throwable): T =
+        exceptionHandler.toError(exception)
+    }
+
+  def toScala[T](self: ExceptionHandler[T]): swaydb.IO.ExceptionHandler[T] =
+    new swaydb.IO.ExceptionHandler[T] {
+      override def toException(error: T): Throwable =
+        self.toException(error)
+
+      override def toError(exception: Throwable): T =
+        self.toError(exception)
+    }
+
+  def fromScala[L, R](io: swaydb.IO[L, R], exceptionHandler: IO.ExceptionHandler[L]) =
     new IO(io)(exceptionHandler)
 
   def fromScala[R](io: swaydb.IO[Throwable, R]) =
-    new IO(io)(swaydb.IO.ExceptionHandler.Throwable)
+    new IO(io)(throwableExceptionHandler)
 
   def run[O](supplier: Supplier[O]): IO[Throwable, O] =
-    new IO(swaydb.IO[Throwable, O](supplier.get()))
+    new IO(swaydb.IO[Throwable, O](supplier.get())(toScala(throwableExceptionHandler)))(throwableExceptionHandler)
+
+  def run[L, O](supplier: Supplier[O], exceptionHandler: ExceptionHandler[L]): IO[L, O] =
+    new IO(swaydb.IO[L, O](supplier.get())(toScala(exceptionHandler)))(exceptionHandler)
 
   def right[R](right: R): IO[Throwable, R] =
-    new IO(swaydb.IO.Right(right))
+    new IO(swaydb.IO.Right(right))(throwableExceptionHandler)
 
-  def right[L, R](right: R, exceptionHandler: swaydb.IO.ExceptionHandler[L]): IO[L, R] =
-    new IO(swaydb.IO.Right(right)(exceptionHandler))(exceptionHandler)
+  def right[L, R](right: R, exceptionHandler: IO.ExceptionHandler[L]): IO[L, R] =
+    new IO(swaydb.IO.Right(right)(toScala(exceptionHandler)))(exceptionHandler)
 
   def rightNeverException[L, R](right: R): IO[L, R] = {
-    implicit val throwException = swaydb.IO.ExceptionHandler.neverException[L]
-    new IO(swaydb.IO.Right(right))
+    implicit val never: ExceptionHandler[L] = neverExceptionHandler()
+    new IO(swaydb.IO.Right(right)(toScala(never)))
   }
 
   def left[R](left: Throwable): IO[Throwable, R] =
-    new IO(swaydb.IO.Left(left))
+    new IO(swaydb.IO.Left(left)(toScala(throwableExceptionHandler)))(throwableExceptionHandler)
 
   def leftNeverException[L, R](left: L): IO[L, R] = {
-    implicit val throwException = swaydb.IO.ExceptionHandler.neverException[L]
-    new IO(swaydb.IO.Left(left))
+    implicit val never = swaydb.IO.ExceptionHandler.neverException[L]
+    new IO(swaydb.IO.Left(left))(fromScala(never))
   }
 
-  def left[L, R](left: L, exceptionHandler: swaydb.IO.ExceptionHandler[L]): IO[L, R] =
-    new IO(swaydb.IO.Left(left)(exceptionHandler))(exceptionHandler)
+  def left[L, R](left: L, exceptionHandler: IO.ExceptionHandler[L]): IO[L, R] =
+    new IO(swaydb.IO.Left(left)(toScala(exceptionHandler)))(exceptionHandler)
 
   def defer[R](supplier: Supplier[R]): Defer[Throwable, R] =
-    Defer(swaydb.IO.Defer[Throwable, R](supplier.get())(swaydb.IO.ExceptionHandler.Throwable))
+    Defer(swaydb.IO.Defer[Throwable, R](supplier.get())(toScala(throwableExceptionHandler)))(throwableExceptionHandler)
 
-  case class Defer[E, R](asScala: swaydb.IO.Defer[E, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[E]) {
+  def defer[L, R](supplier: Supplier[R], exceptionHandler: IO.ExceptionHandler[L]): Defer[L, R] =
+    Defer(swaydb.IO.Defer[L, R](supplier.get())(toScala(exceptionHandler)))(exceptionHandler)
+
+  case class Defer[E, R](asScala: swaydb.IO.Defer[E, R])(implicit val exceptionHandler: IO.ExceptionHandler[E]) {
+
+    private implicit val scalaExceptionHandler = IO.toScala(exceptionHandler)
+
+    //a deferred IO is completed if it's not reserved.
+    def isReady: java.lang.Boolean =
+      asScala.isReady
+
+    def isBusy: java.lang.Boolean =
+      asScala.isBusy
+
+    def isComplete: java.lang.Boolean =
+      asScala.isComplete
+
+    def isPending: java.lang.Boolean =
+      asScala.isPending
+
+    def isSuccess: java.lang.Boolean =
+      asScala.isSuccess
+
+    def isFailure: java.lang.Boolean =
+      asScala.isFailure
 
     @throws[Throwable]
     def tryRun: R =
@@ -120,7 +197,9 @@ object IO {
   }
 }
 
-class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: swaydb.IO.ExceptionHandler[L]) {
+class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: IO.ExceptionHandler[L]) {
+
+  private implicit val scalaExceptionHandler = IO.toScala(exceptionHandler)
 
   def isLeft: Boolean =
     asScala.isLeft
@@ -129,10 +208,10 @@ class IO[L, R](val asScala: swaydb.IO[L, R])(implicit val exceptionHandler: sway
     asScala.isRight
 
   def leftIO: IO[Throwable, L] =
-    new IO(asScala.left)
+    new IO(asScala.left)(IO.throwableExceptionHandler)
 
   def rightIO: IO[Throwable, R] =
-    new IO(asScala.right)
+    new IO(asScala.right)(IO.throwableExceptionHandler)
 
   @throws[Throwable]
   def tryGetLeft: L =
