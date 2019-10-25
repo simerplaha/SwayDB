@@ -28,45 +28,7 @@ import scala.collection.mutable
 private[swaydb] object ScalaSet {
 
   def apply[A, F](db: Set[A, F, IO.ApiIO]): mutable.Set[A] =
-    new mutable.Set[A] {
-
-      override def contains(elem: A): Boolean =
-        db.contains(elem).get
-
-      override def iterator: Iterator[A] =
-        new Iterator[A] {
-          var nextOne: A = _
-
-          override def hasNext: Boolean =
-            if (nextOne == null)
-              db.headOption.get exists {
-                some =>
-                  nextOne = some
-                  true
-              }
-            else
-              db.stream.next(nextOne).get exists {
-                some =>
-                  nextOne = some
-                  true
-              }
-
-          override def next(): A =
-            nextOne
-        }
-
-      override def isEmpty: Boolean =
-        db.isEmpty.get
-
-      override def nonEmpty: Boolean =
-        !isEmpty
-
-      override def headOption: Option[A] =
-        db.headOption.get
-
-      override def lastOption: Option[A] =
-        db.lastOption.get
-
+    new ScalaSetBase[A, F](db) {
       override def addOne(elem: A): this.type = {
         db.add(elem).get
         this
@@ -86,14 +48,5 @@ private[swaydb] object ScalaSet {
         db.add(xs.iterator).get
         this
       }
-
-      override def last: A =
-        db.lastOption.get.get
-
-      override def head: A =
-        db.headOption.get.get
-
-      override def clear(): Unit =
-        db.clear().get
     }
 }

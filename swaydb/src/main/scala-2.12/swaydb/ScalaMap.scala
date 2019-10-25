@@ -19,7 +19,6 @@
 
 package swaydb
 
-import scala.collection.compat.IterableOnce
 import scala.collection.mutable
 
 /**
@@ -28,43 +27,7 @@ import scala.collection.mutable
 private[swaydb] object ScalaMap {
 
   def apply[K, V, F](db: Map[K, V, F, IO.ApiIO]): mutable.Map[K, V] =
-    new mutable.Map[K, V] {
-      override def get(key: K): Option[V] =
-        db.get(key).get
-
-      override def iterator: Iterator[(K, V)] =
-        new Iterator[(K, V)] {
-          var nextOne: (K, V) = _
-
-          override def hasNext: Boolean =
-            if (nextOne == null)
-              db.headOption.get exists {
-                some =>
-                  nextOne = some
-                  true
-              }
-            else
-              db.stream.next(nextOne).get exists {
-                some =>
-                  nextOne = some
-                  true
-              }
-
-          override def next(): (K, V) =
-            nextOne
-        }
-
-      override def isEmpty: Boolean =
-        db.isEmpty.get
-
-      override def nonEmpty: Boolean =
-        !isEmpty
-
-      override def headOption: Option[(K, V)] =
-        db.headOption.get
-
-      override def lastOption: Option[(K, V)] =
-        db.lastOption.get
+    new ScalaMapBase[K, V, F](db) {
 
       override def +=(kv: (K, V)): this.type = {
         db.put(kv._1, kv._2).get
@@ -85,20 +48,5 @@ private[swaydb] object ScalaMap {
         db.put(xs.toIterable).get
         this
       }
-
-      override def keySet: collection.Set[K] =
-        db.keys.asScala
-
-      override def contains(key: K): Boolean =
-        db.contains(key).get
-
-      override def last: (K, V) =
-        db.lastOption.get.get
-
-      override def head: (K, V) =
-        db.headOption.get.get
-
-      override def clear(): Unit =
-        db.clear().get
     }
 }

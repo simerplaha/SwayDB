@@ -21,7 +21,7 @@ package swaydb.data.slice
 
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
-import scala.collection.mutable
+import scala.collection.{IterableLike, mutable}
 import scala.reflect.ClassTag
 
 /**
