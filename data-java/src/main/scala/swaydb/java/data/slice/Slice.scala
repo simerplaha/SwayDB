@@ -169,10 +169,10 @@ case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
   }
 
   def toArray: Array[T] =
-    asScala.toArray[T](asScala.classTag.asInstanceOf[ClassTag[T]])
+    asScala.toArray[T](asScala.classTag)
 
   def toArrayCopy: Array[T] =
-    asScala.toArrayCopy(asScala.classTag.asInstanceOf[ClassTag[T]])
+    asScala.toArrayCopy(asScala.classTag)
 
   def isOriginalSlice: Boolean =
     asScala.isOriginalSlice

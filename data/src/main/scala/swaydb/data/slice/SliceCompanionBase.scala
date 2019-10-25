@@ -28,7 +28,10 @@ import swaydb.data.util.{ByteSizeOf, Bytez}
 
 import scala.reflect.ClassTag
 
-trait SliceCompanion {
+/**
+ * Base companion implementation for both Scala 2.12 and 2.13's [[Slice]] companion objects.
+ */
+trait SliceCompanionBase {
 
   val emptyBytes = Slice.create[Byte](0)
 
