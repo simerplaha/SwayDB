@@ -13,6 +13,7 @@ val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
 val monixVersion = "3.0.0"
 val zioVersion = "1.0.0-RC15"
+val catsEffectVersion = "2.0.0"
 val scalaJava8CompatVersion = "0.9.0"
 val junitJupiterVersion = "5.5.2"
 val scalaParallelCollectionsVersion = "0.2.0"
@@ -236,5 +237,15 @@ lazy val `swaydb-zio` =
     .settings(publishSettings)
     .settings(
       libraryDependencies += "dev.zio" %% "zio" % zioVersion
+    )
+    .dependsOn(data)
+
+lazy val `swaydb-cats-effect` =
+  project
+    .settings(name := "cats-effect")
+    .settings(commonSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.typelevel" %% "cats-effect" % catsEffectVersion
     )
     .dependsOn(data)
