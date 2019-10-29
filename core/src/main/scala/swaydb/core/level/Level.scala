@@ -462,7 +462,7 @@ private[core] case class Level(dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
-  private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] = {
+  private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
         inputSegments = segments,
@@ -483,7 +483,6 @@ private[core] case class Level(dirs: Seq[Dir],
             )
         } getOrElse IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
     }
-  }
 
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {

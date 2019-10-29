@@ -37,7 +37,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{ActorWire, IO, Scheduler}
+import swaydb.{ActorWire, Error, IO, Scheduler}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -172,11 +172,11 @@ private[core] object CoreInitializer extends LazyLogging {
       config.otherLevels.flatMap(executionContext)
 
   def initialiseCompaction(zero: LevelZero,
-                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[swaydb.Error.Level, Option[ActorWire[Compactor[ThrottleState], ThrottleState]]] =
+                           executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[Error.Level, ActorWire[Compactor[ThrottleState], ThrottleState]] =
     compactionStrategy.createAndListen(
       zero = zero,
       executionContexts = executionContexts
-    ) map (Some(_))
+    )
 
   def sendInitialWakeUp(compactor: ActorWire[Compactor[ThrottleState], ThrottleState]): Unit =
     compactor send {
@@ -297,53 +297,39 @@ private[core] object CoreInitializer extends LazyLogging {
               ) flatMap {
                 zero =>
                   val contexts = executionContexts(config)
-
                   initialiseCompaction(
                     zero = zero,
                     executionContexts = contexts
-                  ) flatMap {
+                  ) map {
                     compactor =>
-                      compactor map {
-                        compactor =>
+                      implicit val shutdownEC =
+                        contexts collectFirst {
+                          case CompactionExecutionContext.Create(executionContext) =>
+                            executionContext
+                        } getOrElse scala.concurrent.ExecutionContext.Implicits.global
 
-                          implicit val shutdownEC =
-                            contexts collectFirst {
-                              case CompactionExecutionContext.Create(executionContext) =>
-                                executionContext
-                            } getOrElse scala.concurrent.ExecutionContext.Implicits.global
+                      addShutdownHook(
+                        zero = zero,
+                        compactor = compactor
+                      )
 
-                          addShutdownHook(
-                            zero = zero,
-                            compactor = compactor
-                          )
+                      //trigger initial wakeUp.
+                      sendInitialWakeUp(compactor)
 
-                          //trigger initial wakeUp.
-                          sendInitialWakeUp(compactor)
-
-                          def onClose =
-                            IO.fromFuture[swaydb.Error.Close, Unit] {
-                              compactor
-                                .ask
-                                .flatMap {
-                                  (impl, state, actor) =>
-                                    impl.terminate(state, actor)
-                                }
+                      def onClose =
+                        IO.fromFuture[swaydb.Error.Close, Unit] {
+                          compactor
+                            .ask
+                            .flatMap {
+                              (impl, state, actor) =>
+                                impl.terminate(state, actor)
                             }
-
-                          IO {
-                            new Core[IO.ApiIO](
-                              zero = zero,
-                              onClose = onClose
-                            )
-                          }
-                      } getOrElse {
-                        IO {
-                          new Core[IO.ApiIO](
-                            zero = zero,
-                            onClose = IO.Defer.unit
-                          )
                         }
-                      }
+
+                      new Core[IO.ApiIO](
+                        zero = zero,
+                        onClose = onClose
+                      )
                   }
               }
           }

@@ -42,7 +42,7 @@ object LimitHashMap {
    * @param maxProbe Number of re-tries on hash collision.
    */
   def apply[K, V](limit: Int,
-                  maxProbe: Int): LimitHashMap[K, V] = {
+                  maxProbe: Int): LimitHashMap[K, V] =
     if (limit <= 0)
       new Empty[K, V]
     else if (maxProbe <= 0)
@@ -54,7 +54,6 @@ object LimitHashMap {
         array = new Array[(K, V)](limit),
         maxProbe = maxProbe
       )
-  }
 
   /**
    * @param limit Max number of key-values

@@ -447,10 +447,12 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     val compaction: Option[ActorWire[Compactor[ThrottleState], ThrottleState]] =
       if (throttleOn)
-        CoreInitializer.initialiseCompaction(
-          zero = level0,
-          executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared)
-        ) get
+        Some(
+          CoreInitializer.initialiseCompaction(
+            zero = level0,
+            executionContexts = CompactionExecutionContext.Create(TestExecutionContext.executionContext) +: List.fill(4)(CompactionExecutionContext.Shared)
+          ) get
+        )
       else
         None
 
