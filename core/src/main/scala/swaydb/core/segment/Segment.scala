@@ -63,7 +63,7 @@ private[core] object Segment extends LazyLogging {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
       val bloomFilterOption: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
-      val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+      val skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
 
       //Note: Transient key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.
@@ -73,7 +73,7 @@ private[core] object Segment extends LazyLogging {
           case (deadline, keyValue) =>
             SegmentBlock.writeIndexBlocks(
               keyValue = keyValue,
-              memoryMap = Some(skipList),
+              skipList = Some(skipList),
               hashIndex = None,
               binarySearchIndex = None,
               bloomFilter = bloomFilterOption,

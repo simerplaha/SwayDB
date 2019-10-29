@@ -223,7 +223,7 @@ private[core] object SegmentBlock {
       noCompressionHeaderSize
 
   def writeIndexBlocks(keyValue: Transient,
-                       memoryMap: Option[SkipList.Concurrent[Slice[Byte], Memory]],
+                       skipList: Option[SkipList[Slice[Byte], Memory]],
                        hashIndex: Option[HashIndexBlock.State],
                        binarySearchIndex: Option[BinarySearchIndexBlock.State],
                        bloomFilter: Option[BloomFilterBlock.State],
@@ -295,7 +295,7 @@ private[core] object SegmentBlock {
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(keyValue = range)
 
-              memoryMap foreach {
+              skipList foreach {
                 skipList =>
                   val fromKeyUnsliced = range.fromKey.unslice()
                   skipList.put(
@@ -315,7 +315,7 @@ private[core] object SegmentBlock {
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(keyValue = function)
 
-              memoryMap foreach {
+              skipList foreach {
                 skipList =>
                   val keyUnsliced = function.key.unslice()
                   skipList.put(
@@ -334,7 +334,7 @@ private[core] object SegmentBlock {
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(keyValue = pendingApply)
 
-              memoryMap foreach {
+              skipList foreach {
                 skipList =>
                   val keyUnsliced = pendingApply.key.unslice()
                   skipList.put(
@@ -350,7 +350,7 @@ private[core] object SegmentBlock {
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(keyValue = put)
 
-              memoryMap foreach {
+              skipList foreach {
                 skipList =>
                   val keyUnsliced = put.key.unslice()
                   val unslicedValue = put.value flatMap (_.toOptionUnsliced())
@@ -370,7 +370,7 @@ private[core] object SegmentBlock {
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(keyValue = remove)
 
-              memoryMap foreach {
+              skipList foreach {
                 skipList =>
                   val keyUnsliced = remove.key.unslice()
 
@@ -388,7 +388,7 @@ private[core] object SegmentBlock {
               if (hashIndex.isDefined || binarySearchIndex.isDefined || bloomFilter.isDefined)
                 writeOne(keyValue = update)
 
-              memoryMap foreach {
+              skipList foreach {
                 skipList =>
                   val keyUnsliced = update.key.unslice()
                   val unslicedValue = update.value flatMap (_.toOptionUnsliced())
@@ -430,7 +430,7 @@ private[core] object SegmentBlock {
     values.foreach(ValuesBlock.write(keyValue, _))
     writeIndexBlocks(
       keyValue = keyValue,
-      memoryMap = None,
+      skipList = None,
       hashIndex = hashIndex,
       bloomFilter = bloomFilter,
       binarySearchIndex = binarySearchIndex,

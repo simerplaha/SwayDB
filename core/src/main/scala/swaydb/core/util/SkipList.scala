@@ -29,8 +29,8 @@ import swaydb.data.slice.Slice
 import swaydb.{IO, Tagged}
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.Random
 
@@ -136,15 +136,58 @@ private[core] object SkipList {
   def concurrent[K, V]()(implicit ordering: KeyOrder[K]): SkipList.Concurrent[K, V] =
     new Concurrent[K, V](new ConcurrentSkipListMap[K, V](ordering))
 
+  def immutable[K, V]()(implicit ordering: KeyOrder[K]): SkipList.Immutable[K, V] =
+    new Immutable[K, V](new util.TreeMap[K, V](ordering))
+
   def minMax[K, V: ClassTag]()(implicit ordering: KeyOrder[K]): SkipList.MinMaxSkipList[K, V] =
     new MinMaxSkipList[K, V](None)
 
   def concurrent[K, V: ClassTag](limit: Int)(implicit ordering: KeyOrder[K]): SkipList.ConcurrentLimit[K, V] =
     new ConcurrentLimit[K, V](limit, concurrent[K, V]())
 
-  private[core] class Concurrent[K, V](@volatile var skipList: ConcurrentSkipListMap[K, V]) extends SkipList[K, V] {
+  private[core] class Immutable[K, V](private var skipper: util.TreeMap[K, V]) extends SkipListMapBase[K, V, util.TreeMap[K, V]](skipper, false) {
+    /**
+     * FIXME - [[SkipListMapBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
+     * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
+     * to [[SkipListMapBase]] without storing a reference of the original skipList in this instance.
+     */
+    skipper = null
 
-    def isConcurrent: Boolean = true
+    override def remove(key: K): Unit =
+      throw new IllegalAccessException("Immutable SkipList")
+
+    override def batch(batches: Iterable[SkipList.Batch[K, V]]): Unit =
+      throw new IllegalAccessException("Immutable SkipList")
+
+    override def put(keyValues: Iterable[(K, V)]): Unit =
+      throw new IllegalAccessException("Immutable SkipList")
+
+    // only single put is allowed. Used during the creation of this skipList.
+    // override def put(key: K, value: V): Unit
+
+    override def putIfAbsent(key: K, value: V): Boolean =
+      throw new IllegalAccessException("Immutable SkipList")
+
+    override def cloneInstance(skipList: util.TreeMap[K, V]): Immutable[K, V] =
+      throw new IllegalAccessException("Immutable SkipList")
+  }
+
+  private[core] class Concurrent[K, V](private var skipper: ConcurrentSkipListMap[K, V]) extends SkipListMapBase[K, V, ConcurrentSkipListMap[K, V]](skipper, true) {
+    /**
+     * FIXME - [[SkipListMapBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
+     * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
+     * to [[SkipListMapBase]] without storing a reference of the original skipList in this instance.
+     */
+    skipper = null
+
+    override def cloneInstance(skipList: ConcurrentSkipListMap[K, V]): Concurrent[K, V] =
+      new Concurrent(skipList.clone())
+  }
+
+  protected abstract class SkipListMapBase[K, V, SL <: util.NavigableMap[K, V]](@volatile var skipList: SL,
+                                                                                val isConcurrent: Boolean) extends SkipList[K, V] {
+
+    def cloneInstance(skipList: SL): SkipListMapBase[K, V, SL]
 
     override def get(key: K): Option[V] =
       Option(skipList.get(key))
@@ -161,7 +204,7 @@ private[core] object SkipList {
       val targetSkipList =
         if (batches.size > 1) {
           cloned = true
-          new Concurrent(skipList.clone())
+          this.cloneInstance(skipList)
         } else {
           this
         }
@@ -180,7 +223,7 @@ private[core] object SkipList {
       val targetSkipList =
         if (keyValues.size > 1) {
           cloned = true
-          skipList.clone()
+          this.cloneInstance(skipList).skipList
         } else {
           skipList
         }
@@ -198,7 +241,7 @@ private[core] object SkipList {
       skipList.put(key, value)
 
     def subMap(from: K, to: K): java.util.NavigableMap[K, V] =
-      skipList.subMap(from, to)
+      subMap(from = from, fromInclusive = true, to = to, toInclusive = false)
 
     def subMap(from: K, fromInclusive: Boolean, to: K, toInclusive: Boolean): java.util.NavigableMap[K, V] =
       skipList.subMap(from, fromInclusive, to, toInclusive)
@@ -276,7 +319,7 @@ private[core] object SkipList {
       skipList.values()
 
     def keys(): util.NavigableSet[K] =
-      skipList.keySet()
+      skipList.navigableKeySet()
 
     def take(count: Int): Slice[V] = {
       val slice = Slice.create(count)
