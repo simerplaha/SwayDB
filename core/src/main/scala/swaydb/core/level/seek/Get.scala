@@ -54,11 +54,15 @@ private[core] object Get {
                                   nextGetter: NextGetter,
                                   functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
 
-    import keyOrder._
-
     @tailrec
     def resolve(current: KeyValue.ReadOnly): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
       current match {
+        case current: KeyValue.ReadOnly.Put =>
+          if (current.hasTimeLeft())
+            IO.Defer(Some(current))
+          else
+            IO.Defer.none
+
         case current: KeyValue.ReadOnly.Remove =>
           if (current.hasTimeLeft())
             nextGetter
@@ -80,12 +84,6 @@ private[core] object Get {
                           None
                     }
               }
-          else
-            IO.Defer.none
-
-        case current: KeyValue.ReadOnly.Put =>
-          if (current.hasTimeLeft())
-            IO.Defer(Some(current))
           else
             IO.Defer.none
 
@@ -116,7 +114,7 @@ private[core] object Get {
         case current: KeyValue.ReadOnly.Range =>
           val currentValue =
             try
-              if (current.key equiv key)
+              if (keyOrder.equiv(current.key, key))
                 current.fetchFromOrElseRangeValueUnsafe
               else
                 current.fetchRangeValueUnsafe
