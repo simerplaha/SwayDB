@@ -334,7 +334,7 @@ private[core] case class LevelZero(path: Path,
     IO.Defer(functionStore.put(functionId, function))
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): Done =
-    if (!functionStore.exists(function))
+    if (functionStore.notExists(function))
       throw new IllegalArgumentException("Function does not exists in function store.")
     else
       assertRun(key) {
@@ -348,7 +348,7 @@ private[core] case class LevelZero(path: Path,
       }
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): Done =
-    if (!functionStore.exists(function))
+    if (functionStore.notExists(function))
       throw new IllegalArgumentException("Function does not exists in function store.")
     else
       assertRun(fromKey, toKey) {

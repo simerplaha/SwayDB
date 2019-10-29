@@ -21,7 +21,7 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO._
+import swaydb.IO.{zero, _}
 import swaydb.core.level.LevelRef
 import swaydb.core.level.compaction.{Compaction, Compactor}
 import swaydb.core.level.zero.LevelZero
@@ -201,14 +201,17 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
 
   def createCompactor(zero: LevelZero,
                       executionContexts: List[CompactionExecutionContext]): IO[swaydb.Error.Level, ActorWire[Compactor[ThrottleState], ThrottleState]] =
-    zero.nextLevel map {
-      nextLevel =>
+    zero.nextLevel match {
+      case Some(nextLevel) =>
         logger.debug(s"Level(${zero.levelNumber}): Creating actor.")
         ThrottleCompactor.createActor(
           levels = zero +: LevelRef.getLevels(nextLevel).filterNot(_.isTrash),
           executionContexts = executionContexts
         )
-    } getOrElse IO.Left(swaydb.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
+
+      case None =>
+        IO.Left(swaydb.Error.Fatal(new Exception("Compaction not started because there is no lower level.")))
+    }
 
   /**
    * Note: [[LevelZero.onNextMapCallback]] does not support thread-safe updates so it should be

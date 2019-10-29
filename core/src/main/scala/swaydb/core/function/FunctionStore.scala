@@ -32,6 +32,8 @@ trait FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
   def put(functionId: Slice[Byte], function: SwayFunction): Done
   def exists(functionId: Slice[Byte]): Boolean
+  def notExists(functionId: Slice[Byte]): Boolean =
+    !exists(functionId)
 }
 
 object FunctionStore {

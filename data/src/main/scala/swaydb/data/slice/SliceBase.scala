@@ -212,23 +212,41 @@ abstract class SliceBase[+T](array: Array[T],
     else
       slice(size - count, size - 1)
 
-  override def head: T =
-    headOption.get
+  //For performance. To avoid creation of Some wrappers
+  private[swaydb] def headNullable: T =
+    if (written <= 0)
+      null.asInstanceOf[T]
+    else
+      array(fromOffset)
 
-  override def last: T =
-    lastOption.get
+  //For performance. To avoid creation of Some wrappers
+  private[swaydb] def lastNullable: T =
+    if (written <= 0)
+      null.asInstanceOf[T]
+    else
+      array(fromOffset + written - 1)
+
+  override def head: T = {
+    val headValue = headNullable
+    if (headValue == null)
+      throw new Exception(s"Slice is empty. Written: $written")
+    else
+      headValue
+  }
+
+  override def last: T = {
+    val lastValue = lastNullable
+    if (lastValue == null)
+      throw new Exception(s"Slice is empty. Written: $written")
+    else
+      lastValue
+  }
 
   override def headOption: Option[T] =
-    if (written <= 0)
-      None
-    else
-      Some(array(fromOffset))
+    Option(headNullable)
 
   override def lastOption: Option[T] =
-    if (written <= 0)
-      None
-    else
-      Some(array(fromOffset + written - 1))
+    Option(lastNullable)
 
   def headSlice: Slice[T] = slice(0, 0)
 
