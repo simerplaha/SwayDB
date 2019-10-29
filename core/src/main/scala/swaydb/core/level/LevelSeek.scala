@@ -44,8 +44,8 @@ private[level] object LevelSeek {
     else
       LevelSeek.None
 
-  case class Some[T](segmentId: Long,
-                     result: T) extends LevelSeek[T] {
+  final case class Some[T](segmentId: Long,
+                           result: T) extends LevelSeek[T] {
     override def isDefined: Boolean = true
     override def isEmpty: Boolean = false
     override def map[B](f: T => B): LevelSeek[B] =
@@ -58,7 +58,7 @@ private[level] object LevelSeek {
       f(result)
   }
 
-  case object None extends LevelSeek[Nothing] {
+  final case object None extends LevelSeek[Nothing] {
     override def isDefined: Boolean = false
     override def isEmpty: Boolean = true
     override def map[B](f: Nothing => B): LevelSeek[B] = this

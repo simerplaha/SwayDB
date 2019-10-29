@@ -1151,9 +1151,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   def getFromNextLevel(key: Slice[Byte],
                        readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel
-      .map(_.get(key, readState))
-      .getOrElse(IO.Defer.none)
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel.get(key, readState)
+
+      case None =>
+        IO.Defer.none
+    }
 
   override def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     Get(key, readState)
@@ -1205,7 +1209,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def lowerFromNextLevel(key: Slice[Byte],
                                  readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
-    nextLevel.map(_.lower(key, readState)) getOrElse IO.Defer.none
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel.lower(key, readState)
+
+      case None =>
+        IO.Defer.none
+    }
 
   override def floor(key: Slice[Byte],
                      readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
@@ -1262,9 +1272,13 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private def higherInNextLevel(key: Slice[Byte],
                                 readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
-    nextLevel
-      .map(_.higher(key, readState))
-      .getOrElse(IO.Defer.none)
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel.higher(key, readState)
+
+      case None =>
+        IO.Defer.none
+    }
 
   def ceiling(key: Slice[Byte],
               readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
@@ -1321,19 +1335,21 @@ private[core] case class Level(dirs: Seq[Dir],
   override def head(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
     headKey(readState)
       .flatMap {
-        firstKey =>
-          firstKey
-            .map(ceiling(_, readState))
-            .getOrElse(IO.Defer.none)
+        case Some(firstKey) =>
+          ceiling(firstKey, readState)
+
+        case None =>
+          IO.Defer.none
       }
 
   override def last(readState: ReadState): IO.Defer[Error.Level, Option[ReadOnly.Put]] =
     lastKey(readState)
       .flatMap {
-        lastKey =>
-          lastKey
-            .map(floor(_, readState))
-            .getOrElse(IO.Defer.none)
+        case Some(lastKey) =>
+          floor(lastKey, readState)
+
+        case None =>
+          IO.Defer.none
       }
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
@@ -1351,9 +1367,13 @@ private[core] case class Level(dirs: Seq[Dir],
         }
 
     val countFromNextLevel =
-      nextLevel
-        .map(_.bloomFilterKeyValueCount)
-        .getOrElse(0)
+      nextLevel match {
+        case Some(nextLevel) =>
+          nextLevel.bloomFilterKeyValueCount
+
+        case None =>
+          0
+      }
 
     countFromThisLevel + countFromNextLevel
   }
@@ -1448,16 +1468,17 @@ private[core] case class Level(dirs: Seq[Dir],
       .take(size)
 
   override def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment]) =
-    nextLevel
-      .map {
-        nextLevel =>
-          Level.optimalSegmentsToPushForward(
-            level = self,
-            nextLevel = nextLevel,
-            take = take
-          )
-      }
-      .getOrElse(Level.emptySegmentsToPush)
+    nextLevel match {
+      case Some(nextLevel) =>
+        Level.optimalSegmentsToPushForward(
+          level = self,
+          nextLevel = nextLevel,
+          take = take
+        )
+
+      case None =>
+        Level.emptySegmentsToPush
+    }
 
   override def optimalSegmentsToCollapse(take: Int): Iterable[Segment] =
     Level.optimalSegmentsToCollapse(
@@ -1521,9 +1542,13 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.error("{}: Failed to close Segment file.", paths.head, failure.exception)
       }
 
-    nextLevel
-      .map(_.closeSegments())
-      .getOrElse(IO.unit)
+    nextLevel match {
+      case Some(nextLevel) =>
+        nextLevel.closeSegments()
+
+      case None =>
+        IO.unit
+    }
   }
 
   override val isTrash: Boolean =
