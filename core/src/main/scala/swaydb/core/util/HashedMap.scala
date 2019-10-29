@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 
-object HashedMap {
+private[swaydb] object HashedMap {
 
   def concurrent[K, V](initialCapacity: Option[Int] = None) =
     new Concurrent[K, V](

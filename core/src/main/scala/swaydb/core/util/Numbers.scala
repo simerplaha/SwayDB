@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-object Numbers {
+private[swaydb] object Numbers {
 
   def whenOrZero(condition: Boolean)(int: Int): Int =
     if (condition)

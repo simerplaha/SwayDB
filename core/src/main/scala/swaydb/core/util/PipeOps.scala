@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-object PipeOps {
+private[swaydb] object PipeOps {
 
   class Pipe[A](a: A) {
     def ==>[B](f: A => B) = f(a)

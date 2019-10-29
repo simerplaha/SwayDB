@@ -35,7 +35,7 @@ import scala.concurrent.Promise
  * This is used to ensure that multiple threads do not concurrent perform compaction on overlapping keys within
  * the same Level.
  */
-object ReserveRange extends LazyLogging {
+private[core] object ReserveRange extends LazyLogging {
 
   case class Range[T](from: Slice[Byte],
                       to: Slice[Byte],

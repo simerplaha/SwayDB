@@ -26,13 +26,13 @@ import scala.annotation.tailrec
  * overwrites older key-values if the space is occupied by an older
  * key-value.
  */
-sealed trait LimitHashMap[K, V] extends Iterable[(K, V)] {
+private[swaydb] sealed trait LimitHashMap[K, V] extends Iterable[(K, V)] {
   def limit: Int
   def put(key: K, value: V): Unit
   def get(key: K): Option[V]
 }
 
-object LimitHashMap {
+private[swaydb] object LimitHashMap {
 
   /**
    * A Limit HashMap that tries to insert newer key-values to empty slots

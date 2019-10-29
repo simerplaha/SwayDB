@@ -19,8 +19,8 @@
 
 package swaydb.core.util
 
-sealed trait Extension
-object Extension {
+private[swaydb] sealed trait Extension
+private[swaydb] object Extension {
   case object Log extends Extension {
     override def toString: String = "log"
   }

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
 
-object FiniteDurations {
+private[swaydb] object FiniteDurations {
 
   implicit class FiniteDurationImplicits(duration: Duration) {
     def asString: String = {

@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-object Options {
+private[swaydb] object Options {
 
   val `false`: Option[Boolean] = Some(false)
   val `true`: Option[Boolean] = Some(true)

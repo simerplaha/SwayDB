@@ -252,5 +252,5 @@ private[core] object MinMax {
   }
 }
 
-case class MinMax[T](min: T,
-                     max: Option[T])
+private[core] case class MinMax[T](min: T,
+                                   max: Option[T])

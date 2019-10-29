@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import scala.reflect.ClassTag
 
-object Collections {
+private[swaydb] object Collections {
 
   val emptyStringSeq = Seq.empty[String]
 

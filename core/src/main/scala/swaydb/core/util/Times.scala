@@ -25,7 +25,7 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-object Times {
+private[swaydb] object Times {
 
   implicit class OptionDeadlineImplicits(deadline: Option[Deadline]) {
     @inline def toNanos: Long =

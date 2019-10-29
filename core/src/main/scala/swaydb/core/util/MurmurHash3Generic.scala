@@ -27,7 +27,7 @@ import swaydb.data.slice.Slice
 /**
  * Credit: Original implementation https://github.com/alexandrnikitin/bloom-filter-scala.
  */
-object MurmurHash3Generic {
+private[swaydb] object MurmurHash3Generic {
 
   private val c1: Long = 0x87c37b91114253d5L
   private val c2: Long = 0x4cf5ad432745937fL
