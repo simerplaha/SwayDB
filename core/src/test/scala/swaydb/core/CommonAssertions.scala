@@ -1083,6 +1083,8 @@ object CommonAssertions {
   def assertLower(keyValues: Slice[Transient],
                   reader: Reader)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                   blockCacheMemorySweeper: Option[MemorySweeper.Block]) = {
+    implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+
     val blocks = readBlocksFromReader(reader.copy()).get
 
     @tailrec

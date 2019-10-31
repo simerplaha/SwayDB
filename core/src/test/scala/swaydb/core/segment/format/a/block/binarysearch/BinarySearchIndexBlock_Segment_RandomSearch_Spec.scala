@@ -143,13 +143,13 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
               ) match {
-                case BinarySearchGetResult.None(_) =>
+                case _: BinarySearchGetResult.None[_] =>
                   //all keys are known to exist.
                   fail("Expected success")
 
-                case BinarySearchGetResult.Some(value) =>
-                  value.key shouldBe keyValue.key
-                  Some(value)
+                case some : BinarySearchGetResult.Some[Persistent.Partial] =>
+                  some.value.key shouldBe keyValue.key
+                  Some(some.value)
               }
 
             //            found.value shouldBe keyValue
@@ -176,12 +176,12 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ) match {
-              case BinarySearchGetResult.None(lower) =>
+              case none: BinarySearchGetResult.None[Persistent.Partial] =>
                 //lower will always be the last known uncompressed key before the last key-value.
                 if (keyValues.size > 4)
                   keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed) foreach {
                     expectedLower =>
-                      lower.value.key shouldBe expectedLower.key
+                      none.lower.value.key shouldBe expectedLower.key
                   }
 
               case _: BinarySearchGetResult.Some[_] =>
@@ -202,9 +202,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ) match {
-              case BinarySearchGetResult.None(lower) =>
+              case none: BinarySearchGetResult.None[Persistent.Partial] =>
                 //lower is always empty since the test keys are lower than the actual key-values.
-                lower shouldBe empty
+                none.lower shouldBe empty
 
               case _: BinarySearchGetResult.Some[_] =>
                 fail("Didn't expect a math")

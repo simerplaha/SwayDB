@@ -238,7 +238,8 @@ private[core] object SegmentSearcher extends LazyLogging {
                   keyValueCount: => Int,
                   binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                          partialOrdering: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
     BinarySearchIndexBlock.searchLower(
       key = key,
       start = start,

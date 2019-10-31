@@ -30,19 +30,19 @@ private[block] sealed trait BinarySearchGetResult[+T] {
 private[block] object BinarySearchGetResult {
 
   val none: BinarySearchGetResult.None[Nothing] =
-    BinarySearchGetResult.None(Option.empty[Nothing])
+    new BinarySearchGetResult.None(Option.empty[Nothing])
 
   val noneIO =
     IO.Right[Nothing, BinarySearchGetResult[Nothing]](none)(IO.ExceptionHandler.Nothing)
 
-  case class None[T](lower: Option[T]) extends BinarySearchGetResult[T] {
+  class None[T](val lower: Option[T]) extends BinarySearchGetResult[T] {
     override val toOption: Option[T] = scala.None
 
     override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =
       IO.none
   }
 
-  case class Some[T](value: T) extends BinarySearchGetResult[T] {
+  class Some[T](val value: T) extends BinarySearchGetResult[T] {
     override def toOption: Option[T] = scala.Some(value)
 
     override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =
