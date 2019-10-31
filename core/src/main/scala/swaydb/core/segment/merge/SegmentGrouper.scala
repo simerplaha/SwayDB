@@ -27,6 +27,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.core.util.Options._
 
 import scala.collection.mutable.ListBuffer
 
@@ -63,9 +64,9 @@ private[merge] object SegmentGrouper extends LazyLogging {
 
             val currentSegmentSize =
               if (forInMemory)
-                currentBuffersLastKeyValues.map(_.stats.memorySegmentSize).getOrElse(0)
+                currentBuffersLastKeyValues.valueOrElse(_.stats.memorySegmentSize, 0)
               else
-                currentBuffersLastKeyValues.map(_.stats.segmentSize).getOrElse(0)
+                currentBuffersLastKeyValues.valueOrElse(_.stats.segmentSize, 0)
 
             val nextKeyValueWithUpdatedStats: Transient = keyValueToAdd(currentBuffersLastKeyValues)
 

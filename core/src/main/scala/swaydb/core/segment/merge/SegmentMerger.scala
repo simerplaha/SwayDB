@@ -267,6 +267,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 newKeyValue = newKeyValue,
                 oldKeyValue = oldKeyValue
               )
+
             add(mergedKeyValue)
             doMerge(newKeyValues.dropHead(), oldKeyValues.dropHead())
           }
