@@ -385,7 +385,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           val possibleValueWithoutHeader = possibleValueBytes.dropHead()
           val (possibleValue, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(possibleValueWithoutHeader)
           ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1} = reading now!")
-          if (possibleValue == 0 || possibleValueWithoutHeader.take(bytesRead).exists(_ == Bytes.zero)) {
+          if (possibleValue == 0 || possibleValueWithoutHeader.existsFor(bytesRead, _ == Bytes.zero)) {
             ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + hashIndex.headerSize} probe: $probe, sortedIndex: ${possibleValue - 1}, possibleValue: $possibleValue, containsZero: ${possibleValueWithoutHeader.take(bytesRead).exists(_ == 0)} = failed")
             doFind(probe + 1)
           } else {

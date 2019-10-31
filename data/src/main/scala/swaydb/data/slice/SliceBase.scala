@@ -195,7 +195,9 @@ abstract class SliceBase[+T](array: Array[T],
       slice(0, size - count - 1)
 
   override def take(count: Int): Slice[T] =
-    if (size == count)
+    if (count <= 0)
+      Slice.empty[T]
+    else if (size == count)
       selfSlice
     else
       slice(0, (size min count) - 1)
@@ -207,7 +209,9 @@ abstract class SliceBase[+T](array: Array[T],
       slice(fromIndex, fromIndex + count - 1)
 
   override def takeRight(count: Int): Slice[T] =
-    if (size == count)
+    if (count <= 0)
+      Slice.empty[T]
+    else if (size == count)
       selfSlice
     else
       slice(size - count, size - 1)
@@ -412,6 +416,9 @@ abstract class SliceBase[+T](array: Array[T],
     }
     filtered.close()
   }
+
+  def existsFor(forItems: Int, exists: T => Boolean): Boolean =
+    take(forItems).exists(exists)
 
   def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
     val slice = Slice.create[B](size + other.size)

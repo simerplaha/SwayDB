@@ -915,4 +915,18 @@ class SliceSpec extends WordSpec with Matchers {
       slice.lastOption shouldBe empty
     }
   }
+
+  "existsFor" in {
+    val slice = Slice.range(1, 100)
+
+    //[]
+    slice.existsFor(0, _ => fail("should not have run")) shouldBe false
+    slice.existsFor(-1, _ => fail("should not have run")) shouldBe false
+    slice.existsFor(Int.MinValue, _ => fail("should not have run")) shouldBe false
+
+    slice.existsFor(1, _ == 1) shouldBe true
+    slice.existsFor(9, _ % 10 == 0) shouldBe false
+    slice.existsFor(10, _ % 10 == 0) shouldBe true
+    slice.existsFor(20, _ == 20) shouldBe true
+  }
 }
