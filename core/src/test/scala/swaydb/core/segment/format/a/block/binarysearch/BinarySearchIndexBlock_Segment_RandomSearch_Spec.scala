@@ -37,6 +37,7 @@ import scala.util.Try
 class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
   implicit val blockCacheMemorySweeper = TestSweeper.memorySweeperBlock
 

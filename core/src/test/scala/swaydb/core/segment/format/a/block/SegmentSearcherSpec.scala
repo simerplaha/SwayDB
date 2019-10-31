@@ -40,6 +40,7 @@ import scala.util.Try
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))
   implicit val limiter = TestSweeper.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 

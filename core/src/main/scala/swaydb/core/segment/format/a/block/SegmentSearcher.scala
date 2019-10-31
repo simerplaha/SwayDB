@@ -51,7 +51,8 @@ private[core] object SegmentSearcher extends LazyLogging {
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              hasRange: Boolean,
              keyValueCount: => Int,
-             readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+             readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                   partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
     when(start.isDefined && readState.isSequential(path))(start) match {
       case Some(startFrom) =>
         //        seqSeeks += 1
@@ -128,7 +129,8 @@ private[core] object SegmentSearcher extends LazyLogging {
                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                       hasRange: Boolean,
-                      keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+                      keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                             partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
     hashIndexReader match {
       case Some(hashIndexReader) =>
         //        hashIndexSeeks += 1
@@ -150,13 +152,13 @@ private[core] object SegmentSearcher extends LazyLogging {
                 if (none.lower.isEmpty || start.isEmpty)
                   start orElse none.lower
                 else
-                  MinMax.maxFavourLeft(start, none.lower)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
+                  MinMax.maxFavourLeft(start, none.lower)
 
               val highest =
                 if (none.higher.isEmpty || end.isEmpty)
                   none.higher orElse end
                 else
-                  MinMax.minFavourLeft(end, none.higher)(Ordering.by[Persistent.Partial, Slice[Byte]](_.key))
+                  MinMax.minFavourLeft(end, none.higher)
 
               BinarySearchIndexBlock.search(
                 key = key,
@@ -192,7 +194,8 @@ private[core] object SegmentSearcher extends LazyLogging {
                    keyValueCount: => Int,
                    binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
     start match {
       case Some(startFrom) =>
         val found =

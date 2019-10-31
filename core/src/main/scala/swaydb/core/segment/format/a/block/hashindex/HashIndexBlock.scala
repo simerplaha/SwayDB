@@ -580,7 +580,8 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): HashIndexSearchResult = {
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): HashIndexSearchResult = {
     val matcher = KeyMatcher.Get.MatchOnly(key)
 
     val collisions = ListBuffer.empty[Persistent.Partial]
@@ -697,13 +698,13 @@ private[core] object HashIndexBlock extends LazyLogging {
             if (lower.size <= 1)
               lower.headOption
             else
-              lower.sorted(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)).lastOption
+              lower.sorted.lastOption
 
           val highest =
             if (higher.size <= 1)
               higher.headOption
             else
-              higher.sorted(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)).headOption
+              higher.sorted.headOption
 
           //println(s"Hash index's lowest 2: ${nearest.key.readInt()}")
           HashIndexSearchResult.None(lowest, highest)

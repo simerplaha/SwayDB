@@ -23,7 +23,7 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Transient
+import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{Block, SortedIndexBlock}
@@ -38,6 +38,7 @@ import scala.collection.mutable.ListBuffer
 class HashIndexBlockSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
   val keyValueCount = 10000
 

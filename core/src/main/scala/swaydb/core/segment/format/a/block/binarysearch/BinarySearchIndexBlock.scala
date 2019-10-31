@@ -319,8 +319,7 @@ private[core] object BinarySearchIndexBlock {
   //  var sameLower = 0
   //  var greaterLower = 0
 
-  private[block] def binarySearch(context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchGetResult[Persistent.Partial] = {
-    implicit val order: Ordering[Persistent.Partial] = Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(ordering)
+  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] = {
 
     @tailrec
     def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] = {
@@ -449,7 +448,8 @@ private[core] object BinarySearchIndexBlock {
              keyValuesCount: => Int,
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchGetResult[Persistent.Partial] =
+             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
+                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable) {
       //      binarySeeks += 1
       binarySearch(
@@ -554,7 +554,8 @@ private[core] object BinarySearchIndexBlock {
                    keyValuesCount: => Int,
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] =
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
+                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
     when(start.exists(start => ordering.equiv(start.key, key)))(start) match {
       case Some(start) =>
         Some(

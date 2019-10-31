@@ -33,6 +33,7 @@ import swaydb.data.slice.Slice
 class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
   "binarySearch" should {
 
