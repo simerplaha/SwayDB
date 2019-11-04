@@ -31,7 +31,35 @@ import scala.reflect.ClassTag
  */
 object Slice extends SliceCompanionBase {
 
-  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Slice] { self =>
+  class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
+    //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
+    protected var slice: Slice[A] = Slice.create[A]((sizeHint * 2) max 100)
+
+    def extendSlice(by: Int) = {
+      val extendedSlice = Slice.create[A](slice.size * by)
+      extendedSlice addAll slice
+      slice = extendedSlice
+    }
+
+    @tailrec
+    final override def addOne(x: A): this.type =
+      try {
+        slice add x
+        this
+      } catch {
+        case _: ArrayIndexOutOfBoundsException => //Extend slice.
+          extendSlice(by = 2)
+          addOne(x)
+      }
+
+    def clear() =
+      slice = Slice.empty[A]
+
+    def result: Slice[A] =
+      slice.close()
+  }
+
+  class SliceFactory(sizeHint: Int) extends ClassTagIterableFactory[Slice] {
 
     def from[A](source: IterableOnce[A])(implicit evidence: ClassTag[A]): Slice[A] =
       (newBuilder[A] ++= source).result()
@@ -40,33 +68,7 @@ object Slice extends SliceCompanionBase {
       Slice.create[A](sizeHint)
 
     def newBuilder[A](implicit evidence: ClassTag[A]): mutable.Builder[A, Slice[A]] =
-      new mutable.Builder[A, Slice[A]] {
-        //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
-        protected var slice: Slice[A] = Slice.create[A]((self.sizeHint * 2) max 100)
-
-        def extendSlice(by: Int) = {
-          val extendedSlice = Slice.create[A](slice.size * by)
-          extendedSlice addAll slice
-          slice = extendedSlice
-        }
-
-        @tailrec
-        override def addOne(x: A): this.type =
-          try {
-            slice add x
-            this
-          } catch {
-            case _: ArrayIndexOutOfBoundsException => //Extend slice.
-              extendSlice(by = 2)
-              addOne(x)
-          }
-
-        def clear() =
-          slice = Slice.empty[A]
-
-        def result: Slice[A] =
-          slice.close()
-      }
+      new SliceBuilder[A](sizeHint)
   }
 }
 

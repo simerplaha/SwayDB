@@ -22,7 +22,7 @@ package swaydb.data.slice
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
-import swaydb.data.MaxKey
+import swaydb.data.{MaxKey, slice}
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.{ByteSizeOf, Bytez}
 
@@ -371,4 +371,6 @@ trait SliceCompanionBase {
     }
   }
 
+  def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
+    new slice.Slice.SliceBuilder[T](sizeHint)
 }
