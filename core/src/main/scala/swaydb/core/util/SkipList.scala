@@ -145,6 +145,38 @@ private[core] object SkipList {
   def concurrent[K, V: ClassTag](limit: Int)(implicit ordering: KeyOrder[K]): SkipList.ConcurrentLimit[K, V] =
     new ConcurrentLimit[K, V](limit, concurrent[K, V]())
 
+  def immutableBuilder[K, V](getKey: V => K)(implicit ordering: KeyOrder[K]): mutable.Builder[V, Immutable[K, V]] =
+    new mutable.Builder[V, SkipList.Immutable[K, V]] {
+      val skipList = immutable[K, V]()
+
+      override def addOne(elem: V): this.type = {
+        skipList.put(getKey(elem), elem)
+        this
+      }
+
+      override def result(): Immutable[K, V] =
+        skipList
+
+      override def clear(): Unit =
+        skipList.clear()
+    }
+
+  def concurrentBuilder[K, V](getKey: V => K)(implicit ordering: KeyOrder[K]): mutable.Builder[V, Concurrent[K, V]] =
+    new mutable.Builder[V, SkipList.Concurrent[K, V]] {
+      val skipList = concurrent[K, V]()
+
+      override def addOne(elem: V): this.type = {
+        skipList.put(getKey(elem), elem)
+        this
+      }
+
+      override def result(): Concurrent[K, V] =
+        skipList
+
+      override def clear(): Unit =
+        skipList.clear()
+    }
+
   private[core] class Immutable[K, V](private var skipper: util.TreeMap[K, V]) extends SkipListMapBase[K, V, util.TreeMap[K, V]](skipper, false) {
     /**
      * FIXME - [[SkipListMapBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
