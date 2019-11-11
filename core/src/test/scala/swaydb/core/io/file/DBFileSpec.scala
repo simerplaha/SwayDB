@@ -44,28 +44,14 @@ class DBFileSpec extends TestBase with MockFactory {
       val testFile = randomFilePath
       val bytes = Slice(randomBytes())
 
-      DBFile.write(testFile, bytes).runRandomIO.value
+      val path = DBFile.write(testFile, bytes)
 
-      DBFile.mmapRead(
-        path = testFile,
-        ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        autoClose = false,
-        blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
-        file =>
-          file.readAll.runRandomIO.value shouldBe bytes
-          file.close().runRandomIO.value
-      }
+      path shouldBe testFile
 
-      DBFile.channelRead(
-        path = testFile,
-        ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        autoClose = false,
-        blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
-        file =>
-          file.readAll.runRandomIO.value shouldBe bytes
-          file.close().runRandomIO.value
+      createAllFilesReaders(path) foreach {
+        reader =>
+          reader.file.readAll shouldBe bytes
+          reader.file.close()
       }
     }
 
@@ -73,17 +59,12 @@ class DBFileSpec extends TestBase with MockFactory {
       val testFile = randomFilePath
       val bytes = Slice.emptyBytes
 
-      DBFile.write(testFile, bytes).runRandomIO.value
+      DBFile.write(testFile, bytes)
 
-      DBFile.mmapRead(
-        path = testFile,
-        ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        autoClose = false,
-        blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
-        file =>
-          file.readAll.runRandomIO.value shouldBe empty
-          file.close().runRandomIO.value
+      createAllFilesReaders(testFile) foreach {
+        reader =>
+          reader.file.readAll shouldBe bytes
+          reader.file.close()
       }
 
       Effect.exists(testFile) shouldBe true
@@ -105,8 +86,8 @@ class DBFileSpec extends TestBase with MockFactory {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      DBFile.write(testFile, bytes).runRandomIO.value
-      IO(DBFile.write(testFile, bytes)).left.runRandomIO.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
+      DBFile.write(testFile, bytes)
+      IO(DBFile.write(testFile, bytes)).left.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
       //file remains unchanged
 
       DBFile.channelRead(
@@ -114,10 +95,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = false,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe bytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe bytes
+          file.close()
       }
     }
   }
@@ -143,39 +124,39 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
       //above onOpen is also invoked
       file.isFileDefined shouldBe true //file is set
       file.isOpen shouldBe true
-      file.append(bytes).runRandomIO.value
+      file.append(bytes)
 
       IO(file.readAll).left.value shouldBe a[NonReadableChannelException]
       IO(file.read(0, 1)).left.value shouldBe a[NonReadableChannelException]
       IO(file.get(0)).left.value shouldBe a[NonReadableChannelException]
 
       //closing the channel and reopening it will open it in read only mode
-      file.close().runRandomIO.value
+      file.close()
       file.isFileDefined shouldBe false
       file.isOpen shouldBe false
-      file.readAll.runRandomIO.value shouldBe bytes //read
+      file.readAll shouldBe bytes //read
       //above onOpen is also invoked
       file.isFileDefined shouldBe true
       file.isOpen shouldBe true
       //cannot write to a reopened file channel. Ones closed! It cannot be reopened for writing.
       IO(file.append(bytes)).left.value shouldBe a[NonWritableChannelException]
 
-      file.close().runRandomIO.value
+      file.close()
 
       DBFile.channelRead(
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe bytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe bytes
+          file.close()
       }
       //above onOpen is also invoked
     }
@@ -194,11 +175,11 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
       channelFile.append(bytes).runRandomIO.get
       IO(Effect.readAll(testFile)).value shouldBe bytes
-      channelFile.close().runRandomIO.value
+      channelFile.close()
     }
 
     "fail initialisation if the file already exists" in {
@@ -209,10 +190,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
           file.existsOnDisk shouldBe true
-          file.close().runRandomIO.value
+          file.close()
       }
       //creating the same file again should fail
       IO {
@@ -230,10 +211,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe empty
-          file.close().runRandomIO.value
+          file.readAll shouldBe empty
+          file.close()
       }
     }
   }
@@ -252,20 +233,20 @@ class DBFileSpec extends TestBase with MockFactory {
       //          ()
       //      } repeat 3.times
 
-      Effect.write(testFile, bytes).runRandomIO.value
+      Effect.write(testFile, bytes)
 
       val readFile = DBFile.channelRead(
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value
+      )
 
       //reading a file should load the file lazily
       readFile.isFileDefined shouldBe false
       readFile.isOpen shouldBe false
       //reading the opens the file
-      readFile.readAll.runRandomIO.value shouldBe bytes
+      readFile.readAll shouldBe bytes
       //file is now opened
       readFile.isFileDefined shouldBe true
       readFile.isOpen shouldBe true
@@ -278,19 +259,19 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value.readAll.runRandomIO.value shouldBe bytes
+      ).readAll shouldBe bytes
 
-      readFile.close.runRandomIO.value
+      readFile.close
       readFile.isOpen shouldBe false
       readFile.isFileDefined shouldBe false
       //read bytes one by one
       (0 until bytes.size) foreach {
         index =>
-          readFile.get(index).runRandomIO.value shouldBe bytes(index)
+          readFile.get(index) shouldBe bytes(index)
       }
       readFile.isOpen shouldBe true
 
-      readFile.close.runRandomIO.value
+      readFile.close
     }
 
     "fail initialisation if the file does not exists" in {
@@ -326,36 +307,36 @@ class DBFileSpec extends TestBase with MockFactory {
           blockCacheFileId = idGenerator.nextID,
           autoClose = true,
           bytes = bytes
-        ).runRandomIO.value
+        )
 
-      file.readAll.runRandomIO.value shouldBe bytes
-      file.isFull.runRandomIO.value shouldBe true
+      file.readAll shouldBe bytes
+      file.isFull shouldBe true
 
       //overflow bytes
       val bytes2 = Slice("bytes two".getBytes())
-      file.append(bytes2).runRandomIO.value
-      file.isFull.runRandomIO.value shouldBe true //complete fit - no extra bytes
+      file.append(bytes2)
+      file.isFull shouldBe true //complete fit - no extra bytes
 
       //overflow bytes
       val bytes3 = Slice("bytes three".getBytes())
-      file.append(bytes3).runRandomIO.value
-      file.isFull.runRandomIO.value shouldBe true //complete fit - no extra bytes
+      file.append(bytes3)
+      file.isFull shouldBe true //complete fit - no extra bytes
 
       val expectedBytes = bytes ++ bytes2 ++ bytes3
 
-      file.readAll.runRandomIO.value shouldBe expectedBytes
+      file.readAll shouldBe expectedBytes
 
       //close buffer
-      file.close().runRandomIO.value
+      file.close()
       file.isFileDefined shouldBe false
       file.isOpen shouldBe false
-      file.readAll.runRandomIO.value shouldBe expectedBytes
+      file.readAll shouldBe expectedBytes
       file.isFileDefined shouldBe true
       file.isOpen shouldBe true
 
       //writing fails since the file is now readonly
       IO(file.append(bytes)).left.value shouldBe a[ReadOnlyBufferException]
-      file.close().runRandomIO.value
+      file.close()
 
       //open read only buffer
       DBFile.mmapRead(
@@ -363,10 +344,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe expectedBytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe expectedBytes
+          file.close()
       }
     }
 
@@ -399,7 +380,7 @@ class DBFileSpec extends TestBase with MockFactory {
         autoClose = true,
         blockCacheFileId = idGenerator.nextID,
         bytes = bytes
-      ).runRandomIO.value.close.runRandomIO.value
+      ).close
 
       IO {
         DBFile.mmapWriteAndRead(
@@ -417,10 +398,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe bytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe bytes
+          file.close()
       }
     }
   }
@@ -430,7 +411,7 @@ class DBFileSpec extends TestBase with MockFactory {
       val testFile = randomFilePath
       val bytes = Slice("bytes one".getBytes())
 
-      DBFile.write(testFile, bytes).runRandomIO.value
+      DBFile.write(testFile, bytes)
 
       val readFile =
         DBFile.mmapRead(
@@ -438,12 +419,12 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           autoClose = true,
           blockCacheFileId = idGenerator.nextID
-        ).runRandomIO.value
+        )
 
       def doRead = {
         readFile.isFileDefined shouldBe false //reading a file should load the file lazily
         readFile.isOpen shouldBe false
-        readFile.readAll.runRandomIO.value shouldBe bytes
+        readFile.readAll shouldBe bytes
         readFile.isFileDefined shouldBe true
         readFile.isOpen shouldBe true
       }
@@ -451,12 +432,12 @@ class DBFileSpec extends TestBase with MockFactory {
       doRead
 
       //close and read again
-      readFile.close.runRandomIO.value
+      readFile.close
       doRead
 
       IO(DBFile.write(testFile, bytes)).left.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
 
-      readFile.close.runRandomIO.value
+      readFile.close
     }
 
     "fail to read if the file does not exists" in {
@@ -486,25 +467,25 @@ class DBFileSpec extends TestBase with MockFactory {
           bufferSize = bytes1.size + bytes2.size + bytes3.size,
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes1).runRandomIO.value
-      file.isFull.runRandomIO.value shouldBe false
-      file.append(bytes2).runRandomIO.value
-      file.isFull.runRandomIO.value shouldBe false
-      file.append(bytes3).runRandomIO.value
-      file.isFull.runRandomIO.value shouldBe true
-      file.append(bytes4).runRandomIO.value //overflow write, buffer gets extended
-      file.isFull.runRandomIO.value shouldBe true
+      file.append(bytes1)
+      file.isFull shouldBe false
+      file.append(bytes2)
+      file.isFull shouldBe false
+      file.append(bytes3)
+      file.isFull shouldBe true
+      file.append(bytes4) //overflow write, buffer gets extended
+      file.isFull shouldBe true
 
-      file.readAll.runRandomIO.value shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
+      file.readAll shouldBe (bytes1 ++ bytes2 ++ bytes3 ++ bytes4)
 
-      file.close().runRandomIO.value
+      file.close()
     }
 
     "fail to initialise if it already exists" in {
       val testFile = randomFilePath
-      DBFile.write(path = testFile, bytes = Slice(randomBytes())).runRandomIO.value
+      DBFile.write(path = testFile, bytes = Slice(randomBytes()))
 
       IO {
         DBFile.mmapInit(
@@ -537,20 +518,20 @@ class DBFileSpec extends TestBase with MockFactory {
     //        ioStrategy = randomIOStrategy(cacheOnAccess = true),
     //        blockCacheFileId = idGenerator.nextID,
     //        autoClose = true
-    //      ).runRandomIO.value
+    //      )
     //
-    //      file.append(bytes).runRandomIO.value
+    //      file.append(bytes)
     //      file.isFileDefined shouldBe true
     //
     //      def close = {
-    //        file.close().runRandomIO.value
+    //        file.close()
     //        file.isOpen shouldBe false
     //        file.isFileDefined shouldBe false
     //        file.existsOnDisk shouldBe true
     //      }
     //
     //      def open = {
-    //        file.read(0, bytes.size).runRandomIO.value shouldBe bytes
+    //        file.read(0, bytes.size) shouldBe bytes
     //        file.isOpen shouldBe true
     //        file.isFileDefined shouldBe true
     //      }
@@ -580,19 +561,19 @@ class DBFileSpec extends TestBase with MockFactory {
           bufferSize = bytes.size,
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes).runRandomIO.value
+      file.append(bytes)
 
       def close = {
-        file.close().runRandomIO.value
+        file.close()
         file.isOpen shouldBe false
         file.isFileDefined shouldBe false
         file.existsOnDisk shouldBe true
       }
 
       def open = {
-        file.read(0, bytes.size).runRandomIO.value shouldBe bytes
+        file.read(0, bytes.size) shouldBe bytes
         file.isOpen shouldBe true
         file.isFileDefined shouldBe true
       }
@@ -623,15 +604,15 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes).runRandomIO.value
-      file.close().runRandomIO.value
+      file.append(bytes)
+      file.close()
 
       IO(file.append(bytes)).left.value shouldBe a[NonWritableChannelException]
-      file.readAll.runRandomIO.value shouldBe bytes
+      file.readAll shouldBe bytes
 
-      file.close().runRandomIO.value
+      file.close()
     }
 
     "close that MMAPFile and reopening the file should open it in read only mode" in {
@@ -645,15 +626,15 @@ class DBFileSpec extends TestBase with MockFactory {
           bufferSize = bytes.size,
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes).runRandomIO.value
-      file.close().runRandomIO.value
+      file.append(bytes)
+      file.close()
 
       IO(file.append(bytes)).left.value shouldBe a[ReadOnlyBufferException]
-      file.readAll.runRandomIO.value shouldBe bytes
+      file.readAll shouldBe bytes
 
-      file.close().runRandomIO.value
+      file.close()
     }
   }
 
@@ -668,14 +649,14 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes(0)).runRandomIO.value
-      file.append(bytes(1)).runRandomIO.value
-      file.append(bytes(2)).runRandomIO.value
+      file.append(bytes(0))
+      file.append(bytes(1))
+      file.append(bytes(2))
       IO(file.read(0, 1)).isLeft shouldBe true //not open for read
 
-      file.close().runRandomIO.value
+      file.close()
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
@@ -684,23 +665,23 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe expectedAllBytes
+          file.close()
       }
       DBFile.mmapRead(
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe expectedAllBytes
+          file.close()
       }
 
-      file.close().runRandomIO.value
+      file.close()
     }
 
     "append bytes to the end of the MMAP file" in {
@@ -715,18 +696,18 @@ class DBFileSpec extends TestBase with MockFactory {
           bufferSize = allBytesSize,
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes(0)).runRandomIO.value
-      file.append(bytes(1)).runRandomIO.value
-      file.append(bytes(2)).runRandomIO.value
-      file.get(0).runRandomIO.value shouldBe bytes.head.head
-      file.get(allBytesSize - 1).runRandomIO.value shouldBe bytes.last.last
+      file.append(bytes(0))
+      file.append(bytes(1))
+      file.append(bytes(2))
+      file.get(0) shouldBe bytes.head.head
+      file.get(allBytesSize - 1) shouldBe bytes.last.last
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      file.readAll.runRandomIO.value shouldBe expectedAllBytes
-      file.close().runRandomIO.value //close
+      file.readAll shouldBe expectedAllBytes
+      file.close() //close
 
       //reopen
       DBFile.mmapRead(
@@ -734,10 +715,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe expectedAllBytes
+          file.close()
       }
 
       DBFile.channelRead(
@@ -745,10 +726,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe expectedAllBytes
+          file.close()
       }
     }
 
@@ -763,20 +744,20 @@ class DBFileSpec extends TestBase with MockFactory {
         bufferSize = bytes.head.size,
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value
+      )
 
-      file.append(bytes(0)).runRandomIO.value
-      file.append(bytes(1)).runRandomIO.value
-      file.append(bytes(2)).runRandomIO.value
-      file.append(bytes(3)).runRandomIO.value
-      file.append(bytes(4)).runRandomIO.value
-      file.get(0).runRandomIO.value shouldBe bytes.head.head
-      file.get(allBytesSize - 1).runRandomIO.value shouldBe bytes.last.last
+      file.append(bytes(0))
+      file.append(bytes(1))
+      file.append(bytes(2))
+      file.append(bytes(3))
+      file.append(bytes(4))
+      file.get(0) shouldBe bytes.head.head
+      file.get(allBytesSize - 1) shouldBe bytes.last.last
 
       val expectedAllBytes = bytes.foldLeft(List.empty[Byte])(_ ++ _).toSlice
 
-      file.readAll.runRandomIO.value shouldBe expectedAllBytes
-      file.close().runRandomIO.value //close
+      file.readAll shouldBe expectedAllBytes
+      file.close() //close
 
       //reopen
       DBFile.mmapRead(
@@ -784,10 +765,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe expectedAllBytes
+          file.close()
       }
 
       DBFile.channelRead(
@@ -795,10 +776,10 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe expectedAllBytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe expectedAllBytes
+          file.close()
       }
     }
 
@@ -808,21 +789,21 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value
+      )
 
-      file.append(Slice.emptyBytes).runRandomIO.value
+      file.append(Slice.emptyBytes)
 
       DBFile.channelRead(
         path = file.path,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe empty
-          file.close().runRandomIO.value
+          file.readAll shouldBe empty
+          file.close()
       }
-      file.close().runRandomIO.value
+      file.close()
     }
 
     "not fail when appending empty bytes to MMAPFile" in {
@@ -832,21 +813,21 @@ class DBFileSpec extends TestBase with MockFactory {
         bufferSize = 100,
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value
+      )
 
-      file.append(Slice.emptyBytes).runRandomIO.value
-      file.readAll.runRandomIO.value shouldBe Slice.fill(file.fileSize.toInt)(0)
-      file.close().runRandomIO.value
+      file.append(Slice.emptyBytes)
+      file.readAll shouldBe Slice.fill(file.fileSize.toInt)(0)
+      file.close()
 
       DBFile.mmapRead(
         path = file.path,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file2 =>
-          file2.readAll.runRandomIO.value shouldBe Slice.fill(file.fileSize.toInt)(0)
-          file2.close.runRandomIO.value
+          file2.readAll shouldBe Slice.fill(file.fileSize.toInt)(0)
+          file2.close
       }
     }
   }
@@ -861,30 +842,30 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value
+      )
 
-      file.append(bytes).runRandomIO.value
+      file.append(bytes)
       IO(file.read(0, 1)).isLeft shouldBe true //not open for read
 
-      file.close().runRandomIO.value
+      file.close()
 
       val readFile = DBFile.channelRead(
         path = testFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value
+      )
 
       (0 until bytes.size) foreach {
         index =>
-          readFile.read(index, 1).runRandomIO.value should contain only bytes(index)
+          readFile.read(index, 1) should contain only bytes(index)
       }
 
-      readFile.read(0, bytes.size / 2).runRandomIO.value.toList should contain theSameElementsInOrderAs bytes.dropRight(bytes.size / 2).toList
-      readFile.read(bytes.size / 2, bytes.size / 2).runRandomIO.value.toList should contain theSameElementsInOrderAs bytes.drop(bytes.size / 2).toList
-//      readFile.get(1000) shouldBe 0
+      readFile.read(0, bytes.size / 2).toList should contain theSameElementsInOrderAs bytes.dropRight(bytes.size / 2).toList
+      readFile.read(bytes.size / 2, bytes.size / 2).toList should contain theSameElementsInOrderAs bytes.drop(bytes.size / 2).toList
+      //      readFile.get(1000) shouldBe 0
 
-      readFile.close.runRandomIO.value
+      readFile.close
     }
   }
 
@@ -897,11 +878,11 @@ class DBFileSpec extends TestBase with MockFactory {
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         blockCacheFileId = idGenerator.nextID,
         autoClose = true
-      ).runRandomIO.value
+      )
 
-      file.append(bytes).runRandomIO.value
+      file.append(bytes)
 
-      file.delete().runRandomIO.value
+      file.delete()
       file.existsOnDisk shouldBe false
       file.isOpen shouldBe false
       file.isFileDefined shouldBe false
@@ -915,11 +896,11 @@ class DBFileSpec extends TestBase with MockFactory {
           autoClose = true,
           blockCacheFileId = idGenerator.nextID,
           bytes = randomBytesSlice()
-        ).runRandomIO.value
+        )
 
-      file.close().runRandomIO.value
+      file.close()
 
-      file.delete().runRandomIO.value
+      file.delete()
       file.existsOnDisk shouldBe false
       file.isOpen shouldBe false
       file.isFileDefined shouldBe false
@@ -936,25 +917,25 @@ class DBFileSpec extends TestBase with MockFactory {
           ioStrategy = randomIOStrategy(cacheOnAccess = true),
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes).runRandomIO.value
+      file.append(bytes)
 
       val targetFile = randomFilePath
-      file.copyTo(targetFile).runRandomIO.value shouldBe targetFile
+      file.copyTo(targetFile) shouldBe targetFile
 
       DBFile.channelRead(
         path = targetFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe bytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe bytes
+          file.close()
       }
 
-      file.close().runRandomIO.value
+      file.close()
     }
 
     "copy a MMAPFile" in {
@@ -967,24 +948,24 @@ class DBFileSpec extends TestBase with MockFactory {
           bufferSize = bytes.size,
           blockCacheFileId = idGenerator.nextID,
           autoClose = true
-        ).runRandomIO.value
+        )
 
-      file.append(bytes).runRandomIO.value
-      file.isFull.runRandomIO.value shouldBe true
-      file.close().runRandomIO.value
+      file.append(bytes)
+      file.isFull shouldBe true
+      file.close()
 
       val targetFile = randomFilePath
-      file.copyTo(targetFile).runRandomIO.value shouldBe targetFile
+      file.copyTo(targetFile) shouldBe targetFile
 
       DBFile.channelRead(
         path = targetFile,
         ioStrategy = randomIOStrategy(cacheOnAccess = true),
         autoClose = true,
         blockCacheFileId = idGenerator.nextID
-      ).runRandomIO.value ==> {
+      ) ==> {
         file =>
-          file.readAll.runRandomIO.value shouldBe bytes
-          file.close().runRandomIO.value
+          file.readAll shouldBe bytes
+          file.close()
       }
     }
   }

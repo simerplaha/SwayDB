@@ -363,12 +363,17 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     Effect.write(testDir.resolve(nextSegmentId), bytes).runRandomIO.right.value
 
   def createRandomFileReader(path: Path): FileReader = {
-    implicit val limiter = fileSweeper
     if (Random.nextBoolean())
       createMMAPFileReader(path)
     else
       createFileChannelFileReader(path)
   }
+
+  def createAllFilesReaders(path: Path): Seq[FileReader] =
+    Seq(
+      createMMAPFileReader(path),
+      createFileChannelFileReader(path)
+    )
 
   def createMMAPFileReader(bytes: Slice[Byte]): FileReader =
     createMMAPFileReader(createFile(bytes))
@@ -377,7 +382,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax
     new FileReader(
-      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      DBFile.mmapRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
     )
   }
 
@@ -388,7 +393,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax
     new FileReader(
-      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID).runRandomIO.right.value
+      DBFile.channelRead(path, randomIOStrategy(), autoClose = true, blockCacheFileId = BlockCacheFileIDGenerator.nextID)
     )
   }
 

@@ -35,6 +35,17 @@ import scala.annotation.tailrec
 
 private[file] object MMAPFile {
 
+  def write(path: Path,
+            bufferSize: Long,
+            blockCacheFileId: Long): MMAPFile =
+    MMAPFile(
+      path = path,
+      channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
+      mode = MapMode.READ_WRITE,
+      bufferSize = bufferSize,
+      blockCacheFileId = blockCacheFileId
+    )
+
   def read(path: Path,
            blockCacheFileId: Long): MMAPFile = {
     val channel = FileChannel.open(path, StandardOpenOption.READ)
@@ -46,17 +57,6 @@ private[file] object MMAPFile {
       blockCacheFileId = blockCacheFileId
     )
   }
-
-  def write(path: Path,
-            bufferSize: Long,
-            blockCacheFileId: Long): MMAPFile =
-    MMAPFile(
-      path = path,
-      channel = FileChannel.open(path, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW),
-      mode = MapMode.READ_WRITE,
-      bufferSize = bufferSize,
-      blockCacheFileId = blockCacheFileId
-    )
 
   private def apply(path: Path,
                     channel: FileChannel,
@@ -168,6 +168,15 @@ private[file] class MMAPFile(val path: Path,
         i += 1
       }
       Slice(array)
+    }
+
+  def read(position: Int, size: Int, slice: Slice[Byte]): Unit =
+    watchNullPointer {
+      var i = 0
+      while (i < size) {
+        slice add buffer.get(i + position)
+        i += 1
+      }
     }
 
   def get(position: Int): Byte =
