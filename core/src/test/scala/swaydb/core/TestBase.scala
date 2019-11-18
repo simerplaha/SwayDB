@@ -369,8 +369,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       createFileChannelFileReader(path)
   }
 
-  def createAllFilesReaders(path: Path): Seq[FileReader] =
-    Seq(
+  def createAllFilesReaders(path: Path): List[FileReader] =
+    List(
       createMMAPFileReader(path),
       createFileChannelFileReader(path)
     )

@@ -42,7 +42,7 @@ class DBFileSpec extends TestBase with MockFactory {
   "DBFile.write" should {
     "write bytes to a File" in {
       val testFile = randomFilePath
-      val bytes = Slice(randomBytes())
+      val bytes = Slice(randomBytes(100))
 
       val path = DBFile.write(testFile, bytes)
 
@@ -261,7 +261,7 @@ class DBFileSpec extends TestBase with MockFactory {
         autoClose = true
       ).readAll shouldBe bytes
 
-      readFile.close
+      readFile.close()
       readFile.isOpen shouldBe false
       readFile.isFileDefined shouldBe false
       //read bytes one by one
@@ -271,7 +271,7 @@ class DBFileSpec extends TestBase with MockFactory {
       }
       readFile.isOpen shouldBe true
 
-      readFile.close
+      readFile.close()
     }
 
     "fail initialisation if the file does not exists" in {

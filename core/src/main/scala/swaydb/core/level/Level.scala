@@ -473,15 +473,18 @@ private[core] case class Level(dirs: Seq[Dir],
         Segment.minMaxKey(
           left = assigned,
           right = segments
-        ) map {
-          case (minKey, maxKey, toInclusive) =>
+        ) match {
+          case Some((minKey, maxKey, toInclusive)) =>
             ReserveRange.reserveOrListen(
               from = minKey,
               to = maxKey,
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
+
+          case None =>
+            IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
+        }
     }
 
   private[level] implicit def reserve(map: Map[Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
@@ -495,15 +498,18 @@ private[core] case class Level(dirs: Seq[Dir],
         Segment.minMaxKey(
           left = assigned,
           right = map
-        ) map {
-          case (minKey, maxKey, toInclusive) =>
+        ) match {
+          case Some((minKey, maxKey, toInclusive)) =>
             ReserveRange.reserveOrListen(
               from = minKey,
               to = maxKey,
               toInclusive = toInclusive,
               info = ()
             )
-        } getOrElse IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
+
+          case None =>
+            IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
+        }
     }
 
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
@@ -781,8 +787,8 @@ private[core] case class Level(dirs: Seq[Dir],
   private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments. pushForward = $pushForward", paths.head, segments.map(_.path.toString))
     if (pushForward)
-      nextLevel map {
-        nextLevel =>
+      nextLevel match {
+        case Some(nextLevel) =>
           val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
           if (copyable.isEmpty)
             IO.Right(segments)
@@ -790,7 +796,10 @@ private[core] case class Level(dirs: Seq[Dir],
             IO.Right(nonCopyable)
           else
             IO.Right(segments)
-      } getOrElse IO.Right(segments)
+
+        case None =>
+          IO.Right(segments)
+      }
     else
       IO.Right(segments)
   }
@@ -902,37 +911,41 @@ private[core] case class Level(dirs: Seq[Dir],
     logger.trace(s"{}: Removing Segments {}", paths.head, segments.map(_.path.toString))
     val segmentsToRemove = Slice.create[Segment](segments.size)
 
-    segments
-      .foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-        case (previousEntry, segmentToRemove) =>
-          segmentsToRemove add segmentToRemove
-          val nextEntry = MapEntry.Remove[Slice[Byte]](segmentToRemove.minKey)
-          previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-      }
-      .map {
-        mapEntry =>
-          //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
-          logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
-          appendix.writeSafe(mapEntry) flatMap {
-            _ =>
-              logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
-              // If a delete fails that would be due OS permission issue.
-              // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
-              // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
-              // Segments on reboot.
-              if (deleteSegmentsEventually) {
-                segmentsToRemove foreach (_.deleteSegmentsEventually)
-                IO.zero
-              } else {
-                IO(Segment.deleteSegments(segmentsToRemove)) recoverWith {
-                  case exception =>
-                    logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
-                    IO.zero
-                }
+    val mapEntry =
+      segments
+        .foldLeft(Option.empty[MapEntry[Slice[Byte], Segment]]) {
+          case (previousEntry, segmentToRemove) =>
+            segmentsToRemove add segmentToRemove
+            val nextEntry = MapEntry.Remove[Slice[Byte]](segmentToRemove.minKey)
+            previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
+        }
+
+    mapEntry match {
+      case Some(mapEntry) =>
+        //        logger.info(s"$id. Build map entry: ${mapEntry.string(_.asInt().toString, _.id.toString)}")
+        logger.trace(s"{}: Built map entry to remove Segments {}", paths.head, segments.map(_.path.toString))
+        appendix.writeSafe(mapEntry) flatMap {
+          _ =>
+            logger.debug(s"{}: MapEntry delete Segments successfully written. Deleting physical Segments: {}", paths.head, segments.map(_.path.toString))
+            // If a delete fails that would be due OS permission issue.
+            // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
+            // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
+            // Segments on reboot.
+            if (deleteSegmentsEventually) {
+              segmentsToRemove foreach (_.deleteSegmentsEventually)
+              IO.zero
+            } else {
+              IO(Segment.deleteSegments(segmentsToRemove)) recoverWith {
+                case exception =>
+                  logger.error(s"Failed to delete Segments '{}'. Manually delete these Segments or reboot the database.", segmentsToRemove.map(_.path.toString).mkString(", "), exception)
+                  IO.zero
               }
-          }
-      }
-      .getOrElse(IO.Left[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved))
+            }
+        }
+
+      case None =>
+        IO.Left[swaydb.Error.Level, Int](swaydb.Error.NoSegmentsRemoved)
+    }
   }
 
   def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {

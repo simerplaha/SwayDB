@@ -393,8 +393,8 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
     }
 
   private def copyForward(level: NextLevel)(implicit ec: ExecutionContext): Int =
-    level.nextLevel map {
-      nextLevel =>
+    level.nextLevel match {
+      case Some(nextLevel) =>
         val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
         putForward(
           segments = copyable,
@@ -414,7 +414,10 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             logger.warn(s"Level(${level.levelNumber}): Received later compaction.")
             0
         }
-    } getOrElse 0
+
+      case None =>
+        0
+    }
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
