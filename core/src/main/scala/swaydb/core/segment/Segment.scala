@@ -165,14 +165,14 @@ private[core] object Segment extends LazyLogging {
         }
         else if (!mmapWrites && mmapReads)
           DBFile.mmapRead(
-            path = DBFile.write(path, result.segmentBytes),
+            path = Effect.write(path, result.segmentBytes),
             ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
             blockCacheFileId = BlockCacheFileIDGenerator.nextID,
             autoClose = true
           )
         else
           DBFile.channelRead(
-            path = DBFile.write(path, result.segmentBytes),
+            path = Effect.write(path, result.segmentBytes),
             ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
             blockCacheFileId = BlockCacheFileIDGenerator.nextID,
             autoClose = true

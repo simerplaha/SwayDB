@@ -170,15 +170,6 @@ private[file] class MMAPFile(val path: Path,
       Slice(array)
     }
 
-  def read(position: Int, size: Int, slice: Slice[Byte]): Unit =
-    watchNullPointer {
-      var i = 0
-      while (i < size) {
-        slice add buffer.get(i + position)
-        i += 1
-      }
-    }
-
   def get(position: Int): Byte =
     watchNullPointer {
       buffer.get(position)

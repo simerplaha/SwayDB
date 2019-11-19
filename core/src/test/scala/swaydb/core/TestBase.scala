@@ -378,6 +378,55 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createMMAPFileReader(bytes: Slice[Byte]): FileReader =
     createMMAPFileReader(createFile(bytes))
 
+  /**
+   * Creates all file types currently supported which are MMAP and FileChannel.
+   */
+  def createDBFiles(mmapPath: Path, mmapBytes: Slice[Byte], channelPath: Path, channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                                                                          blockCache: Option[BlockCache.State]): List[DBFile] =
+    List(
+      createMMAPWriteAndRead(mmapPath, mmapBytes),
+      createChannelWriteAndRead(channelPath, channelBytes)
+    )
+
+  def createDBFiles(mmapBytes: Slice[Byte], channelBytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                                       blockCache: Option[BlockCache.State]): List[DBFile] =
+    List(
+      createMMAPWriteAndRead(randomFilePath, mmapBytes),
+      createChannelWriteAndRead(randomFilePath, channelBytes)
+    )
+
+  def createMMAPWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                             blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile =
+    DBFile.mmapWriteAndRead(
+      path = path,
+      ioStrategy = randomIOStrategy(),
+      autoClose = true,
+      blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+      bytes = bytes
+    )
+
+  def createChannelWriteAndRead(path: Path, bytes: Slice[Byte])(implicit fileSweeper: FileSweeper,
+                                                                blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): DBFile = {
+    val blockCacheFileId = BlockCacheFileIDGenerator.nextID
+    val file =
+      DBFile.channelWrite(
+        path = path,
+        ioStrategy = randomIOStrategy(),
+        blockCacheFileId = blockCacheFileId,
+        autoClose = true
+      )
+
+    file.append(bytes)
+    file.close()
+
+    DBFile.mmapRead(
+      path = path,
+      ioStrategy = randomIOStrategy(),
+      autoClose = true,
+      blockCacheFileId = blockCacheFileId
+    )
+  }
+
   def createMMAPFileReader(path: Path)(implicit blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): FileReader = {
     implicit val limiter = fileSweeper
     implicit val memorySweeper = TestSweeper.memorySweeperMax

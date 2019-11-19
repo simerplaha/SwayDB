@@ -39,71 +39,95 @@ class DBFileSpec extends TestBase with MockFactory {
   implicit val memorySweeper = TestSweeper.memorySweeper10
   implicit def blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache
 
-  "DBFile.write" should {
+  "write" should {
     "write bytes to a File" in {
-      val testFile = randomFilePath
-      val bytes = Slice(randomBytes(100))
+      val bytes1 = Slice(randomBytes(100))
 
-      val path = DBFile.write(testFile, bytes)
+      val bytes2 = Slice(randomBytes(100))
 
-      path shouldBe testFile
+      val files = createDBFiles(bytes1, bytes2)
+      files should have size 2
 
-      createAllFilesReaders(path) foreach {
+      createAllFilesReaders(files.head.path) foreach {
         reader =>
-          reader.file.readAll shouldBe bytes
-          reader.file.close()
+          reader.file.readAll shouldBe bytes1
       }
+
+      createAllFilesReaders(files.last.path) foreach {
+        reader =>
+          reader.file.readAll shouldBe bytes2
+      }
+
+      files.foreach(_.close())
     }
 
     "write empty bytes to a File" in {
-      val testFile = randomFilePath
-      val bytes = Slice.emptyBytes
+      val files = createDBFiles(Slice.emptyBytes, Slice.emptyBytes)
+      files.foreach(_.existsOnDisk shouldBe true)
 
-      DBFile.write(testFile, bytes)
-
-      createAllFilesReaders(testFile) foreach {
-        reader =>
-          reader.file.readAll shouldBe bytes
-          reader.file.close()
+      files foreach {
+        file =>
+          createAllFilesReaders(file.path) foreach {
+            reader =>
+              reader.file.readAll shouldBe Slice.emptyBytes
+              reader.file.close()
+          }
       }
 
-      Effect.exists(testFile) shouldBe true
+      //ensure that file exists
+      files.exists(file => Effect.notExists(file.path)) shouldBe false
     }
 
-    "write only the bytes written" in {
-      val testFile = randomFilePath
-      val bytes = Slice.create[Byte](10)
-      bytes.addUnsignedInt(1)
-      bytes.addUnsignedInt(2)
+    "write partially written bytes" in {
+      //size is 10 but only 2 bytes were written
+      val incompleteBytes = Slice.create[Byte](10)
+      incompleteBytes.addUnsignedInt(1)
+      incompleteBytes.addUnsignedInt(2)
+      incompleteBytes.size shouldBe 2
 
-      bytes.size shouldBe 2
+      val bytes = incompleteBytes.close()
 
-      DBFile.write(testFile, bytes).runRandomIO.get shouldBe testFile
-      Effect.readAll(testFile) shouldBe bytes
+      val files = createDBFiles(bytes, bytes)
+
+      files should have size 2
+      files foreach {
+        file =>
+          Effect.readAll(file.path) shouldBe bytes
+          file.readAll shouldBe bytes
+      }
+
+      files.foreach(_.close())
     }
 
     "fail to write if the file already exists" in {
-      val testFile = randomFilePath
       val bytes = randomBytesSlice()
 
-      DBFile.write(testFile, bytes)
-      IO(DBFile.write(testFile, bytes)).left.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
-      //file remains unchanged
+      val mmap = createMMAPWriteAndRead(randomFilePath, bytes)
+      val channel = createChannelWriteAndRead(randomFilePath, bytes)
 
-      DBFile.channelRead(
-        path = testFile,
-        ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        autoClose = false,
-        blockCacheFileId = idGenerator.nextID
-      ) ==> {
+      val files = List(mmap, channel)
+
+      files foreach {
+        file =>
+          //creating the same file again should fail
+          IO(createMMAPWriteAndRead(file.path, randomBytesSlice())).left.value shouldBe a[FileAlreadyExistsException]
+          IO(createChannelWriteAndRead(file.path, randomBytesSlice())).left.value shouldBe a[FileAlreadyExistsException]
+      }
+
+      //flush
+      files.foreach(_.close())
+
+      files foreach {
         file =>
           file.readAll shouldBe bytes
-          file.close()
       }
+
+      //close
+      files.foreach(_.close())
     }
   }
 
-  "DBFile.channelWrite" should {
+  "channelWrite" should {
     "initialise a FileChannel for writing and not reading and invoke the onOpen function on open" in {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
@@ -160,66 +184,9 @@ class DBFileSpec extends TestBase with MockFactory {
       }
       //above onOpen is also invoked
     }
-
-    "append if the slice is partially written" in {
-      val testFile = randomFilePath
-      val bytes = Slice.create[Byte](10)
-      bytes.addUnsignedInt(1)
-      bytes.addUnsignedInt(2)
-
-      bytes.size shouldBe 2
-
-      val channelFile =
-        DBFile.channelWrite(
-          path = testFile,
-          ioStrategy = randomIOStrategy(cacheOnAccess = true),
-          blockCacheFileId = idGenerator.nextID,
-          autoClose = true
-        )
-
-      channelFile.append(bytes).runRandomIO.get
-      IO(Effect.readAll(testFile)).value shouldBe bytes
-      channelFile.close()
-    }
-
-    "fail initialisation if the file already exists" in {
-      val testFile = randomFilePath
-
-      DBFile.channelWrite(
-        path = testFile,
-        ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        blockCacheFileId = idGenerator.nextID,
-        autoClose = true
-      ) ==> {
-        file =>
-          file.existsOnDisk shouldBe true
-          file.close()
-      }
-      //creating the same file again should fail
-      IO {
-        DBFile.channelWrite(
-          path = testFile,
-          ioStrategy = randomIOStrategy(cacheOnAccess = true),
-          blockCacheFileId = idGenerator.nextID,
-          autoClose = true
-        )
-      }.left.value.toString shouldBe new FileAlreadyExistsException(testFile.toString).toString
-
-      //file remains unchanged
-      DBFile.channelRead(
-        path = testFile,
-        ioStrategy = randomIOStrategy(cacheOnAccess = true),
-        autoClose = true,
-        blockCacheFileId = idGenerator.nextID
-      ) ==> {
-        file =>
-          file.readAll shouldBe empty
-          file.close()
-      }
-    }
   }
 
-  "DBFile.channelRead" should {
+  "channelRead" should {
     "initialise a FileChannel for reading only" in {
       val testFile = randomFilePath
       val bytes = randomBytesSlice()
@@ -286,7 +253,7 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "DBFile.mmapWriteAndRead" should {
+  "mmapWriteAndRead" should {
     "write bytes to a File, extend the buffer on overflow and reopen it for reading via mmapRead" in {
       val testFile = randomFilePath
       val bytes = Slice("bytes one".getBytes())
@@ -380,7 +347,7 @@ class DBFileSpec extends TestBase with MockFactory {
         autoClose = true,
         blockCacheFileId = idGenerator.nextID,
         bytes = bytes
-      ).close
+      ).close()
 
       IO {
         DBFile.mmapWriteAndRead(
@@ -406,12 +373,12 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "DBFile.mmapRead" should {
+  "mmapRead" should {
     "open an existing file for reading" in {
       val testFile = randomFilePath
       val bytes = Slice("bytes one".getBytes())
 
-      DBFile.write(testFile, bytes)
+      Effect.write(testFile, bytes)
 
       val readFile =
         DBFile.mmapRead(
@@ -432,12 +399,12 @@ class DBFileSpec extends TestBase with MockFactory {
       doRead
 
       //close and read again
-      readFile.close
+      readFile.close()
       doRead
 
-      IO(DBFile.write(testFile, bytes)).left.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
+      IO(Effect.write(testFile, bytes)).left.value shouldBe a[FileAlreadyExistsException] //creating the same file again should fail
 
-      readFile.close
+      readFile.close()
     }
 
     "fail to read if the file does not exists" in {
@@ -452,7 +419,7 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "DBFile.mmapInit" should {
+  "mmapInit" should {
     "open a file for writing" in {
       val testFile = randomFilePath
       val bytes1 = Slice("bytes one".getBytes())
@@ -485,7 +452,7 @@ class DBFileSpec extends TestBase with MockFactory {
 
     "fail to initialise if it already exists" in {
       val testFile = randomFilePath
-      DBFile.write(path = testFile, bytes = Slice(randomBytes()))
+      Effect.write(to = testFile, bytes = Slice(randomBytes()))
 
       IO {
         DBFile.mmapInit(
@@ -499,7 +466,7 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "DBFile.close" should {
+  "close" should {
     //    "close a file channel and reopen on read" in {
     //      val testFile = randomFilePath
     //      val bytes = randomBytesSlice()
@@ -638,7 +605,7 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "DBFile.append" should {
+  "append" should {
     "append bytes to the end of the ChannelFile" in {
       val testFile = randomFilePath
       val bytes = List(randomBytesSlice(), randomBytesSlice(), randomBytesSlice())
@@ -827,12 +794,12 @@ class DBFileSpec extends TestBase with MockFactory {
       ) ==> {
         file2 =>
           file2.readAll shouldBe Slice.fill(file.fileSize.toInt)(0)
-          file2.close
+          file2.close()
       }
     }
   }
 
-  "DBFile.read and find" should {
+  "read and find" should {
     "read and find bytes at a position from a ChannelFile" in {
       val testFile = randomFilePath
       val bytes = randomBytesSlice(100)
@@ -865,11 +832,11 @@ class DBFileSpec extends TestBase with MockFactory {
       readFile.read(bytes.size / 2, bytes.size / 2).toList should contain theSameElementsInOrderAs bytes.drop(bytes.size / 2).toList
       //      readFile.get(1000) shouldBe 0
 
-      readFile.close
+      readFile.close()
     }
   }
 
-  "DBFile.delete" should {
+  "delete" should {
     "delete a ChannelFile" in {
       val bytes = randomBytesSlice(100)
 
@@ -907,7 +874,7 @@ class DBFileSpec extends TestBase with MockFactory {
     }
   }
 
-  "DBFile.copy" should {
+  "copy" should {
     "copy a ChannelFile" in {
       val bytes = randomBytesSlice(100)
 

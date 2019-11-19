@@ -71,11 +71,6 @@ private[file] class ChannelFile(val path: Path,
     Slice(buffer.array())
   }
 
-  def read(position: Int, size: Int, slice: Slice[Byte]): Unit = {
-    val buffer = slice.toByteBufferWrap
-    channel.read(buffer, position)
-  }
-
   def get(position: Int): Byte =
     read(position, 1).head
 

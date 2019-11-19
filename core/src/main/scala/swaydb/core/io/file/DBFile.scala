@@ -88,14 +88,6 @@ object DBFile extends LazyLogging {
     cache
   }
 
-  def write(path: Path,
-            bytes: Slice[Byte]): Path =
-    Effect.write(path, bytes)
-
-  def write(path: Path,
-            bytes: Iterable[Slice[Byte]]): Path =
-    Effect.write(path, bytes)
-
   def channelWrite(path: Path,
                    ioStrategy: IOStrategy,
                    blockCacheFileId: Long,

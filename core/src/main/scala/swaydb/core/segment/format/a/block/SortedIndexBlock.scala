@@ -476,7 +476,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
         keyValues add next
         Some(next)
-
     }
 
     keyValues
