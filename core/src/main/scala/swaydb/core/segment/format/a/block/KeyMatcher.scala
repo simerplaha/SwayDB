@@ -44,7 +44,9 @@ private[core] object KeyMatcher {
     sealed trait Complete extends Result
     sealed trait InComplete extends Result
 
-    class Matched(val previous: Option[Persistent.Partial], val result: Persistent.Partial, val next: Option[Persistent.Partial]) extends Complete
+    class Matched(val previous: Option[Persistent.Partial],
+                  val result: Persistent.Partial,
+                  val next: Option[Persistent.Partial]) extends Complete
 
     sealed trait Behind {
       def previous: Persistent.Partial
