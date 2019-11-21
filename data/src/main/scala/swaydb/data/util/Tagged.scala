@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.data.util
 
 trait Tagged[T] extends Any {
   type Tag = T

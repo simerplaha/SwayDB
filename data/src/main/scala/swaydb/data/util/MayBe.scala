@@ -17,9 +17,9 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.data.util
 
-import swaydb.core.util.Tagged.@@
+import swaydb.data.util.Tagged.@@
 
 import scala.util.Try
 

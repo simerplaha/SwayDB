@@ -17,10 +17,10 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.util
+package swaydb.data.util
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.util.Maybe._
+import swaydb.data.util.Maybe._
 
 import scala.util.Success
 

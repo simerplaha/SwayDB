@@ -26,9 +26,10 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.Maybe._
-import swaydb.core.util.{Bytes, Maybe}
+import swaydb.data.util.Maybe._
+import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.util.Maybe
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
