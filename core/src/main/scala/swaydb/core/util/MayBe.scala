@@ -23,18 +23,18 @@ import swaydb.core.util.Tagged.@@
 
 import scala.util.Try
 
-sealed trait MayBe[+A]
+sealed trait MayBe
 
 object MayBe {
 
-  @inline def empty[A]: A @@ MayBe[A] =
-    null.asInstanceOf[A @@ MayBe[A]]
+  @inline def empty[A]: A @@ MayBe =
+    null.asInstanceOf[A @@ MayBe]
 
-  @inline def some[V](value: V): V @@ MayBe[V] =
-    value.asInstanceOf[V @@ MayBe[V]]
+  @inline def some[V](value: V): V @@ MayBe =
+    value.asInstanceOf[V @@ MayBe]
 
   implicit class ArrayImplicits[A](array: Array[A]) {
-    final def findMayBe(p: A => Boolean): A @@ MayBe[A] = {
+    final def findMayBe(p: A => Boolean): A @@ MayBe = {
       var i = 0
       while (i < array.length - 1) {
         val item = array(i)
@@ -48,26 +48,26 @@ object MayBe {
     }
   }
 
-  implicit class MayBeImplicits[A](value: A @@ MayBe[A]) {
+  implicit class MayBeImplicits[A](value: A @@ MayBe) {
     def isEmptyMayBe =
       value == null
 
     def isDefinedMayBe =
       value != null
 
-    @inline def mapMayBe[B](f: A => B): B @@ MayBe[B] =
+    @inline def mapMayBe[B](f: A => B): B @@ MayBe =
       if (value == null)
         empty[B]
       else
         some(f(value))
 
-    @inline def flatMapMayBe[B](f: A => B @@ MayBe[B]): B @@ MayBe[B] =
+    @inline def flatMapMayBe[B](f: A => B @@ MayBe): B @@ MayBe =
       if (value == null)
         empty[B]
       else
         f(value)
 
-    @inline def foreachMayBe[B](f: A => Unit): Unit =
+    @inline def foreachMayBe(f: A => Unit): Unit =
       if (value != null)
         f(value)
 
@@ -77,11 +77,11 @@ object MayBe {
       else
         value
 
-    @inline def orElseMayBe[B >: A](other: => B @@ MayBe[B]): B @@ MayBe[B] =
+    @inline def orElseMayBe[B >: A](other: => B @@ MayBe): B @@ MayBe =
       if (value == null)
         other
       else
-        value.asInstanceOf[B @@ MayBe[B]]
+        value.asInstanceOf[B @@ MayBe]
 
     @inline def getOrElseMayBe[B >: A](other: => B): B =
       if (value == null)

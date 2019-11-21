@@ -60,7 +60,7 @@ object EntryReader {
 
   val someUncompressedReader = MayBe.some(BaseEntryReaderUncompressed: BaseEntryReader)
 
-  def findReader(baseId: Int, mightBeCompressed: Boolean): BaseEntryReader @@ MayBe[BaseEntryReader] =
+  def findReader(baseId: Int, mightBeCompressed: Boolean): BaseEntryReader @@ MayBe =
     if (mightBeCompressed)
       readers.findMayBe(_.maxID >= baseId)
     else
