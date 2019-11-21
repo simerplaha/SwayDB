@@ -24,6 +24,7 @@ private[swaydb] object Extension {
   case object Log extends Extension {
     override def toString: String = "log"
   }
+
   case object Seg extends Extension {
     override def toString: String = "seg"
   }

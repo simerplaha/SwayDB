@@ -26,15 +26,14 @@ import scala.collection.mutable
 
 private[swaydb] object HashedMap {
 
-  def concurrent[K, V](initialCapacity: Option[Int] = None) =
-    new Concurrent[K, V](
-      initialCapacity map {
-        capacity =>
-          new ConcurrentHashMap[K, V](capacity)
-      } getOrElse {
-        new ConcurrentHashMap[K, V]()
-      }
-    )
+  def concurrent[K, V](initialCapacity: Option[Int] = None): Concurrent[K, V] =
+    initialCapacity match {
+      case Some(capacity) =>
+        new Concurrent[K, V](new ConcurrentHashMap[K, V](capacity))
+
+      case None =>
+        new Concurrent[K, V](new ConcurrentHashMap[K, V]())
+    }
 
   class Concurrent[K, V](map: ConcurrentHashMap[K, V]) {
     def get(key: K): Option[V] =
@@ -49,16 +48,16 @@ private[swaydb] object HashedMap {
     def remove(key: K): Unit =
       map.remove(key)
 
-    def head =
+    def head: (K, V) =
       asScala.head
 
-    def last =
+    def last: (K, V) =
       asScala.last
 
     def asScala: mutable.Map[K, V] =
       map.asScala
 
-    def clear() =
+    def clear(): Unit =
       map.clear()
   }
 }

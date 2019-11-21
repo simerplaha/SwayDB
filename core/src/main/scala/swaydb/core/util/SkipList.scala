@@ -374,7 +374,7 @@ private[core] object SkipList {
   private[core] class ConcurrentLimit[K, V](limit: Int, skipList: SkipList.Concurrent[K, V])(implicit ordering: KeyOrder[K]) extends SkipList[K, V] {
     val skipListSize = new AtomicInteger(0)
 
-    def dropOverflow(key: K) =
+    def dropOverflow(key: K): Unit =
       while (skipListSize.get() > limit)
         try {
           val firstKey = skipList.skipList.firstKey()

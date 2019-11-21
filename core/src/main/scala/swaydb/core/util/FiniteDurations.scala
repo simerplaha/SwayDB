@@ -56,8 +56,14 @@ private[swaydb] object FiniteDurations {
           Some(previous)
         else
           Some(next)
-      case (None, next @ Some(_)) => next
-      case (previous @ Some(_), None) => previous
-      case (None, None) => None
+
+      case (None, next @ Some(_)) =>
+        next
+
+      case (previous @ Some(_), None) =>
+        previous
+
+      case (None, None) =>
+        None
     }
 }
