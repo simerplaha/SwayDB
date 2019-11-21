@@ -118,9 +118,6 @@ private[core] object MemorySweeper {
 
     def actorConfig: Option[ActorConfig]
 
-    /**
-     * Lazy initialisation because this actor is not require for Memory database that do not use compression.
-     */
     val actor: Option[ActorRef[Command, Unit]] =
       actorConfig map {
         actorConfig =>
@@ -146,7 +143,6 @@ private[core] object MemorySweeper {
                   cache.cache.get foreach (_.clear())
               }
           }
-
       }
 
     def terminate() =

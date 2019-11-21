@@ -54,6 +54,15 @@ trait SliceCompanionBase {
     slice.close()
   }
 
+  final def range(from: Byte, to: Byte): Slice[Byte] = {
+    val slice = Slice.create[Byte](to - from + 1)
+    (from to to) foreach {
+      i =>
+        slice add i.toByte
+    }
+    slice.close()
+  }
+
   def fill[T: ClassTag](length: Int)(elem: => T): Slice[T] =
     new Slice[T](
       array = Array.fill(length)(elem),

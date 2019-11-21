@@ -929,4 +929,16 @@ class SliceSpec extends WordSpec with Matchers {
     slice.existsFor(10, _ % 10 == 0) shouldBe true
     slice.existsFor(20, _ == 20) shouldBe true
   }
+
+  "range of ints" in {
+    val range = Slice.range(1, 10)
+    range.underlyingArraySize shouldBe 10
+    range.toList shouldBe (1 to 10)
+  }
+
+  "range of bytes" in {
+    val range = Slice.range(1.toByte, 10.toByte)
+    range.underlyingArraySize shouldBe 10
+    range.toList shouldBe (1 to 10)
+  }
 }
