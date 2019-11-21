@@ -21,6 +21,7 @@ package swaydb.core
 
 import java.nio.file.Paths
 
+import org.scalactic.Equality
 import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
@@ -41,6 +42,8 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
+import swaydb.core.segment.format.a.block.KeyMatcher.Result
+import swaydb.core.segment.format.a.block.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -55,8 +58,8 @@ import swaydb.data.slice.{Reader, Slice}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import scala.collection.parallel.CollectionConverters._
 
+import scala.collection.parallel.CollectionConverters._
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
@@ -1598,4 +1601,49 @@ object CommonAssertions {
         segmentFooterBlockIO = _ => randomIOStrategy(cacheOnAccess, includeReserved)
       )
   }
+
+  implicit val keyMatcherResultEquality: Equality[KeyMatcher.Result] =
+    new Equality[KeyMatcher.Result] {
+      override def areEqual(a: KeyMatcher.Result, other: Any): Boolean =
+        a match {
+          case result: Result.Matched =>
+            other match {
+              case other: Result.Matched =>
+                other.previous == result.previous &&
+                  other.result == result.result &&
+                  other.next == result.next
+
+              case _ =>
+                false
+            }
+
+          case result: Result.BehindStopped =>
+            other match {
+              case other: Result.BehindStopped =>
+                other.previous == result.previous
+
+              case _ =>
+                false
+            }
+          case result: Result.AheadOrNoneOrEnd =>
+            other match {
+              case other: Result.AheadOrNoneOrEnd =>
+                other.ahead == result.ahead
+
+              case _ =>
+                false
+            }
+
+          case result: Result.BehindFetchNext =>
+            other match {
+              case other: Result.BehindFetchNext =>
+                other.previous == result.previous
+
+              case _ =>
+                false
+            }
+
+        }
+    }
+
 }

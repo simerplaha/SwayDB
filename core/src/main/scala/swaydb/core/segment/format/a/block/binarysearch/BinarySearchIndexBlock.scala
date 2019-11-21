@@ -347,7 +347,7 @@ private[core] object BinarySearchIndexBlock {
           case behind: KeyMatcher.Result.Behind =>
             hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)
 
-          case KeyMatcher.Result.AheadOrNoneOrEnd(_) =>
+          case _: KeyMatcher.Result.AheadOrNoneOrEnd =>
             hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
         }
     }
@@ -415,8 +415,8 @@ private[core] object BinarySearchIndexBlock {
           case behind: KeyMatcher.Result.Behind =>
             hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)
 
-          case KeyMatcher.Result.AheadOrNoneOrEnd(aheadNoneOrEnd) =>
-            aheadNoneOrEnd match {
+          case aheadNoneOrEnd: KeyMatcher.Result.AheadOrNoneOrEnd =>
+            aheadNoneOrEnd.ahead match {
               case Some(range: Persistent.Partial.RangeT) if ordering.gt(context.targetKey, range.fromKey) =>
                 BinarySearchLowerResult.Some(
                   lower = None,

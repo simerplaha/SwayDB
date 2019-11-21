@@ -46,11 +46,11 @@ class BinarySearchIndexBlock_BinarySearch_Spec extends TestBase {
         def matcher(valueToFind: Int, valueFound: Int): KeyMatcher.Result = {
           //            //println(s"valueToFind: $valueToFind. valueFound: $valueFound")
           if (valueToFind == valueFound)
-            KeyMatcher.Result.Matched(None, null, None)
+            new KeyMatcher.Result.Matched(None, null, None)
           else if (valueToFind < valueFound)
             KeyMatcher.Result.aheadOrNoneOrEndNone
           else
-            KeyMatcher.Result.BehindFetchNext(null)
+            new KeyMatcher.Result.BehindFetchNext(null)
         }
 
         def context(valueToFind: Int) =

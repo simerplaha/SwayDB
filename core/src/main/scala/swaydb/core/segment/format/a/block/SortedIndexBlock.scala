@@ -512,8 +512,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
       indexReader = sortedIndexReader,
       valuesReader = valuesReader
     ) match {
-      case KeyMatcher.Result.Matched(_, keyValue, _) =>
-        Some(keyValue)
+      case matched: KeyMatcher.Result.Matched =>
+        Some(matched.result)
 
       case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
         None
@@ -568,8 +568,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
           indexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) match {
-          case KeyMatcher.Result.Matched(_, keyValue, _) =>
-            Some(keyValue)
+          case matched: KeyMatcher.Result.Matched =>
+            Some(matched.result)
 
           case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
             None
@@ -641,8 +641,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
           indexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) match {
-          case KeyMatcher.Result.Matched(_, keyValue, _) =>
-            Some(keyValue)
+          case matched: KeyMatcher.Result.Matched =>
+            Some(matched.result)
 
           case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
             None
@@ -659,8 +659,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
               indexReader = sortedIndexReader,
               valuesReader = valuesReader
             ) match {
-              case KeyMatcher.Result.Matched(_, keyValue, _) =>
-                Some(keyValue)
+              case matched: KeyMatcher.Result.Matched =>
+                Some(matched.result)
 
               case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
                 None
@@ -692,8 +692,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
           indexReader = indexReader,
           valuesReader = valuesReader
         ) match {
-          case KeyMatcher.Result.Matched(_, keyValue, _) =>
-            Some(keyValue)
+          case matched: KeyMatcher.Result.Matched =>
+            Some(matched.result)
 
           case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
             None
@@ -792,8 +792,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
       sortedIndexReader = sortedIndexReader,
       valuesReader = valuesReader
     ) match {
-      case Result.Matched(_, result, _) =>
-        Some(result)
+      case matched: KeyMatcher.Result.Matched =>
+        Some(matched.result)
 
       case _: Result.BehindStopped | _: Result.AheadOrNoneOrEnd | _: Result.BehindFetchNext =>
         None
@@ -917,9 +917,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case result: KeyMatcher.Result.Complete =>
         result
 
-      case KeyMatcher.Result.BehindFetchNext(previousKeyValue) =>
+      case behind: KeyMatcher.Result.BehindFetchNext =>
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
-        val readFrom = next getOrElse previousKeyValue
+        val readFrom = next getOrElse behind.previous
 
         val nextNextKeyValue =
           readKeyValue(
@@ -977,8 +977,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
       indexReader = indexReader,
       valuesReader = valuesReader
     ) match {
-      case KeyMatcher.Result.Matched(_, keyValue, _) =>
-        Some(keyValue)
+      case matched: KeyMatcher.Result.Matched =>
+        Some(matched.result)
 
       case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
         None

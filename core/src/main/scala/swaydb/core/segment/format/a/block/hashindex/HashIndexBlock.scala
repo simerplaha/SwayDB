@@ -624,19 +624,19 @@ private[core] object HashIndexBlock extends LazyLogging {
                   ),
                 valuesReader = valuesReader
               ) match {
-                case Result.Matched(_, result, _) =>
-                  Some(result)
+                case matched: Result.Matched =>
+                  Some(matched.result)
 
-                case Result.BehindStopped(keyValue) =>
-                  collisions += keyValue
+                case behind: Result.BehindStopped =>
+                  collisions += behind.previous
                   None
 
-                case Result.BehindFetchNext(keyValue) =>
-                  collisions += keyValue
+                case behind: Result.BehindFetchNext =>
+                  collisions += behind.previous
                   None
 
-                case Result.AheadOrNoneOrEnd(higher) =>
-                  higher foreach {
+                case higher: Result.AheadOrNoneOrEnd =>
+                  higher.ahead foreach {
                     higher =>
                       collisions += higher
                   }
@@ -656,15 +656,15 @@ private[core] object HashIndexBlock extends LazyLogging {
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               ) match {
-                case Result.Matched(_, result, _) =>
-                  Some(result)
+                case matched: Result.Matched =>
+                  Some(matched.result)
 
-                case Result.BehindStopped(previous) =>
-                  collisions += previous
+                case behind: Result.BehindStopped =>
+                  collisions += behind.previous
                   None
 
-                case Result.AheadOrNoneOrEnd(higher) =>
-                  higher foreach {
+                case higher: Result.AheadOrNoneOrEnd =>
+                  higher.ahead foreach {
                     higher =>
                       collisions += higher
                   }
