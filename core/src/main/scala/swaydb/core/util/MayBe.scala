@@ -33,6 +33,21 @@ object MayBe {
   @inline def some[V](value: V): V @@ MayBe[V] =
     value.asInstanceOf[V @@ MayBe[V]]
 
+  implicit class ArrayImplicits[A](array: Array[A]) {
+    final def findMayBe(p: A => Boolean): A @@ MayBe[A] = {
+      var i = 0
+      while (i < array.length - 1) {
+        val item = array(i)
+        if (p(item))
+          return MayBe.some(item)
+        else
+          i += 1
+      }
+
+      MayBe.empty[A]
+    }
+  }
+
   implicit class MayBeImplicits[A](value: A @@ MayBe[A]) {
     def isEmptyMayBe =
       value == null

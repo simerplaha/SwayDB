@@ -26,8 +26,10 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, MayBe}
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.core.util.MayBe._
+import swaydb.core.util.Tagged.@@
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
@@ -48,19 +50,19 @@ trait EntryReader[E] {
 
 object EntryReader {
 
-  val readers: List[BaseEntryReader] =
-    List(
+  val readers: Array[BaseEntryReader] =
+    Array(
       BaseEntryReader1,
       BaseEntryReader2,
       BaseEntryReader3,
       BaseEntryReader4
     ) sortBy (_.minID)
 
-  val someUncompressedReader = Some(BaseEntryReaderUncompressed)
+  val someUncompressedReader = MayBe.some(BaseEntryReaderUncompressed: BaseEntryReader)
 
-  def findReader(baseId: Int, mightBeCompressed: Boolean): Option[BaseEntryReader] =
+  def findReader(baseId: Int, mightBeCompressed: Boolean): BaseEntryReader @@ MayBe[BaseEntryReader] =
     if (mightBeCompressed)
-      readers.find(_.maxID >= baseId)
+      readers.findMayBe(_.maxID >= baseId)
     else
       someUncompressedReader
 
@@ -75,26 +77,25 @@ object EntryReader {
                        nextIndexOffset: Int,
                        nextIndexSize: Int,
                        previous: Option[Persistent.Partial],
-                       entryReader: EntryReader[T]): T =
-    findReader(baseId = baseId, mightBeCompressed = mightBeCompressed) match {
-      case Some(baseEntryReader) =>
-        baseEntryReader.read(
-          baseId = baseId,
-          keyValueId = keyValueId,
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          keyInfo = keyInfo,
-          indexReader = indexReader,
-          valuesReader = valuesReader,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          previous = previous,
-          reader = entryReader
-        )
-
-      case None =>
-        throw swaydb.Exception.InvalidKeyValueId(baseId)
-    }
+                       entryReader: EntryReader[T]): T = {
+    val baseEntryReaderMayBe = findReader(baseId = baseId, mightBeCompressed = mightBeCompressed)
+    if (baseEntryReaderMayBe.isEmptyMayBe)
+      throw swaydb.Exception.InvalidKeyValueId(baseId)
+    else
+      baseEntryReaderMayBe.getUnsafe.read(
+        baseId = baseId,
+        keyValueId = keyValueId,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        keyInfo = keyInfo,
+        indexReader = indexReader,
+        valuesReader = valuesReader,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextIndexSize = nextIndexSize,
+        previous = previous,
+        reader = entryReader
+      )
+  }
 
   def partialRead(indexEntry: Slice[Byte],
                   block: SortedIndexBlock,
