@@ -23,11 +23,11 @@ import swaydb.data.util.Tagged.@@
 
 import scala.util.Try
 
-sealed trait MayBeTag
+sealed trait MaybeTag
 
 object Maybe {
 
-  type Maybe[T] = @@[T, MayBeTag]
+  type Maybe[T] = @@[T, MaybeTag]
 
   @inline def none[A]: Maybe[A] =
     null.asInstanceOf[Maybe[A]]

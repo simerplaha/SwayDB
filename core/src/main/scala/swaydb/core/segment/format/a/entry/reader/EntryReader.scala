@@ -79,7 +79,7 @@ object EntryReader {
                        previous: Option[Persistent.Partial],
                        entryReader: EntryReader[T]): T = {
     val baseEntryReaderMaybe = findReader(baseId = baseId, mightBeCompressed = mightBeCompressed)
-    if (baseEntryReaderMaybe.isSome)
+    if (baseEntryReaderMaybe.isNone)
       throw swaydb.Exception.InvalidKeyValueId(baseId)
     else
       baseEntryReaderMaybe.getUnsafe.read(
