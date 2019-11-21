@@ -360,7 +360,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   def createFile(bytes: Slice[Byte]): Path =
-    Effect.write(testDir.resolve(nextSegmentId), bytes).runRandomIO.right.value
+    Effect.write(testDir.resolve(nextSegmentId), bytes)
 
   def createRandomFileReader(path: Path): FileReader = {
     if (Random.nextBoolean())

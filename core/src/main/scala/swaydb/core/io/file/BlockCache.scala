@@ -67,7 +67,7 @@ private[core] object BlockCache {
 
   class State(val blockSize: Int,
               val sweeper: MemorySweeper.Block,
-              private[BlockCache] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) {
+              private[file] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) {
     val blockSizeDouble: Double = blockSize
 
     def clear() =
