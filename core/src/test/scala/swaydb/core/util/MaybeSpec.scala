@@ -20,19 +20,19 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.util.MayBe._
+import swaydb.core.util.Maybe._
 
 import scala.util.Success
 
-class MayBeSpec extends WordSpec with Matchers {
+class MaybeSpec extends WordSpec with Matchers {
 
   "some" should {
-    val some = MayBe.some("some")
+    val some = Maybe.some("some")
 
     "create a tagged value" in {
       some shouldBe "some"
-      some.isDefinedMayBe shouldBe true
-      some.isEmptyMayBe shouldBe false
+      some.isSome shouldBe true
+      some.isNone shouldBe false
     }
 
     "map" in {
@@ -40,7 +40,7 @@ class MayBeSpec extends WordSpec with Matchers {
     }
 
     "flatMap" in {
-      some.flatMapMayBe(string => MayBe.some(string + " one")) shouldBe "some one"
+      some.flatMapMayBe(string => Maybe.some(string + " one")) shouldBe "some one"
     }
 
     "foreach" in {
@@ -57,7 +57,7 @@ class MayBeSpec extends WordSpec with Matchers {
     }
 
     "orElse" in {
-      some.orElseMayBe(MayBe.some("")) shouldBe "some"
+      some.orElseMayBe(Maybe.some("")) shouldBe "some"
     }
 
     "getOrElse" in {
@@ -82,12 +82,12 @@ class MayBeSpec extends WordSpec with Matchers {
   }
 
   "none" should {
-    val none = MayBe.empty[String]
+    val none = Maybe.none[String]
 
     "create a tagged value" in {
       none shouldBe null
-      none.isEmptyMayBe shouldBe true
-      none.isDefinedMayBe shouldBe false
+      none.isNone shouldBe true
+      none.isSome shouldBe false
       none.toOptionMayBe shouldBe empty
     }
 
@@ -96,7 +96,7 @@ class MayBeSpec extends WordSpec with Matchers {
     }
 
     "flatMap" in {
-      none.flatMapMayBe(string => MayBe.some(string + " one")) shouldBe null
+      none.flatMapMayBe(string => Maybe.some(string + " one")) shouldBe null
     }
 
     "foreach" in {
@@ -115,7 +115,7 @@ class MayBeSpec extends WordSpec with Matchers {
     }
 
     "orElse" in {
-      none.orElseMayBe(MayBe.some("")) shouldBe ""
+      none.orElseMayBe(Maybe.some("")) shouldBe ""
     }
 
     "getOrElse" in {
