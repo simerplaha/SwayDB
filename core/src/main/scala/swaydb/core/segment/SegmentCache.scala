@@ -129,9 +129,9 @@ private[core] class SegmentCache(path: Path,
       hasRange = hasRange,
       readState = readState
     ) match {
-      case Some(response: Persistent) =>
+      case resp @ Some(response: Persistent) =>
         addToCache(response)
-        Some(response)
+        resp.asInstanceOf[Some[Persistent]]
 
       case Some(partial: Persistent.Partial) =>
         val persistent = partial.toPersistent
@@ -157,11 +157,11 @@ private[core] class SegmentCache(path: Path,
 
       case _ =>
         skipList.flatMap(_.floor(key)) match {
-          case Some(floor: Persistent) if floor.key equiv key =>
-            Some(floor)
+          case got @ Some(floor: Persistent) if floor.key equiv key =>
+            got
 
-          case Some(floorRange: Persistent.Range) if floorRange contains key =>
-            Some(floorRange)
+          case got @ Some(floorRange: Persistent.Range) if floorRange contains key =>
+            got
 
           case floorValue =>
             val footer = blockCache.getFooter()
@@ -201,9 +201,9 @@ private[core] class SegmentCache(path: Path,
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReader = blockCache.createValuesReader()
     ) match {
-      case Some(response: Persistent) =>
+      case resp @ Some(response: Persistent) =>
         addToCache(response)
-        Some(response)
+        resp.asInstanceOf[Some[Persistent]]
 
       case Some(partial: Persistent.Partial) =>
         val persistent = partial.toPersistent
@@ -314,9 +314,9 @@ private[core] class SegmentCache(path: Path,
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReader = blockCache.createValuesReader()
     ) match {
-      case Some(response: Persistent) =>
+      case resp @ Some(response: Persistent) =>
         addToCache(response)
-        Some(response)
+        resp.asInstanceOf[Some[Persistent]]
 
       case Some(partial: Persistent.Partial) =>
         val persistent = partial.toPersistent
