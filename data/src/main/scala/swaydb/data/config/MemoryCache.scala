@@ -30,11 +30,13 @@ object MemoryCache {
 
   object Enabled {
     def default(minIOSeekSize: Int,
+                skipBlockCacheSeekSize: Int,
                 memorySize: Int,
                 interval: FiniteDuration,
                 ec: ExecutionContext) =
       All(
         minIOSeekSize = minIOSeekSize,
+        skipBlockCacheSeekSize = skipBlockCacheSeekSize,
         cacheCapacity = memorySize,
         maxCachedKeyValueCountPerSegment = Some(10),
         sweepCachedKeyValues = false,
@@ -57,6 +59,7 @@ object MemoryCache {
   }
 
   case class ByteCacheOnly(minIOSeekSize: Int,
+                           skipBlockCacheSeekSize: Int,
                            cacheCapacity: Int,
                            sweeperActorConfig: ActorConfig) extends Block
 
@@ -65,6 +68,7 @@ object MemoryCache {
                                memorySweeper: Option[ActorConfig]) extends Enabled
 
   case class All(minIOSeekSize: Int,
+                 skipBlockCacheSeekSize: Int,
                  cacheCapacity: Int,
                  maxCachedKeyValueCountPerSegment: Option[Int],
                  sweepCachedKeyValues: Boolean,

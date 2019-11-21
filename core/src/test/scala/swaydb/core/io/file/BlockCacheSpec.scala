@@ -37,7 +37,7 @@ class BlockCacheSpec extends TestBase {
     val blockSize = 10
 
     val state =
-      BlockCache.init(MemorySweeper.BlockSweeper(blockSize, 100.mb, None))
+      BlockCache.init(MemorySweeper.BlockSweeper(blockSize, 1.mb / 2, 100.mb, None))
 
     "round size" when {
       "keyPosition <= (fileSize - blockSize)" when {
@@ -106,7 +106,7 @@ class BlockCacheSpec extends TestBase {
       val blockSize = 10
 
       val state =
-        BlockCache.init(MemorySweeper.BlockSweeper(blockSize, 100.mb, None))
+        BlockCache.init(MemorySweeper.BlockSweeper(blockSize, 50000.bytes, 100.mb, None))
 
       //0 -----------------------------------------> 1000
       //0 read 1
@@ -169,7 +169,7 @@ class BlockCacheSpec extends TestBase {
     runThis(500.times, log = true) {
       val blockSize = randomIntMax(bytes.size * 2)
 
-      val state = BlockCache.init(MemorySweeper.BlockSweeper(blockSize, 100.mb, None))
+      val state = BlockCache.init(MemorySweeper.BlockSweeper(blockSize, randomIntMax(Byte.MaxValue).bytes, 100.mb, None))
 
       runThis(1000.times) {
         val position = randomNextInt(bytes.size)

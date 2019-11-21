@@ -67,6 +67,7 @@ private[core] object MemorySweeper {
           MemorySweeper.BlockSweeper(
             blockSize = block.minIOSeekSize,
             cacheSize = block.cacheCapacity,
+            skipBlockCacheSeekSize = block.skipBlockCacheSeekSize,
             actorConfig = Some(block.sweeperActorConfig)
           )
         )
@@ -80,14 +81,15 @@ private[core] object MemorySweeper {
           )
         )
 
-      case MemoryCache.All(blockSize, capacity, maxKeyValuesPerSegment, sweepKeyValues, actorConfig) =>
+      case block: MemoryCache.All =>
         Some(
           MemorySweeper.All(
-            blockSize = blockSize,
-            cacheSize = capacity,
-            sweepKeyValues = sweepKeyValues,
-            maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-            actorConfig = Some(actorConfig)
+            blockSize = block.minIOSeekSize,
+            cacheSize = block.cacheCapacity,
+            skipBlockCacheSeekSize = block.skipBlockCacheSeekSize,
+            sweepKeyValues = block.sweepCachedKeyValues,
+            maxKeyValuesPerSegment = block.maxCachedKeyValueCountPerSegment,
+            actorConfig = Some(block.sweeperActorConfig)
           )
         )
     }
@@ -178,7 +180,7 @@ private[core] object MemorySweeper {
         actor =>
           actor send new Command.BlockCache(
             key = key,
-            valueSize = value.size,
+            valueSize = value.underlyingArraySize,
             map = map
           )
       }
@@ -186,6 +188,7 @@ private[core] object MemorySweeper {
 
   case class BlockSweeper(blockSize: Int,
                           cacheSize: Int,
+                          skipBlockCacheSeekSize: Int,
                           actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block
 
   sealed trait KeyValue extends Enabled {
@@ -215,6 +218,7 @@ private[core] object MemorySweeper {
 
   case class All(blockSize: Int,
                  cacheSize: Int,
+                 skipBlockCacheSeekSize: Int,
                  maxKeyValuesPerSegment: Option[Int],
                  sweepKeyValues: Boolean,
                  actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block with KeyValue

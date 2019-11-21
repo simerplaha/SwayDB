@@ -108,7 +108,7 @@ class SegmentBlockCacheSpec extends TestBase {
     "not add un-cached blocks and readers to memory sweeper" in {
       runThis(10.times) {
         implicit val sweeper: Option[MemorySweeper.Block] =
-          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 600.mb, ActorConfig.random()(level0PushDownPool)))
+          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random()(level0PushDownPool)))
             .map(_.asInstanceOf[MemorySweeper.Block])
 
         val actor = sweeper.value.actor.value
@@ -182,7 +182,7 @@ class SegmentBlockCacheSpec extends TestBase {
     "add cached blocks to memory sweeper" in {
       runThis(10.times) {
         implicit val sweeper: Option[MemorySweeper.Block] =
-          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 600.mb, ActorConfig.random(10.seconds)(level0PushDownPool)))
+          MemorySweeper(MemoryCache.ByteCacheOnly(4098, 50000.bytes, 600.mb, ActorConfig.random(10.seconds)(level0PushDownPool)))
             .map(_.asInstanceOf[MemorySweeper.Block])
 
         val actor = sweeper.value.actor.value

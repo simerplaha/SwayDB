@@ -55,6 +55,7 @@ private[core] object BlockCache {
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
+      skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
       map = HashedMap.concurrent[BlockCache.Key, Slice[Byte]]()
     )
 
@@ -62,10 +63,12 @@ private[core] object BlockCache {
     new State(
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
+      skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
       map = HashedMap.concurrent[BlockCache.Key, Slice[Byte]]()
     )
 
   class State(val blockSize: Int,
+              val skipBlockCacheSeekSize: Int,
               val sweeper: MemorySweeper.Block,
               private[file] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) {
     val blockSizeDouble: Double = blockSize
@@ -164,7 +167,7 @@ private[core] object BlockCache {
 
     state.map.get(Key(file.blockCacheFileId, keyPosition)) match {
       case Some(fromCache) =>
-        //println(s"Memory seek size: $size")
+        //        println(s"Memory seek size: $size")
         //        memorySeeks += 1
         val seekedBytes = fromCache.take(position - keyPosition, size)
 
@@ -186,7 +189,7 @@ private[core] object BlockCache {
           )(blockIO)
 
       case None =>
-        //println(s"Disk seek size: $size")
+        //        println(s"Disk seek size: $size")
         val seekedBytes =
           blockIO.seek(
             keyPosition = keyPosition,
@@ -209,11 +212,18 @@ private[core] object BlockCache {
                 size: Int,
                 file: DBFileType,
                 state: State)(implicit effect: BlockIO): Slice[Byte] =
-    getOrSeek(
-      position = position,
-      size = size,
-      file = file,
-      headBytes = Slice.emptyBytes,
-      state = state
-    )(effect)
+    if (size >= state.skipBlockCacheSeekSize) //if the seek size is too large then skip block cache and perform direct IO.
+      file
+        .read(
+          position = position,
+          size = size
+        )
+    else
+      getOrSeek(
+        position = position,
+        size = size,
+        file = file,
+        headBytes = Slice.emptyBytes,
+        state = state
+      )(effect)
 }
