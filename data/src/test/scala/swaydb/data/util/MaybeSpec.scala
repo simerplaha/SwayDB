@@ -73,11 +73,11 @@ class MaybeSpec extends WordSpec with Matchers {
     }
 
     "toOption" in {
-      some.toOptionMayBe shouldBe Some("some")
+      some.toOption shouldBe Some("some")
     }
 
     "toTry" in {
-      some.toTryMayBe shouldBe Success("some")
+      some.toTry shouldBe Success("some")
     }
   }
 
@@ -88,7 +88,7 @@ class MaybeSpec extends WordSpec with Matchers {
       none shouldBe null
       none.isNone shouldBe true
       none.isSome shouldBe false
-      none.toOptionMayBe shouldBe empty
+      none.toOption shouldBe empty
     }
 
     "map" in {
@@ -131,11 +131,11 @@ class MaybeSpec extends WordSpec with Matchers {
     }
 
     "toOption" in {
-      none.toOptionMayBe shouldBe None
+      none.toOption shouldBe None
     }
 
     "toTry" in {
-      none.toTryMayBe.isFailure shouldBe true
+      none.toTry.isFailure shouldBe true
     }
   }
 }

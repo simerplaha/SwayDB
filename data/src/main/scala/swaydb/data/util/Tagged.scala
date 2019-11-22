@@ -19,10 +19,10 @@
 
 package swaydb.data.util
 
-trait Tagged[T] extends Any {
-  type Tag = T
+sealed trait Tagged[+T] extends Any {
+  type Tagged <: T
 }
 
 object Tagged {
-  type @@[V, T] = V with Tagged[T]
+  type @@[+V, +T] = V with Tagged[T]
 }
