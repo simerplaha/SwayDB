@@ -209,7 +209,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def assertGet(segment: Segment) = {
     val readState = ReadState.limitHashMap(1)
-    keyValues foreach {
+    shuffledKeyValues foreach {
       keyValue =>
         //        if (index % 10000 == 0)
         //          segment.get(shuffledKeyValues.head.key)

@@ -36,4 +36,18 @@ object NullOps {
     }
   }
 
+  implicit class NullImplicits[A](value: A) {
+    def isNull: Boolean =
+      value == null
+
+    def isNotNull: Boolean =
+      value != null
+
+    def mapNotNull[T >: Null](f: A => T): T =
+      if (value == null)
+        null
+      else
+        f(value)
+  }
+
 }

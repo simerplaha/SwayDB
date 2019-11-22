@@ -586,7 +586,6 @@ private[core] object BinarySearchIndexBlock {
             )
 
           case some: BinarySearchGetResult.Some[Persistent.Partial] =>
-
             SortedIndexBlock.matchOrSeekHigher(
               key = key,
               startFrom = if (sortedIndexReader.block.hasPrefixCompression) Some(some.value.toPersistent) else Some(some.value),

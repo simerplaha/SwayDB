@@ -33,11 +33,11 @@ object KeyOrder {
   val default, lexicographic: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int = {
-        val minimum = java.lang.Math.min(a.size, b.size)
+        val minimum = Math.min(a.size, b.size)
         var i = 0
         while (i < minimum) {
-          val aB = a(i) & 0xFF
-          val bB = b(i) & 0xFF
+          val aB = a.get(i) & 0xFF
+          val bB = b.get(i) & 0xFF
           if (aB != bB) return aB - bB
           i += 1
         }

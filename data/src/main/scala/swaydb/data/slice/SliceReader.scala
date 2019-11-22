@@ -29,7 +29,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte],
 
   def path = Paths.get(this.getClass.getSimpleName)
 
-  override val size: Long =
+  override def size: Long =
     slice.size
 
   def hasAtLeast(size: Long): Boolean =

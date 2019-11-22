@@ -66,6 +66,12 @@ object Maybe {
       else
         some(f(value))
 
+    @inline def exists(f: A => Boolean): Boolean =
+      value != null && f(value)
+
+    @inline def notExists(f: A => Boolean): Boolean =
+      !exists(f)
+
     @inline def flatMapMayBe[B](f: A => Maybe[B]): Maybe[B] =
       flatMap(f)
 
