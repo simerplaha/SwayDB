@@ -50,4 +50,12 @@ object NullOps {
         f(value)
   }
 
+  def tryOrNull[T >: Null](f: => T): T =
+    try
+      f
+    catch {
+      case _: Exception =>
+        null
+    }
+
 }
