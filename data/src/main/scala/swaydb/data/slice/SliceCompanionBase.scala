@@ -37,6 +37,9 @@ trait SliceCompanionBase {
 
   val someEmptyBytes = Some(emptyBytes)
 
+  val nulled: Slice[Nothing] =
+    new Slice[Nothing](null, Int.MinValue, Int.MinValue, Int.MinValue)
+
   private[swaydb] val emptyEmptyBytes: Slice[Slice[Byte]] = Slice.empty[Slice[Byte]]
 
   @inline final def empty[T: ClassTag] =

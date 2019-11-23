@@ -68,7 +68,9 @@ private[core] object PersistentTimer extends LazyLogging {
         mmap = mmap,
         flushOnOverflow = true,
         fileSize = flushCheckpointSize,
-        dropCorruptedTailEntries = false
+        dropCorruptedTailEntries = false,
+        nullKey = Slice.nulled,
+        nullValue = Slice.nulled
       ).item
     } flatMap {
       map =>

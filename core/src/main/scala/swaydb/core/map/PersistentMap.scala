@@ -45,15 +45,17 @@ private[map] object PersistentMap extends LazyLogging {
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
                                          fileSize: Long,
-                                         dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                            timeOrder: TimeOrder[Slice[Byte]],
-                                                                            functionStore: FunctionStore,
-                                                                            fileSweeper: FileSweeper,
-                                                                            reader: MapEntryReader[MapEntry[K, V]],
-                                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                            skipListMerger: SkipListMerger[K, V]): RecoveryResult[PersistentMap[K, V]] = {
+                                         dropCorruptedTailEntries: Boolean,
+                                         nullKey: K,
+                                         nullValue: V)(implicit keyOrder: KeyOrder[K],
+                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                       functionStore: FunctionStore,
+                                                       fileSweeper: FileSweeper,
+                                                       reader: MapEntryReader[MapEntry[K, V]],
+                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                       skipListMerger: SkipListMerger[K, V]): RecoveryResult[PersistentMap[K, V]] = {
     Effect.createDirectoryIfAbsent(folder)
-    val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V]()(keyOrder)
+    val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V](nullKey, nullValue)(keyOrder)
     val (fileRecoveryResult, hasRange) = recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries)
 
     RecoveryResult(
@@ -73,15 +75,17 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def apply[K, V: ClassTag](folder: Path,
                                          mmap: Boolean,
                                          flushOnOverflow: Boolean,
-                                         fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         fileSweeper: FileSweeper,
-                                                         functionStore: FunctionStore,
-                                                         reader: MapEntryReader[MapEntry[K, V]],
-                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                         skipListMerger: SkipListMerger[K, V]): PersistentMap[K, V] = {
+                                         fileSize: Long,
+                                         nullKey: K,
+                                         nullValue: V)(implicit keyOrder: KeyOrder[K],
+                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                       fileSweeper: FileSweeper,
+                                                       functionStore: FunctionStore,
+                                                       reader: MapEntryReader[MapEntry[K, V]],
+                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                       skipListMerger: SkipListMerger[K, V]): PersistentMap[K, V] = {
     Effect.createDirectoryIfAbsent(folder)
-    val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V]()(keyOrder)
+    val skipList: SkipList.Concurrent[K, V] = SkipList.concurrent[K, V](nullKey, nullValue)(keyOrder)
     val file = firstFile(folder, mmap, fileSize)
     new PersistentMap[K, V](
       path = folder,

@@ -227,14 +227,18 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         if (levelStorage.memory)
           map.Map.memory[Slice[Byte], Memory](
             fileSize = fileSize,
-            flushOnOverflow = flushOnOverflow
+            flushOnOverflow = flushOnOverflow,
+            nullKey = Slice.nulled,
+            nullValue = Memory.Null
           )
         else
           map.Map.persistent[Slice[Byte], Memory](
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,
-            fileSize = fileSize
+            fileSize = fileSize,
+            nullKey = Slice.nulled,
+            nullValue = Memory.Null
           ).runRandomIO.right.value
 
       keyValues foreach {

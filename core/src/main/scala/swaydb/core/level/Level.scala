@@ -147,14 +147,21 @@ private[core] object Level extends LazyLogging {
                     mmap = mmap,
                     flushOnOverflow = true,
                     fileSize = appendixFlushCheckpointSize,
-                    dropCorruptedTailEntries = false
+                    dropCorruptedTailEntries = false,
+                    nullKey = Slice.nulled,
+                    nullValue = Segment.nulled
                   ).item
                 }
               }
 
             case AppendixStorage.Memory =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
-              IO(Map.memory[Slice[Byte], Segment]())
+              IO(
+                Map.memory[Slice[Byte], Segment](
+                  nullKey = Slice.nulled,
+                  nullValue = Segment.nulled
+                )
+              )
           }
 
         //initialise Level

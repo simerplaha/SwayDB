@@ -67,7 +67,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment](nullKey = Slice.nulled, nullValue = Segment.nulled)(keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
 
@@ -93,7 +93,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment](nullKey = Slice.nulled, nullValue = Segment.nulled)(keyOrder)
       readEntry applyTo skipList
       skipList shouldBe empty
     }
@@ -125,7 +125,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice)).runRandomIO.right.value.value
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[Slice[Byte], Segment]()(keyOrder)
+      val skipList = SkipList.concurrent[Slice[Byte], Segment](nullKey = Slice.nulled, nullValue = Segment.nulled)(keyOrder)
       readEntry applyTo skipList
       def scalaSkipList = skipList.asScala
       assertSkipList()

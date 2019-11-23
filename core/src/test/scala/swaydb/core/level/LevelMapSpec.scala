@@ -89,10 +89,15 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           mmap = true,
           flushOnOverflow = true,
           fileSize = 1.mb,
-          dropCorruptedTailEntries = false
+          dropCorruptedTailEntries = false,
+          nullKey = Slice.nulled,
+          nullValue = Memory.Null
         ).runRandomIO.right.value.item
       else
-        Map.memory[Slice[Byte], Memory]()
+        Map.memory[Slice[Byte], Memory](
+          nullKey = Slice.nulled,
+          nullValue = Memory.Null
+        )
 
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
@@ -155,9 +160,15 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
           mmap = true,
           flushOnOverflow = true,
           fileSize = 1.mb,
-          dropCorruptedTailEntries = false).runRandomIO.right.value.item
+          dropCorruptedTailEntries = false,
+          nullKey = Slice.nulled,
+          nullValue = Memory.Null
+        ).runRandomIO.right.value.item
       else
-        Map.memory[Slice[Byte], Memory]()
+        Map.memory[Slice[Byte], Memory](
+          nullKey = Slice.nulled,
+          nullValue = Memory.Null
+        )
 
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {

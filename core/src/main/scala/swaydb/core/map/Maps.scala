@@ -47,88 +47,110 @@ import scala.reflect.ClassTag
 private[core] object Maps extends LazyLogging {
 
   def memory[K, V: ClassTag](fileSize: Long,
-                             acceleration: LevelZeroMeter => Accelerator)(implicit keyOrder: KeyOrder[K],
-                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                          fileSweeper: FileSweeper,
-                                                                          functionStore: FunctionStore,
-                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                          skipListMerger: SkipListMerger[K, V],
-                                                                          timer: Timer): Maps[K, V] =
+                             acceleration: LevelZeroMeter => Accelerator,
+                             nullKey: K,
+                             nullValue: V)(implicit keyOrder: KeyOrder[K],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           fileSweeper: FileSweeper,
+                                           functionStore: FunctionStore,
+                                           mapReader: MapEntryReader[MapEntry[K, V]],
+                                           writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                           skipListMerger: SkipListMerger[K, V],
+                                           timer: Timer): Maps[K, V] =
     new Maps[K, V](
       maps = new ConcurrentLinkedDeque[Map[K, V]](),
       fileSize = fileSize,
       acceleration = acceleration,
-      currentMap = Map.memory[K, V](fileSize, flushOnOverflow = false)
+      currentMap =
+        Map.memory[K, V](
+          fileSize = fileSize,
+          flushOnOverflow = false,
+          nullKey = nullKey,
+          nullValue = nullValue
+        )
     )
 
   def persistent[K, V: ClassTag](path: Path,
                                  mmap: Boolean,
                                  fileSize: Long,
                                  acceleration: LevelZeroMeter => Accelerator,
-                                 recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         fileSweeper: FileSweeper,
-                                                         functionStore: FunctionStore,
-                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                         reader: MapEntryReader[MapEntry[K, V]],
-                                                         skipListMerger: SkipListMerger[K, V],
-                                                         timer: Timer): IO[swaydb.Error.Map, Maps[K, V]] = {
+                                 recovery: RecoveryMode,
+                                 nullKey: K,
+                                 nullValue: V)(implicit keyOrder: KeyOrder[K],
+                                               timeOrder: TimeOrder[Slice[Byte]],
+                                               fileSweeper: FileSweeper,
+                                               functionStore: FunctionStore,
+                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                               reader: MapEntryReader[MapEntry[K, V]],
+                                               skipListMerger: SkipListMerger[K, V],
+                                               timer: Timer): IO[swaydb.Error.Map, Maps[K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
-    recover[K, V](path, mmap, fileSize, recovery).map(_.reverse) flatMap {
-      recoveredMapsReversed =>
-        logger.info(s"{}: Recovered {} maps.", path, recoveredMapsReversed.size)
-        val nextMapId =
-          recoveredMapsReversed.headOption match {
-            case Some(lastMaps) =>
-              lastMaps match {
-                case PersistentMap(path, _, _, _, _, _, _) =>
-                  path.incrementFolderId
-                case _ =>
-                  path.resolve(0.toFolderId)
-              }
-            case None =>
-              path.resolve(0.toFolderId)
-          }
-        //delete maps that are empty.
-        val (emptyMaps, otherMaps) = recoveredMapsReversed.partition(_.isEmpty)
-        if (emptyMaps.nonEmpty) logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
-        emptyMaps foreachIO (map => IO(map.delete)) match {
-          case Some(IO.Left(error)) =>
-            logger.error(s"{}: Failed to delete empty maps {}", path, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
-            IO.Left(error)
-
-          case None =>
-            logger.debug(s"{}: Creating next map with ID {} maps.", path, nextMapId)
-            val queue = new ConcurrentLinkedDeque[Map[K, V]](otherMaps.asJavaCollection)
-            IO {
-              Map.persistent[K, V](
-                folder = nextMapId,
-                mmap = mmap,
-                flushOnOverflow = false,
-                fileSize = fileSize,
-                dropCorruptedTailEntries = recovery.drop
-              )
-            } map {
-              nextMap =>
-                logger.debug(s"{}: Next map created with ID {}.", path, nextMapId)
-                new Maps[K, V](queue, fileSize, acceleration, nextMap.item)
+    recover[K, V](
+      folder = path,
+      mmap = mmap,
+      fileSize = fileSize,
+      recovery = recovery,
+      nullKey = nullKey,
+      nullValue = nullValue
+    ).map(_.reverse)
+      .flatMap {
+        recoveredMapsReversed =>
+          logger.info(s"{}: Recovered {} maps.", path, recoveredMapsReversed.size)
+          val nextMapId =
+            recoveredMapsReversed.headOption match {
+              case Some(lastMaps) =>
+                lastMaps match {
+                  case PersistentMap(path, _, _, _, _, _, _) =>
+                    path.incrementFolderId
+                  case _ =>
+                    path.resolve(0.toFolderId)
+                }
+              case None =>
+                path.resolve(0.toFolderId)
             }
-        }
-    }
+          //delete maps that are empty.
+          val (emptyMaps, otherMaps) = recoveredMapsReversed.partition(_.isEmpty)
+          if (emptyMaps.nonEmpty) logger.info(s"{}: Deleting empty {} maps {}.", path, emptyMaps.size, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
+          emptyMaps foreachIO (map => IO(map.delete)) match {
+            case Some(IO.Left(error)) =>
+              logger.error(s"{}: Failed to delete empty maps {}", path, emptyMaps.flatMap(_.pathOption).map(_.toString).mkString(", "))
+              IO.Left(error)
+
+            case None =>
+              logger.debug(s"{}: Creating next map with ID {} maps.", path, nextMapId)
+              val queue = new ConcurrentLinkedDeque[Map[K, V]](otherMaps.asJavaCollection)
+              IO {
+                Map.persistent[K, V](
+                  folder = nextMapId,
+                  mmap = mmap,
+                  flushOnOverflow = false,
+                  fileSize = fileSize,
+                  dropCorruptedTailEntries = recovery.drop,
+                  nullKey = nullKey,
+                  nullValue = nullValue
+                )
+              } map {
+                nextMap =>
+                  logger.debug(s"{}: Next map created with ID {}.", path, nextMapId)
+                  new Maps[K, V](queue, fileSize, acceleration, nextMap.item)
+              }
+          }
+      }
   }
 
   private def recover[K, V: ClassTag](folder: Path,
                                       mmap: Boolean,
                                       fileSize: Long,
-                                      recovery: RecoveryMode)(implicit keyOrder: KeyOrder[K],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              fileSweeper: FileSweeper,
-                                                              functionStore: FunctionStore,
-                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                              mapReader: MapEntryReader[MapEntry[K, V]],
-                                                              skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, ListBuffer[Map[K, V]]] = {
+                                      recovery: RecoveryMode,
+                                      nullKey: K,
+                                      nullValue: V)(implicit keyOrder: KeyOrder[K],
+                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                    fileSweeper: FileSweeper,
+                                                    functionStore: FunctionStore,
+                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                    mapReader: MapEntryReader[MapEntry[K, V]],
+                                                    skipListMerger: SkipListMerger[K, V]): IO[swaydb.Error.Map, ListBuffer[Map[K, V]]] = {
     /**
      * Performs corruption handling based on the the value set for [[RecoveryMode]].
      */
@@ -196,7 +218,9 @@ private[core] object Maps extends LazyLogging {
               mmap = mmap,
               flushOnOverflow = false,
               fileSize = fileSize,
-              dropCorruptedTailEntries = recovery.drop
+              dropCorruptedTailEntries = recovery.drop,
+              nullKey = nullKey,
+              nullValue = nullValue
             )
           } match {
             case IO.Right(recoveredMap) =>
@@ -256,13 +280,17 @@ private[core] object Maps extends LazyLogging {
           folder = currentMap.path.incrementFolderId,
           mmap = currentMap.mmap,
           flushOnOverflow = false,
-          fileSize = nextMapSize
+          fileSize = nextMapSize,
+          nullKey = currentMap.skipList.nullKey,
+          nullValue = currentMap.skipList.nullValue
         )
 
       case _ =>
         Map.memory[K, V](
           fileSize = nextMapSize,
-          flushOnOverflow = false
+          flushOnOverflow = false,
+          nullKey = currentMap.skipList.nullKey,
+          nullValue = currentMap.skipList.nullValue
         )
     }
 }

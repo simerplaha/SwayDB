@@ -102,7 +102,9 @@ private[core] object LevelZero extends LazyLogging {
                     mmap = mmap,
                     fileSize = mapSize,
                     acceleration = acceleration,
-                    recovery = recovery
+                    recovery = recovery,
+                    nullKey = Slice.nulled,
+                    nullValue = Memory.Null
                   ) map {
                     maps =>
                       (maps, path, Some(lock))
@@ -139,7 +141,9 @@ private[core] object LevelZero extends LazyLogging {
               val map =
                 Maps.memory[Slice[Byte], Memory](
                   fileSize = mapSize,
-                  acceleration = acceleration
+                  acceleration = acceleration,
+                  nullKey = Slice.nulled,
+                  nullValue = Memory.Null
                 )
 
               (map, Paths.get("MEMORY_DB").resolve(0.toString), None)

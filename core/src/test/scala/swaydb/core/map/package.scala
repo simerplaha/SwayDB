@@ -43,14 +43,15 @@ package object map {
                writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Memory]],
                reader: MapEntryReader[MapEntry[Slice[Byte], Memory]],
                skipListMerge: SkipListMerger[Slice[Byte], Memory]) = {
-      map.close().runRandomIO.right.value
-      Map.persistent[Slice[Byte], Memory](
-        folder = map.path,
-        mmap = Random.nextBoolean(),
-        flushOnOverflow = Random.nextBoolean(),
-        fileSize = 10.mb,
-        dropCorruptedTailEntries = false
-      ).runRandomIO.right.value.item
+      //      map.close().runRandomIO.right.value
+      //      Map.persistent[Slice[Byte], Memory](
+      //        folder = map.path,
+      //        mmap = Random.nextBoolean(),
+      //        flushOnOverflow = Random.nextBoolean(),
+      //        fileSize = 10.mb,
+      //        dropCorruptedTailEntries = false
+      //      ).runRandomIO.right.value.item
+      ???
     }
   }
 }

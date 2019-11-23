@@ -63,7 +63,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory](nullKey = Slice.nulled, nullValue = Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -92,7 +92,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe entry
 
-        val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory](nullKey = Slice.nulled, nullValue = Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -121,7 +121,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory](nullKey = Slice.nulled, nullValue = Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -150,7 +150,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory](nullKey = Slice.nulled, nullValue = Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -180,7 +180,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe entry
 
-        val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory](nullKey = Slice.nulled, nullValue = Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -209,7 +209,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory](nullKey = Slice.nulled, nullValue = Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -266,7 +266,7 @@ class LevelZeroMapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value.value
         readEntry shouldBe entry
 
-        val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
+        val skipList = SkipList.concurrent[Slice[Byte], Memory](nullKey = Slice.nulled, nullValue = Memory.Null)(keyOrder)
         readEntry applyTo skipList
         def scalaSkipList = skipList.asScala
         assertSkipList()

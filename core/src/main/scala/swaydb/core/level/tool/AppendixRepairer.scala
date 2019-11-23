@@ -181,7 +181,9 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         folder = appendixDir,
         mmap = false,
         flushOnOverflow = true,
-        fileSize = 1.gb
+        fileSize = 1.gb,
+        nullKey = Slice.nulled,
+        nullValue = Segment.nulled
       )
     } flatMap {
       appendix =>

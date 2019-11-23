@@ -305,7 +305,12 @@ object CommonAssertions {
                           oldKeyValues: Iterable[KeyValue.ReadOnly],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                         timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[Slice[Byte], Memory] = {
-    val skipList = SkipList.concurrent[Slice[Byte], Memory]()(KeyOrder.default)
+    val skipList =
+      SkipList.concurrent[Slice[Byte], Memory](
+        nullKey = Slice.nulled,
+        nullValue = Memory.Null
+      )(KeyOrder.default)
+
     (oldKeyValues ++ newKeyValues).map(_.toMemoryResponse) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
     skipList
@@ -625,10 +630,10 @@ object CommonAssertions {
     def shouldBe(expected: MapEntry[Slice[Byte], Segment]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
-      val actualMap = SkipList.concurrent[Slice[Byte], Segment]()(KeyOrder.default)
+      val actualMap = SkipList.concurrent[Slice[Byte], Segment](nullKey = Slice.nulled, nullValue = Segment.nulled)(KeyOrder.default)
       actual.applyTo(actualMap)
 
-      val expectedMap = SkipList.concurrent[Slice[Byte], Segment]()(KeyOrder.default)
+      val expectedMap = SkipList.concurrent[Slice[Byte], Segment](nullKey = Slice.nulled, nullValue = Segment.nulled)(KeyOrder.default)
       expected.applyTo(expectedMap)
 
       actualMap.size shouldBe expectedMap.size

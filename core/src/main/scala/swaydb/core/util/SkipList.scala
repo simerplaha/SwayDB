@@ -36,6 +36,8 @@ import scala.reflect.ClassTag
 import scala.util.Random
 
 private[core] sealed trait SkipList[K, V] {
+  def nullKey: K
+  def nullValue: V
   def put(key: K, value: V): Unit
   def putIfAbsent(key: K, value: V): Boolean
   def get(key: K): Option[V]
@@ -134,16 +136,18 @@ private[core] object SkipList {
         None
     }
 
-  def concurrent[K, V]()(implicit ordering: KeyOrder[K]): SkipList.Concurrent[K, V] =
-    new Concurrent[K, V](new ConcurrentSkipListMap[K, V](ordering))
+  def concurrent[K, V](nullKey: K, nullValue: V)(implicit ordering: KeyOrder[K]): SkipList.Concurrent[K, V] =
+    new Concurrent[K, V](new ConcurrentSkipListMap[K, V](ordering), nullKey, nullValue)
 
-  def immutable[K, V]()(implicit ordering: KeyOrder[K]): SkipList.Immutable[K, V] =
-    new Immutable[K, V](new util.TreeMap[K, V](ordering))
+  def immutable[K, V](nullKey: K, nullValue: V)(implicit ordering: KeyOrder[K]): SkipList.Immutable[K, V] =
+    new Immutable[K, V](new util.TreeMap[K, V](ordering), nullKey, nullValue)
 
-  def concurrent[K, V: ClassTag](limit: Int)(implicit ordering: KeyOrder[K]): SkipList.ConcurrentLimit[K, V] =
-    new ConcurrentLimit[K, V](limit, concurrent[K, V]())
+  def concurrent[K, V: ClassTag](limit: Int, nullKey: K, nullValue: V)(implicit ordering: KeyOrder[K]): SkipList.ConcurrentLimit[K, V] =
+    new ConcurrentLimit[K, V](limit, concurrent[K, V](nullKey, nullValue))
 
-  private[core] class Immutable[K, V](private var skipper: util.TreeMap[K, V]) extends SkipListMapBase[K, V, util.TreeMap[K, V]](skipper, false) {
+  private[core] class Immutable[K, V](private var skipper: util.TreeMap[K, V],
+                                      nullKey: K,
+                                      nullValue: V) extends SkipListMapBase[K, V, util.TreeMap[K, V]](skipper, false, nullKey, nullValue) {
     /**
      * FIXME - [[SkipListMapBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
      * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
@@ -170,7 +174,9 @@ private[core] object SkipList {
       throw new IllegalAccessException("Immutable SkipList")
   }
 
-  private[core] class Concurrent[K, V](private var skipper: ConcurrentSkipListMap[K, V]) extends SkipListMapBase[K, V, ConcurrentSkipListMap[K, V]](skipper, true) {
+  private[core] class Concurrent[K, V](private var skipper: ConcurrentSkipListMap[K, V],
+                                       nullKey: K,
+                                       nullValue: V) extends SkipListMapBase[K, V, ConcurrentSkipListMap[K, V]](skipper, true, nullKey, nullValue) {
     /**
      * FIXME - [[SkipListMapBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
      * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
@@ -179,11 +185,13 @@ private[core] object SkipList {
     skipper = null
 
     override def cloneInstance(skipList: ConcurrentSkipListMap[K, V]): Concurrent[K, V] =
-      new Concurrent(skipList.clone())
+      new Concurrent(skipList.clone(), nullKey, nullValue)
   }
 
   protected abstract class SkipListMapBase[K, V, SL <: util.NavigableMap[K, V]](@volatile var skipList: SL,
-                                                                                val isConcurrent: Boolean) extends SkipList[K, V] {
+                                                                                val isConcurrent: Boolean,
+                                                                                val nullKey: K,
+                                                                                val nullValue: V) extends SkipList[K, V] {
 
     def cloneInstance(skipList: SL): SkipListMapBase[K, V, SL]
 
@@ -369,6 +377,10 @@ private[core] object SkipList {
   }
 
   private[core] class ConcurrentLimit[K, V](limit: Int, skipList: SkipList.Concurrent[K, V])(implicit ordering: KeyOrder[K]) extends SkipList[K, V] {
+    def nullKey = skipList.nullKey
+
+    def nullValue = skipList.nullValue
+
     val skipListSize = new AtomicInteger(0)
 
     def dropOverflow(key: K): Unit =

@@ -52,6 +52,8 @@ private[core] object Segment extends LazyLogging {
   val emptyIterable = Iterable.empty[Segment]
   val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.IO.ExceptionHandler.Nothing)
 
+  val nulled: Segment = null
+
   def memory(path: Path,
              segmentId: Long,
              createdInLevel: Long,
@@ -63,7 +65,7 @@ private[core] object Segment extends LazyLogging {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
       val bloomFilterOption: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
-      val skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
+      val skipList = SkipList.immutable[Slice[Byte], Memory](Slice.nulled, Memory.Null)(keyOrder)
 
       //Note: Transient key-values can be received from Persistent Segments in which case it's important that
       //all byte arrays are unsliced before writing them to Memory Segment.

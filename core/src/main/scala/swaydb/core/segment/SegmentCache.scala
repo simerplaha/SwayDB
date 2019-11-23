@@ -50,10 +50,10 @@ private[core] object SegmentCache {
           sweeper =>
             sweeper.maxKeyValuesPerSegment match {
               case Some(maxKeyValuesPerSegment) =>
-                SkipList.concurrent(maxKeyValuesPerSegment)
+                SkipList.concurrent(maxKeyValuesPerSegment, Slice.nulled, Persistent.Null)
 
               case None =>
-                SkipList.concurrent()
+                SkipList.concurrent(Slice.nulled, Persistent.Null)
             }
         },
       unsliceKey = unsliceKey,
