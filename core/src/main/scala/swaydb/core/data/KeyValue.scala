@@ -164,6 +164,12 @@ private[swaydb] object Memory {
 
   sealed trait Fixed extends Memory with KeyValue.ReadOnly.Fixed
 
+  object Null extends Memory {
+    def exception[T](): T = throw new Exception("Memory.Null")
+    override def key: Slice[Byte] = exception()
+    override def indexEntryDeadline: Option[Deadline] = exception()
+  }
+
   case class Put(key: Slice[Byte],
                  value: Option[Slice[Byte]],
                  deadline: Option[Deadline],
@@ -1082,10 +1088,10 @@ private[core] object Transient {
 
 private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial {
 
-  val indexOffset: Int
-  val nextIndexOffset: Int
-  val nextIndexSize: Int
-  val sortedIndexAccessPosition: Int
+  def indexOffset: Int
+  def nextIndexOffset: Int
+  def nextIndexSize: Int
+  def sortedIndexAccessPosition: Int
 
   def valueLength: Int
 
@@ -1114,6 +1120,22 @@ private[core] object Persistent {
     def nextIndexSize: Int
     def sortedIndexAccessPosition: Int
     def toPersistent: Persistent
+  }
+
+  object Null extends Persistent {
+    def exception[T](): T = throw new Exception("Persistent.Null")
+    override def indexOffset: Int = exception()
+    override def nextIndexOffset: Int = exception()
+    override def nextIndexSize: Int = exception()
+    override def sortedIndexAccessPosition: Int = exception()
+    override def valueLength: Int = exception()
+    override def valueOffset: Int = exception()
+    override def toMemory(): Memory = exception()
+    override def isValueCached: Boolean = exception()
+    override def unsliceKeys: Unit = exception()
+    override def key: Slice[Byte] = exception()
+    override def toPersistent: Persistent = exception()
+    override def indexEntryDeadline: Option[Deadline] = exception()
   }
 
   object Partial {
