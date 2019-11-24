@@ -19,14 +19,10 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.io.reader.Reader
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.KeyMatcher.Get
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{KeyMatcher, SortedIndexBlock, ValuesBlock}
-import swaydb.core.segment.format.a.entry.id.KeyValueId
-import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -65,54 +61,13 @@ object BinarySearchContext {
       override val highestKeyValue: Option[Persistent] = highest
 
       override def seek(offset: Int): KeyMatcher.Result = {
-        //read entry information at the given offset
-        val binaryEntryReader = Reader(binarySearchIndex.moveTo(offset).read(binarySearchIndex.block.bytesPerValue))
-        val keyOffset = binaryEntryReader.readUnsignedInt()
-        val keySize = binaryEntryReader.readUnsignedInt()
-        val keyType = binaryEntryReader.get()
-
-        //read the target key at the offset within sortedIndex
-        val entryKey = sortedIndex.moveTo(keyOffset).read(keySize)
-
-        //create a temporary partially read key-value for matcher.
         val partialKeyValue =
-          if (keyType == Transient.Range.id)
-            new Partial.Range {
-              val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
-
-              override lazy val indexOffset: Int =
-                binaryEntryReader.readUnsignedInt()
-
-              override def key: Slice[Byte] =
-                fromKey
-
-              override def toPersistent: Persistent =
-                SortedIndexBlock.read(
-                  fromOffset = indexOffset,
-                  overwriteNextIndexOffset = None,
-                  sortedIndexReader = sortedIndex,
-                  valuesReader = values
-                )
-            }
-          else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
-            new Partial.Fixed {
-              override lazy val indexOffset: Int =
-                binaryEntryReader.readUnsignedInt()
-
-              override def key: Slice[Byte] =
-                entryKey
-
-              override def toPersistent: Persistent =
-                SortedIndexBlock.read(
-                  fromOffset = indexOffset,
-                  overwriteNextIndexOffset = None,
-                  sortedIndexReader = sortedIndex,
-                  valuesReader = values
-                )
-            }
-          else
-            throw new Exception(s"Invalid keyType: $keyType, offset: $offset, keyOffset: $keyOffset, keySize: $keySize")
-
+          BinarySearchPartialEntryParser.parse(
+            offset = offset,
+            binarySearchIndex = binarySearchIndex,
+            sortedIndex = sortedIndex,
+            values = values
+          )
         //todo - hasMore should be calculated.
         matcher(previous = partialKeyValue, next = None, hasMore = true)
       }
@@ -141,7 +96,8 @@ object BinarySearchContext {
 
       override def seek(offset: Int): KeyMatcher.Result =
         if (sortedIndex.block.isPreNormalised) {
-          //if sortedIndex was pre-normalised then there will be not empty bytes to skip so simply read the key-values.
+          //if sortedIndex was pre-normalised then there is no need to de-normalise. Simply parse.
+          //todo - review currently this is slower than normalised bytes.
           SortedIndexBlock.readAndMatch(
             matcher = matcher,
             fromOffset = offset,
@@ -150,52 +106,12 @@ object BinarySearchContext {
             valuesReader = values
           )
         } else {
-          //read enough information from the indexEntry to perform match.
-          val indexSize = sortedIndex.moveTo(offset).readUnsignedInt()
-          val indexEntryReader = Reader(sortedIndex.read(indexSize))
-          if (sortedIndex.block.enableAccessPositionIndex) indexEntryReader.readUnsignedInt()
-          val keySize = indexEntryReader.readUnsignedInt()
-          val entryKey = indexEntryReader.read(keySize)
-          val keyValueId = indexEntryReader.readUnsignedInt()
-
-          //create a temporary partially read key-value for matcher.
-          val partialKeyValue =
-            if (KeyValueId.Range hasKeyValueId keyValueId)
-              new Partial.Range {
-                val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
-
-                override def indexOffset: Int =
-                  offset
-
-                override def key: Slice[Byte] =
-                  fromKey
-
-                override def toPersistent: Persistent =
-                  SortedIndexBlock.read(
-                    fromOffset = offset,
-                    overwriteNextIndexOffset = None,
-                    sortedIndexReader = sortedIndex,
-                    valuesReader = values
-                  )
-              }
-            else if (KeyValueId isFixedId keyValueId)
-              new Partial.Fixed {
-                override def indexOffset: Int =
-                  offset
-
-                override def key: Slice[Byte] =
-                  entryKey
-
-                override def toPersistent: Persistent =
-                  SortedIndexBlock.read(
-                    fromOffset = offset,
-                    overwriteNextIndexOffset = None,
-                    sortedIndexReader = sortedIndex,
-                    valuesReader = values
-                  )
-              }
-            else
-              throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, indexSize: $indexSize")
+          val (partialKeyValue, indexSize) =
+            BinarySearchPartialEntryParser.parsedNormalised(
+              offset = offset,
+              sortedIndex = sortedIndex,
+              values = values
+            )
 
           val hasMore = (offset + indexSize) < sortedIndex.block.offset.end
 
