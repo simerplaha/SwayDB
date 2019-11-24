@@ -161,7 +161,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
           disableKeyPrefixCompression = false,
-          normaliseIndex = false,
+          normaliseIndex = true,
           compressions = _ => Seq.empty
         ),
       binarySearchIndexConfig =

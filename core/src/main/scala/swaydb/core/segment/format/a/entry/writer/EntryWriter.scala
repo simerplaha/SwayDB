@@ -127,7 +127,11 @@ private[core] object EntryWriter {
                                                 normaliseToSize: Option[Int],
                                                 compressDuplicateValues: Boolean,
                                                 enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): WriteResult = {
-    val bytesRequired = current.mergedKey.size
+    val bytesRequired =
+      if (normaliseToSize.isDefined)
+        0
+      else
+        current.mergedKey.size
 
     val writeResult =
       TimeWriter.write(
@@ -142,9 +146,10 @@ private[core] object EntryWriter {
         plusSize = bytesRequired
       )
 
-    writeResult
-      .indexBytes
-      .addAll(current.mergedKey)
+    if (normaliseToSize.isEmpty)
+      writeResult
+        .indexBytes
+        .addAll(current.mergedKey)
 
     close(
       normaliseToSize = normaliseToSize,
@@ -156,7 +161,8 @@ private[core] object EntryWriter {
     writeResult
   }
 
-  //format - indexSize|accessIndex?|keySize?(if norm) |keyValueId|valueOffset|valueLength|deadline|key|normalisedBytes?
+  //default format    - indexSize|accessIndex?|keyValueId|valueOffset|valueLength|deadline|key
+  //normalised format - indexSize|accessIndex?|keySize|key|keyValueId|valueOffset|valueLength|deadline|normalisedBytes
   def close[T <: Transient](normaliseToSize: Option[Int],
                             writeResult: WriteResult,
                             keySize: Int,
@@ -175,6 +181,7 @@ private[core] object EntryWriter {
             bytes addUnsignedInt indexSize
             sortedIndexAccessPosition foreach bytes.addUnsignedInt
             bytes addUnsignedInt keySize
+            bytes addAll current.mergedKey
             bytes addAll writeResult.indexBytes
           }
 

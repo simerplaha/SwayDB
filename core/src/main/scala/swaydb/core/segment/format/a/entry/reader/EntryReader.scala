@@ -33,7 +33,7 @@ trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              keySize: Option[Int],
+                              keyOption: Option[Slice[Byte]],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
@@ -67,7 +67,7 @@ object EntryReader {
   private def parse[T](baseId: Int,
                        keyValueId: Int,
                        sortedIndexAccessPosition: Int,
-                       keySize: Option[Int],
+                       keyOption: Option[Slice[Byte]],
                        mightBeCompressed: Boolean,
                        indexReader: ReaderBase,
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -84,7 +84,7 @@ object EntryReader {
         baseId = baseId,
         keyValueId = keyValueId,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyInfo = keySize,
+        keyOption = keyOption,
         indexReader = indexReader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
@@ -113,9 +113,9 @@ object EntryReader {
       else
         0
 
-    val keySize =
+    val keyOption: Option[Slice[Byte]] =
       if (isNormalised)
-        Some(reader.readUnsignedInt())
+        Some(reader.read(reader.readUnsignedInt()))
       else
         None
 
@@ -126,7 +126,7 @@ object EntryReader {
         baseId = KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keySize = keySize,
+        keyOption = keyOption,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
@@ -141,7 +141,7 @@ object EntryReader {
         baseId = KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keySize = keySize,
+        keyOption = keyOption,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
@@ -156,7 +156,7 @@ object EntryReader {
         baseId = KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keySize = keySize,
+        keyOption = keyOption,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
@@ -171,7 +171,7 @@ object EntryReader {
         baseId = KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keySize = keySize,
+        keyOption = keyOption,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
@@ -186,7 +186,7 @@ object EntryReader {
         baseId = KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keySize = keySize,
+        keyOption = keyOption,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
@@ -201,7 +201,7 @@ object EntryReader {
         baseId = KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keySize = keySize,
+        keyOption = keyOption,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,

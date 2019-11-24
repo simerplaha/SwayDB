@@ -88,6 +88,12 @@ object KeyValueId {
   //Last max id used in BaseEntryId.
   val reservedKeysPerGroup = EntryReader.readers.last.maxID
 
+  def isFixedId(id: Int): Boolean =
+    KeyValueId.Put.hasKeyValueId(id) || KeyValueId.Remove.hasKeyValueId(id) || KeyValueId.Update.hasKeyValueId(id) || KeyValueId.Function.hasKeyValueId(id) || KeyValueId.PendingApply.hasKeyValueId(id)
+
+  def isRange(id: Int): Boolean =
+    KeyValueId.Range.hasKeyValueId(id)
+
   object Put extends KeyValueId {
     override val minKey_Compressed_KeyValueId: Int = EntryReader.readers.head.minID
     override val maxKey_Compressed_KeyValueId: Int = reservedKeysPerGroup

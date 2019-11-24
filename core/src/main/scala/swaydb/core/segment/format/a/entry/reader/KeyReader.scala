@@ -21,64 +21,35 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
 
 object KeyReader {
 
-  private def uncompressed(indexReader: ReaderBase,
-                           keySize: Option[Int],
-                           previous: Option[Persistent]): Slice[Byte] =
-    keySize match {
-      case Some(keySize) =>
-        indexReader read keySize
-
-      case None =>
-        indexReader.readRemaining()
-    }
-
   private def compressed(indexReader: ReaderBase,
-                         keySize: Option[Int],
                          previous: Option[Persistent]): Slice[Byte] =
     previous match {
       case Some(previous) =>
-        keySize match {
-          case Some(keySize) =>
-            val key = indexReader.read(keySize)
-            val keyReader = Reader(key)
-            val commonBytes = keyReader.readUnsignedInt()
-            val rightBytes = keyReader.readRemaining()
-            Bytes.decompress(previous.key, rightBytes, commonBytes)
-
-          case None =>
-            val commonBytes = indexReader.readUnsignedInt()
-            val rightBytes = indexReader.readRemaining()
-            Bytes.decompress(previous.key, rightBytes, commonBytes)
-        }
+        val commonBytes = indexReader.readUnsignedInt()
+        val rightBytes = indexReader.readRemaining()
+        Bytes.decompress(previous.key, rightBytes, commonBytes)
 
       case None =>
         throw EntryReaderFailure.NoPreviousKeyValue
     }
 
   def read(keyValueIdInt: Int,
-           keySize: Option[Int],
            indexReader: ReaderBase,
            previous: Option[Persistent],
            keyValueId: KeyValueId): Slice[Byte] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(
         indexReader = indexReader,
-        keySize = keySize,
         previous = previous
       )
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
-      KeyReader.uncompressed(
-        indexReader = indexReader,
-        keySize = keySize,
-        previous = previous
-      )
+      indexReader.readRemaining()
     else
       throw IO.throwable(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")
 }

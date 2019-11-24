@@ -23,14 +23,14 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.data.slice.ReaderBase
+import swaydb.data.slice.{ReaderBase, Slice}
 
 object RemoveReader extends EntryReader[Persistent.Remove] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              keySize: Option[Int],
+                              keyOption: Option[Slice[Byte]],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
@@ -44,13 +44,14 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
     val deadline = deadlineReader.read(indexReader, previous)
     val time = timeReader.read(indexReader, previous)
     val key =
-      KeyReader.read(
-        keyValueIdInt = keyValueId,
-        indexReader = indexReader,
-        keySize = keySize,
-        previous = previous,
-        keyValueId = KeyValueId.Remove
-      )
+      keyOption getOrElse {
+        KeyReader.read(
+          keyValueIdInt = keyValueId,
+          indexReader = indexReader,
+          previous = previous,
+          keyValueId = KeyValueId.Remove
+        )
+      }
 
     Persistent.Remove(
       _key = key,

@@ -276,6 +276,7 @@ private[core] object BinarySearchIndexBlock {
     )
   }
 
+  //format - keyOffset|keySize|keyType|indexOffset
   def write(indexOffset: Int,
             keyOffset: Int,
             keySize: Int,

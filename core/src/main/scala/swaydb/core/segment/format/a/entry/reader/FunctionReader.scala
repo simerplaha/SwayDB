@@ -23,14 +23,14 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
-import swaydb.data.slice.ReaderBase
+import swaydb.data.slice.{ReaderBase, Slice}
 
 object FunctionReader extends EntryReader[Persistent.Function] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              keySize: Option[Int],
+                              keyOption: Option[Slice[Byte]],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
@@ -45,13 +45,14 @@ object FunctionReader extends EntryReader[Persistent.Function] {
     val time = timeReader.read(indexReader, previous)
 
     val key =
-      KeyReader.read(
-        keyValueIdInt = keyValueId,
-        indexReader = indexReader,
-        keySize = keySize,
-        previous = previous,
-        keyValueId = KeyValueId.Function
-      )
+      keyOption getOrElse {
+        KeyReader.read(
+          keyValueIdInt = keyValueId,
+          indexReader = indexReader,
+          previous = previous,
+          keyValueId = KeyValueId.Function
+        )
+      }
 
     val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
     val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
