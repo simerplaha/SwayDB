@@ -37,7 +37,7 @@ import scala.util.Try
 class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
 
   implicit val blockCacheMemorySweeper = TestSweeper.memorySweeperBlock
 
@@ -99,17 +99,17 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
       runThis(10.times, log = true, s"Running binary search test") {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
 
-        keyValues.zipWithIndex.foldLeft(Option.empty[Persistent.Partial]) {
+        keyValues.zipWithIndex.foldLeft(Option.empty[Persistent]) {
           case (previous, (keyValue, index)) =>
 
             //println
             //println(s"Key: ${keyValue.key.readInt()}")
-            val start: Option[Persistent.Partial] =
+            val start: Option[Persistent] =
               eitherOne(None, previous)
 
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
             //println("--- For end ---")
-            val end: Option[Persistent.Partial] =
+            val end: Option[Persistent] =
             eitherOne(
               left = None,
               right = //There is a random test. It could get index out of bounds.
@@ -147,7 +147,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                   //all keys are known to exist.
                   fail("Expected success")
 
-                case some : BinarySearchGetResult.Some[Persistent.Partial] =>
+                case some : BinarySearchGetResult.Some[Persistent] =>
                   some.value.key shouldBe keyValue.key
                   Some(some.value)
               }
@@ -176,7 +176,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ) match {
-              case none: BinarySearchGetResult.None[Persistent.Partial] =>
+              case none: BinarySearchGetResult.None[Persistent] =>
                 //lower will always be the last known uncompressed key before the last key-value.
                 if (keyValues.size > 4)
                   keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed) foreach {
@@ -202,7 +202,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ) match {
-              case none: BinarySearchGetResult.None[Persistent.Partial] =>
+              case none: BinarySearchGetResult.None[Persistent] =>
                 //lower is always empty since the test keys are lower than the actual key-values.
                 none.lower shouldBe empty
 
@@ -217,13 +217,13 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
       runThis(10.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
         //test higher in reverse order
-        keyValues.zipWithIndex.foldRight(Option.empty[Persistent.Partial]) {
+        keyValues.zipWithIndex.foldRight(Option.empty[Persistent]) {
           case ((keyValue, index), expectedHigher) =>
 
             //println(s"\nKey: ${keyValue.key.readInt()}")
 
             //println("--- Start ---")
-            val start: Option[Persistent.Partial] =
+            val start: Option[Persistent] =
               eitherOne(
                 left = None,
                 right = //There is a random test. It could get index out of bounds.
@@ -238,14 +238,14 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                         binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
-                      ).toOption.map(_.toPersistent)
+                      ).toOption
                   }
               )
             //println("--- Start ---")
 
             //println("--- End ---")
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
-            val end: Option[Persistent.Partial] =
+            val end: Option[Persistent] =
             eitherOne(
               left = None,
               right = //There is a random test. It could get index out of bounds.
@@ -302,7 +302,6 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
             SortedIndexBlock.seekAndMatch(
               key = keyValue.key,
               startFrom = eitherOne(start, None),
-              fullRead = true,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             )
@@ -323,7 +322,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
             //println(s"Key: ${keyValue.key.readInt()}. Expected lower: ${expectedLower.map(_.key.readInt())}")
 
             //println("--- Start ---")
-            val start: Option[Persistent.Partial] =
+            val start: Option[Persistent] =
               eitherOne(
                 left = None,
                 right = //There is a random test. It could get index out of bounds.
@@ -346,7 +345,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
 
             //println("--- END ---")
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
-            val end: Option[Persistent.Partial] =
+            val end: Option[Persistent] =
             eitherOne(
               left = None,
               right = //There is a random test. It could get index out of bounds.
@@ -400,7 +399,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 if (index == 0)
                   lower shouldBe empty
                 else
-                  lower.map(_.toPersistent) shouldBe expectedLower
+                  lower shouldBe expectedLower
 
                 val from = range.fromKey.readInt() + 1
                 val to = range.toKey.readInt()
@@ -425,10 +424,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
             SortedIndexBlock.seekAndMatch(
               key = keyValue.key,
               startFrom = None,
-              fullRead = true,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).map(_.toPersistent)
+            )
             //println(" --- lower for next ---")
 
             got.value.key shouldBe keyValue.key

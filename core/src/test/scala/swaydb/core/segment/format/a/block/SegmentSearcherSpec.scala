@@ -40,7 +40,7 @@ import scala.util.Try
 
 class SegmentSearcherSpec extends TestBase with MockFactory {
   implicit val order = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(order))
+  implicit val partialKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(order))
   implicit val limiter = TestSweeper.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 
@@ -73,7 +73,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             hasRange = keyValues.last.stats.segmentHasRange,
             keyValueCount = keyValues.size,
             readState = ReadState.random
-          ).map(_.toPersistent)
+          )
 
         if (got.isEmpty)
           SegmentSearcher.search(
@@ -92,12 +92,12 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             hasRange = keyValues.last.stats.segmentHasRange,
             keyValueCount = keyValues.size,
             readState = ReadState.random
-          ).map(_.toPersistent)
+          )
 
         got shouldBe defined
         got shouldBe keyValue
 
-        persistentKeyValues add got.value.toPersistent
+        persistentKeyValues add got.value
 
         eitherOne(None, got, previous)
     }
@@ -128,7 +128,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               hasRange = keyValues.last.stats.segmentHasRange,
               keyValueCount = keyValues.size,
               readState = ReadState.random
-            ).map(_.toPersistent)
+            )
 
           found.value shouldBe keyValue
           eitherOne(None, found, previous)
@@ -177,7 +177,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           keyValueCount = keyValues.size
-        ).map(_.toPersistent)
+        )
 
       if (expectedHigher.nonEmpty && got.isEmpty) {
         SegmentSearcher.searchHigher(
@@ -189,7 +189,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           keyValueCount = keyValues.size
-        ).map(_.toPersistent)
+        )
 
         println("debug")
       }
@@ -242,7 +242,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           sortedIndexReader = blocks.sortedIndexReader,
           valuesReader = blocks.valuesReader,
           keyValueCount = keyValues.size
-        ).map(_.toPersistent)
+        )
 
       lower shouldBe expectedLower
     }

@@ -30,7 +30,7 @@ object KeyReader {
 
   private def uncompressed(indexReader: ReaderBase,
                            keySize: Option[Int],
-                           previous: Option[Persistent.Partial]): Slice[Byte] =
+                           previous: Option[Persistent]): Slice[Byte] =
     keySize match {
       case Some(keySize) =>
         indexReader read keySize
@@ -41,7 +41,7 @@ object KeyReader {
 
   private def compressed(indexReader: ReaderBase,
                          keySize: Option[Int],
-                         previous: Option[Persistent.Partial]): Slice[Byte] =
+                         previous: Option[Persistent]): Slice[Byte] =
     previous match {
       case Some(previous) =>
         keySize match {
@@ -65,7 +65,7 @@ object KeyReader {
   def read(keyValueIdInt: Int,
            keySize: Option[Int],
            indexReader: ReaderBase,
-           previous: Option[Persistent.Partial],
+           previous: Option[Persistent],
            keyValueId: KeyValueId): Slice[Byte] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
       KeyReader.compressed(

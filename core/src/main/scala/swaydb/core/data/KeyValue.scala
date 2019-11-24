@@ -1080,7 +1080,7 @@ private[core] object Transient {
   }
 }
 
-private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial {
+private[core] sealed trait Persistent extends KeyValue.CacheAble {
 
   val indexOffset: Int
   val nextIndexOffset: Int
@@ -1107,213 +1107,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
 private[core] object Persistent {
 
-  sealed trait Partial {
-    def key: Slice[Byte]
-    def indexOffset: Int
-    def nextIndexOffset: Int
-    def nextIndexSize: Int
-    def sortedIndexAccessPosition: Int
-    def toPersistent: Persistent
-  }
-
-  object Partial {
-    sealed trait Key
-    object Key {
-      class Fixed(val key: Slice[Byte]) extends Key
-      class Range(val fromKey: Slice[Byte], val toKey: Slice[Byte]) extends Key
-    }
-
-    sealed trait Fixed extends Persistent.Partial {
-      def toPersistent: Persistent.Fixed
-    }
-
-    sealed trait RangeT extends Persistent.Partial {
-      def fromKey: Slice[Byte]
-      def toKey: Slice[Byte]
-      def toPersistent: Persistent.Range
-    }
-
-    class Remove(val key: Slice[Byte],
-                 val indexOffset: Int,
-                 val nextIndexOffset: Int,
-                 val nextIndexSize: Int,
-                 val sortedIndexAccessPosition: Int,
-                 indexBytes: Slice[Byte],
-                 block: SortedIndexBlock,
-                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                 previous: Option[Persistent.Partial]) extends Partial.Fixed {
-
-      override def toPersistent: Persistent.Remove =
-        EntryReader.completePartialRead(
-          indexEntry = indexBytes,
-          key = new Persistent.Partial.Key.Fixed(key),
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          block = block,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          entryReader = RemoveReader,
-          previous = previous
-        )
-    }
-
-    class Put(val key: Slice[Byte],
-              val indexOffset: Int,
-              val nextIndexOffset: Int,
-              val nextIndexSize: Int,
-              val sortedIndexAccessPosition: Int,
-              indexBytes: Slice[Byte],
-              block: SortedIndexBlock,
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              previous: Option[Persistent.Partial]) extends Partial.Fixed {
-
-      override def toPersistent: Persistent.Put =
-        EntryReader.completePartialRead(
-          indexEntry = indexBytes,
-          key = new Persistent.Partial.Key.Fixed(key),
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          block = block,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          entryReader = PutReader,
-          previous = previous
-        )
-    }
-
-    class Update(val key: Slice[Byte],
-                 val indexOffset: Int,
-                 val nextIndexOffset: Int,
-                 val nextIndexSize: Int,
-                 val sortedIndexAccessPosition: Int,
-                 indexBytes: Slice[Byte],
-                 block: SortedIndexBlock,
-                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                 previous: Option[Persistent.Partial]) extends Partial.Fixed {
-
-      override def toPersistent: Persistent.Update =
-        EntryReader.completePartialRead(
-          indexEntry = indexBytes,
-          key = new Persistent.Partial.Key.Fixed(key),
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          block = block,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          entryReader = UpdateReader,
-          previous = previous
-        )
-    }
-
-    class Function(val key: Slice[Byte],
-                   val indexOffset: Int,
-                   val nextIndexOffset: Int,
-                   val nextIndexSize: Int,
-                   val sortedIndexAccessPosition: Int,
-                   indexBytes: Slice[Byte],
-                   block: SortedIndexBlock,
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                   previous: Option[Persistent.Partial]) extends Partial.Fixed {
-
-      override def toPersistent: Persistent.Function =
-        EntryReader.completePartialRead(
-          indexEntry = indexBytes,
-          key = new Persistent.Partial.Key.Fixed(key),
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          block = block,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          entryReader = FunctionReader,
-          previous = previous
-        )
-    }
-
-    class PendingApply(val key: Slice[Byte],
-                       val indexOffset: Int,
-                       val nextIndexOffset: Int,
-                       val nextIndexSize: Int,
-                       val sortedIndexAccessPosition: Int,
-                       indexBytes: Slice[Byte],
-                       block: SortedIndexBlock,
-                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                       previous: Option[Persistent.Partial]) extends Partial.Fixed {
-
-      override def toPersistent: Persistent.PendingApply =
-        EntryReader.completePartialRead(
-          indexEntry = indexBytes,
-          key = new Persistent.Partial.Key.Fixed(key),
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          block = block,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          entryReader = PendingApplyReader,
-          previous = previous
-        )
-    }
-
-    object Range {
-      def apply(key: Slice[Byte],
-                indexBytes: Slice[Byte],
-                indexOffset: Int,
-                nextIndexOffset: Int,
-                nextIndexSize: Int,
-                sortedIndexAccessPosition: Int,
-                block: SortedIndexBlock,
-                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent.Partial]): Partial.Range = {
-        val (fromKey, toKey) = Bytes.decompressJoin(key)
-        new Range(
-          fromKey = fromKey,
-          toKey = toKey,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          indexBytes = indexBytes,
-          block = block,
-          valuesReader = valuesReader,
-          previous = previous
-        )
-      }
-    }
-
-    class Range(val fromKey: Slice[Byte],
-                val toKey: Slice[Byte],
-                val indexOffset: Int,
-                val nextIndexOffset: Int,
-                val nextIndexSize: Int,
-                val sortedIndexAccessPosition: Int,
-                indexBytes: Slice[Byte],
-                block: SortedIndexBlock,
-                valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                previous: Option[Persistent.Partial]) extends Partial.RangeT {
-
-      def key = fromKey
-
-      override def toPersistent: Persistent.Range =
-        EntryReader.completePartialRead(
-          indexEntry = indexBytes,
-          key = new Persistent.Partial.Key.Range(fromKey, toKey),
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          block = block,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          valuesReader = valuesReader,
-          entryReader = RangeReader,
-          previous = previous
-        )
-    }
-  }
-
-  sealed trait Fixed extends Persistent with KeyValue.ReadOnly.Fixed with Partial.Fixed
+  sealed trait Fixed extends Persistent with KeyValue.ReadOnly.Fixed
 
   case class Remove(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
@@ -1361,9 +1155,6 @@ private[core] object Persistent {
 
     override def toRemoveValue(): Value.Remove =
       Value.Remove(deadline, time)
-
-    override def toPersistent: Persistent.Remove =
-      this
   }
 
   object Put {
@@ -1466,9 +1257,6 @@ private[core] object Persistent {
 
     override def copyWithTime(time: Time): Put =
       copy(_time = time)
-
-    override def toPersistent: Persistent.Put =
-      this
   }
 
   object Update {
@@ -1602,9 +1390,6 @@ private[core] object Persistent {
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition
       )
-
-    override def toPersistent: Persistent.Update =
-      this
   }
 
   object Function {
@@ -1689,9 +1474,6 @@ private[core] object Persistent {
 
     override def copyWithTime(time: Time): Function =
       copy(_time = time)
-
-    override def toPersistent: Persistent.Function =
-      this
   }
 
   object PendingApply {
@@ -1778,9 +1560,6 @@ private[core] object Persistent {
         key = key,
         applies = getOrFetchApplies
       )
-
-    override def toPersistent: Persistent.PendingApply =
-      this
   }
 
   object Range {
@@ -1854,7 +1633,7 @@ private[core] object Persistent {
                            indexOffset: Int,
                            valueOffset: Int,
                            valueLength: Int,
-                           sortedIndexAccessPosition: Int) extends Persistent with KeyValue.ReadOnly.Range with Partial.RangeT {
+                           sortedIndexAccessPosition: Int) extends Persistent with KeyValue.ReadOnly.Range {
 
     def fromKey = _fromKey
 
@@ -1891,8 +1670,5 @@ private[core] object Persistent {
 
     override def isValueCached: Boolean =
       valueCache.isCached
-
-    override def toPersistent: Persistent.Range =
-      this
   }
 }

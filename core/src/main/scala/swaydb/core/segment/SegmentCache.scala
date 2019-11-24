@@ -77,7 +77,7 @@ private[core] class SegmentCache(path: Path,
 
   import keyOrder._
 
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
@@ -129,14 +129,9 @@ private[core] class SegmentCache(path: Path,
       hasRange = hasRange,
       readState = readState
     ) match {
-      case resp @ Some(response: Persistent) =>
-        addToCache(response)
-        resp.asInstanceOf[Some[Persistent]]
-
-      case Some(partial: Persistent.Partial) =>
-        val persistent = partial.toPersistent
-        addToCache(persistent)
-        Some(persistent)
+      case resp: Some[Persistent] =>
+        addToCache(resp.get)
+        resp
 
       case None =>
         None
@@ -201,14 +196,9 @@ private[core] class SegmentCache(path: Path,
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReader = blockCache.createValuesReader()
     ) match {
-      case resp @ Some(response: Persistent) =>
-        addToCache(response)
-        resp.asInstanceOf[Some[Persistent]]
-
-      case Some(partial: Persistent.Partial) =>
-        val persistent = partial.toPersistent
-        addToCache(persistent)
-        Some(persistent)
+      case resp: Some[Persistent] =>
+        addToCache(resp.get)
+        resp
 
       case None =>
         None
@@ -314,14 +304,9 @@ private[core] class SegmentCache(path: Path,
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReader = blockCache.createValuesReader()
     ) match {
-      case resp @ Some(response: Persistent) =>
-        addToCache(response)
-        resp.asInstanceOf[Some[Persistent]]
-
-      case Some(partial: Persistent.Partial) =>
-        val persistent = partial.toPersistent
-        addToCache(persistent)
-        Some(persistent)
+      case resp: Some[Persistent] =>
+        addToCache(resp.get)
+        resp
 
       case None =>
         None

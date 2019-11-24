@@ -88,7 +88,6 @@ class TransientSpec extends TestBase {
             sortedIndexConfig =
               SortedIndexBlock.Config.random.copy(
                 prefixCompressionResetCount = 2,
-                enablePartialRead = false,
                 normaliseIndex = false
               )
           )

@@ -19,9 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
@@ -32,91 +30,39 @@ object RangeReader extends EntryReader[Persistent.Range] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              keyInfo: Option[Either[Int, Persistent.Partial.Key]],
+                              keySize: Option[Int],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
-                                                                    deadlineReader: DeadlineReader[T],
-                                                                    valueOffsetReader: ValueOffsetReader[T],
-                                                                    valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): Persistent.Range = {
+                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): Persistent.Range = {
     val valueOffsetAndLength = valueBytesReader.read(indexReader, previous)
-    keyInfo match {
-      case Some(keyInfo) =>
-        keyInfo match {
-          case Left(keySize) =>
-            val key =
-              KeyReader.read(
-                keyValueIdInt = keyValueId,
-                indexReader = indexReader,
-                keySize = Some(keySize),
-                previous = previous,
-                keyValueId = KeyValueId.Range
-              )
+    val key =
+      KeyReader.read(
+        keyValueIdInt = keyValueId,
+        indexReader = indexReader,
+        keySize = keySize,
+        previous = previous,
+        keyValueId = KeyValueId.Range
+      )
 
-            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-            Persistent.Range(
-              key = key,
-              valuesReader = valuesReader,
-              nextIndexOffset = nextIndexOffset,
-              nextIndexSize = nextIndexSize,
-              indexOffset = indexOffset,
-              valueOffset = valueOffset,
-              valueLength = valueLength,
-              sortedIndexAccessPosition = sortedIndexAccessPosition
-            )
-
-          case Right(value) =>
-            value match {
-              case range: Key.Range =>
-                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-                Persistent.Range.parsedKey(
-                  fromKey = range.fromKey,
-                  toKey = range.toKey,
-                  valuesReader = valuesReader,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  indexOffset = indexOffset,
-                  valueOffset = valueOffset,
-                  valueLength = valueLength,
-                  sortedIndexAccessPosition = sortedIndexAccessPosition
-                )
-
-              case key: Key.Fixed =>
-                throw IO.throwable(s"Expected Range key. Actual: ${key.getClass.getSimpleName}")
-            }
-        }
-
-      case None =>
-        val key =
-          KeyReader.read(
-            keyValueIdInt = keyValueId,
-            indexReader = indexReader,
-            keySize = None,
-            previous = previous,
-            keyValueId = KeyValueId.Range
-          )
-
-        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-        Persistent.Range(
-          key = key,
-          valuesReader = valuesReader,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          indexOffset = indexOffset,
-          valueOffset = valueOffset,
-          valueLength = valueLength,
-          sortedIndexAccessPosition = sortedIndexAccessPosition
-        )
-    }
+    Persistent.Range(
+      key = key,
+      valuesReader = valuesReader,
+      nextIndexOffset = nextIndexOffset,
+      nextIndexSize = nextIndexSize,
+      indexOffset = indexOffset,
+      valueOffset = valueOffset,
+      valueLength = valueLength,
+      sortedIndexAccessPosition = sortedIndexAccessPosition
+    )
   }
 }

@@ -31,8 +31,8 @@ sealed trait ValueReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read[V](indexReader: ReaderBase,
-              previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                    valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)]
+              previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
+                                            valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)]
 }
 
 object ValueReader {
@@ -40,16 +40,16 @@ object ValueReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read[V](indexReader: ReaderBase,
-                         previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                               valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
+                         previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
+                                                       valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
       None
   }
 
   implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
     override def read[V](indexReader: ReaderBase,
-                         previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                               valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] = {
+                         previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
+                                                       valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] = {
       val valueOffset = valueOffsetReader.read(indexReader, previous)
       val valueLength = valueLengthReader.read(indexReader, previous)
       Some((valueOffset, valueLength))
@@ -62,8 +62,8 @@ object ValueReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read[V](indexReader: ReaderBase,
-                         previous: Option[Persistent.Partial])(implicit valueOffsetReader: ValueOffsetReader[V],
-                                                               valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
+                         previous: Option[Persistent])(implicit valueOffsetReader: ValueOffsetReader[V],
+                                                       valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
       ValueUncompressedReader.read(
         indexReader = indexReader,
         previous = previous

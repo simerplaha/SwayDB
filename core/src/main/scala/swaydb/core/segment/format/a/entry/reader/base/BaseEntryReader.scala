@@ -34,12 +34,12 @@ private[core] trait BaseEntryReader {
   def read[T](baseId: Int,
               keyValueId: Int,
               sortedIndexAccessPosition: Int,
-              keyInfo: Option[Either[Int, Persistent.Partial.Key]],
+              keyInfo: Option[Int],
               indexReader: ReaderBase,
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               indexOffset: Int,
               nextIndexOffset: Int,
               nextIndexSize: Int,
-              previous: Option[Persistent.Partial],
+              previous: Option[Persistent],
               reader: EntryReader[T]): T
 }

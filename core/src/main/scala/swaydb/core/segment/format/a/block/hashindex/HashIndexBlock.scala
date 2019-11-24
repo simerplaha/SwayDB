@@ -581,10 +581,10 @@ private[core] object HashIndexBlock extends LazyLogging {
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): HashIndexSearchResult = {
+                                                                                     partialKeyOrder: KeyOrder[Persistent]): HashIndexSearchResult = {
     val matcher = KeyMatcher.Get.MatchOnly(key)
 
-    val collisions = ListBuffer.empty[Persistent.Partial]
+    val collisions = ListBuffer.empty[Persistent]
 
     val result =
       if (hashIndexReader.block.copyIndex)
@@ -596,7 +596,6 @@ private[core] object HashIndexBlock extends LazyLogging {
               SortedIndexBlock.readAndMatch( //do no perform read for next key-value since this indexReader only contains bytes for the current read indexEntry.
                 matcher = matcher,
                 fromOffset = 0,
-                fullRead = false,
                 overwriteNextIndexOffset = {
                   val nextIndexOffset = accessIndexOffset + indexEntry.size
                   //if it's the last key-value, nextIndexOffset is None.
@@ -615,7 +614,6 @@ private[core] object HashIndexBlock extends LazyLogging {
                         hasPrefixCompression = sortedIndexReader.block.hasPrefixCompression,
                         normaliseForBinarySearch = sortedIndexReader.block.normaliseForBinarySearch,
                         disableKeyPrefixCompression = sortedIndexReader.block.disableKeyPrefixCompression,
-                        enablePartialRead = sortedIndexReader.block.enablePartialRead,
                         isPreNormalised = sortedIndexReader.block.isPreNormalised,
                         headerSize = 0,
                         segmentMaxIndexEntrySize = sortedIndexReader.block.segmentMaxIndexEntrySize,
@@ -652,7 +650,6 @@ private[core] object HashIndexBlock extends LazyLogging {
               SortedIndexBlock.seekAndMatchOrSeek(
                 matcher = matcher,
                 fromOffset = sortedIndexOffsetValue,
-                fullRead = false,
                 indexReader = sortedIndexReader,
                 valuesReader = valuesReader
               ) match {

@@ -160,7 +160,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
-          enablePartialRead = false,
           disableKeyPrefixCompression = false,
           normaliseIndex = false,
           compressions = _ => Seq.empty

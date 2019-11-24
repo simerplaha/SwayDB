@@ -118,7 +118,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
             prefixCompressionResetCount = prefixCompression.resetCount,
-            enablePartialRead = randomBoolean(),
             disableKeyPrefixCompression = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
@@ -132,7 +131,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
     "normalise if prefix compression is disabled" in {
       runThis(100.times) {
-        val prefixCompression = PrefixCompression.Disable(true, randomBoolean())
+        val prefixCompression = PrefixCompression.Disable(true)
 
         //use created config
         val configFromUserConfig =
@@ -155,7 +154,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             //prefix compression is disabled, normaliseIndex will always return true.
             prefixCompressionResetCount = 0 - randomIntMax(10),
             enableAccessPositionIndex = randomBoolean(),
-            enablePartialRead = randomBoolean(),
             disableKeyPrefixCompression = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
@@ -231,7 +229,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val searchedKeyValues = ListBuffer.empty[Persistent]
       keyValues.foldLeft(Option.empty[Persistent]) {
         case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.seekAndMatch(keyValue.key, previous, fullRead = true, sortedIndexReader, valuesBlockReader).value.toPersistent
+          val searchedKeyValue = SortedIndexBlock.seekAndMatch(keyValue.key, previous, sortedIndexReader, valuesBlockReader).value
           searchedKeyValue.key shouldBe keyValue.key
           searchedKeyValues += searchedKeyValue
           //randomly set previous
@@ -245,7 +243,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
        */
       searchedKeyValues.zip(keyValues).par foreach {
         case (persistent, transient) =>
-          val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, None, fullRead = true, sortedIndexReader.copy(), valuesBlockReader)
+          val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, None, sortedIndexReader.copy(), valuesBlockReader)
           transient match {
             case transient: Transient =>
               searchedPersistent.value shouldBe persistent

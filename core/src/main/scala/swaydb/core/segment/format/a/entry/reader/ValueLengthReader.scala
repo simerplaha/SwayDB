@@ -33,13 +33,13 @@ sealed trait ValueLengthReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent.Partial]): Int
+           previous: Option[Persistent]): Int
 }
 
 object ValueLengthReader {
 
   private def readLength(indexReader: ReaderBase,
-                         previous: Option[Persistent.Partial],
+                         previous: Option[Persistent],
                          commonBytes: Int): Int =
     previous match {
       case Some(previous) =>
@@ -50,9 +50,6 @@ object ValueLengthReader {
               next = indexReader.read(ByteSizeOf.int - commonBytes),
               commonBytes = commonBytes
             ).readInt()
-
-          case _: Persistent.Partial =>
-            throw IO.throwable("Expected Persistent. Received Partial.")
         }
 
       case None =>
@@ -63,7 +60,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       readLength(indexReader, previous, 1)
   }
 
@@ -71,7 +68,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       readLength(indexReader, previous, 2)
   }
 
@@ -79,7 +76,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       readLength(indexReader, previous, 3)
   }
 
@@ -87,13 +84,10 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       previous match {
         case Some(previous: Persistent) =>
           previous.valueLength
-
-        case Some(_: Persistent.Partial) =>
-          throw IO.throwable("Expected Persistent. Received Partial.")
 
         case None =>
           throw EntryReaderFailure.NoPreviousKeyValue
@@ -104,7 +98,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       indexReader.readUnsignedInt()
   }
 
@@ -112,7 +106,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       0
   }
 }

@@ -98,7 +98,7 @@ object DefaultEventuallyPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compressions = _ => Seq.empty

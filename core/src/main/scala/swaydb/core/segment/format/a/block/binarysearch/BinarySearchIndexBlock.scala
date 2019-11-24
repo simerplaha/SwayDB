@@ -284,7 +284,7 @@ private[core] object BinarySearchIndexBlock {
   //A 0 sortedIndexAccessPosition indicates that sortedIndexAccessPositionIndex was disabled.
   //A key-values sortedIndexAccessPosition can sometimes be larger than what binarySearchIndex knows for cases where binarySearchIndex is partial
   //to handle that check that sortedIndexAccessPosition is not over the number total binarySearchIndex entries.
-  def getSortedIndexAccessPosition(keyValue: Persistent.Partial, context: BinarySearchContext): Option[Int] =
+  def getSortedIndexAccessPosition(keyValue: Persistent, context: BinarySearchContext): Option[Int] =
     if (keyValue.sortedIndexAccessPosition <= 0 || (!context.isFullIndex && keyValue.sortedIndexAccessPosition > context.valuesCount))
       None
     else
@@ -319,10 +319,10 @@ private[core] object BinarySearchIndexBlock {
   //  var sameLower = 0
   //  var greaterLower = 0
 
-  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] = {
+  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent]): BinarySearchGetResult[Persistent] = {
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): BinarySearchGetResult[Persistent] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end")
@@ -360,10 +360,10 @@ private[core] object BinarySearchIndexBlock {
   }
 
   private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                  partialOrdering: KeyOrder[Persistent.Partial]): BinarySearchLowerResult.Some[Persistent.Partial] = {
+                                                                                  partialOrdering: KeyOrder[Persistent]): BinarySearchLowerResult.Some[Persistent] = {
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchLowerResult.Some[Persistent.Partial] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): BinarySearchLowerResult.Some[Persistent] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
@@ -399,10 +399,10 @@ private[core] object BinarySearchIndexBlock {
         context.seek(valueOffset) match {
           case matched: KeyMatcher.Result.Matched =>
             matched.result match {
-              case fixed: Persistent.Partial.Fixed =>
+              case fixed: Persistent.Fixed =>
                 hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(fixed))
 
-              case range: Persistent.Partial.RangeT =>
+              case range: Persistent.Range =>
                 if (ordering.gt(context.targetKey, range.fromKey))
                   BinarySearchLowerResult.Some(
                     lower = None,
@@ -417,7 +417,7 @@ private[core] object BinarySearchIndexBlock {
 
           case aheadNoneOrEnd: KeyMatcher.Result.AheadOrNoneOrEnd =>
             aheadNoneOrEnd.ahead match {
-              case Some(range: Persistent.Partial.RangeT) if ordering.gt(context.targetKey, range.fromKey) =>
+              case Some(range: Persistent.Range) if ordering.gt(context.targetKey, range.fromKey) =>
                 BinarySearchLowerResult.Some(
                   lower = None,
                   matched = Some(range)
@@ -443,13 +443,13 @@ private[core] object BinarySearchIndexBlock {
   }
 
   def search(key: Slice[Byte],
-             lowest: Option[Persistent.Partial],
-             highest: Option[Persistent.Partial],
+             lowest: Option[Persistent],
+             highest: Option[Persistent],
              keyValuesCount: => Int,
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] =
+                                                                                     partialKeyOrder: KeyOrder[Persistent]): BinarySearchGetResult[Persistent] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable) {
       //      binarySeeks += 1
       binarySearch(
@@ -484,11 +484,11 @@ private[core] object BinarySearchIndexBlock {
               values = valuesReader
             )
           ) match {
-            case some: BinarySearchGetResult.Some[Persistent.Partial] =>
+            case some: BinarySearchGetResult.Some[Persistent] =>
               //              binarySuccessfulSeeks += 1
               some
 
-            case none: BinarySearchGetResult.None[Persistent.Partial] =>
+            case none: BinarySearchGetResult.None[Persistent] =>
               //              binaryFailedSeeks += 1
               if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
                 none
@@ -503,7 +503,7 @@ private[core] object BinarySearchIndexBlock {
 
                     SortedIndexBlock.matchOrSeek(
                       key = key,
-                      startFrom = if (sortedIndexReader.block.hasPrefixCompression) lower.toPersistent else lower,
+                      startFrom = lower,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader
                     ) match {
@@ -518,7 +518,6 @@ private[core] object BinarySearchIndexBlock {
                     SortedIndexBlock.seekAndMatch(
                       key = key,
                       startFrom = None,
-                      fullRead = sortedIndexReader.block.hasPrefixCompression,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader
                     ) match {
@@ -535,7 +534,6 @@ private[core] object BinarySearchIndexBlock {
           SortedIndexBlock.seekAndMatch(
             key = key,
             startFrom = None,
-            fullRead = sortedIndexReader.block.hasPrefixCompression,
             sortedIndexReader = sortedIndexReader,
             valuesReader = valuesReader
           ) match {
@@ -549,19 +547,18 @@ private[core] object BinarySearchIndexBlock {
 
   //it's assumed that input param start will not be a higher value of key.
   def searchHigher(key: Slice[Byte],
-                   start: Option[Persistent.Partial],
-                   end: Option[Persistent.Partial],
+                   start: Option[Persistent],
+                   end: Option[Persistent],
                    keyValuesCount: => Int,
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
+                                                                                           partialKeyOrder: KeyOrder[Persistent]): Option[Persistent] =
     when(start.exists(start => ordering.equiv(start.key, key)))(start) match {
       case Some(start) =>
         Some(
           SortedIndexBlock.readNextKeyValue(
-            previous = if (sortedIndexReader.block.hasPrefixCompression) start.toPersistent else start,
-            fullRead = sortedIndexReader.block.hasPrefixCompression,
+            previous = start,
             sortedIndexReader = sortedIndexReader,
             valuesReader = valuesReader
           )
@@ -577,18 +574,18 @@ private[core] object BinarySearchIndexBlock {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) match {
-          case none: BinarySearchGetResult.None[Persistent.Partial] =>
+          case none: BinarySearchGetResult.None[Persistent] =>
             SortedIndexBlock.matchOrSeekHigher(
               key = key,
-              startFrom = if (sortedIndexReader.block.hasPrefixCompression) none.lower.map(_.toPersistent) else None,
+              startFrom = none.lower,
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
             )
 
-          case some: BinarySearchGetResult.Some[Persistent.Partial] =>
+          case some: BinarySearchGetResult.Some[Persistent] =>
             SortedIndexBlock.matchOrSeekHigher(
               key = key,
-              startFrom = if (sortedIndexReader.block.hasPrefixCompression) Some(some.value.toPersistent) else Some(some.value),
+              startFrom = Some(some.value),
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
             )
@@ -596,49 +593,37 @@ private[core] object BinarySearchIndexBlock {
     }
 
   private def resolveLowerFromBinarySearch(key: Slice[Byte],
-                                           lower: Option[Persistent.Partial],
-                                           got: Option[Persistent.Partial],
-                                           end: Option[Persistent.Partial],
+                                           lower: Option[Persistent],
+                                           got: Option[Persistent],
+                                           end: Option[Persistent],
                                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]) = {
-    val lowerPersistent =
-      if (sortedIndexReader.block.hasPrefixCompression)
-        lower.map(_.toPersistent)
-      else
-        lower
-
     //next can either be got or end if end is inline with lower.
     val next =
-      if (end.exists(end => lowerPersistent.exists(_.nextIndexOffset == end.indexOffset)))
+      if (end.exists(end => lower.exists(_.nextIndexOffset == end.indexOffset)))
         end
-      else if (got.exists(got => lowerPersistent.exists(_.nextIndexOffset == got.indexOffset)))
+      else if (got.exists(got => lower.exists(_.nextIndexOffset == got.indexOffset)))
         got
       else
         None
 
-    val nextPersistent =
-      if (sortedIndexReader.block.hasPrefixCompression)
-        next.map(_.toPersistent)
-      else
-        next
-
     SortedIndexBlock.matchOrSeekLower(
       key = key,
-      startFrom = lowerPersistent,
-      next = nextPersistent,
+      startFrom = lower,
+      next = next,
       sortedIndexReader = sortedIndexReader,
       valuesReader = valuesReader
     )
   }
 
   def searchLower(key: Slice[Byte],
-                  start: Option[Persistent.Partial],
-                  end: Option[Persistent.Partial],
+                  start: Option[Persistent],
+                  end: Option[Persistent],
                   keyValuesCount: => Int,
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                          partialOrdering: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
+                                                                                          partialOrdering: KeyOrder[Persistent]): Option[Persistent] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable) {
       val result =
         binarySearchLower(
@@ -701,8 +686,7 @@ private[core] object BinarySearchIndexBlock {
         case None =>
           SortedIndexBlock.seekLowerAndMatch(
             key = key,
-            startFrom = if (sortedIndexReader.block.hasPrefixCompression) start.map(_.toPersistent) else start,
-            fullRead = sortedIndexReader.block.hasPrefixCompression,
+            startFrom = start,
             sortedIndexReader = sortedIndexReader,
             valuesReader = valuesReader
           )

@@ -19,9 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
@@ -32,78 +30,36 @@ object RemoveReader extends EntryReader[Persistent.Remove] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              keyInfo: Option[Either[Int, Persistent.Partial.Key]],
+                              keySize: Option[Int],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
-                                                                    deadlineReader: DeadlineReader[T],
-                                                                    valueOffsetReader: ValueOffsetReader[T],
-                                                                    valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): Persistent.Remove = {
+                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): Persistent.Remove = {
     val deadline = deadlineReader.read(indexReader, previous)
     val time = timeReader.read(indexReader, previous)
-    keyInfo match {
-      case Some(keyInfo) =>
-        keyInfo match {
-          case Left(keySize) =>
-            val key =
-              KeyReader.read(
-                keyValueIdInt = keyValueId,
-                indexReader = indexReader,
-                keySize = Some(keySize),
-                previous = previous,
-                keyValueId = KeyValueId.Remove
-              )
+    val key =
+      KeyReader.read(
+        keyValueIdInt = keyValueId,
+        indexReader = indexReader,
+        keySize = keySize,
+        previous = previous,
+        keyValueId = KeyValueId.Remove
+      )
 
-            Persistent.Remove(
-              _key = key,
-              indexOffset = indexOffset,
-              nextIndexOffset = nextIndexOffset,
-              nextIndexSize = nextIndexSize,
-              deadline = deadline,
-              sortedIndexAccessPosition = sortedIndexAccessPosition,
-              _time = time
-            )
-
-          case Right(key) =>
-            key match {
-              case fixed: Key.Fixed =>
-                Persistent.Remove(
-                  _key = fixed.key,
-                  indexOffset = indexOffset,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  deadline = deadline,
-                  sortedIndexAccessPosition = sortedIndexAccessPosition,
-                  _time = time
-                )
-
-              case key: Key.Range =>
-                throw IO.throwable(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
-            }
-        }
-      case None =>
-        val key =
-          KeyReader.read(
-            keyValueIdInt = keyValueId,
-            indexReader = indexReader,
-            keySize = None,
-            previous = previous,
-            keyValueId = KeyValueId.Remove
-          )
-
-        Persistent.Remove(
-          _key = key,
-          indexOffset = indexOffset,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          deadline = deadline,
-          sortedIndexAccessPosition = sortedIndexAccessPosition,
-          _time = time
-        )
-    }
+    Persistent.Remove(
+      _key = key,
+      indexOffset = indexOffset,
+      nextIndexOffset = nextIndexOffset,
+      nextIndexSize = nextIndexSize,
+      deadline = deadline,
+      sortedIndexAccessPosition = sortedIndexAccessPosition,
+      _time = time
+    )
   }
 }

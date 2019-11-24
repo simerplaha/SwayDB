@@ -19,9 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.IO
 import swaydb.core.data.Persistent
-import swaydb.core.data.Persistent.Partial.Key
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
@@ -32,98 +30,43 @@ object PendingApplyReader extends EntryReader[Persistent.PendingApply] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
                               sortedIndexAccessPosition: Int,
-                              keyInfo: Option[Either[Int, Persistent.Partial.Key]],
+                              keySize: Option[Int],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               nextIndexOffset: Int,
                               nextIndexSize: Int,
-                              previous: Option[Persistent.Partial])(implicit timeReader: TimeReader[T],
-                                                                    deadlineReader: DeadlineReader[T],
-                                                                    valueOffsetReader: ValueOffsetReader[T],
-                                                                    valueLengthReader: ValueLengthReader[T],
-                                                                    valueBytesReader: ValueReader[T]): Persistent.PendingApply = {
+                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
+                                                            deadlineReader: DeadlineReader[T],
+                                                            valueOffsetReader: ValueOffsetReader[T],
+                                                            valueLengthReader: ValueLengthReader[T],
+                                                            valueBytesReader: ValueReader[T]): Persistent.PendingApply = {
     val deadline = deadlineReader.read(indexReader, previous)
     val valueOffsetAndLength = valueBytesReader.read(indexReader, previous)
     val time = timeReader.read(indexReader, previous)
-    keyInfo match {
-      case Some(keyInfo) =>
-        keyInfo match {
-          case Left(keySize) =>
-            val key =
-              KeyReader.read(
-                keyValueIdInt = keyValueId,
-                indexReader = indexReader,
-                keySize = Some(keySize),
-                previous = previous,
-                keyValueId = KeyValueId.PendingApply
-              )
+    val key =
+      KeyReader.read(
+        keyValueIdInt = keyValueId,
+        indexReader = indexReader,
+        keySize = keySize,
+        previous = previous,
+        keyValueId = KeyValueId.PendingApply
+      )
 
-            val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-            val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
+    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
 
-            Persistent.PendingApply(
-              key = key,
-              time = time,
-              deadline = deadline,
-              valuesReader = valuesReader,
-              nextIndexOffset = nextIndexOffset,
-              nextIndexSize = nextIndexSize,
-              indexOffset = indexOffset,
-              valueOffset = valueOffset,
-              valueLength = valueLength,
-              sortedIndexAccessPosition = sortedIndexAccessPosition
-            )
-
-          case Right(key) =>
-            key match {
-              case key: Key.Fixed =>
-                val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-                val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-                Persistent.PendingApply(
-                  key = key.key,
-                  time = time,
-                  deadline = deadline,
-                  valuesReader = valuesReader,
-                  nextIndexOffset = nextIndexOffset,
-                  nextIndexSize = nextIndexSize,
-                  indexOffset = indexOffset,
-                  valueOffset = valueOffset,
-                  valueLength = valueLength,
-                  sortedIndexAccessPosition = sortedIndexAccessPosition
-                )
-
-              case key: Key.Range =>
-                throw IO.throwable(s"Expected Fixed key. Actual: ${key.getClass.getSimpleName}")
-            }
-        }
-
-      case None =>
-        val key =
-          KeyReader.read(
-            keyValueIdInt = keyValueId,
-            indexReader = indexReader,
-            keySize = None,
-            previous = previous,
-            keyValueId = KeyValueId.PendingApply
-          )
-
-        val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-        val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
-
-        Persistent.PendingApply(
-          key = key,
-          time = time,
-          deadline = deadline,
-          valuesReader = valuesReader,
-          nextIndexOffset = nextIndexOffset,
-          nextIndexSize = nextIndexSize,
-          indexOffset = indexOffset,
-          valueOffset = valueOffset,
-          valueLength = valueLength,
-          sortedIndexAccessPosition = sortedIndexAccessPosition
-        )
-    }
+    Persistent.PendingApply(
+      key = key,
+      time = time,
+      deadline = deadline,
+      valuesReader = valuesReader,
+      nextIndexOffset = nextIndexOffset,
+      nextIndexSize = nextIndexSize,
+      indexOffset = indexOffset,
+      valueOffset = valueOffset,
+      valueLength = valueLength,
+      sortedIndexAccessPosition = sortedIndexAccessPosition
+    )
   }
 }

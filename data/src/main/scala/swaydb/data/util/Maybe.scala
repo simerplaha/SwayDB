@@ -38,7 +38,7 @@ object Maybe {
   implicit class ArrayImplicits[A](array: Array[A]) {
     final def findMaybe(p: A => Boolean): Maybe[A] = {
       var i = 0
-      while (i < array.length - 1) {
+      while (i < array.length) {
         val item = array(i)
         if (p(item))
           return Maybe.some(item)

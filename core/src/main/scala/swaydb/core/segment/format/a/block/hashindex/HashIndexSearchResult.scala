@@ -23,7 +23,7 @@ import swaydb.IO
 import swaydb.core.data.Persistent
 
 sealed trait HashIndexSearchResult {
-  def matched: Option[Persistent.Partial]
+  def matched: Option[Persistent]
 }
 
 object HashIndexSearchResult {
@@ -32,11 +32,11 @@ object HashIndexSearchResult {
 
   val noneIO = IO.Right[Nothing, HashIndexSearchResult.None](None(scala.None, scala.None))(IO.ExceptionHandler.Nothing)
 
-  case class None(lower: Option[Persistent.Partial], higher: Option[Persistent.Partial]) extends HashIndexSearchResult {
-    def matched: Option[Persistent.Partial] = scala.None
+  case class None(lower: Option[Persistent], higher: Option[Persistent]) extends HashIndexSearchResult {
+    def matched: Option[Persistent] = scala.None
   }
 
-  case class Some(keyValue: Persistent.Partial) extends HashIndexSearchResult {
-    def matched: Option[Persistent.Partial] = scala.Some(keyValue)
+  case class Some(keyValue: Persistent) extends HashIndexSearchResult {
+    def matched: Option[Persistent] = scala.Some(keyValue)
   }
 }

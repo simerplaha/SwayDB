@@ -88,7 +88,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
             compressions = _ => Seq.empty
@@ -148,7 +148,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
             compressions = _ => Seq.empty
@@ -208,7 +208,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
             compressions = _ => Seq.empty
@@ -268,7 +268,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
             compressions = _ => Seq.empty
@@ -328,7 +328,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
             compressions = _ => Seq.empty
@@ -388,7 +388,7 @@ object DefaultPersistentConfig {
         deleteSegmentsEventually = deleteSegmentsEventually,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false, enablePartialRead = true),
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
             compressions = _ => Seq.empty

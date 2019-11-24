@@ -32,7 +32,7 @@ sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent.Partial]): Time
+           previous: Option[Persistent]): Time
 }
 
 /**
@@ -45,7 +45,7 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Time =
+                      previous: Option[Persistent]): Time =
       Time.empty
   }
 
@@ -53,7 +53,7 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Time = {
+                      previous: Option[Persistent]): Time = {
       val timeSize = indexReader.readUnsignedInt()
       val time = indexReader.read(timeSize)
       Time(time)
@@ -74,7 +74,7 @@ object TimeReader {
     }
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Time =
+                      previous: Option[Persistent]): Time =
       previous match {
         case Some(previous) =>
           previous match {
@@ -95,9 +95,6 @@ object TimeReader {
 
             case _: Persistent.Range =>
               throw EntryReaderFailure.PreviousIsNotFixedKeyValue
-
-            case _: Persistent.Partial =>
-              throw IO.throwable("Expected Persistent. Received Partial.")
           }
         case None =>
           throw EntryReaderFailure.NoPreviousKeyValue

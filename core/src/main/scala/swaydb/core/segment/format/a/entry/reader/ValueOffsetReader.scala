@@ -33,13 +33,13 @@ sealed trait ValueOffsetReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent.Partial]): Int
+           previous: Option[Persistent]): Int
 }
 
 object ValueOffsetReader {
 
   private def readOffset(indexReader: ReaderBase,
-                         previous: Option[Persistent.Partial],
+                         previous: Option[Persistent],
                          commonBytes: Int): Int =
     previous match {
       case Some(previous: Persistent) =>
@@ -49,9 +49,6 @@ object ValueOffsetReader {
           commonBytes = commonBytes
         ).readInt()
 
-      case Some(_: Persistent.Partial) =>
-        throw IO.throwable("Expected Persistent. Received Partial")
-
       case None =>
         throw EntryReaderFailure.NoPreviousKeyValue
     }
@@ -60,7 +57,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       readOffset(indexReader, previous, 1)
   }
 
@@ -68,7 +65,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       readOffset(indexReader, previous, 2)
   }
 
@@ -76,7 +73,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       readOffset(indexReader, previous, 3)
   }
 
@@ -84,7 +81,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       indexReader.readUnsignedInt()
   }
 
@@ -92,13 +89,10 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       previous match {
         case Some(previous: Persistent) =>
           previous.valueOffset
-
-        case Some(_: Persistent.Partial) =>
-          throw IO.throwable("Expected Persistent. Received Partial")
 
         case None =>
           throw EntryReaderFailure.NoPreviousKeyValue
@@ -109,7 +103,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent.Partial]): Int =
+                      previous: Option[Persistent]): Int =
       0
   }
 }

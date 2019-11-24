@@ -62,7 +62,6 @@ class ValueReaderWriterSpec extends TestBase {
         sortedIndexConfig =
           SortedIndexBlock.Config.random.copy(
             prefixCompressionResetCount = 0,
-            enablePartialRead = false,
             normaliseIndex = false,
             enableAccessPositionIndex = false
           )
@@ -83,7 +82,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId shouldBe a[BaseEntryId.ValueLength.Uncompressed]
     //read key-value using the persistent information.
     val readHeadKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
@@ -92,7 +91,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
         nextIndexSize = keyValues(1).indexEntryBytes.size,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = None
       )
     readHeadKeyValue shouldBe a[Persistent.Put]
@@ -111,7 +109,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId shouldBe a[BaseEntryId.ValueLength.Uncompressed]
     //read the key-value giving it the previous key-value.
     val readNextKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
@@ -120,7 +118,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
         nextIndexSize = keyValues(2).indexEntryBytes.size,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readHeadKeyValue)
       )
     readNextKeyValue shouldBe a[Persistent.Update]
@@ -139,7 +136,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId shouldBe a[BaseEntryId.ValueLength.Uncompressed]
     //read the key-value giving it the previous key-value.
     val readLastKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
@@ -148,7 +145,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = 0,
         nextIndexSize = 0,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readNextKeyValue)
       )
     readLastKeyValue shouldBe a[Persistent.Function]
@@ -173,7 +169,6 @@ class ValueReaderWriterSpec extends TestBase {
         sortedIndexConfig =
           SortedIndexBlock.Config.random.copy(
             prefixCompressionResetCount = Int.MaxValue,
-            enablePartialRead = false,
             normaliseIndex = false,
             enableAccessPositionIndex = false
           )
@@ -191,7 +186,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId shouldBe a[BaseEntryId.ValueLength.Uncompressed]
     //read key-value using the persistent information.
     val readHeadKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
@@ -200,7 +195,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
         nextIndexSize = keyValues(1).indexEntryBytes.size,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = None
       )
     readHeadKeyValue shouldBe a[Persistent.Put]
@@ -219,7 +213,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId shouldBe a[BaseEntryId.ValueLength.FullyCompressed]
     //read the key-value giving it the previous key-value.
     val readNextKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
@@ -228,7 +222,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
         nextIndexSize = keyValues(2).indexEntryBytes.size,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readHeadKeyValue)
       )
     readNextKeyValue shouldBe a[Persistent.Update]
@@ -247,7 +240,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId shouldBe a[BaseEntryId.ValueLength.FullyCompressed]
     //read the key-value giving it the previous key-value.
     val readLastKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = true,
         isNormalised = false,
@@ -256,7 +249,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = 0,
         nextIndexSize = 0,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readNextKeyValue)
       )
     readLastKeyValue shouldBe a[Persistent.Function]
@@ -281,7 +273,6 @@ class ValueReaderWriterSpec extends TestBase {
         sortedIndexConfig =
           SortedIndexBlock.Config.random.copy(
             prefixCompressionResetCount = 0,
-            enablePartialRead = false,
             normaliseIndex = false,
             enableAccessPositionIndex = false
           )
@@ -299,7 +290,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId should not be a[BaseEntryId.ValueLength.Uncompressed]
     //read key-value using the persistent information.
     val readHeadKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues.head.indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
@@ -308,7 +299,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = keyValues.head.indexEntryBytes.size,
         nextIndexSize = keyValues(1).indexEntryBytes.size,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = None
       )
     readHeadKeyValue shouldBe a[Persistent.Put]
@@ -327,7 +317,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId should not be a[BaseEntryId.ValueLength.Uncompressed]
     //read the key-value giving it the previous key-value.
     val readNextKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues(1).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
@@ -336,7 +326,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = keyValues(1).indexEntryBytes.size,
         nextIndexSize = keyValues(2).indexEntryBytes.size,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readHeadKeyValue)
       )
     readNextKeyValue shouldBe a[Persistent.Update]
@@ -355,7 +344,7 @@ class ValueReaderWriterSpec extends TestBase {
     typedBaseId should not be a[BaseEntryId.ValueLength.Uncompressed]
     //read the key-value giving it the previous key-value.
     val readLastKeyValue =
-      EntryReader.fullRead(
+      EntryReader.parse(
         indexEntry = keyValues(2).indexEntryBytes.dropUnsignedInt(),
         mightBeCompressed = randomBoolean(),
         isNormalised = false,
@@ -364,7 +353,6 @@ class ValueReaderWriterSpec extends TestBase {
         nextIndexOffset = 0,
         nextIndexSize = 0,
         hasAccessPositionIndex = keyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        isPartialReadEnabled = keyValues.last.sortedIndexConfig.enablePartialRead,
         previous = Some(readNextKeyValue)
       )
     readLastKeyValue shouldBe a[Persistent.Remove]

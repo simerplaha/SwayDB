@@ -431,7 +431,6 @@ class SegmentBlockInitialisationSpec extends TestBase {
               ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
               prefixCompressionResetCount = 0,
               enableAccessPositionIndex = true,
-              enablePartialRead = randomBoolean(),
               disableKeyPrefixCompression = randomBoolean(),
               normaliseIndex = randomBoolean(),
               compressions = _ => compressions(1)

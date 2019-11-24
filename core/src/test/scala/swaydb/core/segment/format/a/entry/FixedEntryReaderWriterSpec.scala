@@ -51,8 +51,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           Slice(entry).head
 
       val read =
-        EntryReader.fullRead(
-          isPartialReadEnabled = entry.sortedIndexConfig.enablePartialRead,
+        EntryReader.parse(
           indexEntry = normalisedEntry.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = entry.stats.hasPrefixCompression,
           valuesReader = entry.valueEntryBytes.map(buildSingleValueReader),
@@ -93,8 +92,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
       val valueBytes: Slice[Byte] = previous.valueEntryBytes ++ next.valueEntryBytes
 
       val previousRead =
-        EntryReader.fullRead(
-          isPartialReadEnabled = next.sortedIndexConfig.enablePartialRead,
+        EntryReader.parse(
           indexEntry = previous.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
@@ -109,8 +107,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
       previousRead shouldBe previous
 
       val nextRead =
-        EntryReader.fullRead(
-          isPartialReadEnabled = next.sortedIndexConfig.enablePartialRead,
+        EntryReader.parse(
           indexEntry = next.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
