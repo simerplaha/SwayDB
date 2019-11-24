@@ -38,7 +38,7 @@ import scala.collection.mutable.ListBuffer
 class HashIndexBlockSpec extends TestBase {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
   val keyValueCount = 10000
 
@@ -363,7 +363,7 @@ class HashIndexBlockSpec extends TestBase {
               //                }
 
               case HashIndexSearchResult.Some(found) =>
-                found shouldBe keyValue
+                found.toPersistent shouldBe keyValue
             }
         }
       }

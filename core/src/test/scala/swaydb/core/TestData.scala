@@ -2483,6 +2483,7 @@ object TestData {
   }
 
   def randomStats(keySize: Int = randomIntMax(10000000),
+                  keyOffset: Int = randomIntMax(10000000),
                   indexEntry: Slice[Byte] = randomBytesSlice(),
                   value: Option[Slice[Byte]] = randomBytesSliceOption(),
                   isRemoveRange: Boolean = randomBoolean(),
@@ -2496,15 +2497,15 @@ object TestData {
                   values: ValuesBlock.Config = ValuesBlock.Config.random,
                   previousStats: Option[Stats] = None,
                   deadline: Option[Deadline] = randomDeadlineOption()): Stats =
-    Stats.apply(
+    Stats(
       keySize = keySize,
+      keyOffset = keyOffset,
       indexEntry = indexEntry,
       value = value,
       isRemoveRange = isRemoveRange,
       isRange = isRange,
       isPut = isPut,
       isPrefixCompressed = isPrefixCompressed,
-      previousKeyValueAccessIndexPosition = None,
       sortedIndex = sortedIndex,
       bloomFilter = bloomFilter,
       hashIndex = hashIndex,

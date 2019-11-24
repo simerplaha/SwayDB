@@ -37,7 +37,7 @@ import scala.util.Try
 class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
-  implicit val partialKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
   implicit val blockCacheMemorySweeper = TestSweeper.memorySweeperBlock
 
@@ -124,7 +124,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                       binarySearchIndexReader = blocks.binarySearchIndexReader,
                       sortedIndexReader = blocks.sortedIndexReader,
                       valuesReader = blocks.valuesReader
-                    ).toOption
+                    ).toOptionApply(_.toPersistent)
                 }
             )
             //println("--- End end ---")
@@ -147,9 +147,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                   //all keys are known to exist.
                   fail("Expected success")
 
-                case some : BinarySearchGetResult.Some[Persistent] =>
+                case some: BinarySearchGetResult.Some[Persistent.Partial] =>
                   some.value.key shouldBe keyValue.key
-                  Some(some.value)
+                  Some(some.value.toPersistent)
               }
 
             //            found.value shouldBe keyValue
@@ -238,7 +238,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                         binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
-                      ).toOption
+                      ).toOptionApply(_.toPersistent)
                   }
               )
             //println("--- Start ---")
@@ -260,7 +260,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                       binarySearchIndexReader = blocks.binarySearchIndexReader,
                       sortedIndexReader = blocks.sortedIndexReader,
                       valuesReader = blocks.valuesReader
-                    ).toOption
+                    ).toOptionApply(_.toPersistent)
                 }
             )
             //println("--- End ---")
@@ -274,7 +274,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
-              )
+              ).map(_.toPersistent)
 
             keyValue match {
               case fixed: Transient.Fixed =>
@@ -337,7 +337,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                         binarySearchIndexReader = blocks.binarySearchIndexReader,
                         sortedIndexReader = blocks.sortedIndexReader,
                         valuesReader = blocks.valuesReader
-                      ).toOption
+                      ).toOptionApply(_.toPersistent)
                   }
               )
             //println("--- Start ---")
@@ -365,7 +365,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                       binarySearchIndexReader = blocks.binarySearchIndexReader,
                       sortedIndexReader = blocks.sortedIndexReader,
                       valuesReader = blocks.valuesReader
-                    ).toOption
+                    ).toOptionApply(_.toPersistent)
                 }
             )
             //println("--- END ---")
@@ -380,7 +380,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 binarySearchIndexReader = blocks.binarySearchIndexReader,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReader = blocks.valuesReader
-              )
+              ).map(_.toPersistent)
 
             //          //println(s"Lower for: ${keyValue.minKey.readInt()}")
 

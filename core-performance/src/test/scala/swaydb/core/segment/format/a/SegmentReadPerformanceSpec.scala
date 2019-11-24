@@ -24,7 +24,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Transient
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchContext, BinarySearchIndexBlock}
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
@@ -128,7 +128,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         case IOAction.ReadDataOverview =>
           IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DataAction =>
-          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
       },
       valuesBlockIO = {
         case IOAction.OpenResource =>

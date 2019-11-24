@@ -101,7 +101,9 @@ private[core] object BinarySearchIndexBlock {
   case class Offset(start: Int, size: Int) extends BlockOffset
 
   object State {
-    def apply(largestValue: Int,
+    def apply(largestIndexOffset: Int,
+              largestKeyOffset: Int,
+              largestKeySize: Int,
               uniqueValuesCount: Int,
               isFullIndex: Boolean,
               minimumNumberOfKeys: Int,
@@ -111,20 +113,30 @@ private[core] object BinarySearchIndexBlock {
       } else {
         val headerSize: Int =
           optimalHeaderSize(
-            largestValue = largestValue,
             valuesCount = uniqueValuesCount,
             hasCompression = true
           )
+
         val bytes: Int =
           optimalBytesRequired(
-            largestValue = largestValue,
+            largestIndexOffset = largestIndexOffset,
+            largestKeyOffset = largestKeyOffset,
+            largestKeySize = largestKeySize,
             valuesCount = uniqueValuesCount,
             hasCompression = true,
             minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys
           )
+
+        val bytesPerValue =
+          bytesToAllocatePerValue(
+            largestIndexOffset = largestIndexOffset,
+            largestKeyOffset = largestKeyOffset,
+            largestKeySize = largestKeySize
+          )
+
         Some(
           new State(
-            bytesPerValue = bytesToAllocatePerValue(largestValue),
+            bytesPerValue = bytesPerValue,
             uniqueValuesCount = uniqueValuesCount,
             _previousWritten = Int.MinValue,
             writtenValues = 0,
@@ -175,7 +187,9 @@ private[core] object BinarySearchIndexBlock {
       None
     else
       BinarySearchIndexBlock.State(
-        largestValue = normalisedLast.stats.thisKeyValuesAccessIndexOffset,
+        largestIndexOffset = normalisedLast.stats.thisKeyValuesAccessIndexOffset,
+        largestKeyOffset = normalisedLast.stats.thisKeyValuesKeyOffset,
+        largestKeySize = normalisedLast.stats.segmentLargestMergedKeySize,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
         uniqueValuesCount = normalisedLast.stats.uncompressedKeyCounts,
         isFullIndex = normalisedLast.binarySearchIndexConfig.fullIndex,
@@ -184,32 +198,35 @@ private[core] object BinarySearchIndexBlock {
       )
   }
 
-  def isUnsignedInt(varIntSizeOfLargestValue: Int) =
-    varIntSizeOfLargestValue < ByteSizeOf.int
+  //  def isUnsignedInt(varIntSizeOfLargestValue: Int) =
+  //    varIntSizeOfLargestValue < ByteSizeOf.int
 
-  def bytesToAllocatePerValue(largestValue: Int): Int = {
-    val varintSizeOfLargestValue = Bytes.sizeOfUnsignedInt(largestValue)
-    if (isUnsignedInt(varintSizeOfLargestValue))
-      varintSizeOfLargestValue
-    else
-      ByteSizeOf.int
+  def bytesToAllocatePerValue(largestIndexOffset: Int,
+                              largestKeyOffset: Int,
+                              largestKeySize: Int): Int = {
+    val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
+    val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
+    val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
+    sizeOfLargestIndexOffset + sizeOfLargestKeyOffset + sizeOfLargestKeySize + ByteSizeOf.byte
   }
 
-  def optimalBytesRequired(largestValue: Int,
+  def optimalBytesRequired(largestIndexOffset: Int,
+                           largestKeyOffset: Int,
+                           largestKeySize: Int,
                            valuesCount: Int,
                            hasCompression: Boolean,
                            minimNumberOfKeysForBinarySearchIndex: Int): Int =
     if (valuesCount < minimNumberOfKeysForBinarySearchIndex)
       0
-    else
+    else {
+      val byteSizeOfLargestValue = bytesToAllocatePerValue(largestIndexOffset, largestKeyOffset, largestKeySize)
       optimalHeaderSize(
-        largestValue = largestValue,
         valuesCount = valuesCount,
         hasCompression = hasCompression
-      ) + (bytesToAllocatePerValue(largestValue) * valuesCount)
+      ) + (byteSizeOfLargestValue * valuesCount)
+    }
 
-  def optimalHeaderSize(largestValue: Int,
-                        valuesCount: Int,
+  def optimalHeaderSize(valuesCount: Int,
                         hasCompression: Boolean): Int = {
 
     val headerSize =
@@ -259,25 +276,26 @@ private[core] object BinarySearchIndexBlock {
     )
   }
 
-  def write(value: Int,
+  def write(indexOffset: Int,
+            keyOffset: Int,
+            keySize: Int,
+            keyType: Byte,
             state: State): Unit =
-    if (value == state.previouslyWritten) { //do not write duplicate entries.
+    if (indexOffset == state.previouslyWritten) { //do not write duplicate entries.
       ()
     } else {
-      if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize
-      //if the size of largest value is less than 4 bytes, write them as unsigned.
-      if (state.bytesPerValue < ByteSizeOf.int) {
-        val writePosition = state.bytes.currentWritePosition
-        state.bytes addUnsignedInt value
-        val missedBytes = state.bytesPerValue - (state.bytes.currentWritePosition - writePosition)
-        if (missedBytes > 0)
-          state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes) //fill in the missing bytes to maintain fixed size for each entry.
-      } else {
-        state.bytes addInt value
-      }
+      if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize //if this the first write then skip the header bytes.
+      val writePosition = state.bytes.currentWritePosition
+      state.bytes addUnsignedInt keyOffset
+      state.bytes addUnsignedInt keySize
+      state.bytes add keyType
+      state.bytes addUnsignedInt indexOffset
+      val missedBytes = state.bytesPerValue - (state.bytes.currentWritePosition - writePosition)
+      if (missedBytes > 0)
+        state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes) //fill in the missing bytes to maintain fixed size for each entry.
 
       state.incrementWrittenValuesCount()
-      state.previouslyWritten = value
+      state.previouslyWritten = indexOffset
     }
 
   //sortedIndexAccessPositions start from 1 but BinarySearch starts from 0.
@@ -319,13 +337,13 @@ private[core] object BinarySearchIndexBlock {
   //  var sameLower = 0
   //  var greaterLower = 0
 
-  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent]): BinarySearchGetResult[Persistent] = {
+  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] = {
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): BinarySearchGetResult[Persistent] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] = {
       val mid = start + (end - start) / 2
 
-      //println(s"start: $start, mid: $mid, end: $end")
+      //      println(s"start: $start, mid: $mid, end: $end")
 
       //      totalHops += 1
       //      currentHops += 1
@@ -360,10 +378,10 @@ private[core] object BinarySearchIndexBlock {
   }
 
   private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                  partialOrdering: KeyOrder[Persistent]): BinarySearchLowerResult.Some[Persistent] = {
+                                                                                  partialOrdering: KeyOrder[Persistent.Partial]): BinarySearchLowerResult.Some[Persistent.Partial] = {
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent], knownMatch: Option[Persistent]): BinarySearchLowerResult.Some[Persistent] = {
+    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchLowerResult.Some[Persistent.Partial] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
@@ -399,10 +417,10 @@ private[core] object BinarySearchIndexBlock {
         context.seek(valueOffset) match {
           case matched: KeyMatcher.Result.Matched =>
             matched.result match {
-              case fixed: Persistent.Fixed =>
+              case fixed: Persistent.Partial.Fixed =>
                 hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(fixed))
 
-              case range: Persistent.Range =>
+              case range: Persistent.Partial.Range =>
                 if (ordering.gt(context.targetKey, range.fromKey))
                   BinarySearchLowerResult.Some(
                     lower = None,
@@ -417,7 +435,7 @@ private[core] object BinarySearchIndexBlock {
 
           case aheadNoneOrEnd: KeyMatcher.Result.AheadOrNoneOrEnd =>
             aheadNoneOrEnd.ahead match {
-              case Some(range: Persistent.Range) if ordering.gt(context.targetKey, range.fromKey) =>
+              case Some(range: Persistent.Partial.Range) if ordering.gt(context.targetKey, range.fromKey) =>
                 BinarySearchLowerResult.Some(
                   lower = None,
                   matched = Some(range)
@@ -449,7 +467,7 @@ private[core] object BinarySearchIndexBlock {
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                     partialKeyOrder: KeyOrder[Persistent]): BinarySearchGetResult[Persistent] =
+                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable) {
       //      binarySeeks += 1
       binarySearch(
@@ -484,11 +502,11 @@ private[core] object BinarySearchIndexBlock {
               values = valuesReader
             )
           ) match {
-            case some: BinarySearchGetResult.Some[Persistent] =>
+            case some: BinarySearchGetResult.Some[Persistent.Partial] =>
               //              binarySuccessfulSeeks += 1
               some
 
-            case none: BinarySearchGetResult.None[Persistent] =>
+            case none: BinarySearchGetResult.None[Persistent.Partial] =>
               //              binaryFailedSeeks += 1
               if (binarySearchIndexReader.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
                 none
@@ -503,7 +521,7 @@ private[core] object BinarySearchIndexBlock {
 
                     SortedIndexBlock.matchOrSeek(
                       key = key,
-                      startFrom = lower,
+                      startFrom = lower.toPersistent,
                       sortedIndexReader = sortedIndexReader,
                       valuesReader = valuesReader
                     ) match {
@@ -553,7 +571,7 @@ private[core] object BinarySearchIndexBlock {
                    binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                           partialKeyOrder: KeyOrder[Persistent]): Option[Persistent] =
+                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
     when(start.exists(start => ordering.equiv(start.key, key)))(start) match {
       case Some(start) =>
         Some(
@@ -574,18 +592,18 @@ private[core] object BinarySearchIndexBlock {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) match {
-          case none: BinarySearchGetResult.None[Persistent] =>
+          case none: BinarySearchGetResult.None[Persistent.Partial] =>
             SortedIndexBlock.matchOrSeekHigher(
               key = key,
-              startFrom = none.lower,
+              startFrom = none.lower.map(_.toPersistent),
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
             )
 
-          case some: BinarySearchGetResult.Some[Persistent] =>
+          case some: BinarySearchGetResult.Some[Persistent.Partial] =>
             SortedIndexBlock.matchOrSeekHigher(
               key = key,
-              startFrom = Some(some.value),
+              startFrom = Some(some.value.toPersistent),
               sortedIndexReader = sortedIndexReader,
               valuesReader = valuesReader
             )
@@ -623,7 +641,7 @@ private[core] object BinarySearchIndexBlock {
                   binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                          partialOrdering: KeyOrder[Persistent]): Option[Persistent] =
+                                                                                          partialOrdering: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
     if (sortedIndexReader.block.isNormalisedBinarySearchable) {
       val result =
         binarySearchLower(
@@ -649,8 +667,8 @@ private[core] object BinarySearchIndexBlock {
       else
         resolveLowerFromBinarySearch(
           key = key,
-          lower = result.lower,
-          got = result.matched,
+          lower = result.lower.map(_.toPersistent),
+          got = result.matched.map(_.toPersistent),
           end = end,
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
@@ -676,8 +694,8 @@ private[core] object BinarySearchIndexBlock {
 
           resolveLowerFromBinarySearch(
             key = key,
-            lower = result.lower,
-            got = result.matched,
+            lower = result.lower.map(_.toPersistent),
+            got = result.matched.map(_.toPersistent),
             end = end,
             sortedIndexReader = sortedIndexReader,
             valuesReader = valuesReader
@@ -710,7 +728,4 @@ private[core] case class BinarySearchIndexBlock(offset: BinarySearchIndexBlock.O
                                                 headerSize: Int,
                                                 bytesPerValue: Int,
                                                 isFullIndex: Boolean,
-                                                compressionInfo: Option[Block.CompressionInfo]) extends Block[BinarySearchIndexBlock.Offset] {
-  val isUnsignedInt: Boolean =
-    BinarySearchIndexBlock.isUnsignedInt(bytesPerValue)
-}
+                                                compressionInfo: Option[Block.CompressionInfo]) extends Block[BinarySearchIndexBlock.Offset]

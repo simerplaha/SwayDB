@@ -581,10 +581,10 @@ private[core] object HashIndexBlock extends LazyLogging {
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                     partialKeyOrder: KeyOrder[Persistent]): HashIndexSearchResult = {
+                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): HashIndexSearchResult = {
     val matcher = KeyMatcher.Get.MatchOnly(key)
 
-    val collisions = ListBuffer.empty[Persistent]
+    val collisions = ListBuffer.empty[Persistent.Partial]
 
     val result =
       if (hashIndexReader.block.copyIndex)

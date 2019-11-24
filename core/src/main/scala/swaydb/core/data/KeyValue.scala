@@ -28,7 +28,6 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.entry.reader._
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
@@ -599,7 +598,7 @@ private[core] object Transient {
 
     override def value: Option[Slice[Byte]] = None
 
-    override val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -613,13 +612,13 @@ private[core] object Transient {
     override val stats =
       Stats(
         keySize = key.size,
+        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -669,7 +668,7 @@ private[core] object Transient {
 
     override def mergedKey = key
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -684,13 +683,13 @@ private[core] object Transient {
     val stats =
       Stats(
         keySize = key.size,
+        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isPut = true,
         isPrefixCompressed = isPrefixCompressed,
-        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -740,7 +739,7 @@ private[core] object Transient {
 
     override def mergedKey = key
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -754,13 +753,13 @@ private[core] object Transient {
     val stats =
       Stats(
         keySize = key.size,
+        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -813,7 +812,7 @@ private[core] object Transient {
 
     override def deadline: Option[Deadline] = None
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -827,13 +826,13 @@ private[core] object Transient {
     val stats =
       Stats(
         keySize = key.size,
+        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -904,7 +903,7 @@ private[core] object Transient {
     override def hasTimeLeft(): Boolean =
       true
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -918,13 +917,13 @@ private[core] object Transient {
     val stats =
       Stats(
         keySize = key.size,
+        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isPut = false,
         isPrefixCompressed = isPrefixCompressed,
-        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         sortedIndex = sortedIndexConfig,
         bloomFilter = bloomFilterConfig,
         hashIndex = hashIndexConfig,
@@ -1032,7 +1031,7 @@ private[core] object Transient {
 
     override def value = valueSerialiser()
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = Time.empty,
@@ -1047,12 +1046,12 @@ private[core] object Transient {
     val stats =
       Stats(
         keySize = fromKey.size + toKey.size,
+        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
         isRange = isRange,
         isPut = fromValue.exists(_.isInstanceOf[Value.Put]),
-        previousKeyValueAccessIndexPosition = previous.map(_.thisKeyValueAccessIndexPosition),
         sortedIndex = sortedIndexConfig,
         isPrefixCompressed = isPrefixCompressed,
         bloomFilter = bloomFilterConfig,
@@ -1080,9 +1079,9 @@ private[core] object Transient {
   }
 }
 
-private[core] sealed trait Persistent extends KeyValue.CacheAble {
+private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial {
 
-  val indexOffset: Int
+  def indexOffset: Int
   val nextIndexOffset: Int
   val nextIndexSize: Int
   val sortedIndexAccessPosition: Int
@@ -1107,7 +1106,27 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble {
 
 private[core] object Persistent {
 
-  sealed trait Fixed extends Persistent with KeyValue.ReadOnly.Fixed
+  /**
+   * [[Partial]] key-values types are used in persistent databases
+   * for quick search where the entire key-value parse is skipped
+   * and only key is read for processing.
+   */
+  sealed trait Partial {
+    def key: Slice[Byte]
+    def indexOffset: Int
+    def toPersistent: Persistent
+  }
+
+  object Partial {
+    trait Fixed extends Persistent.Partial
+
+    trait Range extends Persistent.Partial {
+      def fromKey: Slice[Byte]
+      def toKey: Slice[Byte]
+    }
+  }
+
+  sealed trait Fixed extends Persistent with KeyValue.ReadOnly.Fixed with Partial.Fixed
 
   case class Remove(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
@@ -1155,6 +1174,9 @@ private[core] object Persistent {
 
     override def toRemoveValue(): Value.Remove =
       Value.Remove(deadline, time)
+
+    def toPersistent: Persistent.Remove =
+      this
   }
 
   object Put {
@@ -1257,6 +1279,9 @@ private[core] object Persistent {
 
     override def copyWithTime(time: Time): Put =
       copy(_time = time)
+
+    def toPersistent: Persistent.Put =
+      this
   }
 
   object Update {
@@ -1390,6 +1415,9 @@ private[core] object Persistent {
         valueLength = valueLength,
         sortedIndexAccessPosition = sortedIndexAccessPosition
       )
+
+    def toPersistent: Persistent.Update =
+      this
   }
 
   object Function {
@@ -1474,6 +1502,9 @@ private[core] object Persistent {
 
     override def copyWithTime(time: Time): Function =
       copy(_time = time)
+
+    def toPersistent: Persistent.Function =
+      this
   }
 
   object PendingApply {
@@ -1560,6 +1591,9 @@ private[core] object Persistent {
         key = key,
         applies = getOrFetchApplies
       )
+
+    def toPersistent: Persistent.PendingApply =
+      this
   }
 
   object Range {
@@ -1633,7 +1667,7 @@ private[core] object Persistent {
                            indexOffset: Int,
                            valueOffset: Int,
                            valueLength: Int,
-                           sortedIndexAccessPosition: Int) extends Persistent with KeyValue.ReadOnly.Range {
+                           sortedIndexAccessPosition: Int) extends Persistent with KeyValue.ReadOnly.Range with Partial.Range {
 
     def fromKey = _fromKey
 
@@ -1670,5 +1704,8 @@ private[core] object Persistent {
 
     override def isValueCached: Boolean =
       valueCache.isCached
+
+    def toPersistent: Persistent.Range =
+      this
   }
 }

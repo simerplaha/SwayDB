@@ -29,13 +29,13 @@ import scala.concurrent.duration.Deadline
 private[core] object Stats {
 
   def apply(keySize: Int,
+            keyOffset: Int,
             indexEntry: Slice[Byte],
             value: Option[Slice[Byte]],
             isRemoveRange: Boolean,
             isRange: Boolean,
             isPut: Boolean,
             isPrefixCompressed: Boolean,
-            previousKeyValueAccessIndexPosition: Option[Int],
             sortedIndex: SortedIndexBlock.Config,
             bloomFilter: BloomFilterBlock.Config,
             hashIndex: HashIndexBlock.Config,
@@ -81,6 +81,19 @@ private[core] object Stats {
         previousStats.map(_.thisKeyValuesAccessIndexOffset) getOrElse thisKeyValuesRealIndexOffset
       else
         thisKeyValuesRealIndexOffset
+
+    val thisKeyValuesMergedKeyOffset =
+      thisKeyValuesAccessIndexOffset + keyOffset
+
+    //largest merged key size
+    val segmentsLargestMergedKeySize =
+      previousStats match {
+        case Some(previousStats) =>
+          previousStats.segmentLargestMergedKeySize max (indexEntry.size - thisKeyValuesMergedKeyOffset)
+
+        case None =>
+          indexEntry.size - thisKeyValuesMergedKeyOffset
+      }
 
     val thisKeyValuesSegmentValueSize =
       if (valueLength == 0)
@@ -143,7 +156,9 @@ private[core] object Stats {
               None
         } getOrElse {
           BinarySearchIndexBlock.optimalBytesRequired(
-            largestValue = thisKeyValuesAccessIndexOffset,
+            largestIndexOffset = thisKeyValuesAccessIndexOffset,
+            largestKeyOffset = thisKeyValuesMergedKeyOffset,
+            largestKeySize = segmentsLargestMergedKeySize,
             hasCompression = false,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
             //binary search indexes are only created for non-prefix compressed or reset point keys.
@@ -227,9 +242,8 @@ private[core] object Stats {
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
       thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
       thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
+      thisKeyValuesKeyOffset = thisKeyValuesMergedKeyOffset,
       thisKeyValueRealIndexOffset = thisKeyValuesRealIndexOffset,
-      segmentMaxSortedIndexEntrySize = segmentMaxSortedIndexEntrySize,
-      segmentMinSortedIndexEntrySize = segmentMinSortedIndexEntrySize,
       segmentHashIndexSize = segmentHashIndexSize,
       segmentBloomFilterSize = segmentBloomFilterSize,
       segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
@@ -237,6 +251,9 @@ private[core] object Stats {
       segmentHasRemoveRange = hasRemoveRange,
       segmentHasRange = segmentHasRange,
       segmentHasPut = segmentHasPut,
+      segmentMaxSortedIndexEntrySize = segmentMaxSortedIndexEntrySize,
+      segmentMinSortedIndexEntrySize = segmentMinSortedIndexEntrySize,
+      segmentLargestMergedKeySize = segmentsLargestMergedKeySize,
       hasPrefixCompression = hasPrefixCompressed
     )
   }
@@ -256,6 +273,7 @@ private[core] case class Stats(valueLength: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesSortedIndexSize: Int,
                                thisKeyValuesAccessIndexOffset: Int,
+                               thisKeyValuesKeyOffset: Int,
                                //do not access this from outside, used in stats only.
                                private[Stats] val thisKeyValueRealIndexOffset: Int,
                                segmentHashIndexSize: Int,
@@ -267,6 +285,7 @@ private[core] case class Stats(valueLength: Int,
                                segmentHasPut: Boolean,
                                segmentMaxSortedIndexEntrySize: Int,
                                segmentMinSortedIndexEntrySize: Int,
+                               segmentLargestMergedKeySize: Int,
                                hasPrefixCompression: Boolean) {
 
   def memorySegmentSize =

@@ -77,7 +77,7 @@ private[core] class SegmentCache(path: Path,
 
   import keyOrder._
 
-  implicit val partialKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
 
   /**
    * Notes for why use putIfAbsent before adding to cache:

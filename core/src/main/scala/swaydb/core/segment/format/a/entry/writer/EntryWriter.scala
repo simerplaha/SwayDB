@@ -37,10 +37,11 @@ private[core] object EntryWriter {
                          valueStartOffset: Int,
                          valueEndOffset: Int,
                          @BeanProperty var thisKeyValueAccessIndexPosition: Int,
+                         @BeanProperty var keyOffset: Int,
                          isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
     def unapply =
-      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, isPrefixCompressed)
+      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed)
   }
 
   /**
@@ -164,7 +165,7 @@ private[core] object EntryWriter {
     val sortedIndexAccessPosition = getAccessIndexPosition(current, writeResult.isPrefixCompressed)
     //println(s"Access position: $sortedIndexAccessPosition for key: ${current.key.readInt()}")
 
-    val closedBytes =
+    val (closedBytes, keyOffset) =
       normaliseToSize match {
         case Some(toSize) =>
           val indexSize = toSize - Bytes.sizeOfUnsignedInt(toSize)
@@ -177,8 +178,9 @@ private[core] object EntryWriter {
             bytes addAll writeResult.indexBytes
           }
 
+          val keyOffset = normalisedBytes.currentWritePosition - keySize
           normalisedBytes moveWritePosition toSize
-          normalisedBytes
+          (normalisedBytes, keyOffset)
 
         case None =>
           val indexSize = writeResult.indexBytes.size + sortedIndexAccessPosition.map(Bytes.sizeOfUnsignedInt).getOrElse(0)
@@ -186,10 +188,13 @@ private[core] object EntryWriter {
           bytes addUnsignedInt indexSize
           sortedIndexAccessPosition foreach bytes.addUnsignedInt
           bytes addAll writeResult.indexBytes
+          val keyOffset = bytes.currentWritePosition - keySize
+          (bytes, keyOffset)
       }
 
     assert(closedBytes.isOriginalFullSlice)
 
+    writeResult setKeyOffset keyOffset //the offset of the key within the current closedBytes.
     writeResult setIndexBytes closedBytes
     sortedIndexAccessPosition foreach writeResult.setThisKeyValueAccessIndexPosition
   }

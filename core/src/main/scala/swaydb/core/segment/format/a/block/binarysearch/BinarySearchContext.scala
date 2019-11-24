@@ -19,10 +19,13 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial
+import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Get
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{KeyMatcher, SortedIndexBlock, ValuesBlock}
+import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -37,7 +40,8 @@ private[block] trait BinarySearchContext {
   def seek(offset: Int): KeyMatcher.Result
 }
 
-private[block] object BinarySearchContext {
+object BinarySearchContext {
+
   def apply(key: Slice[Byte],
             lowest: Option[Persistent],
             highest: Option[Persistent],
@@ -60,18 +64,53 @@ private[block] object BinarySearchContext {
       override val highestKeyValue: Option[Persistent] = highest
 
       override def seek(offset: Int): KeyMatcher.Result = {
-        val sortedIndexOffsetValue =
-          binarySearchIndex
-            .moveTo(offset)
-            .readInt(unsigned = binarySearchIndex.block.isUnsignedInt)
+        val binaryEntryReader = Reader(binarySearchIndex.moveTo(offset).read(binarySearchIndex.block.bytesPerValue))
 
-        SortedIndexBlock.readAndMatch(
-          matcher = matcher,
-          fromOffset = sortedIndexOffsetValue,
-          overwriteNextIndexOffset = None,
-          sortedIndexReader = sortedIndex,
-          valuesReader = values
-        )
+        val keyOffset = binaryEntryReader.readUnsignedInt()
+        val keySize = binaryEntryReader.readUnsignedInt()
+        val keyType = binaryEntryReader.get()
+
+        val targetKey = sortedIndex.moveTo(keyOffset).read(keySize)
+
+        val partialKeyValue =
+          if (keyType == Transient.Range.id)
+            new Partial.Range {
+              val (fromKey, toKey) = Bytes.decompressJoin(targetKey)
+
+              override lazy val indexOffset: Int =
+                binaryEntryReader.readUnsignedInt()
+
+              override def key: Slice[Byte] =
+                fromKey
+
+              override def toPersistent: Persistent =
+                SortedIndexBlock.read(
+                  fromOffset = indexOffset,
+                  overwriteNextIndexOffset = None,
+                  sortedIndexReader = sortedIndex,
+                  valuesReader = values
+                )
+            }
+          else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
+            new Partial.Fixed {
+              override lazy val indexOffset: Int =
+                binaryEntryReader.readUnsignedInt()
+
+              override def key: Slice[Byte] =
+                targetKey
+
+              override def toPersistent: Persistent =
+                SortedIndexBlock.read(
+                  fromOffset = indexOffset,
+                  overwriteNextIndexOffset = None,
+                  sortedIndexReader = sortedIndex,
+                  valuesReader = values
+                )
+            }
+          else
+            throw new Exception(s"Invalid keyType: $keyType, offset: $offset, keyOffset: $keyOffset, keySize: $keySize")
+
+        matcher(previous = partialKeyValue, next = None, hasMore = true)
       }
     }
 

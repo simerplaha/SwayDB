@@ -211,6 +211,7 @@ private[writer] object ValueWriter {
       valueStartOffset = currentValueOffset,
       valueEndOffset = currentValueOffset + currentValueSize - 1,
       thisKeyValueAccessIndexPosition = 0,
+      keyOffset = Int.MinValue,
       isPrefixCompressed = isPrefixCompressed
     )
   }
@@ -241,6 +242,7 @@ private[writer] object ValueWriter {
       valueStartOffset = current.previous.map(_.currentStartValueOffsetPosition).getOrElse(0),
       valueEndOffset = current.previous.map(_.currentEndValueOffsetPosition).getOrElse(0),
       thisKeyValueAccessIndexPosition = 0,
+      keyOffset = Int.MinValue,
       isPrefixCompressed = isPrefixCompressed
     )
   }
@@ -298,6 +300,7 @@ private[writer] object ValueWriter {
           valueStartOffset = previous.currentStartValueOffsetPosition,
           valueEndOffset = previous.currentEndValueOffsetPosition,
           thisKeyValueAccessIndexPosition = 0,
+          keyOffset = Int.MinValue,
           isPrefixCompressed = isPrefixCompressed
         )
       )
@@ -396,6 +399,7 @@ private[writer] object ValueWriter {
               valueStartOffset = currentValueOffset,
               valueEndOffset = currentValueOffset + currentValue.size - 1,
               thisKeyValueAccessIndexPosition = 0,
+              keyOffset = Int.MinValue,
               isPrefixCompressed = true
             )
 
@@ -424,6 +428,7 @@ private[writer] object ValueWriter {
               valueStartOffset = currentValueOffset,
               valueEndOffset = currentValueOffset + currentValue.size - 1,
               thisKeyValueAccessIndexPosition = 0,
+              keyOffset = Int.MinValue,
               isPrefixCompressed = isPrefixCompressed
             )
         }
@@ -476,6 +481,7 @@ private[writer] object ValueWriter {
           valueStartOffset = currentValueOffset,
           valueEndOffset = currentValueOffset + currentValue.size - 1,
           thisKeyValueAccessIndexPosition = 0,
+          keyOffset = Int.MinValue,
           isPrefixCompressed = isPrefixCompressed
         )
 
@@ -505,6 +511,7 @@ private[writer] object ValueWriter {
           valueStartOffset = currentValueOffset,
           valueEndOffset = currentValueOffset + currentValue.size - 1,
           thisKeyValueAccessIndexPosition = 0,
+          keyOffset = Int.MinValue,
           isPrefixCompressed = isPrefixCompressed
         )
     }

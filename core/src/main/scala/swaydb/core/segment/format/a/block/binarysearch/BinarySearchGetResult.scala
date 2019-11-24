@@ -20,11 +20,10 @@
 package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.IO
-import swaydb.IO.ExceptionHandler
 
 private[block] sealed trait BinarySearchGetResult[+T] {
   def toOption: Option[T]
-  def toIO[E: ExceptionHandler]: IO[E, Option[T]]
+  def toOptionApply[B](f: T => B): Option[B]
 }
 
 private[block] object BinarySearchGetResult {
@@ -38,14 +37,12 @@ private[block] object BinarySearchGetResult {
   class None[T](val lower: Option[T]) extends BinarySearchGetResult[T] {
     override val toOption: Option[T] = scala.None
 
-    override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =
-      IO.none
+    override def toOptionApply[B](f: T => B): Option[B] = scala.None
   }
 
   class Some[T](val value: T) extends BinarySearchGetResult[T] {
     override def toOption: Option[T] = scala.Some(value)
 
-    override def toIO[E: ExceptionHandler]: IO[E, Option[T]] =
-      IO.Right(scala.Some(value))
+    override def toOptionApply[B](f: T => B): Option[B] = scala.Some(f(value))
   }
 }

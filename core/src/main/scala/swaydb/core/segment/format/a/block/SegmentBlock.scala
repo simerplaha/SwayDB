@@ -272,7 +272,10 @@ private[core] object SegmentBlock {
                 binarySearchIndex foreach {
                   state =>
                     BinarySearchIndexBlock.write(
-                      value = thisKeyValuesAccessOffset,
+                      indexOffset = thisKeyValuesAccessOffset,
+                      keyOffset = keyValue.stats.thisKeyValuesKeyOffset,
+                      keySize = keyValue.mergedKey.size,
+                      keyType = keyValue.id,
                       state = state
                     )
                 }
