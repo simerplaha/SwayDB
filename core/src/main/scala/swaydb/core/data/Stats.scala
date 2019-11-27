@@ -23,6 +23,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.slice.Slice
+import swaydb.data.util.Maybe
 
 import scala.concurrent.duration.Deadline
 
@@ -164,6 +165,7 @@ private[core] object Stats {
             valuesCount = uncompressedKeyCounts,
             hasCompression = false,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
+            bytesToAllocatedPerEntryMaybe = Maybe.noneInt,
             format = binarySearch.format
           )
         }

@@ -32,6 +32,9 @@ object Maybe {
   @inline def none[A]: Maybe[A] =
     null.asInstanceOf[Maybe[A]]
 
+  val noneInt: Maybe[Int] =
+    null.asInstanceOf[Maybe[Int]]
+
   @inline def some[A](value: A): Maybe[A] =
     value.asInstanceOf[@@[A, MaybeTag]]
 

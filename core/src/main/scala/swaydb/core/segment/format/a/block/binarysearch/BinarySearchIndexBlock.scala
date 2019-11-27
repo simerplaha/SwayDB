@@ -29,7 +29,9 @@ import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.data.util.{ByteSizeOf, Functions}
+import swaydb.data.util.Maybe.Maybe
+import swaydb.data.util.Maybe._
+import swaydb.data.util.{ByteSizeOf, Functions, Maybe}
 
 import scala.annotation.tailrec
 
@@ -123,6 +125,13 @@ private[core] object BinarySearchIndexBlock {
             hasCompression = true
           )
 
+        val bytesPerValue =
+          format.bytesToAllocatePerEntry(
+            largestIndexOffset = largestIndexOffset,
+            largestKeyOffset = largestKeyOffset,
+            largestKeySize = largestKeySize
+          )
+
         val bytes: Int =
           optimalBytesRequired(
             largestIndexOffset = largestIndexOffset,
@@ -131,14 +140,7 @@ private[core] object BinarySearchIndexBlock {
             valuesCount = uniqueValuesCount,
             hasCompression = true,
             minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys,
-            format = format
-          )
-
-        val bytesPerValue =
-          bytesToAllocatePerValue(
-            largestIndexOffset = largestIndexOffset,
-            largestKeyOffset = largestKeyOffset,
-            largestKeySize = largestKeySize,
+            bytesToAllocatedPerEntryMaybe = Maybe.some(bytesPerValue),
             format = format
           )
 
@@ -211,30 +213,30 @@ private[core] object BinarySearchIndexBlock {
 
   //  def isUnsignedInt(varIntSizeOfLargestValue: Int) =
   //    varIntSizeOfLargestValue < ByteSizeOf.int
-
-  def bytesToAllocatePerValue(largestIndexOffset: Int,
-                              largestKeyOffset: Int,
-                              largestKeySize: Int,
-                              format: BinarySearchIndexFormat): Int = {
-    val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
-
-    val entrySize =
-      format match {
-        case BinarySearchIndexFormat.CopyKey =>
-          val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
-          sizeOfLargestKeyOffset + largestKeySize
-
-        case BinarySearchIndexFormat.ReferenceKey =>
-          val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
-          val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
-          sizeOfLargestKeyOffset + sizeOfLargestKeySize
-
-        case BinarySearchIndexFormat.ReferenceIndex =>
-          0
-      }
-
-    sizeOfLargestIndexOffset + entrySize + ByteSizeOf.byte
-  }
+  //
+  //  def bytesToAllocatePerValue(largestIndexOffset: Int,
+  //                              largestKeyOffset: Int,
+  //                              largestKeySize: Int,
+  //                              format: BinarySearchIndexFormat): Int = {
+  //    val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
+  //
+  //    val entrySize =
+  //      format match {
+  //        case BinarySearchIndexFormat.CopyKey =>
+  //          val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
+  //          sizeOfLargestKeyOffset + largestKeySize
+  //
+  //        case BinarySearchIndexFormat.ReferenceKey =>
+  //          val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
+  //          val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
+  //          sizeOfLargestKeyOffset + sizeOfLargestKeySize
+  //
+  //        case BinarySearchIndexFormat.ReferenceIndex =>
+  //          0
+  //      }
+  //
+  //    sizeOfLargestIndexOffset + entrySize + ByteSizeOf.byte
+  //  }
 
   def optimalBytesRequired(largestIndexOffset: Int,
                            largestKeyOffset: Int,
@@ -242,15 +244,18 @@ private[core] object BinarySearchIndexBlock {
                            valuesCount: Int,
                            hasCompression: Boolean,
                            minimNumberOfKeysForBinarySearchIndex: Int,
+                           bytesToAllocatedPerEntryMaybe: Maybe[Int],
                            format: BinarySearchIndexFormat): Int =
     if (valuesCount < minimNumberOfKeysForBinarySearchIndex) {
       0
     } else {
-      val byteSizeOfLargestValue = bytesToAllocatePerValue(largestIndexOffset, largestKeyOffset, largestKeySize, format)
+      val bytesToAllocatedPerEntry = bytesToAllocatedPerEntryMaybe getOrElse {
+        format.bytesToAllocatePerEntry(largestIndexOffset, largestKeyOffset, largestKeySize)
+      }
       optimalHeaderSize(
         valuesCount = valuesCount,
         hasCompression = hasCompression
-      ) + (byteSizeOfLargestValue * valuesCount)
+      ) + (bytesToAllocatedPerEntry * valuesCount)
     }
 
   def optimalHeaderSize(valuesCount: Int,

@@ -27,9 +27,9 @@ import swaydb.macros.SealedList
 sealed trait BinarySearchIndexFormat {
   def id: Byte
 
-  def bytesRequiredPerEntry(largestIndexOffset: Int,
-                            largestKeyOffset: Int,
-                            largestKeySize: Int): Int
+  def bytesToAllocatePerEntry(largestIndexOffset: Int,
+                              largestKeyOffset: Int,
+                              largestKeySize: Int): Int
 
   def write(indexOffset: Int,
             keyOffset: Int,
@@ -58,9 +58,9 @@ object BinarySearchIndexFormat {
       bytes addUnsignedInt indexOffset
     }
 
-    override def bytesRequiredPerEntry(largestIndexOffset: Int,
-                                       largestKeyOffset: Int,
-                                       largestKeySize: Int): Int = {
+    override def bytesToAllocatePerEntry(largestIndexOffset: Int,
+                                         largestKeyOffset: Int,
+                                         largestKeySize: Int): Int = {
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
       val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
       sizeOfLargestKeySize + largestKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset
@@ -81,9 +81,9 @@ object BinarySearchIndexFormat {
       bytes addUnsignedInt indexOffset
     }
 
-    override def bytesRequiredPerEntry(largestIndexOffset: Int,
-                                       largestKeyOffset: Int,
-                                       largestKeySize: Int): Int = {
+    override def bytesToAllocatePerEntry(largestIndexOffset: Int,
+                                         largestKeyOffset: Int,
+                                         largestKeySize: Int): Int = {
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
       val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
       val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
@@ -100,9 +100,9 @@ object BinarySearchIndexFormat {
                        bytes: Slice[Byte]): Unit =
       bytes addUnsignedInt indexOffset
 
-    override def bytesRequiredPerEntry(largestIndexOffset: Int,
-                                       largestKeyOffset: Int,
-                                       largestKeySize: Int): Int = {
+    override def bytesToAllocatePerEntry(largestIndexOffset: Int,
+                                         largestKeyOffset: Int,
+                                         largestKeySize: Int): Int = {
       Bytes.sizeOfUnsignedInt(largestIndexOffset)
     }
   }
