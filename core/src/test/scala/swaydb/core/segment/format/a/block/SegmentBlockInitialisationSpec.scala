@@ -56,6 +56,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
                   enabled = false,
+                  format = randomBinarySearchFormat(),
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
@@ -87,6 +88,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 binarySearchIndexConfig =
                   BinarySearchIndexBlock.Config(
                     enabled = true,
+                    format = randomBinarySearchFormat(),
                     searchSortedIndexDirectlyIfPossible = randomBoolean(),
                     minimumNumberOfKeys = generatedKeyValues.size + 1,
                     fullIndex = randomBoolean(),
@@ -120,6 +122,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
                   enabled = true,
+                  format = randomBinarySearchFormat(),
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
@@ -179,6 +182,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
                   enabled = true,
+                  format = randomBinarySearchFormat(),
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = true,
@@ -230,6 +234,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               binarySearchIndexConfig =
                 BinarySearchIndexBlock.Config(
                   enabled = true,
+                  format = randomBinarySearchFormat(),
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
                   minimumNumberOfKeys = 0,
                   fullIndex = false,
@@ -438,6 +443,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           binarySearchIndexConfig =
             BinarySearchIndexBlock.Config(
               enabled = true,
+              format = randomBinarySearchFormat(),
               searchSortedIndexDirectlyIfPossible = randomBoolean(),
               minimumNumberOfKeys = 1,
               fullIndex = true,

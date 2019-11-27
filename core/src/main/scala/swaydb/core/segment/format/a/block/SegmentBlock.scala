@@ -274,7 +274,7 @@ private[core] object SegmentBlock {
                     BinarySearchIndexBlock.write(
                       indexOffset = thisKeyValuesAccessOffset,
                       keyOffset = keyValue.stats.thisKeyValuesKeyOffset,
-                      keySize = keyValue.mergedKey.size,
+                      mergedKey = keyValue.mergedKey,
                       keyType = keyValue.id,
                       state = state
                     )

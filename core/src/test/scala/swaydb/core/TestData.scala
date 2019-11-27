@@ -42,7 +42,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexFormat}
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
@@ -534,6 +534,7 @@ object TestData {
     def random(hasCompression: Boolean): BinarySearchIndexBlock.Config =
       BinarySearchIndexBlock.Config(
         enabled = randomBoolean(),
+        format = randomBinarySearchFormat(),
         minimumNumberOfKeys = randomIntMax(5),
         searchSortedIndexDirectlyIfPossible = randomBoolean(),
         fullIndex = randomBoolean(),
@@ -2526,6 +2527,9 @@ object TestData {
         IOStrategy.AsyncIO(cacheOnAccess = true)
       )
     ).head
+
+  def randomBinarySearchFormat(): BinarySearchIndexFormat =
+    Random.shuffle(BinarySearchIndexFormat.formats).head
 
   implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 

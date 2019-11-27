@@ -282,6 +282,7 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           binarySearchIndexConfig =
             BinarySearchIndexBlock.Config(
               enabled = true,
+              format = randomBinarySearchFormat(),
               minimumNumberOfKeys = 0,
               fullIndex = fullIndex,
               searchSortedIndexDirectlyIfPossible = randomBoolean(),

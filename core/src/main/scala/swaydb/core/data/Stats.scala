@@ -155,15 +155,16 @@ private[core] object Stats {
             else
               None
         } getOrElse {
+          //binary search indexes are only created for non-prefix compressed or reset point keys.
+          //size calculation should only account for those entries because duplicates are not allowed.
           BinarySearchIndexBlock.optimalBytesRequired(
             largestIndexOffset = thisKeyValuesAccessIndexOffset,
             largestKeyOffset = thisKeyValuesMergedKeyOffset,
             largestKeySize = segmentsLargestMergedKeySize,
+            valuesCount = uncompressedKeyCounts,
             hasCompression = false,
             minimNumberOfKeysForBinarySearchIndex = binarySearch.minimumNumberOfKeys,
-            //binary search indexes are only created for non-prefix compressed or reset point keys.
-            //size calculation should only account for those entries because duplicates are not allowed.
-            valuesCount = uncompressedKeyCounts
+            format = binarySearch.format
           )
         }
       else
