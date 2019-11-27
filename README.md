@@ -15,7 +15,9 @@
 Embeddable persistent and in-memory database. Resource efficiency, performance 
 and easy data management with simple functional APIs.
 
-[See documentation - SwayDB.io](http://swaydb.io) (currently being updated for latest version). 
+[See documentation - SwayDB.io](http://swaydb.io) (currently being updated for latest version).
+
+**Project status** - Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases unless it's requested. 
 
 ## Performance (old benchmark for v0.2 - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
@@ -56,10 +58,6 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
-
-# Project status
-
-Undergoing frequent changes & beta testing. Backward binary compatibility is not yet a priority for minor releases unless it's requested.
 
 # Project support
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
