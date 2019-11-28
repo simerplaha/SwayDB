@@ -2530,8 +2530,8 @@ object TestData {
       )
     ).head
 
-  def randomBinarySearchFormat(): SearchIndexEntrySerialiser =
-    Random.shuffle(SearchIndexEntrySerialiser.formats).head
+  def randomBinarySearchFormat(): SearchIndexEntryFormat =
+    Random.shuffle(SearchIndexEntryFormat.formats).head
 
   implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 

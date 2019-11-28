@@ -44,7 +44,7 @@ private[core] object BinarySearchIndexBlock {
     val disabled =
       Config(
         enabled = false,
-        format = SearchIndexEntrySerialiser.ReferenceIndex,
+        format = SearchIndexEntryFormat.ReferenceIndex,
         minimumNumberOfKeys = 0,
         fullIndex = false,
         searchSortedIndexDirectlyIfPossible = true,
@@ -57,7 +57,7 @@ private[core] object BinarySearchIndexBlock {
         case swaydb.data.config.BinarySearchIndex.Disable(searchSortedIndexDirectly) =>
           Config(
             enabled = false,
-            format = SearchIndexEntrySerialiser.ReferenceIndex,
+            format = SearchIndexEntryFormat.ReferenceIndex,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
             searchSortedIndexDirectlyIfPossible = searchSortedIndexDirectly,
@@ -68,7 +68,7 @@ private[core] object BinarySearchIndexBlock {
         case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
           Config(
             enabled = true,
-            format = SearchIndexEntrySerialiser.CopyKey,
+            format = SearchIndexEntryFormat.CopyKey,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
             fullIndex = true,
@@ -83,7 +83,7 @@ private[core] object BinarySearchIndexBlock {
         case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
           Config(
             enabled = true,
-            format = SearchIndexEntrySerialiser.CopyKey,
+            format = SearchIndexEntryFormat.CopyKey,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
@@ -98,7 +98,7 @@ private[core] object BinarySearchIndexBlock {
   }
 
   case class Config(enabled: Boolean,
-                    format: SearchIndexEntrySerialiser,
+                    format: SearchIndexEntryFormat,
                     minimumNumberOfKeys: Int,
                     searchSortedIndexDirectlyIfPossible: Boolean,
                     fullIndex: Boolean,
@@ -108,7 +108,7 @@ private[core] object BinarySearchIndexBlock {
   case class Offset(start: Int, size: Int) extends BlockOffset
 
   object State {
-    def apply(format: SearchIndexEntrySerialiser,
+    def apply(format: SearchIndexEntryFormat,
               largestIndexOffset: Int,
               largestKeyOffset: Int,
               largestKeySize: Int,
@@ -127,6 +127,7 @@ private[core] object BinarySearchIndexBlock {
 
         val bytesPerValue =
           format.bytesToAllocatePerEntry(
+            nonZero = false,
             largestIndexOffset = largestIndexOffset,
             largestKeyOffset = largestKeyOffset,
             largestKeySize = largestKeySize
@@ -161,7 +162,7 @@ private[core] object BinarySearchIndexBlock {
       }
   }
 
-  class State(val format: SearchIndexEntrySerialiser,
+  class State(val format: SearchIndexEntryFormat,
               val bytesPerValue: Int,
               val uniqueValuesCount: Int,
               var _previousWritten: Int,
@@ -218,12 +219,13 @@ private[core] object BinarySearchIndexBlock {
                            hasCompression: Boolean,
                            minimNumberOfKeysForBinarySearchIndex: Int,
                            bytesToAllocatedPerEntryMaybe: Maybe[Int],
-                           format: SearchIndexEntrySerialiser): Int =
+                           format: SearchIndexEntryFormat): Int =
     if (valuesCount < minimNumberOfKeysForBinarySearchIndex) {
       0
     } else {
       val bytesToAllocatedPerEntry = bytesToAllocatedPerEntryMaybe getOrElse {
         format.bytesToAllocatePerEntry(
+          nonZero = false,
           largestIndexOffset = largestIndexOffset,
           largestKeyOffset = largestKeyOffset,
           largestKeySize = largestKeySize
@@ -276,7 +278,7 @@ private[core] object BinarySearchIndexBlock {
 
   def read(header: Block.Header[BinarySearchIndexBlock.Offset]): BinarySearchIndexBlock = {
     val formatId = header.headerReader.get()
-    val format: SearchIndexEntrySerialiser = SearchIndexEntrySerialiser(formatId) getOrElse IO.throws(s"Invalid binary search formatId: $formatId")
+    val format: SearchIndexEntryFormat = SearchIndexEntryFormat(formatId) getOrElse IO.throws(s"Invalid binary search formatId: $formatId")
     val valuesCount = header.headerReader.readUnsignedInt()
     val bytesPerValue = header.headerReader.readInt()
     val isFullIndex = header.headerReader.readBoolean()
@@ -314,6 +316,7 @@ private[core] object BinarySearchIndexBlock {
       val writePosition = state.bytes.currentWritePosition
 
       state.format.write(
+        nonZero = false,
         indexOffset = indexOffset,
         keyOffset = keyOffset,
         mergedKey = mergedKey,
@@ -754,7 +757,7 @@ private[core] object BinarySearchIndexBlock {
 
 }
 
-private[core] case class BinarySearchIndexBlock(format: SearchIndexEntrySerialiser,
+private[core] case class BinarySearchIndexBlock(format: SearchIndexEntryFormat,
                                                 offset: BinarySearchIndexBlock.Offset,
                                                 valuesCount: Int,
                                                 headerSize: Int,

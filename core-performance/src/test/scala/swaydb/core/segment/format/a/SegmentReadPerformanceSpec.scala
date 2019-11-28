@@ -167,7 +167,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       binarySearchIndexConfig =
         BinarySearchIndexBlock.Config(
           enabled = true,
-          format = SearchIndexEntrySerialiser.CopyKey,
+          format = SearchIndexEntryFormat.CopyKey,
           minimumNumberOfKeys = 1,
           searchSortedIndexDirectlyIfPossible = false,
           fullIndex = true,
