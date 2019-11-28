@@ -230,55 +230,52 @@ private[core] object SegmentBlock {
                        currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                        currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId = {
 
-    def writeOne(keyValue: Transient): Unit =
-      keyValue match {
+    def writeOne(keyValue: Transient): Unit = {
+      //always write to the rootGroup's accessIndexOffset. Nested group's key-values are just opened and indexed againsts the rootGroup's key-values.
+      val thisKeyValuesAccessOffset = keyValue.stats.thisKeyValuesAccessIndexOffset
 
-        case keyValue @ (_: Transient.Range | _: Transient.Fixed) =>
-          //always write to the rootGroup's accessIndexOffset. Nested group's key-values are just opened and indexed againsts the rootGroup's key-values.
-          val thisKeyValuesAccessOffset = keyValue.stats.thisKeyValuesAccessIndexOffset
+      bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
-          bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
-
-          hashIndex map {
-            hashIndexState: HashIndexBlock.State =>
-              if (keyValue.isPrefixCompressed) {
-                //fix me - this should be managed by HashIndex itself.
-                hashIndexState.miss += 1
-                false
-              } else if (hashIndexState.copyIndex) {
-                HashIndexBlock.writeCopied(
-                  key = keyValue.key,
-                  thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
-                  value = keyValue.indexEntryBytes,
-                  state = hashIndexState
-                )
-              } else { //else build a reference hashIndex only.
-                HashIndexBlock.write(
-                  key = keyValue.key,
-                  value = thisKeyValuesAccessOffset,
-                  state = hashIndexState
-                )
-              }
-          } match {
-            //if it's a hit and binary search is not configured to be full.
-            //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-            case Some(hit) if hit && !keyValue.isRange && binarySearchIndex.forall(!_.isFullIndex) =>
-              ()
-
-            case None | Some(_) =>
-              if (!keyValue.isPrefixCompressed)
-                binarySearchIndex foreach {
-                  state =>
-                    BinarySearchIndexBlock.write(
-                      indexOffset = thisKeyValuesAccessOffset,
-                      keyOffset = keyValue.stats.thisKeyValuesKeyOffset,
-                      mergedKey = keyValue.mergedKey,
-                      keyType = keyValue.id,
-                      state = state
-                    )
-                }
+      hashIndex map {
+        hashIndexState: HashIndexBlock.State =>
+          if (keyValue.isPrefixCompressed) {
+            //fix me - this should be managed by HashIndex itself.
+            hashIndexState.miss += 1
+            false
+          } else if (hashIndexState.copyIndex) {
+            HashIndexBlock.writeCopied(
+              key = keyValue.key,
+              thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
+              value = keyValue.indexEntryBytes,
+              state = hashIndexState
+            )
+          } else { //else build a reference hashIndex only.
+            HashIndexBlock.write(
+              key = keyValue.key,
+              value = thisKeyValuesAccessOffset,
+              state = hashIndexState
+            )
           }
+      } match {
+        //if it's a hit and binary search is not configured to be full.
+        //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
+        case Some(hit) if hit && !keyValue.isRange && binarySearchIndex.forall(!_.isFullIndex) =>
+          ()
+
+        case None | Some(_) =>
+          if (!keyValue.isPrefixCompressed)
+            binarySearchIndex foreach {
+              state =>
+                BinarySearchIndexBlock.write(
+                  indexOffset = thisKeyValuesAccessOffset,
+                  keyOffset = keyValue.stats.thisKeyValuesKeyOffset,
+                  mergedKey = keyValue.mergedKey,
+                  keyType = keyValue.id,
+                  state = state
+                )
+            }
       }
+    }
 
     @tailrec
     def writeRoot(keyValues: Slice[Transient],
