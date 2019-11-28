@@ -223,8 +223,13 @@ private[core] object BinarySearchIndexBlock {
       0
     } else {
       val bytesToAllocatedPerEntry = bytesToAllocatedPerEntryMaybe getOrElse {
-        format.bytesToAllocatePerEntry(largestIndexOffset, largestKeyOffset, largestKeySize)
+        format.bytesToAllocatePerEntry(
+          largestIndexOffset = largestIndexOffset,
+          largestKeyOffset = largestKeyOffset,
+          largestKeySize = largestKeySize
+        )
       }
+
       optimalHeaderSize(
         valuesCount = valuesCount,
         hasCompression = hasCompression
@@ -286,7 +291,6 @@ private[core] object BinarySearchIndexBlock {
     )
   }
 
-  //format - keyOffset|keySize|keyType|indexOffset
   def write(indexOffset: Int,
             keyOffset: Int,
             mergedKey: Slice[Byte],

@@ -2483,7 +2483,8 @@ object TestData {
       Lower(key, ReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
-  def randomStats(keySize: Int = randomIntMax(10000000),
+  def randomStats(unmergedKeySize: Int = randomIntMax(10000000),
+                  mergedKeySize: Int = randomIntMax(10000000),
                   keyOffset: Int = randomIntMax(10000000),
                   indexEntry: Slice[Byte] = randomBytesSlice(),
                   value: Option[Slice[Byte]] = randomBytesSliceOption(),
@@ -2499,7 +2500,8 @@ object TestData {
                   previousStats: Option[Stats] = None,
                   deadline: Option[Deadline] = randomDeadlineOption()): Stats =
     Stats(
-      keySize = keySize,
+      unmergedKeySize = unmergedKeySize,
+      mergedKeySize = mergedKeySize,
       keyOffset = keyOffset,
       indexEntry = indexEntry,
       value = value,

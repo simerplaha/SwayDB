@@ -245,22 +245,20 @@ private[core] object SegmentBlock {
                 //fix me - this should be managed by HashIndex itself.
                 hashIndexState.miss += 1
                 false
-              } else if (hashIndexState.copyIndex)
-              //Cannot copy HashIndex from a child Group key-values or prefixCompressed key-values because a Group's valueOffset
-              //is embedded within that's Group's values block and the block might be compressed or prefix-compressed key-values.
-              //Instead a reference entry is inserted into the HashIndex.
+              } else if (hashIndexState.copyIndex) {
                 HashIndexBlock.writeCopied(
                   key = keyValue.key,
                   thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
                   value = keyValue.indexEntryBytes,
                   state = hashIndexState
                 )
-              else //else build a reference hashIndex only.
+              } else { //else build a reference hashIndex only.
                 HashIndexBlock.write(
                   key = keyValue.key,
                   value = thisKeyValuesAccessOffset,
                   state = hashIndexState
                 )
+              }
           } match {
             //if it's a hit and binary search is not configured to be full.
             //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.

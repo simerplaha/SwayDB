@@ -29,7 +29,8 @@ import scala.concurrent.duration.Deadline
 
 private[core] object Stats {
 
-  def apply(keySize: Int,
+  def apply(unmergedKeySize: Int,
+            mergedKeySize: Int,
             keyOffset: Int,
             indexEntry: Slice[Byte],
             value: Option[Slice[Byte]],
@@ -90,10 +91,10 @@ private[core] object Stats {
     val segmentsLargestMergedKeySize =
       previousStats match {
         case Some(previousStats) =>
-          previousStats.segmentLargestMergedKeySize max (indexEntry.size - thisKeyValuesMergedKeyOffset)
+          previousStats.segmentLargestMergedKeySize max mergedKeySize
 
         case None =>
-          indexEntry.size - thisKeyValuesMergedKeyOffset
+          mergedKeySize
       }
 
     val thisKeyValuesSegmentValueSize =
@@ -228,7 +229,7 @@ private[core] object Stats {
         SegmentFooterBlock.optimalBytesRequired
 
     val segmentUncompressedKeysSize: Int =
-      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + keySize
+      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + unmergedKeySize
 
     new Stats(
       valueLength = valueLength,

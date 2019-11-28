@@ -611,7 +611,8 @@ private[core] object Transient {
 
     override val stats =
       Stats(
-        keySize = key.size,
+        unmergedKeySize = key.size,
+        mergedKeySize = mergedKey.size,
         keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
@@ -682,7 +683,8 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.size,
+        unmergedKeySize = key.size,
+        mergedKeySize = mergedKey.size,
         keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
@@ -752,7 +754,8 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.size,
+        unmergedKeySize = key.size,
+        mergedKeySize = mergedKey.size,
         keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
@@ -825,7 +828,8 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.size,
+        unmergedKeySize = key.size,
+        mergedKeySize = mergedKey.size,
         keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
@@ -916,7 +920,8 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = key.size,
+        unmergedKeySize = key.size,
+        mergedKeySize = mergedKey.size,
         keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
@@ -1045,7 +1050,8 @@ private[core] object Transient {
 
     val stats =
       Stats(
-        keySize = fromKey.size + toKey.size,
+        unmergedKeySize = fromKey.size + toKey.size,
+        mergedKeySize = mergedKey.size,
         keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
