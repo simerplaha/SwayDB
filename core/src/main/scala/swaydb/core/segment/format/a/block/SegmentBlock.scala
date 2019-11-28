@@ -234,25 +234,11 @@ private[core] object SegmentBlock {
       bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
       hashIndex map {
-        hashIndexState: HashIndexBlock.State =>
-          if (keyValue.isPrefixCompressed) {
-            //fix me - this should be managed by HashIndex itself.
-            hashIndexState.miss += 1
-            false
-          } else if (hashIndexState.copyIndex) {
-            HashIndexBlock.writeCopied(
-              key = keyValue.key,
-              segmentAccessIndexOffset = keyValue.stats.segmentAccessIndexOffset,
-              value = keyValue.indexEntryBytes,
-              state = hashIndexState
-            )
-          } else { //else build a reference hashIndex only.
-            HashIndexBlock.write(
-              key = keyValue.key,
-              value = keyValue.stats.segmentAccessIndexOffset,
-              state = hashIndexState
-            )
-          }
+        state: HashIndexBlock.State =>
+          HashIndexBlock.write(
+            keyValue = keyValue,
+            state = state
+          )
       } match {
         //if it's a hit and binary search is not configured to be full.
         //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
@@ -260,17 +246,13 @@ private[core] object SegmentBlock {
           ()
 
         case None | Some(_) =>
-          if (!keyValue.isPrefixCompressed)
-            binarySearchIndex foreach {
-              state =>
-                BinarySearchIndexBlock.write(
-                  indexOffset = keyValue.stats.segmentAccessIndexOffset,
-                  keyOffset = keyValue.stats.segmentMergedKeyOffset,
-                  mergedKey = keyValue.mergedKey,
-                  keyType = keyValue.id,
-                  state = state
-                )
-            }
+          binarySearchIndex foreach {
+            state =>
+              BinarySearchIndexBlock.write(
+                keyValue = keyValue,
+                state = state
+              )
+          }
       }
     }
 

@@ -290,6 +290,28 @@ private[core] object HashIndexBlock extends LazyLogging {
                  writeAbleLargestValueSize: Int) =
     ((hash & Int.MaxValue) % (totalBlockSpace - writeAbleLargestValueSize - headerSize)) + headerSize
 
+  def write(keyValue: Transient,
+            state: HashIndexBlock.State): Boolean = {
+    if (keyValue.isPrefixCompressed) {
+      //fix me - this should be managed by HashIndex itself.
+      state.miss += 1
+      false
+    } else if (state.copyIndex) {
+      HashIndexBlock.writeCopied(
+        key = keyValue.key,
+        segmentAccessIndexOffset = keyValue.stats.segmentAccessIndexOffset,
+        value = keyValue.indexEntryBytes,
+        state = state
+      )
+    } else { //else build a reference hashIndex only.
+      HashIndexBlock.write(
+        key = keyValue.key,
+        value = keyValue.stats.segmentAccessIndexOffset,
+        state = state
+      )
+    }
+  }
+
   /**
    * Mutates the slice and adds writes the indexOffset to it's hash index.
    */

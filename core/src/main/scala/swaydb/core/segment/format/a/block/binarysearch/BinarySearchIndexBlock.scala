@@ -291,6 +291,17 @@ private[core] object BinarySearchIndexBlock {
     )
   }
 
+  def write(keyValue: Transient,
+            state: State): Unit =
+    if (!keyValue.isPrefixCompressed)
+      write(
+        indexOffset = keyValue.stats.segmentAccessIndexOffset,
+        keyOffset = keyValue.stats.segmentMergedKeyOffset,
+        mergedKey = keyValue.mergedKey,
+        keyType = keyValue.id,
+        state = state
+      )
+
   def write(indexOffset: Int,
             keyOffset: Int,
             mergedKey: Slice[Byte],
