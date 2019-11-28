@@ -44,7 +44,7 @@ private[core] object BinarySearchIndexBlock {
     val disabled =
       Config(
         enabled = false,
-        format = BinarySearchIndexFormat.ReferenceIndex,
+        format = BinarySearchIndexSerialiser.ReferenceIndex,
         minimumNumberOfKeys = 0,
         fullIndex = false,
         searchSortedIndexDirectlyIfPossible = true,
@@ -57,7 +57,7 @@ private[core] object BinarySearchIndexBlock {
         case swaydb.data.config.BinarySearchIndex.Disable(searchSortedIndexDirectly) =>
           Config(
             enabled = false,
-            format = BinarySearchIndexFormat.ReferenceIndex,
+            format = BinarySearchIndexSerialiser.ReferenceIndex,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
             searchSortedIndexDirectlyIfPossible = searchSortedIndexDirectly,
@@ -68,7 +68,7 @@ private[core] object BinarySearchIndexBlock {
         case enable: swaydb.data.config.BinarySearchIndex.FullIndex =>
           Config(
             enabled = true,
-            format = BinarySearchIndexFormat.CopyKey,
+            format = BinarySearchIndexSerialiser.CopyKey,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectly,
             fullIndex = true,
@@ -83,7 +83,7 @@ private[core] object BinarySearchIndexBlock {
         case enable: swaydb.data.config.BinarySearchIndex.SecondaryIndex =>
           Config(
             enabled = true,
-            format = BinarySearchIndexFormat.CopyKey,
+            format = BinarySearchIndexSerialiser.CopyKey,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             searchSortedIndexDirectlyIfPossible = enable.searchSortedIndexDirectlyIfPreNormalised,
             fullIndex = false,
@@ -98,7 +98,7 @@ private[core] object BinarySearchIndexBlock {
   }
 
   case class Config(enabled: Boolean,
-                    format: BinarySearchIndexFormat,
+                    format: BinarySearchIndexSerialiser,
                     minimumNumberOfKeys: Int,
                     searchSortedIndexDirectlyIfPossible: Boolean,
                     fullIndex: Boolean,
@@ -108,7 +108,7 @@ private[core] object BinarySearchIndexBlock {
   case class Offset(start: Int, size: Int) extends BlockOffset
 
   object State {
-    def apply(format: BinarySearchIndexFormat,
+    def apply(format: BinarySearchIndexSerialiser,
               largestIndexOffset: Int,
               largestKeyOffset: Int,
               largestKeySize: Int,
@@ -161,7 +161,7 @@ private[core] object BinarySearchIndexBlock {
       }
   }
 
-  class State(val format: BinarySearchIndexFormat,
+  class State(val format: BinarySearchIndexSerialiser,
               val bytesPerValue: Int,
               val uniqueValuesCount: Int,
               var _previousWritten: Int,
@@ -211,33 +211,6 @@ private[core] object BinarySearchIndexBlock {
       )
   }
 
-  //  def isUnsignedInt(varIntSizeOfLargestValue: Int) =
-  //    varIntSizeOfLargestValue < ByteSizeOf.int
-  //
-  //  def bytesToAllocatePerValue(largestIndexOffset: Int,
-  //                              largestKeyOffset: Int,
-  //                              largestKeySize: Int,
-  //                              format: BinarySearchIndexFormat): Int = {
-  //    val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
-  //
-  //    val entrySize =
-  //      format match {
-  //        case BinarySearchIndexFormat.CopyKey =>
-  //          val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
-  //          sizeOfLargestKeyOffset + largestKeySize
-  //
-  //        case BinarySearchIndexFormat.ReferenceKey =>
-  //          val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset)
-  //          val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
-  //          sizeOfLargestKeyOffset + sizeOfLargestKeySize
-  //
-  //        case BinarySearchIndexFormat.ReferenceIndex =>
-  //          0
-  //      }
-  //
-  //    sizeOfLargestIndexOffset + entrySize + ByteSizeOf.byte
-  //  }
-
   def optimalBytesRequired(largestIndexOffset: Int,
                            largestKeyOffset: Int,
                            largestKeySize: Int,
@@ -245,7 +218,7 @@ private[core] object BinarySearchIndexBlock {
                            hasCompression: Boolean,
                            minimNumberOfKeysForBinarySearchIndex: Int,
                            bytesToAllocatedPerEntryMaybe: Maybe[Int],
-                           format: BinarySearchIndexFormat): Int =
+                           format: BinarySearchIndexSerialiser): Int =
     if (valuesCount < minimNumberOfKeysForBinarySearchIndex) {
       0
     } else {
@@ -298,7 +271,7 @@ private[core] object BinarySearchIndexBlock {
 
   def read(header: Block.Header[BinarySearchIndexBlock.Offset]): BinarySearchIndexBlock = {
     val formatId = header.headerReader.get()
-    val format: BinarySearchIndexFormat = BinarySearchIndexFormat(formatId) getOrElse IO.throws(s"Invalid binary search formatId: $formatId")
+    val format: BinarySearchIndexSerialiser = BinarySearchIndexSerialiser(formatId) getOrElse IO.throws(s"Invalid binary search formatId: $formatId")
     val valuesCount = header.headerReader.readUnsignedInt()
     val bytesPerValue = header.headerReader.readInt()
     val isFullIndex = header.headerReader.readBoolean()
@@ -324,10 +297,15 @@ private[core] object BinarySearchIndexBlock {
     } else {
       if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize //if this the first write then skip the header bytes.
       val writePosition = state.bytes.currentWritePosition
-      state.bytes addUnsignedInt keyOffset
-      state.bytes addUnsignedInt mergedKey.size
-      state.bytes add keyType
-      state.bytes addUnsignedInt indexOffset
+
+      state.format.write(
+        indexOffset = indexOffset,
+        keyOffset = keyOffset,
+        mergedKey = mergedKey,
+        keyType = keyType,
+        bytes = state.bytes
+      )
+
       val missedBytes = state.bytesPerValue - (state.bytes.currentWritePosition - writePosition)
       if (missedBytes > 0)
         state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes) //fill in the missing bytes to maintain fixed size for each entry.
@@ -761,7 +739,7 @@ private[core] object BinarySearchIndexBlock {
 
 }
 
-private[core] case class BinarySearchIndexBlock(format: BinarySearchIndexFormat,
+private[core] case class BinarySearchIndexBlock(format: BinarySearchIndexSerialiser,
                                                 offset: BinarySearchIndexBlock.Offset,
                                                 valuesCount: Int,
                                                 headerSize: Int,

@@ -42,7 +42,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexFormat}
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexSerialiser}
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
@@ -2528,8 +2528,8 @@ object TestData {
       )
     ).head
 
-  def randomBinarySearchFormat(): BinarySearchIndexFormat =
-    Random.shuffle(BinarySearchIndexFormat.formats).head
+  def randomBinarySearchFormat(): BinarySearchIndexSerialiser =
+    Random.shuffle(BinarySearchIndexSerialiser.formats).head
 
   implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 

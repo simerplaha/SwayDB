@@ -62,7 +62,7 @@ object BinarySearchContext {
 
       override def seek(offset: Int): KeyMatcher.Result = {
         val partialKeyValue =
-          BinarySearchPartialEntryParser.parse(
+          binarySearchIndex.block.format.read(
             offset = offset,
             binarySearchIndex = binarySearchIndex,
             sortedIndex = sortedIndex,
@@ -107,7 +107,7 @@ object BinarySearchContext {
           )
         } else {
           val (partialKeyValue, indexSize) =
-            BinarySearchPartialEntryParser.parsedNormalised(
+            BinarySearchIndexSerialiser.readNormalised(
               offset = offset,
               sortedIndex = sortedIndex,
               values = values
