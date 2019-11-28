@@ -54,12 +54,14 @@ sealed trait SearchIndexEntryFormat {
 
 object SearchIndexEntryFormat {
 
-  val formats: List[SearchIndexEntryFormat] = SealedList.list[SearchIndexEntryFormat]
+  sealed trait BinarySearch extends SearchIndexEntryFormat
+  sealed trait HashIndex extends SearchIndexEntryFormat.BinarySearch
 
-  def apply(id: Int): Option[SearchIndexEntryFormat] =
-    formats.find(_.id == id)
+  val binaryFormats: List[BinarySearch] = SealedList.list[BinarySearch]
 
-  object ReferenceIndex extends SearchIndexEntryFormat {
+  val hashIndexFormats: List[HashIndex] = SealedList.list[HashIndex]
+
+  object ReferenceIndex extends SearchIndexEntryFormat.BinarySearch {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 1.toByte
 
@@ -103,7 +105,7 @@ object SearchIndexEntryFormat {
     }
   }
 
-  object ReferenceKey extends SearchIndexEntryFormat {
+  object ReferenceKey extends SearchIndexEntryFormat.BinarySearch {
     override val id: Byte = 2.toByte
 
     override def bytesToAllocatePerEntry(nonZero: Boolean,
@@ -210,7 +212,7 @@ object SearchIndexEntryFormat {
     }
   }
 
-  object CopyKey extends SearchIndexEntryFormat {
+  object CopyKey extends SearchIndexEntryFormat.BinarySearch {
     override val id: Byte = 3.toByte
 
     override def bytesToAllocatePerEntry(nonZero: Boolean,
