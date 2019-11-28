@@ -60,7 +60,8 @@ object SearchIndexEntryFormat {
     formats.find(_.id == id)
 
   object ReferenceIndex extends SearchIndexEntryFormat {
-    override val id: Byte = 0.toByte
+    //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
+    override val id: Byte = 1.toByte
 
     override def bytesToAllocatePerEntry(nonZero: Boolean,
                                          largestIndexOffset: Int,
@@ -103,7 +104,7 @@ object SearchIndexEntryFormat {
   }
 
   object ReferenceKey extends SearchIndexEntryFormat {
-    override val id: Byte = 1.toByte
+    override val id: Byte = 2.toByte
 
     override def bytesToAllocatePerEntry(nonZero: Boolean,
                                          largestIndexOffset: Int,
@@ -133,7 +134,7 @@ object SearchIndexEntryFormat {
       if (nonZero) {
         bytes addUnsignedInt (keyOffset + 1)
         bytes addUnsignedInt (mergedKey.size + 1)
-        bytes add (keyType + 1).toByte
+        bytes add keyType
         bytes addUnsignedInt (indexOffset + 1)
       }
       else {
@@ -153,13 +154,13 @@ object SearchIndexEntryFormat {
 
       val _keyOffset = searchIndexReader.readUnsignedInt()
       val _keySize = searchIndexReader.readUnsignedInt()
-      val _keyType = searchIndexReader.get()
+      val keyType = searchIndexReader.get()
 
-      val (keyOffset, keySize, keyType) =
+      val (keyOffset, keySize) =
         if (nonZero) {
-          (_keyOffset - 1, _keySize - 1, _keyType - 1)
+          (_keyOffset - 1, _keySize - 1)
         } else {
-          (_keyOffset, _keySize, _keyType)
+          (_keyOffset, _keySize)
         }
 
       //read the target key at the offset within sortedIndex
@@ -212,7 +213,7 @@ object SearchIndexEntryFormat {
   }
 
   object CopyKey extends SearchIndexEntryFormat {
-    override val id: Byte = 2.toByte
+    override val id: Byte = 3.toByte
 
     override def bytesToAllocatePerEntry(nonZero: Boolean,
                                          largestIndexOffset: Int,
