@@ -20,9 +20,13 @@
 package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Get
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{KeyMatcher, SortedIndexBlock, ValuesBlock}
+import swaydb.core.segment.format.a.entry.id.KeyValueId
+import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -64,7 +68,8 @@ object BinarySearchContext {
         val partialKeyValue =
           binarySearchIndex.block.format.read(
             offset = offset,
-            binarySearchIndex = binarySearchIndex,
+            seekSize = binarySearchIndex.block.bytesPerValue,
+            searchIndex = binarySearchIndex,
             sortedIndex = sortedIndex,
             values = values
           )
@@ -106,12 +111,54 @@ object BinarySearchContext {
             valuesReader = values
           )
         } else {
-          val (partialKeyValue, indexSize) =
-            BinarySearchIndexSerialiser.readNormalised(
-              offset = offset,
-              sortedIndex = sortedIndex,
-              values = values
-            )
+          /**
+           * Parses [[BinarySearchIndexBlock]]'s entry into [[Persistent.Partial]] at the given offset when the bytes are normalised.
+           */
+          val indexSize = sortedIndex.moveTo(offset).readUnsignedInt()
+          val indexEntryReader = Reader(sortedIndex.read(indexSize))
+          if (sortedIndex.block.enableAccessPositionIndex) indexEntryReader.readUnsignedInt()
+          val keySize = indexEntryReader.readUnsignedInt()
+          val entryKey = indexEntryReader.read(keySize)
+          val keyValueId = indexEntryReader.readUnsignedInt()
+
+          //create a temporary partially read key-value for matcher.
+          val partialKeyValue =
+            if (KeyValueId.Range hasKeyValueId keyValueId)
+              new Partial.Range {
+                val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
+
+                override def indexOffset: Int =
+                  offset
+
+                override def key: Slice[Byte] =
+                  fromKey
+
+                override def toPersistent: Persistent =
+                  SortedIndexBlock.read(
+                    fromOffset = offset,
+                    overwriteNextIndexOffset = None,
+                    sortedIndexReader = sortedIndex,
+                    valuesReader = values
+                  )
+              }
+            else if (KeyValueId isFixedId keyValueId)
+              new Partial.Fixed {
+                override def indexOffset: Int =
+                  offset
+
+                override def key: Slice[Byte] =
+                  entryKey
+
+                override def toPersistent: Persistent =
+                  SortedIndexBlock.read(
+                    fromOffset = offset,
+                    overwriteNextIndexOffset = None,
+                    sortedIndexReader = sortedIndex,
+                    valuesReader = values
+                  )
+              }
+            else
+              throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, indexSize: $indexSize")
 
           val hasMore = (offset + indexSize) < sortedIndex.block.offset.end
 
