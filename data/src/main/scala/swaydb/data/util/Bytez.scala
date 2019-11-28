@@ -132,7 +132,7 @@ private[swaydb] trait Bytez {
   private[swaydb] def writeUnsignedIntNonZero(int: Int): Slice[Byte] = {
     val slice = Slice.create[Byte](ByteSizeOf.varInt)
     var x = int
-    while ((x & 0xFFFFF80) != 0L) {
+    while ((x & 0xFFFFFF80) != 0L) {
       slice add ((x & 0x7F) | 0x80).toByte
       x >>>= 7
     }

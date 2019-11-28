@@ -112,11 +112,10 @@ object SearchIndexEntryFormat {
                                          largestKeySize: Int): Int = {
 
       val (_largestIndexOffset, _largestKeyOffset, _largestKeySize) =
-        if (nonZero) {
+        if (nonZero)
           (largestIndexOffset + 1, largestKeyOffset + 1, largestKeySize + 1)
-        } else {
+        else
           (largestIndexOffset, largestKeyOffset, largestKeySize)
-        }
 
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(_largestIndexOffset)
       val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(_largestKeyOffset)
@@ -157,11 +156,10 @@ object SearchIndexEntryFormat {
       val keyType = searchIndexReader.get()
 
       val (keyOffset, keySize) =
-        if (nonZero) {
+        if (nonZero)
           (_keyOffset - 1, _keySize - 1)
-        } else {
+        else
           (_keyOffset, _keySize)
-        }
 
       //read the target key at the offset within sortedIndex
       val entryKey = sortedIndex.moveTo(keyOffset).read(keySize)

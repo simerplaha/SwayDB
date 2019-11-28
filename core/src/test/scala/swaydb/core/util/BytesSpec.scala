@@ -281,4 +281,25 @@ class BytesSpec extends WordSpec with Matchers {
       deNormalisedBytes shouldBe bytes
     }
   }
+
+  "nonZero" should {
+    "not add zero bytes for non zero integers and calculate size" in {
+      runThisParallel(1000.times, log = true) {
+        val max = randomIntMax(Int.MaxValue) max 1
+        val min = (max - 100000) max 1
+
+        (min to max) foreach {
+          i =>
+            val writtenBytes = Bytes.writeUnsignedIntNonZero(i)
+            Bytes.readUnsignedIntNonZero(writtenBytes) shouldBe i
+
+            val expectedSize = Bytes.sizeOfUnsignedInt(i)
+            writtenBytes.size shouldBe expectedSize
+
+            writtenBytes.exists(_ == 0.toByte) shouldBe false
+            writtenBytes should not be empty
+        }
+      }
+    }
+  }
 }
