@@ -124,14 +124,14 @@ class HashIndexBlockSpec extends TestBase {
             val uncompressedWriteResult =
               HashIndexBlock.write(
                 key = keyValue.key,
-                value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+                value = keyValue.stats.segmentAccessIndexOffset,
                 state = uncompressedState
               )
 
             val compressedWriteResult =
               HashIndexBlock.write(
                 key = keyValue.key,
-                value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+                value = keyValue.stats.segmentAccessIndexOffset,
                 state = compressedState
               )
 
@@ -234,7 +234,7 @@ class HashIndexBlockSpec extends TestBase {
           keyValue =>
             HashIndexBlock.write(
               key = keyValue.key,
-              value = keyValue.stats.thisKeyValuesAccessIndexOffset,
+              value = keyValue.stats.segmentAccessIndexOffset,
               state = state
             )
         }
@@ -257,7 +257,7 @@ class HashIndexBlockSpec extends TestBase {
 
         keyValues foreach {
           keyValue =>
-            indexOffsetMap.getOrElseUpdate(keyValue.stats.thisKeyValuesAccessIndexOffset, ListBuffer(keyValue)) += keyValue
+            indexOffsetMap.getOrElseUpdate(keyValue.stats.segmentAccessIndexOffset, ListBuffer(keyValue)) += keyValue
         }
 
         println(s"ListMap created with size: ${indexOffsetMap.size}")

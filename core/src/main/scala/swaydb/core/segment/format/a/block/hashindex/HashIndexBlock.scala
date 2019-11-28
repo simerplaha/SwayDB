@@ -127,7 +127,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             ByteSizeOf.long + //varLong == CRC bytes
             ByteSizeOf.int //accessIndexOffset
         else
-          Bytes.sizeOfUnsignedInt(last.stats.thisKeyValuesAccessIndexOffset + 1)
+          Bytes.sizeOfUnsignedInt(last.stats.segmentAccessIndexOffset + 1)
 
       val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(last.stats.segmentHashIndexSize)).nonEmpty
 
@@ -410,7 +410,7 @@ private[core] object HashIndexBlock extends LazyLogging {
    */
   def writeCopied(key: Slice[Byte],
                   value: Slice[Byte],
-                  thisKeyValuesAccessOffset: Int,
+                  segmentAccessIndexOffset: Int,
                   state: State): Boolean = {
 
     val hash = key.hashCode()
@@ -441,7 +441,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           //write as unsignedLong to avoid writing any zeroes.
           state.bytes addUnsignedLong crc
 
-          state.bytes addUnsignedInt thisKeyValuesAccessOffset
+          state.bytes addUnsignedInt segmentAccessIndexOffset
 
           state.bytes addAll value
 

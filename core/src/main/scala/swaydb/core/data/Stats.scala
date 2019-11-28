@@ -71,21 +71,21 @@ private[core] object Stats {
       SortedIndexBlock.headerSize(false) +
         thisKeyValuesSortedIndexSize
 
-    val thisKeyValuesRealIndexOffset =
+    val segmentRealIndexOffset =
       previousStats map {
         previous =>
-          previous.thisKeyValueRealIndexOffset + previous.thisKeyValuesSortedIndexSize
+          previous.segmentRealIndexOffset + previous.thisKeyValuesSortedIndexSize
       } getOrElse 0
 
     //starts from 0. Do not need the actual index offset for space efficiency. The actual indexOffset can be adjust during read.
-    val thisKeyValuesAccessIndexOffset =
+    val segmentAccessIndexOffset =
       if (isPrefixCompressed)
-        previousStats.map(_.thisKeyValuesAccessIndexOffset) getOrElse thisKeyValuesRealIndexOffset
+        previousStats.map(_.segmentAccessIndexOffset) getOrElse segmentRealIndexOffset
       else
-        thisKeyValuesRealIndexOffset
+        segmentRealIndexOffset
 
-    val thisKeyValuesMergedKeyOffset =
-      thisKeyValuesAccessIndexOffset + keyOffset
+    val segmentMergedKeyOffset =
+      segmentAccessIndexOffset + keyOffset
 
     //largest merged key size
     val segmentsLargestMergedKeySize =
@@ -152,7 +152,7 @@ private[core] object Stats {
       else if (binarySearch.enabled && !sortedIndex.normaliseIndex)
         previousStats flatMap {
           previousStats =>
-            if (previousStats.thisKeyValuesAccessIndexOffset == thisKeyValuesAccessIndexOffset)
+            if (previousStats.segmentAccessIndexOffset == segmentAccessIndexOffset)
               Some(previousStats.segmentBinarySearchIndexSize)
             else
               None
@@ -160,8 +160,8 @@ private[core] object Stats {
           //binary search indexes are only created for non-prefix compressed or reset point keys.
           //size calculation should only account for those entries because duplicates are not allowed.
           BinarySearchIndexBlock.optimalBytesRequired(
-            largestIndexOffset = thisKeyValuesAccessIndexOffset,
-            largestKeyOffset = thisKeyValuesMergedKeyOffset,
+            largestIndexOffset = segmentAccessIndexOffset,
+            largestKeyOffset = segmentMergedKeyOffset,
             largestKeySize = segmentsLargestMergedKeySize,
             valuesCount = uncompressedKeyCounts,
             hasCompression = false,
@@ -235,6 +235,13 @@ private[core] object Stats {
       valueLength = valueLength,
       segmentSize = segmentSize,
       linkedPosition = linkedPosition,
+      uncompressedKeyCounts = uncompressedKeyCounts,
+      thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
+      thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
+      thisKeyValuesKeyOffset = keyOffset,
+      segmentAccessIndexOffset = segmentAccessIndexOffset,
+      segmentRealIndexOffset = segmentRealIndexOffset,
+      segmentMergedKeyOffset = segmentMergedKeyOffset,
       segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
       segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
       segmentValuesSize = segmentValuesSize,
@@ -242,12 +249,6 @@ private[core] object Stats {
       segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
-      uncompressedKeyCounts = uncompressedKeyCounts,
-      thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
-      thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
-      thisKeyValuesAccessIndexOffset = thisKeyValuesAccessIndexOffset,
-      thisKeyValuesKeyOffset = thisKeyValuesMergedKeyOffset,
-      thisKeyValueRealIndexOffset = thisKeyValuesRealIndexOffset,
       segmentHashIndexSize = segmentHashIndexSize,
       segmentBloomFilterSize = segmentBloomFilterSize,
       segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
@@ -266,6 +267,14 @@ private[core] object Stats {
 private[core] case class Stats(valueLength: Int,
                                segmentSize: Int,
                                linkedPosition: Int,
+                               uncompressedKeyCounts: Int,
+                               thisKeyValuesSegmentKeyAndValueSize: Int,
+                               thisKeyValuesSortedIndexSize: Int,
+                               thisKeyValuesKeyOffset: Int,
+                               segmentAccessIndexOffset: Int,
+                               //do not access this from outside, used in stats only.
+                               private[Stats] val segmentRealIndexOffset: Int,
+                               segmentMergedKeyOffset: Int,
                                segmentValueAndSortedIndexEntrySize: Int,
                                segmentSortedIndexSizeWithoutHeader: Int,
                                segmentValuesSize: Int,
@@ -273,13 +282,6 @@ private[core] case class Stats(valueLength: Int,
                                segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
-                               uncompressedKeyCounts: Int,
-                               thisKeyValuesSegmentKeyAndValueSize: Int,
-                               thisKeyValuesSortedIndexSize: Int,
-                               thisKeyValuesAccessIndexOffset: Int,
-                               thisKeyValuesKeyOffset: Int,
-                               //do not access this from outside, used in stats only.
-                               private[Stats] val thisKeyValueRealIndexOffset: Int,
                                segmentHashIndexSize: Int,
                                segmentBloomFilterSize: Int,
                                segmentBinarySearchIndexSize: Int,

@@ -262,7 +262,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               keyValues
                 .count {
                   range =>
-                    range.previous.forall(_.stats.thisKeyValuesAccessIndexOffset != range.stats.thisKeyValuesAccessIndexOffset)
+                    range.previous.forall(_.stats.segmentAccessIndexOffset != range.stats.segmentAccessIndexOffset)
                 }
             blocks.binarySearchIndexReader.get.block.valuesCount shouldBe expectedBinarySearchValuesCount
           }

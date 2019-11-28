@@ -231,9 +231,6 @@ private[core] object SegmentBlock {
                        currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId = {
 
     def writeOne(keyValue: Transient): Unit = {
-      //always write to the rootGroup's accessIndexOffset. Nested group's key-values are just opened and indexed againsts the rootGroup's key-values.
-      val thisKeyValuesAccessOffset = keyValue.stats.thisKeyValuesAccessIndexOffset
-
       bloomFilter foreach (BloomFilterBlock.add(keyValue.key, _))
 
       hashIndex map {
@@ -245,14 +242,14 @@ private[core] object SegmentBlock {
           } else if (hashIndexState.copyIndex) {
             HashIndexBlock.writeCopied(
               key = keyValue.key,
-              thisKeyValuesAccessOffset = thisKeyValuesAccessOffset,
+              segmentAccessIndexOffset = keyValue.stats.segmentAccessIndexOffset,
               value = keyValue.indexEntryBytes,
               state = hashIndexState
             )
           } else { //else build a reference hashIndex only.
             HashIndexBlock.write(
               key = keyValue.key,
-              value = thisKeyValuesAccessOffset,
+              value = keyValue.stats.segmentAccessIndexOffset,
               state = hashIndexState
             )
           }
@@ -267,8 +264,8 @@ private[core] object SegmentBlock {
             binarySearchIndex foreach {
               state =>
                 BinarySearchIndexBlock.write(
-                  indexOffset = thisKeyValuesAccessOffset,
-                  keyOffset = keyValue.stats.thisKeyValuesKeyOffset,
+                  indexOffset = keyValue.stats.segmentAccessIndexOffset,
+                  keyOffset = keyValue.stats.segmentMergedKeyOffset,
                   mergedKey = keyValue.mergedKey,
                   keyType = keyValue.id,
                   state = state

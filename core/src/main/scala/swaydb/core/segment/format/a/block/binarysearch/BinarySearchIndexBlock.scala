@@ -200,8 +200,8 @@ private[core] object BinarySearchIndexBlock {
     else
       BinarySearchIndexBlock.State(
         format = normalisedLast.binarySearchIndexConfig.format,
-        largestIndexOffset = normalisedLast.stats.thisKeyValuesAccessIndexOffset,
-        largestKeyOffset = normalisedLast.stats.thisKeyValuesKeyOffset,
+        largestIndexOffset = normalisedLast.stats.segmentAccessIndexOffset,
+        largestKeyOffset = normalisedLast.stats.segmentMergedKeyOffset,
         largestKeySize = normalisedLast.stats.segmentLargestMergedKeySize,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
         uniqueValuesCount = normalisedLast.stats.uncompressedKeyCounts,
