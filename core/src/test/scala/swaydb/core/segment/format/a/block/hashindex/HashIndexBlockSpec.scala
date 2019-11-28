@@ -122,14 +122,14 @@ class HashIndexBlockSpec extends TestBase {
         uncompressedKeyValues foreach {
           keyValue =>
             val uncompressedWriteResult =
-              HashIndexBlock.write(
+              HashIndexBlock.writeReference(
                 key = keyValue.key,
                 value = keyValue.stats.segmentAccessIndexOffset,
                 state = uncompressedState
               )
 
             val compressedWriteResult =
-              HashIndexBlock.write(
+              HashIndexBlock.writeReference(
                 key = keyValue.key,
                 value = keyValue.stats.segmentAccessIndexOffset,
                 state = compressedState
@@ -169,7 +169,7 @@ class HashIndexBlockSpec extends TestBase {
           keyValue =>
             val uncompressedIndexes = ListBuffer.empty[Int]
 
-            HashIndexBlock.search(
+            HashIndexBlock.searchReference(
               key = keyValue.key,
               reader = uncompressedHashIndex,
               assertValue =
@@ -180,7 +180,7 @@ class HashIndexBlockSpec extends TestBase {
             )
 
             val compressedIndexes = ListBuffer.empty[Int]
-            HashIndexBlock.search(
+            HashIndexBlock.searchReference(
               key = keyValue.key,
               reader = compressedHashIndex,
               assertValue =
@@ -232,7 +232,7 @@ class HashIndexBlockSpec extends TestBase {
 
         keyValues foreach {
           keyValue =>
-            HashIndexBlock.write(
+            HashIndexBlock.writeReference(
               key = keyValue.key,
               value = keyValue.stats.segmentAccessIndexOffset,
               state = state
@@ -276,7 +276,7 @@ class HashIndexBlockSpec extends TestBase {
         keyValues foreach {
           keyValue =>
             val found =
-              HashIndexBlock.search(
+              HashIndexBlock.searchReference(
                 key = keyValue.key,
                 reader = hashIndexReader,
                 assertValue = findKey(_, keyValue.key)

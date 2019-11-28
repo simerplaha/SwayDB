@@ -284,10 +284,10 @@ private[core] object HashIndexBlock extends LazyLogging {
     )
   }
 
-  def adjustHash(hash: Int,
-                 totalBlockSpace: Int,
-                 headerSize: Int,
-                 writeAbleLargestValueSize: Int) =
+  private def adjustHash(hash: Int,
+                         totalBlockSpace: Int,
+                         headerSize: Int,
+                         writeAbleLargestValueSize: Int) =
     ((hash & Int.MaxValue) % (totalBlockSpace - writeAbleLargestValueSize - headerSize)) + headerSize
 
   def write(keyValue: Transient,
@@ -297,14 +297,14 @@ private[core] object HashIndexBlock extends LazyLogging {
       state.miss += 1
       false
     } else if (state.copyIndex) {
-      HashIndexBlock.writeCopied(
+      HashIndexBlock.writeCopy(
         key = keyValue.key,
         segmentAccessIndexOffset = keyValue.stats.segmentAccessIndexOffset,
         value = keyValue.indexEntryBytes,
         state = state
       )
     } else { //else build a reference hashIndex only.
-      HashIndexBlock.write(
+      HashIndexBlock.writeReference(
         key = keyValue.key,
         value = keyValue.stats.segmentAccessIndexOffset,
         state = state
@@ -315,9 +315,9 @@ private[core] object HashIndexBlock extends LazyLogging {
   /**
    * Mutates the slice and adds writes the indexOffset to it's hash index.
    */
-  def write(key: Slice[Byte],
-            value: Int,
-            state: State): Boolean = {
+  def writeReference(key: Slice[Byte],
+                     value: Int,
+                     state: State): Boolean = {
 
     //add 1 to each offset to avoid 0 offsets.
     //0 bytes are reserved as empty bucket markers.
@@ -371,9 +371,9 @@ private[core] object HashIndexBlock extends LazyLogging {
    *
    * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
    */
-  private[block] def search[R](key: Slice[Byte],
-                               reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                               assertValue: Int => Option[R]): Option[R] = {
+  private[block] def searchReference[R](key: Slice[Byte],
+                                        reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                                        assertValue: Int => Option[R]): Option[R] = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -430,10 +430,10 @@ private[core] object HashIndexBlock extends LazyLogging {
   /**
    * Writes full copy of the index entry within HashIndex.
    */
-  def writeCopied(key: Slice[Byte],
-                  value: Slice[Byte],
-                  segmentAccessIndexOffset: Int,
-                  state: State): Boolean = {
+  def writeCopy(key: Slice[Byte],
+                value: Slice[Byte],
+                segmentAccessIndexOffset: Int,
+                state: State): Boolean = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -491,7 +491,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   /**
-   * Parses bytes written by [[writeCopied]] without CRC bytes.
+   * Parses bytes written by [[writeCopy]] without CRC bytes.
    * [CRC|Option[accessOffset]|valuesBytes]
    *
    * @return valueBytes, isReference and accessIndexOffset.
@@ -518,9 +518,9 @@ private[core] object HashIndexBlock extends LazyLogging {
    *
    * @param assertValue performs find or forward fetch from the currently being read sorted index's hash block.
    */
-  private[block] def searchCopied[R](key: Slice[Byte],
-                                     reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                                     assertValue: (Slice[Byte], Int) => Option[R]): Option[R] = {
+  private[block] def searchCopy[R](key: Slice[Byte],
+                                   reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                                   assertValue: (Slice[Byte], Int) => Option[R]): Option[R] = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -610,7 +610,7 @@ private[core] object HashIndexBlock extends LazyLogging {
 
     val result =
       if (hashIndexReader.block.copyIndex)
-        searchCopied(
+        searchCopy(
           key = key,
           reader = hashIndexReader,
           assertValue =
@@ -664,7 +664,7 @@ private[core] object HashIndexBlock extends LazyLogging {
               }
         )
       else
-        search(
+        searchReference(
           key = key,
           reader = hashIndexReader,
           assertValue =
