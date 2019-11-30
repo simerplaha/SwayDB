@@ -73,7 +73,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             maxProbe = enable.maxProbe,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             minimumNumberOfHits = enable.minimumNumberOfHits,
-            format = HashIndexEntryFormat.ReferenceIndex,
+            format = HashIndexEntryFormat(enable.indexFormat),
             allocateSpace = Functions.safe(_.requiredSpace, enable.allocateSpace),
             ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =

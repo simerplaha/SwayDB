@@ -98,7 +98,7 @@ object DefaultPersistentConfig {
             maxProbe = 10,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            copyKeys = false,
+            indexFormat = IndexFormat.CopyKey,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -107,6 +107,7 @@ object DefaultPersistentConfig {
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
+            indexFormat = IndexFormat.CopyKey,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
@@ -158,7 +159,7 @@ object DefaultPersistentConfig {
             maxProbe = 10,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            copyKeys = false,
+            indexFormat = IndexFormat.CopyKey,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -166,6 +167,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            indexFormat = IndexFormat.CopyKey,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -218,7 +220,7 @@ object DefaultPersistentConfig {
             maxProbe = 10,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            copyKeys = false,
+            indexFormat = IndexFormat.CopyKey,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -226,6 +228,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            indexFormat = IndexFormat.CopyKey,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -278,7 +281,7 @@ object DefaultPersistentConfig {
             maxProbe = 10,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            copyKeys = false,
+            indexFormat = IndexFormat.CopyKey,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -286,6 +289,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            indexFormat = IndexFormat.CopyKey,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -338,7 +342,7 @@ object DefaultPersistentConfig {
             maxProbe = 10,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            copyKeys = false,
+            indexFormat = IndexFormat.CopyKey,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -346,6 +350,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            indexFormat = IndexFormat.CopyKey,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -398,7 +403,7 @@ object DefaultPersistentConfig {
             maxProbe = 10,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            copyKeys = false,
+            indexFormat = IndexFormat.CopyKey,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -406,6 +411,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
+            indexFormat = IndexFormat.CopyKey,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty

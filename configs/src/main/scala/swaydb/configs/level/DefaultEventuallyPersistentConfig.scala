@@ -108,7 +108,7 @@ object DefaultEventuallyPersistentConfig {
             maxProbe = 10,
             minimumNumberOfKeys = 2,
             minimumNumberOfHits = 2,
-            copyKeys = true,
+            indexFormat = IndexFormat.CopyKey,
             allocateSpace = _.requiredSpace * 2,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -116,6 +116,7 @@ object DefaultEventuallyPersistentConfig {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 5,
+            indexFormat = IndexFormat.CopyKey,
             searchSortedIndexDirectly = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty

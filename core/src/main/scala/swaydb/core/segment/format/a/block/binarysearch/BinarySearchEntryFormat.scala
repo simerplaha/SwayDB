@@ -25,6 +25,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.util.Bytes
+import swaydb.data.config.IndexFormat
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
@@ -54,6 +55,18 @@ sealed trait BinarySearchEntryFormat {
 }
 
 object BinarySearchEntryFormat {
+
+  def apply(indexFormat: IndexFormat): BinarySearchEntryFormat =
+    indexFormat match {
+      case IndexFormat.ReferenceOffset =>
+        BinarySearchEntryFormat.ReferenceIndex
+
+      case IndexFormat.ReferenceKey =>
+        BinarySearchEntryFormat.ReferenceKey
+
+      case IndexFormat.CopyKey =>
+        BinarySearchEntryFormat.CopyKey
+    }
 
   object ReferenceIndex extends BinarySearchEntryFormat {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.

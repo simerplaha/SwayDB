@@ -30,14 +30,17 @@ object BinarySearchIndex {
     def minimumNumberOfKeys: Int
     def ioStrategy: IOAction => IOStrategy
     def compression: UncompressedBlockInfo => Seq[Compression]
+    def indexFormat: IndexFormat
   }
   case class FullIndex(minimumNumberOfKeys: Int,
                        ioStrategy: IOAction => IOStrategy,
+                       indexFormat: IndexFormat,
                        searchSortedIndexDirectly: Boolean,
                        compression: UncompressedBlockInfo => Seq[Compression]) extends Enable
 
   case class SecondaryIndex(minimumNumberOfKeys: Int,
                             ioStrategy: IOAction => IOStrategy,
+                            indexFormat: IndexFormat,
                             searchSortedIndexDirectlyIfPreNormalised: Boolean,
                             compression: UncompressedBlockInfo => Seq[Compression]) extends Enable
 }

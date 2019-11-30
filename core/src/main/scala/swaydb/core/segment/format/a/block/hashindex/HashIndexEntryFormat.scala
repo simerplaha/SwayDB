@@ -25,10 +25,10 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.util.{Bytes, CRC32}
+import swaydb.data.config.IndexFormat
 import swaydb.data.slice.Slice
+import swaydb.data.util.Maybe.{Maybe, _}
 import swaydb.data.util.{ByteSizeOf, Maybe}
-import swaydb.data.util.Maybe.Maybe
-import swaydb.data.util.Maybe._
 import swaydb.macros.Sealed
 
 sealed trait HashIndexEntryFormat {
@@ -49,6 +49,18 @@ sealed trait HashIndexEntryFormat {
 }
 
 object HashIndexEntryFormat {
+
+  def apply(indexFormat: IndexFormat): HashIndexEntryFormat =
+    indexFormat match {
+      case IndexFormat.ReferenceOffset =>
+        HashIndexEntryFormat.ReferenceIndex
+
+      case IndexFormat.ReferenceKey =>
+        HashIndexEntryFormat.ReferenceKey
+
+      case IndexFormat.CopyKey =>
+        HashIndexEntryFormat.CopyKey
+    }
 
   sealed trait Reference extends HashIndexEntryFormat {
     def write(indexOffset: Int,
