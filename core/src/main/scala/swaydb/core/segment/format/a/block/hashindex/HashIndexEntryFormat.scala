@@ -40,7 +40,7 @@ sealed trait HashIndexEntryFormat {
 
   def bytesToAllocatePerEntry(largestIndexOffset: Int,
                               largestKeyOffset: Int,
-                              largestKeySize: Int): Int
+                              largestMergedKeySize: Int): Int
 
   def read(entry: Slice[Byte],
            searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
@@ -53,7 +53,7 @@ object HashIndexEntryFormat {
   sealed trait Reference extends HashIndexEntryFormat {
     def write(indexOffset: Int,
               keyOffset: Int,
-              key: Slice[Byte],
+              mergedKey: Slice[Byte],
               keyType: Byte,
               bytes: Slice[Byte]): Unit
   }
@@ -61,7 +61,7 @@ object HashIndexEntryFormat {
   sealed trait Copy extends HashIndexEntryFormat {
     def write(indexOffset: Int,
               keyOffset: Int,
-              key: Slice[Byte],
+              mergedKey: Slice[Byte],
               keyType: Byte,
               bytes: Slice[Byte]): Long
   }
@@ -76,12 +76,12 @@ object HashIndexEntryFormat {
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
                                          largestKeyOffset: Int,
-                                         largestKeySize: Int): Int =
+                                         largestMergedKeySize: Int): Int =
       Bytes sizeOfUnsignedInt (largestIndexOffset + 1)
 
     override def write(indexOffset: Int,
                        keyOffset: Int,
-                       key: Slice[Byte],
+                       mergedKey: Slice[Byte],
                        keyType: Byte,
                        bytes: Slice[Byte]): Unit =
       bytes addNonZeroUnsignedInt (indexOffset + 1)
@@ -116,22 +116,22 @@ object HashIndexEntryFormat {
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
                                          largestKeyOffset: Int,
-                                         largestKeySize: Int): Int = {
+                                         largestMergedKeySize: Int): Int = {
 
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset + 1)
       val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset + 1)
-      val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize + 1)
+      val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestMergedKeySize + 1)
 
       sizeOfLargestKeyOffset + sizeOfLargestKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset
     }
 
     override def write(indexOffset: Int,
                        keyOffset: Int,
-                       key: Slice[Byte],
+                       mergedKey: Slice[Byte],
                        keyType: Byte,
                        bytes: Slice[Byte]): Unit = {
       bytes addNonZeroUnsignedInt (keyOffset + 1)
-      bytes addNonZeroUnsignedInt (key.size + 1)
+      bytes addNonZeroUnsignedInt (mergedKey.size + 1)
       bytes add keyType
       bytes addNonZeroUnsignedInt (indexOffset + 1)
     }
@@ -221,20 +221,20 @@ object HashIndexEntryFormat {
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
                                          largestKeyOffset: Int,
-                                         largestKeySize: Int): Int = {
+                                         largestMergedKeySize: Int): Int = {
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
-      val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
-      sizeOfLargestKeySize + largestKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset + ByteSizeOf.varLong //crc
+      val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestMergedKeySize)
+      sizeOfLargestKeySize + largestMergedKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset + ByteSizeOf.varLong //crc
     }
 
     override def write(indexOffset: Int,
                        keyOffset: Int,
-                       key: Slice[Byte],
+                       mergedKey: Slice[Byte],
                        keyType: Byte,
                        bytes: Slice[Byte]): Long = {
       val position = bytes.currentWritePosition
-      bytes addUnsignedInt key.size
-      bytes addAll key
+      bytes addUnsignedInt mergedKey.size
+      bytes addAll mergedKey
       bytes add keyType
       bytes addUnsignedInt indexOffset
       val bytesToCRC = bytes.take(position, bytes.currentWritePosition - position)

@@ -24,8 +24,8 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Transient
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchIndexBlock, BinarySearchEntryFormat}
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
+import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
@@ -185,8 +185,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         ),
       //      hashIndexConfig =
       //        HashIndexBlock.Config(
-      //          maxProbe = 10,
-      //          copyIndex = false,
+      //          maxProbe = 1,
+      //          format = HashIndexEntryFormat.CopyKey,
       //          minimumNumberOfKeys = 5,
       //          minimumNumberOfHits = 5,
       //          allocateSpace = _.requiredSpace * 2,
@@ -337,9 +337,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
       assertGet(segment)
-//            segment.getAll()
+      //            segment.getAll()
       //      blockCache.foreach(_.clear())
-//            segment.getAll()
+      //            segment.getAll()
       //      segment.getAll().get
       //      blockCache.foreach(_.clear())
       //      segment.getAll().get

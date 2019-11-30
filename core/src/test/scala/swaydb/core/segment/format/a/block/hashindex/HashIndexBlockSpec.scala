@@ -280,8 +280,7 @@ class HashIndexBlockSpec extends TestBase {
         val keyValues =
           randomizedKeyValues(
             count = 1000,
-            startId = Some(1),
-            addRanges = false
+            startId = Some(1)
           ).updateStats(
             hashIndexConfig =
               HashIndexBlock.Config(
@@ -289,7 +288,6 @@ class HashIndexBlockSpec extends TestBase {
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
                 format = randomHashIndexSearchFormat(),
-                //                format = HashIndexEntryFormat.CopyKey,
                 allocateSpace = _.requiredSpace * 2,
                 ioStrategy = _ => randomIOStrategy(),
                 compressions = _ => compressions

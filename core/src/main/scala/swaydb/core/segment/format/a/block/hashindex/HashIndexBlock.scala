@@ -127,7 +127,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           largestIndexOffset = last.stats.segmentAccessIndexOffset,
           largestKeyOffset = last.stats.segmentMergedKeyOffset,
           //unmerged used here because hashIndexes do not index range key-values.
-          largestKeySize = last.stats.segmentLargestUnmergedKeySize
+          largestMergedKeySize = last.stats.segmentLargestUnmergedKeySize
         )
 
       val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(last.stats.segmentHashIndexSize)).nonEmpty
@@ -304,7 +304,8 @@ private[core] object HashIndexBlock extends LazyLogging {
           HashIndexBlock.writeReference(
             indexOffset = keyValue.stats.segmentAccessIndexOffset,
             keyOffset = keyValue.stats.segmentMergedKeyOffset,
-            key = keyValue.key,
+            hashKey = keyValue.key,
+            mergedKey = keyValue.mergedKey,
             keyType = keyValue.id,
             format = format,
             state = state
@@ -314,7 +315,8 @@ private[core] object HashIndexBlock extends LazyLogging {
           HashIndexBlock.writeCopy(
             indexOffset = keyValue.stats.segmentAccessIndexOffset,
             keyOffset = keyValue.stats.segmentMergedKeyOffset,
-            key = keyValue.key,
+            hashKey = keyValue.key,
+            mergedKey = keyValue.mergedKey,
             keyType = keyValue.id,
             format = format,
             state = state
@@ -328,7 +330,8 @@ private[core] object HashIndexBlock extends LazyLogging {
    */
   def writeReference(indexOffset: Int,
                      keyOffset: Int,
-                     key: Slice[Byte],
+                     hashKey: Slice[Byte],
+                     mergedKey: Slice[Byte],
                      keyType: Byte,
                      format: HashIndexEntryFormat.Reference,
                      state: State): Boolean = {
@@ -337,17 +340,17 @@ private[core] object HashIndexBlock extends LazyLogging {
       format.bytesToAllocatePerEntry(
         largestIndexOffset = indexOffset,
         largestKeyOffset = keyOffset,
-        largestKeySize = key.size
+        largestMergedKeySize = mergedKey.size
       )
 
-    val hash = key.hashCode()
+    val hash = hashKey.hashCode()
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
     @tailrec
     def doWrite(probe: Int): Boolean =
       if (probe >= state.maxProbe) {
-        ////println(s"Key: ${key.readInt()}: write index: miss probe: $probe, requiredSpace: $requiredSpace")
+        //println(s"Key: ${key.readInt()}: write index: miss probe: $probe, requiredSpace: $requiredSpace")
         state.miss += 1
         false
       } else {
@@ -366,15 +369,15 @@ private[core] object HashIndexBlock extends LazyLogging {
           format.write(
             indexOffset = indexOffset,
             keyOffset = keyOffset,
-            key = key,
+            mergedKey = mergedKey,
             keyType = keyType,
             bytes = state.bytes
           )
-          ////println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, requiredSpace: $requiredSpace, value: ${state.bytes.take(hashIndex, state.bytes.currentWritePosition - hashIndex)} = success")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, requiredSpace: $requiredSpace, value: ${state.bytes.take(hashIndex, state.bytes.currentWritePosition - hashIndex)} = success")
           state.hit += 1
           true
         } else {
-          ////println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, requiredSpace: $requiredSpace = failure")
+          //println(s"Key: ${key.readInt()}: write hashIndex: $hashIndex probe: $probe, requiredSpace: $requiredSpace = failure")
           doWrite(probe = probe + 1)
         }
       }
@@ -419,13 +422,13 @@ private[core] object HashIndexBlock extends LazyLogging {
             .moveTo(hashIndex)
             .read(block.bytesToReadPerIndex)
 
-        ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
+        //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe. sortedIndex bytes: $possibleValueBytes")
         if (possibleValueBytes.isEmpty || possibleValueBytes.head != Bytes.zero) {
-          ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe = failure - invalid start offset.")
+          //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe = failure - invalid start offset.")
           doFind(probe + 1)
         } else {
           val possibleValueWithoutHeader = possibleValueBytes.dropHead()
-          //////println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
+          //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
           val partialKeyValueMaybe =
             block.format.read(
               entry = possibleValueWithoutHeader,
@@ -435,7 +438,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             )
 
           if (partialKeyValueMaybe.isNone) {
-            //////println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${possibleValueWithoutHeader.take(bytesRead).exists(_ == 0)} = failed")
+            //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${possibleValueWithoutHeader.take(bytesRead).exists(_ == 0)} = failed")
             doFind(probe + 1)
           } else {
             matcher(
@@ -444,11 +447,11 @@ private[core] object HashIndexBlock extends LazyLogging {
               hasMore = true
             ) match {
               case matched: Result.Matched =>
-                ////println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
+                //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
                 Some(matched.result)
 
               case _: Result.Behind | _: Result.AheadOrNoneOrEnd =>
-                ////println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = Behind || Ahead || None || End")
+                //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = Behind || Ahead || None || End")
                 doFind(probe + 1)
             }
           }
@@ -463,12 +466,13 @@ private[core] object HashIndexBlock extends LazyLogging {
    */
   def writeCopy(indexOffset: Int,
                 keyOffset: Int,
-                key: Slice[Byte],
+                hashKey: Slice[Byte],
+                mergedKey: Slice[Byte],
                 keyType: Byte,
                 format: HashIndexEntryFormat.Copy,
                 state: State): Boolean = {
 
-    val hash = key.hashCode()
+    val hash = hashKey.hashCode()
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
@@ -476,7 +480,7 @@ private[core] object HashIndexBlock extends LazyLogging {
       state.format.bytesToAllocatePerEntry(
         largestIndexOffset = indexOffset,
         largestKeyOffset = keyOffset,
-        largestKeySize = key.size
+        largestMergedKeySize = mergedKey.size
       )
 
     @tailrec
@@ -504,7 +508,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             format.write(
               indexOffset = indexOffset,
               keyOffset = keyOffset,
-              key = key,
+              mergedKey = mergedKey,
               keyType = keyType,
               bytes = state.bytes
             )
