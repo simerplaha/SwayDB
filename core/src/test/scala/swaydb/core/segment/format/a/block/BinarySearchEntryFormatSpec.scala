@@ -21,23 +21,23 @@ package swaydb.core.segment.format.a.block
 
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexEntryFormat
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchEntryFormat
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-class BinarySearchIndexEntryFormatSpec extends TestBase {
+class BinarySearchEntryFormatSpec extends TestBase {
 
   "ReferenceIndex" when {
     "non zero" should {
       "calculate bytes required" in {
-        BinarySearchIndexEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
+        BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
           largestIndexOffset = 10,
           largestKeyOffset = 10,
           largestKeySize = 10
         ) shouldBe 1
 
-        BinarySearchIndexEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
+        BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
           largestIndexOffset = Int.MaxValue,
           largestKeyOffset = 10,
           largestKeySize = 10
@@ -49,7 +49,7 @@ class BinarySearchIndexEntryFormatSpec extends TestBase {
         Seq(0, 10000000, Int.MaxValue) foreach {
           indexOffset =>
             val bytesRequired =
-              BinarySearchIndexEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
+              BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
                 largestIndexOffset = indexOffset,
                 largestKeyOffset = 10,
                 largestKeySize = 10
@@ -57,7 +57,7 @@ class BinarySearchIndexEntryFormatSpec extends TestBase {
 
             val bytes = Slice.create[Byte](bytesRequired)
 
-            BinarySearchIndexEntryFormat.ReferenceIndex.write(
+            BinarySearchEntryFormat.ReferenceIndex.write(
               indexOffset = indexOffset,
               keyOffset = Int.MinValue,
               mergedKey = randomBytesSlice(),

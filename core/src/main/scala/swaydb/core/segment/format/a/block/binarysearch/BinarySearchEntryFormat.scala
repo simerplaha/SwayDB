@@ -29,7 +29,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.SealedList
 
-sealed trait BinarySearchIndexEntryFormat {
+sealed trait BinarySearchEntryFormat {
   def id: Byte
 
   def isCopy: Boolean
@@ -53,11 +53,11 @@ sealed trait BinarySearchIndexEntryFormat {
            values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial
 }
 
-object BinarySearchIndexEntryFormat {
+object BinarySearchEntryFormat {
 
-  val formats: List[BinarySearchIndexEntryFormat] = SealedList.list[BinarySearchIndexEntryFormat]
+  val formats: List[BinarySearchEntryFormat] = SealedList.list[BinarySearchEntryFormat]
 
-  object ReferenceIndex extends BinarySearchIndexEntryFormat {
+  object ReferenceIndex extends BinarySearchEntryFormat {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 0.toByte
 
@@ -94,7 +94,7 @@ object BinarySearchIndexEntryFormat {
     }
   }
 
-  object ReferenceKey extends BinarySearchIndexEntryFormat {
+  object ReferenceKey extends BinarySearchEntryFormat {
     override val id: Byte = 1.toByte
 
     override def isCopy: Boolean = false
@@ -175,7 +175,7 @@ object BinarySearchIndexEntryFormat {
     }
   }
 
-  object CopyKey extends BinarySearchIndexEntryFormat {
+  object CopyKey extends BinarySearchEntryFormat {
     override val id: Byte = 2.toByte
 
     override def isCopy: Boolean = true

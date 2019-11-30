@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexEntryFormat
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchEntryFormat
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{Block, SortedIndexBlock}
