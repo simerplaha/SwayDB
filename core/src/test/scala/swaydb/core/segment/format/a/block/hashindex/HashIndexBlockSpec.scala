@@ -23,18 +23,13 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.{Persistent, Transient}
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchEntryFormat
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock.HashIndexBlockOps
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{Block, SortedIndexBlock}
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 class HashIndexBlockSpec extends TestBase {
 
@@ -45,234 +40,110 @@ class HashIndexBlockSpec extends TestBase {
 
   implicit val blockCacheMemorySweeper = TestSweeper.memorySweeperBlock
 
-  import keyOrder._
+  "it" should {
+    "write compressed HashIndex and result in the same as uncompressed HashIndex" in {
+      runThis(100.times, log = true) {
+        val maxProbe = 10
 
-  //  "it" should {
-  //    "write compressed HashIndex and result in the same as uncompressed HashIndex" in {
-  //      runThis(100.times, log = true) {
-  //        val maxProbe = 10
-  //
-  //        def allocateMoreSpace(requiredSpace: RequiredSpace) = requiredSpace.requiredSpace * 10
-  //
-  //        val format = randomHashIndexSearchFormat()
-  //
-  //        val uncompressedKeyValues =
-  //          randomKeyValues(
-  //            count = 1000,
-  //            startId = Some(1),
-  ////            addRemoves = true,
-  ////            addFunctions = true,
-  ////            addRemoveDeadlines = true,
-  ////            addUpdates = true,
-  ////            addPendingApply = true,
-  //            hashIndexConfig =
-  //              HashIndexBlock.Config(
-  //                allocateSpace = allocateMoreSpace,
-  //                compressions = _ => Seq.empty,
-  //                format = format,
-  //                maxProbe = maxProbe,
-  //                minimumNumberOfKeys = 0,
-  //                minimumNumberOfHits = 0,
-  //                ioStrategy = _ => randomIOAccess()
-  //              ),
-  //            sortedIndexConfig =
-  //              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
-  //          )
-  //
-  //        uncompressedKeyValues should not be empty
-  //
-  //        val uncompressedState =
-  //          HashIndexBlock.init(keyValues = uncompressedKeyValues).value
-  //
-  //        val compressedState =
-  //          HashIndexBlock.init(
-  //            keyValues =
-  //              uncompressedKeyValues
-  //                .updateStats(
-  //                  hashIndexConfig =
-  //                    HashIndexBlock.Config(
-  //                      allocateSpace = allocateMoreSpace,
-  //                      compressions = _ => randomCompressionsLZ4OrSnappy(),
-  //                      format = format,,
-  //                      maxProbe = maxProbe,
-  //                      minimumNumberOfKeys = 0,
-  //                      minimumNumberOfHits = 0,
-  //                      ioStrategy = _ => randomIOAccess()
-  //                    )
-  //                )
-  //          ).get
-  //
-  //        uncompressedKeyValues foreach {
-  //          keyValue =>
-  //            val uncompressedWriteResult =
-  //              HashIndexBlock.writeReference(
-  //                key = keyValue.key,
-  //                value = keyValue.stats.segmentAccessIndexOffset,
-  //                state = uncompressedState
-  //              )
-  //
-  //            val compressedWriteResult =
-  //              HashIndexBlock.writeReference(
-  //                key = keyValue.key,
-  //                value = keyValue.stats.segmentAccessIndexOffset,
-  //                state = compressedState
-  //              )
-  //
-  //            uncompressedWriteResult shouldBe compressedWriteResult
-  //        }
-  //
-  //        HashIndexBlock.close(uncompressedState)
-  //        HashIndexBlock.close(compressedState)
-  //
-  //        //compressed bytes should be smaller
-  //        compressedState.bytes.size should be <= uncompressedState.bytes.size
-  //
-  //        val uncompressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](uncompressedState.bytes)
-  //
-  //        val compressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](compressedState.bytes)
-  //
-  //        uncompressedHashIndex.block.compressionInfo shouldBe empty
-  //        compressedHashIndex.block.compressionInfo shouldBe defined
-  //
-  //        uncompressedHashIndex.block.bytesToReadPerIndex shouldBe compressedHashIndex.block.bytesToReadPerIndex
-  //        uncompressedHashIndex.block.hit shouldBe compressedHashIndex.block.hit
-  //        uncompressedHashIndex.block.miss shouldBe compressedHashIndex.block.miss
-  //        uncompressedHashIndex.block.maxProbe shouldBe compressedHashIndex.block.maxProbe
-  //        uncompressedHashIndex.block.writeAbleLargestValueSize shouldBe compressedHashIndex.block.writeAbleLargestValueSize
-  //
-  //        //        println(s"hit: ${uncompressedHashIndex.block.hit}")
-  //        //        println(s"miss: ${uncompressedHashIndex.block.miss}")
-  //        //        println(s"prefixCompressionResetCount: ${uncompressedKeyValues.last.sortedIndexConfig.prefixCompressionResetCount}")
-  //
-  //        //        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean())
-  //        //        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean())
-  //
-  //        //assert that both compressed and uncompressed HashIndexes should result in the same value eventually.
-  //        uncompressedKeyValues foreach {
-  //          keyValue =>
-  //            val uncompressedIndexes = ListBuffer.empty[Int]
-  //
-  //            HashIndexBlock.searchReference(
-  //              key = keyValue.key,
-  //              reader = uncompressedHashIndex,
-  //              assertValue =
-  //                index => {
-  //                  uncompressedIndexes += index
-  //                  None
-  //                }
-  //            )
-  //
-  //            val compressedIndexes = ListBuffer.empty[Int]
-  //            HashIndexBlock.searchReference(
-  //              key = keyValue.key,
-  //              reader = compressedHashIndex,
-  //              assertValue =
-  //                index => {
-  //                  compressedIndexes += index
-  //                  None
-  //                }
-  //            )
-  //
-  //            uncompressedIndexes should contain atLeastOneElementOf compressedIndexes
-  //        }
-  //      }
-  //    }
-  //  }
-  //
-  //  "build index" when {
-  //    "the hash is perfect" in {
-  //      runThis(100.times) {
-  //        val maxProbe = 1000
-  //        val startId = Some(0)
-  //
-  //        val compressions = randomCompressionsOrEmpty()
-  //
-  //        val keyValues =
-  //          randomizedKeyValues(
-  //            count = randomIntMax(10000) max 1,
-  //            startId = startId,
-  //            addPut = true,
-  //            hashIndexConfig =
-  //              HashIndexBlock.Config(
-  //                allocateSpace = _.requiredSpace * 5,
-  //                compressions = _ => compressions,
-  //                maxProbe = maxProbe,
-  //                copyIndex = false,
-  //                minimumNumberOfKeys = 0,
-  //                minimumNumberOfHits = 0,
-  //                ioStrategy = _ => randomIOAccess()
-  //              ),
-  //            sortedIndexConfig =
-  //              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
-  //          )
-  //
-  //        keyValues should not be empty
-  //
-  //        val state =
-  //          HashIndexBlock.init(keyValues = keyValues).value
-  //
-  //        val allocatedBytes = state.bytes.allocatedSize
-  //
-  //        keyValues foreach {
-  //          keyValue =>
-  //            HashIndexBlock.writeReference(
-  //              key = keyValue.key,
-  //              value = keyValue.stats.segmentAccessIndexOffset,
-  //              state = state
-  //            )
-  //        }
-  //
-  //        println(s"hit: ${state.hit}")
-  //        println(s"miss: ${state.miss}")
-  //        println
-  //
-  //        HashIndexBlock.close(state).value
-  //
-  //        println(s"Bytes allocated: $allocatedBytes")
-  //        println(s"Bytes written: ${state.bytes.size}")
-  //
-  //        state.hit shouldBe keyValues.size
-  //        state.miss shouldBe 0
-  //        state.hit + state.miss shouldBe keyValues.size
-  //
-  //        println("Building ListMap")
-  //        val indexOffsetMap = mutable.HashMap.empty[Int, ListBuffer[Transient]]
-  //
-  //        keyValues foreach {
-  //          keyValue =>
-  //            indexOffsetMap.getOrElseUpdate(keyValue.stats.segmentAccessIndexOffset, ListBuffer(keyValue)) += keyValue
-  //        }
-  //
-  //        println(s"ListMap created with size: ${indexOffsetMap.size}")
-  //
-  //        def findKey(indexOffset: Int, key: Slice[Byte]): Option[Transient] =
-  //          indexOffsetMap.get(indexOffset) match {
-  //            case Some(keyValues) =>
-  //              keyValues.find(_.key equiv key)
-  //
-  //            case None =>
-  //              fail(s"Got index that does not exist: $indexOffset")
-  //          }
-  //
-  //        val hashIndexReader = Block.unblock(BlockRefReader(state.bytes))
-  //
-  //        keyValues foreach {
-  //          keyValue =>
-  //            val found =
-  //              HashIndexBlock.searchReference(
-  //                key = keyValue.key,
-  //                reader = hashIndexReader,
-  //                assertValue = findKey(_, keyValue.key)
-  //              ).value
-  //
-  //            (found.key equiv keyValue.key) shouldBe true
-  //        }
-  //      }
-  //    }
-  //  }
-  //
+        def allocateMoreSpace(requiredSpace: RequiredSpace) = requiredSpace.requiredSpace * 10
+
+        val format = randomHashIndexSearchFormat()
+
+        val uncompressedKeyValues =
+          randomKeyValues(
+            count = 1000,
+            startId = Some(1),
+            //            addRemoves = true,
+            //            addFunctions = true,
+            //            addRemoveDeadlines = true,
+            //            addUpdates = true,
+            //            addPendingApply = true,
+            hashIndexConfig =
+              HashIndexBlock.Config(
+                allocateSpace = allocateMoreSpace,
+                compressions = _ => Seq.empty,
+                format = format,
+                maxProbe = maxProbe,
+                minimumNumberOfKeys = 0,
+                minimumNumberOfHits = 0,
+                ioStrategy = _ => randomIOAccess()
+              ),
+            sortedIndexConfig =
+              SortedIndexBlock.Config.random.copy(prefixCompressionResetCount = 0)
+          )
+
+        uncompressedKeyValues should not be empty
+
+        val uncompressedState =
+          HashIndexBlock.init(keyValues = uncompressedKeyValues).value
+
+        val compressedState =
+          HashIndexBlock.init(
+            keyValues =
+              uncompressedKeyValues
+                .updateStats(
+                  hashIndexConfig =
+                    HashIndexBlock.Config(
+                      allocateSpace = allocateMoreSpace,
+                      compressions = _ => randomCompressionsLZ4OrSnappy(),
+                      format = format,
+                      maxProbe = maxProbe,
+                      minimumNumberOfKeys = 0,
+                      minimumNumberOfHits = 0,
+                      ioStrategy = _ => randomIOAccess()
+                    )
+                )
+          ).get
+
+        uncompressedKeyValues foreach {
+          keyValue =>
+            val uncompressedWriteResult =
+              HashIndexBlock.write(
+                keyValue = keyValue,
+                state = uncompressedState
+              )
+
+            val compressedWriteResult =
+              HashIndexBlock.write(
+                keyValue = keyValue,
+                state = compressedState
+              )
+
+            uncompressedWriteResult shouldBe compressedWriteResult
+        }
+
+        HashIndexBlock.close(uncompressedState)
+        HashIndexBlock.close(compressedState)
+
+        //compressed bytes should be smaller
+        compressedState.bytes.size should be <= uncompressedState.bytes.size
+
+        val uncompressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](uncompressedState.bytes)
+
+        val compressedHashIndex = Block.unblock[HashIndexBlock.Offset, HashIndexBlock](compressedState.bytes)
+
+        uncompressedHashIndex.block.compressionInfo shouldBe empty
+        compressedHashIndex.block.compressionInfo shouldBe defined
+
+        uncompressedHashIndex.block.bytesToReadPerIndex shouldBe compressedHashIndex.block.bytesToReadPerIndex
+        uncompressedHashIndex.block.hit shouldBe compressedHashIndex.block.hit
+        uncompressedHashIndex.block.miss shouldBe compressedHashIndex.block.miss
+        uncompressedHashIndex.block.maxProbe shouldBe compressedHashIndex.block.maxProbe
+        uncompressedHashIndex.block.writeAbleLargestValueSize shouldBe compressedHashIndex.block.writeAbleLargestValueSize
+
+        //        println(s"hit: ${uncompressedHashIndex.block.hit}")
+        //        println(s"miss: ${uncompressedHashIndex.block.miss}")
+        //        println(s"prefixCompressionResetCount: ${uncompressedKeyValues.last.sortedIndexConfig.prefixCompressionResetCount}")
+
+        //        val uncompressedBlockReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] = Block.unblock(uncompressedHashIndex, SegmentBlock.unblocked(uncompressedState.bytes), randomBoolean())
+        //        val compressedBlockReader = Block.unblock(compressedHashIndex, SegmentBlock.unblocked(compressedState.bytes), randomBoolean())
+
+      }
+    }
+  }
+
   "searching a segment" should {
-    "value" in {
+    "succeed" in {
       runThis(100.times, log = true) {
         //create perfect hash
         val compressions = if (randomBoolean()) randomCompressions() else Seq.empty
@@ -318,32 +189,6 @@ class HashIndexBlockSpec extends TestBase {
             ) match {
               case None =>
                 fail("None on perfect hash.")
-
-              //                blocks.sortedIndexReader.block.hasPrefixCompression shouldBe (keyValues.last.sortedIndexConfig.prefixCompressionResetCount > 0)
-              //
-              //                notFound match {
-              //                  case HashIndexSearchResult.None =>
-              //                    fail("Expected Lower.")
-              //
-              //                  case HashIndexSearchResult.Lower(lower) =>
-              //                    SortedIndexBlock.seekAndMatchOrSeek(
-              //                      matcher = KeyMatcher.Get(keyValue.key),
-              //                      previous = lower.toPersistent.get,
-              //                      next = None,
-              //                      fullRead = true,
-              //                      indexReader = blocks.sortedIndexReader,
-              //                      valuesReader = blocks.valuesReader
-              //                    ).value match {
-              //                      case Result.Matched(previous, result, next) =>
-              //                        result shouldBe keyValue
-              //
-              //                      case Result.BehindStopped(_) =>
-              //                        fail()
-              //
-              //                      case Result.AheadOrNoneOrEnd =>
-              //                        fail()
-              //                    }
-              //                }
 
               case Some(found) =>
                 found.toPersistent shouldBe keyValue

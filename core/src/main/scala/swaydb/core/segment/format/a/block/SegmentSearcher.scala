@@ -23,10 +23,9 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
 import swaydb.core.segment.ReadState
-import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchGetResult, BinarySearchIndexBlock}
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.util.MinMax
 import swaydb.core.util.Options._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

@@ -69,10 +69,10 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
           )
       )
 
-    keyValues foreach {
-      keyValue =>
-      //println(s"Key: ${keyValue.key.readInt()}. isPrefixCompressed: ${keyValue.isPrefixCompressed}: ${keyValue.getClass.getSimpleName}")
-    }
+    //    keyValues foreach {
+    //      keyValue =>
+    //println(s"Key: ${keyValue.key.readInt()}. isPrefixCompressed: ${keyValue.isPrefixCompressed}: ${keyValue.getClass.getSimpleName}")
+    //    }
 
     val blocks = getBlocks(keyValues).value
 
