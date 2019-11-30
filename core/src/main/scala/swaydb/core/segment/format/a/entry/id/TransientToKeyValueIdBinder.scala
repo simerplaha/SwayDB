@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.id
 
 import swaydb.core.data.Transient
-import swaydb.macros.SealedList
+import swaydb.macros.Sealed
 
 import scala.annotation.implicitNotFound
 
@@ -59,5 +59,5 @@ private[core] object TransientToKeyValueIdBinder {
   }
 
   def allBinders: List[TransientToKeyValueIdBinder[_]] =
-    SealedList.list[TransientToKeyValueIdBinder[_]]
+    Sealed.list[TransientToKeyValueIdBinder[_]]
 }

@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.id
 
 import swaydb.core.data.Persistent
-import swaydb.macros.SealedList
+import swaydb.macros.Sealed
 
 import scala.annotation.implicitNotFound
 
@@ -59,5 +59,5 @@ private[core] object PersistentToKeyValueIdBinder {
   }
 
   def allBinders: List[PersistentToKeyValueIdBinder[_]] =
-    SealedList.list[PersistentToKeyValueIdBinder[_]]
+    Sealed.list[PersistentToKeyValueIdBinder[_]]
 }

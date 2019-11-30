@@ -19,7 +19,7 @@
 
 package swaydb.data.compression
 
-import swaydb.macros.SealedList
+import swaydb.macros.Sealed
 
 import scala.util.Random
 
@@ -32,7 +32,7 @@ object LZ4Instance {
   case object Unsafe extends LZ4Instance
 
   def instances(): List[LZ4Instance] =
-    SealedList.list[LZ4Instance]
+    Sealed.list[LZ4Instance]
 
   def random(): LZ4Instance =
     Random.shuffle(instances()).head

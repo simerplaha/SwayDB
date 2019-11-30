@@ -21,7 +21,7 @@
 package swaydb.core.segment.format.a.entry.id
 
 import swaydb.core.segment.format.a.entry.id.BaseEntryId._
-import swaydb.macros.SealedList
+import swaydb.macros.Sealed
 
 private[core] sealed abstract class BaseEntryIdFormatA(override val baseId: Int) extends BaseEntryId(baseId)
 private[core] object BaseEntryIdFormatA extends BaseEntryIdFormat {
@@ -3949,5 +3949,5 @@ private[core] object BaseEntryIdFormatA extends BaseEntryIdFormat {
   }
 
   def baseIds: List[BaseEntryIdFormatA] =
-    SealedList.list[BaseEntryIdFormatA].sortBy(_.baseId)
+    Sealed.list[BaseEntryIdFormatA].sortBy(_.baseId)
 }

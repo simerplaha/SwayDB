@@ -27,7 +27,7 @@ import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
-import swaydb.macros.SealedList
+import swaydb.macros.Sealed
 
 sealed trait BinarySearchEntryFormat {
   def id: Byte
@@ -247,5 +247,5 @@ object BinarySearchEntryFormat {
     }
   }
 
-  val formats: Array[BinarySearchEntryFormat] = SealedList.list[BinarySearchEntryFormat].toArray
+  val formats: Array[BinarySearchEntryFormat] = Sealed.array[BinarySearchEntryFormat]
 }

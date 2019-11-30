@@ -29,7 +29,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Maybe}
 import swaydb.data.util.Maybe.Maybe
 import swaydb.data.util.Maybe._
-import swaydb.macros.SealedList
+import swaydb.macros.Sealed
 
 sealed trait HashIndexEntryFormat {
   def id: Byte
@@ -309,5 +309,5 @@ object HashIndexEntryFormat {
       }
   }
 
-  val formats: Array[HashIndexEntryFormat] = SealedList.list[HashIndexEntryFormat.Reference].toArray ++ SealedList.list[HashIndexEntryFormat.Copy].toArray
+  val formats: Array[HashIndexEntryFormat] = Sealed.array[HashIndexEntryFormat.Reference] ++ Sealed.array[HashIndexEntryFormat.Copy]
 }

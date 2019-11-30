@@ -20,7 +20,7 @@
 package swaydb.core.map.serializer
 
 import swaydb.IO
-import swaydb.macros.SealedList
+import swaydb.macros.Sealed
 
 sealed trait RangeValueId {
   val id: Int
@@ -134,7 +134,7 @@ case object PendingApplyUpdateRange extends RangeValueId {
 
 object RangeValueId {
   val ids: Map[Int, RangeValueId] =
-    SealedList.list[RangeValueId].map {
+    Sealed.list[RangeValueId].map {
       rangeId =>
         rangeId.id -> rangeId
     }.toMap
