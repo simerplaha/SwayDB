@@ -26,7 +26,7 @@ and easy data management with simple functional APIs.
 
 View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-mid-2014/memory). 
 
-## Features
+## Overview
 
 - [Java](http://swaydb.io/quick-start/?language=java/) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin) APIs.
 - Single or multiple disks persistent, in-memory or periodically persistent.
