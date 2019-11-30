@@ -177,15 +177,17 @@ private[core] object EntryWriter {
           val indexSize = toSize - Bytes.sizeOfUnsignedInt(toSize)
           val bytes = Slice.create[Byte](toSize)
 
-          val normalisedBytes = {
+          val (normalisedBytes, keyOffset) = {
             bytes addUnsignedInt indexSize
             sortedIndexAccessPosition foreach bytes.addUnsignedInt
             bytes addUnsignedInt keySize
+            val keyOffset = bytes.currentWritePosition
             bytes addAll current.mergedKey
             bytes addAll writeResult.indexBytes
+            (bytes, keyOffset)
           }
 
-          val keyOffset = normalisedBytes.currentWritePosition - keySize
+//          val keyOffset = normalisedBytes.currentWritePosition - keySize
           normalisedBytes moveWritePosition toSize
           (normalisedBytes, keyOffset)
 

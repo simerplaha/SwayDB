@@ -42,8 +42,8 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexEntryFormat}
+import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{ReadState, Segment}
@@ -552,7 +552,7 @@ object TestData {
         maxProbe = randomIntMax(10),
         minimumNumberOfKeys = randomIntMax(5),
         minimumNumberOfHits = randomIntMax(5),
-        copyIndex = randomBoolean(),
+        format = randomHashIndexSearchFormat(),
         allocateSpace = _.requiredSpace * randomIntMax(3),
         ioStrategy = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
@@ -2530,8 +2530,11 @@ object TestData {
       )
     ).head
 
-  def randomBinarySearchFormat(): SearchIndexEntryFormat.BinarySearch =
-    Random.shuffle(SearchIndexEntryFormat.binaryFormats).head
+  def randomBinarySearchFormat(): BinarySearchIndexEntryFormat =
+    Random.shuffle(BinarySearchIndexEntryFormat.formats).head
+
+  def randomHashIndexSearchFormat(): HashIndexEntryFormat =
+    Random.shuffle(HashIndexEntryFormat.formats).head
 
   implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 

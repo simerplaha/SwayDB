@@ -133,7 +133,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 HashIndexBlock.Config(
                   maxProbe = 5,
                   allocateSpace = _.requiredSpace * 30,
-                  copyIndex = randomBoolean(),
+                  format = randomHashIndexSearchFormat(),
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
                   ioStrategy = _ => randomIOAccess(),
@@ -194,7 +194,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   maxProbe = 100,
                   minimumNumberOfKeys = 0,
                   minimumNumberOfHits = 0,
-                  copyIndex = randomBoolean(),
+                  format = randomHashIndexSearchFormat(),
                   allocateSpace = _.requiredSpace * 20,
                   ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
@@ -246,7 +246,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   maxProbe = 5,
                   minimumNumberOfKeys = Int.MaxValue,
                   minimumNumberOfHits = 0,
-                  copyIndex = randomBoolean(),
+                  format = randomHashIndexSearchFormat(),
                   allocateSpace = _.requiredSpace * 0,
                   ioStrategy = _ => randomIOAccess(),
                   compressions = _ => compressions
@@ -393,14 +393,14 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   maxProbe = 5,
                   minimumNumberOfKeys = 0, //set miminimum to be 10 for hash to be created.
                   minimumNumberOfHits = 10,
-                  copyIndex = randomBoolean(),
+                  format = randomHashIndexSearchFormat(),
                   allocateSpace = _ =>
                     HashIndexBlock.optimalBytesRequired(
                       keyCounts = 1, //allocate space enough for 1
                       minimumNumberOfKeys = 0,
                       writeAbleLargestValueSize = Int.MaxValue,
                       hasCompression = generatedKeyValues.last.hashIndexConfig.compressions(UncompressedBlockInfo(randomIntMax(1.mb))).nonEmpty,
-                      copyIndex = randomBoolean(),
+                      format = randomHashIndexSearchFormat(),
                       allocateSpace = _.requiredSpace
                     ),
                   ioStrategy = _ => randomIOAccess(),
@@ -455,7 +455,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               maxProbe = 5,
               minimumNumberOfKeys = 2,
               minimumNumberOfHits = 2,
-              copyIndex = randomBoolean(),
+              format = randomHashIndexSearchFormat(),
               allocateSpace = _.requiredSpace * 10,
               ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
               compressions = _ => compressions(3)

@@ -924,6 +924,9 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
   val isNormalisedBinarySearchable =
     !hasPrefixCompression && (normaliseForBinarySearch || isPreNormalised)
 
+  val isNonPreNormalised =
+    !hasPrefixCompression && normaliseForBinarySearch && !isPreNormalised
+
   val hasNormalisedBytes =
     !isPreNormalised && normaliseForBinarySearch
 }

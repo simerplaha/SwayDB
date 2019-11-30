@@ -24,7 +24,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Transient
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchIndexBlock, BinarySearchIndexEntryFormat}
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
@@ -167,7 +167,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       binarySearchIndexConfig =
         BinarySearchIndexBlock.Config(
           enabled = true,
-          format = SearchIndexEntryFormat.CopyKey,
+          format = BinarySearchIndexEntryFormat.CopyKey,
           minimumNumberOfKeys = 1,
           searchSortedIndexDirectlyIfPossible = false,
           fullIndex = true,

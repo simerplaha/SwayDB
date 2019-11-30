@@ -33,6 +33,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.Maybe.Maybe
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -577,7 +578,8 @@ private[core] object Transient {
   }
 
   object Remove {
-    final val id = 0.toByte
+    //start with 1 instead of zero to account for HashIndexEntry format entry with non-zero bytes.
+    final val id = 1.toByte
   }
 
   case class Remove(key: Slice[Byte],
@@ -649,7 +651,7 @@ private[core] object Transient {
   }
 
   object Put {
-    final val id = 1.toByte
+    final val id = 2.toByte
   }
 
   case class Put(key: Slice[Byte],
@@ -721,7 +723,7 @@ private[core] object Transient {
   }
 
   object Update {
-    final val id = 2.toByte
+    final val id = 3.toByte
   }
 
   case class Update(key: Slice[Byte],
@@ -792,7 +794,7 @@ private[core] object Transient {
   }
 
   object Function {
-    final val id = 3.toByte
+    final val id = 4.toByte
   }
 
   case class Function(key: Slice[Byte],
@@ -866,7 +868,7 @@ private[core] object Transient {
   }
 
   object PendingApply {
-    final val id = 4.toByte
+    final val id = 5.toByte
   }
 
   case class PendingApply(key: Slice[Byte],
@@ -940,7 +942,7 @@ private[core] object Transient {
   }
 
   object Range {
-    final val id = 5.toByte
+    final val id = 6.toByte
 
     def apply[R <: Value.RangeValue](fromKey: Slice[Byte],
                                      toKey: Slice[Byte],
@@ -1124,6 +1126,9 @@ private[core] object Persistent {
   }
 
   object Partial {
+    val noneMaybe: Maybe[Persistent.Partial] =
+      null.asInstanceOf[Maybe[Persistent.Partial]]
+
     trait Fixed extends Persistent.Partial
 
     trait Range extends Persistent.Partial {

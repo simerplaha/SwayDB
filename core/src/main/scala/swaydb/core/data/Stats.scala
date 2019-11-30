@@ -97,6 +97,16 @@ private[core] object Stats {
           mergedKeySize
       }
 
+    //largest unmerged merged key size
+    val segmentLargestUnmergedKeySize =
+      previousStats match {
+        case Some(previousStats) =>
+          previousStats.segmentLargestUnmergedKeySize max unmergedKeySize
+
+        case None =>
+          unmergedKeySize
+      }
+
     val thisKeyValuesSegmentValueSize =
       if (valueLength == 0)
         0
@@ -137,12 +147,12 @@ private[core] object Stats {
           keyCounts = uncompressedKeyCounts,
           minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
           writeAbleLargestValueSize =
-            if (hashIndex.copyIndex)
+            if (hashIndex.format.isCopy)
               thisKeyValuesSortedIndexSize //this does not compute the size of crc long but it's ok since it's just an estimate.
             else
               1, //some low number for calculating approximate hashIndexSize does not have to be accurate.
           allocateSpace = hashIndex.allocateSpace,
-          copyIndex = hashIndex.copyIndex,
+          format = hashIndex.format,
           hasCompression = false
         )
 
@@ -259,6 +269,7 @@ private[core] object Stats {
       segmentMaxSortedIndexEntrySize = segmentMaxSortedIndexEntrySize,
       segmentMinSortedIndexEntrySize = segmentMinSortedIndexEntrySize,
       segmentLargestMergedKeySize = segmentsLargestMergedKeySize,
+      segmentLargestUnmergedKeySize = segmentLargestUnmergedKeySize,
       hasPrefixCompression = hasPrefixCompressed
     )
   }
@@ -292,6 +303,7 @@ private[core] case class Stats(valueLength: Int,
                                segmentMaxSortedIndexEntrySize: Int,
                                segmentMinSortedIndexEntrySize: Int,
                                segmentLargestMergedKeySize: Int,
+                               segmentLargestUnmergedKeySize: Int,
                                hasPrefixCompression: Boolean) {
 
   def memorySegmentSize =

@@ -21,7 +21,8 @@ package swaydb.data.util
 
 import java.nio.charset.Charset
 
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.{Reader, ReaderBase, Slice}
+import swaydb.data.util.Maybe.Maybe
 
 private[swaydb] trait Bytez {
 
@@ -131,13 +132,17 @@ private[swaydb] trait Bytez {
 
   private[swaydb] def writeUnsignedIntNonZero(int: Int): Slice[Byte] = {
     val slice = Slice.create[Byte](ByteSizeOf.varInt)
+    writeUnsignedIntNonZero(int, slice)
+    slice.close()
+  }
+
+  private[swaydb] def writeUnsignedIntNonZero(int: Int, slice: Slice[Byte]): Unit = {
     var x = int
     while ((x & 0xFFFFFF80) != 0L) {
       slice add ((x & 0x7F) | 0x80).toByte
       x >>>= 7
     }
     slice add (x & 0x7F).toByte
-    slice.close()
   }
 
   private[swaydb] def readUnsignedIntNonZero(slice: Slice[Byte]): Int = {
@@ -156,6 +161,46 @@ private[swaydb] trait Bytez {
     int
   }
 
+  private[swaydb] def readUnsignedIntNonZero(reader: ReaderBase): Int = {
+    val beforeReadPosition = reader.getPosition
+    val slice = reader.read(ByteSizeOf.varInt)
+    var index = 0
+    var i = 0
+    var int = 0
+    var read = 0
+    do {
+      read = slice.get(index)
+      int |= (read & 0x7F) << i
+      i += 7
+      index += 1
+      require(i <= 35)
+    } while ((read & 0x80) != 0)
+
+    reader.moveTo(beforeReadPosition + index)
+    int
+  }
+
+  private[swaydb] def readUnsignedIntNonZeroStrict(reader: ReaderBase): Maybe[Int] = {
+    val beforeReadPosition = reader.getPosition
+    val slice = reader.read(ByteSizeOf.varInt)
+    var index = 0
+    var i = 0
+    var int = 0
+    var read = 0
+    do {
+      read = slice.get(index)
+      //strict
+      if (read == 0) return Maybe.noneInt
+      int |= (read & 0x7F) << i
+      i += 7
+      index += 1
+      require(i <= 35)
+    } while ((read & 0x80) != 0)
+
+    reader.moveTo(beforeReadPosition + index)
+    Maybe.some(int)
+  }
+
   private[swaydb] def readUnsignedIntNonZeroWithByteSize(slice: Slice[Byte]): (Int, Int) = {
     var index = 0
     var i = 0
@@ -169,6 +214,25 @@ private[swaydb] trait Bytez {
       require(i <= 35)
     } while ((read & 0x80) != 0)
 
+    (int, index)
+  }
+
+  private[swaydb] def readUnsignedIntNonZeroWithByteSize(reader: ReaderBase): (Int, Int) = {
+    val beforeReadPosition = reader.getPosition
+    val slice = reader.read(ByteSizeOf.varInt)
+    var index = 0
+    var i = 0
+    var int = 0
+    var read = 0
+    do {
+      read = slice.get(index)
+      int |= (read & 0x7F) << i
+      i += 7
+      index += 1
+      require(i <= 35)
+    } while ((read & 0x80) != 0)
+
+    reader.moveTo(beforeReadPosition + index)
     (int, index)
   }
 

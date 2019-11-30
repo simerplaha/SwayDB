@@ -24,6 +24,7 @@ import java.nio.file.Path
 
 import swaydb.IO
 import swaydb.data.util.Bytez
+import swaydb.data.util.Maybe.Maybe
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
@@ -72,6 +73,15 @@ private[swaydb] abstract class ReaderBase { self =>
 
   def readUnsignedInt(): Int =
     Bytez.readUnsignedInt(self)
+
+  def readNonZeroUnsignedInt(): Int =
+    Bytez.readUnsignedIntNonZero(self)
+
+  def readNonZeroStrictUnsignedInt(): Maybe[Int] =
+    Bytez.readUnsignedIntNonZeroStrict(self)
+
+  def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
+    Bytez.readUnsignedIntNonZeroWithByteSize(self)
 
   def readUnsignedIntSized(): Slice[Byte] =
     read(Bytez.readUnsignedInt(self))

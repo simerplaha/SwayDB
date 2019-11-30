@@ -293,11 +293,19 @@ trait SliceCompanionBase {
       slice
     }
 
+    @inline def addNonZeroUnsignedInt(int: Int): Slice[Byte] = {
+      Bytez.writeUnsignedIntNonZero(int, slice)
+      slice
+    }
+
     @inline def readUnsignedInt(): Int =
       Bytez.readUnsignedInt(slice)
 
     @inline def readUnsignedIntWithByteSize(): (Int, Int) =
       Bytez.readUnsignedIntWithByteSize(slice)
+
+    @inline def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
+      Bytez.readUnsignedIntNonZeroWithByteSize(slice)
 
     @inline def addLong(long: Long): Slice[Byte] = {
       Bytez.writeLong(long, slice)
