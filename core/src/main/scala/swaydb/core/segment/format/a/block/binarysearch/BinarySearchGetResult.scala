@@ -19,8 +19,6 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-import swaydb.IO
-
 private[block] sealed trait BinarySearchGetResult[+T] {
   def toOption: Option[T]
   def toOptionApply[B](f: T => B): Option[B]
@@ -30,9 +28,6 @@ private[block] object BinarySearchGetResult {
 
   val none: BinarySearchGetResult.None[Nothing] =
     new BinarySearchGetResult.None(Option.empty[Nothing])
-
-  val noneIO =
-    IO.Right[Nothing, BinarySearchGetResult[Nothing]](none)(IO.ExceptionHandler.Nothing)
 
   class None[T](val lower: Option[T]) extends BinarySearchGetResult[T] {
     override val toOption: Option[T] = scala.None
