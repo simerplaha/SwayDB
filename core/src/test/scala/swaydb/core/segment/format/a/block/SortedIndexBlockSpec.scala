@@ -53,7 +53,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 //        persistent.isPrefixCompressed shouldBe transient.isPrefixCompressed
         persistent.sortedIndexAccessPosition shouldBe transient.thisKeyValueAccessIndexPosition
 
-        val thisKeyValueRealIndexOffsetFunction = PrivateMethod[Int]('segmentRealIndexOffset)
+        val thisKeyValueRealIndexOffsetFunction = PrivateMethod[Int](Symbol("segmentRealIndexOffset"))
         val thisKeyValueRealIndexOffset = transient.stats invokePrivate thisKeyValueRealIndexOffsetFunction()
 
         if (keyValues.last.sortedIndexConfig.enableAccessPositionIndex)
