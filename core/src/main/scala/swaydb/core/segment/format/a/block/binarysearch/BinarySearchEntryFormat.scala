@@ -124,11 +124,11 @@ object BinarySearchEntryFormat {
                       binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial = {
-      val searchIndexReader = Reader(binarySearchIndex.moveTo(offset).read(seekSize))
+      val entryReader = Reader(binarySearchIndex.moveTo(offset).read(seekSize))
 
-      val keyOffset = searchIndexReader.readUnsignedInt()
-      val keySize = searchIndexReader.readUnsignedInt()
-      val keyType = searchIndexReader.get()
+      val keyOffset = entryReader.readUnsignedInt()
+      val keySize = entryReader.readUnsignedInt()
+      val keyType = entryReader.get()
 
       //read the target key at the offset within sortedIndex
       val entryKey = sortedIndex.moveTo(keyOffset).read(keySize)
@@ -139,7 +139,7 @@ object BinarySearchEntryFormat {
           val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
           override lazy val indexOffset: Int =
-            searchIndexReader.readUnsignedInt()
+            entryReader.readUnsignedInt()
 
           override def key: Slice[Byte] =
             fromKey
@@ -155,7 +155,7 @@ object BinarySearchEntryFormat {
       else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
         new Partial.Fixed {
           override lazy val indexOffset: Int =
-            searchIndexReader.readUnsignedInt()
+            entryReader.readUnsignedInt()
 
           override def key: Slice[Byte] =
             entryKey
@@ -202,10 +202,10 @@ object BinarySearchEntryFormat {
                       binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial = {
-      val binaryEntryReader = Reader(binarySearchIndex.moveTo(offset).read(seekSize))
-      val keySize = binaryEntryReader.readUnsignedInt()
-      val entryKey = binaryEntryReader.read(keySize)
-      val keyType = binaryEntryReader.get()
+      val entryReader = Reader(binarySearchIndex.moveTo(offset).read(seekSize))
+      val keySize = entryReader.readUnsignedInt()
+      val entryKey = entryReader.read(keySize)
+      val keyType = entryReader.get()
 
       //create a temporary partially read key-value for matcher.
       if (keyType == Transient.Range.id)
@@ -213,7 +213,7 @@ object BinarySearchEntryFormat {
           val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
           override lazy val indexOffset: Int =
-            binaryEntryReader.readUnsignedInt()
+            entryReader.readUnsignedInt()
 
           override def key: Slice[Byte] =
             fromKey
@@ -229,7 +229,7 @@ object BinarySearchEntryFormat {
       else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
         new Partial.Fixed {
           override lazy val indexOffset: Int =
-            binaryEntryReader.readUnsignedInt()
+            entryReader.readUnsignedInt()
 
           override def key: Slice[Byte] =
             entryKey

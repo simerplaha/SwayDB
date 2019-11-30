@@ -427,18 +427,18 @@ private[core] object HashIndexBlock extends LazyLogging {
           //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe = failure - invalid start offset.")
           doFind(probe + 1)
         } else {
-          val possibleValueWithoutHeader = possibleValueBytes.dropHead()
+          val entry = possibleValueBytes.dropHead()
           //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
           val partialKeyValueMaybe =
             block.format.read(
-              entry = possibleValueWithoutHeader,
+              entry = entry,
               hashIndexReader = hashIndexReader,
               sortedIndex = sortedIndexReader,
               values = valuesReader
             )
 
           if (partialKeyValueMaybe.isNone) {
-            //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${possibleValueWithoutHeader.take(bytesRead).exists(_ == 0)} = failed")
+            //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${entry.take(bytesRead).exists(_ == 0)} = failed")
             doFind(probe + 1)
           } else {
             matcher(
@@ -534,15 +534,15 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   private[block] def searchCopy(key: Slice[Byte],
-                                reader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                                sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                hasIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                                sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
-    val block = reader.block
+    val block = hasIndexReader.block
 
     val matcher = KeyMatcher.Get(key)
 
@@ -560,7 +560,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           ) - block.headerSize //remove headerSize since the blockReader points to the hashIndex's start offset.
 
         val entry =
-          reader
+          hasIndexReader
             .moveTo(hashIndex)
             .read(block.writeAbleLargestValueSize)
 
@@ -572,8 +572,8 @@ private[core] object HashIndexBlock extends LazyLogging {
           val partialKeyValueMaybe: Maybe[Persistent.Partial] =
             block.format.read(
               entry = entry,
-              hashIndexReader = reader,
-              sortedIndex = sortedIndex,
+              hashIndexReader = hasIndexReader,
+              sortedIndex = sortedIndexReader,
               values = valuesReader
             )
 
@@ -607,8 +607,8 @@ private[core] object HashIndexBlock extends LazyLogging {
     if (hashIndexReader.block.format.isCopy)
       searchCopy(
         key = key,
-        reader = hashIndexReader,
-        sortedIndex = sortedIndexReader,
+        hasIndexReader = hashIndexReader,
+        sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader
       )
     else
