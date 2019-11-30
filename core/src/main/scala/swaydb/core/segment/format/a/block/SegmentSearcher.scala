@@ -24,7 +24,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.Persistent
 import swaydb.core.segment.ReadState
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchGetResult, BinarySearchIndexBlock}
-import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexSearchResult}
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.MinMax
 import swaydb.core.util.Options._
@@ -141,28 +141,15 @@ private[core] object SegmentSearcher extends LazyLogging {
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
         ) match {
-          case none: HashIndexSearchResult.None =>
+          case None =>
             if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
               None
             } else {
               //              failedHashIndexSeeks += 1
-
-              val lowest =
-                if (none.lower.isEmpty || start.isEmpty)
-                  start orElse none.lower
-                else
-                  MinMax.maxFavourLeft(start, none.lower)
-
-              val highest =
-                if (none.higher.isEmpty || end.isEmpty)
-                  none.higher orElse end
-                else
-                  MinMax.minFavourLeft(end, none.higher)
-
               BinarySearchIndexBlock.search(
                 key = key,
-                lowest = lowest.map(_.toPersistent),
-                highest = highest.map(_.toPersistent),
+                lowest = start,
+                highest = end,
                 keyValuesCount = keyValueCount,
                 binarySearchIndexReader = binarySearchIndexReader,
                 sortedIndexReader = sortedIndexReader,
@@ -170,7 +157,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               ).toOptionApply(_.toPersistent)
             }
 
-          case HashIndexSearchResult.Some(keyValue) =>
+          case Some(keyValue) =>
             //            successfulHashIndexSeeks += 1
             Some(keyValue.toPersistent)
         }

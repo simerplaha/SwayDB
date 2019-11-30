@@ -298,6 +298,25 @@ private[swaydb] trait Bytez {
     (int, index + 1)
   }
 
+  def readUnsignedIntWithByteSize(reader: ReaderBase): (Int, Int) = {
+    val beforeReadPosition = reader.getPosition
+    val slice = reader.read(ByteSizeOf.varInt)
+    var index = 0
+    var byte = slice.get(index)
+    var int: Int = byte & 0x7F
+
+    while ((byte & 0x80) != 0) {
+      index += 1
+      byte = slice.get(index)
+
+      int <<= 7
+      int |= (byte & 0x7F)
+    }
+
+    reader.moveTo(beforeReadPosition + index + 1)
+    (int, index + 1)
+  }
+
   /**
    * @return Tuple where the first integer is the unsigned integer and the second is the number of bytes read.
    */

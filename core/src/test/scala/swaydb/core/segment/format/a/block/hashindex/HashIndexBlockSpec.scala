@@ -279,17 +279,17 @@ class HashIndexBlockSpec extends TestBase {
 
         val keyValues =
           randomizedKeyValues(
-            count = 10,
+            count = 1000,
             startId = Some(1),
             addRanges = false
           ).updateStats(
             hashIndexConfig =
               HashIndexBlock.Config(
-                maxProbe = 10,
+                maxProbe = 1000,
                 minimumNumberOfKeys = 0,
                 minimumNumberOfHits = 0,
-//                format = randomHashIndexSearchFormat(),
-                format = HashIndexEntryFormat.ReferenceKey,
+                format = randomHashIndexSearchFormat(),
+                //                format = HashIndexEntryFormat.CopyKey,
                 allocateSpace = _.requiredSpace * 2,
                 ioStrategy = _ => randomIOStrategy(),
                 compressions = _ => compressions
@@ -318,7 +318,7 @@ class HashIndexBlockSpec extends TestBase {
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
             ) match {
-              case _: HashIndexSearchResult.None =>
+              case None =>
                 fail("None on perfect hash.")
 
               //                blocks.sortedIndexReader.block.hasPrefixCompression shouldBe (keyValues.last.sortedIndexConfig.prefixCompressionResetCount > 0)
@@ -347,7 +347,7 @@ class HashIndexBlockSpec extends TestBase {
               //                    }
               //                }
 
-              case HashIndexSearchResult.Some(found) =>
+              case Some(found) =>
                 found.toPersistent shouldBe keyValue
             }
         }

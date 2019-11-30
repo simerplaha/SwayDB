@@ -24,7 +24,7 @@ import swaydb.core.data.{Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Maybe}
 import swaydb.data.util.Maybe.Maybe
@@ -42,23 +42,33 @@ sealed trait HashIndexEntryFormat {
                               largestKeyOffset: Int,
                               largestKeySize: Int): Int
 
-  def write(indexOffset: Int,
-            keyOffset: Int,
-            key: Slice[Byte],
-            keyType: Byte,
-            bytes: Slice[Byte]): Unit
-
   def read(entry: Slice[Byte],
-           searchIndex: UnblockedReader[_, _],
+           searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
            sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
            values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial]
 }
 
 object HashIndexEntryFormat {
 
-  val formats: List[HashIndexEntryFormat] = SealedList.list[HashIndexEntryFormat]
+  sealed trait Reference extends HashIndexEntryFormat {
+    def write(indexOffset: Int,
+              keyOffset: Int,
+              key: Slice[Byte],
+              keyType: Byte,
+              bytes: Slice[Byte]): Unit
+  }
 
-  object ReferenceIndex extends HashIndexEntryFormat {
+  sealed trait Copy extends HashIndexEntryFormat {
+    def write(indexOffset: Int,
+              keyOffset: Int,
+              key: Slice[Byte],
+              keyType: Byte,
+              bytes: Slice[Byte]): Long
+  }
+
+  val formats: List[HashIndexEntryFormat] = SealedList.list[HashIndexEntryFormat.Reference] ++ SealedList.list[HashIndexEntryFormat.Copy]
+
+  object ReferenceIndex extends HashIndexEntryFormat.Reference {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 0.toByte
 
@@ -77,7 +87,7 @@ object HashIndexEntryFormat {
       bytes addNonZeroUnsignedInt (indexOffset + 1)
 
     override def read(entry: Slice[Byte],
-                      searchIndex: UnblockedReader[_, _],
+                      searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] = {
       val (possibleOffset, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(entry)
@@ -99,7 +109,7 @@ object HashIndexEntryFormat {
     }
   }
 
-  object ReferenceKey extends HashIndexEntryFormat {
+  object ReferenceKey extends HashIndexEntryFormat.Reference {
     override val id: Byte = 1.toByte
 
     override def isCopy: Boolean = false
@@ -127,7 +137,7 @@ object HashIndexEntryFormat {
     }
 
     override def read(entry: Slice[Byte],
-                      searchIndex: UnblockedReader[_, _],
+                      searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] = {
       val entryReader = Reader(entry)
@@ -204,7 +214,7 @@ object HashIndexEntryFormat {
     }
   }
 
-  object CopyKey extends HashIndexEntryFormat {
+  object CopyKey extends HashIndexEntryFormat.Copy {
     override val id: Byte = 2.toByte
 
     override def isCopy: Boolean = true
@@ -214,68 +224,90 @@ object HashIndexEntryFormat {
                                          largestKeySize: Int): Int = {
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
       val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
-      sizeOfLargestKeySize + largestKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset
+      sizeOfLargestKeySize + largestKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset + ByteSizeOf.varLong //crc
     }
 
     override def write(indexOffset: Int,
                        keyOffset: Int,
-                       mergedKey: Slice[Byte],
+                       key: Slice[Byte],
                        keyType: Byte,
-                       bytes: Slice[Byte]): Unit = {
-      bytes addUnsignedInt mergedKey.size
-      bytes addAll mergedKey
+                       bytes: Slice[Byte]): Long = {
+      val position = bytes.currentWritePosition
+      bytes addUnsignedInt key.size
+      bytes addAll key
       bytes add keyType
       bytes addUnsignedInt indexOffset
+      val bytesToCRC = bytes.take(position, bytes.currentWritePosition - position)
+      val crc = CRC32.forBytes(bytesToCRC)
+      bytes addUnsignedLong crc
+
+      if (bytes.get(bytes.currentWritePosition - 1) == 0) //if the last byte is 0 add one to avoid next write overwriting this entry's last byte.
+        bytes addByte Bytes.one
+
+      crc
     }
 
     override def read(entry: Slice[Byte],
-                      searchIndex: UnblockedReader[_, _],
+                      searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] = {
-      val binaryEntryReader = Reader(searchIndex.moveTo(offset).read(seekSize))
-      val keySize = binaryEntryReader.readUnsignedInt()
-      val entryKey = binaryEntryReader.read(keySize)
-      val keyType = binaryEntryReader.get()
+                      values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] =
+      try {
+        val reader = Reader(entry)
+        val keySize = reader.readUnsignedInt()
+        val entryKey = reader.read(keySize)
+        val keyType = reader.get()
+        val indexOffset_ = reader.readUnsignedInt()
+        val entrySize = reader.getPosition
+        val readCRC = reader.readUnsignedLong()
 
-      //create a temporary partially read key-value for matcher.
-      if (keyType == Transient.Range.id)
-        new Partial.Range {
-          val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
+        if (readCRC == -1 || readCRC < searchIndex.block.minimumCRC || readCRC != CRC32.forBytes(entry.take(entrySize))) {
+          Persistent.Partial.noneMaybe
+        } else {
+          //create a temporary partially read key-value for matcher.
+          val partialKeyValue =
+            if (keyType == Transient.Range.id)
+              new Partial.Range {
+                val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
-          override lazy val indexOffset: Int =
-            binaryEntryReader.readUnsignedInt()
+                override def indexOffset: Int =
+                  indexOffset_
 
-          override def key: Slice[Byte] =
-            fromKey
+                override def key: Slice[Byte] =
+                  fromKey
 
-          override def toPersistent: Persistent =
-            SortedIndexBlock.read(
-              fromOffset = indexOffset,
-              overwriteNextIndexOffset = None,
-              sortedIndexReader = sortedIndex,
-              valuesReader = values
-            )
+                override def toPersistent: Persistent =
+                  SortedIndexBlock.read(
+                    fromOffset = indexOffset,
+                    overwriteNextIndexOffset = None,
+                    sortedIndexReader = sortedIndex,
+                    valuesReader = values
+                  )
+              }
+            else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
+              new Partial.Fixed {
+                override def indexOffset: Int =
+                  indexOffset_
+
+                override def key: Slice[Byte] =
+                  entryKey
+
+                override def toPersistent: Persistent =
+                  SortedIndexBlock.read(
+                    fromOffset = indexOffset,
+                    overwriteNextIndexOffset = None,
+                    sortedIndexReader = sortedIndex,
+                    valuesReader = values
+                  )
+              }
+            else
+              Persistent.Partial.noneMaybe
+
+          Maybe.some(partialKeyValue)
         }
-      else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
-        new Partial.Fixed {
-          override lazy val indexOffset: Int =
-            binaryEntryReader.readUnsignedInt()
-
-          override def key: Slice[Byte] =
-            entryKey
-
-          override def toPersistent: Persistent =
-            SortedIndexBlock.read(
-              fromOffset = indexOffset,
-              overwriteNextIndexOffset = None,
-              sortedIndexReader = sortedIndex,
-              valuesReader = values
-            )
-        }
-      else
-        throw new Exception(s"Invalid keyType: $keyType, offset: $offset, keySize: $keySize, keyType: $keyType")
-
-      ???
-    }
+      } catch {
+        case _: ArrayIndexOutOfBoundsException =>
+          //println("ArrayIndexOutOfBoundsException")
+          Persistent.Partial.noneMaybe
+      }
   }
 }
