@@ -59,7 +59,7 @@ object BinarySearchEntryFormat {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 0.toByte
 
-    override def isCopy: Boolean = false
+    override val isCopy: Boolean = false
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
                                          largestKeyOffset: Int,
@@ -95,7 +95,7 @@ object BinarySearchEntryFormat {
   object ReferenceKey extends BinarySearchEntryFormat {
     override val id: Byte = 1.toByte
 
-    override def isCopy: Boolean = false
+    override val isCopy: Boolean = false
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
                                          largestKeyOffset: Int,
@@ -176,7 +176,7 @@ object BinarySearchEntryFormat {
   object CopyKey extends BinarySearchEntryFormat {
     override val id: Byte = 2.toByte
 
-    override def isCopy: Boolean = true
+    override val isCopy: Boolean = true
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
                                          largestKeyOffset: Int,
