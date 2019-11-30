@@ -43,7 +43,7 @@ sealed trait HashIndexEntryFormat {
                               largestMergedKeySize: Int): Int
 
   def read(entry: Slice[Byte],
-           searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+           hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
            sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
            values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial]
 }
@@ -87,7 +87,7 @@ object HashIndexEntryFormat {
       bytes addNonZeroUnsignedInt (indexOffset + 1)
 
     override def read(entry: Slice[Byte],
-                      searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] = {
       val (possibleOffset, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(entry)
@@ -137,7 +137,7 @@ object HashIndexEntryFormat {
     }
 
     override def read(entry: Slice[Byte],
-                      searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] = {
       val entryReader = Reader(entry)
@@ -248,7 +248,7 @@ object HashIndexEntryFormat {
     }
 
     override def read(entry: Slice[Byte],
-                      searchIndex: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] =
       try {
@@ -260,7 +260,7 @@ object HashIndexEntryFormat {
         val entrySize = reader.getPosition
         val readCRC = reader.readUnsignedLong()
 
-        if (readCRC == -1 || readCRC < searchIndex.block.minimumCRC || readCRC != CRC32.forBytes(entry.take(entrySize))) {
+        if (readCRC == -1 || readCRC < hashIndexReader.block.minimumCRC || readCRC != CRC32.forBytes(entry.take(entrySize))) {
           Persistent.Partial.noneMaybe
         } else {
           //create a temporary partially read key-value for matcher.

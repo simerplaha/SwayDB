@@ -432,7 +432,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           val partialKeyValueMaybe =
             block.format.read(
               entry = possibleValueWithoutHeader,
-              searchIndex = hashIndexReader,
+              hashIndexReader = hashIndexReader,
               sortedIndex = sortedIndexReader,
               values = valuesReader
             )
@@ -572,7 +572,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           val partialKeyValueMaybe: Maybe[Persistent.Partial] =
             block.format.read(
               entry = entry,
-              searchIndex = reader,
+              hashIndexReader = reader,
               sortedIndex = sortedIndex,
               values = valuesReader
             )

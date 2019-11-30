@@ -69,7 +69,7 @@ object BinarySearchContext {
           binarySearchIndex.block.format.read(
             offset = offset,
             seekSize = binarySearchIndex.block.bytesPerValue,
-            searchIndex = binarySearchIndex,
+            binarySearchIndex = binarySearchIndex,
             sortedIndex = sortedIndex,
             values = values
           )
