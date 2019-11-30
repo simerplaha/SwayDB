@@ -55,8 +55,6 @@ sealed trait BinarySearchEntryFormat {
 
 object BinarySearchEntryFormat {
 
-  val formats: List[BinarySearchEntryFormat] = SealedList.list[BinarySearchEntryFormat]
-
   object ReferenceIndex extends BinarySearchEntryFormat {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 0.toByte
@@ -248,4 +246,6 @@ object BinarySearchEntryFormat {
         throw new Exception(s"Invalid keyType: $keyType, offset: $offset, keySize: $keySize, keyType: $keyType")
     }
   }
+
+  val formats: Array[BinarySearchEntryFormat] = SealedList.list[BinarySearchEntryFormat].toArray
 }

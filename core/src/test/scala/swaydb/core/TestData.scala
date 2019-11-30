@@ -2531,10 +2531,10 @@ object TestData {
     ).head
 
   def randomBinarySearchFormat(): BinarySearchEntryFormat =
-    Random.shuffle(BinarySearchEntryFormat.formats).head
+    Random.shuffle(BinarySearchEntryFormat.formats.toList).head
 
   def randomHashIndexSearchFormat(): HashIndexEntryFormat =
-    Random.shuffle(HashIndexEntryFormat.formats).head
+    Random.shuffle(HashIndexEntryFormat.formats.toList).head
 
   implicit class SegmentBlockImplicits(segmentBlock: SegmentBlock.type) {
 

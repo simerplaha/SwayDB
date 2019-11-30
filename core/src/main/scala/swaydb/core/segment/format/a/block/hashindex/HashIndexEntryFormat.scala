@@ -66,8 +66,6 @@ object HashIndexEntryFormat {
               bytes: Slice[Byte]): Long
   }
 
-  val formats: List[HashIndexEntryFormat] = SealedList.list[HashIndexEntryFormat.Reference] ++ SealedList.list[HashIndexEntryFormat.Copy]
-
   object ReferenceIndex extends HashIndexEntryFormat.Reference {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 0.toByte
@@ -310,4 +308,6 @@ object HashIndexEntryFormat {
           Persistent.Partial.noneMaybe
       }
   }
+
+  val formats: Array[HashIndexEntryFormat] = SealedList.list[HashIndexEntryFormat.Reference].toArray ++ SealedList.list[HashIndexEntryFormat.Copy].toArray
 }
