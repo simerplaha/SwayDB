@@ -17,8 +17,6 @@ and easy data management with simple functional APIs.
 
 [See documentation - SwayDB.io](http://swaydb.io) (currently being updated for latest version).
 
-**Project status** - Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases unless it's requested. 
-
 ## Performance (old benchmark for v0.2 - [#119](https://github.com/simerplaha/SwayDB/issues/119))
 
 | Storage  type   | Performance                               
@@ -51,6 +49,9 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 ## Quick start
 [Quick start App](http://swaydb.io/quick-start/?language=scala/).
 
+## Project status 
+Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases unless it's requested.
+
 ## Related GitHub projects
 - [SwayDB.java.examples](https://github.com/simerplaha/SwayDB.java.examples) - Java examples demonstrating features and APIs.
 - [SwayDB.kotlin.examples](https://github.com/simerplaha/SwayDB.kotlin.examples) - Kotlin examples demonstrating features and APIs.
@@ -58,6 +59,9 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 - [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
 - [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
 - [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
+
+## Contribution
+Contributions are welcomed following the [Scala code of conduct](https://www.scala-lang.org/conduct/).
 
 # Project support
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
