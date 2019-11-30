@@ -7,6 +7,8 @@ object Sealed {
 
   def list[A]: List[A] = macro list_impl[A]
 
+  def array[A]: Array[A] = macro array_impl[A]
+
   def list_impl[A: c.WeakTypeTag](c: blackbox.Context): c.Expr[List[A]] = {
     import c.universe._
 
@@ -33,8 +35,6 @@ object Sealed {
         )
       )
   }
-
-  def array[A]: Array[A] = macro array_impl[A]
 
   def array_impl[A: c.WeakTypeTag](c: blackbox.Context): c.Expr[Array[A]] = {
     import c.universe._
