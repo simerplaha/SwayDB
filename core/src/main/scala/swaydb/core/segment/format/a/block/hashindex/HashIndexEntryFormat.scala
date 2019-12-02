@@ -109,7 +109,6 @@ object HashIndexEntryFormat {
         val partialKeyValue =
           SortedIndexBlock.read(
             fromOffset = possibleOffset - 1,
-            overwriteNextIndexOffset = None,
             sortedIndexReader = sortedIndex,
             valuesReader = values
           )
@@ -191,7 +190,6 @@ object HashIndexEntryFormat {
               override def toPersistent: Persistent =
                 SortedIndexBlock.read(
                   fromOffset = indexOffset,
-                  overwriteNextIndexOffset = None,
                   sortedIndexReader = sortedIndex,
                   valuesReader = values
                 )
@@ -207,7 +205,6 @@ object HashIndexEntryFormat {
               override def toPersistent: Persistent =
                 SortedIndexBlock.read(
                   fromOffset = indexOffset,
-                  overwriteNextIndexOffset = None,
                   sortedIndexReader = sortedIndex,
                   valuesReader = values
                 )
@@ -288,7 +285,6 @@ object HashIndexEntryFormat {
                 override def toPersistent: Persistent =
                   SortedIndexBlock.read(
                     fromOffset = indexOffset,
-                    overwriteNextIndexOffset = None,
                     sortedIndexReader = sortedIndex,
                     valuesReader = values
                   )
@@ -304,7 +300,6 @@ object HashIndexEntryFormat {
                 override def toPersistent: Persistent =
                   SortedIndexBlock.read(
                     fromOffset = indexOffset,
-                    overwriteNextIndexOffset = None,
                     sortedIndexReader = sortedIndex,
                     valuesReader = values
                   )

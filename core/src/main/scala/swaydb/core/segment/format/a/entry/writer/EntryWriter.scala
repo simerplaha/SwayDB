@@ -159,6 +159,22 @@ private[core] object EntryWriter {
     writeResult
   }
 
+  private val maxTailBytesWithoutAccessPosition =
+    ByteSizeOf.varInt + //keyValueId
+      ByteSizeOf.varInt + //valueOffset
+      ByteSizeOf.varInt + //valueLength
+      ByteSizeOf.varLong //deadline
+
+  private val maxTailBytesWithAccessPosition =
+    maxTailBytesWithoutAccessPosition +
+      ByteSizeOf.varInt
+
+  def maxTailBytes(hasAccessIndexPosition: Boolean) =
+    if (hasAccessIndexPosition)
+      maxTailBytesWithAccessPosition
+    else
+      maxTailBytesWithoutAccessPosition
+
   //default format    - indexSize|accessIndex?|keyValueId|valueOffset|valueLength|deadline|key
   //normalised format - indexSize|accessIndex?|keySize|key|keyValueId|valueOffset|valueLength|deadline|normalisedBytes
   def close[T <: Transient](normaliseToSize: Option[Int],
@@ -185,7 +201,6 @@ private[core] object EntryWriter {
             (bytes, keyOffset)
           }
 
-//          val keyOffset = normalisedBytes.currentWritePosition - keySize
           normalisedBytes moveWritePosition toSize
           (normalisedBytes, keyOffset)
 

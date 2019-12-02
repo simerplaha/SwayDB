@@ -98,7 +98,6 @@ object BinarySearchEntryFormat {
 
       SortedIndexBlock.read(
         fromOffset = sortedIndexOffsetValue,
-        overwriteNextIndexOffset = None,
         sortedIndexReader = sortedIndex,
         valuesReader = values
       )
@@ -160,7 +159,6 @@ object BinarySearchEntryFormat {
           override def toPersistent: Persistent =
             SortedIndexBlock.read(
               fromOffset = indexOffset,
-              overwriteNextIndexOffset = None,
               sortedIndexReader = sortedIndex,
               valuesReader = values
             )
@@ -176,7 +174,6 @@ object BinarySearchEntryFormat {
           override def toPersistent: Persistent =
             SortedIndexBlock.read(
               fromOffset = indexOffset,
-              overwriteNextIndexOffset = None,
               sortedIndexReader = sortedIndex,
               valuesReader = values
             )
@@ -234,7 +231,6 @@ object BinarySearchEntryFormat {
           override def toPersistent: Persistent =
             SortedIndexBlock.read(
               fromOffset = indexOffset,
-              overwriteNextIndexOffset = None,
               sortedIndexReader = sortedIndex,
               valuesReader = values
             )
@@ -250,7 +246,6 @@ object BinarySearchEntryFormat {
           override def toPersistent: Persistent =
             SortedIndexBlock.read(
               fromOffset = indexOffset,
-              overwriteNextIndexOffset = None,
               sortedIndexReader = sortedIndex,
               valuesReader = values
             )

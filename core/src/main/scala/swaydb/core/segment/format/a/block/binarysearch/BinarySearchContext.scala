@@ -106,7 +106,6 @@ object BinarySearchContext {
           SortedIndexBlock.readAndMatch(
             matcher = matcher,
             fromOffset = offset,
-            overwriteNextIndexOffset = None,
             sortedIndexReader = sortedIndex,
             valuesReader = values
           )
@@ -136,7 +135,6 @@ object BinarySearchContext {
                 override def toPersistent: Persistent =
                   SortedIndexBlock.read(
                     fromOffset = offset,
-                    overwriteNextIndexOffset = None,
                     sortedIndexReader = sortedIndex,
                     valuesReader = values
                   )
@@ -152,7 +150,6 @@ object BinarySearchContext {
                 override def toPersistent: Persistent =
                   SortedIndexBlock.read(
                     fromOffset = offset,
-                    overwriteNextIndexOffset = None,
                     sortedIndexReader = sortedIndex,
                     valuesReader = values
                   )

@@ -263,20 +263,17 @@ private[core] object SortedIndexBlock extends LazyLogging {
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent =
     readKeyValue(
       indexEntrySizeMayBe = Some(previous.nextIndexSize),
-      overwriteNextIndexOffset = None,
-      indexReader = indexReader moveTo previous.nextIndexOffset,
+      sortedIndexReader = indexReader moveTo previous.nextIndexOffset,
       valuesReader = valuesReader,
       previous = Some(previous)
     )
 
   private def readKeyValue(fromPosition: Int,
-                           overwriteNextIndexOffset: Option[Int],
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent =
     readKeyValue(
       indexEntrySizeMayBe = None,
-      overwriteNextIndexOffset = overwriteNextIndexOffset,
-      indexReader = indexReader moveTo fromPosition,
+      sortedIndexReader = indexReader moveTo fromPosition,
       valuesReader = valuesReader,
       previous = None
     )
@@ -284,53 +281,42 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //  var ends = 0
   /**
    * Pre-requisite: The position of the index on the reader should be set.
-   *
-   * @param overwriteNextIndexOffset HashIndex with full copy store nextIndexOffset within themselves.
-   *                                 This param overwrites calculation of nextIndexOffset from indexReader
-   *                                 and applies this value if set. nextIndexOffset is used to
-   *                                 calculate if the next key-value exists or if the the currently read
-   *                                 key-value is in sequence with next.
    */
   private def readKeyValue(indexEntrySizeMayBe: Option[Int],
-                           overwriteNextIndexOffset: Option[Int],
-                           indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                            previous: Option[Persistent]): Persistent = {
-    val positionBeforeRead = indexReader.getPosition
+    val positionBeforeRead = sortedIndexReader.getPosition
 
     //try reading entry bytes within one seek.
     val (indexSize, blockReader, isBlockReader) =
       indexEntrySizeMayBe match {
         case Some(indexEntrySize) if indexEntrySize > 0 =>
-          indexReader skip Bytes.sizeOfUnsignedInt(indexEntrySize)
-          (indexEntrySize, indexReader, false)
+          sortedIndexReader skip Bytes.sizeOfUnsignedInt(indexEntrySize)
+          (indexEntrySize, sortedIndexReader, false)
 
         case _ =>
           //if the reader has a block cache try fetching the bytes required within one seek.
-          if (indexReader.hasBlockCache) {
+          if (sortedIndexReader.hasBlockCache) {
             //read the minimum number of bytes required for parse this indexEntry.
-            val bytes = indexReader.read(ByteSizeOf.varInt)
+            val bytes = sortedIndexReader.read(ByteSizeOf.varInt)
             val (indexEntrySize, indexEntrySizeByteSize) = bytes.readUnsignedIntWithByteSize()
             //open the slice if it's a subslice,
             val openBytes = bytes.openEnd()
 
             //check if the read bytes are enough to parse the entry.
-            val expectedSize =
-              if (overwriteNextIndexOffset.isDefined) //if overwrite is defined then next index's offset is not required.
-                indexEntrySize + indexEntrySizeByteSize
-              else //else next indexes's offset is required.
-                indexEntrySize + indexEntrySizeByteSize + ByteSizeOf.varInt
+            val expectedSize = indexEntrySize + indexEntrySizeByteSize + ByteSizeOf.varInt
 
             //if openBytes results in enough bytes to then read the open bytes only.
             if (openBytes.size >= expectedSize)
               (indexEntrySize, Reader(openBytes, indexEntrySizeByteSize), true)
             else {
               //              ends += 1
-              (indexEntrySize, indexReader.moveTo(positionBeforeRead + indexEntrySizeByteSize), false)
+              (indexEntrySize, sortedIndexReader.moveTo(positionBeforeRead + indexEntrySizeByteSize), false)
             }
           } else {
-            val indexEntrySize = indexReader.readUnsignedInt()
-            (indexEntrySize, indexReader, false)
+            val indexEntrySize = sortedIndexReader.readUnsignedInt()
+            (indexEntrySize, sortedIndexReader, false)
           }
       }
 
@@ -345,7 +331,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val (nextIndexSize, nextIndexOffset) =
       if (extraBytesRead <= 0) {
         //no next key-value, next size is 0 and set offset to -1.
-        (0, overwriteNextIndexOffset.getOrElse(-1))
+        (0, -1)
       } else {
         //if extra tail byte were read this mean that this index has a next key-value.
         //next indexEntrySize is only read if it's required.
@@ -358,7 +344,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         if (isBlockReader) {
           //openEnd() could read footer bytes so this check is needed.
           val nextIndexOffset = positionBeforeRead + blockReader.getPosition - extraBytesRead
-          if (nextIndexOffset == indexReader.size)
+          if (nextIndexOffset == sortedIndexReader.size)
             (0, -1)
           else
             (nextIndexEntrySize, nextIndexOffset)
@@ -370,7 +356,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     //take only the bytes required for this in entry and submit it for parsing/reading.
     val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
 
-    val block = indexReader.block
+    val block = sortedIndexReader.block
 
     EntryReader.parse(
       indexEntry = indexEntry,
@@ -410,8 +396,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         val next =
           readKeyValue(
             indexEntrySizeMayBe = nextIndexSize,
-            indexReader = readSortedIndexReader,
-            overwriteNextIndexOffset = None,
+            sortedIndexReader = readSortedIndexReader,
             valuesReader = valuesReader,
             previous = previousMayBe
           )
@@ -628,7 +613,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         val keyValue =
           readKeyValue(
             fromPosition = 0,
-            overwriteNextIndexOffset = None,
             indexReader = indexReader,
             valuesReader = valuesReader
           )
@@ -650,7 +634,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       readKeyValue(
         fromPosition = fromOffset,
         indexReader = indexReader,
-        overwriteNextIndexOffset = None,
         valuesReader = valuesReader
       )
 
@@ -672,7 +655,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       readKeyValue(
         fromPosition = fromOffset,
         indexReader = indexReader,
-        overwriteNextIndexOffset = None,
         valuesReader = valuesReader
       )
 
@@ -686,43 +668,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     )
   }
 
-  /**
-   * Parse the input indexReader to a key-value and apply match.
-   *
-   * @param overwriteNextIndexOffset A full hashIndex stores it's offset within itself.
-   *                                 This overwrites the [[Persistent.nextIndexOffset]]
-   *                                 value in the parsed key-values which is required to
-   *                                 perform sequential reads.
-   */
-  def readAndMatchToPersistent(matcher: KeyMatcher,
-                               fromOffset: Int,
-                               overwriteNextIndexOffset: Option[Int],
-                               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Option[Persistent] =
-    readAndMatch(
-      matcher = matcher,
-      fromOffset = fromOffset,
-      overwriteNextIndexOffset = overwriteNextIndexOffset,
-      sortedIndexReader = sortedIndexReader,
-      valuesReader = valuesReader
-    ) match {
-      case matched: KeyMatcher.Result.Matched =>
-        Some(matched.result.toPersistent)
-
-      case _: Result.BehindStopped | _: Result.AheadOrNoneOrEnd | _: Result.BehindFetchNext =>
-        None
-    }
-
   def readAndMatch(matcher: KeyMatcher,
                    fromOffset: Int,
-                   overwriteNextIndexOffset: Option[Int],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): KeyMatcher.Result = {
     val persistent =
       readKeyValue(
         fromPosition = fromOffset,
         indexReader = sortedIndexReader,
-        overwriteNextIndexOffset = overwriteNextIndexOffset,
         valuesReader = valuesReader
       )
 
@@ -734,27 +687,23 @@ private[core] object SortedIndexBlock extends LazyLogging {
   }
 
   def read(fromOffset: Int,
-           overwriteNextIndexOffset: Option[Int],
            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent =
     readKeyValue(
       fromPosition = fromOffset,
       indexReader = sortedIndexReader,
-      overwriteNextIndexOffset = overwriteNextIndexOffset,
       valuesReader = valuesReader
     )
 
   def readPreviousAndMatch(matcher: KeyMatcher,
                            next: Persistent,
                            fromOffset: Int,
-                           overwriteNextIndexOffset: Option[Int],
                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): KeyMatcher.Result = {
     val persistent =
       readKeyValue(
         fromPosition = fromOffset,
         indexReader = sortedIndexReader,
-        overwriteNextIndexOffset = overwriteNextIndexOffset,
         valuesReader = valuesReader
       )
 
@@ -768,14 +717,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def readSeekAndMatch(matcher: KeyMatcher,
                        previous: Persistent,
                        fromOffset: Int,
-                       overwriteNextIndexOffset: Option[Int],
                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): KeyMatcher.Result = {
     val persistent =
       readKeyValue(
         fromPosition = fromOffset,
         indexReader = sortedIndexReader,
-        overwriteNextIndexOffset = overwriteNextIndexOffset,
         valuesReader = valuesReader
       )
 
@@ -803,7 +750,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       readKeyValue(
         fromPosition = fromOffset,
         indexReader = sortedIndex,
-        overwriteNextIndexOffset = None,
         valuesReader = valuesReader
       )
 
