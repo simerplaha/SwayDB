@@ -168,7 +168,6 @@ class HashIndexBlockSpec extends TestBase {
                 ioStrategy = _ => randomIOStrategy(),
                 prefixCompressionResetCount = 0,
                 enableAccessPositionIndex = randomBoolean(),
-                disableKeyPrefixCompression = randomBoolean(),
                 normaliseIndex = randomBoolean(),
                 compressions = _ => compressions
               )

@@ -522,7 +522,6 @@ object TestData {
         prefixCompressionResetCount = randomIntMax(10),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),
-        disableKeyPrefixCompression = randomBoolean(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }

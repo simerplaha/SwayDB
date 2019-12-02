@@ -57,7 +57,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ioStrategy = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
-        disableKeyPrefixCompression = false,
         normaliseIndex = false,
         compressions = (_: UncompressedBlockInfo) => Seq.empty
       )
@@ -72,7 +71,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
         prefixCompressionResetCount = enable.prefixCompression.resetCount max 0,
-        disableKeyPrefixCompression = enable.prefixCompression.disableKeyPrefixCompression,
         normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
         //cannot normalise if prefix compression is enabled.
         ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
@@ -87,7 +85,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
               prefixCompressionResetCount: Int,
               enableAccessPositionIndex: Boolean,
               normaliseIndex: Boolean,
-              disableKeyPrefixCompression: Boolean,
               compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
       new Config(
         ioStrategy = ioStrategy,
@@ -95,7 +92,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         enableAccessPositionIndex = enableAccessPositionIndex,
         //cannot normalise if prefix compression is enabled.
         normaliseIndex = normaliseIndex,
-        disableKeyPrefixCompression = normaliseIndex || disableKeyPrefixCompression,
         compressions = compressions
       )
   }
@@ -107,20 +103,17 @@ private[core] object SortedIndexBlock extends LazyLogging {
                        val prefixCompressionResetCount: Int,
                        val enableAccessPositionIndex: Boolean,
                        val normaliseIndex: Boolean,
-                       val disableKeyPrefixCompression: Boolean,
                        val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
              prefixCompressionResetCount: Int = prefixCompressionResetCount,
              enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
              normaliseIndex: Boolean = normaliseIndex,
-             disableKeyPrefixCompression: Boolean = disableKeyPrefixCompression,
              compressions: UncompressedBlockInfo => Seq[CompressionInternal] = compressions) =
     //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
       Config(
         ioStrategy = ioStrategy,
         prefixCompressionResetCount = prefixCompressionResetCount,
-        disableKeyPrefixCompression = disableKeyPrefixCompression,
         enableAccessPositionIndex = enableAccessPositionIndex,
         normaliseIndex = normaliseIndex,
         compressions = compressions
@@ -135,7 +128,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
                    enableAccessPositionIndex: Boolean,
                    normaliseIndex: Boolean,
                    isPreNormalised: Boolean, //indicates all entries already normalised without making any adjustments.
-                   disableKeyPrefixCompression: Boolean,
                    segmentMaxIndexEntrySize: Int,
                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
     def bytes = _bytes
@@ -151,7 +143,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //normalisedForBinarySearch
         ByteSizeOf.boolean + //hasPrefixCompression
         ByteSizeOf.boolean + //isPreNormalised
-        ByteSizeOf.boolean + //disableKeyPrefixCompression
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
     Bytes.sizeOfUnsignedInt(size) + size
@@ -164,7 +155,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //normalisedForBinarySearch
         ByteSizeOf.boolean + //hasPrefixCompression
         ByteSizeOf.boolean + //isPreNormalised
-        ByteSizeOf.boolean + //disableKeyPrefixCompression
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
     Bytes.sizeOfUnsignedInt(size) + size
@@ -209,7 +199,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
         isPreNormalised = isPreNormalised,
         hasPrefixCompression = normalisedKeyValues.last.stats.hasPrefixCompression,
         enableAccessPositionIndex = normalisedKeyValues.last.sortedIndexConfig.enableAccessPositionIndex,
-        disableKeyPrefixCompression = normalisedKeyValues.last.sortedIndexConfig.disableKeyPrefixCompression,
         normaliseIndex = normalisedKeyValues.last.sortedIndexConfig.normaliseIndex,
         segmentMaxIndexEntrySize = normalisedKeyValues.last.stats.segmentMaxSortedIndexEntrySize,
         compressions =
@@ -242,7 +231,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
     state.bytes addBoolean state.hasPrefixCompression
     state.bytes addBoolean state.normaliseIndex
     state.bytes addBoolean state.isPreNormalised
-    state.bytes addBoolean state.disableKeyPrefixCompression
     state.bytes addUnsignedInt state.segmentMaxIndexEntrySize
 
     if (state.bytes.currentWritePosition > state.headerSize)
@@ -256,7 +244,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val hasPrefixCompression = header.headerReader.readBoolean()
     val normaliseForBinarySearch = header.headerReader.readBoolean()
     val isPreNormalised = header.headerReader.readBoolean()
-    val disableKeyPrefixCompression = header.headerReader.readBoolean()
     val segmentMaxIndexEntrySize = header.headerReader.readUnsignedInt()
 
     SortedIndexBlock(
@@ -265,7 +252,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       hasPrefixCompression = hasPrefixCompression,
       normaliseForBinarySearch = normaliseForBinarySearch,
       segmentMaxIndexEntrySize = segmentMaxIndexEntrySize,
-      disableKeyPrefixCompression = disableKeyPrefixCompression,
       isPreNormalised = isPreNormalised,
       headerSize = header.headerSize,
       compressionInfo = header.compressionInfo
@@ -916,7 +902,6 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           enableAccessPositionIndex: Boolean,
                                           hasPrefixCompression: Boolean,
                                           normaliseForBinarySearch: Boolean,
-                                          disableKeyPrefixCompression: Boolean,
                                           isPreNormalised: Boolean,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,

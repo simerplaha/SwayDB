@@ -129,7 +129,7 @@ private[core] class SegmentCache(path: Path,
       hasRange = hasRange,
       readState = readState
     ) match {
-      case resp: Some[Persistent] =>
+      case resp @ Some(_) =>
         addToCache(resp.get)
         resp
 
@@ -196,7 +196,7 @@ private[core] class SegmentCache(path: Path,
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReader = blockCache.createValuesReader()
     ) match {
-      case resp: Some[Persistent] =>
+      case resp @ Some(_) =>
         addToCache(resp.get)
         resp
 
@@ -304,7 +304,7 @@ private[core] class SegmentCache(path: Path,
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReader = blockCache.createValuesReader()
     ) match {
-      case resp: Some[Persistent] =>
+      case resp @ Some(_) =>
         addToCache(resp.get)
         resp
 

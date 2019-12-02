@@ -25,7 +25,7 @@ import swaydb.core.data.Transient
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
-import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
@@ -160,7 +160,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
-          disableKeyPrefixCompression = false,
           normaliseIndex = false,
           compressions = _ => Seq.empty
         ),

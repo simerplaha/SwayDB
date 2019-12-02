@@ -118,7 +118,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
             prefixCompressionResetCount = prefixCompression.resetCount,
-            disableKeyPrefixCompression = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
@@ -154,7 +153,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             //prefix compression is disabled, normaliseIndex will always return true.
             prefixCompressionResetCount = 0 - randomIntMax(10),
             enableAccessPositionIndex = randomBoolean(),
-            disableKeyPrefixCompression = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
           )

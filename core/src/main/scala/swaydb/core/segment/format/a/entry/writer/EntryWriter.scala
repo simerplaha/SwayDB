@@ -64,7 +64,7 @@ private[core] object EntryWriter {
                             normaliseToSize: Option[Int],
                             compressDuplicateValues: Boolean,
                             enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): EntryWriter.WriteResult =
-    when(enablePrefixCompression && !current.sortedIndexConfig.disableKeyPrefixCompression)(current.previous) flatMap {
+    when(enablePrefixCompression)(current.previous) flatMap {
       previous =>
         writeCompressed(
           current = current,
