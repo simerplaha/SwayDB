@@ -103,7 +103,6 @@ private[core] object EntryWriter {
             enablePrefixCompression = true,
             isKeyCompressed = true,
             hasPrefixCompressed = true,
-            adjustBaseIdToKeyValueId = true,
             plusSize = keySize + ByteSizeOf.varInt //write the size of keys compressed.
           )
 
@@ -142,7 +141,6 @@ private[core] object EntryWriter {
         enablePrefixCompression = enablePrefixCompression,
         isKeyCompressed = false,
         hasPrefixCompressed = false,
-        adjustBaseIdToKeyValueId = true,
         plusSize = bytesRequired
       )
 

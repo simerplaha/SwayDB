@@ -122,8 +122,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 deadlineId = deadlineId,
                 plusSize = 0,
                 hasPrefixCompressed = hasCompression,
-                isKeyCompressed = isKeyCompressed,
-                adjustBaseIdToKeyValueId = true
+                isKeyCompressed = isKeyCompressed
               )
 
             deadlineBytes.isFull shouldBe true
@@ -158,8 +157,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
             previousDeadline = Deadline(Slice.fill[Byte](8)(1.toByte)),
             deadlineId = deadlineId,
             plusSize = 0,
-            isKeyCompressed = false,
-            adjustBaseIdToKeyValueId = true
+            isKeyCompressed = false
           ) shouldBe empty
 
           //Test for when there are compressed bytes.
@@ -188,8 +186,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 previousDeadline = previousDeadline,
                 deadlineId = deadlineId,
                 plusSize = 0,
-                isKeyCompressed = compressedKey,
-                adjustBaseIdToKeyValueId = true
+                isKeyCompressed = compressedKey
               ).value
 
             deadlineBytes.isFull shouldBe true
@@ -268,8 +265,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                     deadlineId = deadlineID,
                     plusSize = 0,
                     hasPrefixCompressed = hasPrefixCompressed,
-                    isKeyCompressed = isKeyCompressed,
-                    adjustBaseIdToKeyValueId = true
+                    isKeyCompressed = isKeyCompressed
                   )
 
                 isPrefixCompressed shouldBe (hasPrefixCompressed || isKeyCompressed)
@@ -308,8 +304,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 enablePrefixCompression = false,
                 plusSize = 0,
                 isKeyCompressed = isKeyCompressed,
-                hasPrefixCompressed = hasPrefixCompressed,
-                adjustBaseIdToKeyValueId = true
+                hasPrefixCompressed = hasPrefixCompressed
               )
 
             isPrefixCompressed shouldBe (isKeyCompressed || hasPrefixCompressed)
@@ -344,8 +339,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 enablePrefixCompression = randomBoolean(),
                 plusSize = 0,
                 isKeyCompressed = isKeyCompressed,
-                hasPrefixCompressed = hasPrefixCompressed,
-                adjustBaseIdToKeyValueId = true
+                hasPrefixCompressed = hasPrefixCompressed
               )
 
             isPrefixCompressed shouldBe (isKeyCompressed || hasPrefixCompressed)
@@ -384,8 +378,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
                 enablePrefixCompression = true,
                 plusSize = 0,
                 isKeyCompressed = isKeyCompressed,
-                hasPrefixCompressed = hasPrefixCompressed,
-                adjustBaseIdToKeyValueId = true
+                hasPrefixCompressed = hasPrefixCompressed
               )
 
             isPrefixCompressed shouldBe true

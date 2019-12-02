@@ -73,8 +73,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   entryId = keyId,
                   plusSize = 0,
                   isKeyCompressed = true,
-                  hasPrefixCompressed = randomBoolean(),
-                  adjustBaseIdToKeyValueId = true
+                  hasPrefixCompressed = randomBoolean()
                 )
 
               val reader = Reader(writeResult.indexBytes)
@@ -129,8 +128,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
               entryId = keyId,
               plusSize = 0,
               isKeyCompressed = true,
-              hasPrefixCompressed = randomBoolean(),
-              adjustBaseIdToKeyValueId = true
+              hasPrefixCompressed = randomBoolean()
             )
 
           val reader = Reader(writeResult.indexBytes)
@@ -181,8 +179,7 @@ class TimeReaderWriterSpec extends WordSpec with Matchers {
                   entryId = keyId,
                   plusSize = 0,
                   isKeyCompressed = true,
-                  hasPrefixCompressed = randomBoolean(),
-                  adjustBaseIdToKeyValueId = true
+                  hasPrefixCompressed = randomBoolean()
                 )
 
               val reader = Reader(writeResult.indexBytes)
