@@ -23,19 +23,19 @@ import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
+import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
 
 object FunctionReader extends EntryReader[Persistent.Function] {
 
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
+                              sortedIndexEndOffset: Int,
                               sortedIndexAccessPosition: Int,
-                              keyOption: Option[Slice[Byte]],
+                              headerKeyBytes: Slice[Byte],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
-                              nextIndexOffset: Int,
-                              nextIndexSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -45,24 +45,40 @@ object FunctionReader extends EntryReader[Persistent.Function] {
     val time = timeReader.read(indexReader, previous)
 
     val key =
-      keyOption getOrElse {
-        KeyReader.read(
-          keyValueIdInt = keyValueId,
-          indexReader = indexReader,
-          previous = previous,
-          keyValueId = KeyValueId.Function
-        )
-      }
+      KeyReader.read(
+        keyValueIdInt = keyValueId,
+        keyBytes = headerKeyBytes,
+        previous = previous,
+        keyValueId = KeyValueId.Function
+      )
 
-    val valueOffset = valueOffsetAndLength.map(_._1).getOrElse(-1)
-    val valueLength = valueOffsetAndLength.map(_._2).getOrElse(0)
+    val bytesRead =
+      Bytes.sizeOfUnsignedInt(headerKeyBytes.size) +
+        indexReader.getPosition
+
+    val nextIndexOffset =
+      if (indexOffset + bytesRead - 1 == sortedIndexEndOffset)
+        -1
+      else
+        0
+
+    //temporary check to ensure that only the required bytes are read.
+    assert(indexOffset + bytesRead - 1 <= sortedIndexEndOffset, s"Read more: ${indexOffset + bytesRead - 1} not <= $sortedIndexEndOffset")
+
+    val nextKeySize =
+      if (indexReader.hasMore)
+        indexReader.readUnsignedInt()
+      else
+        0
+
+    val (valueOffset, valueLength) = valueOffsetAndLength getOrElse EntryReader.zeroValueOffsetAndLength
 
     Persistent.Function(
       key = key,
       valuesReader = valuesReader,
       time = time,
       nextIndexOffset = nextIndexOffset,
-      nextIndexSize = nextIndexSize,
+      nextKeySize = nextKeySize,
       indexOffset = indexOffset,
       valueOffset = valueOffset,
       valueLength = valueLength,

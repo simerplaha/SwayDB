@@ -799,13 +799,13 @@ object TestData {
           persistent match {
             case persistent: Persistent.Fixed =>
               persistent match {
-                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case put @ Persistent.Put(key, deadline, valueReader, time, nextIndexOffset, nextKeySize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.Put(key, put.getOrFetchValue, deadline, time)
 
-                case update @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case update @ Persistent.Update(key, deadline, valueReader, time, nextIndexOffset, nextKeySize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.Update(key, update.getOrFetchValue, deadline, time)
 
-                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
+                case function @ Persistent.Function(key, lazyFunctionReader, time, nextIndexOffset, nextKeySize, indexOffset, valueOffset, valueLength, _) =>
                   Memory.Function(key, function.getOrFetchFunction.runRandomIO.right.value, time)
 
                 case pendingApply @ Persistent.PendingApply(key, time, deadline, lazyPendingApplyValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>

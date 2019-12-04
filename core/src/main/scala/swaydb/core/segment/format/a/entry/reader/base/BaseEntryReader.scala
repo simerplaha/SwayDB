@@ -33,13 +33,12 @@ private[core] trait BaseEntryReader {
 
   def read[T](baseId: Int,
               keyValueId: Int,
+              sortedIndexEndOffset: Int,
               sortedIndexAccessPosition: Int,
-              keyOption: Option[Slice[Byte]],
+              headerKeyBytes: Slice[Byte],
               indexReader: ReaderBase,
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               indexOffset: Int,
-              nextIndexOffset: Int,
-              nextIndexSize: Int,
               previous: Option[Persistent],
               reader: EntryReader[T]): T
 }

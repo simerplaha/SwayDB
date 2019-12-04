@@ -58,11 +58,11 @@ private[core] object KeyWriter {
                               deadlineId: BaseEntryId.Deadline,
                               previous: Transient,
                               hasPrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
-    Bytes.compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 2) map {
+    Bytes.compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 3) map {
       case (commonBytes, remainingBytes) =>
         write(
           current = current,
-          headerInteger = commonBytes,
+          commonBytes = commonBytes,
           headerBytes = remainingBytes,
           plusSize = plusSize,
           deadlineId = deadlineId,
@@ -78,7 +78,7 @@ private[core] object KeyWriter {
 
     write(
       current = current,
-      headerInteger = current.mergedKey.size,
+      commonBytes = -1,
       headerBytes = current.mergedKey,
       plusSize = plusSize,
       deadlineId = deadlineId,
@@ -88,7 +88,7 @@ private[core] object KeyWriter {
   }
 
   private def write(current: Transient,
-                    headerInteger: Int,
+                    commonBytes: Int,
                     headerBytes: Slice[Byte],
                     plusSize: Int,
                     deadlineId: BaseEntryId.Deadline,
@@ -105,12 +105,35 @@ private[core] object KeyWriter {
     val sortedIndexAccessPosition = getAccessIndexPosition(current, isPrefixCompressed)
     val sortedIndexAccessPositionSize = sortedIndexAccessPosition.valueOrElse(Bytes.sizeOfUnsignedInt, 0)
 
-    val bytes =
-      Slice.create[Byte](Bytes.sizeOfUnsignedInt(id) + Bytes.sizeOfUnsignedInt(headerInteger) + headerBytes.size + sortedIndexAccessPositionSize + plusSize)
+    val byteSizeOfCommonBytes = Bytes.sizeOfUnsignedInt(commonBytes)
 
-    bytes
-      .addUnsignedInt(headerInteger)
-      .addAll(headerBytes)
+    val requiredSpace =
+      if (isKeyCompressed)
+        Bytes.sizeOfUnsignedInt(id) +
+          //keySize includes the size of the commonBytes and the key. This is so that when reading key-value in
+          //SortedIndexBlock and estimating max entry size the commonBytes are also accounted. This also makes it
+          //easy parsing key in KeyReader.
+          Bytes.sizeOfUnsignedInt(headerBytes.size + byteSizeOfCommonBytes) +
+          headerBytes.size +
+          sortedIndexAccessPositionSize +
+          plusSize
+      else
+        Bytes.sizeOfUnsignedInt(id) +
+          Bytes.sizeOfUnsignedInt(headerBytes.size) +
+          headerBytes.size +
+          sortedIndexAccessPositionSize +
+          plusSize
+
+    val bytes = Slice.create[Byte](requiredSpace)
+
+    if (isKeyCompressed) {
+      bytes addUnsignedInt (headerBytes.size + byteSizeOfCommonBytes)
+      bytes addUnsignedInt commonBytes
+    } else {
+      bytes addUnsignedInt headerBytes.size
+    }
+
+    bytes addAll headerBytes
 
     sortedIndexAccessPosition foreach bytes.addUnsignedInt
 

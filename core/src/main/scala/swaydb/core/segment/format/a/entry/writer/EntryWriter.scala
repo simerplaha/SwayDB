@@ -22,7 +22,10 @@ package swaydb.core.segment.format.a.entry.writer
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
+import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
 
 import scala.beans.BeanProperty
 
@@ -39,6 +42,14 @@ private[core] object EntryWriter {
     def unapply =
       (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed)
   }
+
+  private val tailBytes =
+    Bytes.sizeOfUnsignedInt(EntryReader.readers.last.maxID) + //keyValueId
+      ByteSizeOf.varLong + //deadline
+      ByteSizeOf.varInt + //valueOffset
+      ByteSizeOf.varInt + //valueLength
+      ByteSizeOf.int + //timeLength
+      ByteSizeOf.varLong //time
 
   /**
    * Format - keySize|key|accessIndex?|keyValueId|deadline|valueOffset|valueLength|time
@@ -69,4 +80,15 @@ private[core] object EntryWriter {
       entryId = BaseEntryIdFormatA.format.start,
       enablePrefixCompression = enablePrefixCompression
     )
+
+  def maxEntrySize(keySize: Int,
+                   hasAccessIndexPosition: Boolean): Int =
+    Bytes.sizeOfUnsignedInt(keySize) + //size of key
+      keySize + //key itself
+      (if (hasAccessIndexPosition) ByteSizeOf.varInt else 0) + //accessIndexPosition
+      tailBytes
+
+  def maxEntrySize(hasAccessIndexPosition: Boolean): Int =
+    (if (hasAccessIndexPosition) ByteSizeOf.varInt else 0) + //accessIndexPosition
+      tailBytes
 }

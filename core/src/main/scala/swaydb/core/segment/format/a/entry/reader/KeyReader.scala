@@ -21,18 +21,21 @@ package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.IO
 import swaydb.core.data.Persistent
+import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.Slice
 
 object KeyReader {
 
-  private def compressed(indexReader: ReaderBase,
+  private def compressed(headerKeyBytes: Slice[Byte],
                          previous: Option[Persistent]): Slice[Byte] =
     previous match {
       case Some(previous) =>
-        val commonBytes = indexReader.readUnsignedInt()
-        val rightBytes = indexReader.readRemaining()
+        val reader = Reader(headerKeyBytes)
+        val commonBytes = reader.readUnsignedInt()
+        val keyBytes = reader.readUnsignedInt()
+        val rightBytes = reader.read(keyBytes)
         Bytes.decompress(previous.key, rightBytes, commonBytes)
 
       case None =>
@@ -40,16 +43,13 @@ object KeyReader {
     }
 
   def read(keyValueIdInt: Int,
-           indexReader: ReaderBase,
+           keyBytes: Slice[Byte],
            previous: Option[Persistent],
            keyValueId: KeyValueId): Slice[Byte] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
-      KeyReader.compressed(
-        indexReader = indexReader,
-        previous = previous
-      )
+      KeyReader.compressed(keyBytes, previous)
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
-      indexReader.readRemaining()
+      keyBytes
     else
       throw IO.throwable(s"Invalid keyValueId $keyValueIdInt for ${keyValueId.getClass.getSimpleName}")
 }

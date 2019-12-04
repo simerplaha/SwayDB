@@ -28,6 +28,7 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
@@ -262,7 +263,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent =
     readKeyValue(
-      indexEntrySizeMayBe = Some(previous.nextIndexSize),
+      keySizeOption = Some(previous.nextKeySize),
       sortedIndexReader = indexReader moveTo previous.nextIndexOffset,
       valuesReader = valuesReader,
       previous = Some(previous)
@@ -272,101 +273,66 @@ private[core] object SortedIndexBlock extends LazyLogging {
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent =
     readKeyValue(
-      indexEntrySizeMayBe = None,
+      keySizeOption = None,
       sortedIndexReader = indexReader moveTo fromPosition,
       valuesReader = valuesReader,
       previous = None
     )
 
-  //  var ends = 0
   /**
    * Pre-requisite: The position of the index on the reader should be set.
    */
-  private def readKeyValue(indexEntrySizeMayBe: Option[Int],
+  private def readKeyValue(keySizeOption: Option[Int],
                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                            previous: Option[Persistent]): Persistent = {
     val positionBeforeRead = sortedIndexReader.getPosition
 
     //try reading entry bytes within one seek.
-    val (indexSize, blockReader, isBlockReader) =
-      indexEntrySizeMayBe match {
-        case Some(indexEntrySize) if indexEntrySize > 0 =>
-          sortedIndexReader skip Bytes.sizeOfUnsignedInt(indexEntrySize)
-          (indexEntrySize, sortedIndexReader, false)
+    val (maxIndexSize, headerInteger, indexEntryReader) =
+      keySizeOption match {
+        case Some(keySize) if keySize > 0 =>
+          sortedIndexReader skip Bytes.sizeOfUnsignedInt(keySize)
+          val indexSize = EntryWriter.maxEntrySize(keySize, sortedIndexReader.block.enableAccessPositionIndex)
+          (indexSize, keySize, sortedIndexReader)
 
         case _ =>
           //if the reader has a block cache try fetching the bytes required within one seek.
           if (sortedIndexReader.hasBlockCache) {
             //read the minimum number of bytes required for parse this indexEntry.
             val bytes = sortedIndexReader.read(ByteSizeOf.varInt)
-            val (indexEntrySize, indexEntrySizeByteSize) = bytes.readUnsignedIntWithByteSize()
+            val (headerInteger, headerIntegerByteSize) = bytes.readUnsignedIntWithByteSize()
             //open the slice if it's a subslice,
             val openBytes = bytes.openEnd()
 
+            val maxIndexSize = headerInteger + headerIntegerByteSize + EntryWriter.maxEntrySize(sortedIndexReader.block.enableAccessPositionIndex)
+
             //check if the read bytes are enough to parse the entry.
-            val expectedSize = indexEntrySize + indexEntrySizeByteSize + ByteSizeOf.varInt
+            val expectedSize = maxIndexSize + ByteSizeOf.varInt
 
             //if openBytes results in enough bytes to then read the open bytes only.
             if (openBytes.size >= expectedSize)
-              (indexEntrySize, Reader(openBytes, indexEntrySizeByteSize), true)
-            else {
-              //              ends += 1
-              (indexEntrySize, sortedIndexReader.moveTo(positionBeforeRead + indexEntrySizeByteSize), false)
-            }
+              (maxIndexSize, headerInteger, Reader(openBytes, headerIntegerByteSize))
+            else
+              (maxIndexSize, headerInteger, sortedIndexReader.moveTo(positionBeforeRead + headerIntegerByteSize))
           } else {
-            val indexEntrySize = sortedIndexReader.readUnsignedInt()
-            (indexEntrySize, sortedIndexReader, false)
+            val headerInteger = sortedIndexReader.readUnsignedInt()
+            val indexSize = EntryWriter.maxEntrySize(headerInteger, sortedIndexReader.block.enableAccessPositionIndex)
+            (indexSize, headerInteger, sortedIndexReader)
           }
       }
 
     //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
-    val indexEntryBytesAndNextIndexEntrySize = blockReader read (indexSize + ByteSizeOf.varInt)
-
-    val extraBytesRead = indexEntryBytesAndNextIndexEntrySize.size - indexSize
-
-    //The above fetches another 5 bytes (unsigned int) along with previous index entry.
-    //These 5 bytes contains the next index's size. Here the next key-values indexSize and indexOffset are read.
-
-    val (nextIndexSize, nextIndexOffset) =
-      if (extraBytesRead <= 0) {
-        //no next key-value, next size is 0 and set offset to -1.
-        (0, -1)
-      } else {
-        //if extra tail byte were read this mean that this index has a next key-value.
-        //next indexEntrySize is only read if it's required.
-
-        val nextIndexEntrySize =
-          indexEntryBytesAndNextIndexEntrySize
-            .drop(indexSize)
-            .readUnsignedInt()
-
-        if (isBlockReader) {
-          //openEnd() could read footer bytes so this check is needed.
-          val nextIndexOffset = positionBeforeRead + blockReader.getPosition - extraBytesRead
-          if (nextIndexOffset == sortedIndexReader.size)
-            (0, -1)
-          else
-            (nextIndexEntrySize, nextIndexOffset)
-        } else {
-          (nextIndexEntrySize, blockReader.getPosition - extraBytesRead)
-        }
-      }
-
-    //take only the bytes required for this in entry and submit it for parsing/reading.
-    val indexEntry = indexEntryBytesAndNextIndexEntrySize take indexSize
-
-    val block = sortedIndexReader.block
+    val indexEntry = indexEntryReader read (maxIndexSize + ByteSizeOf.varInt)
 
     EntryReader.parse(
+      headerInteger = headerInteger,
       indexEntry = indexEntry,
-      mightBeCompressed = block.hasPrefixCompression,
+      mightBeCompressed = sortedIndexReader.block.hasPrefixCompression,
+      sortedIndexEndOffset = sortedIndexReader.offset.end,
       valuesReader = valuesReader,
       indexOffset = positionBeforeRead,
-      nextIndexOffset = nextIndexOffset,
-      nextIndexSize = nextIndexSize,
-      hasAccessPositionIndex = block.enableAccessPositionIndex,
-      isNormalised = block.hasNormalisedBytes,
+      hasAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
       previous = previous
     )
   }
@@ -384,18 +350,18 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     (1 to keyValueCount).foldLeft(Option.empty[Persistent]) {
       case (previousMayBe, _) =>
-        val nextIndexSize =
+        val nextKeySize =
           previousMayBe map {
             previous =>
               //If previous is known, keep reading same reader
               // and set the next position of the reader to be of the next index's offset.
               readSortedIndexReader moveTo previous.nextIndexOffset
-              previous.nextIndexSize
+              previous.nextKeySize
           }
 
         val next =
           readKeyValue(
-            indexEntrySizeMayBe = nextIndexSize,
+            keySizeOption = nextKeySize,
             sortedIndexReader = readSortedIndexReader,
             valuesReader = valuesReader,
             previous = previousMayBe
@@ -837,7 +803,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     }
 
   /**
-   * If key-value is read from copied HashIndex then keyValue.nextIndexSize can be 0 (unknown) so always
+   * If key-value is read from copied HashIndex then keyValue.nextKeySize can be 0 (unknown) so always
    * use nextIndexOffset to determine is there are more key-values.
    */
   private def hasMore(keyValue: Persistent) =

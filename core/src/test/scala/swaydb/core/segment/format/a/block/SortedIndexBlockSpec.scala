@@ -70,16 +70,16 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
 
         def expectedNextIndexOffset = thisKeyValueRealIndexOffset + transient.indexEntryBytes.size
 
-        def expectedNextIndexSize = (keyValues(index + 1).indexEntryBytes.size - Bytes.sizeOfUnsignedInt(keyValues(index + 1).indexEntryBytes.size))
+        def expectednextKeySize = (keyValues(index + 1).indexEntryBytes.size - Bytes.sizeOfUnsignedInt(keyValues(index + 1).indexEntryBytes.size))
 
         if (!keyValues.last.sortedIndexConfig.normaliseIndex)
           if (index < keyValues.size - 1) {
             //if it's not the last
             persistent.nextIndexOffset shouldBe expectedNextIndexOffset
-            persistent.nextIndexSize shouldBe expectedNextIndexSize
+            persistent.nextKeySize shouldBe expectednextKeySize
           } else {
             persistent.nextIndexOffset shouldBe -1
-            persistent.nextIndexSize shouldBe 0
+            persistent.nextKeySize shouldBe 0
           }
 
         persistent match {

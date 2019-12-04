@@ -32,13 +32,12 @@ import swaydb.data.util.Maybe._
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
                               keyValueId: Int,
+                              sortedIndexEndOffset: Int,
                               sortedIndexAccessPosition: Int,
-                              keyOption: Option[Slice[Byte]],
+                              headerKeyBytes: Slice[Byte],
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
-                              nextIndexOffset: Int,
-                              nextIndexSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -58,6 +57,8 @@ object EntryReader {
 
   val someUncompressedReader = Maybe.some(BaseEntryReaderUncompressed: BaseEntryReader)
 
+  val zeroValueOffsetAndLength = (0, -1)
+
   def findReader(baseId: Int, mightBeCompressed: Boolean): Maybe[BaseEntryReader] =
     if (mightBeCompressed)
       readers.findMaybe(_.maxID >= baseId)
@@ -66,14 +67,13 @@ object EntryReader {
 
   private def parse[T](baseId: Int,
                        keyValueId: Int,
+                       sortedIndexEndOffset: Int,
                        sortedIndexAccessPosition: Int,
-                       keyOption: Option[Slice[Byte]],
+                       headerKeyBytes: Slice[Byte],
                        mightBeCompressed: Boolean,
                        indexReader: ReaderBase,
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                        indexOffset: Int,
-                       nextIndexOffset: Int,
-                       nextIndexSize: Int,
                        previous: Option[Persistent],
                        entryReader: EntryReader[T]): T = {
     val baseEntryReaderMaybe = findReader(baseId = baseId, mightBeCompressed = mightBeCompressed)
@@ -83,29 +83,29 @@ object EntryReader {
       baseEntryReaderMaybe.read(
         baseId = baseId,
         keyValueId = keyValueId,
+        sortedIndexEndOffset = sortedIndexEndOffset,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyOption = keyOption,
+        headerKeyBytes = headerKeyBytes,
         indexReader = indexReader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
         previous = previous,
         reader = entryReader
       )
   }
 
-  def parse(indexEntry: Slice[Byte],
+  def parse(headerInteger: Int,
+            indexEntry: Slice[Byte],
             mightBeCompressed: Boolean,
+            sortedIndexEndOffset: Int,
             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             indexOffset: Int,
-            nextIndexOffset: Int,
-            nextIndexSize: Int,
             hasAccessPositionIndex: Boolean,
-            isNormalised: Boolean,
             previous: Option[Persistent]): Persistent = {
     //check if de-normalising is required.
     val reader = Reader(indexEntry)
+
+    val key: Slice[Byte] = reader.read(headerInteger)
 
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
@@ -113,26 +113,19 @@ object EntryReader {
       else
         0
 
-    val keyOption: Option[Slice[Byte]] =
-      if (isNormalised)
-        Some(reader.read(reader.readUnsignedInt()))
-      else
-        None
-
     val keyValueId = reader.readUnsignedInt()
 
     if (KeyValueId.Put hasKeyValueId keyValueId)
       EntryReader.parse(
         baseId = KeyValueId.Put.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
+        sortedIndexEndOffset = sortedIndexEndOffset,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyOption = keyOption,
+        headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
         previous = previous,
         entryReader = PutReader
       )
@@ -140,14 +133,13 @@ object EntryReader {
       EntryReader.parse(
         baseId = KeyValueId.Range.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
+        sortedIndexEndOffset = sortedIndexEndOffset,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyOption = keyOption,
+        headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
         previous = previous,
         entryReader = RangeReader
       )
@@ -155,14 +147,13 @@ object EntryReader {
       EntryReader.parse(
         baseId = KeyValueId.Remove.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
+        sortedIndexEndOffset = sortedIndexEndOffset,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyOption = keyOption,
+        headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
         previous = previous,
         entryReader = RemoveReader
       )
@@ -170,14 +161,13 @@ object EntryReader {
       EntryReader.parse(
         baseId = KeyValueId.Update.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
+        sortedIndexEndOffset = sortedIndexEndOffset,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyOption = keyOption,
+        headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
         previous = previous,
         entryReader = UpdateReader
       )
@@ -185,14 +175,13 @@ object EntryReader {
       EntryReader.parse(
         baseId = KeyValueId.Function.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
+        sortedIndexEndOffset = sortedIndexEndOffset,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyOption = keyOption,
+        headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
         previous = previous,
         entryReader = FunctionReader
       )
@@ -200,14 +189,13 @@ object EntryReader {
       EntryReader.parse(
         baseId = KeyValueId.PendingApply.adjustKeyValueIdToBaseId(keyValueId),
         keyValueId = keyValueId,
+        sortedIndexEndOffset = sortedIndexEndOffset,
         sortedIndexAccessPosition = sortedIndexAccessPosition,
-        keyOption = keyOption,
+        headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
-        nextIndexOffset = nextIndexOffset,
-        nextIndexSize = nextIndexSize,
         previous = previous,
         entryReader = PendingApplyReader
       )

@@ -41,7 +41,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
   "write and read single Fixed entry" in {
     runThis(1000.times) {
       implicit val testTimer = TestTimer.Empty
-      val entry = randomFixedKeyValue(key = randomIntMax()).toTransient
+      val entry = randomFixedKeyValue(key = 1, value = Some(2), deadline = None).toTransient
 
       //if normalise is true, use normalised entry.
       val normalisedEntry =
@@ -52,14 +52,13 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
       val read =
         EntryReader.parse(
+          headerInteger = normalisedEntry.indexEntryBytes.readUnsignedInt(),
           indexEntry = normalisedEntry.indexEntryBytes.dropUnsignedInt(),
+          sortedIndexEndOffset = normalisedEntry.indexEntryBytes.size - 1,
           mightBeCompressed = entry.stats.hasPrefixCompression,
           valuesReader = entry.valueEntryBytes.map(buildSingleValueReader),
           indexOffset = 0,
-          nextIndexOffset = 0,
-          nextIndexSize = 0,
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
-          isNormalised = entry.sortedIndexConfig.normaliseIndex,
           previous = None
         ).runRandomIO.right.value
 
@@ -91,16 +90,17 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
       val valueBytes: Slice[Byte] = previous.valueEntryBytes ++ next.valueEntryBytes
 
+      val sortedIndexEndOffset = next.stats.segmentSortedIndexSize - 1
+
       val previousRead =
         EntryReader.parse(
+          sortedIndexEndOffset = sortedIndexEndOffset,
+          headerInteger = previous.indexEntryBytes.readUnsignedInt(),
           indexEntry = previous.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,
-          nextIndexOffset = 0,
-          nextIndexSize = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
-          isNormalised = next.sortedIndexConfig.normaliseIndex,
           previous = None
         ).runRandomIO.right.value
 
@@ -108,14 +108,13 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
       val nextRead =
         EntryReader.parse(
+          sortedIndexEndOffset = sortedIndexEndOffset,
+          headerInteger = next.indexEntryBytes.readUnsignedInt(),
           indexEntry = next.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,
-          nextIndexOffset = 0,
-          nextIndexSize = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
-          isNormalised = next.sortedIndexConfig.normaliseIndex,
           previous = Some(previousRead)
         ).runRandomIO.right.value
 
