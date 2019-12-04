@@ -55,7 +55,7 @@ private[core] object Stats {
     val linkedPosition =
       previousStats.map(_.linkedPosition + 1) getOrElse 1
 
-    val hasPrefixCompressed =
+    val hasPrefixCompression =
       isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
 
     val thisKeyValuesSortedIndexSize =
@@ -270,7 +270,7 @@ private[core] object Stats {
       segmentMinSortedIndexEntrySize = segmentMinSortedIndexEntrySize,
       segmentLargestMergedKeySize = segmentsLargestMergedKeySize,
       segmentLargestUnmergedKeySize = segmentLargestUnmergedKeySize,
-      hasPrefixCompression = hasPrefixCompressed
+      hasPrefixCompression = hasPrefixCompression
     )
   }
 }

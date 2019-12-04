@@ -26,14 +26,11 @@ import swaydb.core.util.Options._
 
 private[writer] object TimeWriter {
 
-  private[writer] def write[T](current: Transient,
-                               currentTime: Time,
-                               compressDuplicateValues: Boolean,
-                               entryId: BaseEntryId.Key,
-                               enablePrefixCompression: Boolean,
-                               plusSize: Int,
-                               isKeyCompressed: Boolean,
-                               hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]) =
+  private[writer] def write(current: Transient,
+                            currentTime: Time,
+                            compressDuplicateValues: Boolean,
+                            entryId: BaseEntryId.Key,
+                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
     if (currentTime.time.nonEmpty)
       when(enablePrefixCompression)(current.previous.map(getTime)) flatMap {
         previousTime =>
@@ -44,9 +41,7 @@ private[writer] object TimeWriter {
             current = current,
             compressDuplicateValues = compressDuplicateValues,
             entryId = entryId,
-            plusSize = plusSize,
-            enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyCompressed
+            enablePrefixCompression = enablePrefixCompression
           )
       } getOrElse {
         //no common prefixes or no previous write without compression
@@ -55,10 +50,7 @@ private[writer] object TimeWriter {
           current = current,
           compressDuplicateValues = compressDuplicateValues,
           entryId = entryId,
-          plusSize = plusSize,
-          enablePrefixCompression = enablePrefixCompression,
-          isKeyUncompressed = isKeyCompressed,
-          hasPrefixCompressed = hasPrefixCompressed
+          enablePrefixCompression = enablePrefixCompression
         )
       }
     else
@@ -66,10 +58,7 @@ private[writer] object TimeWriter {
         current = current,
         compressDuplicateValues = compressDuplicateValues,
         entryId = entryId,
-        plusSize = plusSize,
-        enablePrefixCompression = enablePrefixCompression,
-        isKeyUncompressed = isKeyCompressed,
-        hasPrefixCompressed = hasPrefixCompressed
+        enablePrefixCompression = enablePrefixCompression
       )
 
   private[writer] def getTime(keyValue: Transient): Time =
@@ -100,9 +89,7 @@ private[writer] object TimeWriter {
                                        current: Transient,
                                        compressDuplicateValues: Boolean,
                                        entryId: BaseEntryId.Key,
-                                       plusSize: Int,
-                                       enablePrefixCompression: Boolean,
-                                       isKeyUncompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[EntryWriter.WriteResult] =
+                                       enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[EntryWriter.WriteResult] =
     compress(
       previous = previousTime.time,
       next = currentTime.time,
@@ -114,10 +101,9 @@ private[writer] object TimeWriter {
             current = current,
             compressDuplicateValues = compressDuplicateValues,
             entryId = entryId.timePartiallyCompressed,
-            plusSize = plusSize + sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(remainingBytes.size) + remainingBytes.size,
+            plusSize = sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(remainingBytes.size) + remainingBytes.size,
             enablePrefixCompression = enablePrefixCompression,
-            isKeyUncompressed = isKeyUncompressed,
-            hasPrefixCompressed = true
+            hasPrefixCompression = true
           )
 
         writeResult
@@ -133,20 +119,16 @@ private[writer] object TimeWriter {
                                 current: Transient,
                                 compressDuplicateValues: Boolean,
                                 entryId: BaseEntryId.Key,
-                                plusSize: Int,
-                                enablePrefixCompression: Boolean,
-                                isKeyUncompressed: Boolean,
-                                hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) = {
+                                enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) = {
     //no common prefixes or no previous write without compression
     val writeResult =
       ValueWriter.write(
         current = current,
         compressDuplicateValues = compressDuplicateValues,
         entryId = entryId.timeUncompressed,
-        plusSize = plusSize + sizeOfUnsignedInt(currentTime.time.size) + currentTime.time.size,
+        plusSize = sizeOfUnsignedInt(currentTime.time.size) + currentTime.time.size,
         enablePrefixCompression = enablePrefixCompression,
-        isKeyUncompressed = isKeyUncompressed,
-        hasPrefixCompressed = hasPrefixCompressed
+        hasPrefixCompression = false
       )
 
     writeResult
@@ -160,17 +142,13 @@ private[writer] object TimeWriter {
   private def noTime(current: Transient,
                      compressDuplicateValues: Boolean,
                      entryId: BaseEntryId.Key,
-                     plusSize: Int,
-                     enablePrefixCompression: Boolean,
-                     isKeyUncompressed: Boolean,
-                     hasPrefixCompressed: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
+                     enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]) =
     ValueWriter.write(
       current = current,
       compressDuplicateValues = compressDuplicateValues,
       entryId = entryId.noTime,
-      plusSize = plusSize,
+      plusSize = 0,
       enablePrefixCompression = enablePrefixCompression,
-      isKeyUncompressed = isKeyUncompressed,
-      hasPrefixCompressed = hasPrefixCompressed
+      hasPrefixCompression = false
     )
 }
