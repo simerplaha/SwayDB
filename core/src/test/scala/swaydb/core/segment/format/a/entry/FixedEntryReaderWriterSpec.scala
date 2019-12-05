@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.entry
 
 import org.scalatest.WordSpec
-import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -41,7 +40,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
   "write and read single Fixed entry" in {
     runThis(1000.times) {
       implicit val testTimer = TestTimer.Empty
-      val entry = randomFixedKeyValue(key = 1, value = Some(2), deadline = None).toTransient
+      val entry = randomFixedKeyValue(key = randomIntMax()).toTransient
 
       //if normalise is true, use normalised entry.
       val normalisedEntry =
@@ -60,7 +59,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           indexOffset = 0,
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
-        ).runRandomIO.right.value
+        )
 
       //      println("read:  " + read)
       read shouldBe entry
@@ -102,7 +101,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
-        ).runRandomIO.right.value
+        )
 
       previousRead shouldBe previous
 
@@ -116,7 +115,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = Some(previousRead)
-        ).runRandomIO.right.value
+        )
 
       //      val nextRead = EntryReader.read(Reader(next.indexEntryBytes), Reader(valueBytes), 0, 0, 0, Some(previousRead)).runIO
       nextRead shouldBe next

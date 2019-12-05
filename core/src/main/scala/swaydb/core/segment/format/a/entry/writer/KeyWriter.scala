@@ -34,7 +34,8 @@ private[core] object KeyWriter {
             plusSize: Int,
             deadlineId: BaseEntryId.Deadline,
             enablePrefixCompression: Boolean,
-            hasPrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) =
+            hasPrefixCompression: Boolean,
+            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) =
     when(enablePrefixCompression)(current.previous) flatMap {
       previous =>
         writeCompressed(
@@ -42,14 +43,16 @@ private[core] object KeyWriter {
           plusSize = plusSize,
           deadlineId = deadlineId,
           previous = previous,
-          hasPrefixCompression = hasPrefixCompression
+          hasPrefixCompression = hasPrefixCompression,
+          normaliseToSize = normaliseToSize
         )
     } getOrElse {
       writeUncompressed(
         current = current,
         plusSize = plusSize,
         deadlineId = deadlineId,
-        hasPrefixCompression = hasPrefixCompression
+        hasPrefixCompression = hasPrefixCompression,
+        normaliseToSize = normaliseToSize
       )
     }
 
@@ -57,7 +60,8 @@ private[core] object KeyWriter {
                               plusSize: Int,
                               deadlineId: BaseEntryId.Deadline,
                               previous: Transient,
-                              hasPrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
+                              hasPrefixCompression: Boolean,
+                              normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
     Bytes.compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 3) map {
       case (commonBytes, remainingBytes) =>
         write(
@@ -67,14 +71,16 @@ private[core] object KeyWriter {
           plusSize = plusSize,
           deadlineId = deadlineId,
           isKeyCompressed = true,
-          hasPrefixCompression = hasPrefixCompression
+          hasPrefixCompression = hasPrefixCompression,
+          normaliseToSize = normaliseToSize
         )
     }
 
   private def writeUncompressed(current: Transient,
                                 plusSize: Int,
                                 deadlineId: BaseEntryId.Deadline,
-                                hasPrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
+                                hasPrefixCompression: Boolean,
+                                normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
 
     write(
       current = current,
@@ -83,7 +89,8 @@ private[core] object KeyWriter {
       plusSize = plusSize,
       deadlineId = deadlineId,
       isKeyCompressed = false,
-      hasPrefixCompression = hasPrefixCompression
+      hasPrefixCompression = hasPrefixCompression,
+      normaliseToSize = normaliseToSize
     )
   }
 
@@ -93,7 +100,8 @@ private[core] object KeyWriter {
                     plusSize: Int,
                     deadlineId: BaseEntryId.Deadline,
                     isKeyCompressed: Boolean,
-                    hasPrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
+                    hasPrefixCompression: Boolean,
+                    normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
     val id =
       binder.keyValueId.adjustBaseIdToKeyValueIdKey(
         baseId = deadlineId.baseId,
@@ -124,7 +132,14 @@ private[core] object KeyWriter {
           sortedIndexAccessPositionSize +
           plusSize
 
-    val bytes = Slice.create[Byte](requiredSpace)
+    val bytes =
+      if (normaliseToSize.isDefined) {
+        val bytes = Slice.create[Byte](length = requiredSpace + normaliseToSize.get, isFull = true)
+        bytes moveWritePosition 0
+        bytes
+      } else {
+        Slice.create[Byte](requiredSpace)
+      }
 
     if (isKeyCompressed) {
       bytes addUnsignedInt (headerBytes.size + byteSizeOfCommonBytes)

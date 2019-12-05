@@ -78,7 +78,8 @@ private[core] object EntryWriter {
       currentTime = currentTime,
       compressDuplicateValues = compressDuplicateValues,
       entryId = BaseEntryIdFormatA.format.start,
-      enablePrefixCompression = enablePrefixCompression
+      enablePrefixCompression = enablePrefixCompression,
+      normaliseToSize = normaliseToSize
     )
 
   def maxEntrySize(keySize: Int,

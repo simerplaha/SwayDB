@@ -36,7 +36,8 @@ private[writer] object DeadlineWriter {
                             deadlineId: DeadlineId,
                             enablePrefixCompression: Boolean,
                             plusSize: Int,
-                            hasPrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
+                            hasPrefixCompression: Boolean,
+                            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
     val currentDeadline = current.deadline
     val previousDeadline = current.previous.flatMap(_.deadline)
 
@@ -49,7 +50,8 @@ private[writer] object DeadlineWriter {
               currentDeadline = currentDeadline,
               previousDeadline = previousDeadline,
               deadlineId = deadlineId,
-              plusSize = plusSize
+              plusSize = plusSize,
+              normaliseToSize = normaliseToSize
             )
         } getOrElse {
           //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
@@ -59,7 +61,8 @@ private[writer] object DeadlineWriter {
             deadlineId = deadlineId,
             plusSize = plusSize,
             hasPrefixCompression = hasPrefixCompression,
-            enablePrefixCompression = enablePrefixCompression
+            enablePrefixCompression = enablePrefixCompression,
+            normaliseToSize = normaliseToSize
           )
         }
 
@@ -69,7 +72,8 @@ private[writer] object DeadlineWriter {
           deadlineId = deadlineId,
           plusSize = plusSize,
           hasPrefixCompression = hasPrefixCompression,
-          enablePrefixCompression = enablePrefixCompression
+          enablePrefixCompression = enablePrefixCompression,
+          normaliseToSize = normaliseToSize
         )
     }
   }
@@ -100,7 +104,8 @@ private[writer] object DeadlineWriter {
                                    deadlineId: DeadlineId,
                                    plusSize: Int,
                                    hasPrefixCompression: Boolean,
-                                   enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
+                                   enablePrefixCompression: Boolean,
+                                   normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
     //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
     val deadlineLong = currentDeadline.toNanos
     val deadline = deadlineId.deadlineUncompressed
@@ -111,7 +116,8 @@ private[writer] object DeadlineWriter {
         plusSize = Bytes.sizeOfUnsignedLong(deadlineLong) + plusSize,
         deadlineId = deadline,
         enablePrefixCompression = enablePrefixCompression,
-        hasPrefixCompression = hasPrefixCompression
+        hasPrefixCompression = hasPrefixCompression,
+        normaliseToSize = normaliseToSize
       )
 
     bytes addUnsignedLong deadlineLong
@@ -123,7 +129,8 @@ private[writer] object DeadlineWriter {
                                currentDeadline: Deadline,
                                previousDeadline: Deadline,
                                deadlineId: DeadlineId,
-                               plusSize: Int)(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
+                               plusSize: Int,
+                               normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
     Bytes.compress(
       previous = previousDeadline.toBytes,
       next = currentDeadline.toBytes,
@@ -138,7 +145,8 @@ private[writer] object DeadlineWriter {
             plusSize = deadlineCompressedBytes.size + plusSize,
             deadlineId = deadline,
             enablePrefixCompression = true,
-            hasPrefixCompression = true
+            hasPrefixCompression = true,
+            normaliseToSize = normaliseToSize
           )
 
         bytes addAll deadlineCompressedBytes
@@ -150,12 +158,14 @@ private[writer] object DeadlineWriter {
                                  deadlineId: DeadlineId,
                                  plusSize: Int,
                                  hasPrefixCompression: Boolean,
-                                 enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) =
+                                 enablePrefixCompression: Boolean,
+                                 normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) =
     KeyWriter.write(
       current = current,
       plusSize = plusSize,
       deadlineId = deadlineId.noDeadline,
       enablePrefixCompression = enablePrefixCompression,
-      hasPrefixCompression = hasPrefixCompression
+      hasPrefixCompression = hasPrefixCompression,
+      normaliseToSize = normaliseToSize
     )
 }

@@ -57,7 +57,7 @@ object EntryReader {
 
   val someUncompressedReader = Maybe.some(BaseEntryReaderUncompressed: BaseEntryReader)
 
-  val zeroValueOffsetAndLength = (0, -1)
+  val zeroValueOffsetAndLength = (-1, 0)
 
   def findReader(baseId: Int, mightBeCompressed: Boolean): Maybe[BaseEntryReader] =
     if (mightBeCompressed)
