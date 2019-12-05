@@ -330,7 +330,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       headerInteger = headerInteger,
       indexEntry = indexEntry,
       mightBeCompressed = sortedIndexReader.block.hasPrefixCompression,
-      sortedIndexEndOffset = sortedIndexReader.offset.end,
+      sortedIndexEndOffset = sortedIndexReader.offset.size - 1,
       valuesReader = valuesReader,
       indexOffset = positionBeforeRead,
       hasAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
