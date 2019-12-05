@@ -56,6 +56,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           mightBeCompressed = entry.stats.hasPrefixCompression,
           sortedIndexEndOffset = normalisedEntry.indexEntryBytes.size - 1,
           valuesReader = entry.valueEntryBytes.map(buildSingleValueReader),
+          normalisedByteSize = if (entry.sortedIndexConfig.normaliseIndex) normalisedEntry.indexEntryBytes.size else 0,
           indexOffset = 0,
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
@@ -98,6 +99,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           mightBeCompressed = next.stats.hasPrefixCompression,
           sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
+          normalisedByteSize = if (next.sortedIndexConfig.normaliseIndex) next.indexEntryBytes.size else 0,
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = None
@@ -112,6 +114,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           mightBeCompressed = next.stats.hasPrefixCompression,
           sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
+          normalisedByteSize = if (next.sortedIndexConfig.normaliseIndex) next.indexEntryBytes.size else 0,
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = Some(previousRead)

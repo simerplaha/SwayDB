@@ -39,6 +39,7 @@ private[core] trait BaseEntryReader {
               indexReader: ReaderBase,
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               indexOffset: Int,
+              normalisedByteSize: Int,
               previous: Option[Persistent],
               reader: EntryReader[T]): T
 }

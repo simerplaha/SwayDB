@@ -36,6 +36,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
+                              normalisedByteSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -52,28 +53,16 @@ object FunctionReader extends EntryReader[Persistent.Function] {
         keyValueId = KeyValueId.Function
       )
 
-    val bytesRead =
-      Bytes.sizeOfUnsignedInt(headerKeyBytes.size) +
-        indexReader.getPosition
-
-    val nextIndexOffsetMaybe = indexOffset + bytesRead - 1
-
-    val nextIndexOffset =
-      if (nextIndexOffsetMaybe == sortedIndexEndOffset)
-        -1
-      else
-        nextIndexOffsetMaybe + 1
-
-    //temporary check to ensure that only the required bytes are read.
-    assert(indexOffset + bytesRead - 1 <= sortedIndexEndOffset, s"Read more: ${indexOffset + bytesRead - 1} not <= $sortedIndexEndOffset")
-
-    val nextKeySize =
-      if (indexReader.hasMore)
-        indexReader.readUnsignedInt()
-      else
-        0
-
     val (valueOffset, valueLength) = valueOffsetAndLength getOrElse EntryReader.zeroValueOffsetAndLength
+
+    val (nextIndexOffset: Int, nextKeySize: Int) =
+      EntryReader.calculateNextKeyValueOffsetAndSize(
+        sortedIndexEndOffset = sortedIndexEndOffset,
+        headerKeyBytes = headerKeyBytes,
+        indexReader = indexReader,
+        indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize
+      )
 
     Persistent.Function(
       key = key,

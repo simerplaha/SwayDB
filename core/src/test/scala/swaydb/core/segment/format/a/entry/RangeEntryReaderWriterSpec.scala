@@ -59,6 +59,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           valuesReader = entry.valueEntryBytes.map(buildSingleValueReader),
           indexOffset = 0,
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
+          normalisedByteSize = if (entry.sortedIndexConfig.normaliseIndex) normalisedEntry.indexEntryBytes.size else 0,
           previous = None
         )
 
@@ -113,6 +114,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
+          normalisedByteSize = if (next.sortedIndexConfig.normaliseIndex) next.indexEntryBytes.size else 0,
           previous = None
         )
 
@@ -127,6 +129,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
+          normalisedByteSize = if (next.sortedIndexConfig.normaliseIndex) next.indexEntryBytes.size else 0,
           previous = Some(previousRead)
         )
 

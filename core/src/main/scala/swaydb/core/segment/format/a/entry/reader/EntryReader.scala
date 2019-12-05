@@ -40,6 +40,7 @@ trait EntryReader[E] {
                               indexReader: ReaderBase,
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
+                              normalisedByteSize: Int,
                               previous: Option[Persistent])(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
@@ -76,6 +77,7 @@ object EntryReader {
                        indexReader: ReaderBase,
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                        indexOffset: Int,
+                       normalisedByteSize: Int,
                        previous: Option[Persistent],
                        entryReader: EntryReader[T]): T = {
     val baseEntryReaderMaybe = findReader(baseId = baseId, mightBeCompressed = mightBeCompressed)
@@ -91,6 +93,7 @@ object EntryReader {
         indexReader = indexReader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize,
         previous = previous,
         reader = entryReader
       )
@@ -103,6 +106,7 @@ object EntryReader {
             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             indexOffset: Int,
             hasAccessPositionIndex: Boolean,
+            normalisedByteSize: Int,
             previous: Option[Persistent]): Persistent = {
     //check if de-normalising is required.
     val reader = Reader(indexEntry)
@@ -128,6 +132,7 @@ object EntryReader {
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize,
         previous = previous,
         entryReader = PutReader
       )
@@ -142,6 +147,7 @@ object EntryReader {
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize,
         previous = previous,
         entryReader = RangeReader
       )
@@ -156,6 +162,7 @@ object EntryReader {
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize,
         previous = previous,
         entryReader = RemoveReader
       )
@@ -170,6 +177,7 @@ object EntryReader {
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize,
         previous = previous,
         entryReader = UpdateReader
       )
@@ -184,6 +192,7 @@ object EntryReader {
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize,
         previous = previous,
         entryReader = FunctionReader
       )
@@ -198,6 +207,7 @@ object EntryReader {
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
+        normalisedByteSize = normalisedByteSize,
         previous = previous,
         entryReader = PendingApplyReader
       )
@@ -249,5 +259,52 @@ object EntryReader {
       }
     else
       throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, headerInteger: $headerInteger")
+  }
+
+  /**
+   * Given enough information about the currently parsed key-value calculates next key-value indexOffset and also the header
+   * integer (key-size).
+   *
+   * @param sortedIndexEndOffset end offset of the sorted index block only (starts from 0). Does not include file offset.
+   * @param headerKeyBytes       header key bytes already read.
+   * @param indexReader          reader for the current entry.
+   * @param indexOffset          this key-values index offset used to calculate next key-values indexOffset and header key byte size.
+   * @param normalisedByteSize   normalised size for entry sorted index entry. 0 if not normalised.
+   * @return [[Tuple2]] that contains the indexOffset of next key-value and next key-values size.
+   */
+  def calculateNextKeyValueOffsetAndSize(sortedIndexEndOffset: Int,
+                                         headerKeyBytes: Slice[Byte],
+                                         indexReader: ReaderBase,
+                                         indexOffset: Int,
+                                         normalisedByteSize: Int): (Int, Int) = {
+    val bytesRead =
+      Bytes.sizeOfUnsignedInt(headerKeyBytes.size) +
+        indexReader.getPosition
+
+    val nextIndexOffsetMaybe =
+      if (normalisedByteSize > 0)
+        indexOffset + normalisedByteSize - 1 //skip the zeroes if the indexEntry was normalised.
+      else
+        indexOffset + bytesRead - 1
+
+    val (nextIndexOffset, nextKeySize) =
+      if (nextIndexOffsetMaybe == sortedIndexEndOffset) {
+        EntryReader.zeroValueOffsetAndLength //(-1, 0): -1 indicates last key-value.
+      } else {
+        val nextIndexSize: Int =
+          if (normalisedByteSize > 0)
+            indexReader //skip the zeroes if the indexEntry was normalised.
+              .skip(normalisedByteSize - bytesRead)
+              .readUnsignedInt()
+          else
+            indexReader.readUnsignedInt()
+
+        (nextIndexOffsetMaybe + 1, nextIndexSize)
+      }
+
+    //temporary check to ensure that only the required bytes are read.
+    assert(indexOffset + bytesRead - 1 <= sortedIndexEndOffset, s"Read more: ${indexOffset + bytesRead - 1} not <= $sortedIndexEndOffset")
+
+    (nextIndexOffset, nextKeySize)
   }
 }

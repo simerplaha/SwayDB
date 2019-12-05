@@ -130,6 +130,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                    enableAccessPositionIndex: Boolean,
                    normaliseIndex: Boolean,
                    isPreNormalised: Boolean, //indicates all entries already normalised without making any adjustments.
+                   normalisedByteSize: Int,
                    segmentMaxIndexEntrySize: Int,
                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
     def bytes = _bytes
@@ -145,6 +146,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //normalisedForBinarySearch
         ByteSizeOf.boolean + //hasPrefixCompression
         ByteSizeOf.boolean + //isPreNormalised
+        ByteSizeOf.varInt + // normalisedEntrySize
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
     Bytes.sizeOfUnsignedInt(size) + size
@@ -157,6 +159,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //normalisedForBinarySearch
         ByteSizeOf.boolean + //hasPrefixCompression
         ByteSizeOf.boolean + //isPreNormalised
+        ByteSizeOf.varInt + // normalisedEntrySize
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
 
     Bytes.sizeOfUnsignedInt(size) + size
@@ -171,11 +174,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def init(keyValues: Iterable[Transient]): (SortedIndexBlock.State, Iterable[Transient]) = {
     val isPreNormalised = keyValues.last.stats.hasSameIndexSizes()
 
-    val normalisedKeyValues =
-      if (!isPreNormalised && keyValues.last.sortedIndexConfig.normaliseIndex)
-        Transient.normalise(keyValues)
-      else
-        keyValues
+    val (normalisedKeyValues, normalisedByteSize) =
+      if (!isPreNormalised && keyValues.last.sortedIndexConfig.normaliseIndex) {
+        val normalisedKeyValues = Transient.normalise(keyValues)
+        (normalisedKeyValues, normalisedKeyValues.head.indexEntryBytes.size)
+      } else if (isPreNormalised) {
+        (keyValues, keyValues.head.indexEntryBytes.size)
+      } else {
+        (keyValues, 0)
+      }
 
     val hasCompression =
       normalisedKeyValues
@@ -198,10 +205,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
       State(
         _bytes = bytes,
         headerSize = headSize,
-        isPreNormalised = isPreNormalised,
         hasPrefixCompression = normalisedKeyValues.last.stats.hasPrefixCompression,
         enableAccessPositionIndex = normalisedKeyValues.last.sortedIndexConfig.enableAccessPositionIndex,
         normaliseIndex = normalisedKeyValues.last.sortedIndexConfig.normaliseIndex,
+        isPreNormalised = isPreNormalised,
+        normalisedByteSize = normalisedByteSize,
         segmentMaxIndexEntrySize = normalisedKeyValues.last.stats.segmentMaxSortedIndexEntrySize,
         compressions =
           //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
@@ -233,6 +241,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
     state.bytes addBoolean state.hasPrefixCompression
     state.bytes addBoolean state.normaliseIndex
     state.bytes addBoolean state.isPreNormalised
+    //only write normalisedByteSize if key-values were normalised or pre-normalised.
+    if (state.normaliseIndex || state.isPreNormalised) state.bytes addUnsignedInt state.normalisedByteSize
     state.bytes addUnsignedInt state.segmentMaxIndexEntrySize
 
     if (state.bytes.currentWritePosition > state.headerSize)
@@ -246,6 +256,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val hasPrefixCompression = header.headerReader.readBoolean()
     val normaliseForBinarySearch = header.headerReader.readBoolean()
     val isPreNormalised = header.headerReader.readBoolean()
+    val normalisedByteSize =
+      if (normaliseForBinarySearch || isPreNormalised)
+        header.headerReader.readUnsignedInt()
+      else
+        0
     val segmentMaxIndexEntrySize = header.headerReader.readUnsignedInt()
 
     SortedIndexBlock(
@@ -254,6 +269,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       hasPrefixCompression = hasPrefixCompression,
       normaliseForBinarySearch = normaliseForBinarySearch,
       segmentMaxIndexEntrySize = segmentMaxIndexEntrySize,
+      normalisedByteSize = normalisedByteSize,
       isPreNormalised = isPreNormalised,
       headerSize = header.headerSize,
       compressionInfo = header.compressionInfo
@@ -294,12 +310,24 @@ private[core] object SortedIndexBlock extends LazyLogging {
       keySizeOption match {
         case Some(keySize) if keySize > 0 =>
           sortedIndexReader skip Bytes.sizeOfUnsignedInt(keySize)
-          val indexSize = EntryWriter.maxEntrySize(keySize, sortedIndexReader.block.enableAccessPositionIndex)
+
+          val indexSize =
+            if (sortedIndexReader.block.isNormalisedBinarySearchable)
+              sortedIndexReader.block.normalisedByteSize
+            else
+              EntryWriter.maxEntrySize(keySize, sortedIndexReader.block.enableAccessPositionIndex)
+
           (indexSize, keySize, sortedIndexReader)
 
         case _ =>
           //if the reader has a block cache try fetching the bytes required within one seek.
-          if (sortedIndexReader.hasBlockCache) {
+          if (sortedIndexReader.block.isNormalisedBinarySearchable) {
+            val indexSize = sortedIndexReader.block.normalisedByteSize
+            val bytes = sortedIndexReader.read(sortedIndexReader.block.normalisedByteSize + ByteSizeOf.varInt)
+            val reader = Reader(bytes)
+            val headerInteger = reader.readUnsignedInt()
+            (indexSize, headerInteger, reader)
+          } else if (sortedIndexReader.hasBlockCache) {
             //read the minimum number of bytes required for parse this indexEntry.
             val bytes = sortedIndexReader.read(ByteSizeOf.varInt)
             val (headerInteger, headerIntegerByteSize) = bytes.readUnsignedIntWithByteSize()
@@ -329,6 +357,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     EntryReader.parse(
       headerInteger = headerInteger,
       indexEntry = indexEntry,
+      normalisedByteSize = sortedIndexReader.block.normalisedByteSize,
       mightBeCompressed = sortedIndexReader.block.hasPrefixCompression,
       sortedIndexEndOffset = sortedIndexReader.offset.size - 1,
       valuesReader = valuesReader,
@@ -853,6 +882,7 @@ private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           hasPrefixCompression: Boolean,
                                           normaliseForBinarySearch: Boolean,
                                           isPreNormalised: Boolean,
+                                          normalisedByteSize: Int,
                                           headerSize: Int,
                                           segmentMaxIndexEntrySize: Int,
                                           compressionInfo: Option[Block.CompressionInfo]) extends Block[SortedIndexBlock.Offset] {
