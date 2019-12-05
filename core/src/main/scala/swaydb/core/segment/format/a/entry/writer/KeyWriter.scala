@@ -116,7 +116,9 @@ private[core] object KeyWriter {
     val byteSizeOfCommonBytes = Bytes.sizeOfUnsignedInt(commonBytes)
 
     val requiredSpace =
-      if (isKeyCompressed)
+      if (normaliseToSize.isDefined)
+        normaliseToSize.get
+      else if (isKeyCompressed)
         Bytes.sizeOfUnsignedInt(id) +
           //keySize includes the size of the commonBytes and the key. This is so that when reading key-value in
           //SortedIndexBlock and estimating max entry size the commonBytes are also accounted. This also makes it
@@ -133,14 +135,9 @@ private[core] object KeyWriter {
           sortedIndexAccessPositionSize +
           plusSize
 
-    val bytes =
-      if (normaliseToSize.isDefined) {
-        val bytes = Slice.create[Byte](length = requiredSpace + normaliseToSize.get, isFull = true)
-        bytes moveWritePosition 0
-        bytes
-      } else {
-        Slice.create[Byte](requiredSpace)
-      }
+    val bytes = Slice.create[Byte](length = requiredSpace, isFull = normaliseToSize.isDefined)
+
+    if (normaliseToSize.isDefined) bytes moveWritePosition 0
 
     if (isKeyCompressed) {
       bytes addUnsignedInt (headerBytes.size + byteSizeOfCommonBytes)
