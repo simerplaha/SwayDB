@@ -58,9 +58,9 @@ object UpdateReader extends EntryReader[Persistent.Update] {
     val (nextIndexOffset: Int, nextKeySize: Int) =
       EntryReader.calculateNextKeyValueOffsetAndSize(
         sortedIndexEndOffset = sortedIndexEndOffset,
-        headerKeyBytes = headerKeyBytes,
-        indexReader = indexReader,
-        indexOffset = indexOffset,
+        previousKeyValueHeaderKeyBytes = headerKeyBytes,
+        previousKeyValueIndexReader = indexReader,
+        previousKeyValueIndexOffset = indexOffset,
         normalisedByteSize = normalisedByteSize
       )
 

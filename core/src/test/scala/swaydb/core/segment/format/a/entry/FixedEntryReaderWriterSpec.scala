@@ -68,7 +68,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
   }
 
   "write and read two fixed entries" in {
-    runThis(100.times) {
+    runThis(100.times, log = true) {
       implicit val testTimer = TestTimer.random
 
       val previousNotNormalised = randomizedKeyValues(count = 1).head
@@ -84,18 +84,19 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           (previousNotNormalised, nextNotNormalised)
         }
 
-      //      println
-      //      println("write previous: " + previous)
-      //      println("write next: " + next)
+//      println
+//      println("write previous: " + previous)
+//      println("write next: " + next)
 
+      val indexEntryBytes: Slice[Byte] = previous.indexEntryBytes ++ next.indexEntryBytes
       val valueBytes: Slice[Byte] = previous.valueEntryBytes ++ next.valueEntryBytes
 
-      val sortedIndexEndOffset = next.stats.segmentSortedIndexSize - 1
+      val sortedIndexEndOffset = indexEntryBytes.size - 1
 
       val previousRead =
         EntryReader.parse(
-          headerInteger = previous.indexEntryBytes.readUnsignedInt(),
-          indexEntry = previous.indexEntryBytes.dropUnsignedInt(),
+          headerInteger = indexEntryBytes.readUnsignedInt(),
+          indexEntry = indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
@@ -115,7 +116,7 @@ class FixedEntryReaderWriterSpec extends WordSpec {
           sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           normalisedByteSize = if (next.sortedIndexConfig.normaliseIndex) next.indexEntryBytes.size else 0,
-          indexOffset = 0,
+          indexOffset = previousRead.nextIndexOffset,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           previous = Some(previousRead)
         )

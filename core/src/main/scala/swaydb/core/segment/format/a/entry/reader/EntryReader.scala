@@ -100,7 +100,7 @@ object EntryReader {
   }
 
   def parse(headerInteger: Int,
-            indexEntry: Slice[Byte],
+            indexEntry: Slice[Byte], //does not contain headerInteger bytes.
             mightBeCompressed: Boolean,
             sortedIndexEndOffset: Int,
             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -266,26 +266,26 @@ object EntryReader {
    * integer (key-size).
    *
    * @param sortedIndexEndOffset end offset of the sorted index block only (starts from 0). Does not include file offset.
-   * @param headerKeyBytes       header key bytes already read.
-   * @param indexReader          reader for the current entry.
-   * @param indexOffset          this key-values index offset used to calculate next key-values indexOffset and header key byte size.
+   * @param previousKeyValueHeaderKeyBytes       header key bytes already read.
+   * @param previousKeyValueIndexReader          reader for the current entry.
+   * @param previousKeyValueIndexOffset          this key-values index offset used to calculate next key-values indexOffset and header key byte size.
    * @param normalisedByteSize   normalised size for entry sorted index entry. 0 if not normalised.
    * @return [[Tuple2]] that contains the indexOffset of next key-value and next key-values size.
    */
   def calculateNextKeyValueOffsetAndSize(sortedIndexEndOffset: Int,
-                                         headerKeyBytes: Slice[Byte],
-                                         indexReader: ReaderBase,
-                                         indexOffset: Int,
+                                         previousKeyValueHeaderKeyBytes: Slice[Byte],
+                                         previousKeyValueIndexReader: ReaderBase,
+                                         previousKeyValueIndexOffset: Int,
                                          normalisedByteSize: Int): (Int, Int) = {
     val bytesRead =
-      Bytes.sizeOfUnsignedInt(headerKeyBytes.size) +
-        indexReader.getPosition
+      Bytes.sizeOfUnsignedInt(previousKeyValueHeaderKeyBytes.size) +
+        previousKeyValueIndexReader.getPosition
 
     val nextIndexOffsetMaybe =
       if (normalisedByteSize > 0)
-        indexOffset + normalisedByteSize - 1 //skip the zeroes if the indexEntry was normalised.
+        previousKeyValueIndexOffset + normalisedByteSize - 1 //skip the zeroes if the indexEntry was normalised.
       else
-        indexOffset + bytesRead - 1
+        previousKeyValueIndexOffset + bytesRead - 1
 
     val (nextIndexOffset, nextKeySize) =
       if (nextIndexOffsetMaybe == sortedIndexEndOffset) {
@@ -293,17 +293,17 @@ object EntryReader {
       } else {
         val nextIndexSize: Int =
           if (normalisedByteSize > 0)
-            indexReader //skip the zeroes if the indexEntry was normalised.
+            previousKeyValueIndexReader //skip the zeroes if the indexEntry was normalised.
               .skip(normalisedByteSize - bytesRead)
               .readUnsignedInt()
           else
-            indexReader.readUnsignedInt()
+            previousKeyValueIndexReader.readUnsignedInt()
 
         (nextIndexOffsetMaybe + 1, nextIndexSize)
       }
 
     //temporary check to ensure that only the required bytes are read.
-    assert(indexOffset + bytesRead - 1 <= sortedIndexEndOffset, s"Read more: ${indexOffset + bytesRead - 1} not <= $sortedIndexEndOffset")
+    assert(previousKeyValueIndexOffset + bytesRead - 1 <= sortedIndexEndOffset, s"Read more: ${previousKeyValueIndexOffset + bytesRead - 1} not <= $sortedIndexEndOffset")
 
     (nextIndexOffset, nextKeySize)
   }

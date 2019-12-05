@@ -101,14 +101,15 @@ class RangeEntryReaderWriterSpec extends WordSpec {
       //      println("write previous: " + previous)
       //      println("write next: " + next)
 
+      val indexEntryBytes: Slice[Byte] = previous.indexEntryBytes ++ next.indexEntryBytes
       val valueBytes: Slice[Byte] = previous.valueEntryBytes ++ next.valueEntryBytes
 
-      val sortedIndexEndOffset = next.stats.segmentSortedIndexSize - 1
+      val sortedIndexEndOffset = indexEntryBytes.size - 1
 
       val previousRead =
         EntryReader.parse(
-          headerInteger = previous.indexEntryBytes.readUnsignedInt(),
-          indexEntry = previous.indexEntryBytes.dropUnsignedInt(),
+          headerInteger = indexEntryBytes.readUnsignedInt(),
+          indexEntry = indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
           sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
@@ -127,7 +128,7 @@ class RangeEntryReaderWriterSpec extends WordSpec {
           mightBeCompressed = next.stats.hasPrefixCompression,
           sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
-          indexOffset = 0,
+          indexOffset = previousRead.nextIndexOffset,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
           normalisedByteSize = if (next.sortedIndexConfig.normaliseIndex) next.indexEntryBytes.size else 0,
           previous = Some(previousRead)
