@@ -27,20 +27,10 @@ object IndexFormat {
    * This configuration requires a maximum of 1 to 5 bytes and is space efficient but might be
    * slower then [[ReferenceKey]] and [[CopyKey]].
    */
-  object ReferenceOffset extends IndexFormat
+  object Reference extends IndexFormat
 
   /**
-   * In addition to information stored by [[ReferenceOffset]] this also stores a reference to the position of a key within sorted index.
-   *
-   * Requires additional 2 to 10 bytes. This config might require more space but increases read performance since as it reduces the amount
-   * parsed data to fetch the stored key there reduces CPU time.
-   *
-   * Faster than [[ReferenceOffset]] and slower than [[CopyKey]]
-   */
-  object ReferenceKey extends IndexFormat
-
-  /**
-   * In addition to information stored by [[ReferenceOffset]] this also stores a copy of the key within the index itself.
+   * In addition to information stored by [[Reference]] this also stores a copy of the key within the index itself.
    *
    * In addition to space required by [[ReferenceKey]] this requires additional space to store the key.
    * This config increases read and compaction performance since as it reduces the amount

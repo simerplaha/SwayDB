@@ -125,7 +125,6 @@ private[core] object HashIndexBlock extends LazyLogging {
       val writeAbleLargestValueSize =
         last.hashIndexConfig.format.bytesToAllocatePerEntry(
           largestIndexOffset = last.stats.segmentAccessIndexOffset,
-          largestKeyOffset = last.stats.segmentMergedKeyOffset,
           //unmerged used here because hashIndexes do not index range key-values.
           largestMergedKeySize = last.stats.segmentLargestUnmergedKeySize
         )
@@ -303,7 +302,6 @@ private[core] object HashIndexBlock extends LazyLogging {
         case format: HashIndexEntryFormat.Reference =>
           HashIndexBlock.writeReference(
             indexOffset = keyValue.stats.segmentAccessIndexOffset,
-            keyOffset = keyValue.stats.segmentMergedKeyOffset,
             hashKey = keyValue.key,
             mergedKey = keyValue.mergedKey,
             keyType = keyValue.id,
@@ -314,7 +312,6 @@ private[core] object HashIndexBlock extends LazyLogging {
         case format: HashIndexEntryFormat.Copy =>
           HashIndexBlock.writeCopy(
             indexOffset = keyValue.stats.segmentAccessIndexOffset,
-            keyOffset = keyValue.stats.segmentMergedKeyOffset,
             hashKey = keyValue.key,
             mergedKey = keyValue.mergedKey,
             keyType = keyValue.id,
@@ -329,7 +326,6 @@ private[core] object HashIndexBlock extends LazyLogging {
    * Mutates the slice and adds writes the indexOffset to it's hash index.
    */
   def writeReference(indexOffset: Int,
-                     keyOffset: Int,
                      hashKey: Slice[Byte],
                      mergedKey: Slice[Byte],
                      keyType: Byte,
@@ -339,7 +335,6 @@ private[core] object HashIndexBlock extends LazyLogging {
     val requiredSpace =
       format.bytesToAllocatePerEntry(
         largestIndexOffset = indexOffset,
-        largestKeyOffset = keyOffset,
         largestMergedKeySize = mergedKey.size
       )
 
@@ -368,7 +363,6 @@ private[core] object HashIndexBlock extends LazyLogging {
 
           format.write(
             indexOffset = indexOffset,
-            keyOffset = keyOffset,
             mergedKey = mergedKey,
             keyType = keyType,
             bytes = state.bytes
@@ -465,7 +459,6 @@ private[core] object HashIndexBlock extends LazyLogging {
    * Writes full copy of the index entry within HashIndex.
    */
   def writeCopy(indexOffset: Int,
-                keyOffset: Int,
                 hashKey: Slice[Byte],
                 mergedKey: Slice[Byte],
                 keyType: Byte,
@@ -479,7 +472,6 @@ private[core] object HashIndexBlock extends LazyLogging {
     val requiredSpace =
       state.format.bytesToAllocatePerEntry(
         largestIndexOffset = indexOffset,
-        largestKeyOffset = keyOffset,
         largestMergedKeySize = mergedKey.size
       )
 
@@ -507,7 +499,6 @@ private[core] object HashIndexBlock extends LazyLogging {
           val crc =
             format.write(
               indexOffset = indexOffset,
-              keyOffset = keyOffset,
               mergedKey = mergedKey,
               keyType = keyType,
               bytes = state.bytes

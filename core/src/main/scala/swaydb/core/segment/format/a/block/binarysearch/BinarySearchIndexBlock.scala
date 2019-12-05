@@ -109,7 +109,6 @@ private[core] object BinarySearchIndexBlock {
   object State {
     def apply(format: BinarySearchEntryFormat,
               largestIndexOffset: Int,
-              largestKeyOffset: Int,
               largestKeySize: Int,
               uniqueValuesCount: Int,
               isFullIndex: Boolean,
@@ -127,14 +126,12 @@ private[core] object BinarySearchIndexBlock {
         val bytesPerValue =
           format.bytesToAllocatePerEntry(
             largestIndexOffset = largestIndexOffset,
-            largestKeyOffset = largestKeyOffset,
             largestKeySize = largestKeySize
           )
 
         val bytes: Int =
           optimalBytesRequired(
             largestIndexOffset = largestIndexOffset,
-            largestKeyOffset = largestKeyOffset,
             largestKeySize = largestKeySize,
             valuesCount = uniqueValuesCount,
             hasCompression = true,
@@ -200,7 +197,6 @@ private[core] object BinarySearchIndexBlock {
       BinarySearchIndexBlock.State(
         format = normalisedLast.binarySearchIndexConfig.format,
         largestIndexOffset = normalisedLast.stats.segmentAccessIndexOffset,
-        largestKeyOffset = normalisedLast.stats.segmentMergedKeyOffset,
         largestKeySize = normalisedLast.stats.segmentLargestMergedKeySize,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
         uniqueValuesCount = normalisedLast.stats.uncompressedKeyCounts,
@@ -211,7 +207,6 @@ private[core] object BinarySearchIndexBlock {
   }
 
   def optimalBytesRequired(largestIndexOffset: Int,
-                           largestKeyOffset: Int,
                            largestKeySize: Int,
                            valuesCount: Int,
                            hasCompression: Boolean,
@@ -224,7 +219,6 @@ private[core] object BinarySearchIndexBlock {
       val bytesToAllocatedPerEntry = bytesToAllocatedPerEntryMaybe getOrElse {
         format.bytesToAllocatePerEntry(
           largestIndexOffset = largestIndexOffset,
-          largestKeyOffset = largestKeyOffset,
           largestKeySize = largestKeySize
         )
       }
@@ -295,14 +289,12 @@ private[core] object BinarySearchIndexBlock {
     if (!keyValue.isPrefixCompressed)
       write(
         indexOffset = keyValue.stats.segmentAccessIndexOffset,
-        keyOffset = keyValue.stats.segmentMergedKeyOffset,
         mergedKey = keyValue.mergedKey,
         keyType = keyValue.id,
         state = state
       )
 
   def write(indexOffset: Int,
-            keyOffset: Int,
             mergedKey: Slice[Byte],
             keyType: Byte,
             state: State): Unit =
@@ -314,7 +306,6 @@ private[core] object BinarySearchIndexBlock {
 
       state.format.write(
         indexOffset = indexOffset,
-        keyOffset = keyOffset,
         mergedKey = mergedKey,
         keyType = keyType,
         bytes = state.bytes

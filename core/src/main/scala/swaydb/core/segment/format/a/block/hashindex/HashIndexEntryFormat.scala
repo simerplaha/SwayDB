@@ -39,7 +39,6 @@ sealed trait HashIndexEntryFormat {
   def isReference: Boolean = !isCopy
 
   def bytesToAllocatePerEntry(largestIndexOffset: Int,
-                              largestKeyOffset: Int,
                               largestMergedKeySize: Int): Int
 
   def read(entry: Slice[Byte],
@@ -52,11 +51,8 @@ object HashIndexEntryFormat {
 
   def apply(indexFormat: IndexFormat): HashIndexEntryFormat =
     indexFormat match {
-      case IndexFormat.ReferenceOffset =>
+      case IndexFormat.Reference =>
         HashIndexEntryFormat.ReferenceIndex
-
-      case IndexFormat.ReferenceKey =>
-        HashIndexEntryFormat.ReferenceKey
 
       case IndexFormat.CopyKey =>
         HashIndexEntryFormat.CopyKey
@@ -64,7 +60,6 @@ object HashIndexEntryFormat {
 
   sealed trait Reference extends HashIndexEntryFormat {
     def write(indexOffset: Int,
-              keyOffset: Int,
               mergedKey: Slice[Byte],
               keyType: Byte,
               bytes: Slice[Byte]): Unit
@@ -72,7 +67,6 @@ object HashIndexEntryFormat {
 
   sealed trait Copy extends HashIndexEntryFormat {
     def write(indexOffset: Int,
-              keyOffset: Int,
               mergedKey: Slice[Byte],
               keyType: Byte,
               bytes: Slice[Byte]): Long
@@ -85,12 +79,10 @@ object HashIndexEntryFormat {
     override val isCopy: Boolean = false
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
-                                         largestKeyOffset: Int,
                                          largestMergedKeySize: Int): Int =
       Bytes sizeOfUnsignedInt (largestIndexOffset + 1)
 
     override def write(indexOffset: Int,
-                       keyOffset: Int,
                        mergedKey: Slice[Byte],
                        keyType: Byte,
                        bytes: Slice[Byte]): Unit =
@@ -118,116 +110,12 @@ object HashIndexEntryFormat {
     }
   }
 
-  object ReferenceKey extends HashIndexEntryFormat.Reference {
-    override val id: Byte = 1.toByte
-
-    override val isCopy: Boolean = false
-
-    override def bytesToAllocatePerEntry(largestIndexOffset: Int,
-                                         largestKeyOffset: Int,
-                                         largestMergedKeySize: Int): Int = {
-
-      val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset + 1)
-      val sizeOfLargestKeyOffset = Bytes.sizeOfUnsignedInt(largestKeyOffset + 1)
-      val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestMergedKeySize + 1)
-
-      sizeOfLargestKeyOffset + sizeOfLargestKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset
-    }
-
-    override def write(indexOffset: Int,
-                       keyOffset: Int,
-                       mergedKey: Slice[Byte],
-                       keyType: Byte,
-                       bytes: Slice[Byte]): Unit = {
-      bytes addNonZeroUnsignedInt (keyOffset + 1)
-      bytes addNonZeroUnsignedInt (mergedKey.size + 1)
-      bytes add keyType
-      bytes addNonZeroUnsignedInt (indexOffset + 1)
-    }
-
-    override def read(entry: Slice[Byte],
-                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                      sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] = {
-      val entryReader = Reader(entry)
-
-      //println(s"entry: $entry")
-
-      try {
-        val keyOffsetMaybe = entryReader.readNonZeroStrictUnsignedInt()
-        if (keyOffsetMaybe.isNone || keyOffsetMaybe <= 0) return Persistent.Partial.noneMaybe
-
-        val keySizeMaybe = entryReader.readNonZeroStrictUnsignedInt()
-        if (keySizeMaybe.isNone || keySizeMaybe <= 0) return Persistent.Partial.noneMaybe
-
-        val keyTypeMaybe = entryReader.get()
-        if (keyTypeMaybe <= 0) return Persistent.Partial.noneMaybe
-
-        val indexOffsetMaybe = entryReader.readNonZeroStrictUnsignedInt()
-        if (indexOffsetMaybe.isNone || indexOffsetMaybe <= 0) return Persistent.Partial.noneMaybe
-
-        val keyOffset = keyOffsetMaybe - 1
-        val keySize = keySizeMaybe - 1
-        val indexOffsetSome = indexOffsetMaybe - 1
-
-        //read the target key at the offset within sortedIndex
-        val entryKey = sortedIndex.moveTo(keyOffset).read(keySize)
-
-        //println(s"Parsing: keyOffset: $keyOffset, keyType: $keyTypeMaybe, offset: $indexOffsetMaybe, keyOffset: $keyOffset, keySize: $keySize, entry: $entry")
-
-        //create a temporary partially read key-value for matcher.
-        val partialKeyValue =
-          if (keyTypeMaybe == Transient.Range.id)
-            new Partial.Range {
-              val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
-
-              override def indexOffset: Int =
-                indexOffsetSome
-
-              override def key: Slice[Byte] =
-                fromKey
-
-              override def toPersistent: Persistent =
-                SortedIndexBlock.read(
-                  fromOffset = indexOffset,
-                  sortedIndexReader = sortedIndex,
-                  valuesReader = values
-                )
-            }
-          else if (keyTypeMaybe == Transient.Put.id || keyTypeMaybe == Transient.Remove.id || keyTypeMaybe == Transient.Update.id || keyTypeMaybe == Transient.Function.id || keyTypeMaybe == Transient.PendingApply.id)
-            new Partial.Fixed {
-              override def indexOffset: Int =
-                indexOffsetSome
-
-              override def key: Slice[Byte] =
-                entryKey
-
-              override def toPersistent: Persistent =
-                SortedIndexBlock.read(
-                  fromOffset = indexOffset,
-                  sortedIndexReader = sortedIndex,
-                  valuesReader = values
-                )
-            }
-          else
-            throw new Exception(s"Invalid keyOffset: $keyOffset, keyType: $keyTypeMaybe, offset: $indexOffsetMaybe, keyOffset: $keyOffset, keySize: $keySize, entry: $entry")
-
-        Maybe.some(partialKeyValue)
-      } catch {
-        case _: ArrayIndexOutOfBoundsException =>
-          //println("ArrayIndexOutOfBoundsException")
-          Persistent.Partial.noneMaybe
-      }
-    }
-  }
-
   object CopyKey extends HashIndexEntryFormat.Copy {
     override val id: Byte = 2.toByte
 
     override val isCopy: Boolean = true
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
-                                         largestKeyOffset: Int,
                                          largestMergedKeySize: Int): Int = {
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
       val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestMergedKeySize)
@@ -235,7 +123,6 @@ object HashIndexEntryFormat {
     }
 
     override def write(indexOffset: Int,
-                       keyOffset: Int,
                        mergedKey: Slice[Byte],
                        keyType: Byte,
                        bytes: Slice[Byte]): Long = {

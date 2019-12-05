@@ -36,11 +36,10 @@ private[core] object EntryWriter {
                          valueStartOffset: Int,
                          valueEndOffset: Int,
                          @BeanProperty var thisKeyValueAccessIndexPosition: Int,
-                         @BeanProperty var keyOffset: Int,
                          isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
     def unapply =
-      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed)
+      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, isPrefixCompressed)
   }
 
   private val tailBytes =

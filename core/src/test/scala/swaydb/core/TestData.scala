@@ -2484,7 +2484,6 @@ object TestData {
 
   def randomStats(unmergedKeySize: Int = randomIntMax(10000000),
                   mergedKeySize: Int = randomIntMax(10000000),
-                  keyOffset: Int = randomIntMax(10000000),
                   indexEntry: Slice[Byte] = randomBytesSlice(),
                   value: Option[Slice[Byte]] = randomBytesSliceOption(),
                   isRemoveRange: Boolean = randomBoolean(),
@@ -2501,7 +2500,6 @@ object TestData {
     Stats(
       unmergedKeySize = unmergedKeySize,
       mergedKeySize = mergedKeySize,
-      keyOffset = keyOffset,
       indexEntry = indexEntry,
       value = value,
       isRemoveRange = isRemoveRange,

@@ -600,7 +600,7 @@ private[core] object Transient {
 
     override def value: Option[Slice[Byte]] = None
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -615,7 +615,6 @@ private[core] object Transient {
       Stats(
         unmergedKeySize = key.size,
         mergedKeySize = mergedKey.size,
-        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -671,7 +670,7 @@ private[core] object Transient {
 
     override def mergedKey = key
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -687,7 +686,6 @@ private[core] object Transient {
       Stats(
         unmergedKeySize = key.size,
         mergedKeySize = mergedKey.size,
-        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -743,7 +741,7 @@ private[core] object Transient {
 
     override def mergedKey = key
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -758,7 +756,6 @@ private[core] object Transient {
       Stats(
         unmergedKeySize = key.size,
         mergedKeySize = mergedKey.size,
-        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -817,7 +814,7 @@ private[core] object Transient {
 
     override def deadline: Option[Deadline] = None
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -832,7 +829,6 @@ private[core] object Transient {
       Stats(
         unmergedKeySize = key.size,
         mergedKeySize = mergedKey.size,
-        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -909,7 +905,7 @@ private[core] object Transient {
     override def hasTimeLeft(): Boolean =
       true
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = time,
@@ -924,7 +920,6 @@ private[core] object Transient {
       Stats(
         unmergedKeySize = key.size,
         mergedKeySize = mergedKey.size,
-        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,
@@ -1038,7 +1033,7 @@ private[core] object Transient {
 
     override def value = valueSerialiser()
 
-    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, keyOffset, isPrefixCompressed) =
+    val (indexEntryBytes, valueEntryBytes, currentStartValueOffsetPosition, currentEndValueOffsetPosition, thisKeyValueAccessIndexPosition, isPrefixCompressed) =
       EntryWriter.write(
         current = this,
         currentTime = Time.empty,
@@ -1054,7 +1049,6 @@ private[core] object Transient {
       Stats(
         unmergedKeySize = fromKey.size + toKey.size,
         mergedKeySize = mergedKey.size,
-        keyOffset = keyOffset,
         indexEntry = indexEntryBytes,
         value = valueEntryBytes,
         isRemoveRange = isRemoveRangeMayBe,

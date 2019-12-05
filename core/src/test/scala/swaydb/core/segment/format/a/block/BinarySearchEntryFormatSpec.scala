@@ -33,13 +33,11 @@ class BinarySearchEntryFormatSpec extends TestBase {
       "calculate bytes required" in {
         BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
           largestIndexOffset = 10,
-          largestKeyOffset = 10,
           largestKeySize = 10
         ) shouldBe 1
 
         BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
           largestIndexOffset = Int.MaxValue,
-          largestKeyOffset = 10,
           largestKeySize = 10
         ) shouldBe ByteSizeOf.varInt
       }
@@ -51,7 +49,6 @@ class BinarySearchEntryFormatSpec extends TestBase {
             val bytesRequired =
               BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
                 largestIndexOffset = indexOffset,
-                largestKeyOffset = 10,
                 largestKeySize = 10
               )
 
@@ -59,7 +56,6 @@ class BinarySearchEntryFormatSpec extends TestBase {
 
             BinarySearchEntryFormat.ReferenceIndex.write(
               indexOffset = indexOffset,
-              keyOffset = Int.MinValue,
               mergedKey = randomBytesSlice(),
               keyType = 1,
               bytes = bytes

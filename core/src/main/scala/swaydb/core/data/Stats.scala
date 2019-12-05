@@ -31,7 +31,6 @@ private[core] object Stats {
 
   def apply(unmergedKeySize: Int,
             mergedKeySize: Int,
-            keyOffset: Int,
             indexEntry: Slice[Byte],
             value: Option[Slice[Byte]],
             isRemoveRange: Boolean,
@@ -83,9 +82,6 @@ private[core] object Stats {
         previousStats.map(_.segmentAccessIndexOffset) getOrElse segmentRealIndexOffset
       else
         segmentRealIndexOffset
-
-    val segmentMergedKeyOffset =
-      segmentAccessIndexOffset + keyOffset
 
     //largest merged key size
     val segmentsLargestMergedKeySize =
@@ -171,7 +167,6 @@ private[core] object Stats {
           //size calculation should only account for those entries because duplicates are not allowed.
           BinarySearchIndexBlock.optimalBytesRequired(
             largestIndexOffset = segmentAccessIndexOffset,
-            largestKeyOffset = segmentMergedKeyOffset,
             largestKeySize = segmentsLargestMergedKeySize,
             valuesCount = uncompressedKeyCounts,
             hasCompression = false,
@@ -248,10 +243,8 @@ private[core] object Stats {
       uncompressedKeyCounts = uncompressedKeyCounts,
       thisKeyValuesSegmentKeyAndValueSize = thisKeyValuesSegmentSortedIndexAndValueSize,
       thisKeyValuesSortedIndexSize = thisKeyValuesSortedIndexSize,
-      thisKeyValuesKeyOffset = keyOffset,
       segmentAccessIndexOffset = segmentAccessIndexOffset,
       segmentRealIndexOffset = segmentRealIndexOffset,
-      segmentMergedKeyOffset = segmentMergedKeyOffset,
       segmentValueAndSortedIndexEntrySize = segmentValueAndSortedIndexEntrySize,
       segmentSortedIndexSizeWithoutHeader = segmentSortedIndexSizeWithoutHeader,
       segmentValuesSize = segmentValuesSize,
@@ -281,11 +274,9 @@ private[core] case class Stats(valueLength: Int,
                                uncompressedKeyCounts: Int,
                                thisKeyValuesSegmentKeyAndValueSize: Int,
                                thisKeyValuesSortedIndexSize: Int,
-                               thisKeyValuesKeyOffset: Int,
                                segmentAccessIndexOffset: Int,
                                //do not access this from outside, used in stats only.
                                private[Stats] val segmentRealIndexOffset: Int,
-                               segmentMergedKeyOffset: Int,
                                segmentValueAndSortedIndexEntrySize: Int,
                                segmentSortedIndexSizeWithoutHeader: Int,
                                segmentValuesSize: Int,
