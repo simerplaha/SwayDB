@@ -122,6 +122,7 @@ private[core] object KeyWriter {
           //SortedIndexBlock and estimating max entry size the commonBytes are also accounted. This also makes it
           //easy parsing key in KeyReader.
           Bytes.sizeOfUnsignedInt(headerBytes.size + byteSizeOfCommonBytes) +
+          byteSizeOfCommonBytes +
           headerBytes.size +
           sortedIndexAccessPositionSize +
           plusSize

@@ -34,8 +34,7 @@ object KeyReader {
       case Some(previous) =>
         val reader = Reader(headerKeyBytes)
         val commonBytes = reader.readUnsignedInt()
-        val keyBytes = reader.readUnsignedInt()
-        val rightBytes = reader.read(keyBytes)
+        val rightBytes = reader.readRemaining()
         Bytes.decompress(previous.key, rightBytes, commonBytes)
 
       case None =>

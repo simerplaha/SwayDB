@@ -172,22 +172,22 @@ private[writer] object ValueWriter {
     //if previous does not exists write full offsets and then write deadline.
     val currentValueSize = currentValue.foldLeft(0)(_ + _.size)
     val currentValueOffset = current.previous.map(_.nextStartValueOffsetPosition) getOrElse 0
-    val currentValueOffsetUnsignedBytes = Slice.writeUnsignedInt(currentValueOffset)
-    val currentValueLengthUnsignedBytes = Slice.writeUnsignedInt(currentValueSize)
+    val currentValueOffsetByteSize = Bytes.sizeOfUnsignedInt(currentValueOffset)
+    val currentValueLengthByteSize = Bytes.sizeOfUnsignedInt(currentValueSize)
 
     val (indexEntryBytes, isPrefixCompressed) =
       DeadlineWriter.write(
         current = current,
         deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
         enablePrefixCompression = enablePrefixCompression,
-        plusSize = plusSize + currentValueOffsetUnsignedBytes.size + currentValueLengthUnsignedBytes.size,
+        plusSize = plusSize + currentValueOffsetByteSize + currentValueLengthByteSize,
         hasPrefixCompression = hasPrefixCompression,
         normaliseToSize = normaliseToSize
       )
 
     indexEntryBytes
-      .addAll(currentValueOffsetUnsignedBytes)
-      .addAll(currentValueLengthUnsignedBytes)
+      .addUnsignedInt(currentValueOffset)
+      .addUnsignedInt(currentValueSize)
 
     EntryWriter.WriteResult(
       indexBytes = indexEntryBytes,

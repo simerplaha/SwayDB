@@ -53,8 +53,8 @@ class FixedEntryReaderWriterSpec extends WordSpec {
         EntryReader.parse(
           headerInteger = normalisedEntry.indexEntryBytes.readUnsignedInt(),
           indexEntry = normalisedEntry.indexEntryBytes.dropUnsignedInt(),
-          sortedIndexEndOffset = normalisedEntry.indexEntryBytes.size - 1,
           mightBeCompressed = entry.stats.hasPrefixCompression,
+          sortedIndexEndOffset = normalisedEntry.indexEntryBytes.size - 1,
           valuesReader = entry.valueEntryBytes.map(buildSingleValueReader),
           indexOffset = 0,
           hasAccessPositionIndex = entry.sortedIndexConfig.enableAccessPositionIndex,
@@ -93,10 +93,10 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
       val previousRead =
         EntryReader.parse(
-          sortedIndexEndOffset = sortedIndexEndOffset,
           headerInteger = previous.indexEntryBytes.readUnsignedInt(),
           indexEntry = previous.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
+          sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
@@ -107,10 +107,10 @@ class FixedEntryReaderWriterSpec extends WordSpec {
 
       val nextRead =
         EntryReader.parse(
-          sortedIndexEndOffset = sortedIndexEndOffset,
           headerInteger = next.indexEntryBytes.readUnsignedInt(),
           indexEntry = next.indexEntryBytes.dropUnsignedInt(),
           mightBeCompressed = next.stats.hasPrefixCompression,
+          sortedIndexEndOffset = sortedIndexEndOffset,
           valuesReader = Some(buildSingleValueReader(valueBytes)),
           indexOffset = 0,
           hasAccessPositionIndex = next.sortedIndexConfig.enableAccessPositionIndex,
