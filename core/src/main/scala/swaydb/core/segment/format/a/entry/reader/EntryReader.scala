@@ -20,11 +20,13 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent
+import swaydb.core.data.Persistent.Partial
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.ValuesBlock
+import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
+import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.Maybe
 import swaydb.data.util.Maybe._
@@ -107,13 +109,13 @@ object EntryReader {
 
     val key: Slice[Byte] = reader.read(headerInteger)
 
+    val keyValueId = reader.readUnsignedInt()
+
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
         reader.readUnsignedInt()
       else
         0
-
-    val keyValueId = reader.readUnsignedInt()
 
     if (KeyValueId.Put hasKeyValueId keyValueId)
       EntryReader.parse(
@@ -201,5 +203,51 @@ object EntryReader {
       )
     else
       throw swaydb.Exception.InvalidKeyValueId(keyValueId)
+  }
+
+  def parsePartial(offset: Int,
+                   headerInteger: Int,
+                   indexEntry: ReaderBase,
+                   sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial = {
+
+    val entryKey: Slice[Byte] = indexEntry.read(headerInteger)
+
+    val keyValueId = indexEntry.readUnsignedInt()
+
+    if (KeyValueId.Range hasKeyValueId keyValueId)
+      new Partial.Range {
+        val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
+
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          fromKey
+
+        override def toPersistent: Persistent =
+          SortedIndexBlock.read(
+            fromOffset = offset,
+            sortedIndexReader = sortedIndex,
+            valuesReader = valuesReader
+          )
+      }
+    else if (KeyValueId isFixedId keyValueId)
+      new Partial.Fixed {
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          entryKey
+
+        override def toPersistent: Persistent =
+          SortedIndexBlock.read(
+            fromOffset = offset,
+            sortedIndexReader = sortedIndex,
+            valuesReader = valuesReader
+          )
+      }
+    else
+      throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, headerInteger: $headerInteger")
   }
 }

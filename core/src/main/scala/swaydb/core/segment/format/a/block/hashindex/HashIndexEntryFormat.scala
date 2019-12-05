@@ -99,7 +99,7 @@ object HashIndexEntryFormat {
         Persistent.Partial.noneMaybe
       } else {
         val partialKeyValue =
-          SortedIndexBlock.read(
+          SortedIndexBlock.readPartial(
             fromOffset = possibleOffset - 1,
             sortedIndexReader = sortedIndex,
             valuesReader = values

@@ -43,7 +43,7 @@ private[core] object BinarySearchIndexBlock {
     val disabled =
       Config(
         enabled = false,
-        format = BinarySearchEntryFormat.ReferenceIndex,
+        format = BinarySearchEntryFormat.Reference,
         minimumNumberOfKeys = 0,
         fullIndex = false,
         searchSortedIndexDirectlyIfPossible = true,
@@ -56,7 +56,7 @@ private[core] object BinarySearchIndexBlock {
         case swaydb.data.config.BinarySearchIndex.Disable(searchSortedIndexDirectly) =>
           Config(
             enabled = false,
-            format = BinarySearchEntryFormat.ReferenceIndex,
+            format = BinarySearchEntryFormat.Reference,
             minimumNumberOfKeys = Int.MaxValue,
             fullIndex = false,
             searchSortedIndexDirectlyIfPossible = searchSortedIndexDirectly,

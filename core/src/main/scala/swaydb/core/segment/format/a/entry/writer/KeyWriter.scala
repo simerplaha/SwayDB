@@ -28,14 +28,14 @@ import swaydb.data.slice.Slice
 private[core] object KeyWriter {
 
   /**
-   * Format - keySize|key|accessIndex?|keyValueId|deadline|valueOffset|valueLength|time
+   * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
    */
   def write(current: Transient,
             plusSize: Int,
             deadlineId: BaseEntryId.Deadline,
             enablePrefixCompression: Boolean,
             hasPrefixCompression: Boolean,
-            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) =
+            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) =
     when(enablePrefixCompression)(current.previous) flatMap {
       previous =>
         writeCompressed(
@@ -61,7 +61,7 @@ private[core] object KeyWriter {
                               deadlineId: BaseEntryId.Deadline,
                               previous: Transient,
                               hasPrefixCompression: Boolean,
-                              normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean)] =
+                              normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean, Option[Int])] =
     Bytes.compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 3) map {
       case (commonBytes, remainingBytes) =>
         write(
@@ -80,7 +80,7 @@ private[core] object KeyWriter {
                                 plusSize: Int,
                                 deadlineId: BaseEntryId.Deadline,
                                 hasPrefixCompression: Boolean,
-                                normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
+                                normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) = {
 
     write(
       current = current,
@@ -101,7 +101,7 @@ private[core] object KeyWriter {
                     deadlineId: BaseEntryId.Deadline,
                     isKeyCompressed: Boolean,
                     hasPrefixCompression: Boolean,
-                    normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean) = {
+                    normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) = {
     val id =
       binder.keyValueId.adjustBaseIdToKeyValueIdKey(
         baseId = deadlineId.baseId,
@@ -151,11 +151,11 @@ private[core] object KeyWriter {
 
     bytes addAll headerBytes
 
-    sortedIndexAccessPosition foreach bytes.addUnsignedInt
-
     bytes addUnsignedInt id
 
-    (bytes, isPrefixCompressed)
+    sortedIndexAccessPosition foreach bytes.addUnsignedInt
+
+    (bytes, isPrefixCompressed, sortedIndexAccessPosition)
   }
 
   def getAccessIndexPosition(current: Transient, isPrefixCompressed: Boolean): Option[Int] =

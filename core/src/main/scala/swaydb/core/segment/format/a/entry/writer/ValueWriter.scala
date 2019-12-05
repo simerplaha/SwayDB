@@ -175,7 +175,7 @@ private[writer] object ValueWriter {
     val currentValueOffsetByteSize = Bytes.sizeOfUnsignedInt(currentValueOffset)
     val currentValueLengthByteSize = Bytes.sizeOfUnsignedInt(currentValueSize)
 
-    val (indexEntryBytes, isPrefixCompressed) =
+    val (indexEntryBytes, isPrefixCompressed, accessPosition) =
       DeadlineWriter.write(
         current = current,
         deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
@@ -194,7 +194,7 @@ private[writer] object ValueWriter {
       valueBytes = currentValue,
       valueStartOffset = currentValueOffset,
       valueEndOffset = currentValueOffset + currentValueSize - 1,
-      thisKeyValueAccessIndexPosition = 0,
+      thisKeyValueAccessIndexPosition = accessPosition.getOrElse(0),
       isPrefixCompressed = isPrefixCompressed
     )
   }
@@ -206,7 +206,7 @@ private[writer] object ValueWriter {
                       hasPrefixCompression: Boolean,
                       normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): EntryWriter.WriteResult = {
     //if there is no value then write deadline.
-    val (indexEntryBytes, isPrefixCompressed) =
+    val (indexEntryBytes, isPrefixCompressed, accessPosition) =
       DeadlineWriter.write(
         current = current,
         deadlineId = entryId.noValue,
@@ -221,7 +221,7 @@ private[writer] object ValueWriter {
       valueBytes = None,
       valueStartOffset = current.previous.map(_.currentStartValueOffsetPosition).getOrElse(0),
       valueEndOffset = current.previous.map(_.currentEndValueOffsetPosition).getOrElse(0),
-      thisKeyValueAccessIndexPosition = 0,
+      thisKeyValueAccessIndexPosition = accessPosition.getOrElse(0),
       isPrefixCompressed = isPrefixCompressed
     )
   }
@@ -234,7 +234,7 @@ private[writer] object ValueWriter {
                              hasPrefixCompression: Boolean,
                              normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[EntryWriter.WriteResult] =
     when(Transient.hasSameValue(previous, current)) { //no need to serialised values and then compare. Simply compare the value objects and check for equality.
-      val (indexEntry, isPrefixCompressed) =
+      val (indexEntry, isPrefixCompressed, accessPosition) =
         if (enablePrefixCompression) {
           //values are the same, no need to write offset & length, jump straight to deadline.
           DeadlineWriter.write(
@@ -250,7 +250,7 @@ private[writer] object ValueWriter {
           val currentValueOffsetUnsignedBytes = Slice.writeUnsignedInt(previous.currentStartValueOffsetPosition)
           val currentValueLengthUnsignedBytes = Slice.writeUnsignedInt(previous.currentEndValueOffsetPosition - previous.currentStartValueOffsetPosition + 1)
 
-          val (indexEntryBytes, isPrefixCompressed) =
+          val (indexEntryBytes, isPrefixCompressed, accessPosition) =
             DeadlineWriter.write(
               current = current,
               deadlineId = entryId.valueFullyCompressed.valueOffsetUncompressed.valueLengthUncompressed,
@@ -264,7 +264,7 @@ private[writer] object ValueWriter {
             .addAll(currentValueOffsetUnsignedBytes)
             .addAll(currentValueLengthUnsignedBytes)
 
-          (indexEntryBytes, isPrefixCompressed)
+          (indexEntryBytes, isPrefixCompressed, accessPosition)
         }
 
       Some(
@@ -273,7 +273,7 @@ private[writer] object ValueWriter {
           valueBytes = None,
           valueStartOffset = previous.currentStartValueOffsetPosition,
           valueEndOffset = previous.currentEndValueOffsetPosition,
-          thisKeyValueAccessIndexPosition = 0,
+          thisKeyValueAccessIndexPosition = accessPosition.getOrElse(0),
           isPrefixCompressed = isPrefixCompressed
         )
       )
@@ -346,7 +346,7 @@ private[writer] object ValueWriter {
               else
                 throw IO.throwable(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
 
-            val (indexEntryBytes, _) =
+            val (indexEntryBytes, _, accessPosition) =
               DeadlineWriter.write(
                 current = current,
                 deadlineId = valueLengthId,
@@ -365,14 +365,14 @@ private[writer] object ValueWriter {
               valueBytes = Some(currentValue),
               valueStartOffset = currentValueOffset,
               valueEndOffset = currentValueOffset + currentValue.size - 1,
-              thisKeyValueAccessIndexPosition = 0,
+              thisKeyValueAccessIndexPosition = accessPosition.getOrElse(0),
               isPrefixCompressed = true
             )
 
           case None =>
             //if unable to compress valueLengthBytes then write compressed valueOffset with fully valueLength bytes.
             val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt(currentValue.size)
-            val (indexEntryBytes, isPrefixCompressed) =
+            val (indexEntryBytes, isPrefixCompressed, accessPosition) =
               DeadlineWriter.write(
                 current = current,
                 deadlineId = valueOffsetId.valueLengthUncompressed,
@@ -391,7 +391,7 @@ private[writer] object ValueWriter {
               valueBytes = Some(currentValue),
               valueStartOffset = currentValueOffset,
               valueEndOffset = currentValueOffset + currentValue.size - 1,
-              thisKeyValueAccessIndexPosition = 0,
+              thisKeyValueAccessIndexPosition = accessPosition.getOrElse(0),
               isPrefixCompressed = isPrefixCompressed
             )
         }
@@ -421,7 +421,7 @@ private[writer] object ValueWriter {
             throw IO.throwable(s"Fatal exception: valueLengthCommonBytes = $valueLengthCommonBytes")
 
         val currentUnsignedValueOffsetBytes = Slice.writeUnsignedInt(currentValueOffset)
-        val (indexEntryBytes, isPrefixCompressed) =
+        val (indexEntryBytes, isPrefixCompressed, accessPosition) =
           DeadlineWriter.write(
             current = current,
             deadlineId = valueLengthId,
@@ -440,7 +440,7 @@ private[writer] object ValueWriter {
           valueBytes = Some(currentValue),
           valueStartOffset = currentValueOffset,
           valueEndOffset = currentValueOffset + currentValue.size - 1,
-          thisKeyValueAccessIndexPosition = 0,
+          thisKeyValueAccessIndexPosition = accessPosition.getOrElse(0),
           isPrefixCompressed = isPrefixCompressed
         )
 
@@ -448,7 +448,7 @@ private[writer] object ValueWriter {
         //unable to compress valueOffset and valueLength bytes, write them as full bytes.
         val currentUnsignedValueOffsetBytes = Slice.writeUnsignedInt(currentValueOffset)
         val currentUnsignedValueLengthBytes = Slice.writeUnsignedInt(currentValue.size)
-        val (indexEntryBytes, isPrefixCompressed) =
+        val (indexEntryBytes, isPrefixCompressed, accessPosition) =
           DeadlineWriter.write(
             current = current,
             deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
@@ -467,7 +467,7 @@ private[writer] object ValueWriter {
           valueBytes = Some(currentValue),
           valueStartOffset = currentValueOffset,
           valueEndOffset = currentValueOffset + currentValue.size - 1,
-          thisKeyValueAccessIndexPosition = 0,
+          thisKeyValueAccessIndexPosition = accessPosition.getOrElse(0),
           isPrefixCompressed = isPrefixCompressed
         )
     }

@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.entry.id
 
 import swaydb.IO
 import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.core.util.Bytes
 import swaydb.macros.Sealed
 
 sealed trait KeyValueId {
@@ -87,6 +88,8 @@ sealed trait KeyValueId {
 object KeyValueId {
   //Last max id used in BaseEntryId.
   val reservedKeysPerGroup = EntryReader.readers.last.maxID
+
+  val maxByteSize = Bytes.sizeOfUnsignedInt(reservedKeysPerGroup)
 
   def isFixedId(id: Int): Boolean =
     KeyValueId.Put.hasKeyValueId(id) || KeyValueId.Remove.hasKeyValueId(id) || KeyValueId.Update.hasKeyValueId(id) || KeyValueId.Function.hasKeyValueId(id) || KeyValueId.PendingApply.hasKeyValueId(id)

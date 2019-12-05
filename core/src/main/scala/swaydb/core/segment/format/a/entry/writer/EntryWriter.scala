@@ -21,21 +21,18 @@ package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.core.data.{Time, Transient}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
-import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, TransientToKeyValueIdBinder}
-import swaydb.core.segment.format.a.entry.reader.EntryReader
+import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, KeyValueId, TransientToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-import scala.beans.BeanProperty
-
 private[core] object EntryWriter {
 
-  case class WriteResult(@BeanProperty var indexBytes: Slice[Byte],
+  case class WriteResult(indexBytes: Slice[Byte],
                          valueBytes: Option[Slice[Byte]],
                          valueStartOffset: Int,
                          valueEndOffset: Int,
-                         @BeanProperty var thisKeyValueAccessIndexPosition: Int,
+                         thisKeyValueAccessIndexPosition: Int,
                          isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
     def unapply =
@@ -43,7 +40,7 @@ private[core] object EntryWriter {
   }
 
   private val tailBytes =
-    Bytes.sizeOfUnsignedInt(EntryReader.readers.last.maxID) + //keyValueId
+    KeyValueId.maxByteSize + //keyValueId
       ByteSizeOf.varLong + //deadline
       ByteSizeOf.varInt + //valueOffset
       ByteSizeOf.varInt + //valueLength
@@ -51,7 +48,7 @@ private[core] object EntryWriter {
       ByteSizeOf.varLong //time
 
   /**
-   * Format - keySize|key|accessIndex?|keyValueId|deadline|valueOffset|valueLength|time
+   * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
    *
    * Returns the index bytes and value bytes for the key-value and also the used
    * value offset information for writing the next key-value.

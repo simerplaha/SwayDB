@@ -57,13 +57,13 @@ object BinarySearchEntryFormat {
   def apply(indexFormat: IndexFormat): BinarySearchEntryFormat =
     indexFormat match {
       case IndexFormat.Reference =>
-        BinarySearchEntryFormat.ReferenceIndex
+        BinarySearchEntryFormat.Reference
 
       case IndexFormat.CopyKey =>
         BinarySearchEntryFormat.CopyKey
     }
 
-  object ReferenceIndex extends BinarySearchEntryFormat {
+  object Reference extends BinarySearchEntryFormat {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 0.toByte
 
@@ -89,7 +89,7 @@ object BinarySearchEntryFormat {
           .moveTo(offset)
           .readUnsignedInt()
 
-      SortedIndexBlock.read(
+      SortedIndexBlock.readPartial(
         fromOffset = sortedIndexOffsetValue,
         sortedIndexReader = sortedIndex,
         valuesReader = values

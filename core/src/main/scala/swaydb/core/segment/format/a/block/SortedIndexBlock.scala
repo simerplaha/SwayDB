@@ -27,6 +27,7 @@ import swaydb.core.data.{KeyValue, Persistent, Transient}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.util.Bytes
@@ -334,6 +335,43 @@ private[core] object SortedIndexBlock extends LazyLogging {
       indexOffset = positionBeforeRead,
       hasAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
       previous = previous
+    )
+  }
+
+  def readPartial(fromOffset: Int,
+                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial = {
+
+    sortedIndexReader moveTo fromOffset
+
+    //try reading entry bytes within one seek.
+    val (headerInteger, indexEntryReader) =
+    //if the reader has a block cache try fetching the bytes required within one seek.
+      if (sortedIndexReader.hasBlockCache) {
+        //read the minimum number of bytes required for parse this indexEntry.
+        val bytes = sortedIndexReader.read(ByteSizeOf.varInt)
+        val (headerInteger, headerIntegerByteSize) = bytes.readUnsignedIntWithByteSize()
+        //open the slice if it's a subslice,
+        val openBytes = bytes.openEnd()
+
+        val maxIndexSize = headerInteger + headerIntegerByteSize + KeyValueId.maxByteSize
+
+        //if openBytes results in enough bytes to then read the open bytes only.
+        if (openBytes.size >= maxIndexSize)
+          (headerInteger, Reader(openBytes, headerIntegerByteSize))
+        else
+          (headerInteger, sortedIndexReader.moveTo(fromOffset + headerIntegerByteSize))
+      } else {
+        val headerInteger = sortedIndexReader.readUnsignedInt()
+        (headerInteger, sortedIndexReader)
+      }
+
+    EntryReader.parsePartial(
+      offset = fromOffset,
+      headerInteger = headerInteger,
+      indexEntry = indexEntryReader,
+      sortedIndex = sortedIndexReader,
+      valuesReader = valuesReader
     )
   }
 

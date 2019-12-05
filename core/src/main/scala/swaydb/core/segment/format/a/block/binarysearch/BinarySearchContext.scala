@@ -99,67 +99,16 @@ object BinarySearchContext {
 
       override val highestKeyValue: Option[Persistent] = highest
 
-      override def seek(offset: Int): KeyMatcher.Result =
-        if (sortedIndex.block.isPreNormalised) {
-          //if sortedIndex was pre-normalised then there is no need to de-normalise. Simply parse.
-          //todo - review currently this is slower than normalised bytes.
-          SortedIndexBlock.readAndMatch(
-            matcher = matcher,
+      override def seek(offset: Int): KeyMatcher.Result = {
+        val partialKeyValue =
+          SortedIndexBlock.readPartial(
             fromOffset = offset,
             sortedIndexReader = sortedIndex,
             valuesReader = values
           )
-        } else {
-          /**
-           * Parses [[BinarySearchIndexBlock]]'s entry into [[Persistent.Partial]] at the given offset when the bytes are normalised.
-           */
-          val indexSize = sortedIndex.moveTo(offset).readUnsignedInt()
-          val indexEntryReader = Reader(sortedIndex.read(indexSize))
-          if (sortedIndex.block.enableAccessPositionIndex) indexEntryReader.readUnsignedInt()
-          val keySize = indexEntryReader.readUnsignedInt()
-          val entryKey = indexEntryReader.read(keySize)
-          val keyValueId = indexEntryReader.readUnsignedInt()
 
-          //create a temporary partially read key-value for matcher.
-          val partialKeyValue =
-            if (KeyValueId.Range hasKeyValueId keyValueId)
-              new Partial.Range {
-                val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
-
-                override def indexOffset: Int =
-                  offset
-
-                override def key: Slice[Byte] =
-                  fromKey
-
-                override def toPersistent: Persistent =
-                  SortedIndexBlock.read(
-                    fromOffset = offset,
-                    sortedIndexReader = sortedIndex,
-                    valuesReader = values
-                  )
-              }
-            else if (KeyValueId isFixedId keyValueId)
-              new Partial.Fixed {
-                override def indexOffset: Int =
-                  offset
-
-                override def key: Slice[Byte] =
-                  entryKey
-
-                override def toPersistent: Persistent =
-                  SortedIndexBlock.read(
-                    fromOffset = offset,
-                    sortedIndexReader = sortedIndex,
-                    valuesReader = values
-                  )
-              }
-            else
-              throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, indexSize: $indexSize")
-
-          val hasMore = (offset + indexSize) < sortedIndex.block.offset.end
-
-          matcher(previous = partialKeyValue, next = None, hasMore = hasMore)
-        }
+        //todo - hasMore should be calculated.
+        matcher(previous = partialKeyValue, next = None, hasMore = true)
+      }
     }
 }

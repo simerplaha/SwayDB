@@ -31,12 +31,12 @@ class BinarySearchEntryFormatSpec extends TestBase {
   "ReferenceIndex" when {
     "non zero" should {
       "calculate bytes required" in {
-        BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
+        BinarySearchEntryFormat.Reference.bytesToAllocatePerEntry(
           largestIndexOffset = 10,
           largestKeySize = 10
         ) shouldBe 1
 
-        BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
+        BinarySearchEntryFormat.Reference.bytesToAllocatePerEntry(
           largestIndexOffset = Int.MaxValue,
           largestKeySize = 10
         ) shouldBe ByteSizeOf.varInt
@@ -47,14 +47,14 @@ class BinarySearchEntryFormatSpec extends TestBase {
         Seq(0, 10000000, Int.MaxValue) foreach {
           indexOffset =>
             val bytesRequired =
-              BinarySearchEntryFormat.ReferenceIndex.bytesToAllocatePerEntry(
+              BinarySearchEntryFormat.Reference.bytesToAllocatePerEntry(
                 largestIndexOffset = indexOffset,
                 largestKeySize = 10
               )
 
             val bytes = Slice.create[Byte](bytesRequired)
 
-            BinarySearchEntryFormat.ReferenceIndex.write(
+            BinarySearchEntryFormat.Reference.write(
               indexOffset = indexOffset,
               mergedKey = randomBytesSlice(),
               keyType = 1,
