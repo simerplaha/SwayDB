@@ -47,7 +47,7 @@ object Tag {
     new Async[Task] {
 
       override def executionContext: ExecutionContext =
-        runTime.Platform.executor.asEC
+        runTime.platform.executor.asEC
 
       override def createSerial(): Serial[Task] =
         new Serial[Task] {
