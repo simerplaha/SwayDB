@@ -70,10 +70,14 @@ class SegmentBlockSpec extends TestBase {
             createdInLevel = randomNextInt(Int.MaxValue),
           )
 
-        val reader = Reader(closedSegment.flattenSegmentBytes)
+        val segmentBytes = closedSegment.flattenSegmentBytes
+
+        val reader = Reader(segmentBytes)
         assertReads(keyValues, reader)
-        val persistentReader = createRandomFileReader(closedSegment.flattenSegmentBytes)
+
+        val persistentReader = createRandomFileReader(segmentBytes)
         assertReads(keyValues, persistentReader)
+        persistentReader.file.close()
       }
 
       runThis(100.times, log = true) {

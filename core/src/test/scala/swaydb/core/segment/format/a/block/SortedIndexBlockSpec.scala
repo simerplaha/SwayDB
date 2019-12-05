@@ -50,7 +50,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       case ((transient, persistent: Persistent), index) =>
         persistent.getClass.getSimpleName shouldBe transient.getClass.getSimpleName
         persistent.key shouldBe transient.key
-//        persistent.isPrefixCompressed shouldBe transient.isPrefixCompressed
+        //        persistent.isPrefixCompressed shouldBe transient.isPrefixCompressed
         persistent.sortedIndexAccessPosition shouldBe transient.thisKeyValueAccessIndexPosition
 
         val thisKeyValueRealIndexOffsetFunction = PrivateMethod[Int](Symbol("segmentRealIndexOffset"))
@@ -68,15 +68,13 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         else
           persistent.valueOffset shouldBe transient.currentStartValueOffsetPosition
 
-        def expectedNextIndexOffset = thisKeyValueRealIndexOffset + transient.indexEntryBytes.size
-
-        def expectednextKeySize = (keyValues(index + 1).indexEntryBytes.size - Bytes.sizeOfUnsignedInt(keyValues(index + 1).indexEntryBytes.size))
-
         if (!keyValues.last.sortedIndexConfig.normaliseIndex)
           if (index < keyValues.size - 1) {
             //if it's not the last
-            persistent.nextIndexOffset shouldBe expectedNextIndexOffset
-            persistent.nextKeySize shouldBe expectednextKeySize
+            persistent.nextIndexOffset shouldBe (thisKeyValueRealIndexOffset + transient.indexEntryBytes.size)
+            if (!keyValues(index + 1).isPrefixCompressed)
+              persistent.nextKeySize shouldBe keyValues(index + 1).mergedKey.size
+            //test for not prefix compressed is not needed.
           } else {
             persistent.nextIndexOffset shouldBe -1
             persistent.nextKeySize shouldBe 0
@@ -86,7 +84,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           case response: Persistent =>
             response.getOrFetchValue shouldBe transient.getOrFetchValue
         }
-
 
       case ((_, other), _) =>
         fail(s"Didn't expect type: ${other.getClass.getName}")

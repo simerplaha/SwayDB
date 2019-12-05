@@ -89,7 +89,8 @@ object KeyValueId {
   //Last max id used in BaseEntryId.
   val reservedKeysPerGroup = EntryReader.readers.last.maxID
 
-  val maxByteSize = Bytes.sizeOfUnsignedInt(reservedKeysPerGroup)
+  //byte size of the maximum keyValueId that can be persisted.
+  val maxKeyValueIdByteSize = Bytes.sizeOfUnsignedInt(all.map(_.maxKey_Uncompressed_KeyValueId).max)
 
   def isFixedId(id: Int): Boolean =
     KeyValueId.Put.hasKeyValueId(id) || KeyValueId.Remove.hasKeyValueId(id) || KeyValueId.Update.hasKeyValueId(id) || KeyValueId.Function.hasKeyValueId(id) || KeyValueId.PendingApply.hasKeyValueId(id)

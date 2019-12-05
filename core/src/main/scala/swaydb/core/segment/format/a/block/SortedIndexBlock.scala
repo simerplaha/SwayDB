@@ -383,7 +383,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         //open the slice if it's a subslice,
         val openBytes = bytes.openEnd()
 
-        val maxIndexSize = headerInteger + headerIntegerByteSize + KeyValueId.maxByteSize
+        val maxIndexSize = headerInteger + headerIntegerByteSize + KeyValueId.maxKeyValueIdByteSize
 
         //if openBytes results in enough bytes to then read the open bytes only.
         if (openBytes.size >= maxIndexSize)

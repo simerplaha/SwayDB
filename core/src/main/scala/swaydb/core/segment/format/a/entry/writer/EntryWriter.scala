@@ -40,7 +40,7 @@ private[core] object EntryWriter {
   }
 
   private val tailBytes =
-    KeyValueId.maxByteSize + //keyValueId
+    KeyValueId.maxKeyValueIdByteSize + //keyValueId
       ByteSizeOf.varLong + //deadline
       ByteSizeOf.varInt + //valueOffset
       ByteSizeOf.varInt + //valueLength

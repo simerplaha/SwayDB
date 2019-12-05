@@ -341,8 +341,7 @@ object CommonAssertions {
     if (expected.size == 0) {
       result shouldBe empty
     } else {
-      try
-        result should have size 1
+      result should have size 1
       val head = result.head
       head should have size expected.size
       head.toMemory.toList should contain inOrderElementsOf expected.toMemory
