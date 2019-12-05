@@ -57,11 +57,13 @@ object UpdateReader extends EntryReader[Persistent.Update] {
       Bytes.sizeOfUnsignedInt(headerKeyBytes.size) +
         indexReader.getPosition
 
+    val nextIndexOffsetMaybe = indexOffset + bytesRead - 1
+
     val nextIndexOffset =
-      if (indexOffset + bytesRead - 1 == sortedIndexEndOffset)
+      if (nextIndexOffsetMaybe == sortedIndexEndOffset)
         -1
       else
-        0
+        nextIndexOffsetMaybe + 1
 
     //temporary check to ensure that only the required bytes are read.
     assert(indexOffset + bytesRead - 1 <= sortedIndexEndOffset, s"Read more: ${indexOffset + bytesRead - 1} not <= $sortedIndexEndOffset")
