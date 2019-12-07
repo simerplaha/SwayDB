@@ -356,7 +356,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         enableTimer = true,
         throttle = throttle,
         acceleration = brake,
-      ).runRandomIO.right.value
+      ).value
   }
 
   def createFile(bytes: Slice[Byte]): Path =
