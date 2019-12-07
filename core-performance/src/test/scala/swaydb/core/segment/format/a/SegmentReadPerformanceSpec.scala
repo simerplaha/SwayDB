@@ -160,21 +160,21 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           prefixCompressionResetCount = 0,
           enableAccessPositionIndex = true,
-          normaliseIndex = true,
+          normaliseIndex = false,
           compressions = _ => Seq.empty
         ),
-//      binarySearchIndexConfig =
-//        BinarySearchIndexBlock.Config(
-//          enabled = true,
-//          format = BinarySearchEntryFormat.CopyKey,
-//          minimumNumberOfKeys = 1,
-//          searchSortedIndexDirectlyIfPossible = false,
-//          fullIndex = true,
-//          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-//          compressions = _ => Seq.empty
-//        ),
-            binarySearchIndexConfig =
-              BinarySearchIndexBlock.Config.disabled,
+      binarySearchIndexConfig =
+        BinarySearchIndexBlock.Config(
+          enabled = true,
+          format = BinarySearchEntryFormat.Reference,
+          minimumNumberOfKeys = 1,
+          searchSortedIndexDirectlyIfPossible = false,
+          fullIndex = true,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+          compressions = _ => Seq.empty
+        ),
+      //            binarySearchIndexConfig =
+      //              BinarySearchIndexBlock.Config.disabled,
       valuesConfig =
         ValuesBlock.Config(
           compressDuplicateValues = true,

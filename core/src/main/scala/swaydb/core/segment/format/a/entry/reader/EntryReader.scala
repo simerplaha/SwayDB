@@ -225,7 +225,22 @@ object EntryReader {
 
     val keyValueId = indexEntry.readUnsignedInt()
 
-    if (KeyValueId.Range hasKeyValueId keyValueId)
+    if (KeyValueId isFixedId keyValueId)
+      new Partial.Fixed {
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          entryKey
+
+        override def toPersistent: Persistent =
+          SortedIndexBlock.read(
+            fromOffset = offset,
+            sortedIndexReader = sortedIndex,
+            valuesReader = valuesReader
+          )
+      }
+    else if (KeyValueId.Range hasKeyValueId keyValueId)
       new Partial.Range {
         val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
@@ -242,21 +257,6 @@ object EntryReader {
             valuesReader = valuesReader
           )
       }
-    else if (KeyValueId isFixedId keyValueId)
-      new Partial.Fixed {
-        override def indexOffset: Int =
-          offset
-
-        override def key: Slice[Byte] =
-          entryKey
-
-        override def toPersistent: Persistent =
-          SortedIndexBlock.read(
-            fromOffset = offset,
-            sortedIndexReader = sortedIndex,
-            valuesReader = valuesReader
-          )
-      }
     else
       throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, headerInteger: $headerInteger")
   }
@@ -265,11 +265,11 @@ object EntryReader {
    * Given enough information about the currently parsed key-value calculates next key-value indexOffset and also the header
    * integer (key-size).
    *
-   * @param sortedIndexEndOffset end offset of the sorted index block only (starts from 0). Does not include file offset.
-   * @param previousKeyValueHeaderKeyBytes       header key bytes already read.
-   * @param previousKeyValueIndexReader          reader for the current entry.
-   * @param previousKeyValueIndexOffset          this key-values index offset used to calculate next key-values indexOffset and header key byte size.
-   * @param normalisedByteSize   normalised size for entry sorted index entry. 0 if not normalised.
+   * @param sortedIndexEndOffset           end offset of the sorted index block only (starts from 0). Does not include file offset.
+   * @param previousKeyValueHeaderKeyBytes header key bytes already read.
+   * @param previousKeyValueIndexReader    reader for the current entry.
+   * @param previousKeyValueIndexOffset    this key-values index offset used to calculate next key-values indexOffset and header key byte size.
+   * @param normalisedByteSize             normalised size for entry sorted index entry. 0 if not normalised.
    * @return [[Tuple2]] that contains the indexOffset of next key-value and next key-values size.
    */
   def calculateNextKeyValueOffsetAndSize(sortedIndexEndOffset: Int,
