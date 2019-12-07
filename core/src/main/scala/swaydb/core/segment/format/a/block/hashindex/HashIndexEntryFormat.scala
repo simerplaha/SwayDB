@@ -52,27 +52,13 @@ object HashIndexEntryFormat {
   def apply(indexFormat: IndexFormat): HashIndexEntryFormat =
     indexFormat match {
       case IndexFormat.Reference =>
-        HashIndexEntryFormat.ReferenceIndex
+        HashIndexEntryFormat.Reference
 
       case IndexFormat.CopyKey =>
         HashIndexEntryFormat.CopyKey
     }
 
-  sealed trait Reference extends HashIndexEntryFormat {
-    def write(indexOffset: Int,
-              mergedKey: Slice[Byte],
-              keyType: Byte,
-              bytes: Slice[Byte]): Unit
-  }
-
-  sealed trait Copy extends HashIndexEntryFormat {
-    def write(indexOffset: Int,
-              mergedKey: Slice[Byte],
-              keyType: Byte,
-              bytes: Slice[Byte]): Long
-  }
-
-  object ReferenceIndex extends HashIndexEntryFormat.Reference {
+  object Reference extends HashIndexEntryFormat {
     //ids start from 1 instead of 0 to account for entries that don't allow zero bytes.
     override val id: Byte = 0.toByte
 
@@ -82,10 +68,10 @@ object HashIndexEntryFormat {
                                          largestMergedKeySize: Int): Int =
       Bytes sizeOfUnsignedInt (largestIndexOffset + 1)
 
-    override def write(indexOffset: Int,
-                       mergedKey: Slice[Byte],
-                       keyType: Byte,
-                       bytes: Slice[Byte]): Unit =
+    def write(indexOffset: Int,
+              mergedKey: Slice[Byte],
+              keyType: Byte,
+              bytes: Slice[Byte]): Unit =
       bytes addNonZeroUnsignedInt (indexOffset + 1)
 
     override def read(entry: Slice[Byte],
@@ -110,7 +96,7 @@ object HashIndexEntryFormat {
     }
   }
 
-  object CopyKey extends HashIndexEntryFormat.Copy {
+  object CopyKey extends HashIndexEntryFormat {
     override val id: Byte = 2.toByte
 
     override val isCopy: Boolean = true
@@ -122,10 +108,10 @@ object HashIndexEntryFormat {
       sizeOfLargestKeySize + largestMergedKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset + ByteSizeOf.varLong //crc
     }
 
-    override def write(indexOffset: Int,
-                       mergedKey: Slice[Byte],
-                       keyType: Byte,
-                       bytes: Slice[Byte]): Long = {
+    def write(indexOffset: Int,
+              mergedKey: Slice[Byte],
+              keyType: Byte,
+              bytes: Slice[Byte]): Long = {
       val position = bytes.currentWritePosition
       bytes addUnsignedInt mergedKey.size
       bytes addAll mergedKey
@@ -203,5 +189,5 @@ object HashIndexEntryFormat {
       }
   }
 
-  val formats: Array[HashIndexEntryFormat] = Sealed.array[HashIndexEntryFormat.Reference] ++ Sealed.array[HashIndexEntryFormat.Copy]
+  val formats: Array[HashIndexEntryFormat] = Sealed.array[HashIndexEntryFormat]
 }

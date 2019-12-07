@@ -25,7 +25,7 @@ import swaydb.core.data.Transient
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.{PersistentSegment, ReadState, Segment}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
@@ -182,17 +182,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           ioStrategy = strategy,
           compressions = _ => Seq.empty
         ),
-      //      hashIndexConfig =
-      //        HashIndexBlock.Config(
-      //          maxProbe = 1,
-      //          format = HashIndexEntryFormat.CopyKey,
-      //          minimumNumberOfKeys = 5,
-      //          minimumNumberOfHits = 5,
-      //          allocateSpace = _.requiredSpace * 2,
-      //          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-      //          compressions = _ => Seq.empty
-      //        ),
-      hashIndexConfig = HashIndexBlock.Config.disabled,
+      hashIndexConfig =
+        HashIndexBlock.Config(
+          maxProbe = 1,
+          format = HashIndexEntryFormat.Reference,
+          minimumNumberOfKeys = 5,
+          minimumNumberOfHits = 5,
+          allocateSpace = _.requiredSpace * 2,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+          compressions = _ => Seq.empty
+        ),
+//      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(

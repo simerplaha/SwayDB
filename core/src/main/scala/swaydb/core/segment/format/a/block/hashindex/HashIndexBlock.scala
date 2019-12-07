@@ -50,7 +50,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         minimumNumberOfKeys = Int.MaxValue,
         allocateSpace = _ => Int.MinValue,
         minimumNumberOfHits = Int.MaxValue,
-        format = HashIndexEntryFormat.ReferenceIndex,
+        format = HashIndexEntryFormat.Reference,
         ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
@@ -63,7 +63,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             minimumNumberOfKeys = Int.MaxValue,
             allocateSpace = _ => Int.MinValue,
             minimumNumberOfHits = Int.MaxValue,
-            format = HashIndexEntryFormat.ReferenceIndex,
+            format = HashIndexEntryFormat.Reference,
             ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
@@ -299,23 +299,21 @@ private[core] object HashIndexBlock extends LazyLogging {
       false
     } else {
       state.format match {
-        case format: HashIndexEntryFormat.Reference =>
+        case HashIndexEntryFormat.Reference =>
           HashIndexBlock.writeReference(
             indexOffset = keyValue.stats.segmentAccessIndexOffset,
             hashKey = keyValue.key,
             mergedKey = keyValue.mergedKey,
             keyType = keyValue.id,
-            format = format,
             state = state
           )
 
-        case format: HashIndexEntryFormat.Copy =>
+        case HashIndexEntryFormat.CopyKey =>
           HashIndexBlock.writeCopy(
             indexOffset = keyValue.stats.segmentAccessIndexOffset,
             hashKey = keyValue.key,
             mergedKey = keyValue.mergedKey,
             keyType = keyValue.id,
-            format = format,
             state = state
           )
       }
@@ -329,11 +327,10 @@ private[core] object HashIndexBlock extends LazyLogging {
                      hashKey: Slice[Byte],
                      mergedKey: Slice[Byte],
                      keyType: Byte,
-                     format: HashIndexEntryFormat.Reference,
                      state: State): Boolean = {
 
     val requiredSpace =
-      format.bytesToAllocatePerEntry(
+      HashIndexEntryFormat.Reference.bytesToAllocatePerEntry(
         largestIndexOffset = indexOffset,
         largestMergedKeySize = mergedKey.size
       )
@@ -361,7 +358,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         if (existing.forall(_ == 0)) {
           state.bytes moveWritePosition (hashIndex + 1)
 
-          format.write(
+          HashIndexEntryFormat.Reference.write(
             indexOffset = indexOffset,
             mergedKey = mergedKey,
             keyType = keyType,
@@ -462,7 +459,6 @@ private[core] object HashIndexBlock extends LazyLogging {
                 hashKey: Slice[Byte],
                 mergedKey: Slice[Byte],
                 keyType: Byte,
-                format: HashIndexEntryFormat.Copy,
                 state: State): Boolean = {
 
     val hash = hashKey.hashCode()
@@ -497,7 +493,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           state.bytes moveWritePosition hashIndex
 
           val crc =
-            format.write(
+            HashIndexEntryFormat.CopyKey.write(
               indexOffset = indexOffset,
               mergedKey = mergedKey,
               keyType = keyType,
