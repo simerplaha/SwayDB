@@ -357,10 +357,10 @@ private[core] case class Level(dirs: Seq[Dir],
                                                               removeWriter: MapEntryWriter[MapEntry.Remove[Slice[Byte]]],
                                                               addWriter: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              fileSweeper: FileSweeper.Enabled,
-                                                              blockCache: Option[BlockCache.State],
+                                                              val fileSweeper: FileSweeper.Enabled,
+                                                              val blockCache: Option[BlockCache.State],
                                                               val segmentIDGenerator: IDGenerator,
-                                                              segmentIO: SegmentIO,
+                                                              val segmentIO: SegmentIO,
                                                               reserve: ReserveRange.State[Unit]) extends NextLevel with LazyLogging { self =>
 
   logger.info(s"{}: Level started.", paths)

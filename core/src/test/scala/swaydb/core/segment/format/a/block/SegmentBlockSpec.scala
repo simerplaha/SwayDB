@@ -64,7 +64,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = _ => randomIOStrategy(),
+                ioStrategy = _ => randomIOStrategy(),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = randomNextInt(Int.MaxValue),
@@ -98,7 +98,7 @@ class SegmentBlockSpec extends TestBase {
             keyValues = keyValues,
             segmentConfig =
               new SegmentBlock.Config(
-                blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
+                ioStrategy = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
                 compressions = _ => Seq.empty
               ),
             createdInLevel = 0
@@ -119,7 +119,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
+              ioStrategy = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0
@@ -147,7 +147,7 @@ class SegmentBlockSpec extends TestBase {
           keyValues = keyValues,
           segmentConfig =
             new SegmentBlock.Config(
-              blockIO = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
+              ioStrategy = dataType => IOStrategy.ConcurrentIO(cacheOnAccess = dataType.isCompressed),
               compressions = _ => Seq.empty
             ),
           createdInLevel = 0

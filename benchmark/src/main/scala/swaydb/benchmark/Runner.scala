@@ -78,12 +78,15 @@ case class Runner(test: Test) extends LazyLogging {
 
     if (forwardIteration)
       Benchmark("Forward iteration benchmark during compaction") {
-        map foreach {
-          keyValue =>
-            val key = keyValue._1.readLong()
-            if (key % 10000 == 0)
-              println(key + " -> " + keyValue._2.map(_.readString()))
-        }
+        map
+          .foreach {
+            keyValue =>
+//              val key = keyValue._1.readLong()
+//              if (key % 10000 == 0)
+//                println(key + " -> " + keyValue._2.map(_.readString()))
+          }
+          .materialize
+          .get
       }
     else if (reverseIteration)
       Benchmark("Reverse iteration benchmark during compaction") {
@@ -91,8 +94,10 @@ case class Runner(test: Test) extends LazyLogging {
           .reverse
           .foreach {
             case (key, _) =>
-              println(s"${LongSerializer.read(key)}")
+            //              println(s"${LongSerializer.read(key)}")
           }
+          .materialize
+          .get
       }
     else {
       println(s"mapsCount: ${map.levelZeroMeter.mapsCount}")
@@ -147,17 +152,18 @@ case class Runner(test: Test) extends LazyLogging {
 
     if (forwardIteration)
       Benchmark("Forward iteration benchmark after compaction") {
-        map foreach {
-          _ =>
-        }
+        map
+          .foreach { case (_, _) => }
+          .materialize
+          .get
       }
     else if (reverseIteration)
       Benchmark("Reverse iteration benchmark after compaction") {
         map
           .reverse
-          .foreach {
-            case (_, _) =>
-          }
+          .foreach { case (_, _) => }
+          .materialize
+          .get
       }
     else {
       println(s"mapsCount: ${map.levelZeroMeter.mapsCount}")

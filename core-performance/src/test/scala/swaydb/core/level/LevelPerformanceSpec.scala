@@ -21,15 +21,26 @@ package swaydb.core.level
 
 import swaydb.IOValues._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, TestSweeper}
 import swaydb.core.TestData._
+import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.ReadState
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
+import swaydb.core.segment.format.a.block.{BloomFilterBlock, SegmentBlock, SortedIndexBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.util.Benchmark
+import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.StorageUnits._
+import swaydb.core.CommonAssertions._
+import scala.util.Random
 
 //@formatter:off
-class LevelPerformanceSpec0 extends LevelPerformanceSpec
+class LevelPerformanceSpec0 extends LevelPerformanceSpec {
+  override def mmapSegmentsOnWrite = false
+  override def mmapSegmentsOnRead = false
+}
 
 class LevelPerformanceSpec1 extends LevelPerformanceSpec {
   override def levelFoldersCount = 10
@@ -55,26 +66,31 @@ class LevelPerformanceSpec3 extends LevelPerformanceSpec {
 sealed trait LevelPerformanceSpec extends TestBase {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
+
+  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
   val keyValuesCount = 100
 
-  val keyValues = randomPutKeyValues(25000)
+  val keyValues =
+    randomPutKeyValues(1000000, startId = Some(0), addPutDeadlines = false)
   //  val keyValues = randomIntKeyValues(250000)
 
   //  override def deleteFiles: Boolean = false
 
-  def readAllKeyValues(level: Level) = {
+  val shuffledKeyValues = Random.shuffle(keyValues)
+
+  def assertGet(level: Level) = {
     val readState = ReadState.limitHashMap(10, 2)
-    keyValues foreach {
+    shuffledKeyValues foreach {
       keyValue =>
-        //          val key = keyValue.key.asInt()
-        //          if (key % 1000 == 0)
-        //            println(s"Reading $key")
-        level.get(keyValue.key, readState)
+        //        val key = keyValue.key.readInt()
+        //        if (key % 1000 == 0)
+        //          println(s"Reading $key")
+        level.get(keyValue.key, readState).runIO.get.get
       //        level.get(keyValue.key).runIO
-      //        val got = level.get(keyValue.key).runIO
-      //        got.key shouldBe keyValue.key
-      //        got.getOrFetchValue.runIO.value shouldBe keyValue.getOrFetchValue.runIO.value
-      //          println("value: " + level.get(keyValue.key).runIO._2.runIO.asInt())
+      //        val got = level.get(keyValue.key, readState).runIO.get.get
+      //        got shouldBe keyValue
+      //        got.getOrFetchValue shouldBe keyValue
+      //        println("value: " + level.get(keyValue.key).runIO._2.runIO.asInt())
     }
   }
 
@@ -99,7 +115,73 @@ sealed trait LevelPerformanceSpec extends TestBase {
       //        keyValue.getOrFetchValue.runIO.value shouldBe keyValues(index + 1).getOrFetchValue.runIO.value
     }
 
-  var level = TestLevel()
+  def strategy(action: IOAction): IOStrategy =
+    action match {
+      case IOAction.OpenResource =>
+        IOStrategy.SynchronisedIO(cacheOnAccess = true)
+      case IOAction.ReadDataOverview =>
+        IOStrategy.SynchronisedIO(cacheOnAccess = true)
+      case IOAction.ReadCompressedData(compressedSize, decompressedSize) =>
+        ???
+      case IOAction.ReadUncompressedData(size) =>
+        IOStrategy.SynchronisedIO(cacheOnAccess = false)
+    }
+
+  var level =
+    TestLevel(
+      segmentSize = 2.mb,
+      sortedIndexConfig =
+        SortedIndexBlock.Config(
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+          prefixCompressionResetCount = 0,
+          enableAccessPositionIndex = true,
+          normaliseIndex = false,
+          compressions = _ => Seq.empty
+        ),
+      binarySearchIndexConfig =
+        BinarySearchIndexBlock.Config(
+          enabled = true,
+          format = BinarySearchEntryFormat.CopyKey,
+          minimumNumberOfKeys = 1,
+          searchSortedIndexDirectlyIfPossible = false,
+          fullIndex = true,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+          compressions = _ => Seq.empty
+        ),
+      //      binarySearchIndexConfig =
+      //        BinarySearchIndexBlock.Config.disabled,
+      valuesConfig =
+        ValuesBlock.Config(
+          compressDuplicateValues = true,
+          compressDuplicateRangeValues = true,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+          compressions = _ => Seq.empty
+        ),
+      hashIndexConfig =
+        HashIndexBlock.Config(
+          maxProbe = 1,
+          format = HashIndexEntryFormat.Reference,
+          minimumNumberOfKeys = 5,
+          minimumNumberOfHits = 5,
+          allocateSpace = _.requiredSpace,
+          ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+          compressions = _ => Seq.empty
+        ),
+      //      hashIndexConfig = HashIndexBlock.Config.disabled,
+      bloomFilterConfig =
+        BloomFilterBlock.Config.disabled,
+      //        BloomFilterBlock.Config(
+      //          falsePositiveRate = 0.001,
+      //          minimumNumberOfKeys = 2,
+      //          optimalMaxProbe = _ => 1,
+      //          blockIO = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+      //          compressions = _ => Seq.empty
+      //        ),
+      segmentConfig = SegmentBlock.Config.default,
+      pushForward = true,
+      deleteSegmentsEventually = false
+    )
+
   level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
   def reopenLevel() = {
@@ -114,13 +196,17 @@ sealed trait LevelPerformanceSpec extends TestBase {
 
   "Level read performance 1" in {
     Benchmark(s"read ${keyValues.size} key values when Level persistent = ${levelStorage.persistent}, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-      readAllKeyValues(level)
+      assertGet(level)
+    }
+
+    Benchmark(s"read ${keyValues.size} key values when Level persistent = ${levelStorage.persistent}, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+      assertGet(level)
     }
   }
 
   "Level read benchmark 2" in {
     Benchmark(s"read ${keyValues.size} key values when Level persistent = ${levelStorage.persistent}, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-      readAllKeyValues(level)
+      assertGet(level)
     }
   }
 

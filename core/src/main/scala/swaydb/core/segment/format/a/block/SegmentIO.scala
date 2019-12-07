@@ -76,13 +76,13 @@ object SegmentIO {
             valuesConfig: ValuesBlock.Config,
             segmentConfig: SegmentBlock.Config): SegmentIO =
     new SegmentIO(
-      segmentBlockIO = segmentConfig.blockIO,
+      segmentBlockIO = segmentConfig.ioStrategy,
       hashIndexBlockIO = hashIndexConfig.ioStrategy,
-      bloomFilterBlockIO = bloomFilterConfig.blockIO,
+      bloomFilterBlockIO = bloomFilterConfig.ioStrategy,
       binarySearchIndexBlockIO = binarySearchIndexConfig.ioStrategy,
       sortedIndexBlockIO = sortedIndexConfig.ioStrategy,
       valuesBlockIO = valuesConfig.ioStrategy,
-      segmentFooterBlockIO = segmentConfig.blockIO
+      segmentFooterBlockIO = segmentConfig.ioStrategy
     )
 }
 

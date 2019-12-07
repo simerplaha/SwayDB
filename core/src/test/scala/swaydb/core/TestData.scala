@@ -178,21 +178,23 @@ object TestData {
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                            ec: ExecutionContext,
                                            timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                           segmentIO: SegmentIO = SegmentIO.random) {
+                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax) {
 
     import swaydb.Error.Level.ExceptionHandler
     import swaydb.IO._
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly])(implicit fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                                              blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): IO[swaydb.Error.Level, Unit] = {
+    def putKeyValuesTest(keyValues: Slice[KeyValue.ReadOnly]): IO[swaydb.Error.Level, Unit] = {
       def fetchNextPath = {
         val segmentId = level.segmentIDGenerator.nextID
         val path = level.paths.next.resolve(IDGenerator.segmentId(segmentId))
         (segmentId, path)
       }
+
+      implicit val segmentIO = level.segmentIO
+      implicit val fileSweeper = level.fileSweeper
+      implicit val blockCache = level.blockCache
 
       if (keyValues.isEmpty)
         IO.unit
@@ -217,7 +219,7 @@ object TestData {
             segments should have size 1
             segments mapRecoverIO {
               segment =>
-                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
+                level.putKeyValues(keyValues, Seq(segment), None)
             } map {
               _ => ()
             }
@@ -225,7 +227,7 @@ object TestData {
       else
         IO {
           Segment.copyToPersist(
-            keyValues = keyValues.toTransient(),
+            keyValues = keyValues,
             createdInLevel = level.levelNumber,
             fetchNextPath = fetchNextPath,
             mmapSegmentsOnRead = randomBoolean(),
@@ -244,7 +246,7 @@ object TestData {
             segments should have size 1
             segments mapRecoverIO {
               segment =>
-                level.putKeyValues(keyValues.toMemory, Seq(segment), None)
+                level.putKeyValues(keyValues, Seq(segment), None)
             } map {
               _ => ()
             }
@@ -567,7 +569,7 @@ object TestData {
         falsePositiveRate = Random.nextDouble() min 0.5,
         minimumNumberOfKeys = randomIntMax(5),
         optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-        blockIO = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -578,7 +580,7 @@ object TestData {
 
     def random(hasCompression: Boolean): SegmentBlock.Config =
       new SegmentBlock.Config(
-        blockIO = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOAccess(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }

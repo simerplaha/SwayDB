@@ -38,14 +38,15 @@ private[core] trait Block[O <: BlockOffset] {
   def headerSize: Int
   def compressionInfo: Option[Block.CompressionInfo]
   def dataType: IOAction.DataAction =
-    compressionInfo map {
-      compressionInfo =>
+    compressionInfo match {
+      case Some(compressionInfo) =>
         IOAction.ReadCompressedData(
           compressedSize = offset.size - headerSize,
           decompressedSize = compressionInfo.decompressedLength
         )
-    } getOrElse {
-      IOAction.ReadUncompressedData(offset.size - headerSize)
+
+      case None =>
+        IOAction.ReadUncompressedData(offset.size - headerSize)
     }
 }
 

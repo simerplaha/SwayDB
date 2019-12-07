@@ -46,14 +46,26 @@ private[core] object SegmentBlock {
 
     def default =
       new Config(
-        blockIO = _ => IOStrategy.ConcurrentIO(false),
+        ioStrategy = {
+          case IOAction.OpenResource =>
+            //cache so that files are kept in-memory
+            IOStrategy.ConcurrentIO(cacheOnAccess = true)
+
+          case IOAction.ReadDataOverview =>
+            //cache so that block overview like footer and blockInfos are kept in memory.
+            IOStrategy.ConcurrentIO(cacheOnAccess = true)
+
+          case data: IOAction.DataAction =>
+            //cache only if the data is compressed.
+            IOStrategy.ConcurrentIO(cacheOnAccess = data.isCompressed)
+        },
         compressions = _ => Seq.empty
       )
 
     def apply(segmentIO: IOAction => IOStrategy,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       new Config(
-        blockIO = segmentIO,
+        ioStrategy = segmentIO,
         compressions =
           uncompressedBlockInfo =>
             Try(compressions(uncompressedBlockInfo))
@@ -63,7 +75,7 @@ private[core] object SegmentBlock {
       )
   }
 
-  class Config(val blockIO: IOAction => IOStrategy,
+  class Config(val ioStrategy: IOAction => IOStrategy,
                val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   object Offset {

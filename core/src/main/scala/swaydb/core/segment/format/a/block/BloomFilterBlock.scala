@@ -39,7 +39,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
         falsePositiveRate = 0.0,
         minimumNumberOfKeys = Int.MaxValue,
         optimalMaxProbe = probe => probe,
-        blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+        ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         compressions = _ => Seq.empty
       )
 
@@ -50,7 +50,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
             falsePositiveRate = 0.0,
             minimumNumberOfKeys = Int.MaxValue,
             optimalMaxProbe = _ => 0,
-            blockIO = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
+            ioStrategy = dataType => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
             compressions = _ => Seq.empty
           )
 
@@ -59,7 +59,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
             falsePositiveRate = enable.falsePositiveRate,
             minimumNumberOfKeys = enable.minimumNumberOfKeys,
             optimalMaxProbe = Functions.safe(probe => probe, enable.updateMaxProbe),
-            blockIO = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+            ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
             compressions =
               Functions.safe(
                 default = _ => Seq.empty[CompressionInternal],
@@ -72,7 +72,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   case class Config(falsePositiveRate: Double,
                     minimumNumberOfKeys: Int,
                     optimalMaxProbe: Int => Int,
-                    blockIO: IOAction => IOStrategy,
+                    ioStrategy: IOAction => IOStrategy,
                     compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset

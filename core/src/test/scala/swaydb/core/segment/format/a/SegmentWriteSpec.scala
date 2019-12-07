@@ -285,7 +285,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   falsePositiveRate = 0.001,
                   minimumNumberOfKeys = 0,
                   optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                  blockIO = _ => randomIOStrategy(),
+                  ioStrategy = _ => randomIOStrategy(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             ),
@@ -307,7 +307,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   falsePositiveRate = 0.001,
                   minimumNumberOfKeys = 0,
                   optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-                  blockIO = _ => randomIOStrategy(),
+                  ioStrategy = _ => randomIOStrategy(),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             ),
