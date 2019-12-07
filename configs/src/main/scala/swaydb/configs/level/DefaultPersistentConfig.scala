@@ -95,11 +95,11 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            maxProbe = 10,
+            maxProbe = 1,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.CopyKey,
-            allocateSpace = _.requiredSpace * 2,
+            indexFormat = IndexFormat.Reference,
+            allocateSpace = _.requiredSpace,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
@@ -156,11 +156,11 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            maxProbe = 10,
+            maxProbe = 1,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.CopyKey,
-            allocateSpace = _.requiredSpace * 2,
+            indexFormat = IndexFormat.Reference,
+            allocateSpace = _.requiredSpace,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
@@ -217,11 +217,11 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            maxProbe = 10,
+            maxProbe = 1,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.CopyKey,
-            allocateSpace = _.requiredSpace * 2,
+            indexFormat = IndexFormat.Reference,
+            allocateSpace = _.requiredSpace,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
@@ -278,11 +278,11 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            maxProbe = 10,
+            maxProbe = 1,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.CopyKey,
-            allocateSpace = _.requiredSpace * 2,
+            indexFormat = IndexFormat.Reference,
+            allocateSpace = _.requiredSpace,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
@@ -339,11 +339,11 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            maxProbe = 10,
+            maxProbe = 1,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.CopyKey,
-            allocateSpace = _.requiredSpace * 2,
+            indexFormat = IndexFormat.Reference,
+            allocateSpace = _.requiredSpace,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
@@ -400,11 +400,11 @@ object DefaultPersistentConfig {
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
-            maxProbe = 10,
+            maxProbe = 1,
             minimumNumberOfKeys = 5,
             minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.CopyKey,
-            allocateSpace = _.requiredSpace * 2,
+            indexFormat = IndexFormat.Reference,
+            allocateSpace = _.requiredSpace,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),

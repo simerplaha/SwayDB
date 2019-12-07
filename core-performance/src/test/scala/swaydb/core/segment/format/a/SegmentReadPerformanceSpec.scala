@@ -104,7 +104,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         case IOAction.ReadDataOverview =>
           IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DataAction =>
-          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
       },
       bloomFilterBlockIO = {
         case IOAction.OpenResource =>
@@ -112,7 +112,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         case IOAction.ReadDataOverview =>
           IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case action: IOAction.DataAction =>
-          IOStrategy.SynchronisedIO(cacheOnAccess = false)
+          IOStrategy.SynchronisedIO(cacheOnAccess = true)
       },
       binarySearchIndexBlockIO = {
         case IOAction.OpenResource =>
@@ -166,7 +166,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       binarySearchIndexConfig =
         BinarySearchIndexBlock.Config(
           enabled = true,
-          format = BinarySearchEntryFormat.Reference,
+          format = BinarySearchEntryFormat.CopyKey,
           minimumNumberOfKeys = 1,
           searchSortedIndexDirectlyIfPossible = false,
           fullIndex = true,
@@ -188,11 +188,11 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           format = HashIndexEntryFormat.Reference,
           minimumNumberOfKeys = 5,
           minimumNumberOfHits = 5,
-          allocateSpace = _.requiredSpace * 2,
+          allocateSpace = _.requiredSpace,
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
           compressions = _ => Seq.empty
         ),
-//      hashIndexConfig = HashIndexBlock.Config.disabled,
+      //      hashIndexConfig = HashIndexBlock.Config.disabled,
       bloomFilterConfig =
         BloomFilterBlock.Config.disabled
       //        BloomFilterBlock.Config(
