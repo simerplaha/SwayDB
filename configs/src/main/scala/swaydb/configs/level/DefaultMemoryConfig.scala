@@ -60,14 +60,7 @@ object DefaultMemoryConfig {
         segmentSize = segmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 100,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = ioAction.isCompressed),
-            compression = _ => Seq.empty
-          ),
+        mightContainIndex = MightContainIndex.Disable,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           _ =>
