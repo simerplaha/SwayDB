@@ -38,11 +38,11 @@ import scala.jdk.CollectionConverters._
  *
  * For documentation check - http://swaydb.io/tag/
  */
-case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](_asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
+case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private val _asScala: swaydb.Map[K, V, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  private val asScala: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], ThrowableIO] =
+  val asScala: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], ThrowableIO] =
     _asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], swaydb.IO.ThrowableIO]]
 
   def put(key: K, value: V): IO[scala.Throwable, swaydb.Done] =

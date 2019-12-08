@@ -39,11 +39,11 @@ import scala.compat.java8.DurationConverters._
  *
  * For documentation check - http://swaydb.io/
  */
-case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](_asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
+case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](private val _asScala: swaydb.Set[A, _, swaydb.IO.ThrowableIO]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
 
-  private val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], ThrowableIO] =
+  val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], ThrowableIO] =
     _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], swaydb.IO.ThrowableIO]]
 
   def get(elem: A): IO[scala.Throwable, Optional[A]] =
