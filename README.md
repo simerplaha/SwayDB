@@ -63,7 +63,7 @@ Undergoing beta & performance testing. Backward binary compatibility is not yet 
 ## Contribution
 Contributions are welcomed following the [Scala code of conduct](https://www.scala-lang.org/conduct/).
 
-# Project support
+# Sponsors
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 
 
 <a href="https://www.jetbrains.com/?from=SwayDB" target="_blank"><img src="/docs/jetbrains.png" 
