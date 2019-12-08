@@ -142,7 +142,7 @@ private[swaydb] object Core {
     }
 }
 
-private[swaydb] class Core[T[_]](zero: LevelZero,
+private[swaydb] class Core[T[_]](val zero: LevelZero,
                                  onClose: => IO.Defer[swaydb.Error.Close, Unit])(implicit tag: Tag[T]) {
 
   import Tag.Implicits._

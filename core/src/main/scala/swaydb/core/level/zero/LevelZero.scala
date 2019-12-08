@@ -172,15 +172,15 @@ private[core] object LevelZero extends LazyLogging {
       }
 }
 
-private[core] case class LevelZero(path: Path,
-                                   mapSize: Long,
-                                   maps: Maps[Slice[Byte], Memory],
-                                   nextLevel: Option[NextLevel],
-                                   inMemory: Boolean,
-                                   throttle: LevelZeroMeter => FiniteDuration,
-                                   private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                       functionStore: FunctionStore) extends LevelRef with LazyLogging {
+private[swaydb] case class LevelZero(path: Path,
+                                     mapSize: Long,
+                                     maps: Maps[Slice[Byte], Memory],
+                                     nextLevel: Option[NextLevel],
+                                     inMemory: Boolean,
+                                     throttle: LevelZeroMeter => FiniteDuration,
+                                     private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                                         functionStore: FunctionStore) extends LevelRef with LazyLogging {
 
   logger.info("{}: Level0 started.", path)
 

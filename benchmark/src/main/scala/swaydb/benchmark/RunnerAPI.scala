@@ -29,7 +29,7 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.util.Random
 
-case class Runner(test: Test) extends LazyLogging {
+case class RunnerAPI(test: Test) extends LazyLogging {
 
   private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO] = test.map
   private val randomWrite: Boolean = test.randomWrite

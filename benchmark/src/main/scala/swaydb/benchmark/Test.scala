@@ -47,8 +47,10 @@ case class MemoryTest(keyValueCount: Long,
                       randomRead: Boolean,
                       forwardIteration: Boolean,
                       reverseIteration: Boolean,
-                      useMap: Boolean) extends Test {
-  override val map = memory.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO]().get
+                      useMap: Boolean,
+                      mapSize: Int,
+                      segmentSize: Int) extends Test {
+  override val map = memory.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](mapSize = mapSize, segmentSize = segmentSize).get
 }
 
 case class PersistentTest(dir: Path,
@@ -58,10 +60,23 @@ case class PersistentTest(dir: Path,
                           randomRead: Boolean,
                           forwardIteration: Boolean,
                           reverseIteration: Boolean,
-                          useMap: Boolean) extends Test {
+                          useMap: Boolean,
+                          mapSize: Int,
+                          segmentSize: Int) extends Test {
   override val map =
     if (mmap)
-      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](dir = dir).get
+      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](
+        dir = dir,
+        mapSize = mapSize,
+        segmentSize = segmentSize
+      ).get
     else
-      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](dir = dir, mmapMaps = false, mmapAppendix = false, mmapSegments = MMAP.Disabled).get
+      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](
+        dir = dir,
+        mmapMaps = false,
+        mmapAppendix = false,
+        mmapSegments = MMAP.Disabled,
+        mapSize = mapSize,
+        segmentSize = segmentSize
+      ).get
 }
