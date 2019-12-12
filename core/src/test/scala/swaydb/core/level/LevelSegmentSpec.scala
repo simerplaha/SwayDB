@@ -22,7 +22,6 @@ package swaydb.core.level
 import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 
 import org.scalamock.scalatest.MockFactory
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -42,7 +41,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.storage.LevelStorage
 import swaydb.data.util.StorageUnits._
 
-import scala.concurrent.{ExecutionContext, Promise}
+import scala.concurrent.ExecutionContext
 import scala.util.Random
 
 class LevelSegmentSpec0 extends LevelSegmentSpec
@@ -88,7 +87,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val keyValues = randomIntKeyStringValues(keyValuesCount)
         val segment = TestSegment(keyValues)
         segment.close.runRandomIO.right.value
-        level.put(segment).right.right.value.right.value
+        level.put(segment).right.right.value.right.value should contain only level.levelNumber
         assertReads(keyValues, level)
         level.close.runRandomIO.right.value
       }
@@ -99,11 +98,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val level = TestLevel(segmentSize = 100.bytes)
         val keyValues = randomIntKeyStringValues(keyValuesCount)
         val segment = TestSegment(keyValues)
-        level.put(segment).right.right.value.right.value
+        level.put(segment).right.right.value.right.value should contain only level.levelNumber
 
         val keyValues2 = randomIntKeyStringValues(keyValuesCount * 10)
         val segment2 = TestSegment(keyValues2).runRandomIO.right.value
-        level.put(segment2).right.right.value.right.value
+        level.put(segment2).right.right.value.right.value should contain only level.levelNumber
 
         assertGet(keyValues, level)
         assertGet(keyValues2, level)
@@ -123,7 +122,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             }
 
         val segments = Seq(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues2).runRandomIO.right.value, TestSegment(keyValues3).runRandomIO.right.value)
-        level.put(segments).right.right.value.right.value
+        level.put(segments).right.right.value.right.value should contain only level.levelNumber
 
         assertReads(keyValues, level)
       }
@@ -141,7 +140,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         level.isEmpty shouldBe false
 
         val segments = Seq(TestSegment(keyValues1.toTransient).runRandomIO.right.value, TestSegment(keyValues3.toTransient).runRandomIO.right.value)
-        level.put(segments).right.right.value.right.value
+        level.put(segments).right.right.value.right.value should contain only level.levelNumber
 
         assertReads(allKeyValues, level)
       }
@@ -208,7 +207,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel()
 
-        level.put(Seq.empty, segmentToCopy, Seq.empty).runRandomIO.right.value
+        level.put(Seq.empty, segmentToCopy, Seq.empty).runRandomIO.right.value should contain only level.levelNumber
 
         level.isEmpty shouldBe false
         assertReads(keyValues.flatten, level)
@@ -221,8 +220,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
 
         val level = TestLevel()
-        level.put(targetSegment).right.right.value.right.value
-        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).runRandomIO.right.value
+        level.put(targetSegment).right.right.value.right.value should contain only level.levelNumber
+        level.put(segmentToMerge, segmentToCopy, Seq(targetSegment)).runRandomIO.right.value should contain only level.levelNumber
 
         level.isEmpty shouldBe false
 
@@ -265,7 +264,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
 
           val level = TestLevel(segmentSize = 150.bytes)
-          level.put(targetSegment).right.right.value.right.value
+          level.put(targetSegment).right.right.value.right.value should contain only level.levelNumber
 
           //segment to copy
           val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
@@ -319,13 +318,13 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
+        level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
-        level.put(TestSegment(keyValues.take(1).updateStats).runRandomIO.right.value).right.right.value.right.value
-        level.put(TestSegment(keyValues.takeRight(1).updateStats).runRandomIO.right.value).right.right.value.right.value
+        level.put(TestSegment(keyValues.take(1).updateStats)).right.right.value.right.value should contain only level.levelNumber
+        level.put(TestSegment(keyValues.takeRight(1).updateStats)).right.right.value.right.value should contain only level.levelNumber
 
-        level.close.runRandomIO.right.value
+        level.close.value
       }
 
       "upper level has no overlapping Segments and nextLevel allows Segment copying" in {
@@ -353,10 +352,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.unitUnit
+            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
-        level.put(segment).right.right.value.right.value
+        level.put(segment).right.right.value.right.value should contain only Int.MaxValue
 
         assertGet(keyValues, level) //previous existing key-values should still exist
         assertGetNoneFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -383,7 +383,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             (Iterable.empty, segments)
         }
 
-        level.put(segment).right.right.value.right.value
+        level.put(segment).right.right.value.right.value should contain only level.levelNumber
 
         assertGet(keyValues, level) //previous existing key-values should still exist
         assertGetFromThisLevelOnly(keyValues2, level) //newly added key-values do not exist because nextLevel is mocked.
@@ -416,10 +416,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment3.path
-            IO.unitUnit
+            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
-        level.put(Seq(segment2, segment3)).right.right.value.right.value
+        level.put(Seq(segment2, segment3)).right.right.value.right.value should contain only(level.levelNumber, Int.MaxValue)
 
         assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
         //segment2's key-values still readable from upper Level since they were copied locally.
@@ -452,10 +453,11 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
           (segments: Iterable[Segment], _) =>
             segments should have size 1
             segments.head.path shouldBe segment.path
-            IO.Right[Promise[Unit], IO[swaydb.Error.Level, Unit]](IO(throw IO.throwable("Kaboom!!")))(IO.ExceptionHandler.PromiseUnit)
+            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+            IO.Right[Nothing, IO[swaydb.Error.Level, Set[Int]]](IO[swaydb.Error.Level, Set[Int]](throw IO.throwable("Kaboom!!")))
         }
 
-        level.put(segment).right.right.value.right.value
+        level.put(segment).right.right.value.right.value should contain only level.levelNumber
 
         assertGetFromThisLevelOnly(keyValues, level) //all key-values value persisted into upper level.
         assertGetFromThisLevelOnly(keyValues2, level) //all key-values value persisted into upper level.

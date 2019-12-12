@@ -97,13 +97,13 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
-        map.write(MapEntry.Put(keyValue.key, keyValue.asInstanceOf[Memory]))
+        map.write(MapEntry.Put(keyValue.key, keyValue))
     }
 
     "succeed" when {
       "writing to an empty Level" in {
         val level = TestLevel()
-        level.put(map).right.right.value.right.value
+        level.put(map).right.right.value.right.value should contain only level.levelNumber
         //since this is a new Segment and Level has no sub-level, all the deleted key-values will value removed.
         val (deletedKeyValues, otherKeyValues) = keyValues.partition(_.isInstanceOf[Memory.Remove])
 
@@ -132,7 +132,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         level.putKeyValuesTest(sortedExistingKeyValues).runRandomIO.right.value
 
         //put a new map
-        level.put(map).right.right.value.right.value
+        level.put(map).right.right.value.right.value should contain only level.levelNumber
         assertGet(keyValues.filterNot(_.isInstanceOf[Memory.Remove]), level)
 
         level.get("one", ReadState.random).runRandomIO.right.value.value shouldBe existingKeyValues(0)
@@ -180,11 +180,12 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         (nextLevel.put(_: Map[Slice[Byte], Memory])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory], _) =>
             putMap.pathOption shouldBe map.pathOption
-            IO.unitUnit
+            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
-        level.put(map).right.right.value.right.value
+        level.put(map).right.right.value.right.value should contain only Int.MaxValue
         assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
       }
 
@@ -205,14 +206,15 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         (nextLevel.put(_: Map[Slice[Byte], Memory])(_: ExecutionContext)) expects(*, *) onCall {
           (putMap: Map[Slice[Byte], Memory], _) =>
             putMap.pathOption shouldBe map.pathOption
-            IO.unitUnit
+            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value
 
-        level.put(map).right.right.value.right.value
+        level.put(map).right.right.value.right.value should contain only Int.MaxValue
         assertGetNoneFromThisLevelOnly(lastLevelKeyValues, level) //because nextLevel is a mock.
         assertGetFromThisLevelOnly(keyValues, level)
       }

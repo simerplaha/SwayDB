@@ -187,7 +187,7 @@ private[core] object Level extends LazyLogging {
                     IO.unit
 
                 deletedUnCommittedSegments
-                  .map {
+                  .transform {
                     _ =>
                       new Level(
                         dirs = levelStorage.dirs,
@@ -585,10 +585,10 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Right(IO.Left[swaydb.Error.Level, T](error))(IO.ExceptionHandler.PromiseUnit)
     }
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
+  def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
+  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserveAndRelease(segments) {
       val appendixSegments = appendix.skipList.values().asScala
@@ -617,14 +617,14 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
-                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Unit] =
+                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Set[Int]] =
     if (segmentsToCopy.nonEmpty)
       copyForwardOrCopyLocal(segmentsToCopy) flatMap {
         newlyCopiedSegments =>
-          if (newlyCopiedSegments.nonEmpty) //all Segments were copied.
-            buildNewMapEntry(newlyCopiedSegments, None, None) flatMap {
+          if (newlyCopiedSegments.value.nonEmpty) //Segments were copied into this Level.
+            buildNewMapEntry(newlyCopiedSegments.value, None, None) flatMap {
               copiedSegmentsEntry =>
-                val putResult: IO[swaydb.Error.Level, Unit] =
+                val putResult: IO[swaydb.Error.Level, _] =
                   if (segmentsToMerge.nonEmpty)
                     merge(
                       segments = segmentsToMerge,
@@ -632,31 +632,42 @@ private[core] case class Level(dirs: Seq[Dir],
                       appendEntry = Some(copiedSegmentsEntry)
                     )
                   else
-                    appendix.writeSafe(copiedSegmentsEntry) map (_ => ())
+                    appendix.writeSafe(copiedSegmentsEntry)
 
-                putResult onLeftSideEffect {
-                  failure =>
-                    logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.size} copied segments", failure)
-                    deleteCopiedSegments(newlyCopiedSegments)
-                }
+                putResult
+                  .transform {
+                    _ =>
+                      newlyCopiedSegments.levelsUpdated + levelNumber
+                  }
+                  .onLeftSideEffect {
+                    failure =>
+                      logFailure(s"${paths.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.value.size} copied segments", failure)
+                      deleteCopiedSegments(newlyCopiedSegments.value)
+                  }
             }
           else if (segmentsToMerge.nonEmpty) //check if there are Segments to merge.
             merge( //no segments were copied. Do merge!
               segments = segmentsToMerge,
               targetSegments = targetSegments,
               appendEntry = None
-            )
+            ) transform {
+              _ =>
+                newlyCopiedSegments.levelsUpdated + levelNumber
+            }
           else
-            IO.unit
+            IO.Right(newlyCopiedSegments.levelsUpdated)
       }
     else
       merge(
         segments = segmentsToMerge,
         targetSegments = targetSegments,
         appendEntry = None
-      )
+      ) transform {
+        _ =>
+          Set(levelNumber)
+      }
 
-  def put(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
+  def put(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.skipList.count())
     reserveAndRelease(map) {
       val appendixValues = appendix.skipList.values().asScala
@@ -665,28 +676,29 @@ private[core] case class Level(dirs: Seq[Dir],
           keyValues = map.skipList.toSlice(),
           targetSegments = appendixValues,
           appendEntry = None
-        )
+        ) transform {
+          _ =>
+            Set(levelNumber)
+        }
       else
         copyForwardOrCopyLocal(map)
           .flatMap {
             newSegments =>
-              if (newSegments.nonEmpty)
-                buildNewMapEntry(newSegments, None, None)
+              if (newSegments.value.nonEmpty)
+                buildNewMapEntry(newSegments.value, None, None)
                   .flatMap {
                     entry =>
-                      appendix writeSafe entry
+                      appendix
+                        .writeSafe(entry)
+                        .transform(_ => newSegments.levelsUpdated)
                   }
                   .onLeftSideEffect {
                     failure =>
                       logFailure(s"${paths.head}: Failed to create a log entry.", failure)
-                      deleteCopiedSegments(newSegments)
+                      deleteCopiedSegments(newSegments.value)
                   }
               else
-                Segment.emptyIterableIO
-          }
-          .flatMap {
-            _ =>
-              IO.unit
+                IO.Right(newSegments.levelsUpdated)
           }
     }
   }
@@ -694,32 +706,53 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return empty if copied into next Level else Segments copied into this Level.
    */
-  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
-    forward(map) flatMap {
-      copied =>
-        if (copied)
-          Segment.emptyIterableIO
-        else
-          copy(map)
-    }
+  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
+    val forwardResult = forward(map)
+    if (forwardResult.value)
+      IO.Right(forwardResult.updateValue(Segment.emptyIterable))
+    else
+      copy(map).transform {
+        copied =>
+          MergeResult(
+            value = copied,
+            levelUpdated = levelNumber
+          )
+      }
+  }
 
   /**
    * Returns segments that were not forwarded.
    */
-  private def forward(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Boolean] = {
+  private def forward(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): MergeResult[Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = $pushForward", paths.head, map.pathOption)
     if (pushForward)
-      nextLevel map {
-        nextLevel =>
-          if (!nextLevel.isCopyable(map))
-            IO.`false`
-          else if (nextLevel.put(map).exists(_.isRight))
-            IO.`true`
-          else
-            IO.`false`
-      } getOrElse IO.`false`
+      nextLevel match {
+        case Some(nextLevel) if nextLevel.isCopyable(map) =>
+          nextLevel.put(map) match {
+            case IO.Right(result) =>
+              result match {
+                case IO.Right(levelsUpdated) =>
+                  MergeResult(
+                    value = true,
+                    levelsUpdated = levelsUpdated
+                  )
+
+                case IO.Left(_) =>
+                  MergeResult.`false`
+              }
+
+            case IO.Left(_) =>
+              MergeResult.`false`
+          }
+
+        case Some(_) =>
+          MergeResult.`false`
+
+        case None =>
+          MergeResult.`false`
+      }
     else
-      IO.`false`
+      MergeResult.`false`
   }
 
   private[level] def copy(map: Map[Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
@@ -766,45 +799,59 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   /**
-   * Returns newly created Segments.
+   * Returns newly created Segments in this Level.
    */
-  private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] =
-    forward(segments) match {
-      case IO.Right(segmentsNotForwarded) =>
-        if (segmentsNotForwarded.isEmpty)
-          Segment.emptyIterableIO
-        else
-          copy(segmentsNotForwarded)
-
-      case IO.Left(error) =>
-        logger.trace(s"{}: Copying forward failed. Trying to copy locally {} Segments", paths.head, segments.map(_.path.toString), error.exception)
-        copy(segments)
-    }
+  private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
+    val segmentsNotForwarded = forward(segments)
+    if (segmentsNotForwarded.value.isEmpty)
+      IO.Right(segmentsNotForwarded) //all were forwarded.
+    else
+      copyLocal(segmentsNotForwarded.value) transform {
+        newSegments =>
+          MergeResult(
+            value = newSegments,
+            levelsUpdated = segmentsNotForwarded.levelsUpdated + levelNumber
+          )
+      }
+  }
 
   /**
-   * Returns segments that were not forwarded.
+   * @return segments that were not forwarded.
    */
-  private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): MergeResult[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments. pushForward = $pushForward", paths.head, segments.map(_.path.toString))
     if (pushForward)
       nextLevel match {
         case Some(nextLevel) =>
           val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
           if (copyable.isEmpty)
-            IO.Right(segments)
-          else if (nextLevel.put(copyable).exists(_.isRight))
-            IO.Right(nonCopyable)
+            MergeResult(segments)
           else
-            IO.Right(segments)
+            nextLevel.put(copyable) match {
+              case IO.Right(forwardResult) =>
+                forwardResult match {
+                  case IO.Right(forwardedTo) =>
+                    MergeResult(
+                      value = nonCopyable,
+                      levelsUpdated = forwardedTo
+                    )
+
+                  case IO.Left(_) =>
+                    MergeResult(segments)
+                }
+
+              case IO.Left(_) =>
+                MergeResult(segments)
+            }
 
         case None =>
-          IO.Right(segments)
+          MergeResult(segments)
       }
     else
-      IO.Right(segments)
+      MergeResult(segments)
   }
 
-  private[level] def copy(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
+  private[level] def copyLocal(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
     logger.trace(s"{}: Copying {} Segments", paths.head, segments.map(_.path.toString))
     segments.flatMapRecoverIO[Segment](
       ioBlock =
@@ -881,7 +928,7 @@ private[core] case class Level(dirs: Seq[Dir],
           logger.debug(s"{}: Segment {} successfully refreshed. New Segments: {}.", paths.head, segment.path, newSegments.map(_.path).mkString(", "))
           buildNewMapEntry(newSegments, Some(segment), None) flatMap {
             entry =>
-              appendix.writeSafe(entry).map(_ => ()) onRightSideEffect {
+              appendix.writeSafe(entry).transform(_ => ()) onRightSideEffect {
                 _ =>
                   if (deleteSegmentsEventually)
                     segment.deleteSegmentsEventually
@@ -1445,7 +1492,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def segmentCountAndLevelSize: (Int, Long) =
     appendix
       .skipList
-      .foldLeft(0, 0L) {
+      .foldLeft(0: Int, 0L: Long) {
         case ((segments, size), (_, segment)) =>
           (segments + 1, size + segment.segmentSize)
       }

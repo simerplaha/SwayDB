@@ -150,14 +150,17 @@ private[core] object TrashLevel extends NextLevel {
   override def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     (segments, Iterable.empty)
 
-  override def put(segment: Segment)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Unit]] =
-    IO.unitUnit
+  /**
+   * Return empty Set here because it's Trash level and does not require compaction.
+   */
+  override def put(segment: Segment)(implicit ec: ExecutionContext): IO[Nothing, IO.Right[Nothing, Set[Int]]] =
+    IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
-  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
-    IO.unitUnit
+  override def put(map: swaydb.core.map.Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+    IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
-  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] =
-    IO.unitUnit
+  override def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+    IO.Right(IO.Right(Set.empty[Int])(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
 
   override def removeSegments(segments: Iterable[Segment]): IO[swaydb.Error.Segment, Int] =
     IO.Right(segments.size)

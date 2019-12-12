@@ -220,7 +220,7 @@ object TestData {
             segments mapRecoverIO {
               segment =>
                 level.putKeyValues(keyValues, Seq(segment), None)
-            } map {
+            } transform {
               _ => ()
             }
         }
@@ -247,7 +247,7 @@ object TestData {
             segments mapRecoverIO {
               segment =>
                 level.putKeyValues(keyValues, Seq(segment), None)
-            } map {
+            } transform {
               _ => ()
             }
         }

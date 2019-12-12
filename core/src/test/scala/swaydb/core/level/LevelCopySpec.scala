@@ -81,8 +81,8 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
       val keyValues1 = randomIntKeyStringValues()
       val keyValues2 = randomIntKeyStringValues()
-      val segments = Iterable(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues2).runRandomIO.right.value)
-      val copiedSegments = level.copy(segments).runRandomIO.right.value
+      val segments = Iterable(TestSegment(keyValues1), TestSegment(keyValues2))
+      val copiedSegments = level.copyLocal(segments).value
 
       val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray).updateStats
 
@@ -90,20 +90,20 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
 
       if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(copiedSegments).runRandomIO.right.value shouldBe allKeyValues
+      Segment.getAllKeyValues(copiedSegments) shouldBe allKeyValues
     }
 
     "fail copying Segments if it failed to copy one of the Segments" in {
       val level = TestLevel()
       level.isEmpty shouldBe true
 
-      val segment1 = TestSegment().runRandomIO.right.value
-      val segment2 = TestSegment().runRandomIO.right.value
+      val segment1 = TestSegment()
+      val segment2 = TestSegment()
 
-      segment2.delete.runRandomIO.right.value // delete segment2 so there is a failure in copying Segments
+      segment2.delete // delete segment2 so there is a failure in copying Segments
 
       val segments = Iterable(segment1, segment2)
-      level.copy(segments).left.runRandomIO.right.value.exception shouldBe a[NoSuchFileException]
+      level.copyLocal(segments).left.value.exception shouldBe a[NoSuchFileException]
 
       level.isEmpty shouldBe true
       if (persistent) level.reopen.isEmpty shouldBe true
@@ -113,13 +113,13 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
       val level = TestLevel()
       level.isEmpty shouldBe true
 
-      val keyValues = randomPutKeyValues(keyValuesCount).asInstanceOf[Slice[Memory]]
-      val copiedSegments = level.copy(TestMap(keyValues)).runRandomIO.right.value
+      val keyValues = randomPutKeyValues(keyValuesCount)
+      val copiedSegments = level.copy(TestMap(keyValues)).value
       level.isEmpty shouldBe true //copy function does not write to appendix.
 
       if (persistent) level.segmentFilesOnDisk should not be empty
 
-      Segment.getAllKeyValues(copiedSegments).runRandomIO.right.value shouldBe keyValues
+      Segment.getAllKeyValues(copiedSegments) shouldBe keyValues
     }
   }
 
@@ -127,10 +127,10 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
     val level2 = TestLevel(segmentSize = 1.kb)
     val level1 = TestLevel(segmentSize = 1.kb, pushForward = true, nextLevel = Some(level2))
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount)
     val maps = TestMap(keyValues)
 
-    level1.put(maps).right.right.value.right.value
+    level1.put(maps).right.right.value.right.value should contain only level2.levelNumber
 
     level1.isEmpty shouldBe true
     level2.isEmpty shouldBe false

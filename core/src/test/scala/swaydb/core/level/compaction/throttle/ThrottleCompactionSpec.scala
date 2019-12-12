@@ -36,7 +36,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
-import scala.collection.compat._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
@@ -97,7 +96,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.unitUnit
+            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
         //segments value removed
@@ -123,7 +123,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
           (putSegments: Iterable[Segment], _) =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
-            IO.unitUnit
+            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
+            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
         //segments value removed
