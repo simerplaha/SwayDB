@@ -3,7 +3,7 @@ import sbt.url
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
 
-val lz4Version = "1.6.0"
+val lz4Version = "1.7.0"
 val snappyVersion = "1.1.7.3"
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.9.2"
