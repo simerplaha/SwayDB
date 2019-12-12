@@ -27,7 +27,7 @@ object Deadline {
     new Deadline(scalaDeadline)
 }
 
-class Deadline(asScala: ScalaDeadline) {
+class Deadline(val asScala: ScalaDeadline) {
 
   def timeLeft =
     asScala.timeLeft.toJava
