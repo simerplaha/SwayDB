@@ -1031,7 +1031,7 @@ private[core] case class Level(dirs: Seq[Dir],
           segments = segmentsToMerge,
           targetSegments = targetSegments,
           appendEntry = appendEntry
-        ) map {
+        ) transform {
           _ =>
             //delete the segments merged with self.
             if (deleteSegmentsEventually)
@@ -1091,7 +1091,7 @@ private[core] case class Level(dirs: Seq[Dir],
                   //Note: appendEntry should not overwrite new Segment's entries with same keys so perform distinct
                   //which will remove oldEntries with duplicates with newer keys.
                   val mapEntryToWrite = appendEntry.map(appendEntry => MapEntry.distinct(mapEntry, appendEntry)) getOrElse mapEntry
-                  appendix.writeSafe(mapEntryToWrite) map {
+                  appendix.writeSafe(mapEntryToWrite) transform {
                     _ =>
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", paths.head, assignments.map(_._1.path.toString))
                       //delete assigned segments as they are replaced with new segments.
