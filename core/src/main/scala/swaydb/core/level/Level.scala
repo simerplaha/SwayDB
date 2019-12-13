@@ -49,11 +49,11 @@ import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.{Error, IO}
 
-import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Promise
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Promise}
+import scala.jdk.CollectionConverters._
 
 private[core] object Level extends LazyLogging {
 
@@ -585,10 +585,10 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Right(IO.Left[swaydb.Error.Level, T](error))(IO.ExceptionHandler.PromiseUnit)
     }
 
-  def put(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
+  def put(segment: Segment): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     put(Seq(segment))
 
-  def put(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
+  def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", paths.head, segments.map(_.path.toString).toList)
     reserveAndRelease(segments) {
       val appendixSegments = appendix.skipList.values().asScala
@@ -617,7 +617,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
-                         targetSegments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, Set[Int]] =
+                         targetSegments: Iterable[Segment]): IO[swaydb.Error.Level, Set[Int]] =
     if (segmentsToCopy.nonEmpty)
       copyForwardOrCopyLocal(segmentsToCopy) flatMap {
         newlyCopiedSegments =>
@@ -667,7 +667,7 @@ private[core] case class Level(dirs: Seq[Dir],
           Set(levelNumber)
       }
 
-  def put(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
+  def put(map: Map[Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace("{}: PutMap '{}' Maps.", paths.head, map.skipList.count())
     reserveAndRelease(map) {
       val appendixValues = appendix.skipList.values().asScala
@@ -706,7 +706,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return empty if copied into next Level else Segments copied into this Level.
    */
-  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
+  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory]): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
     val forwardResult = forward(map)
     if (forwardResult.value)
       IO.Right(forwardResult.updateValue(Segment.emptyIterable))
@@ -723,7 +723,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Returns segments that were not forwarded.
    */
-  private def forward(map: Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): MergeResult[Boolean] = {
+  private def forward(map: Map[Slice[Byte], Memory]): MergeResult[Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = $pushForward", paths.head, map.pathOption)
     if (pushForward)
       nextLevel match {
@@ -801,7 +801,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Returns newly created Segments in this Level.
    */
-  private def copyForwardOrCopyLocal(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
+  private def copyForwardOrCopyLocal(segments: Iterable[Segment]): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
     val segmentsNotForwarded = forward(segments)
     if (segmentsNotForwarded.value.isEmpty)
       IO.Right(segmentsNotForwarded) //all were forwarded.
@@ -818,7 +818,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return segments that were not forwarded.
    */
-  private def forward(segments: Iterable[Segment])(implicit ec: ExecutionContext): MergeResult[Iterable[Segment]] = {
+  private def forward(segments: Iterable[Segment]): MergeResult[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments. pushForward = $pushForward", paths.head, segments.map(_.path.toString))
     if (pushForward)
       nextLevel match {
@@ -907,7 +907,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
   }
 
-  def refresh(segment: Segment)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
+  def refresh(segment: Segment): IO[Promise[Unit], IO[swaydb.Error.Level, Unit]] = {
     logger.debug("{}: Running refresh.", paths.head)
     reserveAndRelease(Seq(segment)) {
       IO {
@@ -995,7 +995,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def collapse(segments: Iterable[Segment])(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
+  def collapse(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] = {
     logger.trace(s"{}: Collapsing '{}' segments", paths.head, segments.size)
     if (segments.isEmpty || appendix.size == 1) { //if there is only one Segment in this Level which is a small segment. No collapse required
       IO.Right[Promise[Unit], IO[swaydb.Error.Level, Int]](IO.zero)(IO.ExceptionHandler.PromiseUnit)

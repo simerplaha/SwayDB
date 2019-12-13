@@ -177,8 +177,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory])(_: ExecutionContext)) expects(*, *) onCall {
-          (putMap: Map[Slice[Byte], Memory], _) =>
+        (nextLevel.put(_: Map[Slice[Byte], Memory])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory] =>
             putMap.pathOption shouldBe map.pathOption
             implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
             IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -203,8 +203,8 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             true
         }
 
-        (nextLevel.put(_: Map[Slice[Byte], Memory])(_: ExecutionContext)) expects(*, *) onCall {
-          (putMap: Map[Slice[Byte], Memory], _) =>
+        (nextLevel.put(_: Map[Slice[Byte], Memory])) expects * onCall {
+          putMap: Map[Slice[Byte], Memory] =>
             putMap.pathOption shouldBe map.pathOption
             implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
             IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))

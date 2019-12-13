@@ -93,8 +93,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val segments = Seq(TestSegment(keyValues(0).toTransient), TestSegment(keyValues(1).toTransient))
 
         //next level should value a put for all the input Segments
-        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
-          (putSegments: Iterable[Segment], _) =>
+        (nextLevel.put(_: Iterable[Segment])) expects * onCall {
+          putSegments: Iterable[Segment] =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
             implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
             IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -120,8 +120,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val segments = Seq(TestSegment(keyValues(0).toTransient), TestSegment(keyValues(1).toTransient))
 
         //next level should value a put for all the input Segments
-        (nextLevel.put(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
-          (putSegments: Iterable[Segment], _) =>
+        (nextLevel.put(_: Iterable[Segment])) expects * onCall {
+          putSegments: Iterable[Segment] =>
             putSegments.map(_.path) shouldBe segments.map(_.path)
             implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
             IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -263,8 +263,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         (level.hasNextLevel _).expects() returns false repeat 6.times
         (level.segmentsInLevel _).expects() returning segments repeat 5.times
 
-        (level.refresh(_: Segment)(_: ExecutionContext)) expects(*, *) onCall {
-          (segment: Segment, _) =>
+        (level.refresh(_: Segment)) expects * onCall {
+          segment: Segment =>
             segments find (_.path == segment.path) shouldBe defined
             segments -= segment
             IO.Right(IO(segment.delete))(IO.ExceptionHandler.PromiseUnit)
@@ -305,8 +305,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
             segments.take(count)
         }
 
-        (level.collapse(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
-          (segmentsToCollapse: Iterable[Segment], _) =>
+        (level.collapse(_: Iterable[Segment])) expects * onCall {
+          segmentsToCollapse: Iterable[Segment] =>
             segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
             segments --= segmentsToCollapse
             IO.Right(IO(segmentsToCollapse.size))(IO.ExceptionHandler.PromiseUnit)
@@ -356,7 +356,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
   //            segments.take(count)
   //        }
   //
-  //        (lowerLevel.collapse(_: Iterable[Segment])(_: ExecutionContext)) expects(*, *) onCall {
+  //        (lowerLevel.collapse(_: Iterable[Segment])) expects(*, *) onCall {
   //          (segmentsToCollapse: Iterable[Segment], _) =>
   //            segmentsToCollapse foreach (segment => segments find (_.path == segment.path) shouldBe defined)
   //            segments --= segmentsToCollapse

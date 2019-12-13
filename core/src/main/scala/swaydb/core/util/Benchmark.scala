@@ -31,9 +31,9 @@ object Benchmark {
     val endTime = System.nanoTime()
     val timeTaken = ((endTime - startTime) / 1000000000.0: Double)
     if (inlinePrint)
-      print(timeTaken + " seconds.")
+      print(timeTaken + s" seconds - $message.")
     else
-      println(timeTaken + " seconds.")
+      println(timeTaken + s" seconds - $message.")
     println
     (result, timeTaken)
   }
