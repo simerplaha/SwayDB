@@ -117,7 +117,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   def init(keyValues: Iterable[Transient]): Option[HashIndexBlock.State] =
-    if (keyValues.size < keyValues.last.hashIndexConfig.minimumNumberOfKeys || keyValues.last.stats.segmentHashIndexSize <= 0) {
+    if (keyValues.last.stats.uncompressedKeyCounts < keyValues.last.hashIndexConfig.minimumNumberOfKeys) {
       None
     } else {
       val last = keyValues.last
@@ -129,7 +129,9 @@ private[core] object HashIndexBlock extends LazyLogging {
           largestMergedKeySize = last.stats.segmentLargestUnmergedKeySize
         )
 
-      val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(last.stats.segmentHashIndexSize)).nonEmpty
+      //The size of hashIndex is not pre-calculated. So create an estimation here.
+      val approximateSize = writeAbleLargestValueSize * keyValues.last.stats.uncompressedKeyCounts
+      val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(approximateSize)).nonEmpty
 
       val headSize =
         headerSize(

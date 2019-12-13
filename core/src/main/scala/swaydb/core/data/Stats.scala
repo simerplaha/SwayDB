@@ -131,25 +131,6 @@ private[core] object Stats {
       else
         previousStats.valueOrElse(_.uncompressedKeyCounts + 1, 1)
 
-    val segmentHashIndexSize =
-      if (uncompressedKeyCounts < hashIndex.minimumNumberOfKeys)
-        0
-      else if (isPrefixCompressed)
-        previousStats.valueOrElse(_.segmentHashIndexSize, 0)
-      else
-        HashIndexBlock.optimalBytesRequired( //just a rough calculation. This does not need to be accurate but needs to be lower than the actual
-          keyCounts = uncompressedKeyCounts,
-          minimumNumberOfKeys = hashIndex.minimumNumberOfKeys,
-          writeAbleLargestValueSize =
-            if (hashIndex.format.isCopy)
-              thisKeyValuesSortedIndexSize //this does not compute the size of crc long but it's ok since it's just an estimate.
-            else
-              1, //some low number for calculating approximate hashIndexSize does not have to be accurate.
-          allocateSpace = hashIndex.allocateSpace,
-          format = hashIndex.format,
-          hasCompression = false
-        )
-
     val segmentBinarySearchIndexSize =
       if (isPrefixCompressed)
         previousStats.valueOrElse(_.segmentBinarySearchIndexSize, 0)
@@ -223,7 +204,6 @@ private[core] object Stats {
     val segmentSizeWithoutFooter: Int =
       segmentValuesSize +
         segmentSortedIndexSize +
-        segmentHashIndexSize +
         segmentBinarySearchIndexSize +
         segmentBloomFilterSize
 
@@ -250,7 +230,6 @@ private[core] object Stats {
       segmentSortedIndexSize = segmentSortedIndexSize,
       segmentUncompressedKeysSize = segmentUncompressedKeysSize,
       segmentSizeWithoutFooter = segmentSizeWithoutFooter,
-      segmentHashIndexSize = segmentHashIndexSize,
       segmentBloomFilterSize = segmentBloomFilterSize,
       segmentBinarySearchIndexSize = segmentBinarySearchIndexSize,
       segmentTotalNumberOfRanges = segmentTotalNumberOfRanges,
@@ -282,7 +261,6 @@ private[core] case class Stats(valueLength: Int,
                                segmentSortedIndexSize: Int,
                                segmentUncompressedKeysSize: Int,
                                segmentSizeWithoutFooter: Int,
-                               segmentHashIndexSize: Int,
                                segmentBloomFilterSize: Int,
                                segmentBinarySearchIndexSize: Int,
                                segmentTotalNumberOfRanges: Int,
