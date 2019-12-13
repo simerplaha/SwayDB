@@ -22,14 +22,13 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.core.data.Persistent
 import swaydb.core.data.Persistent.Partial
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.entry.id._
 import swaydb.core.segment.format.a.entry.reader.base._
-import swaydb.core.util.Bytes
+import swaydb.core.util.{Bytes, NullOps}
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.Maybe
-import swaydb.data.util.Maybe._
 
 trait EntryReader[E] {
   def apply[T <: BaseEntryId](baseId: T,
@@ -58,15 +57,13 @@ object EntryReader {
       BaseEntryReader4
     ) sortBy (_.minID)
 
-  val someUncompressedReader = Maybe.some(BaseEntryReaderUncompressed: BaseEntryReader)
-
   val zeroValueOffsetAndLength = (-1, 0)
 
-  def findReader(baseId: Int, mightBeCompressed: Boolean): Maybe[BaseEntryReader] =
+  def findReaderNullable(baseId: Int, mightBeCompressed: Boolean): BaseEntryReader =
     if (mightBeCompressed)
-      Maybe.find(readers, _.maxID >= baseId)
+      NullOps.find[BaseEntryReader](readers, _.maxID >= baseId)
     else
-      someUncompressedReader
+      BaseEntryReaderUncompressed
 
   private def parse[T](baseId: Int,
                        keyValueId: Int,
@@ -80,11 +77,11 @@ object EntryReader {
                        normalisedByteSize: Int,
                        previous: Option[Persistent],
                        entryReader: EntryReader[T]): T = {
-    val baseEntryReaderMaybe = findReader(baseId = baseId, mightBeCompressed = mightBeCompressed)
-    if (baseEntryReaderMaybe.isNone)
+    val baseEntryReaderNullable = findReaderNullable(baseId = baseId, mightBeCompressed = mightBeCompressed)
+    if (baseEntryReaderNullable == null)
       throw swaydb.Exception.InvalidKeyValueId(baseId)
     else
-      baseEntryReaderMaybe.read(
+      baseEntryReaderNullable.read(
         baseId = baseId,
         keyValueId = keyValueId,
         sortedIndexEndOffset = sortedIndexEndOffset,

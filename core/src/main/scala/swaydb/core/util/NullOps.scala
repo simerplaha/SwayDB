@@ -21,34 +21,40 @@ package swaydb.core.util
 
 object NullOps {
 
-  implicit class ArrayImplicits[A](array: Array[A]) {
-    final def findNullable(p: A => Boolean): A = {
-      var i = 0
-      while (i < array.length - 1) {
-        val item = array(i)
-        if (p(item))
-          return item
-        else
-          i += 1
-      }
-
-      null.asInstanceOf[A]
-    }
-  }
-
-  implicit class NullImplicits[A](value: A) {
-    def isNull: Boolean =
-      value == null
-
-    def isNotNull: Boolean =
-      value != null
-
-    def mapNotNull[T >: Null](f: A => T): T =
-      if (value == null)
-        null
+  def find[A >: Null](array: Array[A], p: A => Boolean): A = {
+    var i = 0
+    while (i < array.length) {
+      val item = array(i)
+      if (p(item))
+        return item
       else
-        f(value)
+        i += 1
+    }
+
+    null
   }
+
+  def map[A, T >: Null](value: A, f: A => T): T =
+    if (value == null)
+      null
+    else
+      f(value)
+
+  def foreach[A](value: A, f: A => Unit): Unit =
+    if (value != null)
+      f(value)
+
+  def foldLeft[A, T](initial: T)(value: A, f: (T, A) => T): T =
+    if (value == null)
+      initial
+    else
+      f(initial, value)
+
+  def getOrElse[A](value: A, or: => A): A =
+    if (value == null)
+      or
+    else
+      value
 
   def tryOrNull[T >: Null](f: => T): T =
     try
@@ -57,5 +63,4 @@ object NullOps {
       case _: Exception =>
         null
     }
-
 }
