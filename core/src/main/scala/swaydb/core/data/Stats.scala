@@ -24,6 +24,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.slice.Slice
 import swaydb.data.util.Maybe
+import swaydb.core.util.Options._
 
 import scala.concurrent.duration.Deadline
 
@@ -52,7 +53,7 @@ private[core] object Stats {
       previousStats.exists(_.segmentHasRemoveRange) || isRemoveRange
 
     val linkedPosition =
-      previousStats.map(_.linkedPosition + 1) getOrElse 1
+      previousStats.valueOrElse(_.linkedPosition + 1, 1)
 
     val hasPrefixCompression =
       isPrefixCompressed || previousStats.exists(_.hasPrefixCompression)
@@ -61,25 +62,22 @@ private[core] object Stats {
       indexEntry.size
 
     val segmentMaxSortedIndexEntrySize =
-      previousStats.map(_.segmentMaxSortedIndexEntrySize max thisKeyValuesSortedIndexSize) getOrElse thisKeyValuesSortedIndexSize
+      previousStats.valueOrElse(_.segmentMaxSortedIndexEntrySize max thisKeyValuesSortedIndexSize, thisKeyValuesSortedIndexSize)
 
     val segmentMinSortedIndexEntrySize =
-      previousStats.map(_.segmentMinSortedIndexEntrySize min thisKeyValuesSortedIndexSize) getOrElse thisKeyValuesSortedIndexSize
+      previousStats.valueOrElse(_.segmentMinSortedIndexEntrySize min thisKeyValuesSortedIndexSize, thisKeyValuesSortedIndexSize)
 
     val thisKeyValuesSortedIndexSizeWithoutFooter =
       SortedIndexBlock.headerSize(false) +
         thisKeyValuesSortedIndexSize
 
     val segmentRealIndexOffset =
-      previousStats map {
-        previous =>
-          previous.segmentRealIndexOffset + previous.thisKeyValuesSortedIndexSize
-      } getOrElse 0
+      previousStats.valueOrElse(previous => previous.segmentRealIndexOffset + previous.thisKeyValuesSortedIndexSize, 0)
 
     //starts from 0. Do not need the actual index offset for space efficiency. The actual indexOffset can be adjust during read.
     val segmentAccessIndexOffset =
       if (isPrefixCompressed)
-        previousStats.map(_.segmentAccessIndexOffset) getOrElse segmentRealIndexOffset
+        previousStats.valueOrElse(_.segmentAccessIndexOffset, segmentRealIndexOffset)
       else
         segmentRealIndexOffset
 
@@ -122,22 +120,22 @@ private[core] object Stats {
 
     val segmentTotalNumberOfRanges =
       if (isRange)
-        previousStats.map(_.segmentTotalNumberOfRanges + 1) getOrElse 1
+        previousStats.valueOrElse(_.segmentTotalNumberOfRanges + 1, 1)
       else
-        previousStats.map(_.segmentTotalNumberOfRanges) getOrElse 0
+        previousStats.valueOrElse(_.segmentTotalNumberOfRanges, 0)
 
     //unique keys that do not have prefix compressed keys.
     val uncompressedKeyCounts =
       if (isPrefixCompressed)
-        previousStats.map(_.uncompressedKeyCounts) getOrElse 0
+        previousStats.valueOrElse(_.uncompressedKeyCounts, 0)
       else
-        previousStats.map(_.uncompressedKeyCounts + 1) getOrElse 1
+        previousStats.valueOrElse(_.uncompressedKeyCounts + 1, 1)
 
     val segmentHashIndexSize =
       if (uncompressedKeyCounts < hashIndex.minimumNumberOfKeys)
         0
       else if (isPrefixCompressed)
-        previousStats.map(_.segmentHashIndexSize) getOrElse 0
+        previousStats.valueOrElse(_.segmentHashIndexSize, 0)
       else
         HashIndexBlock.optimalBytesRequired( //just a rough calculation. This does not need to be accurate but needs to be lower than the actual
           keyCounts = uncompressedKeyCounts,
@@ -154,7 +152,7 @@ private[core] object Stats {
 
     val segmentBinarySearchIndexSize =
       if (isPrefixCompressed)
-        previousStats.map(_.segmentBinarySearchIndexSize) getOrElse 0
+        previousStats.valueOrElse(_.segmentBinarySearchIndexSize, 0)
       else if (binarySearch.enabled && !sortedIndex.normaliseIndex)
         previousStats flatMap {
           previousStats =>
@@ -179,7 +177,7 @@ private[core] object Stats {
         0
 
     val segmentValuesSizeWithoutHeader: Int =
-      previousStats.map(_.segmentValuesSizeWithoutHeader).getOrElse(0) +
+      previousStats.valueOrElse(_.segmentValuesSizeWithoutHeader, 0) +
         valueLength
 
     val segmentValuesSize: Int =
@@ -193,7 +191,7 @@ private[core] object Stats {
         0
 
     val segmentSortedIndexSizeWithoutHeader =
-      previousStats.map(_.segmentSortedIndexSizeWithoutHeader).getOrElse(0) +
+      previousStats.valueOrElse(_.segmentSortedIndexSizeWithoutHeader, 0) +
         thisKeyValuesSortedIndexSize
 
     val segmentSortedIndexSize =
@@ -234,7 +232,7 @@ private[core] object Stats {
         SegmentFooterBlock.optimalBytesRequired
 
     val segmentUncompressedKeysSize: Int =
-      previousStats.map(_.segmentUncompressedKeysSize).getOrElse(0) + unmergedKeySize
+      previousStats.valueOrElse(_.segmentUncompressedKeysSize, 0) + unmergedKeySize
 
     new Stats(
       valueLength = valueLength,
