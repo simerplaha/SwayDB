@@ -19,6 +19,7 @@
 
 package swaydb.data.util
 
+import swaydb.data.util.Maybe.Maybe
 import swaydb.data.util.Tagged.@@
 
 import scala.util.Try
@@ -38,19 +39,17 @@ object Maybe {
   @inline def some[A](value: A): Maybe[A] =
     value.asInstanceOf[@@[A, MaybeTag]]
 
-  implicit class ArrayImplicits[A](array: Array[A]) {
-    final def findMaybe(p: A => Boolean): Maybe[A] = {
-      var i = 0
-      while (i < array.length) {
-        val item = array(i)
-        if (p(item))
-          return Maybe.some(item)
-        else
-          i += 1
-      }
-
-      Maybe.none[A]
+  def find[A](array: Array[A], p: A => Boolean): Maybe[A] = {
+    var i = 0
+    while (i < array.length) {
+      val item = array(i)
+      if (p(item))
+        return Maybe.some(item)
+      else
+        i += 1
     }
+
+    Maybe.none[A]
   }
 
   implicit class MaybeImplicits[A](value: Maybe[A]) {

@@ -64,7 +64,7 @@ object EntryReader {
 
   def findReader(baseId: Int, mightBeCompressed: Boolean): Maybe[BaseEntryReader] =
     if (mightBeCompressed)
-      readers.findMaybe(_.maxID >= baseId)
+      Maybe.find(readers, _.maxID >= baseId)
     else
       someUncompressedReader
 
