@@ -62,7 +62,7 @@ object Set {
                                                                                       @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                                       @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
-                                                                                      @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
+                                                                                      @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.sweeperExecutorService,
                                                                                       serializer: Serializer[A],
                                                                                       functionClassTag: ClassTag[SF]) {
 

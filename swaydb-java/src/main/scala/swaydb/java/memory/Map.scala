@@ -52,7 +52,7 @@ object Map {
                                                                              @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
                                                                              @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                              @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[K]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[K]](swaydb.java.SwayDB.defaultComparator),
-                                                                             @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.defaultExecutorService,
+                                                                             @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.sweeperExecutorService,
                                                                              keySerializer: Serializer[K],
                                                                              valueSerializer: Serializer[V],
                                                                              functionClassTag: ClassTag[SF]) {

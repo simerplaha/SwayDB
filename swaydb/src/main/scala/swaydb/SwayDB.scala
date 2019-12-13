@@ -64,7 +64,7 @@ object SwayDB extends LazyLogging {
       logger.error("sweeperExecutionContext context failure", exception)
   }
 
-  lazy val defaultExecutorService: ExecutorService =
+  lazy val sweeperExecutorService: ExecutorService =
     sweeperExecutionContext.threadPool
 
   /**
