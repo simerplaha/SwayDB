@@ -53,7 +53,7 @@ object Map extends LazyLogging {
                                                                                                  functionClassTag: ClassTag[F],
                                                                                                  tag: swaydb.Tag[T],
                                                                                                  keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
-                                                                                                 fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, T]] = {
+                                                                                                 fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, T]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(

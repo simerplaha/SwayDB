@@ -66,8 +66,8 @@ object Set extends LazyLogging {
                                                                                               functionClassTag: ClassTag[F],
                                                                                               tag: swaydb.Tag[T],
                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
-                                                                                              fileSweeperEC: ExecutionContext = SwayDB.defaultExecutionContext,
-                                                                                              memorySweeperEC: ExecutionContext = SwayDB.defaultExecutionContext): IO[Error.Boot, swaydb.Set[A, F, T]] = {
+                                                                                              fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
+                                                                                              memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Set[A, F, T]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(

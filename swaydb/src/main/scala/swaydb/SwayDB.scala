@@ -20,9 +20,10 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util.concurrent.{Executors, ForkJoinPool}
+import java.util.concurrent.{ExecutorService, Executors, ForkJoinPool}
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.configs.level.SingleThreadFactory
 import swaydb.core.Core
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data._
@@ -53,18 +54,18 @@ object SwayDB extends LazyLogging {
    *
    * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
    */
-  lazy val defaultExecutionContext = new ExecutionContext {
-    val threadPool = new ForkJoinPool(Runtime.getRuntime.availableProcessors())
+  lazy val sweeperExecutionContext = new ExecutionContext {
+    val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 
     def execute(runnable: Runnable): Unit =
       threadPool execute runnable
 
     def reportFailure(exception: Throwable): Unit =
-      logger.error("Execution context failure", exception)
+      logger.error("sweeperExecutionContext context failure", exception)
   }
 
-  lazy val defaultExecutorService =
-    Executors.newFixedThreadPool(Runtime.getRuntime.availableProcessors())
+  lazy val defaultExecutorService: ExecutorService =
+    sweeperExecutionContext.threadPool
 
   /**
    * Creates a database based on the input config.
@@ -218,7 +219,7 @@ object SwayDB extends LazyLogging {
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                ec: ExecutionContext = defaultExecutionContext): IO[swaydb.Error.Level, RepairResult[K]] =
+                                                                ec: ExecutionContext = sweeperExecutionContext): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {
       case IO.Left(swaydb.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>
