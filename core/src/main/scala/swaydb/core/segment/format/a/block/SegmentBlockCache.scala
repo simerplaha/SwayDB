@@ -60,6 +60,11 @@ class SegmentBlockCache(path: Path,
    */
   private val segmentIOStrategyCache = Lazy.value[IOStrategy](synchronised = true, stored = true, initial = None)
 
+  @volatile var forceCacheSortedIndexAndValueReaders = false
+
+  val sortedIndexReaderCacheName = "sortedIndexReaderCache"
+  val valuesReaderCacheName = "valuesReaderCache"
+
   def segmentBlockIO(action: IOAction) =
     segmentIOStrategyCache getOrSet segmentIO.segmentBlockIO(action)
 
@@ -120,6 +125,9 @@ class SegmentBlockCache(path: Path,
         IO.none
     }
 
+  def shouldForceCache(resourceName: String): Boolean =
+    forceCacheSortedIndexAndValueReaders && (resourceName == sortedIndexReaderCacheName || resourceName == valuesReaderCacheName)
+
   def buildBlockReaderCache[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                              resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, BlockedReader[O, B], UnblockedReader[O, B]](
@@ -129,7 +137,7 @@ class SegmentBlockCache(path: Path,
       (blockedReader, self) =>
         IO {
 
-          val readerIsCacheOnAccess = blockIO(blockedReader.block.dataType).cacheOnAccess
+          val readerIsCacheOnAccess = shouldForceCache(resourceName) || blockIO(blockedReader.block.dataType).cacheOnAccess
 
           val reader =
             UnblockedReader(
@@ -155,7 +163,7 @@ class SegmentBlockCache(path: Path,
     ) {
       case (Some(blockedReader), self) =>
         IO {
-          val cacheOnAccess = blockIO(blockedReader.block.dataType).cacheOnAccess
+          val cacheOnAccess = shouldForceCache(resourceName) || blockIO(blockedReader.block.dataType).cacheOnAccess
 
           val reader =
             UnblockedReader(
@@ -283,7 +291,7 @@ class SegmentBlockCache(path: Path,
     buildBlockReaderCache[SegmentBlock.Offset, SegmentBlock](segmentBlockIO, "segmentReaderCache")
 
   private[block] val sortedIndexReaderCache =
-    buildBlockReaderCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO, "sortedIndexReaderCache")
+    buildBlockReaderCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO, sortedIndexReaderCacheName)
 
   private[block] val hashIndexReaderCache =
     buildBlockReaderCacheOptional[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO, "hashIndexReaderCache")
@@ -295,7 +303,7 @@ class SegmentBlockCache(path: Path,
     buildBlockReaderCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO, "binarySearchIndexReaderCache")
 
   private[block] val valuesReaderCache: Cache[swaydb.Error.Segment, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
-    buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO, "valuesReaderCache")
+    buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO, valuesReaderCacheName)
 
   private[block] val allCaches =
     Seq(
@@ -349,13 +357,34 @@ class SegmentBlockCache(path: Path,
   def createSortedIndexReader(): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
     createReader(sortedIndexReaderCache, getSortedIndex())
 
+  /**
+   * Read all but also cache sortedIndex and valueBytes if they are not already cached.
+   */
   def readAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
-    SortedIndexBlock.readAll(
-      keyValueCount = getFooter().keyValueCount,
-      sortedIndexReader = createSortedIndexReader(),
-      valuesReader = createValuesReader(),
-      addTo = addTo
-    )
+    try {
+      var sortedIndexReader = createSortedIndexReader()
+      if (sortedIndexReader.isFile) {
+        forceCacheSortedIndexAndValueReaders = true
+        sortedIndexReaderCache.clear()
+        sortedIndexReader = createSortedIndexReader()
+      }
+
+      var valuesReader = createValuesReader()
+      if (valuesReader.exists(_.isFile)) {
+        forceCacheSortedIndexAndValueReaders = true
+        valuesReaderCache.clear()
+        valuesReader = createValuesReader()
+      }
+
+      SortedIndexBlock.readAll(
+        keyValueCount = getFooter().keyValueCount,
+        sortedIndexReader = sortedIndexReader,
+        valuesReader = valuesReader,
+        addTo = addTo
+      )
+    } finally {
+      forceCacheSortedIndexAndValueReaders = false
+    }
 
   def readAllBytes(): Slice[Byte] =
     segmentBlockRef.copy().readFullBlock()

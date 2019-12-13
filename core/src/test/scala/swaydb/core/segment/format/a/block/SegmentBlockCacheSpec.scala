@@ -10,9 +10,12 @@ import swaydb.core.TestData._
 import swaydb.core.TestSweeper.level0PushDownPool
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Transient
+import swaydb.core.segment.PersistentSegment
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.config.{ActorConfig, MemoryCache}
+import swaydb.data.config.{ActorConfig, IOAction, MemoryCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -282,6 +285,88 @@ class SegmentBlockCacheSpec extends TestBase {
         assertSweeperActorSize(expectedMessageCount)
         (1 to randomIntMax(10)) foreach (_ => blockCache.createValuesReader())
         assertSweeperActorSize(expectedMessageCount)
+      }
+    }
+  }
+
+  "it" should {
+    "cache sortedIndex and values blocks on readAll" in {
+      runThis(10.times) {
+        //ensure Segment itself is not caching bytes.
+        val segmentIOStrategy = randomIOStrategy(cacheOnAccess = false)
+        val sortedIndexIOStrategy = randomIOStrategy(cacheOnAccess = false)
+        val valuesIOStrategy = randomIOStrategy(cacheOnAccess = false)
+        //for testing that HashIndex does not get cache if false
+        val hashIndexBlockIOStrategy = randomIOStrategy(cacheOnAccess = false)
+
+        val oldSortedIndexBlockIO = (_: IOAction) => sortedIndexIOStrategy
+        val oldValuesBlockIO = (_: IOAction) => valuesIOStrategy
+
+        //disable compression so bytes do not get cached
+        val keyValues =
+          randomizedKeyValues(
+            randomIntMax(100) max 1,
+            valuesConfig = ValuesBlock.Config.random(hasCompression = false),
+            sortedIndexConfig = SortedIndexBlock.Config.random(hasCompression = false),
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random(hasCompression = false),
+            hashIndexConfig = HashIndexBlock.Config.random(hasCompression = false),
+            bloomFilterConfig = BloomFilterBlock.Config.random(hasCompression = false)
+          )
+
+        implicit val segmentIO =
+          SegmentIO(
+            segmentBlockIO = _ => segmentIOStrategy,
+            hashIndexBlockIO = _ => hashIndexBlockIOStrategy,
+            bloomFilterBlockIO = _ => randomIOStrategy(),
+            binarySearchIndexBlockIO = _ => randomIOStrategy(),
+            sortedIndexBlockIO = oldSortedIndexBlockIO,
+            valuesBlockIO = oldValuesBlockIO,
+            segmentFooterBlockIO = _ => randomIOStrategy()
+          )
+
+        val segment = TestSegment(keyValues, segmentConfig = SegmentBlock.Config.random(false)).asInstanceOf[PersistentSegment]
+        val blockCache = segment.segmentCache.blockCache
+
+        def assertIsCached() = {
+          blockCache.createSortedIndexReader().isFile shouldBe false
+          blockCache.createValuesReader().foreach(_.isFile shouldBe false)
+          blockCache.createHashIndexReader().foreach(_.isFile shouldBe true)
+        }
+
+        def assertIsNotCached() = {
+          blockCache.createSortedIndexReader().isFile shouldBe true
+          blockCache.createValuesReader().foreach(_.isFile shouldBe true)
+          blockCache.createHashIndexReader().foreach(_.isFile shouldBe true)
+        }
+
+        //initially they are not cached
+        assertIsNotCached()
+
+        //read all an expect sortedIndex and value bytes to get cached but not hashIndex
+        blockCache.readAll()
+
+        assertIsCached()
+
+        //clear cache
+        blockCache.clear()
+
+        //reverts back to not caching
+        assertIsNotCached()
+
+        //read all
+        blockCache.readAll()
+
+        //caches all again
+        assertIsCached()
+
+        //clear cache
+        blockCache.clear()
+
+        //no caching
+        assertIsNotCached()
+
+        segment.close
+
       }
     }
   }

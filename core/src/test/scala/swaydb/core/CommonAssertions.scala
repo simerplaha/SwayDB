@@ -1379,7 +1379,7 @@ object CommonAssertions {
                        includeReserved: Boolean = true): IOStrategy =
     if (randomBoolean())
       IOStrategy.SynchronisedIO(cacheOnAccess)
-    else if (includeReserved && randomBoolean())
+    else if (cacheOnAccess && includeReserved && randomBoolean())
       IOStrategy.AsyncIO(cacheOnAccess = true) //this not being stored will result in too many retries.
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)

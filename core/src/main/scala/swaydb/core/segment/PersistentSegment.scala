@@ -96,13 +96,13 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                               segmentSize: Int,
                                               nearestExpiryDeadline: Option[Deadline],
-                                              segmentCache: SegmentCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                          functionStore: FunctionStore,
-                                                                          blockCache: Option[BlockCache.State],
-                                                                          fileSweeper: FileSweeper.Enabled,
-                                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                          segmentIO: SegmentIO) extends Segment with LazyLogging {
+                                              private[segment] val segmentCache: SegmentCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                                                               functionStore: FunctionStore,
+                                                                                               blockCache: Option[BlockCache.State],
+                                                                                               fileSweeper: FileSweeper.Enabled,
+                                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                               segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   def path = file.path
 

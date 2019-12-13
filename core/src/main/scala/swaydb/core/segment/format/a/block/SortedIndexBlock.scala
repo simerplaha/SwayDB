@@ -408,10 +408,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] = {
-    val readSortedIndexReader =
-      sortedIndexReader
-        .moveTo(0)
-        .readAllAndGetReader()
+    sortedIndexReader moveTo 0
 
     val keyValues = addTo getOrElse Slice.create[Persistent](keyValueCount)
 
@@ -422,14 +419,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous =>
               //If previous is known, keep reading same reader
               // and set the next position of the reader to be of the next index's offset.
-              readSortedIndexReader moveTo previous.nextIndexOffset
+              sortedIndexReader moveTo previous.nextIndexOffset
               previous.nextKeySize
           }
 
         val next =
           readKeyValue(
             keySizeOption = nextKeySize,
-            sortedIndexReader = readSortedIndexReader,
+            sortedIndexReader = sortedIndexReader,
             valuesReader = valuesReader,
             previous = previousMayBe
           )
