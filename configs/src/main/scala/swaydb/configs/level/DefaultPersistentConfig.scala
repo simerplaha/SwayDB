@@ -20,7 +20,7 @@
 package swaydb.configs.level
 
 import java.nio.file.Path
-import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.Executors
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
@@ -33,7 +33,7 @@ object DefaultPersistentConfig {
 
   private lazy val executionContext =
     new ExecutionContext {
-      val threadPool = new ForkJoinPool(2)
+      val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 
       def execute(runnable: Runnable) =
         threadPool execute runnable
@@ -90,7 +90,7 @@ object DefaultPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -123,7 +123,7 @@ object DefaultPersistentConfig {
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segmentIO =
@@ -151,7 +151,7 @@ object DefaultPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -184,7 +184,7 @@ object DefaultPersistentConfig {
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segmentIO =
@@ -212,7 +212,7 @@ object DefaultPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -245,7 +245,7 @@ object DefaultPersistentConfig {
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segmentIO =
@@ -273,7 +273,7 @@ object DefaultPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -306,7 +306,7 @@ object DefaultPersistentConfig {
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segmentIO =
@@ -334,7 +334,7 @@ object DefaultPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -367,7 +367,7 @@ object DefaultPersistentConfig {
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segmentIO =
@@ -395,7 +395,7 @@ object DefaultPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -428,14 +428,14 @@ object DefaultPersistentConfig {
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segmentIO =
           ioAction =>
             IOStrategy.ConcurrentIO(cacheOnAccess = false),
         segmentCompressions = _ => Seq.empty,
-        compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
+        compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter =>
             if (levelMeter.requiresCleanUp)
