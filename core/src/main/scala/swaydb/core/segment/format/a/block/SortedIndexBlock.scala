@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Persistent, Transient}
@@ -223,9 +222,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   }
 
   def write(keyValue: Transient, state: SortedIndexBlock.State): Unit =
-    IO {
-      state.bytes addAll keyValue.indexEntryBytes
-    }
+    state.bytes addAll keyValue.indexEntryBytes
 
   def close(state: State): State = {
     val compressedOrUncompressedBytes =
