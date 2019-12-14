@@ -269,7 +269,7 @@ private[core] object SegmentBlock {
     }
 
     @tailrec
-    def writeRoot(keyValues: Slice[Transient],
+    def writeMany(keyValues: Slice[Transient],
                   currentMinMaxFunction: Option[MinMax[Slice[Byte]]],
                   currentNearestDeadline: Option[Deadline]): DeadlineAndFunctionId =
       keyValues.headOption match {
@@ -394,13 +394,13 @@ private[core] object SegmentBlock {
               }
           }
 
-          writeRoot(keyValues.drop(1), nextMinMaxFunctionId, nextNearestDeadline)
+          writeMany(keyValues.drop(1), nextMinMaxFunctionId, nextNearestDeadline)
 
         case None =>
           DeadlineAndFunctionId(currentNearestDeadline, currentMinMaxFunction)
       }
 
-    writeRoot(
+    writeMany(
       keyValues = Slice(keyValue),
       currentMinMaxFunction = currentMinMaxFunction,
       currentNearestDeadline = currentNearestDeadline
