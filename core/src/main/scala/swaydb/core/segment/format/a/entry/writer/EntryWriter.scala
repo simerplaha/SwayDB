@@ -35,7 +35,7 @@ private[core] object EntryWriter {
                          thisKeyValueAccessIndexPosition: Int,
                          isPrefixCompressed: Boolean) {
     //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
-    def unapply =
+    def unapply: (Slice[Byte], Option[Slice[Byte]], Int, Int, Int, Boolean) =
       (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, isPrefixCompressed)
   }
 

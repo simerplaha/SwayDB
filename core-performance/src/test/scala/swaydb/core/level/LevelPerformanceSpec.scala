@@ -134,6 +134,7 @@ sealed trait LevelPerformanceSpec extends TestBase {
         SortedIndexBlock.Config(
           ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
           prefixCompressionResetCount = 0,
+          prefixCompressKeysOnly = false,
           enableAccessPositionIndex = true,
           normaliseIndex = false,
           compressions = _ => Seq.empty

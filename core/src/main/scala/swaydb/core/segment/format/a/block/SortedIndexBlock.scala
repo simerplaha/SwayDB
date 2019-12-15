@@ -58,6 +58,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ioStrategy = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
         enableAccessPositionIndex = false,
         prefixCompressionResetCount = 0,
+        prefixCompressKeysOnly = true,
         normaliseIndex = false,
         compressions = (_: UncompressedBlockInfo) => Seq.empty
       )
@@ -72,6 +73,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
         prefixCompressionResetCount = enable.prefixCompression.resetCount max 0,
+        prefixCompressKeysOnly = enable.prefixCompression.keysOnly,
         normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
         //cannot normalise if prefix compression is enabled.
         ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
@@ -84,12 +86,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     def apply(ioStrategy: IOAction => IOStrategy,
               prefixCompressionResetCount: Int,
+              prefixCompressKeysOnly: Boolean,
               enableAccessPositionIndex: Boolean,
               normaliseIndex: Boolean,
               compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
       new Config(
         ioStrategy = ioStrategy,
         prefixCompressionResetCount = if (normaliseIndex) 0 else prefixCompressionResetCount max 0,
+        prefixCompressKeysOnly = prefixCompressKeysOnly,
         enableAccessPositionIndex = enableAccessPositionIndex,
         //cannot normalise if prefix compression is enabled.
         normaliseIndex = normaliseIndex,
@@ -102,6 +106,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
    */
   class Config private(val ioStrategy: IOAction => IOStrategy,
                        val prefixCompressionResetCount: Int,
+                       val prefixCompressKeysOnly: Boolean,
                        val enableAccessPositionIndex: Boolean,
                        val normaliseIndex: Boolean,
                        val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
@@ -116,6 +121,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ioStrategy = ioStrategy,
         prefixCompressionResetCount = prefixCompressionResetCount,
         enableAccessPositionIndex = enableAccessPositionIndex,
+        prefixCompressKeysOnly = prefixCompressKeysOnly,
         normaliseIndex = normaliseIndex,
         compressions = compressions
       )

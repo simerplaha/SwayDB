@@ -43,7 +43,7 @@ private[writer] object DeadlineWriter {
 
     currentDeadline match {
       case Some(currentDeadline) =>
-        when(enablePrefixCompression)(previousDeadline) flatMap {
+        when(enablePrefixCompression && !current.sortedIndexConfig.prefixCompressKeysOnly)(previousDeadline) flatMap {
           previousDeadline =>
             compress(
               current = current,

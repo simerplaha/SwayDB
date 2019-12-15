@@ -31,9 +31,9 @@ private[writer] object TimeWriter {
                             compressDuplicateValues: Boolean,
                             entryId: BaseEntryId.Key,
                             enablePrefixCompression: Boolean,
-                            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]) =
+                            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): EntryWriter.WriteResult =
     if (currentTime.time.nonEmpty)
-      when(enablePrefixCompression)(current.previous.map(getTime)) flatMap {
+      when(enablePrefixCompression && !current.sortedIndexConfig.prefixCompressKeysOnly)(current.previous.map(getTime)) flatMap {
         previousTime =>
           //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
           writePartiallyCompressed(

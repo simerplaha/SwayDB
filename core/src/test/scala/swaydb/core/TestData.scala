@@ -504,6 +504,7 @@ object TestData {
     def random(hasCompression: Boolean): SortedIndexBlock.Config =
       SortedIndexBlock.Config(
         ioStrategy = _ => randomIOAccess(),
+        prefixCompressKeysOnly = randomBoolean(),
         prefixCompressionResetCount = randomIntMax(10),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),

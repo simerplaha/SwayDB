@@ -58,7 +58,7 @@ private[writer] object ValueWriter {
             normaliseToSize = normaliseToSize
           )
 
-        case None =>
+        case None | Some(_) =>
           uncompressed(
             current = current,
             currentValue = current.value,
@@ -116,7 +116,7 @@ private[writer] object ValueWriter {
                                  plusSize: Int,
                                  hasPrefixCompression: Boolean,
                                  normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[T]): EntryWriter.WriteResult =
-    if (enablePrefixCompression)
+    if (enablePrefixCompression && !current.sortedIndexConfig.prefixCompressKeysOnly)
       (Transient.compressibleValue(current), Transient.compressibleValue(previous)) match {
         case (Some(currentValue), Some(previousValue)) =>
           partialCompress(

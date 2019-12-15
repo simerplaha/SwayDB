@@ -93,7 +93,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   "Config" should {
     "set prefixCompression to zero if normalise defined" in {
       runThis(100.times) {
-        val prefixCompression = PrefixCompression.Enable(randomIntMax(10) max 1)
+        val prefixCompression = PrefixCompression.Enable(resetCount = randomIntMax(10) max 1, keysOnly = randomBoolean())
 
         //test via User created object.
         val configFromUserConfig =
@@ -115,6 +115,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
             prefixCompressionResetCount = prefixCompression.resetCount,
+            prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
@@ -149,6 +150,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is disabled, normaliseIndex will always return true.
             prefixCompressionResetCount = 0 - randomIntMax(10),
+            prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
