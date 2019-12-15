@@ -91,7 +91,7 @@ class SegmentBlockSpec extends TestBase {
       runThis(10.times, log = true) {
         //increase the size of value to test it on larger values.
         val keyValues =
-          randomPutKeyValues(count = 100, valueSize = 10000, startId = Some(0)).toTransient
+          randomPutKeyValues(count = 100, valueSize = 10000, startId = Some(0))
 
         val bytes =
           SegmentBlock.writeClosed(

@@ -367,7 +367,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       }
 
       assertSegment(
-        keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addRanges = true, addPutDeadlines = true, addRemoveDeadlines = true).toTransient,
+        keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addRanges = true, addPutDeadlines = true, addRemoveDeadlines = true),
         assert = doAssert
       )
     }
@@ -378,7 +378,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       } else {
         assertSegment(
           keyValues =
-            randomPutKeyValues(keyValuesCount).toTransient,
+            randomPutKeyValues(keyValuesCount),
           assert =
             (keyValues, segment) => {
               val failedKV = randomKeyValues(keyValuesCount, addRemoves = true)

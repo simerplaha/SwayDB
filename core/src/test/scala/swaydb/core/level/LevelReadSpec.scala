@@ -114,7 +114,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
     "return Level stats" in {
       val level = TestLevel()
 
-      val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
+      val putKeyValues = randomPutKeyValues(keyValuesCount)
       //refresh so that if there is a compression running, this Segment will compressed.
       val segments =
         TestSegment(putKeyValues)
@@ -147,7 +147,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
       val level2 = TestLevel()
       val level1 = TestLevel(nextLevel = Some(level2))
 
-      val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
+      val putKeyValues = randomPutKeyValues(keyValuesCount)
       //refresh so that if there is a compression running, this Segment will compressed.
       val segments =
         TestSegment(putKeyValues)
@@ -188,7 +188,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
       val level2 = TestLevel()
       val level1 = TestLevel(nextLevel = Some(level2))
 
-      val putKeyValues = randomPutKeyValues(keyValuesCount).toTransient
+      val putKeyValues = randomPutKeyValues(keyValuesCount)
       val segment = TestSegment(putKeyValues).runRandomIO.right.value
       level2.put(Seq(segment)).right.right.value.right.value
 

@@ -105,7 +105,7 @@ object CommonAssertions {
     def toMemoryResponse: Memory =
       actual match {
         case readOnly: ReadOnly => readOnly.toMemoryResponse
-        case writeOnly: Transient => writeOnly.toMemoryResponse
+        case writeOnly: Transient => writeOnly.toMemory
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,

@@ -38,7 +38,10 @@ class SegmentMerge_Performance_Spec extends TestBase {
 
   "performance" in {
     //    implicit val groupBy: Option[GroupByInternal.KeyValues] = randomGroupByOption(10, keyValueSize = None, groupByGroups = None)
-    val keyValues = randomKeyValues(100000)
+    val keyValues =
+      Benchmark("Creating key-values") {
+        randomPutKeyValues(100000)
+      }
     Benchmark(s"SegmentMerger performance") {
       SegmentMerger.merge(
         newKeyValues = keyValues,

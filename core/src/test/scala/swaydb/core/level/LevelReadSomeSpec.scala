@@ -69,7 +69,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
-              randomPutKeyValues(keyValuesCount)(testTimer),
+              randomPutKeyValues(keyValuesCount)(testTimer).toMemory,
 
           assertLevel0 =
             (level0KeyValues, _, _, level) =>

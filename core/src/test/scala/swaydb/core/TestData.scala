@@ -390,16 +390,6 @@ object TestData {
       }
       slice
     }
-
-    def toMemoryResponse: Slice[Memory] = {
-      val slice = Slice.create[Memory](keyValues.size)
-
-      keyValues foreach {
-        keyValue =>
-          slice add keyValue.toMemoryResponse
-      }
-      slice
-    }
   }
 
   implicit class ToSlice[T: ClassTag](items: Iterable[T]) {
@@ -412,7 +402,7 @@ object TestData {
   }
 
   implicit class TransientToMemory(keyValue: Transient) {
-    def toMemoryResponse: Memory =
+    def toMemory: Memory =
       keyValue match {
         case fixed: Transient.Fixed =>
           fixed match {
@@ -438,13 +428,6 @@ object TestData {
               Memory.Range(fromKey, toKey, fromValue, rangeValue)
           }
       }
-
-    def toMemory: Memory = {
-      keyValue match {
-        case _ =>
-          toMemoryResponse
-      }
-    }
   }
 
   implicit class TransientsToMemory(keyValues: Iterable[KeyValue]) {
@@ -1631,7 +1614,7 @@ object TestData {
                          addRanges: Boolean = false,
                          addRemoveDeadlines: Boolean = false,
                          addPutDeadlines: Boolean = true,
-                         addExpiredPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.random): Slice[Memory] =
+                         addExpiredPutDeadlines: Boolean = false)(implicit testTimer: TestTimer = TestTimer.random): Slice[Transient] =
     randomKeyValues(
       count = count,
       startId = startId,
@@ -1642,7 +1625,7 @@ object TestData {
       addExpiredPutDeadlines = addExpiredPutDeadlines,
       addRemoveDeadlines = addRemoveDeadlines,
       addPutDeadlines = addPutDeadlines
-    ).toMemory
+    )
 
   def randomKeyValues(count: Int = 20,
                       startId: Option[Int] = None,

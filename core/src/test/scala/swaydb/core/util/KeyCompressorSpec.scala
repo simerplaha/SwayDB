@@ -83,7 +83,7 @@ class KeyCompressorSpec extends WordSpec with Matchers {
 
   "Some(_), Range" in {
     runThis(20.times) {
-      val head = randomPutKeyValues(1, startId = Some(0)).head.toTransient
+      val head = randomPutKeyValues(1, startId = Some(0)).head
       val last = randomRangeKeyValue(100, 200)
 
       val (minKey, maxKey, compressedKey) =

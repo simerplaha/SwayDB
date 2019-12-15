@@ -94,7 +94,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       else
         Map.memory[Slice[Byte], Memory]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false).toMemory
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue))
@@ -159,7 +159,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       else
         Map.memory[Slice[Byte], Memory]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false).toMemory
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue))
@@ -192,7 +192,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
         val nextLevel = mock[NextLevel]
 
-        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).map(_.asInstanceOf[Memory])
+        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).toMemory
         val map = TestMap(lastLevelKeyValues)
 
         (nextLevel.isTrash _).expects() returning false
@@ -211,7 +211,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
         }
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
-        val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000)).toTransient
+        val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value
 
         level.put(map).right.right.value.right.value should contain only Int.MaxValue

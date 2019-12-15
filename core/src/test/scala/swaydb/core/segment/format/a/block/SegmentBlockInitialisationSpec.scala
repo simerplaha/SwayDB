@@ -307,7 +307,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
           val keyValues: Slice[Transient] =
             generatedKeyValues
-              .toTransient(
+              .updateStats(
                 bloomFilterConfig =
                   BloomFilterBlock.Config(
                     falsePositiveRate = 0.001,
@@ -354,7 +354,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             )
 
           val keyValues: Slice[Transient] =
-            (Slice(range) ++ generatedKeyValues)
+            (Slice(range) ++ generatedKeyValues.toMemory)
               .toTransient(
                 bloomFilterConfig =
                   BloomFilterBlock.Config(

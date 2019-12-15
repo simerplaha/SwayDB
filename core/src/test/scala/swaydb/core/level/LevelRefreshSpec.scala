@@ -75,7 +75,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
   "refresh" should {
     "remove expired key-values" in {
       val level = TestLevel(segmentSize = 1.byte)
-      val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty)
+      val keyValues = randomPutKeyValues(1000, valueSize = 0, startId = Some(0))(TestTimer.Empty).toMemory
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
       //dispatch another put request so that existing Segment gets split
       level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
@@ -98,7 +98,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
       val level = TestLevel(segmentSize = 1.kb)
 
       val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-      val maps = TestMap(keyValues.toTransient.toMemoryResponse)
+      val maps = TestMap(keyValues)
       level.put(maps).right.right.value
 
       val nextLevel = TestLevel()

@@ -90,7 +90,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val nextLevel = mock[NextLevel]("nextLevel")
 
         val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
-        val segments = Seq(TestSegment(keyValues(0).toTransient), TestSegment(keyValues(1).toTransient))
+        val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
 
         //next level should value a put for all the input Segments
         (nextLevel.put(_: Iterable[Segment])) expects * onCall {
@@ -116,8 +116,8 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val thisLevel = mock[NextLevel]("thisLevel")
         val nextLevel = mock[NextLevel]("nextLevel")
 
-        val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
-        val segments = Seq(TestSegment(keyValues(0).toTransient), TestSegment(keyValues(1).toTransient))
+        val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2).map(_.updateStats)
+        val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
 
         //next level should value a put for all the input Segments
         (nextLevel.put(_: Iterable[Segment])) expects * onCall {
