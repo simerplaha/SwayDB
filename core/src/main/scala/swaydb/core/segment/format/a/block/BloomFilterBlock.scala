@@ -22,8 +22,8 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.Transient
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.merge.MergeBuilder
 import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -216,23 +216,28 @@ private[core] object BloomFilterBlock extends LazyLogging {
     )
   }
 
-  def shouldNotCreateBloomFilter(keyValues: Iterable[Transient]): Boolean =
-    keyValues.last.stats.segmentHasRemoveRange ||
-      keyValues.last.stats.segmentBloomFilterSize <= 0 ||
-      keyValues.last.bloomFilterConfig.falsePositiveRate <= 0.0 ||
-      keyValues.last.bloomFilterConfig.falsePositiveRate >= 1 ||
-      keyValues.size < keyValues.last.bloomFilterConfig.minimumNumberOfKeys
+  def shouldNotCreateBloomFilter(keyValues: MergeBuilder.Persistent,
+                                 config: BloomFilterBlock.Config): Boolean =
+    keyValues.hasRemoveRange ||
+      config.falsePositiveRate <= 0.0 ||
+      config.falsePositiveRate >= 1 ||
+      keyValues.size < config.minimumNumberOfKeys
 
-  def shouldCreateBloomFilter(keyValues: Iterable[Transient]): Boolean =
-    !shouldNotCreateBloomFilter(keyValues)
+  def shouldCreateBloomFilter(keyValues: MergeBuilder.Persistent,
+                              config: BloomFilterBlock.Config): Boolean =
+    !shouldNotCreateBloomFilter(
+      keyValues = keyValues,
+      config = config
+    )
 
-  def init(keyValues: Iterable[Transient]): Option[BloomFilterBlock.State] =
-    if (shouldCreateBloomFilter(keyValues))
+  def init(keyValues: MergeBuilder.Persistent,
+           config: BloomFilterBlock.Config): Option[BloomFilterBlock.State] =
+    if (shouldCreateBloomFilter(keyValues, config))
       init(
-        numberOfKeys = keyValues.last.stats.linkedPosition,
-        falsePositiveRate = keyValues.last.bloomFilterConfig.falsePositiveRate,
-        compressions = keyValues.last.bloomFilterConfig.compressions,
-        updateMaxProbe = keyValues.last.bloomFilterConfig.optimalMaxProbe
+        numberOfKeys = keyValues.size,
+        falsePositiveRate = config.falsePositiveRate,
+        compressions = config.compressions,
+        updateMaxProbe = config.optimalMaxProbe
       )
     else
       None

@@ -26,5 +26,5 @@ import swaydb.data.slice.Slice
 trait CurrentGetter {
 
   def get(key: Slice[Byte],
-          readState: ReadState): Option[KeyValue.ReadOnly]
+          readState: ReadState): Option[KeyValue]
 }

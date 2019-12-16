@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data.{KeyValue, Memory, Transient, Value}
+import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.io.file.Effect._
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.{Segment, SegmentAssigner}
@@ -77,7 +77,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
   "SegmentAssign.assign" should {
 
     "assign KeyValues to the first Segment if there is only one Segment" in {
-      val keyValues = randomizedKeyValues(keyValueCount).toMemory
+      val keyValues = randomizedKeyValues(keyValueCount)
 
       val segment = TestSegment()
 
@@ -88,8 +88,8 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
-      val segment1 = TestSegment(Slice(Transient.put(1), Transient.Range.create[FromValue, RangeValue](2, 10, None, Value.remove(10.seconds.fromNow))).updateStats)
-      val segment2 = TestSegment(Slice(Transient.put(10)).updateStats)
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, None, Value.remove(10.seconds.fromNow))))
+      val segment2 = TestSegment(Slice(Memory.put(10)))
       val segments = Seq(segment1, segment2)
 
       val result =
@@ -108,8 +108,8 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "assign gap KeyValue to the first Segment if the first Segment already has a key-value assigned to it" in {
-      val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10)).toTransient)
-      val segment2 = TestSegment(Slice(randomFixedKeyValue(20)).toTransient)
+      val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10)))
+      val segment2 = TestSegment(Slice(randomFixedKeyValue(20)))
       val segments = Seq(segment1, segment2)
 
       //1 belongs to first Segment, 15 is a gap key and since first segment is not empty, it will value assigned 15.
@@ -123,7 +123,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
       val result = SegmentAssigner.assignUnsafe(keyValues, segments)
       result.size shouldBe 1
       result.keys.head.path shouldBe segment1.path
-      result.values.head.toMemory shouldBe keyValues
+      result.values.head shouldBe keyValues
     }
 
     "assign gap KeyValue to the second Segment if the first Segment has no key-value assigned to it" in {
@@ -131,8 +131,8 @@ sealed trait SegmentAssignerSpec extends TestBase {
         val segment1KeyValues = Slice(randomFixedKeyValue(1), randomRangeKeyValue(2, 10))
         val segment2KeyValues = Slice(randomFixedKeyValue(20))
 
-        val segment1 = TestSegment(segment1KeyValues.toTransient)
-        val segment2 = TestSegment(segment2KeyValues.toTransient)
+        val segment1 = TestSegment(segment1KeyValues)
+        val segment2 = TestSegment(segment2KeyValues)
         val segments = Seq(segment1, segment2)
 
         //15 is a gap key but no key-values are assigned to segment1 so segment2 will value this key-value.
@@ -145,21 +145,21 @@ sealed trait SegmentAssignerSpec extends TestBase {
         val result = SegmentAssigner.assignUnsafe(keyValues, segments)
         result.size shouldBe 1
         result.keys.head.path shouldBe segment2.path
-        result.values.head.toMemory shouldBe keyValues
+        result.values.head shouldBe keyValues
       }
     }
 
     "assign gap Range KeyValue to all Segments that fall within the Range's toKey" in {
       // 1 - 10(exclusive)
-      val segment1 = TestSegment(Slice(Transient.put(1), Transient.Range.create[FromValue, RangeValue](2, 10, None, Value.remove(None))).updateStats)
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, None, Value.remove(None))))
       // 20 - 20
-      val segment2 = TestSegment(Slice(Transient.remove(20)).updateStats)
+      val segment2 = TestSegment(Slice(Memory.remove(20)))
       //21 - 30
-      val segment3 = TestSegment(Slice(Transient.Range.create[FromValue, RangeValue](21, 30, None, Value.remove(None)), Transient.put(30)).updateStats)
+      val segment3 = TestSegment(Slice(Memory.Range(21, 30, None, Value.remove(None)), Memory.put(30)))
       //40 - 60
-      val segment4 = TestSegment(Slice(Transient.remove(40), Transient.Range.create[FromValue, RangeValue](41, 50, None, Value.remove(None)), Transient.put(60)).updateStats)
+      val segment4 = TestSegment(Slice(Memory.remove(40), Memory.Range(41, 50, None, Value.remove(None)), Memory.put(60)))
       //70 - 80
-      val segment5 = TestSegment(Slice(Transient.put(70), Transient.remove(80)).updateStats)
+      val segment5 = TestSegment(Slice(Memory.put(70), Memory.remove(80)))
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
       //15 is a gap key but no key-values are assigned to segment1 so segment2 will value this key-value an it will be split across.
@@ -169,7 +169,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
         Memory.Range(15, 50, Some(Value.remove(None)), Value.update(10))
       )
 
-      def assertResult(assignments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]) = {
+      def assertResult(assignments: mutable.Map[Segment, Slice[KeyValue]]) = {
         assignments.size shouldBe 3
         assignments.find(_._1 == segment2).value._2 should contain only Memory.Range(15, 21, Some(Value.remove(None)), Value.update(10))
         assignments.find(_._1 == segment3).value._2 should contain only Memory.Range(21, 40, None, Value.update(10))
@@ -180,8 +180,8 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "assign key value to the first segment when the key is the new smallest" in {
-      val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient)
-      val segment2 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient)
+      val segment1 = TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)))
+      val segment2 = TestSegment(Slice(randomFixedKeyValue(4), randomFixedKeyValue(5)))
 
       //segment1 - 1 - 2
       //segment2 - 4 - 5
@@ -195,9 +195,9 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "assign key value to the first segment and split out to other Segment when the key is the new smallest and the range spreads onto other Segments" in {
-      val segment1 = TestSegment(Slice(Transient.put(1), Transient.put(2)).updateStats)
-      val segment2 = TestSegment(Slice(Transient.put(4), Transient.put(5)).updateStats)
-      val segment3 = TestSegment(Slice(Transient.Range.create[FromValue, RangeValue](6, 10, Some(Value.remove(None)), Value.update(10)), Transient.remove(10)).updateStats)
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
+      val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
+      val segment3 = TestSegment(Slice(Memory.Range(6, 10, Some(Value.remove(None)), Value.update(10)), Memory.remove(10)))
 
       //segment1 - 1 - 2
       //segment2 - 4 - 5
@@ -215,11 +215,11 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "debugger" in {
-      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, None, Value.update(None, None))).toTransient)
-      val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, None, Value.update(None, None))).toTransient)
-      val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, None, Value.update(None, None))).toTransient)
-      val segment4 = TestSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, None, Value.update(None, None))).toTransient)
-      val segment5 = TestSegment(Slice(Memory.put(74605), Memory.put(100000)).toTransient)
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, None, Value.update(None, None))))
+      val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, None, Value.update(None, None))))
+      val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, None, Value.update(None, None))))
+      val segment4 = TestSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, None, Value.update(None, None))))
+      val segment5 = TestSegment(Slice(Memory.put(74605), Memory.put(100000)))
 
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
 
@@ -232,10 +232,10 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "assign key value to the last segment when the key is the new largest" in {
-      val segment1 = TestSegment(Slice(Transient.put(1), Transient.put(2)).updateStats)
-      val segment2 = TestSegment(Slice(Transient.put(4), Transient.put(5)).updateStats)
-      val segment3 = TestSegment(Slice(Transient.put(6), Transient.put(7)).updateStats)
-      val segment4 = TestSegment(Slice(Transient.put(8), Transient.put(9)).updateStats)
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.put(2)))
+      val segment2 = TestSegment(Slice(Memory.put(4), Memory.put(5)))
+      val segment3 = TestSegment(Slice(Memory.put(6), Memory.put(7)))
+      val segment4 = TestSegment(Slice(Memory.put(8), Memory.put(9)))
       val segments = Seq(segment1, segment2, segment3, segment4)
 
       SegmentAssigner.assignUnsafe(Slice(Memory.put(10, "ten")), segments) ==> {
@@ -261,16 +261,16 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "assign all KeyValues to their target Segments" in {
-      val keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3), randomFixedKeyValue(4), randomFixedKeyValue(5)).toTransient
-      val segment1 = TestSegment(Slice(randomFixedKeyValue(key = 1)).toTransient)
-      val segment2 = TestSegment(Slice(randomFixedKeyValue(key = 2)).toTransient)
-      val segment3 = TestSegment(Slice(randomFixedKeyValue(key = 3)).toTransient)
-      val segment4 = TestSegment(Slice(randomFixedKeyValue(key = 4)).toTransient)
-      val segment5 = TestSegment(Slice(randomFixedKeyValue(key = 5)).toTransient)
+      val keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3), randomFixedKeyValue(4), randomFixedKeyValue(5))
+      val segment1 = TestSegment(Slice(randomFixedKeyValue(key = 1)))
+      val segment2 = TestSegment(Slice(randomFixedKeyValue(key = 2)))
+      val segment3 = TestSegment(Slice(randomFixedKeyValue(key = 3)))
+      val segment4 = TestSegment(Slice(randomFixedKeyValue(key = 4)))
+      val segment5 = TestSegment(Slice(randomFixedKeyValue(key = 5)))
 
       val segments = List(segment1, segment2, segment3, segment4, segment5)
 
-      val result = SegmentAssigner.assignUnsafe(keyValues.toMemory, segments)
+      val result = SegmentAssigner.assignUnsafe(keyValues, segments)
       result.size shouldBe 5
 
       //sort them by the fileId, so it's easier to test

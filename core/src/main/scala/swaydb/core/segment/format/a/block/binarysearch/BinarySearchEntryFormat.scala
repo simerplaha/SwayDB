@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.data.{Memory, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
@@ -38,7 +38,7 @@ sealed trait BinarySearchEntryFormat {
   def isReference: Boolean = !isCopy
 
   def bytesToAllocatePerEntry(largestIndexOffset: Int,
-                              largestKeySize: Int): Int
+                              largestMergedKeySize: Int): Int
 
   def write(indexOffset: Int,
             mergedKey: Slice[Byte],
@@ -70,7 +70,7 @@ object BinarySearchEntryFormat {
     override val isCopy: Boolean = false
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
-                                         largestKeySize: Int): Int =
+                                         largestMergedKeySize: Int): Int =
       Bytes sizeOfUnsignedInt largestIndexOffset
 
     override def write(indexOffset: Int,
@@ -103,10 +103,10 @@ object BinarySearchEntryFormat {
     override val isCopy: Boolean = true
 
     override def bytesToAllocatePerEntry(largestIndexOffset: Int,
-                                         largestKeySize: Int): Int = {
+                                         largestMergedKeySize: Int): Int = {
       val sizeOfLargestIndexOffset = Bytes.sizeOfUnsignedInt(largestIndexOffset)
-      val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestKeySize)
-      sizeOfLargestKeySize + largestKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset
+      val sizeOfLargestKeySize = Bytes.sizeOfUnsignedInt(largestMergedKeySize)
+      sizeOfLargestKeySize + largestMergedKeySize + ByteSizeOf.byte + sizeOfLargestIndexOffset
     }
 
     override def write(indexOffset: Int,
@@ -130,7 +130,7 @@ object BinarySearchEntryFormat {
       val keyType = entryReader.get()
 
       //create a temporary partially read key-value for matcher.
-      if (keyType == Transient.Range.id)
+      if (keyType == Memory.Range.id)
         new Partial.Range {
           val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
@@ -147,7 +147,7 @@ object BinarySearchEntryFormat {
               valuesReader = values
             )
         }
-      else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
+      else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
         new Partial.Fixed {
           override lazy val indexOffset: Int =
             entryReader.readUnsignedInt()

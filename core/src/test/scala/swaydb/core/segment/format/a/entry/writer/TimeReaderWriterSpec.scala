@@ -23,7 +23,7 @@
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
 //import swaydb.core.TestTimer
-//import swaydb.core.data.{Persistent, Time, Transient}
+//import swaydb.core.data.{Persistent, Time, Memory}
 //import swaydb.core.io.reader.Reader
 //import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
 //import swaydb.core.segment.format.a.entry.reader.TimeReader
@@ -53,12 +53,12 @@
 //              val previousTimeBytes =
 //                Slice.fill[Byte](commonBytes)(0.toByte) ++ Slice.fill[Byte](8 - commonBytes)(2.toByte)
 //
-//              val current: Transient.Put =
+//              val current: Memory.Put =
 //                randomPutKeyValue(key = 1, value = None, deadline = None)(TestTimer.single(Time(currentTimeBytes)))
 //                  .toTransient(
 //                    previous =
 //                      Some(randomFixedKeyValue(0)(TestTimer.single(Time(previousTimeBytes))).toTransient)
-//                  ).asInstanceOf[Transient.Put]
+//                  ).asInstanceOf[Memory.Put]
 //
 //              val currentTime = TimeWriter.getTime(current)
 //
@@ -108,12 +108,12 @@
 //    "write compressed time" in {
 //      keyIds foreach {
 //        keyId =>
-//          val current: Transient.Put =
+//          val current: Memory.Put =
 //            randomPutKeyValue(1, None, None)(TestTimer.randomNonEmpty)
 //              .toTransient(
 //                previous =
 //                  Some(randomFixedKeyValue(0)(TestTimer.Empty).toTransient)
-//              ).asInstanceOf[Transient.Put]
+//              ).asInstanceOf[Memory.Put]
 //
 //          val currentTime = TimeWriter.getTime(current)
 //

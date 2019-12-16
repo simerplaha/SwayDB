@@ -19,7 +19,7 @@
 
 package swaydb.core.merge
 
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
@@ -27,37 +27,37 @@ import swaydb.data.slice.Slice
 
 private[core] object FixedMerger {
 
-  def apply(newer: ReadOnly.Fixed,
-            older: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): ReadOnly.Fixed =
+  def apply(newer: KeyValue.Fixed,
+            older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore): KeyValue.Fixed =
     FixedMerger(
       newer = newer,
       oldApplies = older.getOrFetchApplies
     )
 
-  def apply(newer: ReadOnly.Fixed,
+  def apply(newer: KeyValue.Fixed,
             oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): ReadOnly.Fixed =
+                                            functionStore: FunctionStore): KeyValue.Fixed =
     oldApplies.reverse.toIterable.foldLeft((newer, 0)) {
       case ((newerMerged, count), olderApply) =>
         newerMerged match {
-          case newer: ReadOnly.Put =>
+          case newer: KeyValue.Put =>
             val merged = PutMerger(newer, olderApply)
             (merged, count + 1)
 
-          case newer: ReadOnly.Function =>
+          case newer: KeyValue.Function =>
             val merged = FunctionMerger(newer, olderApply)
             (merged, count + 1)
 
-          case newer: ReadOnly.Remove =>
+          case newer: KeyValue.Remove =>
             val merged = RemoveMerger(newer, olderApply)
             (merged, count + 1)
 
-          case newer: ReadOnly.Update =>
+          case newer: KeyValue.Update =>
             val merged = UpdateMerger(newer, olderApply)
             (merged, count + 1)
 
-          case newer: ReadOnly.PendingApply =>
+          case newer: KeyValue.PendingApply =>
             return {
               val newerApplies = newer.getOrFetchApplies
               val newMergedApplies = oldApplies.dropRight(count) ++ newerApplies
@@ -69,23 +69,23 @@ private[core] object FixedMerger {
         }
     }._1
 
-  def apply(newKeyValue: ReadOnly.Fixed,
-            oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.Fixed,
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                         functionStore: FunctionStore): KeyValue.Fixed =
     newKeyValue match {
-      case newKeyValue: ReadOnly.Put =>
+      case newKeyValue: KeyValue.Put =>
         PutMerger(newKeyValue, oldKeyValue)
 
-      case newKeyValue: ReadOnly.Remove =>
+      case newKeyValue: KeyValue.Remove =>
         RemoveMerger(newKeyValue, oldKeyValue)
 
-      case newKeyValue: ReadOnly.Function =>
+      case newKeyValue: KeyValue.Function =>
         FunctionMerger(newKeyValue, oldKeyValue)
 
-      case newKeyValue: ReadOnly.Update =>
+      case newKeyValue: KeyValue.Update =>
         UpdateMerger(newKeyValue, oldKeyValue)
 
-      case newKeyValue: ReadOnly.PendingApply =>
+      case newKeyValue: KeyValue.PendingApply =>
         PendingApplyMerger(newKeyValue, oldKeyValue)
     }
 }

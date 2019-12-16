@@ -21,11 +21,11 @@ package swaydb.core.level.zero
 
 import java.util.function.Consumer
 
-import swaydb.core.data.{Memory, Transient}
+import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.segment.merge.{MergeBuilder, SegmentMerger}
 import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -67,10 +67,19 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
 
           //if the floor entry is a range try to do a merge.
           case floorRange: Memory.Range if insert.key < floorRange.toKey =>
+            val builder = MergeBuilder.buffer()
+
+            SegmentMerger.merge(
+              newKeyValue = insert,
+              oldKeyValue = floorRange,
+              builder = builder,
+              isLastLevel = false
+            )
+
             skipList batch {
-              SegmentMerger.merge(insert, floorRange) map {
-                transient: Transient =>
-                  SkipList.Batch.Put(transient.key, transient.toMemoryResponse)
+              builder map {
+                merged: Memory =>
+                  SkipList.Batch.Put(merged.key, merged)
               }
             }
 
@@ -108,13 +117,23 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
       skipList.put(insert.key, insert)
     } else {
       val oldKeyValues = Slice.create[Memory](conflictingKeyValues.size())
+
       conflictingKeyValues.values() forEach {
         new Consumer[Memory] {
           override def accept(t: Memory): Unit =
             oldKeyValues add t
         }
       }
-      val mergedKeyValues = SegmentMerger.merge(Slice(insert), oldKeyValues)
+
+      val builder = MergeBuilder.buffer()
+
+      SegmentMerger.merge(
+        newKeyValues = Slice(insert),
+        oldKeyValues = oldKeyValues,
+        builder = builder,
+        isLastLevel = false
+      )
+
       val batches = ListBuffer.empty[SkipList.Batch[Slice[Byte], Memory]]
 
       oldKeyValues foreach {
@@ -122,17 +141,17 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
           batches += SkipList.Batch.Remove(oldKeyValue.key)
       }
 
-      mergedKeyValues map {
+      builder map {
         keyValue =>
-          batches += SkipList.Batch.Put(keyValue.key, keyValue.toMemoryResponse)
+          batches += SkipList.Batch.Put(keyValue.key, keyValue)
       }
 
       skipList batch batches
 
       //while inserting also clear any conflicting key-values that are not replaced by new inserts.
       //      mergedKeyValues.reverse.foldLeft(Option.empty[Slice[Byte]]) {
-      //        case (previousInsertedKey, transient: Transient) =>
-      //          skipList.put(transient.key, transient.toMemoryResponse)
+      //        case (previousInsertedKey, transient: Memory) =>
+      //          skipList.put(transient.key, transient.toMemory)
       //          //remove any entries that are greater than transient.key to the previously inserted entry.
       //          val toKey = previousInsertedKey.getOrElse(conflictingKeyValues.lastKey())
       //          if (transient.key < toKey)

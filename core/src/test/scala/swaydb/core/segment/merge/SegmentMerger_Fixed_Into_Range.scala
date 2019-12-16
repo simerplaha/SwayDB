@@ -201,7 +201,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
       assertMerge(
         newKeyValues = newKeyValues,
         oldKeyValues = oldKeyValues,
-        expected = expected.toTransient,
+        expected = expected,
         lastLevelExpect = expectedInLastLevel
       )
     }

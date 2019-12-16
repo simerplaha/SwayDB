@@ -19,7 +19,7 @@
 
 package swaydb.core.merge
 
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.data.Value
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
@@ -30,15 +30,15 @@ private[core] object PendingApplyMerger {
   /**
    * PendingApply
    */
-  def apply(newKeyValue: ReadOnly.PendingApply,
-            oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.PendingApply,
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                         functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
-        case oldKeyValue: ReadOnly.Remove if oldKeyValue.deadline.isEmpty =>
+        case oldKeyValue: KeyValue.Remove if oldKeyValue.deadline.isEmpty =>
           oldKeyValue.copyWithTime(newKeyValue.time)
 
-        case _: ReadOnly.Fixed =>
+        case _: KeyValue.Fixed =>
           ApplyMerger(
             newApplies = newKeyValue.getOrFetchApplies,
             oldKeyValue = oldKeyValue
@@ -47,23 +47,23 @@ private[core] object PendingApplyMerger {
     else
       oldKeyValue
 
-  def apply(newKeyValue: ReadOnly.PendingApply,
-            oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.PendingApply,
+            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue.deadline match {
         case None =>
           oldKeyValue
 
         case Some(_) =>
-          PendingApplyMerger(newKeyValue, oldKeyValue: ReadOnly.Fixed)
+          PendingApplyMerger(newKeyValue, oldKeyValue: KeyValue.Fixed)
       }
     else
       oldKeyValue
 
-  def apply(newKeyValue: ReadOnly.PendingApply,
+  def apply(newKeyValue: KeyValue.PendingApply,
             oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): ReadOnly.Fixed =
+                                      functionStore: FunctionStore): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       PendingApplyMerger(newKeyValue, oldKeyValue.toMemory(newKeyValue.key))
     else

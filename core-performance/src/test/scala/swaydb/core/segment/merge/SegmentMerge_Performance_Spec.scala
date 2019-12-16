@@ -20,16 +20,11 @@
 package swaydb.core.segment.merge
 
 import swaydb.core.TestData._
-import swaydb.core.data.{Time, Transient}
-import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
-import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
+import swaydb.core.data.{Memory, Time}
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestTimer}
-import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.data.util.StorageUnits._
 
 class SegmentMerge_Performance_Spec extends TestBase {
 
@@ -39,78 +34,18 @@ class SegmentMerge_Performance_Spec extends TestBase {
   val keyValueCount = 100
 
   "performance" in {
-    val sortedIndexConfig =
-      SortedIndexBlock.Config.disabled
-    //      SortedIndexBlock.Config(
-    //        ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-    //        prefixCompressionResetCount = 0,
-    //        enableAccessPositionIndex = true,
-    //        normaliseIndex = false,
-    //        compressions = _ => Seq.empty
-    //      )
-
-    val binarySearchIndexConfig =
-      BinarySearchIndexBlock.Config.disabled
-    //      BinarySearchIndexBlock.Config(
-    //        enabled = true,
-    //        format = BinarySearchEntryFormat.CopyKey,
-    //        minimumNumberOfKeys = 1,
-    //        searchSortedIndexDirectlyIfPossible = false,
-    //        fullIndex = true,
-    //        ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-    //        compressions = _ => Seq.empty
-    //      )
-
-    val valuesConfig =
-          ValuesBlock.Config.disabled
-//      ValuesBlock.Config(
-//        compressDuplicateValues = true,
-//        compressDuplicateRangeValues = true,
-//        ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-//        compressions = _ => Seq.empty
-//      )
-
-    val hashIndexConfig =
-      HashIndexBlock.Config.disabled
-    //      HashIndexBlock.Config(
-    //        maxProbe = 1,
-    //        format = HashIndexEntryFormat.Reference,
-    //        minimumNumberOfKeys = 5,
-    //        minimumNumberOfHits = 5,
-    //        allocateSpace = _.requiredSpace,
-    //        ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
-    //        compressions = _ => Seq.empty
-    //      )
-
-    val bloomFilterConfig =
-      BloomFilterBlock.Config.disabled
-    //      BloomFilterBlock.Config(
-    //        falsePositiveRate = 0.001,
-    //        minimumNumberOfKeys = 2,
-    //        optimalMaxProbe = _ => 1,
-    //        ioStrategy = _ => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-    //        compressions = _ => Seq.empty
-    //      )
-
     val keys = (1 to 1000000).map(Slice.writeInt)
-    val keyValues = Slice.create[Transient.Put](keys.size)
+    val keyValues = Slice.create[Memory.Put](keys.size)
 
     Benchmark("Creating key-values") {
-      keys.foldLeft(Option.empty[Transient.Put]) {
+      keys.foldLeft(Option.empty[Memory.Put]) {
         case (previous, key) =>
           val put =
-            Transient.Put(
+            Memory.Put(
               key = key,
-              normaliseToSize = None,
               value = Some(key),
               deadline = None,
               time = Time.empty,
-              previous = previous,
-              sortedIndexConfig = sortedIndexConfig,
-              binarySearchIndexConfig = binarySearchIndexConfig,
-              valuesConfig = valuesConfig,
-              hashIndexConfig = hashIndexConfig,
-              bloomFilterConfig = bloomFilterConfig
             )
 
           keyValues add put
@@ -118,20 +53,14 @@ class SegmentMerge_Performance_Spec extends TestBase {
           Some(put)
       }
     }
-//    Benchmark(s"SegmentMerger performance") {
-//      SegmentMerger.merge(
-//        newKeyValues = keyValues,
-//        oldKeyValues = keyValues,
-//        minSegmentSize = 100.mb,
-//        isLastLevel = false,
-//        forInMemory = false,
-//        createdInLevel = randomIntMax(),
-//        sortedIndexConfig = sortedIndexConfig,
-//        binarySearchIndexConfig = binarySearchIndexConfig,
-//        valuesConfig = valuesConfig,
-//        hashIndexConfig = hashIndexConfig,
-//        bloomFilterConfig = bloomFilterConfig
-//      )
-//    }
+
+    Benchmark(s"SegmentMerger performance") {
+      SegmentMerger.merge(
+        newKeyValues = keyValues,
+        oldKeyValues = keyValues,
+        builder = MergeBuilder.persistent(),
+        isLastLevel = false
+      )
+    }
   }
 }

@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block
 
 import swaydb.IO
-import swaydb.core.data.Transient
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
@@ -28,6 +27,7 @@ import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.merge.MergeBuilder
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
@@ -55,7 +55,6 @@ object SegmentFooterBlock {
       ByteSizeOf.varInt + //numberOfRanges
       ByteSizeOf.boolean + //hasPut
       ByteSizeOf.varInt + //key-values count
-      ByteSizeOf.varInt + //uniqueKeysCount
       ByteSizeOf.long + //CRC. This cannot be unsignedLong because the size of the crc long bytes is not fixed.
       ByteSizeOf.varInt + //sorted index offset.
       ByteSizeOf.varInt + //sorted index size.
@@ -70,21 +69,21 @@ object SegmentFooterBlock {
   case class State(footerSize: Int,
                    createdInLevel: Int,
                    bytes: Slice[Byte],
-                   topLevelKeyValuesCount: Int,
-                   uniqueKeyValuesCount: Int,
+                   keyValuesCount: Int,
                    numberOfRanges: Int,
                    hasPut: Boolean)
 
-  def init(keyValues: Iterable[Transient],
+  def init(keyValuesCount: Int,
+           rangesCount: Int,
+           hasPut: Boolean,
            createdInLevel: Int): SegmentFooterBlock.State =
     SegmentFooterBlock.State(
       footerSize = Block.headerSize(false),
       createdInLevel = createdInLevel,
-      topLevelKeyValuesCount = keyValues.size,
-      uniqueKeyValuesCount = keyValues.last.stats.linkedPosition,
+      keyValuesCount = keyValuesCount,
       bytes = Slice.create[Byte](optimalBytesRequired),
-      numberOfRanges = keyValues.last.stats.segmentTotalNumberOfRanges,
-      hasPut = keyValues.last.stats.segmentHasPut
+      numberOfRanges = rangesCount,
+      hasPut = hasPut
     )
 
   def writeAndClose(state: State, closedBlocks: ClosedBlocks): State = {
@@ -105,9 +104,7 @@ object SegmentFooterBlock {
     footerBytes addBoolean state.hasPut
     //here the top Level key-values are used instead of Group's internal key-values because Group's internal key-values
     //are read when the Group key-value is read.
-    footerBytes addUnsignedInt state.topLevelKeyValuesCount
-    //total number of actual key-values grouped or un-grouped
-    footerBytes addUnsignedInt state.uniqueKeyValuesCount
+    footerBytes addUnsignedInt state.keyValuesCount
 
     var currentBlockOffset = values.map(_.bytes.size) getOrElse 0
 
@@ -182,7 +179,6 @@ object SegmentFooterBlock {
         val numberOfRanges = footerReader.readUnsignedInt()
         val hasPut = footerReader.readBoolean()
         val keyValueCount = footerReader.readUnsignedInt()
-        val bloomFilterItemsCount = footerReader.readUnsignedInt()
 
         val sortedIndexOffset =
           SortedIndexBlock.Offset(
@@ -243,7 +239,6 @@ object SegmentFooterBlock {
           bloomFilterOffset = bloomFilterOffset,
           keyValueCount = keyValueCount,
           createdInLevel = createdInLevel,
-          bloomFilterItemsCount = bloomFilterItemsCount,
           numberOfRanges = numberOfRanges,
           hasPut = hasPut
         )
@@ -273,7 +268,6 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               bloomFilterOffset: Option[BloomFilterBlock.Offset],
                               keyValueCount: Int,
                               createdInLevel: Int,
-                              bloomFilterItemsCount: Int,
                               numberOfRanges: Int,
                               hasPut: Boolean) extends Block[block.SegmentFooterBlock.Offset] {
   def hasRange =

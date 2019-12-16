@@ -21,7 +21,6 @@ package swaydb.core.level.seek
 
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
-import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.LevelSeek
@@ -64,7 +63,7 @@ private[core] object Higher {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Higher(key, readState, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -77,7 +76,7 @@ private[core] object Higher {
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           currentWalker: CurrentWalker,
                                           nextWalker: NextWalker,
-                                          functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                          functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Higher(key, readState, currentSeek, nextSeek)
 
   /**
@@ -95,7 +94,7 @@ private[core] object Higher {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] = {
     import keyOrder._
 
     //    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")
@@ -164,7 +163,7 @@ private[core] object Higher {
             current match {
               //10->19  (input keys)
               //10 - 20 (higher range from current Level)
-              case currentRange: ReadOnly.Range if key >= currentRange.fromKey =>
+              case currentRange: KeyValue.Range if key >= currentRange.fromKey =>
                 IO(currentRange.fetchRangeValueUnsafe) match {
                   case IO.Right(rangeValue) =>
                     //if the current range is active fetch the highest from next Level and return highest from both Levels.
@@ -198,7 +197,7 @@ private[core] object Higher {
               //if the input key is smaller than this Level's higher Range's fromKey.
               //0           (input key)
               //    10 - 20 (higher range)
-              case _: KeyValue.ReadOnly =>
+              case _: KeyValue =>
                 nextWalker.higher(key, readState).toIO match {
                   case IO.Right(Some(next)) =>
                     Higher(key, readState, currentStash, Seek.Next.Stash(next))
@@ -213,25 +212,25 @@ private[core] object Higher {
 
           case Seek.Next.Stop =>
             current match {
-              case current: KeyValue.ReadOnly.Put =>
+              case current: KeyValue.Put =>
                 if (current.hasTimeLeft())
                   IO.Defer(Some(current))
                 else
                   Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.Remove =>
+              case _: KeyValue.Remove =>
                 Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.Update =>
+              case _: KeyValue.Update =>
                 Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.Function =>
+              case _: KeyValue.Function =>
                 Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.PendingApply =>
+              case _: KeyValue.PendingApply =>
                 Higher(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case current: KeyValue.ReadOnly.Range =>
+              case current: KeyValue.Range =>
                 IO(current.fetchFromValueUnsafe) match {
                   case IO.Right(fromValue) =>
                     higherFromValue(key, current.fromKey, fromValue) match {
@@ -268,14 +267,14 @@ private[core] object Higher {
                * ******************         *******************
                * **********************************************/
 
-              case current: KeyValue.ReadOnly.Fixed =>
+              case current: KeyValue.Fixed =>
                 //    2
                 //    2
                 if (next.key equiv current.key)
                   IO(FixedMerger(current, next)) match {
                     case IO.Right(merged) =>
                       merged match {
-                        case put: ReadOnly.Put if put.hasTimeLeft() =>
+                        case put: KeyValue.Put if put.hasTimeLeft() =>
                           IO.Defer(Some(put))
 
                         case _ =>
@@ -289,7 +288,7 @@ private[core] object Higher {
                 //      3  or  5
                 else if (next.key > current.key)
                   current match {
-                    case put: ReadOnly.Put if put.hasTimeLeft() =>
+                    case put: KeyValue.Put if put.hasTimeLeft() =>
                       IO.Defer(Some(put))
 
                     //if it doesn't result in an unexpired put move forward.
@@ -308,7 +307,7 @@ private[core] object Higher {
                * ******************       ********************
                * *********************************************
                * *********************************************/
-              case current: KeyValue.ReadOnly.Range =>
+              case current: KeyValue.Range =>
                 //   10 - 20
                 //1
                 if (next.key < current.fromKey)
@@ -321,7 +320,7 @@ private[core] object Higher {
                       IO(FixedMerger(fromOrElseRangeValue.toMemory(current.fromKey), next)) match {
                         case IO.Right(mergedCurrent) =>
                           mergedCurrent match {
-                            case put: ReadOnly.Put if put.hasTimeLeft() =>
+                            case put: KeyValue.Put if put.hasTimeLeft() =>
                               IO.Defer(Some(put))
                             case _ =>
                               //do need to check if range is expired because if it was then
@@ -351,7 +350,7 @@ private[core] object Higher {
                           IO(FixedMerger(rangeValue.toMemory(next.key), next)) match {
                             case IO.Right(mergedValue) =>
                               mergedValue match { //return applied value with next key-value as the current value.
-                                case put: ReadOnly.Put if put.hasTimeLeft() =>
+                                case put: KeyValue.Put if put.hasTimeLeft() =>
                                   IO.Defer(Some(put))
 
                                 case _ =>

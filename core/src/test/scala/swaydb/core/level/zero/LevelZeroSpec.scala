@@ -198,7 +198,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
     //removed test - empty check are performed at the source where the MapEntry is created.
     //    "batch writing empty keys should fail" in {
     //      if (persistent) {
-    //        val keyValues = Slice(Transient.put(Slice.empty, 1))
+    //        val keyValues = Slice(Memory.put(Slice.empty, 1))
     //
     //        val zero = TestLevelZero(Some(TestLevel()))
     //        assertThrows[Exception] {

@@ -22,8 +22,10 @@ package swaydb.core.segment.format.a.block
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.Transient
+import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.entry.writer.EntryWriter
+import swaydb.core.segment.merge.MergeBuilder
 import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -74,8 +76,8 @@ private[core] object ValuesBlock {
     IO.Left(swaydb.Error.Fatal("Value block not initialised."))
 
   case class State(var _bytes: Slice[Byte],
-                   headerSize: Int,
-                   compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+                   compressions: UncompressedBlockInfo => Seq[CompressionInternal],
+                   builder: EntryWriter.Builder) {
     def bytes = _bytes
 
     def bytes_=(bytes: Slice[Byte]) =
@@ -88,69 +90,62 @@ private[core] object ValuesBlock {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  val hasCompressionHeaderSize = {
+  val headerSize = {
     val size = Block.headerSize(true)
     Bytes.sizeOfUnsignedInt(size) +
       size
   }
 
-  val noCompressionHeaderSize = {
-    val size = Block.headerSize(false)
-    Bytes.sizeOfUnsignedInt(size) +
-      size
-  }
-
-  def headerSize(hasCompression: Boolean): Int =
-    if (hasCompression)
-      hasCompressionHeaderSize
-    else
-      noCompressionHeaderSize
-
-  def init(keyValues: Iterable[Transient]): Option[ValuesBlock.State] =
-    if (keyValues.last.stats.segmentValuesSize > 0) {
-      val hasCompression = keyValues.last.valuesConfig.compressions(UncompressedBlockInfo(keyValues.last.stats.segmentValuesSize)).nonEmpty
-      val headSize = headerSize(hasCompression)
-      val bytes =
-        if (hasCompression) //stats calculate size with no compression if there is compression add remaining bytes.
-          Slice.create[Byte](keyValues.last.stats.segmentValuesSize - noCompressionHeaderSize + headSize)
-        else
-          Slice.create[Byte](keyValues.last.stats.segmentValuesSize)
-
-      bytes moveWritePosition headSize
+  def init(keyValues: MergeBuilder.Persistent,
+           valuesConfig: ValuesBlock.Config,
+           //the builder created by SortedIndex.
+           builder: EntryWriter.Builder): Option[ValuesBlock.State] =
+    if (keyValues.totalValuesSize > 0) {
+      val bytes = Slice.create[Byte](keyValues.totalValuesSize + headerSize)
+      bytes moveWritePosition headerSize
 
       Some(
         ValuesBlock.State(
           _bytes = bytes,
-          headerSize = headSize,
-          compressions =
-            //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
-            if (hasCompression)
-              keyValues.last.valuesConfig.compressions
-            else
-              _ => Seq.empty
+          compressions = valuesConfig.compressions,
+          builder = builder
         )
       )
     }
     else
       None
 
-  def write(keyValue: Transient, state: ValuesBlock.State) =
-    IO {
-      keyValue.valueEntryBytes foreach state.bytes.addAll
-    }
+  def init(bytes: Slice[Byte],
+           valuesConfig: ValuesBlock.Config,
+           //the builder created by SortedIndex.
+           builder: EntryWriter.Builder): ValuesBlock.State = {
+    bytes moveWritePosition headerSize
+
+    ValuesBlock.State(
+      _bytes = bytes,
+      compressions = valuesConfig.compressions,
+      builder = builder
+    )
+  }
+
+  def write(keyValue: Memory, state: ValuesBlock.State) =
+    if (state.builder.isValueFullyCompressed)
+      state.builder.isValueFullyCompressed = false
+    else
+      keyValue.value foreach state.bytes.addAll
 
   def close(state: State): State = {
     val compressedOrUncompressedBytes =
       Block.block(
-        headerSize = state.headerSize,
+        headerSize = headerSize,
         bytes = state.bytes,
         compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
         blockName = blockName
       )
 
     state.bytes = compressedOrUncompressedBytes
-    if (state.bytes.currentWritePosition > state.headerSize)
-      throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+    if (state.bytes.currentWritePosition > headerSize)
+      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
 
     state
   }

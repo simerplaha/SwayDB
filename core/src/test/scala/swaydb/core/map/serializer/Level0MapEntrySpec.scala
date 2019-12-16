@@ -25,7 +25,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Transient}
+import swaydb.core.data.{Memory}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.util.SkipList
@@ -83,32 +83,32 @@ class Level0MapEntrySpec extends TestBase {
         )
 
       keyValues foreach {
-        case keyValue: Transient.Remove =>
+        case keyValue: Memory.Remove =>
           import LevelZeroMapEntryReader.Level0RemoveReader
           import LevelZeroMapEntryWriter.Level0RemoveWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Remove]))
 
-        case keyValue: Transient.Put =>
+        case keyValue: Memory.Put =>
           import LevelZeroMapEntryReader.Level0PutReader
           import LevelZeroMapEntryWriter.Level0PutWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Put]))
 
-        case keyValue: Transient.Update =>
+        case keyValue: Memory.Update =>
           import LevelZeroMapEntryReader.Level0UpdateReader
           import LevelZeroMapEntryWriter.Level0UpdateWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Update]))
 
-        case keyValue: Transient.Function =>
+        case keyValue: Memory.Function =>
           import LevelZeroMapEntryReader.Level0FunctionReader
           import LevelZeroMapEntryWriter.Level0FunctionWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Function]))
 
-        case keyValue: Transient.PendingApply =>
+        case keyValue: Memory.PendingApply =>
           import LevelZeroMapEntryReader.Level0PendingApplyReader
           import LevelZeroMapEntryWriter.Level0PendingApplyWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.PendingApply]))
 
-        case keyValue: Transient.Range =>
+        case keyValue: Memory.Range =>
           import LevelZeroMapEntryReader.Level0RangeReader
           import LevelZeroMapEntryWriter.Level0RangeWriter
           assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Range]))

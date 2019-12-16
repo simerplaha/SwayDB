@@ -21,7 +21,7 @@
 //
 //import org.scalatest.OptionValues._
 //import swaydb.core.TestData._
-//import swaydb.core.data.{Memory, Persistent, Time, Transient}
+//import swaydb.core.data.{Memory, Persistent, Time, Memory}
 //import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 //import swaydb.core.segment.format.a.entry.id.{BaseEntryId, BaseEntryIdFormatA, TransientToKeyValueIdBinder}
 //import swaydb.core.segment.format.a.entry.reader.EntryReader
@@ -32,7 +32,7 @@
 //
 ///**
 // * These tests can also be within [[swaydb.core.data.TransientSpec]] because they are
-// * asserting on the result of [[Transient.valueEntryBytes]] and [[Transient.indexEntryBytes]].
+// * asserting on the result of [[Memory.valueEntryBytes]] and [[Memory.indexEntryBytes]].
 // *
 // * The scope of these tests are larger than it should. ValueWriter should remove references to KeyValue
 // * but currently it is like that for performance reasons. We do not value to serialise values to bytes unless

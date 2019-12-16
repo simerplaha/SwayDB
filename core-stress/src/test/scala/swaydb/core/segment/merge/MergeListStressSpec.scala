@@ -41,11 +41,11 @@ class MergeListStressSpec extends WordSpec with Matchers {
 
   "MergeList" should {
     "stress" in {
-      val initialKeyValues = Slice[KeyValue.ReadOnly](1, 2, 3)
-      var list = MergeList[KeyValue.ReadOnly.Range, KeyValue.ReadOnly](initialKeyValues)
+      val initialKeyValues = Slice[KeyValue](1, 2, 3)
+      var list = MergeList[KeyValue.Range, KeyValue](initialKeyValues)
       val range = Memory.Range(1, 2, None, Value.update(1))
 
-      val stateExpected = ListBuffer.empty[KeyValue.ReadOnly] ++ initialKeyValues
+      val stateExpected = ListBuffer.empty[KeyValue] ++ initialKeyValues
 
       var int = 4
 
@@ -57,7 +57,7 @@ class MergeListStressSpec extends WordSpec with Matchers {
       runThis(1000.times) {
         //Append
         if (Random.nextBoolean()) {
-          val keyValues = Slice[KeyValue.ReadOnly](nextInt(), nextInt())
+          val keyValues = Slice[KeyValue](nextInt(), nextInt())
           list = list append MergeList(keyValues)
           stateExpected ++= keyValues
         }

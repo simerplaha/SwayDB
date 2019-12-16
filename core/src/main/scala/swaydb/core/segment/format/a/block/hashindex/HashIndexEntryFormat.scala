@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block.hashindex
 
 import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.data.{Persistent, Memory}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
@@ -145,7 +145,7 @@ object HashIndexEntryFormat {
         } else {
           //create a temporary partially read key-value for matcher.
           val partialKeyValue =
-            if (keyType == Transient.Range.id)
+            if (keyType == Memory.Range.id)
               new Partial.Range {
                 val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
@@ -162,7 +162,7 @@ object HashIndexEntryFormat {
                     valuesReader = values
                   )
               }
-            else if (keyType == Transient.Put.id || keyType == Transient.Remove.id || keyType == Transient.Update.id || keyType == Transient.Function.id || keyType == Transient.PendingApply.id)
+            else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
               new Partial.Fixed {
                 override def indexOffset: Int =
                   indexOffset_

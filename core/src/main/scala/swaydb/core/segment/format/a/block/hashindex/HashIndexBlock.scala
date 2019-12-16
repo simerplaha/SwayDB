@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block.hashindex
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -116,37 +116,35 @@ private[core] object HashIndexBlock extends LazyLogging {
       hit >= minimumNumberOfHits
   }
 
-  def init(keyValues: Iterable[Transient]): Option[HashIndexBlock.State] =
-    if (keyValues.last.stats.uncompressedKeyCounts < keyValues.last.hashIndexConfig.minimumNumberOfKeys) {
+  def init(sortedIndexState: SortedIndexBlock.State,
+           hashIndexConfig: HashIndexBlock.Config): Option[HashIndexBlock.State] =
+    if (sortedIndexState.uncompressedPrefixCount < hashIndexConfig.minimumNumberOfKeys) {
       None
     } else {
-      val last = keyValues.last
-
       val writeAbleLargestValueSize =
-        last.hashIndexConfig.format.bytesToAllocatePerEntry(
-          largestIndexOffset = last.stats.segmentAccessIndexOffset,
-          //unmerged used here because hashIndexes do not index range key-values.
-          largestMergedKeySize = last.stats.segmentLargestUnmergedKeySize
+        hashIndexConfig.format.bytesToAllocatePerEntry(
+          largestIndexOffset = sortedIndexState.secondaryIndexEntries.last.indexOffset,
+          largestMergedKeySize = sortedIndexState.largestUncompressedMergedKeySize
         )
 
       //The size of hashIndex is not pre-calculated. So create an estimation here.
-      val approximateSize = writeAbleLargestValueSize * keyValues.last.stats.uncompressedKeyCounts
-      val hasCompression = last.hashIndexConfig.compressions(UncompressedBlockInfo(approximateSize)).nonEmpty
+      val approximateSize = writeAbleLargestValueSize * sortedIndexState.uncompressedPrefixCount
+      val hasCompression = hashIndexConfig.compressions(UncompressedBlockInfo(approximateSize)).nonEmpty
 
       val headSize =
         headerSize(
-          keyCounts = last.stats.uncompressedKeyCounts,
+          keyCounts = sortedIndexState.uncompressedPrefixCount,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           hasCompression = hasCompression
         )
 
       val optimalBytes =
         optimalBytesRequired(
-          keyCounts = last.stats.uncompressedKeyCounts,
-          minimumNumberOfKeys = last.hashIndexConfig.minimumNumberOfKeys,
+          keyCounts = sortedIndexState.uncompressedPrefixCount,
+          minimumNumberOfKeys = hashIndexConfig.minimumNumberOfKeys,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
-          allocateSpace = last.hashIndexConfig.allocateSpace,
-          format = last.hashIndexConfig.format,
+          allocateSpace = hashIndexConfig.allocateSpace,
+          format = hashIndexConfig.format,
           hasCompression = hasCompression
         )
 
@@ -157,19 +155,19 @@ private[core] object HashIndexBlock extends LazyLogging {
         Some(
           HashIndexBlock.State(
             hit = 0,
-            miss = 0,
-            format = last.hashIndexConfig.format,
-            minimumNumberOfKeys = last.hashIndexConfig.minimumNumberOfKeys,
-            minimumNumberOfHits = last.hashIndexConfig.minimumNumberOfHits,
+            miss = sortedIndexState.prefixCompressedCount,
+            format = hashIndexConfig.format,
+            minimumNumberOfKeys = hashIndexConfig.minimumNumberOfKeys,
+            minimumNumberOfHits = hashIndexConfig.minimumNumberOfHits,
             writeAbleLargestValueSize = writeAbleLargestValueSize,
             minimumCRC = CRC32.disabledCRC,
             headerSize = headSize,
-            maxProbe = last.hashIndexConfig.maxProbe,
+            maxProbe = hashIndexConfig.maxProbe,
             _bytes = Slice.create[Byte](optimalBytes),
             compressions =
               //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
               if (hasCompression)
-                last.hashIndexConfig.compressions
+                hashIndexConfig.compressions
               else
                 _ => Seq.empty
           )
@@ -293,34 +291,27 @@ private[core] object HashIndexBlock extends LazyLogging {
                          writeAbleLargestValueSize: Int) =
     ((hash & Int.MaxValue) % (totalBlockSpace - writeAbleLargestValueSize - headerSize)) + headerSize
 
-  def write(keyValue: Transient,
-            state: HashIndexBlock.State): Boolean = {
-    if (keyValue.isPrefixCompressed) {
-      //fix me - this should be managed by HashIndex itself.
-      state.miss += 1
-      false
-    } else {
-      state.format match {
-        case HashIndexEntryFormat.Reference =>
-          HashIndexBlock.writeReference(
-            indexOffset = keyValue.stats.segmentAccessIndexOffset,
-            hashKey = keyValue.key,
-            mergedKey = keyValue.mergedKey,
-            keyType = keyValue.id,
-            state = state
-          )
+  def write(entry: SortedIndexBlock.SecondaryIndexEntry,
+            state: HashIndexBlock.State): Boolean =
+    state.format match {
+      case HashIndexEntryFormat.Reference =>
+        HashIndexBlock.writeReference(
+          indexOffset = entry.indexOffset,
+          hashKey = entry.unmergedKey,
+          mergedKey = entry.mergedKey,
+          keyType = entry.keyType,
+          state = state
+        )
 
-        case HashIndexEntryFormat.CopyKey =>
-          HashIndexBlock.writeCopy(
-            indexOffset = keyValue.stats.segmentAccessIndexOffset,
-            hashKey = keyValue.key,
-            mergedKey = keyValue.mergedKey,
-            keyType = keyValue.id,
-            state = state
-          )
-      }
+      case HashIndexEntryFormat.CopyKey =>
+        HashIndexBlock.writeCopy(
+          indexOffset = entry.indexOffset,
+          hashKey = entry.unmergedKey,
+          mergedKey = entry.mergedKey,
+          keyType = entry.keyType,
+          state = state
+        )
     }
-  }
 
   /**
    * Mutates the slice and adds writes the indexOffset to it's hash index.

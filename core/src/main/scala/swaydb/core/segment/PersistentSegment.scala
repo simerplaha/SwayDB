@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
-import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.segment.merge.{MergeBuilder, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
@@ -137,7 +137,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   /**
    * Default targetPath is set to this [[PersistentSegment]]'s parent directory.
    */
-  def put(newKeyValues: Slice[KeyValue.ReadOnly],
+  def put(newKeyValues: Slice[KeyValue],
           minSegmentSize: Long,
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -150,46 +150,29 @@ private[segment] case class PersistentSegment(file: DBFile,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
     val currentKeyValues = getAll()
 
-    val splits =
-      SegmentMerger.merge(
-        newKeyValues = newKeyValues,
-        oldKeyValues = currentKeyValues,
-        minSegmentSize = minSegmentSize,
-        isLastLevel = removeDeletes,
-        forInMemory = false,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
+    val builder = MergeBuilder.persistent()
 
-    splits.mapRecover(
-      block =
-        keyValues => {
-          val segmentId = idGenerator.nextID
-          Segment.persistent(
-            path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
-            segmentId = segmentId,
-            segmentConfig = segmentConfig,
-            createdInLevel = createdInLevel,
-            mmapReads = mmapReads,
-            mmapWrites = mmapWrites,
-            keyValues = keyValues
-          )
-        },
-
-      recover =
-        (segments: Slice[Segment], _: Throwable) =>
-          segments foreach {
-            segmentToDelete =>
-              IO(segmentToDelete.delete) onLeftSideEffect {
-                exception =>
-                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
-              }
-          }
+    SegmentMerger.merge(
+      newKeyValues = newKeyValues,
+      oldKeyValues = currentKeyValues,
+      builder = builder,
+      isLastLevel = removeDeletes
     )
+
+    val segmentId = idGenerator.nextID
+    val path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId))
+
+//    Segment.persistent(
+//      segmentSize = minSegmentSize,
+//      path = path,
+//      segmentId = segmentId,
+//      segmentConfig = segmentConfig,
+//      createdInLevel = createdInLevel,
+//      mmapReads = mmapReads,
+//      mmapWrites = mmapWrites,
+//      keyValues = builder
+//    )
+    ???
   }
 
   def refresh(minSegmentSize: Long,
@@ -203,45 +186,46 @@ private[segment] case class PersistentSegment(file: DBFile,
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
     val currentKeyValues = getAll()
-    val splits =
-      SegmentMerger.split(
-        keyValues = currentKeyValues,
-        minSegmentSize = minSegmentSize,
-        isLastLevel = removeDeletes,
-        forInMemory = false,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
-
-    splits.mapRecover(
-      block =
-        keyValues => {
-          val segmentId = idGenerator.nextID
-          Segment.persistent(
-            path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
-            segmentId = segmentId,
-            createdInLevel = createdInLevel,
-            segmentConfig = segmentConfig,
-            mmapReads = mmapReads,
-            mmapWrites = mmapWrites,
-            keyValues = keyValues
-          )
-        },
-
-      recover =
-        (segments: Slice[Segment], _: Throwable) =>
-          segments foreach {
-            segmentToDelete =>
-              IO(segmentToDelete.delete) onLeftSideEffect {
-                exception =>
-                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
-              }
-          }
-    )
+    //    val splits =
+    //      SegmentMerger.split(
+    //        keyValues = currentKeyValues,
+    //        minSegmentSize = minSegmentSize,
+    //        isLastLevel = removeDeletes,
+    //        forInMemory = false,
+    //        createdInLevel = createdInLevel,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig
+    //      )
+    //
+    //    splits.mapRecover(
+    //      block =
+    //        keyValues => {
+    //          val segmentId = idGenerator.nextID
+    //          Segment.persistent(
+    //            path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+    //            segmentId = segmentId,
+    //            createdInLevel = createdInLevel,
+    //            segmentConfig = segmentConfig,
+    //            mmapReads = mmapReads,
+    //            mmapWrites = mmapWrites,
+    //            keyValues = keyValues
+    //          )
+    //        },
+    //
+    //      recover =
+    //        (segments: Slice[Segment], _: Throwable) =>
+    //          segments foreach {
+    //            segmentToDelete =>
+    //              IO(segmentToDelete.delete) onLeftSideEffect {
+    //                exception =>
+    //                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
+    //              }
+    //          }
+    //    )
+    ???
   }
 
   def getSegmentBlockOffset(): SegmentBlock.Offset =
@@ -274,7 +258,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def higher(key: Slice[Byte], readState: ReadState): Option[Persistent] =
     segmentCache.higher(key, readState)
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
+  def getAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] =
     segmentCache getAll addTo
 
   override def hasRange: Boolean =
@@ -284,7 +268,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     segmentCache.hasPut
 
   def getKeyValueCount(): Int =
-    segmentCache.getBloomFilterKeyValueCount()
+    segmentCache.getKeyValueCount()
 
   def getFooter(): SegmentFooterBlock =
     segmentCache.getFooter()

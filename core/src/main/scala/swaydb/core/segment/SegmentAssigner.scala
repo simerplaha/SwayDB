@@ -40,16 +40,16 @@ private[core] object SegmentAssigner {
                                                                 segmentIO: SegmentIO): Iterable[Segment] =
     SegmentAssigner.assignUnsafe(Segment.tempMinMaxKeyValues(map), targetSegments).keys
 
-  def assignUnsafe(keyValues: Slice[KeyValue.ReadOnly],
-                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue.ReadOnly]] = {
+  def assignUnsafe(keyValues: Slice[KeyValue],
+                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
     import keyOrder._
-    val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue.ReadOnly]]
+    val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue]]
     val segmentsIterator = segments.iterator
 
     def getNextSegmentMayBe() = if (segmentsIterator.hasNext) Some(segmentsIterator.next()) else None
 
     def assignKeyValueToSegment(segment: Segment,
-                                keyValue: KeyValue.ReadOnly,
+                                keyValue: KeyValue,
                                 remainingKeyValues: Int): Unit =
       assignmentsMap.get(segment) match {
         case Some(currentAssignments) =>
@@ -64,7 +64,7 @@ private[core] object SegmentAssigner {
              * whenever required.
              */
             case _: ArrayIndexOutOfBoundsException =>
-              val initial = Slice.create[KeyValue.ReadOnly](currentAssignments.size + remainingKeyValues + 1)
+              val initial = Slice.create[KeyValue](currentAssignments.size + remainingKeyValues + 1)
               initial addAll currentAssignments
               initial add keyValue
               assignmentsMap += (segment -> initial)
@@ -72,24 +72,24 @@ private[core] object SegmentAssigner {
 
         case None =>
           //+1 for cases when a Range might extend to the next Segment.
-          val initial = Slice.create[KeyValue.ReadOnly](remainingKeyValues + 1)
+          val initial = Slice.create[KeyValue](remainingKeyValues + 1)
           initial add keyValue
           assignmentsMap += (segment -> initial)
       }
 
     @tailrec
-    def assign(remainingKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
+    def assign(remainingKeyValues: MergeList[Memory.Range, KeyValue],
                thisSegmentMayBe: Option[Segment],
                nextSegmentMayBe: Option[Segment]): Unit =
       (remainingKeyValues.headOption, thisSegmentMayBe, nextSegmentMayBe) match {
         //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
         case (Some(keyValue: KeyValue), Some(thisSegment), _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isEmpty =>
           keyValue match {
-            case keyValue: KeyValue.ReadOnly.Fixed =>
+            case keyValue: KeyValue.Fixed =>
               assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
               assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
 
-            case keyValue: KeyValue.ReadOnly.Range =>
+            case keyValue: KeyValue.Range =>
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
@@ -109,7 +109,7 @@ private[core] object SegmentAssigner {
         // is this a gap key between thisSegment and the nextSegment
         case (Some(keyValue: KeyValue), Some(thisSegment), Some(nextSegment)) if keyValue.key < nextSegment.minKey =>
           keyValue match {
-            case keyValue: KeyValue.ReadOnly.Fixed =>
+            case keyValue: KeyValue.Fixed =>
               //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
               if (assignmentsMap.contains(thisSegment)) {
                 assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
@@ -118,7 +118,7 @@ private[core] object SegmentAssigner {
                 assign(remainingKeyValues, Some(nextSegment), getNextSegmentMayBe())
               }
 
-            case keyValue: KeyValue.ReadOnly.Range =>
+            case keyValue: KeyValue.Range =>
               nextSegmentMayBe match {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   //if it's a gap Range key-value and it's flows onto the next Segment, just jump to the next Segment.

@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.IO
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{Persistent, Transient}
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Options._
@@ -109,7 +109,7 @@ private[core] object BinarySearchIndexBlock {
   object State {
     def apply(format: BinarySearchEntryFormat,
               largestIndexOffset: Int,
-              largestKeySize: Int,
+              largestMergedKeySize: Int,
               uniqueValuesCount: Int,
               isFullIndex: Boolean,
               minimumNumberOfKeys: Int,
@@ -126,13 +126,13 @@ private[core] object BinarySearchIndexBlock {
         val bytesPerValue =
           format.bytesToAllocatePerEntry(
             largestIndexOffset = largestIndexOffset,
-            largestKeySize = largestKeySize
+            largestMergedKeySize = largestMergedKeySize
           )
 
         val bytes: Int =
           optimalBytesRequired(
             largestIndexOffset = largestIndexOffset,
-            largestKeySize = largestKeySize,
+            largestMergedKeySize = largestMergedKeySize,
             valuesCount = uniqueValuesCount,
             hasCompression = true,
             minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys,
@@ -185,29 +185,28 @@ private[core] object BinarySearchIndexBlock {
       writtenValues >= minimumNumberOfKeys
   }
 
-  def init(normalisedKeyValues: Iterable[Transient],
-           originalKeyValues: Iterable[Transient]): Option[State] = {
-    val normalisedLast = normalisedKeyValues.last
+  def init(sortedIndexState: SortedIndexBlock.State,
+           binarySearchConfig: BinarySearchIndexBlock.Config): Option[State] = {
 
-    if (normalisedLast.stats.segmentBinarySearchIndexSize <= 0 ||
-      normalisedLast.sortedIndexConfig.normaliseIndex ||
-      (originalKeyValues.last.binarySearchIndexConfig.searchSortedIndexDirectlyIfPossible && !originalKeyValues.last.stats.hasPrefixCompression && originalKeyValues.last.stats.hasSameIndexSizes()))
+    if (sortedIndexState.uncompressedPrefixCount < binarySearchConfig.minimumNumberOfKeys ||
+      sortedIndexState.normaliseIndex ||
+      (!sortedIndexState.hasPrefixCompression && binarySearchConfig.searchSortedIndexDirectlyIfPossible && sortedIndexState.isPreNormalised))
       None
     else
       BinarySearchIndexBlock.State(
-        format = normalisedLast.binarySearchIndexConfig.format,
-        largestIndexOffset = normalisedLast.stats.segmentAccessIndexOffset,
-        largestKeySize = normalisedLast.stats.segmentLargestMergedKeySize,
+        format = binarySearchConfig.format,
+        largestIndexOffset = sortedIndexState.secondaryIndexEntries.last.indexOffset,
+        largestMergedKeySize = sortedIndexState.largestUncompressedMergedKeySize,
         //not using size from stats because it's size does not account for hashIndex's missed keys.
-        uniqueValuesCount = normalisedLast.stats.uncompressedKeyCounts,
-        isFullIndex = normalisedLast.binarySearchIndexConfig.fullIndex,
-        minimumNumberOfKeys = normalisedLast.binarySearchIndexConfig.minimumNumberOfKeys,
-        compressions = normalisedLast.binarySearchIndexConfig.compressions
+        uniqueValuesCount = sortedIndexState.uncompressedPrefixCount,
+        isFullIndex = binarySearchConfig.fullIndex,
+        minimumNumberOfKeys = binarySearchConfig.minimumNumberOfKeys,
+        compressions = binarySearchConfig.compressions
       )
   }
 
   def optimalBytesRequired(largestIndexOffset: Int,
-                           largestKeySize: Int,
+                           largestMergedKeySize: Int,
                            valuesCount: Int,
                            hasCompression: Boolean,
                            minimNumberOfKeysForBinarySearchIndex: Int,
@@ -219,7 +218,7 @@ private[core] object BinarySearchIndexBlock {
       val bytesToAllocatedPerEntry = bytesToAllocatedPerEntryMaybe getOrElse {
         format.bytesToAllocatePerEntry(
           largestIndexOffset = largestIndexOffset,
-          largestKeySize = largestKeySize
+          largestMergedKeySize = largestMergedKeySize
         )
       }
 
@@ -284,15 +283,14 @@ private[core] object BinarySearchIndexBlock {
     )
   }
 
-  def write(keyValue: Transient,
+  def write(entry: SortedIndexBlock.SecondaryIndexEntry,
             state: State): Unit =
-    if (!keyValue.isPrefixCompressed)
-      write(
-        indexOffset = keyValue.stats.segmentAccessIndexOffset,
-        mergedKey = keyValue.mergedKey,
-        keyType = keyValue.id,
-        state = state
-      )
+    write(
+      indexOffset = entry.indexOffset,
+      mergedKey = entry.mergedKey,
+      keyType = entry.keyType,
+      state = state
+    )
 
   def write(indexOffset: Int,
             mergedKey: Slice[Byte],
@@ -489,7 +487,7 @@ private[core] object BinarySearchIndexBlock {
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                      partialKeyOrder: KeyOrder[Persistent.Partial]): BinarySearchGetResult[Persistent.Partial] =
-    if (sortedIndexReader.block.isNormalisedBinarySearchable) {
+    if (sortedIndexReader.block.isBinarySearchable) {
       //      binarySeeks += 1
       binarySearch(
         BinarySearchContext(
@@ -663,7 +661,7 @@ private[core] object BinarySearchIndexBlock {
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                           partialOrdering: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
-    if (sortedIndexReader.block.isNormalisedBinarySearchable) {
+    if (sortedIndexReader.block.isBinarySearchable) {
       val result =
         binarySearchLower(
           fetchLeft =

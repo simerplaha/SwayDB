@@ -21,7 +21,6 @@ package swaydb.core.level.seek
 
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
-import swaydb.core.data.KeyValue.ReadOnly
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
@@ -38,7 +37,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                   functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Get(key = key, readState = readState)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -52,18 +51,18 @@ private[core] object Get {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   currentGetter: CurrentGetter,
                                   nextGetter: NextGetter,
-                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] = {
 
     @tailrec
-    def resolve(current: KeyValue.ReadOnly): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+    def resolve(current: KeyValue): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
       current match {
-        case current: KeyValue.ReadOnly.Put =>
+        case current: KeyValue.Put =>
           if (current.hasTimeLeft())
             IO.Defer(Some(current))
           else
             IO.Defer.none
 
-        case current: KeyValue.ReadOnly.Remove =>
+        case current: KeyValue.Remove =>
           if (current.hasTimeLeft())
             nextGetter
               .get(key, readState)
@@ -74,10 +73,10 @@ private[core] object Get {
                       next =>
                         if (next.hasTimeLeft())
                           RemoveMerger(current, next) match {
-                            case put: ReadOnly.Put if put.hasTimeLeft() =>
+                            case put: KeyValue.Put if put.hasTimeLeft() =>
                               Some(put)
 
-                            case _: ReadOnly.Fixed =>
+                            case _: KeyValue.Fixed =>
                               None
                           }
                         else
@@ -87,7 +86,7 @@ private[core] object Get {
           else
             IO.Defer.none
 
-        case current: KeyValue.ReadOnly.Update =>
+        case current: KeyValue.Update =>
           if (current.hasTimeLeft())
             nextGetter
               .get(key, readState)
@@ -98,10 +97,10 @@ private[core] object Get {
                       next =>
                         if (next.hasTimeLeft())
                           UpdateMerger(current, next) match {
-                            case put: ReadOnly.Put if put.hasTimeLeft() =>
+                            case put: KeyValue.Put if put.hasTimeLeft() =>
                               Some(put)
 
-                            case _: ReadOnly.Fixed =>
+                            case _: KeyValue.Fixed =>
                               None
                           }
                         else
@@ -111,7 +110,7 @@ private[core] object Get {
           else
             IO.Defer.none
 
-        case current: KeyValue.ReadOnly.Range =>
+        case current: KeyValue.Range =>
           val currentValue =
             try
               if (keyOrder.equiv(current.key, key))
@@ -128,7 +127,7 @@ private[core] object Get {
           else
             IO.Defer.none
 
-        case current: KeyValue.ReadOnly.Function =>
+        case current: KeyValue.Function =>
           nextGetter
             .get(key, readState)
             .flatMap {
@@ -136,10 +135,10 @@ private[core] object Get {
                 if (next.hasTimeLeft())
                   try
                     FunctionMerger(current, next) match {
-                      case put: ReadOnly.Put if put.hasTimeLeft() =>
+                      case put: KeyValue.Put if put.hasTimeLeft() =>
                         IO.Defer(Some(put))
 
-                      case _: ReadOnly.Fixed =>
+                      case _: KeyValue.Fixed =>
                         IO.Defer.none
                     }
                   catch {
@@ -153,7 +152,7 @@ private[core] object Get {
                 IO.Defer.none
             }
 
-        case current: KeyValue.ReadOnly.PendingApply =>
+        case current: KeyValue.PendingApply =>
           nextGetter
             .get(key, readState)
             .flatMap {
@@ -161,10 +160,10 @@ private[core] object Get {
                 if (next.hasTimeLeft())
                   try
                     PendingApplyMerger(current, next) match {
-                      case put: ReadOnly.Put if put.hasTimeLeft() =>
+                      case put: KeyValue.Put if put.hasTimeLeft() =>
                         IO.Defer(Some(put))
 
-                      case _: ReadOnly.Fixed =>
+                      case _: KeyValue.Fixed =>
                         IO.Defer.none
                     }
                   catch {

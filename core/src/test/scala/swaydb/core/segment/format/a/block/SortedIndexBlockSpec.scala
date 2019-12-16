@@ -22,13 +22,13 @@ package swaydb.core.segment.format.a.block
 import org.scalatest.OptionValues._
 import org.scalatest.PrivateMethodTester
 import swaydb.Compression
-import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.{KeyValue, Persistent, Transient}
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.util.{Benchmark, Bytes}
+import swaydb.core.segment.merge.MergeBuilder
+import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config.{PrefixCompression, UncompressedBlockInfo}
@@ -44,56 +44,10 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   implicit def memorySweeper = TestSweeper.memorySweeperMax
   implicit def segmentIO = SegmentIO.random
 
-  private def assetEqual(keyValues: Slice[Transient], readKeyValues: Iterable[KeyValue.ReadOnly]) = {
-    keyValues.size shouldBe readKeyValues.size
-    keyValues.zip(readKeyValues).zipWithIndex foreach {
-      case ((transient, persistent: Persistent), index) =>
-        persistent.getClass.getSimpleName shouldBe transient.getClass.getSimpleName
-        persistent.key shouldBe transient.key
-        //        persistent.isPrefixCompressed shouldBe transient.isPrefixCompressed
-        persistent.sortedIndexAccessPosition shouldBe transient.thisKeyValueAccessIndexPosition
-
-        val thisKeyValueRealIndexOffsetFunction = PrivateMethod[Int](Symbol("segmentRealIndexOffset"))
-        val thisKeyValueRealIndexOffset = transient.stats invokePrivate thisKeyValueRealIndexOffsetFunction()
-
-        if (keyValues.last.sortedIndexConfig.enableAccessPositionIndex)
-          persistent.sortedIndexAccessPosition should be > 0
-        else
-          persistent.sortedIndexAccessPosition shouldBe 0 //0 indicates disabled accessIndexPosition
-
-        persistent.indexOffset shouldBe thisKeyValueRealIndexOffset
-
-        if (transient.value.isEmpty)
-          persistent.valueOffset shouldBe -1
-        else
-          persistent.valueOffset shouldBe transient.currentStartValueOffsetPosition
-
-        if (!keyValues.last.sortedIndexConfig.normaliseIndex)
-          if (index < keyValues.size - 1) {
-            //if it's not the last
-            persistent.nextIndexOffset shouldBe (thisKeyValueRealIndexOffset + transient.indexEntryBytes.size)
-            if (!keyValues(index + 1).isPrefixCompressed)
-              persistent.nextKeySize shouldBe keyValues(index + 1).mergedKey.size
-            //test for not prefix compressed is not needed.
-          } else {
-            persistent.nextIndexOffset shouldBe -1
-            persistent.nextKeySize shouldBe 0
-          }
-
-        persistent match {
-          case response: Persistent =>
-            response.getOrFetchValue shouldBe transient.getOrFetchValue
-        }
-
-      case ((_, other), _) =>
-        fail(s"Didn't expect type: ${other.getClass.getName}")
-    }
-  }
-
   "Config" should {
     "set prefixCompression to zero if normalise defined" in {
       runThis(100.times) {
-        val prefixCompression = PrefixCompression.Enable(resetCount = randomIntMax(10) max 1, keysOnly = randomBoolean())
+        val prefixCompression = PrefixCompression.Enable(randomIntMax(10) max 1, randomBoolean())
 
         //test via User created object.
         val configFromUserConfig =
@@ -115,7 +69,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
             prefixCompressionResetCount = prefixCompression.resetCount,
-            prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
@@ -150,7 +103,6 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is disabled, normaliseIndex will always return true.
             prefixCompressionResetCount = 0 - randomIntMax(10),
-            prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
@@ -165,61 +117,79 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   "init" should {
     "initialise index" in {
       runThis(100.times, log = true) {
-        val normalKeyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1))
-        val (sortedIndex, keyValues) = SortedIndexBlock.init(normalKeyValues)
-        val uncompressedBlockInfo = UncompressedBlockInfo(keyValues.last.stats.segmentSortedIndexSize)
-        val compressions = keyValues.last.sortedIndexConfig.compressions(uncompressedBlockInfo)
+        val sortedIndexConfig = SortedIndexBlock.Config.random
+        val valuesConfig = ValuesBlock.Config.random
+        val keyValues = Benchmark("Generating key-values")(MergeBuilder.persistent(randomizedKeyValues(randomIntMax(1000) max 1)))
+
+        val state = SortedIndexBlock.init(keyValues, valuesConfig, sortedIndexConfig)
+
+        val uncompressedBlockInfo = UncompressedBlockInfo(keyValues.maxSortedIndexSize(sortedIndexConfig.enableAccessPositionIndex))
+        val compressions = sortedIndexConfig.compressions(uncompressedBlockInfo)
         //just check for non-empty. Tests uses random so they result will always be different
-        sortedIndex.compressions(uncompressedBlockInfo).nonEmpty shouldBe compressions.nonEmpty
-        sortedIndex.headerSize shouldBe SortedIndexBlock.headerSize(compressions.nonEmpty)
-        sortedIndex.enableAccessPositionIndex shouldBe keyValues.last.sortedIndexConfig.enableAccessPositionIndex
-        sortedIndex._bytes shouldBe Slice.fill(sortedIndex.headerSize)(0.toByte) //should have header bytes populated
-        sortedIndex._bytes.allocatedSize should be > (SortedIndexBlock.headerSize(false) + 1) //should have size more than the header bytes.
+        state.compressions(uncompressedBlockInfo).nonEmpty shouldBe compressions.nonEmpty
+        state.enableAccessPositionIndex shouldBe sortedIndexConfig.enableAccessPositionIndex
+        state.bytes shouldBe Slice.fill(SortedIndexBlock.headerSize)(0.toByte) //should have header bytes populated
+        state.bytes.allocatedSize should be > (SortedIndexBlock.headerSize + 1) //should have size more than the header bytes.
       }
     }
   }
 
   "write, close, readAll & get" in {
     runThis(30.times, log = true) {
-      val keyValues = Benchmark("Generating key-values")(randomizedKeyValues(randomIntMax(1000) max 1))
+      val sortedIndexConfig = SortedIndexBlock.Config.random
+      val valuesConfig = ValuesBlock.Config.random
+      val keyValues = Benchmark("Generating key-values")(MergeBuilder.persistent(randomizedKeyValues(randomIntMax(1000) max 1)))
 
-      val (sortedIndexBlock, normalisedKeyValues) = SortedIndexBlock.init(keyValues)
-      val valuesBlock = ValuesBlock.init(normalisedKeyValues)
-      normalisedKeyValues foreach {
+      val sortedIndex = SortedIndexBlock.init(keyValues, valuesConfig, sortedIndexConfig)
+      val values = ValuesBlock.init(keyValues, valuesConfig, sortedIndex.builder)
+
+      keyValues foreach {
         keyValue =>
-          SortedIndexBlock.write(keyValue, sortedIndexBlock)
-          valuesBlock foreach {
+          SortedIndexBlock.write(keyValue, sortedIndex)
+          values foreach {
             valuesBlock =>
-              ValuesBlock.write(keyValue, valuesBlock).value
+              ValuesBlock.write(keyValue, valuesBlock)
           }
       }
 
-      val closedSortedIndexBlock = SortedIndexBlock.close(sortedIndexBlock)
+      //      println(s"sortedIndex.underlyingArraySize: ${sortedIndex.bytes.underlyingArraySize}")
+      //      println(s"sortedIndex.size               : ${sortedIndex.bytes.size}")
+      //      println(s"sortedIndex.extra              : ${sortedIndex.bytes.underlyingArraySize - sortedIndex.bytes.size}")
+      //      println
+
+      val closedSortedIndexBlock = SortedIndexBlock.close(sortedIndex)
       val ref = BlockRefReader[SortedIndexBlock.Offset](closedSortedIndexBlock.bytes)
       val header = Block.readHeader(ref.copy())
-      val block = SortedIndexBlock.read(header)
+      val sortedIndexBlock = SortedIndexBlock.read(header)
 
       val valuesBlockReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-        valuesBlock map {
+        values map {
           valuesBlock =>
             val closedState = ValuesBlock.close(valuesBlock)
             Block.unblock[ValuesBlock.Offset, ValuesBlock](closedState.bytes)
         }
 
-      val expectsCompressions = normalisedKeyValues.last.sortedIndexConfig.compressions(UncompressedBlockInfo(normalisedKeyValues.last.stats.segmentSortedIndexSize)).nonEmpty
-      block.compressionInfo.isDefined shouldBe expectsCompressions
-      block.enableAccessPositionIndex shouldBe normalisedKeyValues.last.sortedIndexConfig.enableAccessPositionIndex
-      block.hasPrefixCompression shouldBe normalisedKeyValues.last.stats.hasPrefixCompression
-      block.headerSize shouldBe SortedIndexBlock.headerSize(expectsCompressions)
-      block.offset.start shouldBe header.headerSize
+      val expectsCompressions = sortedIndexConfig.compressions(UncompressedBlockInfo(sortedIndex.bytes.size)).nonEmpty
+      sortedIndexBlock.compressionInfo.isDefined shouldBe expectsCompressions
+      sortedIndexBlock.enableAccessPositionIndex shouldBe sortedIndexConfig.enableAccessPositionIndex
+      if (!sortedIndexConfig.enablePrefixCompression) sortedIndexBlock.hasPrefixCompression shouldBe false
+      sortedIndexBlock.headerSize shouldBe SortedIndexBlock.headerSize
+      sortedIndexBlock.offset.start shouldBe header.headerSize
+      sortedIndexBlock.normalised shouldBe sortedIndexConfig.normaliseIndex
+
+      if(sortedIndexConfig.normaliseIndex)
+        sortedIndex.indexEntries.size shouldBe keyValues.size
+      else
+        sortedIndex.indexEntries shouldBe empty
 
       val sortedIndexReader = Block.unblock(ref.copy())
       //values are not required for this test. Create an empty reader.
       /**
        * TEST - READ ALL
        */
-      val readAllKeyValues = SortedIndexBlock.readAll(normalisedKeyValues.size, sortedIndexReader, valuesBlockReader)
-      assetEqual(normalisedKeyValues.toSlice, readAllKeyValues)
+      val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, sortedIndexReader, valuesBlockReader)
+      keyValues shouldBe readAllKeyValues
+
       /**
        * TEST - READ ONE BY ONE
        */
@@ -233,19 +203,16 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           eitherOne(Some(searchedKeyValue), previous, None)
       }
 
-      assetEqual(normalisedKeyValues.toSlice, searchedKeyValues)
+      keyValues shouldBe searchedKeyValues
 
       /**
        * SEARCH CONCURRENTLY
        */
       searchedKeyValues.zip(keyValues).par foreach {
-        case (persistent, transient) =>
+        case (persistent, memory) =>
           val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, None, sortedIndexReader.copy(), valuesBlockReader)
-          transient match {
-            case transient: Transient =>
-              searchedPersistent.value shouldBe persistent
-              searchedPersistent.value shouldBe transient
-          }
+          searchedPersistent.value shouldBe persistent
+          searchedPersistent.value shouldBe memory
       }
     }
   }

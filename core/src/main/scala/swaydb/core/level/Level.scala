@@ -26,7 +26,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
@@ -43,6 +43,7 @@ import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
+import swaydb.data.config.MMAP.ReadOnly
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.slice.Slice._
@@ -375,13 +376,13 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val currentWalker =
     new CurrentWalker {
       override def get(key: Slice[Byte],
-                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         self.get(key, readState)
 
-      override def higher(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue.ReadOnly] =
+      override def higher(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] =
         higherInThisLevel(key, readState)
 
-      override def lower(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue.ReadOnly] =
+      override def lower(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] =
         self.lowerInThisLevel(key, readState)
 
       override def levelNumber: String =
@@ -391,15 +392,15 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val nextWalker =
     new NextWalker {
       override def higher(key: Slice[Byte],
-                          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+                          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         higherInNextLevel(key, readState)
 
       override def lower(key: Slice[Byte],
-                         readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+                         readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         lowerFromNextLevel(key, readState)
 
       override def get(key: Slice[Byte],
-                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         getFromNextLevel(key, readState)
 
       override def levelNumber: String =
@@ -409,7 +410,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val currentGetter =
     new CurrentGetter {
       override def get(key: Slice[Byte],
-                       readState: ReadState): Option[KeyValue.ReadOnly] =
+                       readState: ReadState): Option[KeyValue] =
         getFromThisLevel(key, readState)
     }
 
@@ -706,14 +707,14 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return empty if copied into next Level else Segments copied into this Level.
    */
-  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory]): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
+  private def copyForwardOrCopyLocal(map: Map[Slice[Byte], Memory]): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
     val forwardResult = forward(map)
     if (forwardResult.value)
       IO.Right(forwardResult.updateValue(Segment.emptyIterable))
     else
       copy(map).transform {
         copied =>
-          MergeResult(
+          CompactionResult(
             value = copied,
             levelUpdated = levelNumber
           )
@@ -723,7 +724,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Returns segments that were not forwarded.
    */
-  private def forward(map: Map[Slice[Byte], Memory]): MergeResult[Boolean] = {
+  private def forward(map: Map[Slice[Byte], Memory]): CompactionResult[Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = $pushForward", paths.head, map.pathOption)
     if (pushForward)
       nextLevel match {
@@ -732,27 +733,27 @@ private[core] case class Level(dirs: Seq[Dir],
             case IO.Right(result) =>
               result match {
                 case IO.Right(levelsUpdated) =>
-                  MergeResult(
+                  CompactionResult(
                     value = true,
                     levelsUpdated = levelsUpdated
                   )
 
                 case IO.Left(_) =>
-                  MergeResult.`false`
+                  CompactionResult.`false`
               }
 
             case IO.Left(_) =>
-              MergeResult.`false`
+              CompactionResult.`false`
           }
 
         case Some(_) =>
-          MergeResult.`false`
+          CompactionResult.`false`
 
         case None =>
-          MergeResult.`false`
+          CompactionResult.`false`
       }
     else
-      MergeResult.`false`
+      CompactionResult.`false`
   }
 
   private[level] def copy(map: Map[Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
@@ -801,14 +802,14 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Returns newly created Segments in this Level.
    */
-  private def copyForwardOrCopyLocal(segments: Iterable[Segment]): IO[swaydb.Error.Level, MergeResult[Iterable[Segment]]] = {
+  private def copyForwardOrCopyLocal(segments: Iterable[Segment]): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
     val segmentsNotForwarded = forward(segments)
     if (segmentsNotForwarded.value.isEmpty)
       IO.Right(segmentsNotForwarded) //all were forwarded.
     else
       copyLocal(segmentsNotForwarded.value) transform {
         newSegments =>
-          MergeResult(
+          CompactionResult(
             value = newSegments,
             levelsUpdated = segmentsNotForwarded.levelsUpdated + levelNumber
           )
@@ -818,37 +819,37 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return segments that were not forwarded.
    */
-  private def forward(segments: Iterable[Segment]): MergeResult[Iterable[Segment]] = {
+  private def forward(segments: Iterable[Segment]): CompactionResult[Iterable[Segment]] = {
     logger.trace(s"{}: Copying forward {} Segments. pushForward = $pushForward", paths.head, segments.map(_.path.toString))
     if (pushForward)
       nextLevel match {
         case Some(nextLevel) =>
           val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
           if (copyable.isEmpty)
-            MergeResult(segments)
+            CompactionResult(segments)
           else
             nextLevel.put(copyable) match {
               case IO.Right(forwardResult) =>
                 forwardResult match {
                   case IO.Right(forwardedTo) =>
-                    MergeResult(
+                    CompactionResult(
                       value = nonCopyable,
                       levelsUpdated = forwardedTo
                     )
 
                   case IO.Left(_) =>
-                    MergeResult(segments)
+                    CompactionResult(segments)
                 }
 
               case IO.Left(_) =>
-                MergeResult(segments)
+                CompactionResult(segments)
             }
 
         case None =>
-          MergeResult(segments)
+          CompactionResult(segments)
       }
     else
-      MergeResult(segments)
+      CompactionResult(segments)
   }
 
   private[level] def copyLocal(segments: Iterable[Segment])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] = {
@@ -1068,7 +1069,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return Newly created Segments.
    */
-  private[core] def putKeyValues(keyValues: Slice[KeyValue.ReadOnly],
+  private[core] def putKeyValues(keyValues: Slice[KeyValue],
                                  targetSegments: Iterable[Segment],
                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", paths.head, keyValues.size)
@@ -1128,7 +1129,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue.ReadOnly]]): IO[swaydb.Error.Level, Slice[(Segment, Slice[Segment])]] =
+  private def putAssignedKeyValues(assignedSegments: mutable.Map[Segment, Slice[KeyValue]]): IO[swaydb.Error.Level, Slice[(Segment, Slice[Segment])]] =
     assignedSegments.mapRecoverIO[(Segment, Slice[Segment])](
       block = {
         case (targetSegment, assignedKeyValues) =>
@@ -1203,14 +1204,14 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def getFromThisLevel(key: Slice[Byte], readState: ReadState): Option[KeyValue.ReadOnly] =
+  def getFromThisLevel(key: Slice[Byte], readState: ReadState): Option[KeyValue] =
     appendix
       .skipList
       .floor(key)
       .flatMap(_.get(key, readState))
 
   def getFromNextLevel(key: Slice[Byte],
-                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.get(key, readState)
@@ -1219,7 +1220,7 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Defer.none
     }
 
-  override def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  override def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Get(key, readState)
 
   private def mightContainKeyInThisLevel(key: Slice[Byte]): Boolean =
@@ -1255,7 +1256,7 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel.exists(_.mightContainFunction(functionId))
 
   private def lowerInThisLevel(key: Slice[Byte],
-                               readState: ReadState): LevelSeek[KeyValue.ReadOnly] =
+                               readState: ReadState): LevelSeek[KeyValue] =
     appendix.skipList.lower(key) match {
       case Some(segment) =>
         LevelSeek(
@@ -1268,7 +1269,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   private def lowerFromNextLevel(key: Slice[Byte],
-                                 readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+                                 readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.lower(key, readState)
@@ -1278,7 +1279,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   override def floor(key: Slice[Byte],
-                     readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                     readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     get(key, readState) flatMap {
       case some @ Some(_) =>
         IO.Defer(some)
@@ -1288,7 +1289,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   override def lower(key: Slice[Byte],
-                     readState: ReadState): IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]] =
+                     readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Lower(
       key = key,
       readState = readState,
@@ -1297,7 +1298,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   private def higherFromFloorSegment(key: Slice[Byte],
-                                     readState: ReadState): LevelSeek[KeyValue.ReadOnly] =
+                                     readState: ReadState): LevelSeek[KeyValue] =
     appendix.skipList.floor(key) match {
       case Some(segment) =>
         LevelSeek(
@@ -1309,7 +1310,7 @@ private[core] case class Level(dirs: Seq[Dir],
         LevelSeek.None
     }
 
-  private def higherFromHigherSegment(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue.ReadOnly] =
+  private def higherFromHigherSegment(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] =
     appendix.skipList.higher(key) match {
       case Some(segment) =>
         LevelSeek(
@@ -1321,7 +1322,7 @@ private[core] case class Level(dirs: Seq[Dir],
         LevelSeek.None
     }
 
-  private[core] def higherInThisLevel(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue.ReadOnly] = {
+  private[core] def higherInThisLevel(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] = {
     val fromFloor = higherFromFloorSegment(key, readState)
 
     if (fromFloor.isDefined)
@@ -1331,7 +1332,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def higherInNextLevel(key: Slice[Byte],
-                                readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.higher(key, readState)
@@ -1341,7 +1342,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def ceiling(key: Slice[Byte],
-              readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+              readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     get(key, readState)
       .flatMap {
         case got @ Some(_) =>
@@ -1352,7 +1353,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   override def higher(key: Slice[Byte],
-                      readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                      readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Higher(
       key = key,
       readState = readState,
@@ -1392,7 +1393,7 @@ private[core] case class Level(dirs: Seq[Dir],
           )(keyOrder)
       }
 
-  override def head(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+  override def head(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     headKey(readState)
       .flatMap {
         case Some(firstKey) =>
@@ -1402,7 +1403,7 @@ private[core] case class Level(dirs: Seq[Dir],
           IO.Defer.none
       }
 
-  override def last(readState: ReadState): IO.Defer[Error.Level, Option[ReadOnly.Put]] =
+  override def last(readState: ReadState): IO.Defer[Error.Level, Option[KeyValue.Put]] =
     lastKey(readState)
       .flatMap {
         case Some(lastKey) =>

@@ -323,7 +323,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
   "reserve" should {
     "reserve keys for compaction where Level is empty" in {
       val level = TestLevel()
-      val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
+      val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
       val segment1 = TestSegment(keyValues.head).runRandomIO.right.value
       val segment2 = TestSegment(keyValues.last).runRandomIO.right.value
       level.reserve(Seq(segment1, segment2)).get shouldBe IO.Right[Promise[Unit], Slice[Byte]](keyValues.head.head.key)(IO.ExceptionHandler.PromiseUnit)
@@ -345,7 +345,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
 
     "reserve min and max keys" in {
       val level = TestLevel()
-      val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2).map(_.updateStats)
+      val keyValues = randomizedKeyValues(keyValuesCount).groupedSlice(2)
       val segments = Seq(TestSegment(keyValues.head).runRandomIO.right.value, TestSegment(keyValues.last).runRandomIO.right.value)
       level.put(segments).right.right.value.right.value
 
@@ -359,7 +359,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "build MapEntry.Put map for the first created Segment" in {
       val level = TestLevel()
 
-      val segments = TestSegment(Slice(Transient.put(1, "value1"), Transient.put(2, "value2")).updateStats).runRandomIO.right.value
+      val segments = TestSegment(Slice(Memory.put(1, "value1"), Memory.put(2, "value2"))).runRandomIO.right.value
       val actualMapEntry = level.buildNewMapEntry(Slice(segments), originalSegmentMayBe = None, initialMapEntry = None).runRandomIO.right.value
       val expectedMapEntry = MapEntry.Put[Slice[Byte], Segment](segments.minKey, segments)
 
@@ -373,10 +373,10 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
       "for original Segment as it's minKey is replace by one of the new Segment" in {
       val level = TestLevel()
 
-      val originalSegment = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
-      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
-      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runRandomIO.right.value
-      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runRandomIO.right.value
+      val originalSegment = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+      val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+      val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
+      val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
 
       val actualMapEntry = level.buildNewMapEntry(Slice(mergedSegment1, mergedSegment2, mergedSegment3), Some(originalSegment), initialMapEntry = None).runRandomIO.right.value
 
@@ -394,10 +394,10 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
     "build MapEntry.Put map for the newly merged Segments and also add Remove map entry for original map when all minKeys are unique" in {
       val level = TestLevel()
 
-      val originalSegment = TestSegment(Slice(Transient.put(0, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
-      val mergedSegment1 = TestSegment(Slice(Transient.put(1, "value"), Transient.put(5, "value")).updateStats).runRandomIO.right.value
-      val mergedSegment2 = TestSegment(Slice(Transient.put(6, "value"), Transient.put(10, "value")).updateStats).runRandomIO.right.value
-      val mergedSegment3 = TestSegment(Slice(Transient.put(11, "value"), Transient.put(15, "value")).updateStats).runRandomIO.right.value
+      val originalSegment = TestSegment(Slice(Memory.put(0, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+      val mergedSegment1 = TestSegment(Slice(Memory.put(1, "value"), Memory.put(5, "value"))).runRandomIO.right.value
+      val mergedSegment2 = TestSegment(Slice(Memory.put(6, "value"), Memory.put(10, "value"))).runRandomIO.right.value
+      val mergedSegment3 = TestSegment(Slice(Memory.put(11, "value"), Memory.put(15, "value"))).runRandomIO.right.value
 
       val expectedMapEntry =
         MapEntry.Put[Slice[Byte], Segment](1, mergedSegment1) ++

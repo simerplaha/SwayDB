@@ -79,7 +79,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
     "write a key-values to the Level" in {
       val level = TestLevel()
 
-      val keyValues = randomPutKeyValues(startId = Some(1)).toMemory
+      val keyValues = randomPutKeyValues(startId = Some(1))
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
       level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
 
@@ -102,7 +102,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
+      val deleteKeyValues = Slice.create[KeyValue](keyValues.size * 2)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Memory.remove(keyValue.key)
@@ -131,7 +131,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues = randomPutKeyValues()
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size)
+      val deleteKeyValues = Slice.create[KeyValue](keyValues.size)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Memory.remove(keyValue.key)
@@ -184,7 +184,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
+      val deleteKeyValues = Slice.create[KeyValue](keyValues.size * 2)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Memory.remove(keyValue.key, 1.seconds)
@@ -230,7 +230,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      val deleteKeyValues = Slice.create[KeyValue.ReadOnly](keyValues.size * 2)
+      val deleteKeyValues = Slice.create[KeyValue](keyValues.size * 2)
       keyValues foreach {
         keyValue =>
           deleteKeyValues add Memory.remove(keyValue.key, 0.seconds)
@@ -327,7 +327,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val targetSegmentKeyValues = randomIntKeyStringValues()
       val targetSegment = TestSegment(keyValues = targetSegmentKeyValues, path = testSegmentFile.resolveSibling("10.seg")).runRandomIO.right.value
 
-      val keyValues = randomPutKeyValues().toMemory
+      val keyValues = randomPutKeyValues()
       val function = PrivateMethod[IO[swaydb.Error.Segment, Unit]]('putKeyValues)
       (level invokePrivate function(keyValues, Seq(targetSegment), None)).runRandomIO.right.value
 

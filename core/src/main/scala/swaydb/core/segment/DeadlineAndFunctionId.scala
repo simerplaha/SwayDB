@@ -40,7 +40,7 @@ private[core] object DeadlineAndFunctionId {
       minMaxFunctionId = minMaxFunctionId
     )
 
-  def apply(keyValues: Iterable[KeyValue.ReadOnly])(implicit keyOrder: KeyOrder[Slice[Byte]],
+  def apply(keyValues: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                     segmentIO: SegmentIO): DeadlineAndFunctionId =
     keyValues.foldLeft(DeadlineAndFunctionId.empty) {
@@ -54,42 +54,42 @@ private[core] object DeadlineAndFunctionId {
 
   def apply(deadline: Option[Deadline],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-            next: KeyValue.ReadOnly)(implicit keyOrder: KeyOrder[Slice[Byte]],
+            next: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                      segmentIO: SegmentIO): DeadlineAndFunctionId =
     next match {
-      case readOnly: KeyValue.ReadOnly.Put =>
+      case readOnly: KeyValue.Put =>
         DeadlineAndFunctionId(
           deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
           minMaxFunctionId = minMaxFunctionId
         )
 
-      case readOnly: KeyValue.ReadOnly.Remove =>
+      case readOnly: KeyValue.Remove =>
         DeadlineAndFunctionId(
           deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
           minMaxFunctionId = minMaxFunctionId
         )
 
-      case readOnly: KeyValue.ReadOnly.Update =>
+      case readOnly: KeyValue.Update =>
         DeadlineAndFunctionId(
           deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
           minMaxFunctionId = minMaxFunctionId
         )
 
-      case readOnly: KeyValue.ReadOnly.PendingApply =>
+      case readOnly: KeyValue.PendingApply =>
         val applies = readOnly.getOrFetchApplies
         DeadlineAndFunctionId(
           deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
           minMaxFunctionId = MinMax.minMaxFunction(applies, minMaxFunctionId)
         )
 
-      case readOnly: KeyValue.ReadOnly.Function =>
+      case readOnly: KeyValue.Function =>
         DeadlineAndFunctionId(
           deadline = deadline,
           minMaxFunctionId = Some(MinMax.minMaxFunction(readOnly, minMaxFunctionId))
         )
 
-      case range: KeyValue.ReadOnly.Range =>
+      case range: KeyValue.Range =>
         range.fetchFromAndRangeValueUnsafe match {
           case (someFromValue @ Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)

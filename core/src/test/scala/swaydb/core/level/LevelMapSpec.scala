@@ -94,7 +94,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       else
         Map.memory[Slice[Byte], Memory]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false).toMemory
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue))
@@ -159,7 +159,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       else
         Map.memory[Slice[Byte], Memory]()
 
-    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false).toMemory
+    val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
         map.write(MapEntry.Put(keyValue.key, keyValue))
@@ -192,7 +192,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
       "writing to non empty Levels by copying to last Level if key-values do not overlap upper Level" in {
         val nextLevel = mock[NextLevel]
 
-        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1)).toMemory
+        val lastLevelKeyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(1))
         val map = TestMap(lastLevelKeyValues)
 
         (nextLevel.isTrash _).expects() returning false

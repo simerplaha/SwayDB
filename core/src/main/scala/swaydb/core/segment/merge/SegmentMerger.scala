@@ -20,13 +20,10 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.data.{Memory, Value, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FixedMerger, ValueMerger}
-import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -35,226 +32,54 @@ import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
 
-  def transferSmall(buffers: ListBuffer[SegmentBuffer],
-                    minSegmentSize: Long,
-                    forMemory: Boolean,
-                    createdInLevel: Int,
-                    valuesConfig: ValuesBlock.Config,
-                    sortedIndexConfig: SortedIndexBlock.Config,
-                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                    hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config): ListBuffer[SegmentBuffer] =
-  //if there are any small Segments, merge them into previous Segment.
-    if (buffers.length >= 2 && ((forMemory && buffers.last.lastOption.map(_.stats.memorySegmentSize).getOrElse(0) < minSegmentSize) || buffers.last.lastOption.map(_.stats.segmentSize).getOrElse(0) < minSegmentSize)) {
-      val newBuffers = buffers dropRight 1
-      val newBuffersLast = newBuffers.last
-      val newBuffersLastKeyValue = newBuffersLast.last
-      newBuffersLast match {
-        case flattened: SegmentBuffer.Flattened =>
-          buffers.last foreach {
-            transient =>
-              flattened add
-                transient.updatePrevious(
-                  valuesConfig = newBuffersLastKeyValue.valuesConfig,
-                  sortedIndexConfig = newBuffersLastKeyValue.sortedIndexConfig,
-                  binarySearchIndexConfig = newBuffersLastKeyValue.binarySearchIndexConfig,
-                  hashIndexConfig = newBuffersLastKeyValue.hashIndexConfig,
-                  bloomFilterConfig = newBuffersLastKeyValue.bloomFilterConfig,
-                  previous = flattened.lastOption
-                )
-          }
-      }
-      newBuffers.filter(_.nonEmpty)
-    } else {
-      buffers.filter(_.nonEmpty)
-    }
-
-  /**
-   * If the last Segment is too small merge the last Segment with the previous Segment's key-value.
-   */
-  def close(buffers: ListBuffer[SegmentBuffer],
-            minSegmentSize: Long,
-            forMemory: Boolean,
-            createdInLevel: Int,
-            valuesConfig: ValuesBlock.Config,
-            sortedIndexConfig: SortedIndexBlock.Config,
-            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-            hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config): ListBuffer[SegmentBuffer] =
-    transferSmall(
-      buffers = buffers,
-      minSegmentSize = minSegmentSize,
-      forMemory = forMemory,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
-    )
-
-  def split(keyValues: Iterable[KeyValue.ReadOnly],
-            minSegmentSize: Long,
-            isLastLevel: Boolean,
-            forInMemory: Boolean,
-            createdInLevel: Int,
-            valuesConfig: ValuesBlock.Config,
-            sortedIndexConfig: SortedIndexBlock.Config,
-            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-            hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Iterable[Transient]] = {
-    val splits = ListBuffer(SegmentBuffer())
-
-    keyValues foreach {
-      keyValue =>
-        SegmentGrouper.addKeyValue(
-          keyValueToAdd = keyValue,
-          splits = splits,
-          minSegmentSize = minSegmentSize,
-          forInMemory = forInMemory,
-          isLastLevel = isLastLevel,
-          createdInLevel = createdInLevel,
-          valuesConfig = valuesConfig,
-          sortedIndexConfig = sortedIndexConfig,
-          binarySearchIndexConfig = binarySearchIndexConfig,
-          hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
-        )
-    }
-
-    close(
-      buffers = splits,
-      minSegmentSize = minSegmentSize,
-      forMemory = forInMemory,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
-    )
-  }
-
-  def merge(newKeyValues: Slice[Memory],
-            oldKeyValues: Slice[Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                         timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): ListBuffer[Transient] =
-    merge(
-      newKeyValues = newKeyValues,
-      oldKeyValues = oldKeyValues,
-      minSegmentSize = Int.MaxValue,
-      isLastLevel = false,
-      forInMemory = true,
-      createdInLevel = 0,
-      valuesConfig = ValuesBlock.Config.disabled,
-      sortedIndexConfig = SortedIndexBlock.Config.disabled,
-      binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
-      hashIndexConfig = HashIndexBlock.Config.disabled,
-      bloomFilterConfig = BloomFilterBlock.Config.disabled
-    )(keyOrder, timeOrder, functionStore)
-      .flatten
-      .asInstanceOf[ListBuffer[Transient]]
-
   def merge(newKeyValue: Memory,
-            oldKeyValue: Memory)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                 timeOrder: TimeOrder[Slice[Byte]],
-                                 functionStore: FunctionStore): ListBuffer[Transient] =
+            oldKeyValue: Memory,
+            builder: MergeBuilder,
+            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore): Unit =
     merge(
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),
-      minSegmentSize = Int.MaxValue,
-      isLastLevel = false,
-      forInMemory = true,
-      createdInLevel = 0,
-      valuesConfig = ValuesBlock.Config.disabled,
-      sortedIndexConfig = SortedIndexBlock.Config.disabled,
-      binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
-      hashIndexConfig = HashIndexBlock.Config.disabled,
-      bloomFilterConfig = BloomFilterBlock.Config.disabled
-    )(keyOrder, timeOrder, functionStore)
-      .flatten
-      .asInstanceOf[ListBuffer[Transient]]
-
-  def merge(newKeyValues: Slice[KeyValue.ReadOnly],
-            oldKeyValues: Slice[KeyValue.ReadOnly],
-            minSegmentSize: Long,
-            isLastLevel: Boolean,
-            forInMemory: Boolean,
-            createdInLevel: Int,
-            valuesConfig: ValuesBlock.Config,
-            sortedIndexConfig: SortedIndexBlock.Config,
-            binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-            hashIndexConfig: HashIndexBlock.Config,
-            bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                        functionStore: FunctionStore): Iterable[Iterable[Transient]] = {
-    val segments =
-      merge(
-        newKeyValues = MergeList(newKeyValues),
-        oldKeyValues = MergeList(oldKeyValues),
-        splits = ListBuffer(SegmentBuffer()),
-        minSegmentSize = minSegmentSize,
-        isLastLevel = isLastLevel,
-        forInMemory = forInMemory,
-        valuesConfig = valuesConfig,
-        createdInLevel = createdInLevel,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
-
-    close(
-      buffers = segments,
-      minSegmentSize = minSegmentSize,
-      forMemory = forInMemory,
-      createdInLevel = createdInLevel,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
+      builder = builder,
+      isLastLevel = isLastLevel
     )
-  }
 
-  private def merge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                    oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                    splits: ListBuffer[SegmentBuffer],
-                    minSegmentSize: Long,
-                    isLastLevel: Boolean,
-                    forInMemory: Boolean,
-                    createdInLevel: Int,
-                    valuesConfig: ValuesBlock.Config,
-                    sortedIndexConfig: SortedIndexBlock.Config,
-                    binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                    hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore): ListBuffer[SegmentBuffer] = {
+  def merge(newKeyValues: Slice[KeyValue],
+            oldKeyValues: Slice[KeyValue],
+            builder: MergeBuilder,
+            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore): Unit =
+    merge(
+      newKeyValues = MergeList[Memory.Range, KeyValue](newKeyValues),
+      oldKeyValues = MergeList[Memory.Range, KeyValue](oldKeyValues),
+      builder = builder,
+      isLastLevel = isLastLevel
+    )
+
+  private def merge(newKeyValues: MergeList[Memory.Range, KeyValue],
+                    oldKeyValues: MergeList[Memory.Range, KeyValue],
+                    builder: MergeBuilder,
+                    isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                          timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore): Unit = {
 
     import keyOrder._
 
-    def add(nextKeyValue: KeyValue.ReadOnly): Unit =
+    def add(nextKeyValue: KeyValue): Unit =
       SegmentGrouper.addKeyValue(
-        keyValueToAdd = nextKeyValue,
-        splits = splits,
-        minSegmentSize = minSegmentSize,
-        forInMemory = forInMemory,
-        isLastLevel = isLastLevel,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
+        keyValue = nextKeyValue,
+        result = builder,
+        isLastLevel = isLastLevel
       )
 
     @tailrec
-    def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly],
-                oldKeyValues: MergeList[Memory.Range, KeyValue.ReadOnly]): ListBuffer[SegmentBuffer] =
+    def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue],
+                oldKeyValues: MergeList[Memory.Range, KeyValue]): Unit =
       (newKeyValues.headOption, oldKeyValues.headOption) match {
 
-        case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
+        case (Some(newKeyValue: KeyValue.Fixed), Some(oldKeyValue: KeyValue.Fixed)) =>
           if (oldKeyValue.key < newKeyValue.key) {
             add(oldKeyValue)
             doMerge(newKeyValues, oldKeyValues.dropHead())
@@ -275,7 +100,7 @@ private[core] object SegmentMerger extends LazyLogging {
         /**
          * When the input is an overwrite key-value and the existing is a range key-value.
          */
-        case (Some(newKeyValue: KeyValue.ReadOnly.Fixed), Some(oldRangeKeyValue: ReadOnly.Range)) =>
+        case (Some(newKeyValue: KeyValue.Fixed), Some(oldRangeKeyValue: KeyValue.Range)) =>
           if (newKeyValue.key < oldRangeKeyValue.fromKey) {
             add(newKeyValue)
             doMerge(newKeyValues.dropHead(), oldKeyValues)
@@ -317,7 +142,7 @@ private[core] object SegmentMerger extends LazyLogging {
         /**
          * When the input is a range and the existing is a fixed key-value.
          */
-        case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldKeyValue: KeyValue.ReadOnly.Fixed)) =>
+        case (Some(newRangeKeyValue: KeyValue.Range), Some(oldKeyValue: KeyValue.Fixed)) =>
           if (oldKeyValue.key >= newRangeKeyValue.toKey) {
             add(newRangeKeyValue)
             doMerge(newKeyValues.dropHead(), oldKeyValues)
@@ -375,7 +200,7 @@ private[core] object SegmentMerger extends LazyLogging {
         /**
          * When both the key-values are ranges.
          */
-        case (Some(newRangeKeyValue: ReadOnly.Range), Some(oldRangeKeyValue: ReadOnly.Range)) =>
+        case (Some(newRangeKeyValue: KeyValue.Range), Some(oldRangeKeyValue: KeyValue.Range)) =>
           if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey) {
             add(newRangeKeyValue)
             doMerge(newKeyValues.dropHead(), oldKeyValues)
@@ -555,15 +380,13 @@ private[core] object SegmentMerger extends LazyLogging {
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(_), None) =>
           newKeyValues foreach add
-          splits
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
         case (None, Some(_)) =>
           oldKeyValues foreach add
-          splits
 
         case (None, None) =>
-          splits
+        //end
       }
 
     doMerge(newKeyValues, oldKeyValues)

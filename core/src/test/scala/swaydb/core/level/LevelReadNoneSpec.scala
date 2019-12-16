@@ -87,7 +87,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
-              randomizedKeyValues(keyValuesCount, addPut = false, addUpdates = true, startId = Some(0))(testTimer).toMemory,
+              randomizedKeyValues(keyValuesCount, addPut = false, addUpdates = true, startId = Some(0))(testTimer),
 
           assertAllLevels =
             (level0KeyValues, _, _, level) =>
@@ -120,7 +120,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
         assertLevel(
           level0KeyValues =
             (_, _, testTimer) =>
-              randomizedKeyValues(keyValuesCount, startId = Some(1))(testTimer).toMemory,
+              randomizedKeyValues(keyValuesCount, startId = Some(1))(testTimer),
 
           assertLevel0 =
             (level0KeyValues, _, _, level) => {
@@ -128,7 +128,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
 
               import keyOrder._
               val nonExistingKeys: List[Int] =
-                (level0KeyValues.head.key.readInt() - 100 to getMaxKey(level0KeyValues.last.toTransient).maxKey.readInt() + 100)
+                (level0KeyValues.head.key.readInt() - 100 to getMaxKey(level0KeyValues.last).maxKey.readInt() + 100)
                   .filterNot(intKey => existing.exists(_.key equiv Slice.writeInt(intKey)))
                   .toList
 
@@ -199,7 +199,7 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
               implicit val time = testTimer
               level2KeyValues should have size 0
 
-              randomPutKeyValues(keyValuesCount, startId = Some(0), addPutDeadlines = false, addExpiredPutDeadlines = false).toMemory
+              randomPutKeyValues(keyValuesCount, startId = Some(0), addPutDeadlines = false, addExpiredPutDeadlines = false)
             },
 
           assertLevel0 =

@@ -74,7 +74,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     "fixed key-value" in {
       runThis(100.times, log = true) {
         assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1).toTransient),
+          keyValues = Slice(randomFixedKeyValue(1)),
           assert =
             (keyValues, segment) =>
               Random.shuffle(
@@ -87,7 +87,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
         )
 
         assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient,
+          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)),
           assert =
             (keyValues, segment) =>
               Random.shuffle(
@@ -104,7 +104,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     "range-value" in {
       runThis(100.times) {
         assertSegment(
-          keyValues = Slice(randomRangeKeyValue(1, 10)).toTransient,
+          keyValues = Slice(randomRangeKeyValue(1, 10)),
           assert =
             (keyValues, segment) =>
               Random.shuffle(
@@ -123,7 +123,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
         assertSegment(
           keyValues =
-            Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)).toTransient,
+            Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)),
           assert =
             (keyValues, segment) =>
               Random.shuffle(
@@ -170,7 +170,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
                 gotFromCache.key.underlyingArraySize shouldBe keyValue.key.toArray.length
 
                 gotFromCache match {
-                  case range: KeyValue.ReadOnly.Range =>
+                  case range: KeyValue.Range =>
                     //if it's a range, toKey should also be unsliced.
                     range.toKey.underlyingArraySize shouldBe keyValues.find(_.key == range.fromKey).value.key.toArray.length
                   case _ =>
@@ -204,7 +204,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     //    "read value from a closed ValueReader" in {
     //      runThis(100.times) {
     //        assertSegment(
-    //          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)).toTransient,
+    //          keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)),
     //          assert =
     //            (keyValues, segment) =>
     //              keyValues foreach {
@@ -241,7 +241,7 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
     //                  }
     //                  //read the value
     //                  readKeyValue match {
-    //                    case range: KeyValue.ReadOnly.Range =>
+    //                    case range: KeyValue.Range =>
     //                      range.fetchFromAndRangeValue.runIO
     //                    case _ =>
     //                      readKeyValue.getOrFetchValue shouldBe keyValue.getOrFetchValue

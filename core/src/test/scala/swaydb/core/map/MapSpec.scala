@@ -27,7 +27,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{Memory, Transient, Value}
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.AppendixSkipListMerger
@@ -180,8 +180,8 @@ class MapSpec extends TestBase {
       import AppendixMapEntryWriter._
       import appendixReader._
 
-      val segment1 = TestSegment(Slice(Transient.put(1, Some(1), None), Transient.put(2, Some(2), None)).updateStats)
-      val segment2 = TestSegment(Slice(Transient.put(3, Some(3), None), Transient.put(4, Some(4), None)).updateStats)
+      val segment1 = TestSegment(Slice(Memory.put(1, Some(1), None), Memory.put(2, Some(2), None)))
+      val segment2 = TestSegment(Slice(Memory.put(3, Some(3), None), Memory.put(4, Some(4), None)))
 
       val map = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
       map.write(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
@@ -249,12 +249,12 @@ class MapSpec extends TestBase {
       import AppendixMapEntryWriter._
       import appendixReader._
 
-      val segment1 = TestSegment(Slice(Transient.put(1, Some(1), None), Transient.put(2, Some(2), None)).updateStats)
-      val segment2 = TestSegment(Slice(Transient.put(2, Some(2), None), Transient.put(4, Some(4), None)).updateStats)
-      val segment3 = TestSegment(Slice(Transient.put(3, Some(3), None), Transient.put(6, Some(6), None)).updateStats)
-      val segment4 = TestSegment(Slice(Transient.put(4, Some(4), None), Transient.put(8, Some(8), None)).updateStats)
-      val segment5 = TestSegment(Slice(Transient.put(5, Some(5), None), Transient.put(10, Some(10), None)).updateStats)
-      val segment2Updated = TestSegment(Slice(Transient.put(2, Some(2), None), Transient.put(12, Some(12), None)).updateStats)
+      val segment1 = TestSegment(Slice(Memory.put(1, Some(1), None), Memory.put(2, Some(2), None)))
+      val segment2 = TestSegment(Slice(Memory.put(2, Some(2), None), Memory.put(4, Some(4), None)))
+      val segment3 = TestSegment(Slice(Memory.put(3, Some(3), None), Memory.put(6, Some(6), None)))
+      val segment4 = TestSegment(Slice(Memory.put(4, Some(4), None), Memory.put(8, Some(8), None)))
+      val segment5 = TestSegment(Slice(Memory.put(5, Some(5), None), Memory.put(10, Some(10), None)))
+      val segment2Updated = TestSegment(Slice(Memory.put(2, Some(2), None), Memory.put(12, Some(12), None)))
 
       val map1 = Map.persistent[Slice[Byte], Segment](createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
       map1.write(MapEntry.Put(1, segment1)) shouldBe true
@@ -669,7 +669,7 @@ class MapSpec extends TestBase {
             ).item
 
           //randomly create 100 key-values to insert into the Map. These key-values may contain range, update, or key-values deadlines randomly.
-          val keyValues = randomizedKeyValues(1000, addPut = true).toMemory
+          val keyValues = randomizedKeyValues(1000, addPut = true)
           //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
           keyValues.groupedSlice(5) foreach {
             keyValues =>

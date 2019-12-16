@@ -19,8 +19,8 @@
 
 package swaydb.core.util
 
-import swaydb.core.data.KeyValue.ReadOnly
-import swaydb.core.data.{KeyValue, Transient, Value}
+import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.slice.Slice
 
@@ -141,21 +141,21 @@ private[core] object MinMax {
       next = function.function
     )(FunctionStore.order)
 
-  def minMaxFunction(function: Transient.Function,
+  def minMaxFunction(function: Memory.Function,
                      current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
       next = function.function
     )(FunctionStore.order)
 
-  def minMaxFunction(function: ReadOnly.Function,
+  def minMaxFunction(function: KeyValue.Function,
                      current: Option[MinMax[Slice[Byte]]]): MinMax[Slice[Byte]] =
     minMax(
       current = current,
       next = function.getOrFetchFunction
     )(FunctionStore.order)
 
-  def minMaxFunction(range: Transient.Range,
+  def minMaxFunction(range: Memory.Range,
                      current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     minMaxFunction(
       fromValue = range.fromValue,
@@ -175,7 +175,7 @@ private[core] object MinMax {
         )
     )
 
-  def minMaxFunction(range: KeyValue.ReadOnly.Range,
+  def minMaxFunction(range: KeyValue.Range,
                      current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] = {
     val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
     minMaxFunction(

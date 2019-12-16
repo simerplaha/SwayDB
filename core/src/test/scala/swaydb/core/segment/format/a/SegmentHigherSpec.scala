@@ -68,7 +68,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
     "value the higher key from the segment that has only 1 Remove key" in {
       runThis(50.times) {
         assertSegment(
-          keyValues = Slice(randomFixedKeyValue(1)).toTransient,
+          keyValues = Slice(randomFixedKeyValue(1)),
           assert =
             (keyValue, segment) => {
               IO.Defer(segment.higher(0)).runRandomIO.right.value.value shouldBe keyValue.head
@@ -82,7 +82,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
     "value the higher key from the segment that has only 1 Range key" in {
       runThis(50.times) {
         assertSegment(
-          keyValues = Slice(randomRangeKeyValue(1, 10)).toTransient,
+          keyValues = Slice(randomRangeKeyValue(1, 10)),
           assert =
             (keyValue, segment) => {
               (0 to 9) foreach {
@@ -102,7 +102,7 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
     "value the higher from the segment when there are no Range key-values" in {
       //1, 2, 3
       assertSegment(
-        keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)).toTransient,
+        keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
         assert =
           (keyValues, segment) => {
             segment.higher(0).runRandomIO.right.value.value shouldBe keyValues(0)
@@ -126,8 +126,8 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
             randomRangeKeyValue(20, 30)
-            //            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50)).toTransient).toMemory
-          ).toTransient,
+            //            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50))).toMemory
+          ),
           assert =
             (keyValues, segment) => {
               //0

@@ -116,7 +116,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
         val thisLevel = mock[NextLevel]("thisLevel")
         val nextLevel = mock[NextLevel]("nextLevel")
 
-        val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2).map(_.updateStats)
+        val keyValues = randomPutKeyValues(keyValueCount).groupedSlice(2)
         val segments = Seq(TestSegment(keyValues(0)), TestSegment(keyValues(1)))
 
         //next level should value a put for all the input Segments
@@ -146,7 +146,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
       }
 
       "it's the last Level and is non empty" in {
-        val keyValues = randomPutKeyValues(keyValueCount).toMemory
+        val keyValues = randomPutKeyValues(keyValueCount)
         val level = TestLevel(keyValues = keyValues)
         level.isEmpty shouldBe false
         ThrottleCompaction.copyForwardForEach(level.reverseLevels.toSlice) shouldBe 0
@@ -157,7 +157,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
     "copy all Segments to last level" when {
       "no Segments overlap" in {
-        val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1)).toMemory
+        val allKeyValues = randomPutKeyValues(keyValueCount, startId = Some(1))
         val keyValues = allKeyValues.groupedSlice(5)
 
         val level5 = TestLevel(keyValues = keyValues(4), segmentSize = 1.kb, pushForward = true)
@@ -185,7 +185,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
 
     "copy Segments to last level" when {
       "some Segments overlap" in {
-        val allKeyValues = randomPutKeyValues(keyValueCount, addPutDeadlines = false, startId = Some(1)).toMemory
+        val allKeyValues = randomPutKeyValues(keyValueCount, addPutDeadlines = false, startId = Some(1))
 
         val keyValues = allKeyValues.groupedSlice(5)
 
@@ -252,7 +252,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                     Slice(
                       Memory.put(i, i, Some(expiredDeadline())),
                       Memory.put(i + 1, i + 1, Some(expiredDeadline()))
-                    ).toTransient
+                    )
                   )
                 )
               else
@@ -290,7 +290,7 @@ sealed trait CompactionSpec extends TestBase with MockFactory {
                     Slice(
                       Memory.put(i, i, Some(expiredDeadline())),
                       Memory.put(i + 1, i + 1, Some(expiredDeadline()))
-                    ).toTransient
+                    )
                   )
                 )
               else

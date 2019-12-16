@@ -23,15 +23,18 @@ import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Transient
+import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader}
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.concurrent.duration._
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
+import swaydb.core.CommonAssertions._
+import swaydb.core.segment.format.a.entry.writer.EntryWriter
 
 class ValuesBlockSpec extends TestBase {
 
@@ -40,18 +43,27 @@ class ValuesBlockSpec extends TestBase {
   "init" should {
     "not initialise if values do not exists" in {
       runThis(100.times) {
-        val keyValues = Slice(Transient.put(key = 1, value = Slice.emptyBytes, removeAfter = None), Transient.remove(key = 1)).updateStats
-        keyValues.last.stats.segmentValuesSize shouldBe 0
-        keyValues.last.stats.segmentValuesSizeWithoutHeader shouldBe 0
-        keyValues.last.stats.valueLength shouldBe 0
-        ValuesBlock.init(keyValues) shouldBe empty
+        val keyValues = Slice(Memory.put(key = 1, value = Slice.emptyBytes, removeAfter = 10.seconds), Memory.remove(key = 1)).toPersistentMergeBuilder
+        keyValues.totalValuesCount shouldBe 0
+        keyValues.totalValuesSize shouldBe 0
+
+        ValuesBlock.init(
+          keyValues = keyValues,
+          valuesConfig = ValuesBlock.Config.random,
+          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+        ) shouldBe empty
       }
     }
 
     "initialise values exists" in {
       runThis(100.times) {
-        val keyValues = Slice(Transient.put(key = 1, value = Slice.writeInt(1), removeAfter = None), randomFixedTransientKeyValue(2, Some(3))).updateStats
-        ValuesBlock.init(keyValues) shouldBe defined
+        val keyValues = Slice(Memory.put(key = 1, value = Slice.writeInt(1), removeAfter = 10.seconds), randomFixedTransientKeyValue(2, Some(3))).toPersistentMergeBuilder
+
+        ValuesBlock.init(
+          keyValues = keyValues,
+          valuesConfig = ValuesBlock.Config.random,
+          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+        ) shouldBe defined
       }
     }
   }
@@ -59,15 +71,20 @@ class ValuesBlockSpec extends TestBase {
   "close" should {
     "prepare for persisting & concurrent read values" in {
       runThis(100.times, log = true) {
-        val keyValues = randomizedKeyValues(count = randomIntMax(10000) max 1, valueSize = randomIntMax(100) max 1)
-        val state = ValuesBlock.init(keyValues).get
+        val keyValues = randomizedKeyValues(count = randomIntMax(10000) max 1, valueSize = randomIntMax(100) max 1).toPersistentMergeBuilder
+        val state =
+          ValuesBlock.init(
+            keyValues = keyValues,
+            valuesConfig = ValuesBlock.Config.random,
+            builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+          ).get
 
         keyValues foreach {
           keyValue =>
             ValuesBlock.write(
               keyValue = keyValue,
               state = state
-            ).value
+            )
         }
 
         ValuesBlock.close(state)
@@ -86,7 +103,7 @@ class ValuesBlockSpec extends TestBase {
 
         keyValues.foldLeft(0) {
           case (offset, keyValue) =>
-            val valueBytes = keyValue.valueEntryBytes
+            val valueBytes = keyValue.value
             if (valueBytes.isEmpty) {
               offset
             } else {

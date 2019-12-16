@@ -19,146 +19,112 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.{Time, Transient}
-import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
+import swaydb.core.data.{Memory, Time}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes._
 import swaydb.core.util.Options._
 
 private[writer] object TimeWriter {
 
-  private[writer] def write(current: Transient,
-                            currentTime: Time,
-                            compressDuplicateValues: Boolean,
+  private[writer] def write(current: Memory,
                             entryId: BaseEntryId.Key,
-                            enablePrefixCompression: Boolean,
-                            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): EntryWriter.WriteResult =
-    if (currentTime.time.nonEmpty)
-      when(enablePrefixCompression && !current.sortedIndexConfig.prefixCompressKeysOnly)(current.previous.map(getTime)) flatMap {
+                            builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+    if (current.persistentTime.nonEmpty)
+      when(builder.enablePrefixCompression)(builder.previous.map(getTime)) flatMap {
         previousTime =>
           //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
           writePartiallyCompressed(
-            currentTime = currentTime,
             previousTime = previousTime,
             current = current,
-            compressDuplicateValues = compressDuplicateValues,
             entryId = entryId,
-            enablePrefixCompression = enablePrefixCompression,
-            normaliseToSize = normaliseToSize
+            builder = builder
           )
       } getOrElse {
         //no common prefixes or no previous write without compression
         writeUncompressed(
-          currentTime = currentTime,
           current = current,
-          compressDuplicateValues = compressDuplicateValues,
           entryId = entryId,
-          enablePrefixCompression = enablePrefixCompression,
-          normaliseToSize = normaliseToSize
+          builder = builder
         )
       }
     else
       noTime(
         current = current,
-        compressDuplicateValues = compressDuplicateValues,
         entryId = entryId,
-        enablePrefixCompression = enablePrefixCompression,
-        normaliseToSize = normaliseToSize
+        builder = builder
       )
 
-  private[writer] def getTime(keyValue: Transient): Time =
+  private[writer] def getTime(keyValue: Memory): Time =
     keyValue match {
-      case keyValue: Transient.Fixed =>
+      case keyValue: Memory.Fixed =>
         keyValue match {
-          case keyValue: Transient.Remove =>
+          case keyValue: Memory.Remove =>
             keyValue.time
 
-          case keyValue: Transient.Put =>
+          case keyValue: Memory.Put =>
             keyValue.time
 
-          case keyValue: Transient.Function =>
+          case keyValue: Memory.Function =>
             keyValue.time
 
-          case keyValue: Transient.Update =>
+          case keyValue: Memory.Update =>
             keyValue.time
 
-          case _: Transient.PendingApply =>
+          case _: Memory.PendingApply =>
             keyValue.time
         }
-      case _: Transient.Range =>
+      case _: Memory.Range =>
         Time.empty
     }
 
-  private def writePartiallyCompressed(currentTime: Time,
-                                       previousTime: Time,
-                                       current: Transient,
-                                       compressDuplicateValues: Boolean,
+  private def writePartiallyCompressed(previousTime: Time,
+                                       current: Memory,
                                        entryId: BaseEntryId.Key,
-                                       enablePrefixCompression: Boolean,
-                                       normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[EntryWriter.WriteResult] =
+                                       builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
     compress(
       previous = previousTime.time,
-      next = currentTime.time,
+      next = current.persistentTime.time,
       minimumCommonBytes = 3 //minimum 3 required because commonBytes & uncompressedByteSize requires 2 bytes.
     ) map {
       case (commonBytes, remainingBytes) =>
-        val writeResult =
-          ValueWriter.write(
-            current = current,
-            enablePrefixCompression = enablePrefixCompression,
-            compressDuplicateValues = compressDuplicateValues,
-            entryId = entryId.timePartiallyCompressed,
-            plusSize = sizeOfUnsignedInt(commonBytes) + sizeOfUnsignedInt(remainingBytes.size) + remainingBytes.size,
-            hasPrefixCompression = true,
-            normaliseToSize = normaliseToSize
-          )
 
-        writeResult
-          .indexBytes
+        builder.setSegmentHasPrefixCompression()
+
+        ValueWriter.write(
+          current = current,
+          entryId = entryId.timePartiallyCompressed,
+          builder = builder
+        )
+
+        builder
+          .bytes
           .addUnsignedInt(commonBytes)
           .addUnsignedInt(remainingBytes.size)
           .addAll(remainingBytes)
-
-        writeResult
     }
 
-  private def writeUncompressed(currentTime: Time,
-                                current: Transient,
-                                compressDuplicateValues: Boolean,
+  private def writeUncompressed(current: Memory,
                                 entryId: BaseEntryId.Key,
-                                enablePrefixCompression: Boolean,
-                                normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]) = {
+                                builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
     //no common prefixes or no previous write without compression
-    val writeResult =
-      ValueWriter.write(
-        current = current,
-        enablePrefixCompression = enablePrefixCompression,
-        compressDuplicateValues = compressDuplicateValues,
-        entryId = entryId.timeUncompressed,
-        plusSize = sizeOfUnsignedInt(currentTime.time.size) + currentTime.time.size,
-        hasPrefixCompression = false,
-        normaliseToSize = normaliseToSize
-      )
-
-    writeResult
-      .indexBytes
-      .addUnsignedInt(currentTime.time.size)
-      .addAll(currentTime.time)
-
-    writeResult
-  }
-
-  private def noTime(current: Transient,
-                     compressDuplicateValues: Boolean,
-                     entryId: BaseEntryId.Key,
-                     enablePrefixCompression: Boolean,
-                     normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]) =
     ValueWriter.write(
       current = current,
-      enablePrefixCompression = enablePrefixCompression,
-      compressDuplicateValues = compressDuplicateValues,
+      entryId = entryId.timeUncompressed,
+      builder = builder
+    )
+
+    builder
+      .bytes
+      .addUnsignedInt(current.persistentTime.size)
+      .addAll(current.persistentTime.time)
+  }
+
+  private def noTime(current: Memory,
+                     entryId: BaseEntryId.Key,
+                     builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+    ValueWriter.write(
+      current = current,
       entryId = entryId.noTime,
-      plusSize = 0,
-      hasPrefixCompression = false,
-      normaliseToSize = normaliseToSize
+      builder = builder
     )
 }

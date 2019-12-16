@@ -370,14 +370,11 @@ private[core] class SegmentCache(path: Path,
         }
     }
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
+  def getAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] =
     blockCache readAll addTo
 
-  def getHeadKeyValueCount(): Int =
+  def getKeyValueCount(): Int =
     blockCache.getFooter().keyValueCount
-
-  def getBloomFilterKeyValueCount(): Int =
-    blockCache.getFooter().bloomFilterItemsCount
 
   def getFooter(): SegmentFooterBlock =
     blockCache.getFooter()

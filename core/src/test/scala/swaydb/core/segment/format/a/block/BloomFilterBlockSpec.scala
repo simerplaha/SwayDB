@@ -23,9 +23,9 @@ import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Value.{FromValue, RangeValue}
-import swaydb.core.data.{Transient, Value}
+import swaydb.core.data.{Memory, Value}
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.merge.MergeBuilder
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -163,11 +163,13 @@ class BloomFilterBlockSpec extends TestBase {
         implicit val time = TestTimer.random
 
         BloomFilterBlock.init(
-          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(None, time.next)))
+          keyValues = MergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(None, time.next)))),
+          config = BloomFilterBlock.Config.random
         ) shouldBe empty
 
         BloomFilterBlock.init(
-          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))
+          keyValues = MergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))),
+          config = BloomFilterBlock.Config.random
         ) shouldBe empty
       }
     }
@@ -178,7 +180,8 @@ class BloomFilterBlockSpec extends TestBase {
 
         //range functions can also contain Remove so BloomFilter should not be created
         BloomFilterBlock.init(
-          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.Function(Slice.emptyBytes, time.next)))
+          keyValues = MergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Function(Slice.emptyBytes, time.next)))),
+          config = BloomFilterBlock.Config.random
         ) shouldBe empty
       }
     }
@@ -189,11 +192,13 @@ class BloomFilterBlockSpec extends TestBase {
 
         //range functions can also contain Remove so BloomFilter should not be created
         BloomFilterBlock.init(
-          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))
+          keyValues = MergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))),
+          config = BloomFilterBlock.Config.random
         ) shouldBe empty
 
         BloomFilterBlock.init(
-          keyValues = Slice(Transient.Range.create[FromValue, RangeValue](1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))
+          keyValues = MergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))),
+          config = BloomFilterBlock.Config.random
         ) shouldBe empty
       }
     }
@@ -205,15 +210,17 @@ class BloomFilterBlockSpec extends TestBase {
         //pending apply should allow to create bloomFilter if it does not have remove or function.
         BloomFilterBlock.init(
           keyValues =
-            Slice(
-              Transient.Range.create[FromValue, RangeValue](
-                fromKey = 1,
-                toKey = 2,
-                fromValue = None,
-                rangeValue = Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next))),
-                bloomFilterConfig = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+            MergeBuilder.persistent(
+              Slice(
+                Memory.Range(
+                  fromKey = 1,
+                  toKey = 2,
+                  fromValue = None,
+                  rangeValue = Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next)))
+                )
               )
-            )
+            ),
+          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
         ) shouldBe defined
       }
     }
@@ -224,15 +231,17 @@ class BloomFilterBlockSpec extends TestBase {
         //fromValue is remove but it's not a remove range.
         BloomFilterBlock.init(
           keyValues =
-            Slice(
-              Transient.Range.create[FromValue, RangeValue](
-                fromKey = 1,
-                toKey = 2,
-                fromValue = Some(Value.Remove(None, time.next)),
-                rangeValue = Value.update(100),
-                bloomFilterConfig = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+            MergeBuilder.persistent(
+              Slice(
+                Memory.Range(
+                  fromKey = 1,
+                  toKey = 2,
+                  fromValue = Some(Value.Remove(None, time.next)),
+                  rangeValue = Value.update(100)
+                )
               )
-            )
+            ),
+          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
         ) shouldBe defined
       }
     }

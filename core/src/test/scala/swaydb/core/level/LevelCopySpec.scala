@@ -84,7 +84,7 @@ sealed trait LevelCopySpec extends TestBase with MockFactory with PrivateMethodT
       val segments = Iterable(TestSegment(keyValues1), TestSegment(keyValues2))
       val copiedSegments = level.copyLocal(segments).value
 
-      val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray).updateStats
+      val allKeyValues = Slice((keyValues1 ++ keyValues2).toArray)
 
       level.isEmpty shouldBe true //copy function does not write to appendix.
 

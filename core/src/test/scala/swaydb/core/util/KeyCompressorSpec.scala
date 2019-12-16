@@ -34,7 +34,7 @@ class KeyCompressorSpec extends WordSpec with Matchers {
 
   "None, Fixed" in {
     runThis(20.times) {
-      val last = randomFixedKeyValue(2).toTransient
+      val last = randomFixedKeyValue(2)
 
       val (minKey, maxKey, compressedKey) =
         KeyCompressor.compress(
@@ -50,8 +50,8 @@ class KeyCompressorSpec extends WordSpec with Matchers {
 
   "Some(Fixed), Fixed" in {
     runThis(20.times) {
-      val head = randomFixedKeyValue(1).toTransient
-      val last = randomFixedKeyValue(2).toTransient
+      val head = randomFixedKeyValue(1)
+      val last = randomFixedKeyValue(2)
 
       val (minKey, maxKey, compressedKey) =
         KeyCompressor.compress(
@@ -72,7 +72,7 @@ class KeyCompressorSpec extends WordSpec with Matchers {
       val (minKey, maxKey, compressedKey) =
         KeyCompressor.compress(
           head = None,
-          last = last.toTransient
+          last = last
         )
       minKey shouldBe last.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)
@@ -89,7 +89,7 @@ class KeyCompressorSpec extends WordSpec with Matchers {
       val (minKey, maxKey, compressedKey) =
         KeyCompressor.compress(
           head = Some(head),
-          last = last.toTransient
+          last = last
         )
       minKey shouldBe head.key
       maxKey shouldBe MaxKey.Range(last.fromKey, last.toKey)

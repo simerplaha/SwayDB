@@ -118,7 +118,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
             .==> {
               case (split1, split2) =>
                 val (two, three) = split2.splitAt(split2.size / 2)
-                (split1.updateStats, two.updateStats, three.updateStats)
+                (split1, two, three)
             }
 
         val segments = Seq(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues2).runRandomIO.right.value, TestSegment(keyValues3).runRandomIO.right.value)
@@ -129,7 +129,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "writing multiple Segments to a non empty Level" in {
         val level = TestLevel()
-        val allKeyValues = randomPutKeyValues(keyValuesCount * 3, valueSize = 1000, addPutDeadlines = false)(TestTimer.Empty).toMemory
+        val allKeyValues = randomPutKeyValues(keyValuesCount * 3, valueSize = 1000, addPutDeadlines = false)(TestTimer.Empty)
         val slicedKeyValues = allKeyValues.groupedSlice(3)
         val keyValues1 = slicedKeyValues(0)
         val keyValues2 = slicedKeyValues(1)
@@ -139,7 +139,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         level.putKeyValuesTest(keyValues2).runRandomIO.right.value
         level.isEmpty shouldBe false
 
-        val segments = Seq(TestSegment(keyValues1.toTransient).runRandomIO.right.value, TestSegment(keyValues3.toTransient).runRandomIO.right.value)
+        val segments = Seq(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues3).runRandomIO.right.value)
         level.put(segments).right.right.value.right.value should contain only level.levelNumber
 
         assertReads(allKeyValues, level)
@@ -202,7 +202,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       }
 
       "copy Segments if segmentsToMerge is empty" in {
-        val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
+        val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5)
         val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues))
 
         val level = TestLevel()
@@ -214,7 +214,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
       }
 
       "copy and merge Segments" in {
-        val keyValues = randomKeyValues(100).groupedSlice(10).map(_.updateStats).toArray
+        val keyValues = randomKeyValues(100).groupedSlice(10).toArray
         val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues))
         val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues))
         val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
@@ -258,7 +258,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "revert copy if merge fails" in {
         if (persistent) {
-          val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).map(_.updateStats).toArray
+          val keyValues = randomKeyValues(100)(TestTimer.Empty).groupedSlice(10).toArray
           val segmentToCopy = keyValues.take(5) map (keyValues => TestSegment(keyValues))
           val segmentToMerge = keyValues.drop(5).take(4) map (keyValues => TestSegment(keyValues))
           val targetSegment = TestSegment(keyValues.last).runRandomIO.right.value
@@ -283,7 +283,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
       "revert copy on failure" in {
         if (persistent) {
-          val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5).map(_.updateStats)
+          val keyValues = randomKeyValues(keyValuesCount).groupedSlice(5)
           val segmentToCopy = keyValues map (keyValues => TestSegment(keyValues))
 
           val level = TestLevel()
@@ -321,8 +321,8 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
-        level.put(TestSegment(keyValues.take(1).updateStats)).right.right.value.right.value should contain only level.levelNumber
-        level.put(TestSegment(keyValues.takeRight(1).updateStats)).right.right.value.right.value should contain only level.levelNumber
+        level.put(TestSegment(keyValues.take(1))).right.right.value.right.value should contain only level.levelNumber
+        level.put(TestSegment(keyValues.takeRight(1))).right.right.value.right.value should contain only level.levelNumber
 
         level.close.value
       }
@@ -402,7 +402,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         val nextMaxKey = keyValues.last.key.readInt() + 1000
         val keyValues2 = randomIntKeyStringValues(keyValuesCount, startId = Some(nextMaxKey)).groupedSlice(2)
         val segment2 = TestSegment(keyValues2.head).runRandomIO.right.value
-        val segment3 = TestSegment(keyValues2.last.updateStats).runRandomIO.right.value
+        val segment3 = TestSegment(keyValues2.last).runRandomIO.right.value
 
         (nextLevel.partitionUnreservedCopyable _).expects(*) onCall {
           segments: Iterable[Segment] =>

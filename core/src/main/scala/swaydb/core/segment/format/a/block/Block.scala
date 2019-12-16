@@ -121,17 +121,18 @@ private[core] object Block extends LazyLogging {
           bytes = bytes,
           blockName = blockName
         )
+
+        bytes
     }
 
   def unblock(headerSize: Int,
               bytes: Slice[Byte],
-              blockName: String): Slice[Byte] = {
+              blockName: String): Unit = {
     bytes moveWritePosition 0
     bytes addUnsignedInt headerSize
     bytes add uncompressedBlockId
     if (bytes.currentWritePosition > headerSize)
       throw IO.throwable(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
-    bytes
   }
 
   def block(openSegment: SegmentBlock.Open,

@@ -54,7 +54,7 @@ class AppendixRepairerSpec extends TestBase {
 
     "create new appendix file if all the Segments in the Level are non-overlapping Segments" in {
       val level = TestLevel(segmentSize = 1.kb)
-      level.putKeyValuesTest(randomizedKeyValues(10000).toMemory).runRandomIO.right.value
+      level.putKeyValuesTest(randomizedKeyValues(10000)).runRandomIO.right.value
 
       level.segmentsCount() should be > 2
       val segmentsBeforeRepair = level.segmentsInLevel()
@@ -91,7 +91,7 @@ class AppendixRepairerSpec extends TestBase {
       //create a Level with a sub-level and disable throttling so that compaction does not delete expired key-values
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomizedKeyValues(1000).toMemory
+      val keyValues = randomizedKeyValues(1000)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       level.segmentsCount() should be > 2
@@ -128,7 +128,7 @@ class AppendixRepairerSpec extends TestBase {
       //create empty Level
       val level = TestLevel(segmentSize = 1.kb, nextLevel = Some(TestLevel()), throttle = (_) => Throttle(Duration.Zero, 0))
 
-      val keyValues = randomizedKeyValues(100).toMemory
+      val keyValues = randomizedKeyValues(100)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
       level.segmentsCount() should be > 2
@@ -139,9 +139,9 @@ class AppendixRepairerSpec extends TestBase {
 
           def createOverlappingSegment() = {
             val numberOfKeyValuesToOverlap = randomNextInt(3) max 1
-            val keyValuesToOverlap = Random.shuffle(segment.getAll().runRandomIO.right.value.toList).take(numberOfKeyValuesToOverlap)
+            val keyValuesToOverlap = Random.shuffle(segment.getAll().runRandomIO.right.value.toList).take(numberOfKeyValuesToOverlap).map(_.toMemory).toSlice
             //create overlapping Segment
-            val overlappingSegment = TestSegment(keyValuesToOverlap.toTransient).runRandomIO.right.value
+            val overlappingSegment = TestSegment(keyValuesToOverlap).runRandomIO.right.value
             Effect.copy(overlappingSegment.path, overlappingLevelSegmentPath).runRandomIO.right.value
             overlappingSegment.close.runRandomIO.right.value //gotta close the new segment create after it's copied over.
           }

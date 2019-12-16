@@ -35,7 +35,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.segment.merge.SegmentMerger
+import swaydb.core.segment.merge.MergeBuilder
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.data.MaxKey
@@ -43,9 +43,9 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
+import scala.jdk.CollectionConverters._
 
 private[core] object Segment extends LazyLogging {
 
@@ -55,149 +55,171 @@ private[core] object Segment extends LazyLogging {
   def memory(path: Path,
              segmentId: Long,
              createdInLevel: Long,
-             keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                             timeOrder: TimeOrder[Slice[Byte]],
-                                             functionStore: FunctionStore,
-                                             fileSweeper: FileSweeper.Enabled): Segment =
-    if (keyValues.isEmpty) {
-      throw IO.throwable("Empty key-values submitted to memory Segment.")
-    } else {
-      val bloomFilterOption: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
-      val skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
+             keyValues: Iterable[Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                          timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore,
+                                          fileSweeper: FileSweeper.Enabled): Slice[Segment] =
+  //    if (keyValues.isEmpty) {
+  //      throw IO.throwable("Empty key-values submitted to memory Segment.")
+  //    } else {
+  //      val bloomFilterOption: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
+  //      val skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
+  //
+  //      //Note: Memory key-values can be received from Persistent Segments in which case it's important that
+  //      //all byte arrays are unsliced before writing them to Memory Segment.
+  //
+  //      val minMaxDeadline =
+  //        keyValues.foldLeft(DeadlineAndFunctionId.empty) {
+  //          case (deadline, keyValue) =>
+  //            SegmentBlock.writeIndexBlocks(
+  //              keyValue = keyValue,
+  //              skipList = Some(skipList),
+  //              hashIndex = None,
+  //              binarySearchIndex = None,
+  //              bloomFilter = bloomFilterOption,
+  //              currentMinMaxFunction = deadline.minMaxFunctionId,
+  //              currentNearestDeadline = deadline.nearestDeadline
+  //            )
+  //        }
+  //
+  //      val bloomFilter = bloomFilterOption.flatMap(BloomFilterBlock.closeForMemory)
+  //
+  //      MemorySegment(
+  //        path = path,
+  //        segmentId = segmentId,
+  //        minKey = keyValues.head.key.unslice(),
+  //        maxKey =
+  //          keyValues.last match {
+  //            case range: Memory.Range =>
+  //              MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+  //
+  //            case keyValue: Memory.Fixed =>
+  //              MaxKey.Fixed(keyValue.key.unslice())
+  //          },
+  //        minMaxFunctionId = minMaxDeadline.minMaxFunctionId,
+  //        segmentSize = keyValues.last.stats.memorySegmentSize,
+  //        hasRange = keyValues.last.stats.segmentHasRange,
+  //        hasPut = keyValues.last.stats.segmentHasPut,
+  //        createdInLevel = createdInLevel.toInt,
+  //        skipList = skipList,
+  //        bloomFilterReader = bloomFilter,
+  //        nearestExpiryDeadline = minMaxDeadline.nearestDeadline
+  //      )
+  //    }
+    ???
 
-      //Note: Transient key-values can be received from Persistent Segments in which case it's important that
-      //all byte arrays are unsliced before writing them to Memory Segment.
-
-      val minMaxDeadline =
-        keyValues.foldLeft(DeadlineAndFunctionId.empty) {
-          case (deadline, keyValue) =>
-            SegmentBlock.writeIndexBlocks(
-              keyValue = keyValue,
-              skipList = Some(skipList),
-              hashIndex = None,
-              binarySearchIndex = None,
-              bloomFilter = bloomFilterOption,
-              currentMinMaxFunction = deadline.minMaxFunctionId,
-              currentNearestDeadline = deadline.nearestDeadline
-            )
-        }
-
-      val bloomFilter = bloomFilterOption.flatMap(BloomFilterBlock.closeForMemory)
-
-      MemorySegment(
-        path = path,
-        segmentId = segmentId,
-        minKey = keyValues.head.key.unslice(),
-        maxKey =
-          keyValues.last match {
-            case range: Transient.Range =>
-              MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-
-            case keyValue: Transient.Fixed =>
-              MaxKey.Fixed(keyValue.key.unslice())
-          },
-        minMaxFunctionId = minMaxDeadline.minMaxFunctionId,
-        segmentSize = keyValues.last.stats.memorySegmentSize,
-        hasRange = keyValues.last.stats.segmentHasRange,
-        hasPut = keyValues.last.stats.segmentHasPut,
-        createdInLevel = createdInLevel.toInt,
-        skipList = skipList,
-        bloomFilterReader = bloomFilter,
-        nearestExpiryDeadline = minMaxDeadline.nearestDeadline
-      )
-    }
-
-  def persistent(path: Path,
+  def persistent(segmentSize: Int,
+                 path: Path,
                  segmentId: Long,
                  createdInLevel: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
+                 bloomFilterConfig: BloomFilterBlock.Config,
+                 hashIndexConfig: HashIndexBlock.Config,
+                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                 sortedIndexConfig: SortedIndexBlock.Config,
+                 valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlock.Config,
-                 keyValues: Iterable[Transient])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore,
-                                                 fileSweeper: FileSweeper.Enabled,
-                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                 blockCache: Option[BlockCache.State],
-                                                 segmentIO: SegmentIO): Segment = {
-    val result =
-      SegmentBlock.writeClosed(
-        keyValues = keyValues,
-        createdInLevel = createdInLevel,
-        segmentConfig = segmentConfig
-      )
+                 keyValues: MergeBuilder.Persistent)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                     functionStore: FunctionStore,
+                                                     fileSweeper: FileSweeper.Enabled,
+                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                     blockCache: Option[BlockCache.State],
+                                                     segmentIO: SegmentIO): Slice[Segment] =
+    SegmentBlock.writeClosed(
+      keyValues = keyValues,
+      createdInLevel = createdInLevel,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig,
+      segmentSize = segmentSize
+    ).mapRecover(
+      block =
+        segment =>
+          if (segment.isEmpty) {
+            //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
+            //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
+            throw IO.throwable("Empty key-values submitted to persistent Segment.")
+          } else {
+            val file =
+            //if both read and writes are mmaped. Keep the file open.
+              if (mmapWrites && mmapReads)
+                DBFile.mmapWriteAndRead(
+                  path = path,
+                  autoClose = true,
+                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                  bytes = segment.segmentBytes
+                )
+              //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
+              else if (mmapWrites && !mmapReads) {
+                val file =
+                  DBFile.mmapWriteAndRead(
+                    path = path,
+                    autoClose = true,
+                    ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                    blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                    bytes = segment.segmentBytes
+                  )
 
-    if (result.isEmpty) {
-      //This is fatal!! Empty Segments should never be created. If this does have for whatever reason it should
-      //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
-      throw IO.throwable("Empty key-values submitted to persistent Segment.")
-    } else {
-      val file =
-      //if both read and writes are mmaped. Keep the file open.
-        if (mmapWrites && mmapReads)
-          DBFile.mmapWriteAndRead(
-            path = path,
-            autoClose = true,
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-            bytes = result.segmentBytes
-          )
-        //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
-        else if (mmapWrites && !mmapReads) {
-          val file =
-            DBFile.mmapWriteAndRead(
-              path = path,
-              autoClose = true,
-              ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-              blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-              bytes = result.segmentBytes
+                //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
+                //is probably not the most efficient and should be advised not to used.
+                file.close()
+                DBFile.channelRead(
+                  path = file.path,
+                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                  autoClose = true
+                )
+              }
+              else if (!mmapWrites && mmapReads)
+                DBFile.mmapRead(
+                  path = Effect.write(path, segment.segmentBytes),
+                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                  autoClose = true
+                )
+              else
+                DBFile.channelRead(
+                  path = Effect.write(path, segment.segmentBytes),
+                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+                  autoClose = true
+                )
+
+            PersistentSegment(
+              file = file,
+              segmentId = segmentId,
+              mmapReads = mmapReads,
+              mmapWrites = mmapWrites,
+              minKey = keyValues.head.key.unslice(),
+              maxKey =
+                keyValues.last match {
+                  case range: Memory.Range =>
+                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+
+                  case keyValue: Memory.Fixed =>
+                    MaxKey.Fixed(keyValue.key.unslice())
+                },
+              segmentSize = segment.segmentSize,
+              minMaxFunctionId = segment.minMaxFunctionId,
+              nearestExpiryDeadline = segment.nearestDeadline
             )
-
-          //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
-          //is probably not the most efficient and should be advised not to used.
-          file.close()
-          DBFile.channelRead(
-            path = file.path,
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-            autoClose = true
-          )
-        }
-        else if (!mmapWrites && mmapReads)
-          DBFile.mmapRead(
-            path = Effect.write(path, result.segmentBytes),
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-            autoClose = true
-          )
-        else
-          DBFile.channelRead(
-            path = Effect.write(path, result.segmentBytes),
-            ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-            blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-            autoClose = true
-          )
-
-      PersistentSegment(
-        file = file,
-        segmentId = segmentId,
-        mmapReads = mmapReads,
-        mmapWrites = mmapWrites,
-        minKey = keyValues.head.key.unslice(),
-        maxKey =
-          keyValues.last match {
-            case range: Transient.Range =>
-              MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-
-            case keyValue: Transient.Fixed =>
-              MaxKey.Fixed(keyValue.key.unslice())
           },
-        segmentSize = result.segmentSize,
-        minMaxFunctionId = result.minMaxFunctionId,
-        nearestExpiryDeadline = result.nearestDeadline
-      )
-    }
-  }
+      recover =
+        (segments: Slice[Segment], _: Throwable) =>
+          segments foreach {
+            segmentToDelete =>
+              IO(segmentToDelete.delete) onLeftSideEffect {
+                exception =>
+                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+              }
+          }
+    )
 
   def copyToPersist(segment: Segment,
                     segmentConfig: SegmentBlock.Config,
@@ -265,7 +287,7 @@ private[core] object Segment extends LazyLogging {
         )
     }
 
-  def copyToPersist(keyValues: Iterable[KeyValue.ReadOnly],
+  def copyToPersist(keyValues: Iterable[KeyValue],
                     segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
                     fetchNextPath: => (Long, Path),
@@ -285,45 +307,46 @@ private[core] object Segment extends LazyLogging {
                                                                 blockCache: Option[BlockCache.State],
                                                                 segmentIO: SegmentIO): Slice[Segment] = {
 
-    val splits =
-      SegmentMerger.split(
-        keyValues = keyValues,
-        minSegmentSize = minSegmentSize,
-        isLastLevel = removeDeletes,
-        forInMemory = false,
-        valuesConfig = valuesConfig,
-        createdInLevel = createdInLevel,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
-
-    splits.mapRecover(
-      block =
-        keyValues => {
-          val (segmentId, path) = fetchNextPath
-          Segment.persistent(
-            path = path,
-            segmentId = segmentId,
-            createdInLevel = createdInLevel,
-            segmentConfig = segmentConfig,
-            mmapReads = mmapSegmentsOnRead,
-            mmapWrites = mmapSegmentsOnWrite,
-            keyValues = keyValues
-          )
-        },
-
-      recover =
-        (segments: Slice[Segment], _: Throwable) =>
-          segments foreach {
-            segmentToDelete =>
-              IO(segmentToDelete.delete) onLeftSideEffect {
-                exception =>
-                  logger.error(s"Failed to delete Segment '{}' in recover due to failed copyToPersist", segmentToDelete.path, exception)
-              }
-          }
-    )
+    //    val splits =
+    //      SegmentMerger.split(
+    //        keyValues = keyValues,
+    //        minSegmentSize = minSegmentSize,
+    //        isLastLevel = removeDeletes,
+    //        forInMemory = false,
+    //        valuesConfig = valuesConfig,
+    //        createdInLevel = createdInLevel,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig
+    //      )
+    //
+    //    splits.mapRecover(
+    //      block =
+    //        keyValues => {
+    //          val (segmentId, path) = fetchNextPath
+    //          Segment.persistent(
+    //            path = path,
+    //            segmentId = segmentId,
+    //            createdInLevel = createdInLevel,
+    //            segmentConfig = segmentConfig,
+    //            mmapReads = mmapSegmentsOnRead,
+    //            mmapWrites = mmapSegmentsOnWrite,
+    //            keyValues = keyValues
+    //          )
+    //        },
+    //
+    //      recover =
+    //        (segments: Slice[Segment], _: Throwable) =>
+    //          segments foreach {
+    //            segmentToDelete =>
+    //              IO(segmentToDelete.delete) onLeftSideEffect {
+    //                exception =>
+    //                  logger.error(s"Failed to delete Segment '{}' in recover due to failed copyToPersist", segmentToDelete.path, exception)
+    //              }
+    //          }
+    //    )
+    ???
   }
 
   def copyToMemory(segment: Segment,
@@ -354,7 +377,7 @@ private[core] object Segment extends LazyLogging {
       bloomFilterConfig = bloomFilterConfig
     )
 
-  def copyToMemory(keyValues: Iterable[KeyValue.ReadOnly],
+  def copyToMemory(keyValues: Iterable[KeyValue],
                    fetchNextPath: => (Long, Path),
                    removeDeletes: Boolean,
                    minSegmentSize: Long,
@@ -369,36 +392,37 @@ private[core] object Segment extends LazyLogging {
                                                                fileSweeper: FileSweeper.Enabled,
                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                segmentIO: SegmentIO): Slice[Segment] = {
-    val splits =
-      SegmentMerger.split(
-        keyValues = keyValues,
-        minSegmentSize = minSegmentSize,
-        isLastLevel = removeDeletes,
-        forInMemory = true,
-        valuesConfig = valuesConfig,
-        createdInLevel = createdInLevel,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig
-      )
-
-    //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
-    val segments = Slice.create[Segment](splits.size)
-
-    splits foreach {
-      split =>
-        val (segmentId, path) = fetchNextPath
-        segments add
-          Segment.memory(
-            path = path,
-            segmentId = segmentId,
-            createdInLevel = createdInLevel,
-            keyValues = split
-          )
-    }
-
-    segments
+    //    val splits =
+    //      SegmentMerger.split(
+    //        keyValues = keyValues,
+    //        minSegmentSize = minSegmentSize,
+    //        isLastLevel = removeDeletes,
+    //        forInMemory = true,
+    //        valuesConfig = valuesConfig,
+    //        createdInLevel = createdInLevel,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig
+    //      )
+    //
+    //    //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
+    //    val segments = Slice.create[Segment](splits.size)
+    //
+    //    splits foreach {
+    //      split =>
+    //        val (segmentId, path) = fetchNextPath
+    //        segments add
+    //          Segment.memory(
+    //            path = path,
+    //            segmentId = segmentId,
+    //            createdInLevel = createdInLevel,
+    //            keyValues = split
+    //          )
+    //    }
+    //
+    //    segments
+    ???
   }
 
   def apply(path: Path,
@@ -522,10 +546,10 @@ private[core] object Segment extends LazyLogging {
       minKey = keyValues.head.key.unslice(),
       maxKey =
         keyValues.last match {
-          case fixed: KeyValue.ReadOnly.Fixed =>
+          case fixed: KeyValue.Fixed =>
             MaxKey.Fixed(fixed.key.unslice())
 
-          case range: KeyValue.ReadOnly.Range =>
+          case range: KeyValue.Range =>
             MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
         },
       minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
@@ -619,7 +643,7 @@ private[core] object Segment extends LazyLogging {
   /**
    * Pre condition: Segments should be sorted with their minKey in ascending order.
    */
-  def getAllKeyValues(segments: Iterable[Segment]): Slice[KeyValue.ReadOnly] =
+  def getAllKeyValues(segments: Iterable[Segment]): Slice[KeyValue] =
     if (segments.isEmpty) {
       Slice.empty
     } else if (segments.size == 1) {
@@ -631,7 +655,7 @@ private[core] object Segment extends LazyLogging {
             segment.getKeyValueCount() + total
         }
 
-      segments.foldLeftRecover(Slice.create[KeyValue.ReadOnly](totalKeyValues)) {
+      segments.foldLeftRecover(Slice.create[KeyValue](totalKeyValues)) {
         case (allKeyValues, segment) =>
           segment getAll Some(allKeyValues)
       }
@@ -748,34 +772,24 @@ private[core] object Segment extends LazyLogging {
     } getOrElse false
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: KeyValue): Option[Deadline] =
-    keyValue match {
-      case readOnly: KeyValue.ReadOnly =>
-        getNearestDeadline(deadline, readOnly)
-
-      case writeOnly: Transient =>
-        getNearestDeadline(deadline, writeOnly)
-    }
-
-  def getNearestDeadline(deadline: Option[Deadline],
-                         next: KeyValue.ReadOnly): Option[Deadline] =
+                         next: KeyValue): Option[Deadline] =
     next match {
-      case readOnly: KeyValue.ReadOnly.Put =>
+      case readOnly: KeyValue.Put =>
         FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
 
-      case readOnly: KeyValue.ReadOnly.Remove =>
+      case readOnly: KeyValue.Remove =>
         FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
 
-      case readOnly: KeyValue.ReadOnly.Update =>
+      case readOnly: KeyValue.Update =>
         FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
 
-      case readOnly: KeyValue.ReadOnly.PendingApply =>
+      case readOnly: KeyValue.PendingApply =>
         FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
 
-      case _: KeyValue.ReadOnly.Function =>
+      case _: KeyValue.Function =>
         deadline
 
-      case range: KeyValue.ReadOnly.Range =>
+      case range: KeyValue.Range =>
         range.fetchFromAndRangeValueUnsafe match {
           case (Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
@@ -787,12 +801,12 @@ private[core] object Segment extends LazyLogging {
     }
 
   def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: Transient): Option[Deadline] =
+                         keyValue: Memory): Option[Deadline] =
     keyValue match {
-      case writeOnly: Transient.Fixed =>
+      case writeOnly: Memory.Fixed =>
         FiniteDurations.getNearestDeadline(deadline, writeOnly.deadline)
 
-      case range: Transient.Range =>
+      case range: Memory.Range =>
         (range.fromValue, range.rangeValue) match {
           case (Some(fromValue), rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
@@ -879,7 +893,7 @@ private[core] trait Segment extends FileSweeperItem {
 
   def path: Path
 
-  def put(newKeyValues: Slice[KeyValue.ReadOnly],
+  def put(newKeyValues: Slice[KeyValue],
           minSegmentSize: Long,
           removeDeletes: Boolean,
           createdInLevel: Int,
@@ -902,21 +916,21 @@ private[core] trait Segment extends FileSweeperItem {
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
-  def getFromCache(key: Slice[Byte]): Option[KeyValue.ReadOnly]
+  def getFromCache(key: Slice[Byte]): Option[KeyValue]
 
   def mightContainKey(key: Slice[Byte]): Boolean
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def get(key: Slice[Byte], readState: ReadState): Option[KeyValue.ReadOnly]
+  def get(key: Slice[Byte], readState: ReadState): Option[KeyValue]
 
-  def lower(key: Slice[Byte], readState: ReadState): Option[KeyValue.ReadOnly]
+  def lower(key: Slice[Byte], readState: ReadState): Option[KeyValue]
 
-  def higher(key: Slice[Byte], readState: ReadState): Option[KeyValue.ReadOnly]
+  def higher(key: Slice[Byte], readState: ReadState): Option[KeyValue]
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
 
-  def getAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly]
+  def getAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue]
 
   def delete: Unit
 

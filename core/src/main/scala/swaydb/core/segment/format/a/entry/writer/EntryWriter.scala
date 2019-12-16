@@ -19,24 +19,63 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.{Time, Transient}
+import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
-import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, KeyValueId, TransientToKeyValueIdBinder}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, KeyValueId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
 private[core] object EntryWriter {
 
-  case class WriteResult(indexBytes: Slice[Byte],
-                         valueBytes: Option[Slice[Byte]],
-                         valueStartOffset: Int,
-                         valueEndOffset: Int,
-                         thisKeyValueAccessIndexPosition: Int,
-                         isPrefixCompressed: Boolean) {
-    //TODO check if companion object function unapply returning an Option[Result] is cheaper than this unapply function.
-    def unapply: (Slice[Byte], Option[Slice[Byte]], Int, Int, Int, Boolean) =
-      (indexBytes, valueBytes, valueStartOffset, valueEndOffset, thisKeyValueAccessIndexPosition, isPrefixCompressed)
+  object Builder {
+    def apply(enablePrefixCompression: Boolean,
+              compressDuplicateValues: Boolean,
+              enableAccessPositionIndex: Boolean,
+              bytes: Slice[Byte]): Builder =
+      new Builder(
+        enablePrefixCompression = enablePrefixCompression,
+        compressDuplicateValues = compressDuplicateValues,
+        isValueFullyCompressed = false,
+        enableAccessPositionIndex = enableAccessPositionIndex,
+        bytes = bytes,
+        startValueOffset = 0,
+        endValueOffset = 0,
+        accessPositionIndex = 0,
+        previous = None,
+        isCurrentPrefixCompressed = false,
+        _segmentHasPrefixCompression = false
+      )
+  }
+
+  class Builder(val enablePrefixCompression: Boolean,
+                var compressDuplicateValues: Boolean,
+                //this should be reset to false once the entry is written
+                var isValueFullyCompressed: Boolean,
+                val enableAccessPositionIndex: Boolean,
+                val bytes: Slice[Byte],
+                var startValueOffset: Int,
+                var endValueOffset: Int,
+                var accessPositionIndex: Int,
+                var previous: Option[Memory],
+                //this should be reset to false once the entry is written
+                var isCurrentPrefixCompressed: Boolean,
+                private var _segmentHasPrefixCompression: Boolean) {
+
+    def segmentHasPrefixCompression = _segmentHasPrefixCompression
+
+    def setSegmentHasPrefixCompression() = {
+      //this flag is an indicator for SortedIndex that current write was prefix compressed.
+      //this should be reset with every write by SortedIndex.
+      this.isCurrentPrefixCompressed = true
+      this._segmentHasPrefixCompression = true
+    }
+
+    def nextStartValueOffset: Int =
+      if (endValueOffset == 0)
+        0
+      else
+        endValueOffset + 1
   }
 
   private val tailBytes =
@@ -60,22 +99,15 @@ private[core] object EntryWriter {
    *
    * Note: No extra bytes are required to differentiate between a key that has meta or no meta block.
    *
-   * @param binder                  [[BaseEntryIdFormat]] for this key-value's type.
-   * @param compressDuplicateValues Compresses duplicate values if set to true.
+   * @param binder [[BaseEntryIdFormat]] for this key-value's type.
    * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
    */
-  def write[T <: Transient](current: T,
-                            currentTime: Time,
-                            normaliseToSize: Option[Int],
-                            compressDuplicateValues: Boolean,
-                            enablePrefixCompression: Boolean)(implicit binder: TransientToKeyValueIdBinder[T]): EntryWriter.WriteResult =
+  def write[T <: Memory](current: T,
+                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
     TimeWriter.write(
       current = current,
-      currentTime = currentTime,
-      compressDuplicateValues = compressDuplicateValues,
       entryId = BaseEntryIdFormatA.format.start,
-      enablePrefixCompression = enablePrefixCompression,
-      normaliseToSize = normaliseToSize
+      builder = builder
     )
 
   def maxEntrySize(keySize: Int,

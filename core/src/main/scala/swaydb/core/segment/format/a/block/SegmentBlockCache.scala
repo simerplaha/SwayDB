@@ -360,7 +360,7 @@ class SegmentBlockCache(path: Path,
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
-  def readAll(addTo: Option[Slice[KeyValue.ReadOnly]] = None): Slice[KeyValue.ReadOnly] =
+  def readAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] =
     try {
       var sortedIndexReader = createSortedIndexReader()
       if (sortedIndexReader.isFile) {

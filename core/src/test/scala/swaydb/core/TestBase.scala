@@ -32,7 +32,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestSweeper.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{Memory, Time, Transient}
+import swaydb.core.data.{Memory, Time}
 import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -246,7 +246,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   object TestSegment {
-    def apply(keyValues: Slice[Transient] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
+    def apply(keyValues: Slice[Memory] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
               path: Path = testSegmentFile,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
@@ -254,23 +254,24 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
                                                                                blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                                                segmentIO: SegmentIO = SegmentIO.random): Segment =
-      if (levelStorage.memory)
-        Segment.memory(
-          path = path,
-          segmentId = Effect.fileId(path)._1,
-          keyValues = keyValues,
-          createdInLevel = 0
-        )
-      else
-        Segment.persistent(
-          path = path,
-          segmentId = Effect.fileId(path)._1,
-          createdInLevel = 0,
-          segmentConfig = segmentConfig,
-          mmapReads = levelStorage.mmapSegmentsOnRead,
-          mmapWrites = levelStorage.mmapSegmentsOnWrite,
-          keyValues = keyValues
-        )
+    //      if (levelStorage.memory)
+    //        Segment.memory(
+    //          path = path,
+    //          segmentId = Effect.fileId(path)._1,
+    //          keyValues = keyValues,
+    //          createdInLevel = 0
+    //        )
+    //      else
+    //        Segment.persistent(
+    //          path = path,
+    //          segmentId = Effect.fileId(path)._1,
+    //          createdInLevel = 0,
+    //          segmentConfig = segmentConfig,
+    //          mmapReads = levelStorage.mmapSegmentsOnRead,
+    //          mmapWrites = levelStorage.mmapSegmentsOnWrite,
+    //          keyValues = keyValues
+    //        )
+      ???
   }
 
   object TestLevel {
@@ -709,8 +710,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     ).runThisRandomlyInParallel
   }
 
-  def assertSegment[T](keyValues: Slice[Transient],
-                       assert: (Slice[Transient], Segment) => T,
+  def assertSegment[T](keyValues: Slice[Memory],
+                       assert: (Slice[Memory], Segment) => T,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,

@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.LevelSeek
@@ -64,7 +64,7 @@ private[core] object Lower {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+           functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Lower(key, readState, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   def seeker(key: Slice[Byte],
@@ -74,7 +74,7 @@ private[core] object Lower {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   currentWalker: CurrentWalker,
                                   nextWalker: NextWalker,
-                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] =
+                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Lower(key, readState, currentSeek, nextSeek)
 
   /**
@@ -92,7 +92,7 @@ private[core] object Lower {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]] = {
+                                 functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] = {
 
     import keyOrder._
     currentSeek match {
@@ -118,7 +118,7 @@ private[core] object Lower {
             current match {
               //   19   (input key - exclusive)
               //10 - 20 (lower range from current Level)
-              case currentRange: ReadOnly.Range if key < currentRange.toKey =>
+              case currentRange: KeyValue.Range if key < currentRange.toKey =>
                 IO(currentRange.fetchRangeValueUnsafe) match {
                   case IO.Right(rangeValue) =>
                     //if the current range is active fetch the lowest from next Level and return lowest from both Levels.
@@ -167,7 +167,7 @@ private[core] object Lower {
 
               //     20 (input key - inclusive)
               //10 - 20 (lower range from current Level)
-              case currentRange: ReadOnly.Range if key equiv currentRange.toKey =>
+              case currentRange: KeyValue.Range if key equiv currentRange.toKey =>
                 //lower level could also contain a toKey but toKey is exclusive to merge is not required but lower level is read is required.
                 nextWalker.lower(key, readState).toIO match {
                   case IO.Right(Some(nextFromKey)) =>
@@ -182,7 +182,7 @@ private[core] object Lower {
 
               //             22 (input key)
               //    10 - 20     (lower range)
-              case _: KeyValue.ReadOnly.Range =>
+              case _: KeyValue.Range =>
                 nextWalker.lower(key, readState).toIO match {
                   case IO.Right(Some(next)) =>
                     Lower(key, readState, currentStash, Seek.Next.Stash(next))
@@ -194,7 +194,7 @@ private[core] object Lower {
                     failure recoverTo Lower.seeker(key, readState, currentSeek, nextSeek)
                 }
 
-              case _: ReadOnly.Fixed =>
+              case _: KeyValue.Fixed =>
                 nextWalker.lower(key, readState).toIO match {
                   case IO.Right(Some(next)) =>
                     Lower(key, readState, currentStash, Seek.Next.Stash(next))
@@ -216,14 +216,14 @@ private[core] object Lower {
                * ******************         *******************
                * **********************************************/
 
-              case (current: KeyValue.ReadOnly.Fixed, next: KeyValue.ReadOnly.Fixed) =>
+              case (current: KeyValue.Fixed, next: KeyValue.Fixed) =>
                 //    2
                 //    2
                 if (next.key equiv current.key)
                   IO(FixedMerger(current, next)) match {
                     case IO.Right(merged) =>
                       merged match {
-                        case put: ReadOnly.Put if put.hasTimeLeft() =>
+                        case put: KeyValue.Put if put.hasTimeLeft() =>
                           IO.Defer(Some(put))
 
                         case _ =>
@@ -237,7 +237,7 @@ private[core] object Lower {
                 //    1          (next)
                 else if (current.key > next.key)
                   current match {
-                    case put: ReadOnly.Put if put.hasTimeLeft() =>
+                    case put: KeyValue.Put if put.hasTimeLeft() =>
                       IO.Defer(Some(put))
 
                     //if it doesn't result in an unexpired put move forward.
@@ -256,7 +256,7 @@ private[core] object Lower {
                * ******************       ********************
                * *********************************************
                * *********************************************/
-              case (current: KeyValue.ReadOnly.Range, next: KeyValue.ReadOnly.Fixed) =>
+              case (current: KeyValue.Range, next: KeyValue.Fixed) =>
                 //             22 (input)
                 //10 - 20         (current)
                 //     20 - 21    (next)
@@ -272,7 +272,7 @@ private[core] object Lower {
                       IO(FixedMerger(rangeValue.toMemory(next.key), next)) match {
                         case IO.Right(mergedCurrent) =>
                           mergedCurrent match {
-                            case put: ReadOnly.Put if put.hasTimeLeft() =>
+                            case put: KeyValue.Put if put.hasTimeLeft() =>
                               IO.Defer(Some(put))
 
                             case _ =>
@@ -343,25 +343,25 @@ private[core] object Lower {
 
           case Seek.Next.Stop =>
             current match {
-              case current: KeyValue.ReadOnly.Put =>
+              case current: KeyValue.Put =>
                 if (current.hasTimeLeft())
                   IO.Defer(Some(current))
                 else
                   Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.Remove =>
+              case _: KeyValue.Remove =>
                 Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.Update =>
+              case _: KeyValue.Update =>
                 Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.Function =>
+              case _: KeyValue.Function =>
                 Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case _: KeyValue.ReadOnly.PendingApply =>
+              case _: KeyValue.PendingApply =>
                 Lower(current.key, readState, Seek.Current.Read(segmentId), nextSeek)
 
-              case current: KeyValue.ReadOnly.Range =>
+              case current: KeyValue.Range =>
                 IO(current.fetchFromValueUnsafe) match {
                   case IO.Right(fromValue) =>
                     lowerFromValue(key, current.fromKey, fromValue) match {

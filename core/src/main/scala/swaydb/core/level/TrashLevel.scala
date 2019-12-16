@@ -125,10 +125,10 @@ private[core] object TrashLevel extends NextLevel {
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.ReadOnly.Put]] =
+  override def ceiling(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
     IO.Defer.none
 
-  override def floor(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.ReadOnly.Put]] =
+  override def floor(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
     IO.Defer.none
 
   override def headKey(readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =

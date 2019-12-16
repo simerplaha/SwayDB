@@ -27,7 +27,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.data.{SwayFunctionOutput, Value}
 import swaydb.core.segment.ReadState
 import swaydb.core.{TestData, TestTimer}
@@ -264,7 +264,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val busy = swaydb.Error.ReservedResource(Reserve.busy((), "test"))
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning Some(randomPendingApplyKeyValue(1))
-        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO.Defer[swaydb.Error.Level, Option[ReadOnly.Put]](Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))), busy)
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]](Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))), busy)
 
         val io = Get(1, ReadState.random)
 

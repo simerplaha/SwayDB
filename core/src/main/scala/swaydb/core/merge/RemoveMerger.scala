@@ -19,7 +19,7 @@
 
 package swaydb.core.merge
 
-import swaydb.core.data.KeyValue.ReadOnly
+import swaydb.core.data.KeyValue
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.order.TimeOrder
@@ -27,8 +27,8 @@ import swaydb.data.slice.Slice
 
 private[core] object RemoveMerger {
 
-  def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: ReadOnly.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]]): ReadOnly.Remove =
+  def apply(newKeyValue: KeyValue.Remove,
+            oldKeyValue: KeyValue.Remove)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Remove =
     if (newKeyValue.time > oldKeyValue.time)
       (newKeyValue.deadline, oldKeyValue.deadline) match {
         case (None, _) =>
@@ -43,8 +43,8 @@ private[core] object RemoveMerger {
     else
       oldKeyValue
 
-  def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: ReadOnly.Put)(implicit timeOrder: TimeOrder[Slice[Byte]]): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.Remove,
+            oldKeyValue: KeyValue.Put)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case Some(_) =>
@@ -56,8 +56,8 @@ private[core] object RemoveMerger {
     else
       oldKeyValue
 
-  def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: ReadOnly.Update)(implicit timeOrder: TimeOrder[Slice[Byte]]): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.Remove,
+            oldKeyValue: KeyValue.Update)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case Some(_) =>
@@ -69,8 +69,8 @@ private[core] object RemoveMerger {
     else
       oldKeyValue
 
-  def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: ReadOnly.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.Remove,
+            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue.deadline match {
         case None =>
@@ -85,8 +85,8 @@ private[core] object RemoveMerger {
     else
       oldKeyValue
 
-  def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.Remove,
+            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: Value.Remove =>
@@ -101,9 +101,9 @@ private[core] object RemoveMerger {
     else
       oldKeyValue.toMemory(newKeyValue.key)
 
-  def apply(newer: ReadOnly.Remove,
-            older: ReadOnly.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): ReadOnly.Fixed =
+  def apply(newer: KeyValue.Remove,
+            older: KeyValue.PendingApply)(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                          functionStore: FunctionStore): KeyValue.Fixed =
     if (newer.time > older.time)
       newer.deadline match {
         case Some(_) =>
@@ -118,16 +118,16 @@ private[core] object RemoveMerger {
     else
       older
 
-  def apply(newKeyValue: ReadOnly.Remove,
-            oldKeyValue: ReadOnly.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                         functionStore: FunctionStore): ReadOnly.Fixed =
+  def apply(newKeyValue: KeyValue.Remove,
+            oldKeyValue: KeyValue.Fixed)(implicit timeOrder: TimeOrder[Slice[Byte]],
+                                         functionStore: FunctionStore): KeyValue.Fixed =
   //@formatter:off
     oldKeyValue match {
-      case oldKeyValue: ReadOnly.Put =>             RemoveMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: ReadOnly.Remove =>          RemoveMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: ReadOnly.Update =>          RemoveMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: ReadOnly.Function =>        RemoveMerger(newKeyValue, oldKeyValue)
-      case oldKeyValue: ReadOnly.PendingApply =>    RemoveMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Put =>             RemoveMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Remove =>          RemoveMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Update =>          RemoveMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.Function =>        RemoveMerger(newKeyValue, oldKeyValue)
+      case oldKeyValue: KeyValue.PendingApply =>    RemoveMerger(newKeyValue, oldKeyValue)
     }
   //@formatter:on
 

@@ -19,10 +19,10 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.Transient
-import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
+import swaydb.core.data.Memory
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
+import swaydb.core.util.Bytes
 import swaydb.core.util.Options._
-import swaydb.core.util.{Bytes, Options}
 import swaydb.data.slice.Slice
 
 private[core] object KeyWriter {
@@ -30,137 +30,97 @@ private[core] object KeyWriter {
   /**
    * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
    */
-  def write(current: Transient,
-            plusSize: Int,
-            deadlineId: BaseEntryId.Deadline,
-            enablePrefixCompression: Boolean,
-            hasPrefixCompression: Boolean,
-            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) =
-    when(enablePrefixCompression)(current.previous) flatMap {
+  def write(current: Memory,
+            builder: EntryWriter.Builder,
+            deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+    when(builder.enablePrefixCompression)(builder.previous) flatMap {
       previous =>
         writeCompressed(
           current = current,
-          plusSize = plusSize,
+          builder = builder,
           deadlineId = deadlineId,
-          previous = previous,
-          hasPrefixCompression = hasPrefixCompression,
-          normaliseToSize = normaliseToSize
+          previous = previous
         )
     } getOrElse {
       writeUncompressed(
         current = current,
-        plusSize = plusSize,
-        deadlineId = deadlineId,
-        hasPrefixCompression = hasPrefixCompression,
-        normaliseToSize = normaliseToSize
+        builder = builder,
+        deadlineId = deadlineId
       )
     }
 
-  private def writeCompressed(current: Transient,
-                              plusSize: Int,
+  private def writeCompressed(current: Memory,
+                              builder: EntryWriter.Builder,
                               deadlineId: BaseEntryId.Deadline,
-                              previous: Transient,
-                              hasPrefixCompression: Boolean,
-                              normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean, Option[Int])] =
+                              previous: Memory)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
     Bytes.compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 3) map {
       case (commonBytes, remainingBytes) =>
         write(
           current = current,
+          builder = builder,
           commonBytes = commonBytes,
           headerBytes = remainingBytes,
-          plusSize = plusSize,
           deadlineId = deadlineId,
-          isKeyCompressed = true,
-          hasPrefixCompression = hasPrefixCompression,
-          normaliseToSize = normaliseToSize
+          isKeyCompressed = true
         )
     }
 
-  private def writeUncompressed(current: Transient,
-                                plusSize: Int,
-                                deadlineId: BaseEntryId.Deadline,
-                                hasPrefixCompression: Boolean,
-                                normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) = {
+  private def writeUncompressed(current: Memory,
+                                builder: EntryWriter.Builder,
+                                deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
 
     write(
       current = current,
+      builder = builder,
       commonBytes = -1,
       headerBytes = current.mergedKey,
-      plusSize = plusSize,
       deadlineId = deadlineId,
-      isKeyCompressed = false,
-      hasPrefixCompression = hasPrefixCompression,
-      normaliseToSize = normaliseToSize
+      isKeyCompressed = false
     )
-  }
 
-  private def write(current: Transient,
+  private def write(current: Memory,
+                    builder: EntryWriter.Builder,
                     commonBytes: Int,
                     headerBytes: Slice[Byte],
-                    plusSize: Int,
                     deadlineId: BaseEntryId.Deadline,
-                    isKeyCompressed: Boolean,
-                    hasPrefixCompression: Boolean,
-                    normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) = {
+                    isKeyCompressed: Boolean)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
     val id =
       binder.keyValueId.adjustBaseIdToKeyValueIdKey(
         baseId = deadlineId.baseId,
         isKeyCompressed = isKeyCompressed
       )
 
-    val isPrefixCompressed = hasPrefixCompression || isKeyCompressed
+    if(isKeyCompressed)
+      builder.setSegmentHasPrefixCompression()
 
-    val sortedIndexAccessPosition = getAccessIndexPosition(current, isPrefixCompressed)
-    val sortedIndexAccessPositionSize = sortedIndexAccessPosition.valueOrElse(Bytes.sizeOfUnsignedInt, 0)
+    val sortedIndexAccessPosition =
+      if (builder.enableAccessPositionIndex)
+        if (builder.isCurrentPrefixCompressed)
+          builder.accessPositionIndex
+        else
+          builder.accessPositionIndex + 1
+      else
+        -1
 
     val byteSizeOfCommonBytes = Bytes.sizeOfUnsignedInt(commonBytes)
 
-    val requiredSpace =
-      if (normaliseToSize.isDefined)
-        normaliseToSize.get
-      else if (isKeyCompressed)
-        Bytes.sizeOfUnsignedInt(id) +
-          //keySize includes the size of the commonBytes and the key. This is so that when reading key-value in
-          //SortedIndexBlock and estimating max entry size the commonBytes are also accounted. This also makes it
-          //easy parsing key in KeyReader.
-          Bytes.sizeOfUnsignedInt(headerBytes.size + byteSizeOfCommonBytes) +
-          byteSizeOfCommonBytes +
-          headerBytes.size +
-          sortedIndexAccessPositionSize +
-          plusSize
-      else
-        Bytes.sizeOfUnsignedInt(id) +
-          Bytes.sizeOfUnsignedInt(headerBytes.size) +
-          headerBytes.size +
-          sortedIndexAccessPositionSize +
-          plusSize
-
-    val bytes = Slice.create[Byte](length = requiredSpace, isFull = normaliseToSize.isDefined)
-
-    if (normaliseToSize.isDefined) bytes moveWritePosition 0
-
     if (isKeyCompressed) {
-      bytes addUnsignedInt (headerBytes.size + byteSizeOfCommonBytes)
-      bytes addUnsignedInt commonBytes
+      //keySize includes the size of the commonBytes and the key. This is so that when reading key-value in
+      //SortedIndexBlock and estimating max entry size the commonBytes are also accounted. This also makes it
+      //easy parsing key in KeyReader.
+      builder.bytes addUnsignedInt (headerBytes.size + byteSizeOfCommonBytes)
+      builder.bytes addUnsignedInt commonBytes
     } else {
-      bytes addUnsignedInt headerBytes.size
+      builder.bytes addUnsignedInt headerBytes.size
     }
 
-    bytes addAll headerBytes
+    builder.bytes addAll headerBytes
 
-    bytes addUnsignedInt id
+    builder.bytes addUnsignedInt id
 
-    sortedIndexAccessPosition foreach bytes.addUnsignedInt
-
-    (bytes, isPrefixCompressed, sortedIndexAccessPosition)
+    if (sortedIndexAccessPosition > 0) {
+      builder.bytes addUnsignedInt sortedIndexAccessPosition
+      builder.accessPositionIndex = sortedIndexAccessPosition
+    }
   }
-
-  def getAccessIndexPosition(current: Transient, isPrefixCompressed: Boolean): Option[Int] =
-    if (current.sortedIndexConfig.enableAccessPositionIndex)
-      if (isPrefixCompressed)
-        current.previous.map(_.thisKeyValueAccessIndexPosition) orElse Options.one
-      else
-        current.previous.map(_.thisKeyValueAccessIndexPosition + 1) orElse Options.one
-    else
-      None
 }

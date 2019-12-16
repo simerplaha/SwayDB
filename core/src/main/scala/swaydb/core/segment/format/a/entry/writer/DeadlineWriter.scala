@@ -20,38 +20,33 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import swaydb.IO
-import swaydb.core.data.Transient
+import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.DeadlineId
-import swaydb.core.segment.format.a.entry.id.{BaseEntryId, TransientToKeyValueIdBinder}
+import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.core.util.Options._
 import swaydb.core.util.Times._
-import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
 private[writer] object DeadlineWriter {
 
-  private[writer] def write(current: Transient,
-                            deadlineId: DeadlineId,
-                            enablePrefixCompression: Boolean,
-                            plusSize: Int,
-                            hasPrefixCompression: Boolean,
-                            normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) = {
+  private[writer] def write(current: Memory,
+                            builder: EntryWriter.Builder,
+                            deadlineId: DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
     val currentDeadline = current.deadline
-    val previousDeadline = current.previous.flatMap(_.deadline)
+    val previousDeadline = builder.previous.flatMap(_.deadline)
 
     currentDeadline match {
       case Some(currentDeadline) =>
-        when(enablePrefixCompression && !current.sortedIndexConfig.prefixCompressKeysOnly)(previousDeadline) flatMap {
+        when(builder.enablePrefixCompression)(previousDeadline) flatMap {
           previousDeadline =>
             compress(
               current = current,
               currentDeadline = currentDeadline,
               previousDeadline = previousDeadline,
               deadlineId = deadlineId,
-              plusSize = plusSize,
-              normaliseToSize = normaliseToSize
+              builder = builder
             )
         } getOrElse {
           //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
@@ -59,10 +54,7 @@ private[writer] object DeadlineWriter {
             current = current,
             currentDeadline = currentDeadline,
             deadlineId = deadlineId,
-            plusSize = plusSize,
-            hasPrefixCompression = hasPrefixCompression,
-            enablePrefixCompression = enablePrefixCompression,
-            normaliseToSize = normaliseToSize
+            builder = builder
           )
         }
 
@@ -70,10 +62,7 @@ private[writer] object DeadlineWriter {
         noDeadline(
           current = current,
           deadlineId = deadlineId,
-          plusSize = plusSize,
-          hasPrefixCompression = hasPrefixCompression,
-          enablePrefixCompression = enablePrefixCompression,
-          normaliseToSize = normaliseToSize
+          builder = builder
         )
     }
   }
@@ -99,38 +88,28 @@ private[writer] object DeadlineWriter {
     else
       throw IO.throwable(s"Fatal exception: commonBytes = $commonBytes, deadlineId: ${deadlineId.getClass.getName}")
 
-  private[writer] def uncompressed(current: Transient,
+  private[writer] def uncompressed(current: Memory,
                                    currentDeadline: Deadline,
                                    deadlineId: DeadlineId,
-                                   plusSize: Int,
-                                   hasPrefixCompression: Boolean,
-                                   enablePrefixCompression: Boolean,
-                                   normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) = {
+                                   builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
     //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
     val deadlineLong = currentDeadline.toNanos
     val deadline = deadlineId.deadlineUncompressed
 
-    val (bytes, compressed, accessPosition) =
-      KeyWriter.write(
-        current = current,
-        plusSize = Bytes.sizeOfUnsignedLong(deadlineLong) + plusSize,
-        deadlineId = deadline,
-        enablePrefixCompression = enablePrefixCompression,
-        hasPrefixCompression = hasPrefixCompression,
-        normaliseToSize = normaliseToSize
-      )
+    KeyWriter.write(
+      current = current,
+      builder = builder,
+      deadlineId = deadline
+    )
 
-    bytes addUnsignedLong deadlineLong
-
-    (bytes, compressed, accessPosition)
+    builder.bytes addUnsignedLong deadlineLong
   }
 
-  private[writer] def compress(current: Transient,
+  private[writer] def compress(current: Memory,
                                currentDeadline: Deadline,
                                previousDeadline: Deadline,
                                deadlineId: DeadlineId,
-                               plusSize: Int,
-                               normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): Option[(Slice[Byte], Boolean, Option[Int])] =
+                               builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
     Bytes.compress(
       previous = previousDeadline.toBytes,
       next = currentDeadline.toBytes,
@@ -139,33 +118,23 @@ private[writer] object DeadlineWriter {
       case (deadlineCommonBytes, deadlineCompressedBytes) =>
         val deadline = applyDeadlineId(deadlineCommonBytes, deadlineId)
 
-        val (bytes, _, accessPosition) =
-          KeyWriter.write(
-            current = current,
-            plusSize = deadlineCompressedBytes.size + plusSize,
-            deadlineId = deadline,
-            enablePrefixCompression = true,
-            hasPrefixCompression = true,
-            normaliseToSize = normaliseToSize
-          )
+        builder.setSegmentHasPrefixCompression()
 
-        bytes addAll deadlineCompressedBytes
+        KeyWriter.write(
+          current = current,
+          builder = builder,
+          deadlineId = deadline
+        )
 
-        (bytes, true, accessPosition)
+        builder.bytes addAll deadlineCompressedBytes
     }
 
-  private[writer] def noDeadline(current: Transient,
+  private[writer] def noDeadline(current: Memory,
                                  deadlineId: DeadlineId,
-                                 plusSize: Int,
-                                 hasPrefixCompression: Boolean,
-                                 enablePrefixCompression: Boolean,
-                                 normaliseToSize: Option[Int])(implicit binder: TransientToKeyValueIdBinder[_]): (Slice[Byte], Boolean, Option[Int]) =
+                                 builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
     KeyWriter.write(
       current = current,
-      plusSize = plusSize,
-      deadlineId = deadlineId.noDeadline,
-      enablePrefixCompression = enablePrefixCompression,
-      hasPrefixCompression = hasPrefixCompression,
-      normaliseToSize = normaliseToSize
+      builder = builder,
+      deadlineId = deadlineId.noDeadline
     )
 }

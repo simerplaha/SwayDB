@@ -19,27 +19,27 @@
 
 package swaydb.core.level
 
-object MergeResult {
+object CompactionResult {
 
-  val `false` = MergeResult(false)
-  val `true` = MergeResult(true)
+  val `false` = CompactionResult(false)
+  val `true` = CompactionResult(true)
 
-  def apply[T](value: T): MergeResult[T] =
-    new MergeResult[T](
+  def apply[T](value: T): CompactionResult[T] =
+    new CompactionResult[T](
       levelsUpdated = Set.empty,
       value = value
     )
 
   def apply[T](value: T,
-               levelsUpdated: Set[Int]): MergeResult[T] =
-    new MergeResult[T](
+               levelsUpdated: Set[Int]): CompactionResult[T] =
+    new CompactionResult[T](
       value = value,
       levelsUpdated = levelsUpdated
     )
 
   def apply[T](value: T,
-               levelUpdated: Int): MergeResult[T] =
-    new MergeResult[T](
+               levelUpdated: Int): CompactionResult[T] =
+    new CompactionResult[T](
       value = value,
       levelsUpdated = Set(levelUpdated)
     )
@@ -48,16 +48,16 @@ object MergeResult {
 /**
  * Maintains the state of all levels that were updated during the merge and the merge outcome.
  */
-class MergeResult[T](val value: T,
-                     val levelsUpdated: Set[Int]) {
-  def transform[B](f: T => B): MergeResult[B] =
-    MergeResult(
+class CompactionResult[T](val value: T,
+                          val levelsUpdated: Set[Int]) {
+  def transform[B](f: T => B): CompactionResult[B] =
+    CompactionResult(
       value = f(value),
       levelsUpdated = levelsUpdated
     )
 
-  def updateValue[B](value: B): MergeResult[B] =
-    MergeResult(
+  def updateValue[B](value: B): CompactionResult[B] =
+    CompactionResult(
       value = value,
       levelsUpdated = levelsUpdated
     )

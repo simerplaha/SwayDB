@@ -35,9 +35,12 @@ private[swaydb] object Options {
 
   implicit class OptionsImplicits[A](option: Option[A]) {
     @inline def valueOrElse[B](value: A => B, orElse: => B): B =
-      if (option.isDefined)
-        value(option.get)
-      else
-        orElse
+      Options.valueOrElse[A, B](option, value, orElse)
   }
+
+  @inline def valueOrElse[A, B](option: Option[A], value: A => B, orElse: => B): B =
+    if (option.isDefined)
+      value(option.get)
+    else
+      orElse
 }

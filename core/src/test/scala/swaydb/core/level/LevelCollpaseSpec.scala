@@ -116,7 +116,7 @@ sealed trait LevelCollapseSpec extends TestBase {
 
           assertAllSegmentsCreatedInLevel(level)
 
-          val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty).toMemory
+          val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)(TestTimer.Empty)
           level.putKeyValuesTest(keyValues).runRandomIO.right.value
           //dispatch another push to trigger split
           level.putKeyValuesTest(Slice(keyValues.head)).runRandomIO.right.value
@@ -187,7 +187,7 @@ sealed trait LevelCollapseSpec extends TestBase {
     val level = TestLevel(segmentSize = 1.kb)
 
     val keyValues = randomPutKeyValues(keyValuesCount, addExpiredPutDeadlines = false)
-    val maps = TestMap(keyValues.toMemory)
+    val maps = TestMap(keyValues)
     level.put(maps).right.right.value.right.value
 
     val nextLevel = TestLevel()

@@ -29,12 +29,12 @@ trait NextWalker extends NextGetter {
   def levelNumber: String
 
   def higher(key: Slice[Byte],
-             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def lower(key: Slice[Byte],
-            readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+            readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def get(key: Slice[Byte],
-          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.ReadOnly.Put]]
+          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
 }

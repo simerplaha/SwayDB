@@ -47,7 +47,7 @@
 //        startId = Some(1),
 //        addPut = true,
 //        addGroups = false
-//      ).updateStats(
+//      )(
 //        valuesConfig =
 //          ValuesBlock.Config(
 //            compressDuplicateValues = randomBoolean(),
