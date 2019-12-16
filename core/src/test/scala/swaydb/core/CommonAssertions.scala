@@ -491,12 +491,6 @@ object CommonAssertions {
       actual foreach (_.shouldBeSliced())
   }
 
-  implicit class StatsOptionImplicits(actual: Option[Stats]) {
-    def shouldBe(expected: Option[Stats], ignoreValueOffset: Boolean = false) =
-      if (actual.isDefined && expected.isDefined)
-        actual.value shouldBe(expected.value, ignoreValueOffset)
-  }
-
   implicit class PersistentKeyValueOptionImplicits(actual: Option[Persistent]) {
     def shouldBe(expected: Option[Persistent]) = {
       actual.isDefined shouldBe expected.isDefined
@@ -1581,6 +1575,7 @@ object CommonAssertions {
               case _ =>
                 false
             }
+
           case result: Result.AheadOrNoneOrEnd =>
             other match {
               case other: Result.AheadOrNoneOrEnd =>

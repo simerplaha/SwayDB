@@ -1613,39 +1613,6 @@ object TestData {
       Lower(key, ReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
-  def randomStats(unmergedKeySize: Int = randomIntMax(10000000),
-                  mergedKeySize: Int = randomIntMax(10000000),
-                  indexEntry: Slice[Byte] = randomBytesSlice(),
-                  value: Option[Slice[Byte]] = randomBytesSliceOption(),
-                  isRemoveRange: Boolean = randomBoolean(),
-                  isRange: Boolean = randomBoolean(),
-                  isPut: Boolean = randomBoolean(),
-                  isPrefixCompressed: Boolean = randomBoolean(),
-                  sortedIndex: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-                  bloomFilter: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                  hashIndex: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                  binarySearch: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
-                  values: ValuesBlock.Config = ValuesBlock.Config.random,
-                  previousStats: Option[Stats] = None,
-                  deadline: Option[Deadline] = randomDeadlineOption()): Stats =
-    Stats(
-      unmergedKeySize = unmergedKeySize,
-      mergedKeySize = mergedKeySize,
-      indexEntry = indexEntry,
-      value = value,
-      isRemoveRange = isRemoveRange,
-      isRange = isRange,
-      isPut = isPut,
-      isPrefixCompressed = isPrefixCompressed,
-      sortedIndex = sortedIndex,
-      bloomFilter = bloomFilter,
-      hashIndex = hashIndex,
-      binarySearch = binarySearch,
-      values = values,
-      previousStats = previousStats,
-      deadline = deadline
-    )
-
   def randomFalsePositiveRate() =
     Random.nextDouble()
 
