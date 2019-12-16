@@ -450,26 +450,21 @@ abstract class SliceBase[+T](array: Array[T],
   /**
    * @return A tuple2 where _1 is written bytes and _2 is tail unwritten bytes.
    */
-  def closeWritten(): (Slice[T], Slice[T]) = {
-    val closed = this.close()
-    val from = fromOffset + closed.size
+  def splitUnwritten(): (Slice[T], Slice[T]) =
+    (this.close(), unwrittenTail())
 
-    val empty =
-      if (from > toOffset)
-        Slice.empty[T]
-      else
-        new Slice[T](
-          array = array,
-          fromOffset = fromOffset + closed.size,
-          toOffset = toOffset,
-          written = 0
-        )
-
-    (closed, empty)
+  def unwrittenTail(): Slice[T] = {
+    val from = fromOffset + size
+    if (from > toOffset)
+      Slice.empty[T]
+    else
+      new Slice[T](
+        array = array,
+        fromOffset = from,
+        toOffset = toOffset,
+        written = 0
+      )
   }
-
-  def unwrittenTail(): Slice[T] =
-    closeWritten()._2
 
   def copy() =
     new Slice[T](

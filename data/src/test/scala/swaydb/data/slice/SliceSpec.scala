@@ -945,7 +945,7 @@ class SliceSpec extends WordSpec with Matchers {
   "closeWritten" when {
     "empty" in {
       val slice = Slice.empty[Int]
-      val (left, right) = slice.closeWritten()
+      val (left, right) = slice.splitUnwritten()
 
       left.isEmpty shouldBe true
       left.underlyingArraySize shouldBe 0
@@ -958,7 +958,7 @@ class SliceSpec extends WordSpec with Matchers {
 
     "return empty for unwritten bytes" in {
       val slice = Slice.create[Int](10)
-      val (left, right) = slice.closeWritten()
+      val (left, right) = slice.splitUnwritten()
 
       left.isEmpty shouldBe true
       left.underlyingArraySize shouldBe 0
@@ -970,7 +970,7 @@ class SliceSpec extends WordSpec with Matchers {
       right add 1
       right should contain only 1
 
-      val (written, unwritten) = right.closeWritten()
+      val (written, unwritten) = right.splitUnwritten()
       written should contain only 1
       unwritten.underlyingArraySize shouldBe 10
       unwritten.currentWritePosition shouldBe 1
@@ -984,7 +984,7 @@ class SliceSpec extends WordSpec with Matchers {
 
       (1 to 5) foreach slice.add
 
-      val (written, unwritten) = slice.closeWritten()
+      val (written, unwritten) = slice.splitUnwritten()
 
       written.size shouldBe 5
       written should contain allElementsOf (1 to 5)
@@ -995,7 +995,7 @@ class SliceSpec extends WordSpec with Matchers {
       unwritten add 7
       unwritten should contain only(6, 7)
 
-      val (written2, unwritten2) = unwritten.closeWritten()
+      val (written2, unwritten2) = unwritten.splitUnwritten()
       written2 should contain only(6, 7)
       unwritten2.underlyingArraySize shouldBe 10
       unwritten2.currentWritePosition shouldBe 7
@@ -1003,14 +1003,14 @@ class SliceSpec extends WordSpec with Matchers {
       unwritten2 add 9
       unwritten2 should contain only(8, 9)
 
-      val (written3, unwritten4) = unwritten2.closeWritten()
+      val (written3, unwritten4) = unwritten2.splitUnwritten()
       written3 should contain only(8, 9)
       unwritten4.underlyingArraySize shouldBe 10
       unwritten4.currentWritePosition shouldBe 9
       unwritten4 add 10
       unwritten4 should contain only 10
 
-      val (written4, unwritten5) = unwritten4.closeWritten()
+      val (written4, unwritten5) = unwritten4.splitUnwritten()
       written4 should contain only 10
       unwritten5.underlyingArraySize shouldBe 0
       assertThrows[ArrayIndexOutOfBoundsException] {
