@@ -25,11 +25,21 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBin
 import swaydb.core.util.{Bytes, Options}
 import swaydb.data.slice.Slice
 
-private[writer] object ValueWriter {
+private[a] sealed trait ValueWriter {
+  def write[T <: Memory](current: T,
+                         entryId: BaseEntryId.Time,
+                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                       keyWriter: KeyWriter,
+                                                       deadlineWriter: DeadlineWriter): Unit
+}
 
-  def write[T](current: Memory,
-               entryId: BaseEntryId.Time,
-               builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
+private[a] object ValueWriter extends ValueWriter {
+
+  def write[T <: Memory](current: T,
+                         entryId: BaseEntryId.Time,
+                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                       keyWriter: KeyWriter,
+                                                       deadlineWriter: DeadlineWriter): Unit =
     if (current.value.forall(_.isEmpty))
       noValue(
         current = current,
@@ -55,10 +65,12 @@ private[writer] object ValueWriter {
           )
       }
 
-  private def compress[T](current: Memory,
-                          previous: Memory,
-                          entryId: BaseEntryId.Time,
-                          builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
+  private def compress[T <: Memory](current: T,
+                                    previous: Memory,
+                                    entryId: BaseEntryId.Time,
+                                    builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                  keyWriter: KeyWriter,
+                                                                  deadlineWriter: DeadlineWriter): Unit =
     if (builder.compressDuplicateValues) //check if values are the same.
       duplicateValue(
         current = current,
@@ -81,10 +93,12 @@ private[writer] object ValueWriter {
         entryId = entryId
       )
 
-  private def partialCompress[T](current: Memory,
-                                 previous: Memory,
-                                 entryId: BaseEntryId.Time,
-                                 builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
+  private def partialCompress[T <: Memory](current: T,
+                                           previous: Memory,
+                                           entryId: BaseEntryId.Time,
+                                           builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                         keyWriter: KeyWriter,
+                                                                         deadlineWriter: DeadlineWriter): Unit =
     if (builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)
       (Memory.compressibleValue(current), Memory.compressibleValue(previous)) match {
         case (Some(currentValue), Some(previousValue)) =>
@@ -119,10 +133,12 @@ private[writer] object ValueWriter {
         builder = builder
       )
 
-  private def uncompressed(current: Memory,
-                           currentValue: Option[Slice[Byte]],
-                           entryId: BaseEntryId.Time,
-                           builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
+  private def uncompressed[T <: Memory](current: T,
+                                        currentValue: Option[Slice[Byte]],
+                                        entryId: BaseEntryId.Time,
+                                        builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                      keyWriter: KeyWriter,
+                                                                      deadlineWriter: DeadlineWriter): Unit = {
     //if previous does not exists write full offsets and then write deadline.
     val currentValueSize = currentValue.foldLeft(0)(_ + _.size)
     val currentValueOffset = builder.nextStartValueOffset
@@ -130,7 +146,7 @@ private[writer] object ValueWriter {
     builder.startValueOffset = currentValueOffset
     builder.endValueOffset = currentValueOffset + currentValueSize - 1
 
-    DeadlineWriter.write(
+    deadlineWriter.write(
       current = current,
       builder = builder,
       deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed
@@ -144,26 +160,30 @@ private[writer] object ValueWriter {
 
   //if there is no value then write deadline.
   //since there is no value, offsets will continue from previous key-values offset.
-  private def noValue(current: Memory,
-                      entryId: BaseEntryId.Time,
-                      builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
-    DeadlineWriter.write(
+  private def noValue[T <: Memory](current: T,
+                                   entryId: BaseEntryId.Time,
+                                   builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                 keyWriter: KeyWriter,
+                                                                 deadlineWriter: DeadlineWriter): Unit =
+    deadlineWriter.write(
       current = current,
       deadlineId = entryId.noValue,
       builder = builder
     )
 
-  private def duplicateValue(current: Memory,
-                             previous: Memory,
-                             entryId: BaseEntryId.Time,
-                             builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
+  private def duplicateValue[T <: Memory](current: T,
+                                          previous: Memory,
+                                          entryId: BaseEntryId.Time,
+                                          builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                        keyWriter: KeyWriter,
+                                                                        deadlineWriter: DeadlineWriter): Option[Unit] =
     Options.when(Memory.hasSameValue(previous, current)) { //no need to serialised values and then compare. Simply compare the value objects and check for equality.
       if (builder.enablePrefixCompression && !builder.prefixCompressKeysOnly) {
         //values are the same, no need to write offset & length, jump straight to deadline.
         builder.setSegmentHasPrefixCompression()
         builder.isValueFullyCompressed = true
 
-        DeadlineWriter.write(
+        deadlineWriter.write(
           current = current,
           builder = builder,
           deadlineId = entryId.valueFullyCompressed.valueOffsetFullyCompressed.valueLengthFullyCompressed
@@ -174,7 +194,7 @@ private[writer] object ValueWriter {
         //this need to reset to true after value is written to values block.
         builder.isValueFullyCompressed = true
 
-        DeadlineWriter.write(
+        deadlineWriter.write(
           current = current,
           deadlineId = entryId.valueFullyCompressed.valueOffsetUncompressed.valueLengthUncompressed,
           builder = builder
@@ -189,11 +209,13 @@ private[writer] object ValueWriter {
       Options.unit
     }
 
-  private def partialCompress(current: Memory,
-                              entryId: BaseEntryId.Time,
-                              currentValue: Slice[Byte],
-                              builder: EntryWriter.Builder,
-                              previousValue: Slice[Byte])(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+  private def partialCompress[T <: Memory](current: T,
+                                           entryId: BaseEntryId.Time,
+                                           currentValue: Slice[Byte],
+                                           builder: EntryWriter.Builder,
+                                           previousValue: Slice[Byte])(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                       keyWriter: KeyWriter,
+                                                                       deadlineWriter: DeadlineWriter): Unit =
     compressValueOffset( //if the values are not the same, write compressed offset, length and then deadline.
       current = current,
       builder = builder,
@@ -210,11 +232,13 @@ private[writer] object ValueWriter {
       )
     }
 
-  private def compressValueOffset(current: Memory,
-                                  builder: EntryWriter.Builder,
-                                  entryId: BaseEntryId.Time,
-                                  currentValue: Slice[Byte],
-                                  previousValue: Slice[Byte])(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] = {
+  private def compressValueOffset[T <: Memory](current: T,
+                                               builder: EntryWriter.Builder,
+                                               entryId: BaseEntryId.Time,
+                                               currentValue: Slice[Byte],
+                                               previousValue: Slice[Byte])(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                           keyWriter: KeyWriter,
+                                                                           deadlineWriter: DeadlineWriter): Option[Unit] = {
     val currentValueOffset = builder.nextStartValueOffset
     Bytes.compress(Slice.writeInt(builder.startValueOffset), Slice.writeInt(currentValueOffset), 1) map {
       case (valueOffsetCommonBytes, valueOffsetRemainingBytes) =>
@@ -246,7 +270,7 @@ private[writer] object ValueWriter {
             builder.startValueOffset = currentValueOffset
             builder.endValueOffset = currentValueOffset + currentValue.size - 1
 
-            DeadlineWriter.write(
+            deadlineWriter.write(
               current = current,
               deadlineId = valueLengthId,
               builder = builder
@@ -265,7 +289,7 @@ private[writer] object ValueWriter {
             builder.startValueOffset = currentValueOffset
             builder.endValueOffset = currentValueOffset + currentValue.size - 1
 
-            DeadlineWriter.write(
+            deadlineWriter.write(
               current = current,
               deadlineId = valueOffsetId.valueLengthUncompressed,
               builder = builder
@@ -280,11 +304,13 @@ private[writer] object ValueWriter {
   }
 
   //if unable to compress valueOffsetBytes, try compressing value length valueLength bytes.
-  private def compressValueLength(current: Memory,
-                                  entryId: BaseEntryId.Time,
-                                  currentValue: Slice[Byte],
-                                  previousValue: Slice[Byte],
-                                  builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+  private def compressValueLength[T <: Memory](current: T,
+                                               entryId: BaseEntryId.Time,
+                                               currentValue: Slice[Byte],
+                                               previousValue: Slice[Byte],
+                                               builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                             keyWriter: KeyWriter,
+                                                                             deadlineWriter: DeadlineWriter): Unit =
     Bytes.compress(previous = Slice.writeInt(previousValue.size), next = Slice.writeInt(currentValue.size), minimumCommonBytes = 1) match {
       case Some((valueLengthCommonBytes, valueLengthRemainingBytes)) =>
         val valueLengthId =
@@ -305,7 +331,7 @@ private[writer] object ValueWriter {
         builder.startValueOffset = currentValueOffset
         builder.endValueOffset = currentValueOffset + currentValue.size - 1
 
-        DeadlineWriter.write(
+        deadlineWriter.write(
           current = current,
           deadlineId = valueLengthId,
           builder = builder
@@ -323,7 +349,7 @@ private[writer] object ValueWriter {
         builder.startValueOffset = currentValueOffset
         builder.endValueOffset = currentValueOffset + currentValue.size - 1
 
-        DeadlineWriter.write(
+        deadlineWriter.write(
           current = current,
           deadlineId = entryId.valueUncompressed.valueOffsetUncompressed.valueLengthUncompressed,
           builder = builder

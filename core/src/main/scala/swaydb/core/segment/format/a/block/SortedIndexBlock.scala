@@ -28,7 +28,7 @@ import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.segment.format.a.entry.writer.EntryWriter
+import swaydb.core.segment.format.a.entry.writer.{DeadlineWriter, EntryWriter, KeyWriter, TimeWriter, ValueWriter}
 import swaydb.core.segment.merge.MergeBuilder
 import swaydb.core.util.{Bytes, FiniteDurations, MinMax}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
@@ -43,6 +43,12 @@ import scala.concurrent.duration.Deadline
 private[core] object SortedIndexBlock extends LazyLogging {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
+
+  //use default writers
+  implicit val timeWriter: TimeWriter = TimeWriter
+  implicit val valueWriter: ValueWriter = ValueWriter
+  implicit val deadlineWriter: DeadlineWriter = DeadlineWriter
+  implicit val keyWriter: KeyWriter = KeyWriter
 
   implicit object SortedIndexBlockOps extends BlockOps[SortedIndexBlock.Offset, SortedIndexBlock] {
     override def updateBlockOffset(block: SortedIndexBlock, start: Int, size: Int): SortedIndexBlock =

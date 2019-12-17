@@ -29,11 +29,19 @@ import swaydb.core.util.Times._
 
 import scala.concurrent.duration.Deadline
 
-private[writer] object DeadlineWriter {
+private[a] sealed trait DeadlineWriter {
+  private[a] def write[T <: Memory](current: T,
+                                    builder: EntryWriter.Builder,
+                                    deadlineId: DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                            keyWriter: KeyWriter): Unit
+}
 
-  private[writer] def write(current: Memory,
-                            builder: EntryWriter.Builder,
-                            deadlineId: DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+private[a] object DeadlineWriter extends DeadlineWriter {
+
+  private[a] def write[T <: Memory](current: T,
+                                    builder: EntryWriter.Builder,
+                                    deadlineId: DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                            keyWriter: KeyWriter): Unit =
     current.deadline match {
       case Some(currentDeadline) =>
         when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(builder.previous.flatMap(_.deadline)) flatMap {
@@ -63,8 +71,8 @@ private[writer] object DeadlineWriter {
         )
     }
 
-  private[writer] def applyDeadlineId(commonBytes: Int,
-                                      deadlineId: DeadlineId): BaseEntryId.Deadline =
+  private[a] def applyDeadlineId(commonBytes: Int,
+                                 deadlineId: DeadlineId): BaseEntryId.Deadline =
     if (commonBytes == 1)
       deadlineId.deadlineOneCompressed
     else if (commonBytes == 2)
@@ -84,15 +92,16 @@ private[writer] object DeadlineWriter {
     else
       throw IO.throwable(s"Fatal exception: commonBytes = $commonBytes, deadlineId: ${deadlineId.getClass.getName}")
 
-  private[writer] def uncompressed(current: Memory,
-                                   currentDeadline: Deadline,
-                                   deadlineId: DeadlineId,
-                                   builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
+  private[a] def uncompressed[T <: Memory](current: T,
+                                           currentDeadline: Deadline,
+                                           deadlineId: DeadlineId,
+                                           builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                         keyWriter: KeyWriter): Unit = {
     //if previous deadline bytes do not exist or minimum compression was not met then write uncompressed deadline.
     val deadlineLong = currentDeadline.toNanos
     val deadline = deadlineId.deadlineUncompressed
 
-    KeyWriter.write(
+    keyWriter.write(
       current = current,
       builder = builder,
       deadlineId = deadline
@@ -101,11 +110,12 @@ private[writer] object DeadlineWriter {
     builder.bytes addUnsignedLong deadlineLong
   }
 
-  private[writer] def compress(current: Memory,
-                               currentDeadline: Deadline,
-                               previousDeadline: Deadline,
-                               deadlineId: DeadlineId,
-                               builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
+  private[a] def compress[T <: Memory](current: T,
+                                       currentDeadline: Deadline,
+                                       previousDeadline: Deadline,
+                                       deadlineId: DeadlineId,
+                                       builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                     keyWriter: KeyWriter): Option[Unit] =
     Bytes.compress(
       previous = previousDeadline.toBytes,
       next = currentDeadline.toBytes,
@@ -116,7 +126,7 @@ private[writer] object DeadlineWriter {
 
         builder.setSegmentHasPrefixCompression()
 
-        KeyWriter.write(
+        keyWriter.write(
           current = current,
           builder = builder,
           deadlineId = deadline
@@ -125,10 +135,11 @@ private[writer] object DeadlineWriter {
         builder.bytes addAll deadlineCompressedBytes
     }
 
-  private[writer] def noDeadline(current: Memory,
-                                 deadlineId: DeadlineId,
-                                 builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
-    KeyWriter.write(
+  private[a] def noDeadline[T <: Memory](current: T,
+                                         deadlineId: DeadlineId,
+                                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                       keyWriter: KeyWriter): Unit =
+    keyWriter.write(
       current = current,
       builder = builder,
       deadlineId = deadlineId.noDeadline

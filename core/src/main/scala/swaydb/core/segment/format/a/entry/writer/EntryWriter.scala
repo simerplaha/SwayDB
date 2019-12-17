@@ -106,8 +106,12 @@ private[core] object EntryWriter {
    * @return indexEntry, valueBytes, valueOffsetBytes, nextValuesOffsetPosition
    */
   def write[T <: Memory](current: T,
-                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
-    TimeWriter.write(
+                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                       timeWriter: TimeWriter,
+                                                       valueWriter: ValueWriter,
+                                                       keyWriter: KeyWriter,
+                                                       deadlineWriter: DeadlineWriter): Unit =
+    timeWriter.write(
       current = current,
       entryId = BaseEntryIdFormatA.format.start,
       builder = builder

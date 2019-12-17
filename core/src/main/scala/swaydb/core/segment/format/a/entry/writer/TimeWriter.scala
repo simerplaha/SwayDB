@@ -24,11 +24,23 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBin
 import swaydb.core.util.Bytes._
 import swaydb.core.util.Options._
 
-private[writer] object TimeWriter {
+private[a] sealed trait TimeWriter {
+  private[a] def write[T <: Memory](current: T,
+                                    entryId: BaseEntryId.Key,
+                                    builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                  valueWriter: ValueWriter,
+                                                                  keyWriter: KeyWriter,
+                                                                  deadlineWriter: DeadlineWriter): Unit
+}
 
-  private[writer] def write(current: Memory,
-                            entryId: BaseEntryId.Key,
-                            builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+private[a] object TimeWriter extends TimeWriter {
+
+  private[a] def write[T <: Memory](current: T,
+                                    entryId: BaseEntryId.Key,
+                                    builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                  valueWriter: ValueWriter,
+                                                                  keyWriter: KeyWriter,
+                                                                  deadlineWriter: DeadlineWriter): Unit =
     if (current.persistentTime.nonEmpty)
       when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(builder.previous.map(getTime)) flatMap {
         previousTime =>
@@ -54,7 +66,7 @@ private[writer] object TimeWriter {
         builder = builder
       )
 
-  private[writer] def getTime(keyValue: Memory): Time =
+  private[a] def getTime(keyValue: Memory): Time =
     keyValue match {
       case keyValue: Memory.Fixed =>
         keyValue match {
@@ -77,10 +89,13 @@ private[writer] object TimeWriter {
         Time.empty
     }
 
-  private def writePartiallyCompressed(previousTime: Time,
-                                       current: Memory,
-                                       entryId: BaseEntryId.Key,
-                                       builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
+  private def writePartiallyCompressed[T <: Memory](current: T,
+                                                    previousTime: Time,
+                                                    entryId: BaseEntryId.Key,
+                                                    builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                                  valueWriter: ValueWriter,
+                                                                                  keyWriter: KeyWriter,
+                                                                                  deadlineWriter: DeadlineWriter): Option[Unit] =
     compress(
       previous = previousTime.time,
       next = current.persistentTime.time,
@@ -90,7 +105,7 @@ private[writer] object TimeWriter {
 
         builder.setSegmentHasPrefixCompression()
 
-        ValueWriter.write(
+        valueWriter.write(
           current = current,
           entryId = entryId.timePartiallyCompressed,
           builder = builder
@@ -103,11 +118,14 @@ private[writer] object TimeWriter {
           .addAll(remainingBytes)
     }
 
-  private def writeUncompressed(current: Memory,
-                                entryId: BaseEntryId.Key,
-                                builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
+  private def writeUncompressed[T <: Memory](current: T,
+                                             entryId: BaseEntryId.Key,
+                                             builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                           valueWriter: ValueWriter,
+                                                                           keyWriter: KeyWriter,
+                                                                           deadlineWriter: DeadlineWriter): Unit = {
     //no common prefixes or no previous write without compression
-    ValueWriter.write(
+    valueWriter.write(
       current = current,
       entryId = entryId.timeUncompressed,
       builder = builder
@@ -119,10 +137,13 @@ private[writer] object TimeWriter {
       .addAll(current.persistentTime.time)
   }
 
-  private def noTime(current: Memory,
-                     entryId: BaseEntryId.Key,
-                     builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
-    ValueWriter.write(
+  private def noTime[T <: Memory](current: T,
+                                  entryId: BaseEntryId.Key,
+                                  builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
+                                                                valueWriter: ValueWriter,
+                                                                keyWriter: KeyWriter,
+                                                                deadlineWriter: DeadlineWriter): Unit =
+    valueWriter.write(
       current = current,
       entryId = entryId.noTime,
       builder = builder

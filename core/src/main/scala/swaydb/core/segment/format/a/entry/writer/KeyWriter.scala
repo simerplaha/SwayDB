@@ -25,14 +25,20 @@ import swaydb.core.util.Bytes
 import swaydb.core.util.Options._
 import swaydb.data.slice.Slice
 
-private[core] object KeyWriter {
+sealed trait KeyWriter {
+  def write[T <: Memory](current: T,
+                         builder: EntryWriter.Builder,
+                         deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit
+}
+
+private[a] object KeyWriter extends KeyWriter {
 
   /**
    * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
    */
-  def write(current: Memory,
-            builder: EntryWriter.Builder,
-            deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+  def write[T <: Memory](current: T,
+                         builder: EntryWriter.Builder,
+                         deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
     when(builder.enablePrefixCompression)(builder.previous) flatMap {
       previous =>
         writeCompressed(
@@ -49,10 +55,10 @@ private[core] object KeyWriter {
       )
     }
 
-  private def writeCompressed(current: Memory,
-                              builder: EntryWriter.Builder,
-                              deadlineId: BaseEntryId.Deadline,
-                              previous: Memory)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
+  private def writeCompressed[T <: Memory](current: T,
+                                           builder: EntryWriter.Builder,
+                                           deadlineId: BaseEntryId.Deadline,
+                                           previous: Memory)(implicit binder: MemoryToKeyValueIdBinder[T]): Option[Unit] =
     Bytes.compress(key = current.mergedKey, previous = previous, minimumCommonBytes = 3) map {
       case (commonBytes, remainingBytes) =>
         write(
@@ -65,9 +71,9 @@ private[core] object KeyWriter {
         )
     }
 
-  private def writeUncompressed(current: Memory,
-                                builder: EntryWriter.Builder,
-                                deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+  private def writeUncompressed[T <: Memory](current: T,
+                                             builder: EntryWriter.Builder,
+                                             deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
 
     write(
       current = current,
@@ -78,19 +84,19 @@ private[core] object KeyWriter {
       isKeyCompressed = false
     )
 
-  private def write(current: Memory,
-                    builder: EntryWriter.Builder,
-                    commonBytes: Int,
-                    headerBytes: Slice[Byte],
-                    deadlineId: BaseEntryId.Deadline,
-                    isKeyCompressed: Boolean)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
+  private def write[T <: Memory](current: T,
+                                 builder: EntryWriter.Builder,
+                                 commonBytes: Int,
+                                 headerBytes: Slice[Byte],
+                                 deadlineId: BaseEntryId.Deadline,
+                                 isKeyCompressed: Boolean)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit = {
     val id =
       binder.keyValueId.adjustBaseIdToKeyValueIdKey(
         baseId = deadlineId.baseId,
         isKeyCompressed = isKeyCompressed
       )
 
-    if(isKeyCompressed)
+    if (isKeyCompressed)
       builder.setSegmentHasPrefixCompression()
 
     val sortedIndexAccessPosition =
