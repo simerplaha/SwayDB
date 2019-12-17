@@ -36,7 +36,7 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
+class EntryReaderWriterSpec extends WordSpec with Matchers {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeWriter: TimeWriter = TimeWriter
@@ -47,7 +47,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
   "write and read single Fixed entry" in {
     runThis(1000.times) {
       implicit val testTimer = TestTimer.random
-      val keyValue = randomFixedKeyValue(key = randomIntMax())
+      val keyValue = randomizedKeyValues(1).head
 
       def assertParse[T <: Memory](keyValue: T)(implicit binder: MemoryToKeyValueIdBinder[T]) = {
         val builder = randomBuilder()
@@ -94,6 +94,9 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
 
         case keyValue: Memory.PendingApply =>
           assertParse(keyValue)
+
+        case keyValue: Memory.Range =>
+          assertParse(keyValue)
       }
     }
   }
@@ -105,7 +108,20 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
       val previous = randomizedKeyValues(count = 1).head
       val duplicateValues = if (Random.nextBoolean()) previous.value else randomStringOption
       val duplicateDeadline = if (Random.nextBoolean()) previous.deadline else randomDeadlineOption
-      val next = randomFixedKeyValue(randomIntMax() + 1, deadline = duplicateDeadline, value = duplicateValues)
+      val next =
+        eitherOne(
+          randomFixedKeyValue(
+            key = randomIntMax() + 1,
+            value = duplicateValues,
+            deadline = duplicateDeadline
+          ),
+          randomRangeKeyValue(
+            from = previous.key.readInt() + 1,
+            to = previous.key.readInt() + 100,
+            fromValue = randomFromValueOption(deadline = duplicateDeadline),
+            rangeValue = randomRangeValue(value = duplicateValues, deadline = duplicateDeadline)
+          )
+        )
 
       //      println
       //      println("write previous: " + previous)
@@ -148,7 +164,6 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
         previousParsedKeyValue shouldBe previous
 
         previousParsedKeyValue.nextIndexOffset should be > previous.mergedKey.size
-        previousParsedKeyValue.nextKeySize shouldBe next.key.size
 
         sortedIndexReader moveTo previousParsedKeyValue.nextIndexOffset
 
@@ -180,6 +195,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
             case next: Memory.Remove => assertParse(previous, next)
             case next: Memory.Function => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
+            case next: Memory.Range => assertParse(previous, next)
           }
 
         case previous: Memory.Update =>
@@ -189,6 +205,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
             case next: Memory.Remove => assertParse(previous, next)
             case next: Memory.Function => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
+            case next: Memory.Range => assertParse(previous, next)
           }
 
         case previous: Memory.Remove =>
@@ -198,6 +215,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
             case next: Memory.Remove => assertParse(previous, next)
             case next: Memory.Function => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
+            case next: Memory.Range => assertParse(previous, next)
           }
 
         case previous: Memory.Function =>
@@ -207,6 +225,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
             case next: Memory.Remove => assertParse(previous, next)
             case next: Memory.Function => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
+            case next: Memory.Range => assertParse(previous, next)
           }
 
         case previous: Memory.PendingApply =>
@@ -216,6 +235,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
             case next: Memory.Remove => assertParse(previous, next)
             case next: Memory.Function => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
+            case next: Memory.Range => assertParse(previous, next)
           }
 
         case previous: Memory.Range =>
@@ -225,6 +245,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
             case next: Memory.Remove => assertParse(previous, next)
             case next: Memory.Function => assertParse(previous, next)
             case next: Memory.PendingApply => assertParse(previous, next)
+            case next: Memory.Range => assertParse(previous, next)
           }
       }
     }
