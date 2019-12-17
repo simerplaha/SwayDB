@@ -25,7 +25,7 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBin
 import swaydb.core.util.{Bytes, Options}
 import swaydb.data.slice.Slice
 
-private[a] sealed trait ValueWriter {
+private[a] trait ValueWriter {
   def write[T <: Memory](current: T,
                          entryId: BaseEntryId.Time,
                          builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],

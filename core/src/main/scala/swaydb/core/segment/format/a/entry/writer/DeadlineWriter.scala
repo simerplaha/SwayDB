@@ -29,7 +29,7 @@ import swaydb.core.util.Times._
 
 import scala.concurrent.duration.Deadline
 
-private[a] sealed trait DeadlineWriter {
+private[a] trait DeadlineWriter {
   private[a] def write[T <: Memory](current: T,
                                     builder: EntryWriter.Builder,
                                     deadlineId: DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[T],

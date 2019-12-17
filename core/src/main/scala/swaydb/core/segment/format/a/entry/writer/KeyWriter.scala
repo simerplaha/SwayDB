@@ -25,7 +25,7 @@ import swaydb.core.util.Bytes
 import swaydb.core.util.Options._
 import swaydb.data.slice.Slice
 
-sealed trait KeyWriter {
+trait KeyWriter {
   def write[T <: Memory](current: T,
                          builder: EntryWriter.Builder,
                          deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit
