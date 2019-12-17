@@ -280,7 +280,7 @@ object CommonAssertions {
 
   def assertMerge(newKeyValues: Slice[KeyValue],
                   oldKeyValues: Slice[KeyValue],
-                  expected: Slice[Memory],
+                  expected: Slice[KeyValue],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
     val builder = MergeBuilder.random()
@@ -295,7 +295,6 @@ object CommonAssertions {
     if (expected.size == 0) {
       builder.isEmpty shouldBe true
     } else {
-      builder should have size 1
       builder should have size expected.size
       builder.toList should contain inOrderElementsOf expected
     }
@@ -306,7 +305,7 @@ object CommonAssertions {
                   oldKeyValue: KeyValue,
                   expected: KeyValue,
                   lastLevelExpect: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                             timeOrder: TimeOrder[Slice[Byte]]): ListBuffer[Memory] =
+                                             timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] =
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), Slice(lastLevelExpect))
 
   def assertMerge(newKeyValue: KeyValue,
@@ -325,25 +324,23 @@ object CommonAssertions {
                   expected: Slice[KeyValue],
                   lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    //    println("*** Expected assert ***")
-    //    assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = false)
-    //    //println("*** Expected last level ***")
-    //    assertMerge(newKeyValues, oldKeyValues, lastLevelExpect, isLastLevel = true)
-    //    //println("*** Skip list assert ***")
-    //    assertSkipListMerge(newKeyValues, oldKeyValues, expected)
-    ???
+//    println("*** Expected assert ***")
+    assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = false)
+    //println("*** Expected last level ***")
+    assertMerge(newKeyValues, oldKeyValues, lastLevelExpect, isLastLevel = true)
+    //println("*** Skip list assert ***")
+    assertSkipListMerge(newKeyValues, oldKeyValues, expected)
   }
 
   def assertMerge(newKeyValue: KeyValue,
                   oldKeyValue: KeyValue,
                   expected: Slice[KeyValue],
                   lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    timeOrder: TimeOrder[Slice[Byte]]): ListBuffer[Memory] = {
-    //    println("*** Last level = false ***")
-    //    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel = false)
-    //    //println("*** Last level = true ***")
-    //    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect, isLastLevel = true)
-    ???
+                                                    timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
+//    println("*** Last level = false ***")
+    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel = false)
+    //println("*** Last level = true ***")
+    assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect, isLastLevel = true)
   }
 
   def assertMerge(newKeyValues: Slice[KeyValue],
