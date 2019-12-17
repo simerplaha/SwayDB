@@ -90,7 +90,9 @@ object KeyValueId {
   val reservedKeysPerGroup = EntryReader.readers.last.maxID
 
   //byte size of the maximum keyValueId that can be persisted.
-  val maxKeyValueIdByteSize = Bytes.sizeOfUnsignedInt(all.map(_.maxKey_Uncompressed_KeyValueId).max)
+  //the macro cannot be used because it's make KeyValueIds vals to return 0
+  //  val maxKeyValueIdByteSize = Bytes.sizeOfUnsignedInt(all.map(_.maxKey_Uncompressed_KeyValueId).max)
+  val maxKeyValueIdByteSize = 3
 
   def isFixedId(id: Int): Boolean =
     KeyValueId.Put.hasKeyValueId(id) || KeyValueId.Remove.hasKeyValueId(id) || KeyValueId.Update.hasKeyValueId(id) || KeyValueId.Function.hasKeyValueId(id) || KeyValueId.PendingApply.hasKeyValueId(id)
@@ -118,28 +120,28 @@ object KeyValueId {
 
   object Remove extends KeyValueId {
 
-    override val minKey_Compressed_KeyValueId: Int = Range.maxKey_Uncompressed_KeyValueId + 1
+    override val minKey_Compressed_KeyValueId: Int = KeyValueId.Range.maxKey_Uncompressed_KeyValueId + 1
     override val maxKey_Compressed_KeyValueId: Int = minKey_Compressed_KeyValueId + reservedKeysPerGroup
     override val minKey_Uncompressed_KeyValueId: Int = maxKey_Compressed_KeyValueId + 1
     override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object Update extends KeyValueId {
-    override val minKey_Compressed_KeyValueId: Int = Remove.maxKey_Uncompressed_KeyValueId + 1
+    override val minKey_Compressed_KeyValueId: Int = KeyValueId.Remove.maxKey_Uncompressed_KeyValueId + 1
     override val maxKey_Compressed_KeyValueId: Int = minKey_Compressed_KeyValueId + reservedKeysPerGroup
     override val minKey_Uncompressed_KeyValueId: Int = maxKey_Compressed_KeyValueId + 1
     override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object Function extends KeyValueId {
-    override val minKey_Compressed_KeyValueId: Int = Update.maxKey_Uncompressed_KeyValueId + 1
+    override val minKey_Compressed_KeyValueId: Int = KeyValueId.Update.maxKey_Uncompressed_KeyValueId + 1
     override val maxKey_Compressed_KeyValueId: Int = minKey_Compressed_KeyValueId + reservedKeysPerGroup
     override val minKey_Uncompressed_KeyValueId: Int = maxKey_Compressed_KeyValueId + 1
     override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup
   }
 
   object PendingApply extends KeyValueId {
-    override val minKey_Compressed_KeyValueId: Int = Function.maxKey_Uncompressed_KeyValueId + 1
+    override val minKey_Compressed_KeyValueId: Int = KeyValueId.Function.maxKey_Uncompressed_KeyValueId + 1
     override val maxKey_Compressed_KeyValueId: Int = minKey_Compressed_KeyValueId + reservedKeysPerGroup
     override val minKey_Uncompressed_KeyValueId: Int = maxKey_Compressed_KeyValueId + 1
     override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup

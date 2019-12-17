@@ -33,13 +33,10 @@ private[writer] object DeadlineWriter {
 
   private[writer] def write(current: Memory,
                             builder: EntryWriter.Builder,
-                            deadlineId: DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit = {
-    val currentDeadline = current.deadline
-    val previousDeadline = builder.previous.flatMap(_.deadline)
-
-    currentDeadline match {
+                            deadlineId: DeadlineId)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
+    current.deadline match {
       case Some(currentDeadline) =>
-        when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(previousDeadline) flatMap {
+        when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(builder.previous.flatMap(_.deadline)) flatMap {
           previousDeadline =>
             compress(
               current = current,
@@ -65,7 +62,6 @@ private[writer] object DeadlineWriter {
           builder = builder
         )
     }
-  }
 
   private[writer] def applyDeadlineId(commonBytes: Int,
                                       deadlineId: DeadlineId): BaseEntryId.Deadline =

@@ -102,12 +102,11 @@ private[core] object KeyWriter {
       else
         -1
 
-    val byteSizeOfCommonBytes = Bytes.sizeOfUnsignedInt(commonBytes)
-
     if (isKeyCompressed) {
       //keySize includes the size of the commonBytes and the key. This is so that when reading key-value in
       //SortedIndexBlock and estimating max entry size the commonBytes are also accounted. This also makes it
       //easy parsing key in KeyReader.
+      val byteSizeOfCommonBytes = Bytes.sizeOfUnsignedInt(commonBytes)
       builder.bytes addUnsignedInt (headerBytes.size + byteSizeOfCommonBytes)
       builder.bytes addUnsignedInt commonBytes
     } else {
