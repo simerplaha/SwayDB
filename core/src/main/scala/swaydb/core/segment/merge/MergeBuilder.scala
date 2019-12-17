@@ -32,6 +32,9 @@ sealed trait MergeBuilder extends Iterable[swaydb.core.data.Memory] {
   def keyValues: ListBuffer[swaydb.core.data.Memory]
   def addOne(keyValue: swaydb.core.data.Memory)
 
+  def clear(): Unit =
+    keyValues.clear()
+
   override def size: Int = keyValues.size
 
   override def iterator: Iterator[swaydb.core.data.Memory] =

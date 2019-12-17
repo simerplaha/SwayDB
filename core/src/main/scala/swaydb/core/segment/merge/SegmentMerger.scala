@@ -68,9 +68,9 @@ private[core] object SegmentMerger extends LazyLogging {
     import keyOrder._
 
     def add(nextKeyValue: KeyValue): Unit =
-      SegmentGrouper.addKeyValue(
+      SegmentGrouper.add(
         keyValue = nextKeyValue,
-        result = builder,
+        builder = builder,
         isLastLevel = isLastLevel
       )
 
