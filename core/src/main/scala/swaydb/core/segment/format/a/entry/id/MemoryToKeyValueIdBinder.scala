@@ -25,8 +25,8 @@ import swaydb.macros.Sealed
 import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for MemoryToKeyValueIdBinder of type ${T}")
-private[core] sealed trait MemoryToKeyValueIdBinder[T] {
-  val keyValueId: KeyValueId
+private[core] sealed trait MemoryToKeyValueIdBinder[+T] {
+  def keyValueId: KeyValueId
 }
 
 /**
@@ -57,6 +57,27 @@ private[core] object MemoryToKeyValueIdBinder {
   implicit object PendingApplyBinder extends MemoryToKeyValueIdBinder[Memory.PendingApply] {
     override val keyValueId: KeyValueId = KeyValueId.PendingApply
   }
+
+  def getBinder(keyValue: Memory): MemoryToKeyValueIdBinder[Memory] =
+    keyValue match {
+      case _: Memory.Put =>
+        implicitly[MemoryToKeyValueIdBinder[Memory.Put]]
+
+      case _: Memory.Update =>
+        implicitly[MemoryToKeyValueIdBinder[Memory.Update]]
+
+      case _: Memory.Function =>
+        implicitly[MemoryToKeyValueIdBinder[Memory.Function]]
+
+      case _: Memory.PendingApply =>
+        implicitly[MemoryToKeyValueIdBinder[Memory.PendingApply]]
+
+      case _: Memory.Remove =>
+        implicitly[MemoryToKeyValueIdBinder[Memory.Remove]]
+
+      case _: Memory.Range =>
+        implicitly[MemoryToKeyValueIdBinder[Memory.Range]]
+    }
 
   def allBinders: List[MemoryToKeyValueIdBinder[_]] =
     Sealed.list[MemoryToKeyValueIdBinder[_]]

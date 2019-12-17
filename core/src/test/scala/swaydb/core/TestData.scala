@@ -42,10 +42,11 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel}
 import swaydb.core.map.serializer.RangeValueSerializer
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchIndexBlock, BinarySearchEntryFormat}
+import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
 import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
+import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
@@ -1693,5 +1694,18 @@ object TestData {
       else
         ActorConfig.TimeLoop(delay, ec)
   }
+
+  def randomBuilder(enablePrefixCompression: Boolean = randomBoolean(),
+                    prefixCompressKeysOnly: Boolean = randomBoolean(),
+                    compressDuplicateValues: Boolean = randomBoolean(),
+                    enableAccessPositionIndex: Boolean = randomBoolean(),
+                    allocateBytes: Int = 10000): EntryWriter.Builder =
+    EntryWriter.Builder(
+      enablePrefixCompression = enablePrefixCompression,
+      prefixCompressKeysOnly = prefixCompressKeysOnly,
+      compressDuplicateValues = compressDuplicateValues,
+      enableAccessPositionIndex = enableAccessPositionIndex,
+      bytes = Slice.create[Byte](allocateBytes)
+    )
 
 }

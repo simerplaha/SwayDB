@@ -44,22 +44,13 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
   implicit val deadlineWriter: DeadlineWriter = DeadlineWriter
   implicit val keyWriter: KeyWriter = KeyWriter
 
-  def createBuilder(enableAccessPositionIndex: Boolean = randomBoolean()) =
-    EntryWriter.Builder(
-      enablePrefixCompression = randomBoolean(),
-      prefixCompressKeysOnly = randomBoolean(),
-      compressDuplicateValues = randomBoolean(),
-      enableAccessPositionIndex = enableAccessPositionIndex,
-      bytes = Slice.create[Byte](1000)
-    )
-
   "write and read single Fixed entry" in {
     runThis(1000.times) {
       implicit val testTimer = TestTimer.random
       val keyValue = randomFixedKeyValue(key = randomIntMax())
 
       def assertParse[T <: Memory](keyValue: T)(implicit binder: MemoryToKeyValueIdBinder[T]) = {
-        val builder = createBuilder()
+        val builder = randomBuilder()
 
         EntryWriter.write(
           current = keyValue,
@@ -122,7 +113,7 @@ class FixedEntryReaderWriterSpec extends WordSpec with Matchers {
 
       def assertParse[P <: Memory, N <: Memory](previous: P, next: N)(implicit previousBinder: MemoryToKeyValueIdBinder[P],
                                                                       nextBinder: MemoryToKeyValueIdBinder[N]) = {
-        val builder = createBuilder()
+        val builder = randomBuilder()
 
         EntryWriter.write(
           current = previous,
