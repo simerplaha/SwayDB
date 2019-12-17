@@ -59,8 +59,10 @@ object EntryReader {
 
   val zeroValueOffsetAndLength = (-1, 0)
 
-  def findReaderNullable(baseId: Int, mightBeCompressed: Boolean): BaseEntryReader =
-    if (mightBeCompressed)
+  def findReaderNullable(baseId: Int,
+                         mightBeCompressed: Boolean,
+                         keyCompressionOnly: Boolean): BaseEntryReader =
+    if (mightBeCompressed && !keyCompressionOnly)
       NullOps.find[BaseEntryReader](readers, _.maxID >= baseId)
     else
       BaseEntryReaderUncompressed
@@ -71,13 +73,20 @@ object EntryReader {
                        sortedIndexAccessPosition: Int,
                        headerKeyBytes: Slice[Byte],
                        mightBeCompressed: Boolean,
+                       keyCompressionOnly: Boolean,
                        indexReader: ReaderBase,
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                        indexOffset: Int,
                        normalisedByteSize: Int,
                        previous: Option[Persistent],
                        entryReader: EntryReader[T]): T = {
-    val baseEntryReaderNullable = findReaderNullable(baseId = baseId, mightBeCompressed = mightBeCompressed)
+    val baseEntryReaderNullable =
+      findReaderNullable(
+        baseId = baseId,
+        mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly
+      )
+
     if (baseEntryReaderNullable == null)
       throw swaydb.Exception.InvalidKeyValueId(baseId)
     else
@@ -99,6 +108,7 @@ object EntryReader {
   def parse(headerInteger: Int,
             indexEntry: Slice[Byte], //does not contain headerInteger bytes.
             mightBeCompressed: Boolean,
+            keyCompressionOnly: Boolean,
             sortedIndexEndOffset: Int,
             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
             indexOffset: Int,
@@ -126,6 +136,7 @@ object EntryReader {
         sortedIndexAccessPosition = sortedIndexAccessPosition,
         headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
@@ -141,6 +152,7 @@ object EntryReader {
         sortedIndexAccessPosition = sortedIndexAccessPosition,
         headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
@@ -156,6 +168,7 @@ object EntryReader {
         sortedIndexAccessPosition = sortedIndexAccessPosition,
         headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
@@ -171,6 +184,7 @@ object EntryReader {
         sortedIndexAccessPosition = sortedIndexAccessPosition,
         headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
@@ -186,6 +200,7 @@ object EntryReader {
         sortedIndexAccessPosition = sortedIndexAccessPosition,
         headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,
@@ -201,6 +216,7 @@ object EntryReader {
         sortedIndexAccessPosition = sortedIndexAccessPosition,
         headerKeyBytes = key,
         mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly,
         indexReader = reader,
         valuesReader = valuesReader,
         indexOffset = indexOffset,

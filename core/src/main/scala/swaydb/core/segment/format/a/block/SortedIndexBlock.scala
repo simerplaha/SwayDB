@@ -509,6 +509,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       indexEntry = indexEntry,
       normalisedByteSize = if (sortedIndexReader.block.normalised) sortedIndexReader.block.segmentMaxIndexEntrySize else 0,
       mightBeCompressed = sortedIndexReader.block.hasPrefixCompression,
+      keyCompressionOnly = sortedIndexReader.block.prefixCompressKeysOnly,
       sortedIndexEndOffset = sortedIndexReader.offset.size - 1,
       valuesReader = valuesReader,
       indexOffset = positionBeforeRead,
