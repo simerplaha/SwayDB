@@ -30,11 +30,13 @@ private[core] object EntryWriter {
 
   object Builder {
     def apply(enablePrefixCompression: Boolean,
+              prefixCompressKeysOnly: Boolean,
               compressDuplicateValues: Boolean,
               enableAccessPositionIndex: Boolean,
               bytes: Slice[Byte]): Builder =
       new Builder(
         enablePrefixCompression = enablePrefixCompression,
+        prefixCompressKeysOnly = prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         isValueFullyCompressed = false,
         enableAccessPositionIndex = enableAccessPositionIndex,
@@ -49,6 +51,7 @@ private[core] object EntryWriter {
   }
 
   class Builder(val enablePrefixCompression: Boolean,
+                val prefixCompressKeysOnly: Boolean,
                 var compressDuplicateValues: Boolean,
                 //this should be reset to false once the entry is written
                 var isValueFullyCompressed: Boolean,

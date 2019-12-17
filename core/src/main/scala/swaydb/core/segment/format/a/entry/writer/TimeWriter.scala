@@ -30,7 +30,7 @@ private[writer] object TimeWriter {
                             entryId: BaseEntryId.Key,
                             builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Unit =
     if (current.persistentTime.nonEmpty)
-      when(builder.enablePrefixCompression)(builder.previous.map(getTime)) flatMap {
+      when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(builder.previous.map(getTime)) flatMap {
         previousTime =>
           //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
           writePartiallyCompressed(

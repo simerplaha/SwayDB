@@ -85,7 +85,7 @@ private[writer] object ValueWriter {
                                  previous: Memory,
                                  entryId: BaseEntryId.Time,
                                  builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
-    if (builder.enablePrefixCompression)
+    if (builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)
       (Memory.compressibleValue(current), Memory.compressibleValue(previous)) match {
         case (Some(currentValue), Some(previousValue)) =>
           partialCompress(
@@ -128,7 +128,7 @@ private[writer] object ValueWriter {
     val currentValueOffset = builder.nextStartValueOffset
 
     builder.startValueOffset = currentValueOffset
-    builder.endValueOffset = (currentValueOffset + currentValueSize - 1)
+    builder.endValueOffset = currentValueOffset + currentValueSize - 1
 
     DeadlineWriter.write(
       current = current,
@@ -158,7 +158,7 @@ private[writer] object ValueWriter {
                              entryId: BaseEntryId.Time,
                              builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[_]): Option[Unit] =
     Options.when(Memory.hasSameValue(previous, current)) { //no need to serialised values and then compare. Simply compare the value objects and check for equality.
-      if (builder.enablePrefixCompression) {
+      if (builder.enablePrefixCompression && !builder.prefixCompressKeysOnly) {
         //values are the same, no need to write offset & length, jump straight to deadline.
         builder.setSegmentHasPrefixCompression()
         builder.isValueFullyCompressed = true

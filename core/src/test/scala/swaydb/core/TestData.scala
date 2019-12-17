@@ -372,7 +372,7 @@ object TestData {
     def random(hasCompression: Boolean): SortedIndexBlock.Config =
       SortedIndexBlock.Config(
         ioStrategy = _ => randomIOAccess(),
-        //        prefixCompressKeysOnly = randomBoolean(),
+        prefixCompressKeysOnly = randomBoolean(),
         prefixCompressionResetCount = randomIntMax(10),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),
@@ -722,21 +722,17 @@ object TestData {
 
   implicit class FunctionOutputImplicits(functionOutput: SwayFunctionOutput) {
     def toMemory(key: Slice[Byte],
-                 time: Time): Memory.Fixed = {
-      val outputFixed =
-        functionOutput match {
-          case SwayFunctionOutput.Remove =>
-            Memory.Remove(key, None, time)
+                 time: Time): Memory.Fixed =
+      functionOutput match {
+        case SwayFunctionOutput.Remove =>
+          Memory.Remove(key, None, time)
 
-          case SwayFunctionOutput.Expire(deadline) =>
-            Memory.Remove(key, Some(deadline), time)
+        case SwayFunctionOutput.Expire(deadline) =>
+          Memory.Remove(key, Some(deadline), time)
 
-          case SwayFunctionOutput.Update(newValue, newDeadline) =>
-            Memory.Update(key, newValue, newDeadline, time)
-        }
-      //println(s"outputFixed: $outputFixed")
-      outputFixed
-    }
+        case SwayFunctionOutput.Update(newValue, newDeadline) =>
+          Memory.Update(key, newValue, newDeadline, time)
+      }
   }
 
   def randomSwayFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction =
@@ -1149,8 +1145,8 @@ object TestData {
                           addPutDeadlines: Boolean = randomBoolean(),
                           addExpiredPutDeadlines: Boolean = randomBoolean(),
                           addUpdateDeadlines: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental(),
-                                                                                                       keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Memory] =
+                                                                         keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax): Slice[Memory] =
     randomKeyValues(
       count = count,
       startId = startId,

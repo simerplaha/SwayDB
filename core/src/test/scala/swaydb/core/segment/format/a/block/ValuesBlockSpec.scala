@@ -50,7 +50,7 @@ class ValuesBlockSpec extends TestBase {
         ValuesBlock.init(
           keyValues = keyValues,
           valuesConfig = ValuesBlock.Config.random,
-          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe empty
       }
     }
@@ -62,7 +62,7 @@ class ValuesBlockSpec extends TestBase {
         ValuesBlock.init(
           keyValues = keyValues,
           valuesConfig = ValuesBlock.Config.random,
-          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+          builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
         ) shouldBe defined
       }
     }
@@ -76,7 +76,7 @@ class ValuesBlockSpec extends TestBase {
           ValuesBlock.init(
             keyValues = keyValues,
             valuesConfig = ValuesBlock.Config.random,
-            builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
+            builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
           ).get
 
         keyValues foreach {
