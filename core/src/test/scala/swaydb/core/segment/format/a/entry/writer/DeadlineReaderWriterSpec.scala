@@ -29,10 +29,11 @@ import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBin
 import swaydb.core.util.Times._
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.core.CommonAssertions._
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
-class DeadlineWriterReaderSpec extends WordSpec with Matchers {
+class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
   val deadlineIds: Seq[BaseEntryId.DeadlineId] =
     allBaseEntryIds collect {
@@ -106,7 +107,11 @@ class DeadlineWriterReaderSpec extends WordSpec with Matchers {
 
         deadlineIds foreach {
           deadlineId =>
-            val builder = randomBuilder(enablePrefixCompression = false)
+            val builder =
+              eitherOne(
+                randomBuilder(enablePrefixCompression = false),
+                randomBuilder(enablePrefixCompression = true, prefixCompressKeysOnly = true)
+              )
             builder.previous = Some(previous)
 
             assertNoCompression(
