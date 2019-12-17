@@ -96,7 +96,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       new Config(
         ioStrategy = ioStrategy,
         prefixCompressionResetCount = if (normaliseIndex) 0 else prefixCompressionResetCount max 0,
-        prefixCompressKeysOnly = prefixCompressKeysOnly,
+        prefixCompressKeysOnly = prefixCompressKeysOnly && prefixCompressionResetCount > 1,
         enableAccessPositionIndex = enableAccessPositionIndex,
         //cannot normalise if prefix compression is enabled.
         normaliseIndex = normaliseIndex,
@@ -166,6 +166,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
     def hasPrefixCompression: Boolean =
       builder.segmentHasPrefixCompression
 
+    def prefixCompressKeysOnly =
+      builder.prefixCompressKeysOnly
+
     def isPreNormalised: Boolean =
       hasSameIndexSizes()
 
@@ -180,6 +183,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         ByteSizeOf.boolean + //enablePositionIndex
         ByteSizeOf.boolean + //normalisedForBinarySearch
         ByteSizeOf.boolean + //hasPrefixCompression
+        ByteSizeOf.boolean + //prefixCompressKeysOnly
         ByteSizeOf.boolean + //isPreNormalised
         ByteSizeOf.varInt + // normalisedEntrySize
         ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
@@ -390,6 +394,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     state.bytes = compressedOrUncompressedBytes
     state.bytes addBoolean state.enableAccessPositionIndex
     state.bytes addBoolean state.hasPrefixCompression
+    state.bytes addBoolean state.prefixCompressKeysOnly
     state.bytes addBoolean state.normaliseIndex
     state.bytes addBoolean state.isPreNormalised
     state.bytes addUnsignedInt state.largestIndexEntrySize
@@ -403,6 +408,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def read(header: Block.Header[SortedIndexBlock.Offset]): SortedIndexBlock = {
     val enableAccessPositionIndex = header.headerReader.readBoolean()
     val hasPrefixCompression = header.headerReader.readBoolean()
+    val prefixCompressKeysOnly = header.headerReader.readBoolean()
     val normaliseForBinarySearch = header.headerReader.readBoolean()
     val isPreNormalised = header.headerReader.readBoolean()
     val segmentMaxIndexEntrySize = header.headerReader.readUnsignedInt()
@@ -411,6 +417,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       offset = header.offset,
       enableAccessPositionIndex = enableAccessPositionIndex,
       hasPrefixCompression = hasPrefixCompression,
+      prefixCompressKeysOnly = prefixCompressKeysOnly,
       normalised = normaliseForBinarySearch,
       segmentMaxIndexEntrySize = segmentMaxIndexEntrySize,
       isPreNormalised = isPreNormalised,
@@ -1020,6 +1027,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
                                           enableAccessPositionIndex: Boolean,
                                           hasPrefixCompression: Boolean,
+                                          prefixCompressKeysOnly: Boolean,
                                           normalised: Boolean,
                                           isPreNormalised: Boolean,
                                           headerSize: Int,
