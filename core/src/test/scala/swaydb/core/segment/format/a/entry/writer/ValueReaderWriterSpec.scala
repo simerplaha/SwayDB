@@ -20,14 +20,10 @@
 package swaydb.core.segment.format.a.entry.writer
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
-import swaydb.data.slice.Slice
-import swaydb.serializers.Default._
-import swaydb.serializers._
 
 class ValueReaderWriterSpec extends WordSpec with Matchers {
 
@@ -107,32 +103,6 @@ class ValueReaderWriterSpec extends WordSpec with Matchers {
         }
       }
     }
-
-    "previous key-value is defined and can be compressed but compression itself is disabled" in {
-      runThis(100.times) {
-        //test on a key-value
-        val value1: Slice[Byte] = Slice.writeInt(0)
-        val value2: Slice[Byte] = Slice.writeInt(1)
-        val previous = randomPutKeyValue(key = 1, value = Some(value1))
-        val next = randomPutKeyValue(key = 2, value = Some(value2))
-
-        noCompressedDeadlineIds foreach {
-          deadlineId =>
-            val builder =
-              eitherOne(
-                randomBuilder(enablePrefixCompression = false),
-                randomBuilder(enablePrefixCompression = true, prefixCompressKeysOnly = true)
-              )
-
-            builder.previous = Some(previous)
-
-            assertNoCompression(
-              keyValue = next,
-              builder = builder,
-              time = deadlineId
-            )
-        }
-      }
-    }
   }
+
 }

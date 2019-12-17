@@ -361,7 +361,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         var adjustedIndexEntryOffset = 0
         val secondaryIndexEntries = state.secondaryIndexEntries.iterator
         //temporary check.
-        assert(state.indexEntries.size == secondaryIndexEntries.size, s"${state.indexEntries.size} != ${state.secondaryIndexEntries.size}")
+        assert(state.indexEntries.size == state.secondaryIndexEntries.size, s"${state.indexEntries.size} != ${state.secondaryIndexEntries.size}")
 
         val bytesRequired = state.largestIndexEntrySize * state.entriesCount
         val bytes = Slice.create[Byte](bytesRequired + headerSize)
