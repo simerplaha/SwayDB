@@ -19,6 +19,8 @@
 
 package swaydb.core.data
 
+import java.beans.Transient
+
 import swaydb.IO
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
@@ -27,6 +29,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Bytes
+import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Maybe.Maybe
@@ -159,6 +162,19 @@ private[swaydb] sealed trait Memory extends KeyValue {
 }
 
 private[swaydb] object Memory {
+  implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
+    @inline def maxKey(): MaxKey[Slice[Byte]] =
+      keyValues.last match {
+        case range: Memory.Range =>
+          MaxKey.Range(range.fromKey, range.toKey)
+
+        case fixed: Memory.Fixed =>
+          MaxKey.Fixed(fixed.key)
+      }
+
+    @inline def minKey: Slice[Byte] =
+      keyValues.head.key
+  }
 
   sealed trait Fixed extends Memory with KeyValue.Fixed {
     def isRange: Boolean = false
