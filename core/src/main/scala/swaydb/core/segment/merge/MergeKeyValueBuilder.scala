@@ -141,7 +141,7 @@ object MergeKeyValueBuilder {
       maxTimeSize = this.maxTimeSize max timeSize
       totalTimesSize = this.totalTimesSize + timeSize
 
-      val valueSize = Options.valueOrElse[Slice[Byte], Int](keyValue.value, _.size, 0)
+      val valueSize = if (keyValue.value.isDefined) keyValue.value.get.size else 0
       maxValueSize = this.maxValueSize max valueSize
       totalValuesSize = this.totalValuesSize + valueSize
 
