@@ -1293,7 +1293,7 @@ object CommonAssertions {
   }
 
   def readBlocksFromSegment(closedSegment: SegmentBlock.Closed,
-                            segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Blocks] =
+                            segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
     readBlocks(closedSegment.flattenSegmentBytes, segmentIO)
 
   def getBlocks(keyValues: Iterable[Memory],
@@ -1304,7 +1304,7 @@ object CommonAssertions {
                 hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
-                segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[Blocks]] = {
+                segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeClosed(
         keyValues = MergeKeyValueBuilder.persistent(keyValues),
@@ -1331,7 +1331,7 @@ object CommonAssertions {
     readAll(Reader(bytes))
 
   def readBlocks(bytes: Slice[Byte],
-                 segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Blocks] =
+                 segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
     readBlocksFromReader(Reader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Memory],
@@ -1408,14 +1408,14 @@ object CommonAssertions {
     }
 
   def readBlocksFromReader(reader: Reader, segmentIO: SegmentIO = SegmentIO.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                    blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Blocks] = {
+                                                                                    blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] = {
     val blockCache = getSegmentBlockCacheFromReader(reader, segmentIO)
     readBlocks(blockCache)
   }
 
   def readBlocks(blockCache: SegmentBlockCache) =
     IO {
-      Blocks(
+      SegmentBlocks(
         footer = blockCache.getFooter(),
         valuesReader = blockCache.createValuesReader(),
         sortedIndexReader = blockCache.createSortedIndexReader(),

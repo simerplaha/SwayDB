@@ -26,7 +26,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Persistent, Memory}
 import swaydb.core.segment.format.a.block.SortedIndexBlock
-import swaydb.core.{Blocks, TestBase, TestSweeper}
+import swaydb.core.{SegmentBlocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
@@ -43,7 +43,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
 
   val startId = 0
 
-  def genKeyValuesAndBlocks(keyValuesCount: Int = 10): (Slice[Memory], Blocks) = {
+  def genKeyValuesAndBlocks(keyValuesCount: Int = 10): (Slice[Memory], SegmentBlocks) = {
     //  def genKeyValuesAndBlocks(keyValuesCount: Int = 50): (Slice[Memory], Blocks) = {
 
     val keyValues =

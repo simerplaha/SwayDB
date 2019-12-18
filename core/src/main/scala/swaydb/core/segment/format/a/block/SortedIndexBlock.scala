@@ -371,7 +371,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
         val bytesRequired = state.largestIndexEntrySize * state.entriesCount
         val bytes = Slice.create[Byte](bytesRequired)
-//        bytes moveWritePosition headerSize
 
         state.indexEntries foreach {
           entry =>
@@ -402,7 +401,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         blockName = blockName
       )
 
-    compressionResult.compressedBytes foreach (state.bytes = _)
+    state.bytes = compressionResult.compressedBytes getOrElse normalisedBytes
 
     compressionResult.headerBytes addBoolean state.enableAccessPositionIndex
     compressionResult.headerBytes addBoolean state.hasPrefixCompression
@@ -415,10 +414,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     state.header = compressionResult.headerBytes
 
-
-    //    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)
-    //      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
-    //    else
     state
   }
 

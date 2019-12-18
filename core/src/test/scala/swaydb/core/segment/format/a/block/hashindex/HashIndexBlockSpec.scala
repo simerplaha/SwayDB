@@ -25,7 +25,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, Time}
 import swaydb.core.segment.format.a.block.SortedIndexBlock
-import swaydb.core.{TestBase, TestSweeper}
+import swaydb.core.{SegmentBlocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers._
@@ -43,15 +43,15 @@ class HashIndexBlockSpec extends TestBase {
   "searching a segment" in {
     runThis(100.times, log = true) {
       //create perfect hash
-      //      val compressions = if (randomBoolean()) randomCompressions() else Seq.empty
-      val compressions: Seq[CompressionInternal] = Seq.empty
+      val compressions = if (randomBoolean()) randomCompressions() else Seq.empty
 
       val keyValues =
         randomizedKeyValues(
           count = 100,
           startId = Some(1)
         )
-      val segments =
+
+      val segments: Slice[SegmentBlocks] =
         getBlocks(
           segmentSize = randomIntMax(100) max 1,
           keyValues = keyValues,
@@ -61,7 +61,7 @@ class HashIndexBlockSpec extends TestBase {
               prefixCompressionResetCount = 0,
               prefixCompressKeysOnly = randomBoolean(),
               enableAccessPositionIndex = randomBoolean(),
-              normaliseIndex = false,
+              normaliseIndex = randomBoolean(),
               compressions = _ => compressions
             ),
           hashIndexConfig =

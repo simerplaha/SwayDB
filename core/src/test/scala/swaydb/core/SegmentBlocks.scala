@@ -23,9 +23,9 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 
-case class Blocks(valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-                  binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
-                  bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                  footer: SegmentFooterBlock)
+case class SegmentBlocks(valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                         sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                         hashIndexReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                         binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                         bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                         footer: SegmentFooterBlock)
