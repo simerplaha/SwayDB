@@ -144,7 +144,7 @@ private[core] object ValuesBlock {
       )
 
     state.bytes = compressedOrUncompressedBytes
-    if (state.bytes.currentWritePosition > headerSize)
+    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)
       throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
 
     state

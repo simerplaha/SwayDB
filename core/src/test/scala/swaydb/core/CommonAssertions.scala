@@ -26,7 +26,7 @@ import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Error, IO}
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -324,7 +324,7 @@ object CommonAssertions {
                   expected: Slice[KeyValue],
                   lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-//    println("*** Expected assert ***")
+    //    println("*** Expected assert ***")
     assertMerge(newKeyValues, oldKeyValues, expected, isLastLevel = false)
     //println("*** Expected last level ***")
     assertMerge(newKeyValues, oldKeyValues, lastLevelExpect, isLastLevel = true)
@@ -337,7 +337,7 @@ object CommonAssertions {
                   expected: Slice[KeyValue],
                   lastLevelExpect: Slice[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                     timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
-//    println("*** Last level = false ***")
+    //    println("*** Last level = false ***")
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), expected, isLastLevel = false)
     //println("*** Last level = true ***")
     assertMerge(Slice(newKeyValue), Slice(oldKeyValue), lastLevelExpect, isLastLevel = true)
@@ -1297,17 +1297,34 @@ object CommonAssertions {
     readBlocks(closedSegment.flattenSegmentBytes, segmentIO)
 
   def getBlocks(keyValues: Iterable[Memory],
+                segmentSize: Int = Int.MaxValue,
+                valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
-                segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Blocks] = {
-    //    val closedSegment =
-    //      SegmentBlock.writeClosed(
-    //        keyValues = keyValues,
-    //        segmentConfig = segmentConfig,
-    //        createdInLevel = 0
-    //      )
-    //
-    //    readBlocksFromSegment(closedSegment, segmentIO)
-    ???
+                segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[Blocks]] = {
+    val closedSegments =
+      SegmentBlock.writeClosed(
+        keyValues = MergeBuilder.persistent(keyValues),
+        createdInLevel = 0,
+        segmentSize = segmentSize,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig
+      )
+
+    import IO._
+    import swaydb.Error.Segment.ExceptionHandler
+
+    closedSegments.mapRecoverIO {
+      closedSegment =>
+        readBlocksFromSegment(closedSegment, segmentIO)
+    }
   }
 
   def readAll(bytes: Slice[Byte])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
@@ -1318,11 +1335,28 @@ object CommonAssertions {
     readBlocksFromReader(Reader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Memory],
+                           segmentSize: Int = Int.MaxValue,
                            segmentIO: SegmentIO = SegmentIO.random,
-                           segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache = {
-    //    val segment = SegmentBlock.writeClosed(keyValues, Int.MaxValue, segmentConfig = segmentConfig)
-    //    getSegmentBlockCacheFromSegmentClosed(segment, segmentIO)
-    ???
+                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                           binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                           hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                           bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                           segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] = {
+    SegmentBlock.writeClosed(
+      keyValues = MergeBuilder.persistent(keyValues),
+      createdInLevel = Int.MaxValue,
+      segmentSize = segmentSize,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig
+    ) map {
+      closed =>
+        getSegmentBlockCacheFromSegmentClosed(closed, segmentIO)
+    }
   }
 
   def randomBlockSize(): Option[Int] =

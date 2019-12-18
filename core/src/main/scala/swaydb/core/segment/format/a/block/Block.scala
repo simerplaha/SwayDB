@@ -131,7 +131,7 @@ private[core] object Block extends LazyLogging {
     bytes moveWritePosition 0
     bytes addUnsignedInt headerSize
     bytes add uncompressedBlockId
-    if (bytes.currentWritePosition > headerSize)
+    if (bytes.currentWritePosition > bytes.fromOffset + headerSize)
       throw IO.throwable(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
   }
 
