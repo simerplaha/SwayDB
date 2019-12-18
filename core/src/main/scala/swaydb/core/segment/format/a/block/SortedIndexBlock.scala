@@ -167,6 +167,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
               val indexEntries: ListBuffer[Slice[Byte]],
               val builder: EntryWriter.Builder) {
 
+    def blockBytes: Slice[Byte] =
+      header ++ bytes
+
     def uncompressedPrefixCount: Int =
       entriesCount - prefixCompressedCount
 
