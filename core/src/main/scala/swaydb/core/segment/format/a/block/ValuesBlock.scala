@@ -81,6 +81,9 @@ private[core] object ValuesBlock {
                    builder: EntryWriter.Builder) {
     def blockSize: Int =
       header.size + bytes.size
+
+    def blockBytes =
+      header ++ bytes
   }
 
   object Offset {

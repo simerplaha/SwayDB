@@ -89,7 +89,7 @@ class ValuesBlockSpec extends TestBase {
 
         ValuesBlock.close(state)
 
-        val ref = BlockRefReader[ValuesBlock.Offset](state.bytes)
+        val ref = BlockRefReader[ValuesBlock.Offset](state.blockBytes)
         val blocked = BlockedReader(ref.copy())
 
         val manuallyReadBlock = ValuesBlock.read(Block.readHeader[ValuesBlock.Offset](ref.copy()))
