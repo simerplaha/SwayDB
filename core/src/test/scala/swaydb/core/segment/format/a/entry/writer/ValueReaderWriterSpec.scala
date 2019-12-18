@@ -22,12 +22,15 @@ package swaydb.core.segment.format.a.entry.writer
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.data.{Memory, Time}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
+import swaydb.serializers._
+import swaydb.serializers.Default._
+import swaydb.core.CommonAssertions._
 
 class ValueReaderWriterSpec extends WordSpec with Matchers {
 
-  val noCompressedDeadlineIds: Seq[BaseEntryId.Time] =
+  val timeIds: Seq[BaseEntryId.Time] =
     allBaseEntryIds collect {
       case entryId: BaseEntryId.Time =>
         entryId
@@ -60,6 +63,8 @@ class ValueReaderWriterSpec extends WordSpec with Matchers {
 
   "apply no compression" when {
 
+    timeIds should not be empty
+
     def assertNoCompression(keyValue: Memory,
                             builder: EntryWriter.Builder,
                             time: BaseEntryId.Time) = {
@@ -91,7 +96,7 @@ class ValueReaderWriterSpec extends WordSpec with Matchers {
       runThis(100.times) {
         val keyValue = randomizedKeyValues(1).head
 
-        noCompressedDeadlineIds foreach {
+        timeIds foreach {
           deadlineId =>
             val builder = randomBuilder()
 
@@ -100,6 +105,93 @@ class ValueReaderWriterSpec extends WordSpec with Matchers {
               builder = builder,
               time = deadlineId
             )
+        }
+      }
+    }
+
+    "previous key-value is defined with duplicate values" in {
+      runThis(100.times) {
+        val previous = Memory.Put(1, Some(1), None, Time.empty)
+        val next = Memory.Put(2, Some(1), None, Time.empty)
+
+        timeIds foreach {
+          deadlineId =>
+            val builder =
+              eitherOne(
+                randomBuilder(compressDuplicateValues = true, enablePrefixCompression = false),
+                randomBuilder(compressDuplicateValues = true, enablePrefixCompression = true, prefixCompressKeysOnly = true)
+              )
+
+            ValueWriter.write(
+              current = previous,
+              builder = builder,
+              entryId = deadlineId
+            )
+
+            builder.previous = Some(previous)
+
+            ValueWriter.write(
+              current = next,
+              builder = builder,
+              entryId = deadlineId
+            )
+
+            builder.isCurrentPrefixCompressed shouldBe false
+            builder.segmentHasPrefixCompression shouldBe false
+
+            val reader = builder.bytes.createReader()
+
+            //entries for value1
+            reader.readUnsignedInt() shouldBe 0 //valueOffset
+            reader.readUnsignedInt() shouldBe 4 //valueLength
+            //entries for value2
+            reader.readUnsignedInt() shouldBe 0 //valueOffset
+            reader.readUnsignedInt() shouldBe 4 //valueLength
+            reader.get() shouldBe 0 //tail empty bytes
+        }
+      }
+    }
+  }
+
+  "apply compression" when {
+    "previous key-value is defined with duplicate values" in {
+      runThis(100.times) {
+        val previous = Memory.Put(1, Some(1), None, Time.empty)
+        val next = Memory.Put(2, Some(2), None, Time.empty)
+
+        timeIds foreach {
+          deadlineId =>
+            val builder = randomBuilder(compressDuplicateValues = true, enablePrefixCompression = true, prefixCompressKeysOnly = false)
+
+            ValueWriter.write(
+              current = previous,
+              builder = builder,
+              entryId = deadlineId
+            )
+
+            builder.isCurrentPrefixCompressed shouldBe false
+            builder.segmentHasPrefixCompression shouldBe false
+
+            builder.previous = Some(previous)
+
+            ValueWriter.write(
+              current = next,
+              builder = builder,
+              entryId = deadlineId
+            )
+
+            builder.isCurrentPrefixCompressed shouldBe true
+            builder.segmentHasPrefixCompression shouldBe true
+
+            val reader = builder.bytes.createReader()
+
+            //entries for value1
+            reader.readUnsignedInt() shouldBe 0 //valueOffset
+            reader.readUnsignedInt() shouldBe 4 //valueLength
+            //entries for value2
+            reader.readUnsignedInt() shouldBe 4 //valueOffset is 3 compressed
+            //           //value length is fully compressed.
+            reader.get() shouldBe 0 //tail empty bytes
         }
       }
     }

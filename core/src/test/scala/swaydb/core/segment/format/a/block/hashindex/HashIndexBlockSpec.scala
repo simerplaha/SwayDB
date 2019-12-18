@@ -19,17 +19,16 @@
 
 package swaydb.core.segment.format.a.block.hashindex
 
-import swaydb.compression.CompressionInternal
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Persistent, Time}
+import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.SortedIndexBlock
 import swaydb.core.{SegmentBlocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
-import swaydb.serializers._
 import swaydb.serializers.Default._
+import swaydb.serializers._
 
 class HashIndexBlockSpec extends TestBase {
 
@@ -80,14 +79,14 @@ class HashIndexBlockSpec extends TestBase {
       var segmentsIndex = 0
       var successCount = 0
 
+      //all key-values get written to multiple segment. So iterate and search all Segment sequentially
+      //until all key-values are read via HashIndex.
       while (keyValueIndex < keyValues.size) {
         val keyValue = keyValues(keyValueIndex)
         val segment = segments(segmentsIndex)
 
         segment.hashIndexReader shouldBe defined
-//        segment.hashIndexReader.get.block.hit shouldBe keyValues.size
-        if(segment.hashIndexReader.get.block.miss > 0)
-          println("debb")
+        segment.hashIndexReader.get.block.hit shouldBe segment.footer.keyValueCount
         segment.hashIndexReader.get.block.miss shouldBe 0
 
         HashIndexBlock.search(
@@ -97,9 +96,8 @@ class HashIndexBlockSpec extends TestBase {
           valuesReader = segment.valuesReader
         ) match {
           case None =>
+            //may be it's in the next Segment.
             segmentsIndex += 1
-          //            fail("None on perfect hash.")
-          //            false
 
           case Some(found) =>
             found.toPersistent shouldBe keyValue
@@ -109,7 +107,6 @@ class HashIndexBlockSpec extends TestBase {
       }
 
       successCount shouldBe keyValues.size
-
     }
   }
 }
