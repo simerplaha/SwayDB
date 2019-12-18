@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.merge.MergeBuilder
+import swaydb.core.segment.merge.MergeKeyValueBuilder
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
@@ -121,7 +121,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       runThis(100.times, log = true) {
         val sortedIndexConfig = SortedIndexBlock.Config.random
         val valuesConfig = ValuesBlock.Config.random
-        val keyValues = Benchmark("Generating key-values")(MergeBuilder.persistent(randomizedKeyValues(randomIntMax(1000) max 1)))
+        val keyValues = Benchmark("Generating key-values")(MergeKeyValueBuilder.persistent(randomizedKeyValues(randomIntMax(1000) max 1)))
 
         val state = SortedIndexBlock.init(keyValues, valuesConfig, sortedIndexConfig)
 
@@ -140,7 +140,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     runThis(30.times, log = true) {
       val sortedIndexConfig = SortedIndexBlock.Config.random
       val valuesConfig = ValuesBlock.Config.random
-      val keyValues = Benchmark("Generating key-values")(MergeBuilder.persistent(randomizedKeyValues(randomIntMax(1000) max 1)))
+      val keyValues = Benchmark("Generating key-values")(MergeKeyValueBuilder.persistent(randomizedKeyValues(randomIntMax(1000) max 1)))
 
       val sortedIndex = SortedIndexBlock.init(keyValues, valuesConfig, sortedIndexConfig)
       val values = ValuesBlock.init(keyValues, valuesConfig, sortedIndex.builder)

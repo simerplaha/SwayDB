@@ -31,7 +31,7 @@ import scala.collection.mutable.ListBuffer
 private[merge] object SegmentGrouper extends LazyLogging {
 
   def add(keyValue: KeyValue,
-          builder: MergeBuilder,
+          builder: MergeKeyValueBuilder,
           isLastLevel: Boolean): Unit =
     keyValue match {
       case fixed: KeyValue.Fixed =>

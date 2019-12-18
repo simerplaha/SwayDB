@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.merge.{MergeBuilder, SegmentMerger}
+import swaydb.core.segment.merge.{MergeKeyValueBuilder, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -78,7 +78,7 @@ private[segment] case class MemorySegment(path: Path,
     } else {
       val currentKeyValues = getAll()
 
-      val builder = MergeBuilder.memory()
+      val builder = MergeKeyValueBuilder.memory()
 
       SegmentMerger.merge(
         newKeyValues = newKeyValues,

@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.format.a.entry.writer.{DeadlineWriter, EntryWriter, KeyWriter, TimeWriter, ValueWriter}
-import swaydb.core.segment.merge.MergeBuilder
+import swaydb.core.segment.merge.MergeKeyValueBuilder
 import swaydb.core.util.{Bytes, FiniteDurations, MinMax}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
@@ -197,7 +197,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     Bytes.sizeOfUnsignedInt(size) + size
   }
 
-  def init(keyValues: MergeBuilder.Persistent,
+  def init(keyValues: MergeKeyValueBuilder.Persistent,
            valuesConfig: ValuesBlock.Config,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
     init(

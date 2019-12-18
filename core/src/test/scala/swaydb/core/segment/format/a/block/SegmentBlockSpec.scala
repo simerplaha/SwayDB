@@ -29,7 +29,7 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.merge.MergeBuilder
+import swaydb.core.segment.merge.MergeKeyValueBuilder
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.KeyOrder
@@ -52,7 +52,7 @@ class SegmentBlockSpec extends TestBase {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val closedSegment =
         SegmentBlock.writeClosed(
-          keyValues = MergeBuilder.persistent(Seq.empty),
+          keyValues = MergeKeyValueBuilder.persistent(Seq.empty),
           segmentSize = randomIntMax(Int.MaxValue),
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlock.Config.random,
@@ -70,7 +70,7 @@ class SegmentBlockSpec extends TestBase {
       def test(keyValues: Slice[Memory]) = {
         val closedSegment =
           SegmentBlock.writeClosed(
-            keyValues = MergeBuilder.persistent(keyValues),
+            keyValues = MergeKeyValueBuilder.persistent(keyValues),
             segmentSize = 1.gb,
             createdInLevel = randomIntMax(Int.MaxValue),
             valuesConfig = ValuesBlock.Config.random,

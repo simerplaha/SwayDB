@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
-import swaydb.core.segment.merge.{MergeBuilder, SegmentMerger}
+import swaydb.core.segment.merge.{MergeKeyValueBuilder, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
@@ -150,7 +150,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
     val currentKeyValues = getAll()
 
-    val builder = MergeBuilder.persistent()
+    val builder = MergeKeyValueBuilder.persistent()
 
     SegmentMerger.merge(
       newKeyValues = newKeyValues,

@@ -23,7 +23,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.merge.MergeBuilder
+import swaydb.core.segment.merge.MergeKeyValueBuilder
 import swaydb.core.util.{Bytes, MinMax}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -234,7 +234,7 @@ private[core] object SegmentBlock {
     else
       noCompressionHeaderSize
 
-  def writeClosed(keyValues: MergeBuilder.Persistent,
+  def writeClosed(keyValues: MergeKeyValueBuilder.Persistent,
                   createdInLevel: Int,
                   segmentSize: Int,
                   bloomFilterConfig: BloomFilterBlock.Config,
@@ -265,7 +265,7 @@ private[core] object SegmentBlock {
           )
       }
 
-  def writeOpen(keyValues: MergeBuilder.Persistent,
+  def writeOpen(keyValues: MergeKeyValueBuilder.Persistent,
                 createdInLevel: Int,
                 minSegmentSize: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,

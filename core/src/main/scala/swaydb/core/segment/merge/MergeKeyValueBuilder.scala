@@ -28,7 +28,7 @@ import swaydb.data.util.ByteSizeOf
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
-sealed trait MergeBuilder extends Iterable[swaydb.core.data.Memory] {
+sealed trait MergeKeyValueBuilder extends Iterable[swaydb.core.data.Memory] {
   def keyValues: ListBuffer[swaydb.core.data.Memory]
   def addOne(keyValue: swaydb.core.data.Memory)
 
@@ -41,15 +41,15 @@ sealed trait MergeBuilder extends Iterable[swaydb.core.data.Memory] {
     keyValues.iterator
 }
 
-object MergeBuilder {
+object MergeKeyValueBuilder {
 
-  def random(keyValues: Iterable[swaydb.core.data.Memory]): MergeBuilder = {
-    val builder = MergeBuilder.random()
+  def random(keyValues: Iterable[swaydb.core.data.Memory]): MergeKeyValueBuilder = {
+    val builder = MergeKeyValueBuilder.random()
     keyValues foreach builder.addOne
     builder
   }
 
-  def random(): MergeBuilder =
+  def random(): MergeKeyValueBuilder =
     if (Random.nextBoolean())
       persistent()
     else if (Random.nextBoolean())
@@ -57,13 +57,13 @@ object MergeBuilder {
     else
       buffer()
 
-  def persistent(keyValues: Iterable[swaydb.core.data.Memory]): MergeBuilder.Persistent = {
-    val builder = MergeBuilder.persistent()
+  def persistent(keyValues: Iterable[swaydb.core.data.Memory]): MergeKeyValueBuilder.Persistent = {
+    val builder = MergeKeyValueBuilder.persistent()
     keyValues foreach builder.addOne
     builder
   }
 
-  def persistent(): MergeBuilder.Persistent =
+  def persistent(): MergeKeyValueBuilder.Persistent =
     new Persistent(
       maxMergedKeySize = 0,
       totalMergedKeysSize = 0,
@@ -80,13 +80,13 @@ object MergeBuilder {
       keyValues = ListBuffer.empty
     )
 
-  def memory(keyValues: Iterable[swaydb.core.data.Memory]): MergeBuilder.Memory = {
-    val builder = MergeBuilder.memory()
+  def memory(keyValues: Iterable[swaydb.core.data.Memory]): MergeKeyValueBuilder.Memory = {
+    val builder = MergeKeyValueBuilder.memory()
     keyValues foreach builder.addOne
     builder
   }
 
-  def memory(): MergeBuilder.Memory =
+  def memory(): MergeKeyValueBuilder.Memory =
     new Memory(
       segmentSize = 0,
       hasRange = false,
@@ -94,13 +94,13 @@ object MergeBuilder {
       keyValues = ListBuffer.empty
     )
 
-  def buffer(keyValues: Iterable[swaydb.core.data.Memory]): MergeBuilder.Buffer = {
-    val builder = MergeBuilder.buffer()
+  def buffer(keyValues: Iterable[swaydb.core.data.Memory]): MergeKeyValueBuilder.Buffer = {
+    val builder = MergeKeyValueBuilder.buffer()
     keyValues foreach builder.addOne
     builder
   }
 
-  def buffer(): MergeBuilder.Buffer =
+  def buffer(): MergeKeyValueBuilder.Buffer =
     new Buffer(ListBuffer.empty)
 
   class Persistent(var maxMergedKeySize: Int,
@@ -115,7 +115,7 @@ object MergeBuilder {
                    var hasRange: Boolean,
                    var hasRemoveRange: Boolean,
                    var hasPut: Boolean,
-                   val keyValues: ListBuffer[swaydb.core.data.Memory]) extends MergeBuilder {
+                   val keyValues: ListBuffer[swaydb.core.data.Memory]) extends MergeKeyValueBuilder {
 
     def hasDeadline = totalDeadlineKeyValues > 0
 
@@ -167,7 +167,7 @@ object MergeBuilder {
   class Memory(var segmentSize: Int,
                var hasRange: Boolean,
                var hasPut: Boolean,
-               val keyValues: ListBuffer[swaydb.core.data.Memory]) extends MergeBuilder {
+               val keyValues: ListBuffer[swaydb.core.data.Memory]) extends MergeKeyValueBuilder {
     override def addOne(keyValue: data.Memory): Unit = {
       segmentSize = segmentSize + keyValue.key.size + Options.valueOrElse[Slice[Byte], Int](keyValue.value, _.size, 0)
 
@@ -180,7 +180,7 @@ object MergeBuilder {
     }
   }
 
-  class Buffer(val keyValues: ListBuffer[swaydb.core.data.Memory]) extends MergeBuilder {
+  class Buffer(val keyValues: ListBuffer[swaydb.core.data.Memory]) extends MergeKeyValueBuilder {
     override def addOne(keyValue: data.Memory): Unit =
       keyValues addOne keyValue
   }

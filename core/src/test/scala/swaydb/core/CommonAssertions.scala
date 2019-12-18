@@ -49,7 +49,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.merge.{MergeBuilder, SegmentMerger}
+import swaydb.core.segment.merge.{MergeKeyValueBuilder, SegmentMerger}
 import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
@@ -283,7 +283,7 @@ object CommonAssertions {
                   expected: Slice[KeyValue],
                   isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] = {
-    val builder = MergeBuilder.random()
+    val builder = MergeKeyValueBuilder.random()
 
     SegmentMerger.merge(
       newKeyValues = newKeyValues,
@@ -456,17 +456,17 @@ object CommonAssertions {
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
 
-    def toPersistentMergeBuilder: MergeBuilder.Persistent =
-      MergeBuilder.persistent(actual)
+    def toPersistentMergeBuilder: MergeKeyValueBuilder.Persistent =
+      MergeKeyValueBuilder.persistent(actual)
 
-    def toMemoryMergeBuilder: MergeBuilder.Memory =
-      MergeBuilder.memory(actual)
+    def toMemoryMergeBuilder: MergeKeyValueBuilder.Memory =
+      MergeKeyValueBuilder.memory(actual)
 
-    def toBufferMergeBuilder: MergeBuilder.Buffer =
-      MergeBuilder.buffer(actual)
+    def toBufferMergeBuilder: MergeKeyValueBuilder.Buffer =
+      MergeKeyValueBuilder.buffer(actual)
 
-    def toMergeBuilder: MergeBuilder =
-      MergeBuilder.random(actual)
+    def toMergeBuilder: MergeKeyValueBuilder =
+      MergeKeyValueBuilder.random(actual)
   }
 
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
@@ -1307,7 +1307,7 @@ object CommonAssertions {
                 segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[Blocks]] = {
     val closedSegments =
       SegmentBlock.writeClosed(
-        keyValues = MergeBuilder.persistent(keyValues),
+        keyValues = MergeKeyValueBuilder.persistent(keyValues),
         createdInLevel = 0,
         segmentSize = segmentSize,
         bloomFilterConfig = bloomFilterConfig,
@@ -1344,7 +1344,7 @@ object CommonAssertions {
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] = {
     SegmentBlock.writeClosed(
-      keyValues = MergeBuilder.persistent(keyValues),
+      keyValues = MergeKeyValueBuilder.persistent(keyValues),
       createdInLevel = Int.MaxValue,
       segmentSize = segmentSize,
       bloomFilterConfig = bloomFilterConfig,
