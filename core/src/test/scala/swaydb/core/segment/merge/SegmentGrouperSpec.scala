@@ -34,7 +34,7 @@ class SegmentGrouperSpec extends TestBase {
   "add fixed key-value" when {
     "expired" in {
       runThis(100.times) {
-        val builder = MergeKeyValueBuilder.random()
+        val builder = KeyValueMergeBuilder.random()
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, Some(expiredDeadline()))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
@@ -48,7 +48,7 @@ class SegmentGrouperSpec extends TestBase {
 
     "not expired" in {
       runThis(100.times) {
-        val builder = MergeKeyValueBuilder.random()
+        val builder = KeyValueMergeBuilder.random()
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, deadline = None)
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
@@ -67,7 +67,7 @@ class SegmentGrouperSpec extends TestBase {
   "add range key-value" when {
     "expired" in {
       runThis(100.times) {
-        val builder = MergeKeyValueBuilder.random()
+        val builder = KeyValueMergeBuilder.random()
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))
@@ -82,7 +82,7 @@ class SegmentGrouperSpec extends TestBase {
 
     "not expired" in {
       runThis(100.times) {
-        val builder = MergeKeyValueBuilder.random()
+        val builder = KeyValueMergeBuilder.random()
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))

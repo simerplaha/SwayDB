@@ -35,7 +35,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.segment.merge.MergeKeyValueBuilder
+import swaydb.core.segment.merge.KeyValueMergeBuilder
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.data.MaxKey
@@ -120,7 +120,7 @@ private[core] object Segment extends LazyLogging {
                  sortedIndexConfig: SortedIndexBlock.Config,
                  valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlock.Config,
-                 keyValues: MergeKeyValueBuilder.Persistent)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                 keyValues: KeyValueMergeBuilder.Persistent)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                              functionStore: FunctionStore,
                                                              fileSweeper: FileSweeper.Enabled,

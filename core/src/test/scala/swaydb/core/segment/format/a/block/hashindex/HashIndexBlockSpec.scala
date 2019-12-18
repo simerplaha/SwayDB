@@ -47,13 +47,13 @@ class HashIndexBlockSpec extends TestBase {
 
       val keyValues =
         randomizedKeyValues(
-          count = 100,
+          count = 1000,
           startId = Some(1)
         )
 
       val segments: Slice[SegmentBlocks] =
         getBlocks(
-          segmentSize = randomIntMax(100) max 1,
+          segmentSize = randomIntMax(1000) max 1,
           keyValues = keyValues,
           sortedIndexConfig =
             SortedIndexBlock.Config(
@@ -70,7 +70,7 @@ class HashIndexBlockSpec extends TestBase {
               minimumNumberOfKeys = 0,
               minimumNumberOfHits = 0,
               format = randomHashIndexSearchFormat(),
-              allocateSpace = _.requiredSpace * 2,
+              allocateSpace = _.requiredSpace * 4,
               ioStrategy = _ => randomIOStrategy(),
               compressions = _ => compressions
             )
@@ -85,7 +85,9 @@ class HashIndexBlockSpec extends TestBase {
         val segment = segments(segmentsIndex)
 
         segment.hashIndexReader shouldBe defined
-        //        segment.hashIndexReader.get.block.hit shouldBe keyValues.size
+//        segment.hashIndexReader.get.block.hit shouldBe keyValues.size
+        if(segment.hashIndexReader.get.block.miss > 0)
+          println("debb")
         segment.hashIndexReader.get.block.miss shouldBe 0
 
         HashIndexBlock.search(

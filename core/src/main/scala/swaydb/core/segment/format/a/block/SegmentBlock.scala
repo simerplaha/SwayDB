@@ -19,15 +19,14 @@
 
 package swaydb.core.segment.format.a.block
 
-import swaydb.Error.Segment.ExceptionHandler
+import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.merge.MergeKeyValueBuilder
-import swaydb.core.util.{Bytes, MinMax}
+import swaydb.core.segment.merge.KeyValueMergeBuilder
+import swaydb.core.util.MinMax
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
-import swaydb.{Compression, IO}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
@@ -135,9 +134,6 @@ private[core] object SegmentBlock {
 
     val segmentHeader: Slice[Byte] = Slice.create[Byte](Byte.MaxValue)
 
-    //make it fully written.
-    //    segmentHeader moveWritePosition segmentHeader.allocatedSize
-
     val segmentBytes: Slice[Slice[Byte]] = {
       val allBytes = Slice.create[Slice[Byte]](13)
       allBytes add segmentHeader
@@ -191,7 +187,7 @@ private[core] object SegmentBlock {
       compressionInfo = header.compressionInfo
     )
 
-  def writeClosed(keyValues: MergeKeyValueBuilder.Persistent,
+  def writeClosed(keyValues: KeyValueMergeBuilder.Persistent,
                   createdInLevel: Int,
                   segmentSize: Int,
                   bloomFilterConfig: BloomFilterBlock.Config,
@@ -222,7 +218,7 @@ private[core] object SegmentBlock {
           )
       }
 
-  def writeOpen(keyValues: MergeKeyValueBuilder.Persistent,
+  def writeOpen(keyValues: KeyValueMergeBuilder.Persistent,
                 createdInLevel: Int,
                 minSegmentSize: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,
@@ -426,8 +422,6 @@ private[core] object SegmentBlock {
                           bloomFilterConfig: BloomFilterBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config): ClosedBlocks = {
-
-    //close and create new Segment.
     val sortedIndexState = SortedIndexBlock.close(sortedIndex)
     val valuesState = values map ValuesBlock.close
 

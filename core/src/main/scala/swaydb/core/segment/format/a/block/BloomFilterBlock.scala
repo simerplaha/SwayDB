@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.merge.MergeKeyValueBuilder
+import swaydb.core.segment.merge.KeyValueMergeBuilder
 import swaydb.core.util.{Bytes, MurmurHash3Generic}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -209,21 +209,21 @@ private[core] object BloomFilterBlock extends LazyLogging {
     )
   }
 
-  def shouldNotCreateBloomFilter(keyValues: MergeKeyValueBuilder.Persistent,
+  def shouldNotCreateBloomFilter(keyValues: KeyValueMergeBuilder.Persistent,
                                  config: BloomFilterBlock.Config): Boolean =
     keyValues.hasRemoveRange ||
       config.falsePositiveRate <= 0.0 ||
       config.falsePositiveRate >= 1 ||
       keyValues.size < config.minimumNumberOfKeys
 
-  def shouldCreateBloomFilter(keyValues: MergeKeyValueBuilder.Persistent,
+  def shouldCreateBloomFilter(keyValues: KeyValueMergeBuilder.Persistent,
                               config: BloomFilterBlock.Config): Boolean =
     !shouldNotCreateBloomFilter(
       keyValues = keyValues,
       config = config
     )
 
-  def init(keyValues: MergeKeyValueBuilder.Persistent,
+  def init(keyValues: KeyValueMergeBuilder.Persistent,
            config: BloomFilterBlock.Config): Option[BloomFilterBlock.State] =
     if (shouldCreateBloomFilter(keyValues, config))
       init(

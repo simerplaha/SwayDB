@@ -25,7 +25,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Value}
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.merge.MergeKeyValueBuilder
+import swaydb.core.segment.merge.KeyValueMergeBuilder
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -163,12 +163,12 @@ class BloomFilterBlockSpec extends TestBase {
         implicit val time = TestTimer.random
 
         BloomFilterBlock.init(
-          keyValues = MergeKeyValueBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(None, time.next)))),
+          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(None, time.next)))),
           config = BloomFilterBlock.Config.random
         ) shouldBe empty
 
         BloomFilterBlock.init(
-          keyValues = MergeKeyValueBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))),
+          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))),
           config = BloomFilterBlock.Config.random
         ) shouldBe empty
       }
@@ -180,7 +180,7 @@ class BloomFilterBlockSpec extends TestBase {
 
         //range functions can also contain Remove so BloomFilter should not be created
         BloomFilterBlock.init(
-          keyValues = MergeKeyValueBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Function(Slice.emptyBytes, time.next)))),
+          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Function(Slice.emptyBytes, time.next)))),
           config = BloomFilterBlock.Config.random
         ) shouldBe empty
       }
@@ -192,12 +192,12 @@ class BloomFilterBlockSpec extends TestBase {
 
         //range functions can also contain Remove so BloomFilter should not be created
         BloomFilterBlock.init(
-          keyValues = MergeKeyValueBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))),
+          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))),
           config = BloomFilterBlock.Config.random
         ) shouldBe empty
 
         BloomFilterBlock.init(
-          keyValues = MergeKeyValueBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))),
+          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))),
           config = BloomFilterBlock.Config.random
         ) shouldBe empty
       }
@@ -210,7 +210,7 @@ class BloomFilterBlockSpec extends TestBase {
         //pending apply should allow to create bloomFilter if it does not have remove or function.
         BloomFilterBlock.init(
           keyValues =
-            MergeKeyValueBuilder.persistent(
+            KeyValueMergeBuilder.persistent(
               Slice(
                 Memory.Range(
                   fromKey = 1,
@@ -231,7 +231,7 @@ class BloomFilterBlockSpec extends TestBase {
         //fromValue is remove but it's not a remove range.
         BloomFilterBlock.init(
           keyValues =
-            MergeKeyValueBuilder.persistent(
+            KeyValueMergeBuilder.persistent(
               Slice(
                 Memory.Range(
                   fromKey = 1,

@@ -25,7 +25,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
-import swaydb.core.segment.merge.MergeKeyValueBuilder
+import swaydb.core.segment.merge.KeyValueMergeBuilder
 import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -95,7 +95,7 @@ private[core] object ValuesBlock {
 //      size
 //  }
 
-  def init(keyValues: MergeKeyValueBuilder.Persistent,
+  def init(keyValues: KeyValueMergeBuilder.Persistent,
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): Option[ValuesBlock.State] =
