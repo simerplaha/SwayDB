@@ -447,6 +447,9 @@ abstract class SliceBase[+T](array: Array[T],
   def currentWritePosition =
     writePosition
 
+  def currentWritePositionInThisSlice: Int =
+    writePosition - fromOffset
+
   /**
    * @return A tuple2 where _1 is written bytes and _2 is tail unwritten bytes.
    */

@@ -30,7 +30,7 @@ class BlockedReaderSpec extends TestBase with MockFactory {
 
   "apply" when {
     "ref" in {
-      val header = Slice(2.toByte, 0.toByte)
+      val header = Slice(1.toByte, 0.toByte)
       val body = randomBytesSlice(100)
       val bytes = header ++ body
 
@@ -39,11 +39,11 @@ class BlockedReaderSpec extends TestBase with MockFactory {
     }
 
     "unblocked Segment" in {
-      val childHeader = Slice(2.toByte, 0.toByte)
+      val childHeader = Slice(1.toByte, 0.toByte)
       val childBody = Slice.fill(20)(9.toByte)
       val childBytes = childHeader ++ childBody
 
-      val segmentHeader = Slice(2.toByte, 0.toByte)
+      val segmentHeader = Slice(1.toByte, 0.toByte)
       val segmentBody = childBytes
       val segmentBytes = segmentHeader ++ segmentBody
 

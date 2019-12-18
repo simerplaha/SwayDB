@@ -64,10 +64,24 @@ private[core] object Block extends LazyLogging {
   class CompressionInfo(val decompressor: DecompressorInternal,
                         val decompressedLength: Int)
 
-  case class Header[O](compressionInfo: Option[CompressionInfo],
-                       headerReader: ReaderBase,
-                       headerSize: Int,
-                       offset: O)
+  class Header[O](val compressionInfo: Option[CompressionInfo],
+                  val headerReader: ReaderBase,
+                  val headerSize: Int,
+                  val offset: O)
+
+  class CompressionResult(val compressedBytes: Option[Slice[Byte]],
+                          val headerBytes: Slice[Byte]) {
+    /**
+     * More bytes could get allocated to headerBytes when it's created. This fixes the size to it's original size.
+     * currently not more that 1 byte is required to store the size of the header.
+     *
+     * @return mutates and sets the size of [[headerBytes]]
+     */
+    def fixHeaderSize(): Unit = {
+      headerBytes moveWritePosition 0
+      headerBytes addUnsignedInt (headerBytes.size - 1)
+    }
+  }
 
   private val headerSizeWithCompression =
     ByteSizeOf.byte + //formatId
@@ -92,21 +106,25 @@ private[core] object Block extends LazyLogging {
    *
    * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
    * They should also allocate enough bytes to write the total headerSize.
+   *
+   * NOTE: Always invoke [[CompressionResult.fixHeaderSize()]] when done writing header bytes outside this function.
    */
-  def block(headerSize: Int,
-            bytes: Slice[Byte],
-            compressions: Seq[CompressionInternal],
-            blockName: String): Slice[Byte] =
-    compressions.untilSome(_.compressor.compress(headerSize, bytes.drop(headerSize))) match {
+  def compress(bytes: Slice[Byte],
+               compressions: Seq[CompressionInternal],
+               blockName: String): CompressionResult =
+    compressions.untilSome(_.compressor.compress(bytes)) match {
       case Some((compressedBytes, compression)) =>
-        compressedBytes moveWritePosition 0
-        compressedBytes addUnsignedInt headerSize
-        compressedBytes add compressedBlockID
-        compressedBytes addUnsignedInt compression.decompressor.id
-        compressedBytes addUnsignedInt (bytes.size - headerSize) //decompressed bytes
-        if (compressedBytes.currentWritePosition > headerSize)
-          throw IO.throwable(s"Compressed header bytes written over to data bytes for $blockName. CurrentPosition: ${compressedBytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${compressedBytes.size}")
-        compressedBytes
+        val header = Slice.create[Byte](Byte.MaxValue)
+
+        header moveWritePosition 1 //skip writing header size since it's not known.
+        header add compressedBlockID
+        header addUnsignedInt compression.decompressor.id
+        header addUnsignedInt bytes.size //decompressed bytes
+
+        new CompressionResult(
+          compressedBytes = Some(compressedBytes),
+          headerBytes = header
+        )
 
       case None =>
         logger.trace {
@@ -116,49 +134,54 @@ private[core] object Block extends LazyLogging {
             s"Unable to satisfy compression requirement from ${compressions.size} compression strategies for $blockName. Storing ${bytes.size}.bytes uncompressed."
         }
 
-        unblock(
-          headerSize = headerSize,
-          bytes = bytes,
-          blockName = blockName
+        val header = Slice.create[Byte](Byte.MaxValue)
+
+        header moveWritePosition 1 //skip writing header size since it's not known.
+        header add uncompressedBlockId
+
+        new CompressionResult(
+          compressedBytes = None,
+          headerBytes = header
         )
-
-        bytes
     }
-
-  def unblock(headerSize: Int,
-              bytes: Slice[Byte],
-              blockName: String): Unit = {
-    bytes moveWritePosition 0
-    bytes addUnsignedInt headerSize
-    bytes add uncompressedBlockId
-    if (bytes.currentWritePosition > bytes.fromOffset + headerSize)
-      throw IO.throwable(s"Uncompressed header bytes written over to data bytes for $blockName. CurrentPosition: ${bytes.currentWritePosition}, headerSize: $headerSize, dataSize: ${bytes.size}")
-  }
 
   def block(openSegment: SegmentBlock.Open,
             compressions: Seq[CompressionInternal],
             blockName: String): SegmentBlock.Closed =
     if (compressions.isEmpty) {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
-      openSegment.headerBytes moveWritePosition 0
-      openSegment.headerBytes addUnsignedInt openSegment.headerBytes.size
-      openSegment.headerBytes add uncompressedBlockId
+      //      openSegment.segmentHeader moveWritePosition 0
+      openSegment.segmentHeader addUnsignedInt 1
+      openSegment.segmentHeader add uncompressedBlockId
+
+      val segmentBytes =
+        openSegment.segmentBytes.collect {
+          case bytes if bytes.nonEmpty => bytes.close()
+        }
+
       SegmentBlock.Closed(
-        segmentBytes = openSegment.segmentBytes,
+        segmentBytes = segmentBytes,
         minMaxFunctionId = openSegment.functionMinMax,
         nearestDeadline = openSegment.nearestDeadline
       )
     } else {
-      val bytes =
-        Block.block(
-          headerSize = openSegment.headerBytes.size,
-          bytes = openSegment.flattenSegmentBytes,
+      //header is empty so no header bytes are included.
+      val uncompressedSegmentBytes = openSegment.flattenSegmentBytes
+
+      val compressionResult =
+        Block.compress(
+          bytes = uncompressedSegmentBytes,
           compressions = compressions,
           blockName = blockName
         )
 
+      val compressedOrUncompressedSegmentBytes =
+        compressionResult.compressedBytes getOrElse uncompressedSegmentBytes
+
+      compressionResult.fixHeaderSize()
+
       SegmentBlock.Closed(
-        segmentBytes = Slice(bytes),
+        segmentBytes = Slice(compressionResult.headerBytes, compressedOrUncompressedSegmentBytes),
         minMaxFunctionId = openSegment.functionMinMax,
         nearestDeadline = openSegment.nearestDeadline
       )
@@ -184,8 +207,8 @@ private[core] object Block extends LazyLogging {
     }
 
   def readHeader[O <: BlockOffset](reader: BlockRefReader[O])(implicit blockOps: BlockOps[O, _]): Block.Header[O] = {
-    val headerSize = reader.readUnsignedInt()
-    val headerReader = Reader(reader.read(headerSize - Bytes.sizeOfUnsignedInt(headerSize)))
+    val (headerSize, headerSizeByteSize) = reader.readUnsignedIntWithByteSize()
+    val headerReader = Reader(reader.read(headerSize))
     val formatID = headerReader.get()
 
     val compressionInfo =
@@ -195,11 +218,17 @@ private[core] object Block extends LazyLogging {
         reader = headerReader
       )
 
-    Header(
+    val actualHeaderSize = headerSize + headerSizeByteSize
+
+    new Header(
       compressionInfo = compressionInfo,
       headerReader = headerReader,
-      headerSize = headerSize,
-      offset = blockOps.createOffset(reader.offset.start + headerSize, reader.offset.size - headerSize)
+      headerSize = actualHeaderSize,
+      offset =
+        blockOps.createOffset(
+          reader.offset.start + actualHeaderSize,
+          reader.offset.size - actualHeaderSize
+        )
     )
   }
 

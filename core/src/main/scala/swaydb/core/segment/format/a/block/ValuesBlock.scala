@@ -75,13 +75,12 @@ private[core] object ValuesBlock {
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =
     IO.Left(swaydb.Error.Fatal("Value block not initialised."))
 
-  case class State(var _bytes: Slice[Byte],
+  case class State(var bytes: Slice[Byte],
+                   var header: Slice[Byte],
                    compressions: UncompressedBlockInfo => Seq[CompressionInternal],
                    builder: EntryWriter.Builder) {
-    def bytes = _bytes
-
-    def bytes_=(bytes: Slice[Byte]) =
-      this._bytes = bytes
+    def blockSize: Int =
+      header.size + bytes.size
   }
 
   object Offset {
@@ -90,23 +89,24 @@ private[core] object ValuesBlock {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  val headerSize = {
-    val size = Block.headerSize(true)
-    Bytes.sizeOfUnsignedInt(size) +
-      size
-  }
+//  val headerSize = {
+//    val size = Block.headerSize(true)
+//    Bytes.sizeOfUnsignedInt(size) +
+//      size
+//  }
 
   def init(keyValues: MergeKeyValueBuilder.Persistent,
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): Option[ValuesBlock.State] =
     if (keyValues.totalValuesSize > 0) {
-      val bytes = Slice.create[Byte](keyValues.totalValuesSize + headerSize)
-      bytes moveWritePosition headerSize
+      val bytes = Slice.create[Byte](keyValues.totalValuesSize)
+      //      bytes moveWritePosition headerSize
 
       Some(
         ValuesBlock.State(
-          _bytes = bytes,
+          bytes = bytes,
+          header = null,
           compressions = valuesConfig.compressions,
           builder = builder
         )
@@ -119,10 +119,11 @@ private[core] object ValuesBlock {
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): ValuesBlock.State = {
-    bytes moveWritePosition headerSize
+    //    bytes moveWritePosition headerSize
 
     ValuesBlock.State(
-      _bytes = bytes,
+      bytes = bytes,
+      header = null,
       compressions = valuesConfig.compressions,
       builder = builder
     )
@@ -135,17 +136,21 @@ private[core] object ValuesBlock {
       keyValue.value foreach state.bytes.addAll
 
   def close(state: State): State = {
-    val compressedOrUncompressedBytes =
-      Block.block(
-        headerSize = headerSize,
+    val compressionResult =
+      Block.compress(
         bytes = state.bytes,
         compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
         blockName = blockName
       )
 
-    state.bytes = compressedOrUncompressedBytes
-    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)
-      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
+    compressionResult.compressedBytes foreach (state.bytes = _)
+
+    compressionResult.fixHeaderSize()
+
+    state.header = compressionResult.headerBytes
+
+    //    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)
+    //      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
 
     state
   }

@@ -117,11 +117,11 @@ private[core] object BinarySearchIndexBlock {
       if (uniqueValuesCount < minimumNumberOfKeys) {
         None
       } else {
-        val headerSize: Int =
-          optimalHeaderSize(
-            valuesCount = uniqueValuesCount,
-            hasCompression = true
-          )
+        //        val headerSize: Int =
+        //          optimalHeaderSize(
+        //            valuesCount = uniqueValuesCount,
+        //            hasCompression = true
+        //          )
 
         val bytesPerValue =
           format.bytesToAllocatePerEntry(
@@ -148,9 +148,9 @@ private[core] object BinarySearchIndexBlock {
             _previousWritten = Int.MinValue,
             writtenValues = 0,
             minimumNumberOfKeys = minimumNumberOfKeys,
-            headerSize = headerSize,
             isFullIndex = isFullIndex,
-            _bytes = Slice.create[Byte](bytes),
+            bytes = Slice.create[Byte](bytes),
+            header = null,
             compressions = compressions
           )
         )
@@ -163,10 +163,13 @@ private[core] object BinarySearchIndexBlock {
               var _previousWritten: Int,
               var writtenValues: Int,
               val minimumNumberOfKeys: Int,
-              val headerSize: Int,
               val isFullIndex: Boolean,
-              var _bytes: Slice[Byte],
+              var bytes: Slice[Byte],
+              var header: Slice[Byte],
               val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+
+    def blockSize: Int =
+      header.size + bytes.size
 
     def incrementWrittenValuesCount() =
       writtenValues += 1
@@ -175,11 +178,6 @@ private[core] object BinarySearchIndexBlock {
       this._previousWritten = previouslyWritten
 
     def previouslyWritten = _previousWritten
-
-    def bytes = _bytes
-
-    def bytes_=(bytes: Slice[Byte]) =
-      this._bytes = bytes
 
     def hasMinimumKeys =
       writtenValues >= minimumNumberOfKeys
@@ -246,21 +244,26 @@ private[core] object BinarySearchIndexBlock {
     if (state.bytes.isEmpty)
       None
     else if (state.hasMinimumKeys) {
-      val compressedOrUncompressedBytes =
-        Block.block(
-          headerSize = state.headerSize,
+      val compressionResult =
+        Block.compress(
           bytes = state.bytes,
           compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
           blockName = blockName
         )
 
-      state.bytes = compressedOrUncompressedBytes
-      state.bytes addByte state.format.id
-      state.bytes addUnsignedInt state.writtenValues
-      state.bytes addInt state.bytesPerValue
-      state.bytes addBoolean state.isFullIndex
-      if (state.bytes.currentWritePosition > state.headerSize)
-        throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+      compressionResult.compressedBytes foreach (state.bytes = _)
+
+      compressionResult.headerBytes addByte state.format.id
+      compressionResult.headerBytes addUnsignedInt state.writtenValues
+      compressionResult.headerBytes addInt state.bytesPerValue
+      compressionResult.headerBytes addBoolean state.isFullIndex
+
+      compressionResult.fixHeaderSize()
+
+      state.header = compressionResult.headerBytes
+
+      //      if (state.bytes.currentWritePosition > state.headerSize)
+      //        throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
       Some(state)
     }
     else
@@ -299,7 +302,7 @@ private[core] object BinarySearchIndexBlock {
     if (indexOffset == state.previouslyWritten) { //do not write duplicate entries.
       ()
     } else {
-      if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize //if this the first write then skip the header bytes.
+      //      if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize //if this the first write then skip the header bytes.
       val writePosition = state.bytes.currentWritePosition
 
       state.format.write(

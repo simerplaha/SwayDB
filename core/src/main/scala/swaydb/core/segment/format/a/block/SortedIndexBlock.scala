@@ -148,6 +148,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   case class Offset(start: Int, size: Int) extends BlockOffset
 
   class State(var bytes: Slice[Byte],
+              var header: Slice[Byte],
               var smallestIndexEntrySize: Int,
               var largestIndexEntrySize: Int,
               var largestMergedKeySize: Int,
@@ -180,39 +181,42 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     def hasSameIndexSizes(): Boolean =
       smallestIndexEntrySize == largestIndexEntrySize
+
+    def blockSize: Int =
+      header.size + bytes.size
   }
 
   //sortedIndex's byteSize is not know at the time of creation headerSize includes hasCompression
-  val headerSize = {
-    val size =
-      Block.headerSize(true) +
-        ByteSizeOf.boolean + //enablePositionIndex
-        ByteSizeOf.boolean + //normalisedForBinarySearch
-        ByteSizeOf.boolean + //hasPrefixCompression
-        ByteSizeOf.boolean + //prefixCompressKeysOnly
-        ByteSizeOf.boolean + //isPreNormalised
-        ByteSizeOf.varInt + // normalisedEntrySize
-        ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
-
-    Bytes.sizeOfUnsignedInt(size) + size
-  }
+  //  val headerSize = {
+  //    val size =
+  //      Block.headerSize(true) +
+  //        ByteSizeOf.boolean + //enablePositionIndex
+  //        ByteSizeOf.boolean + //normalisedForBinarySearch
+  //        ByteSizeOf.boolean + //hasPrefixCompression
+  //        ByteSizeOf.boolean + //prefixCompressKeysOnly
+  //        ByteSizeOf.boolean + //isPreNormalised
+  //        ByteSizeOf.varInt + // normalisedEntrySize
+  //        ByteSizeOf.varInt // segmentMaxSortedIndexEntrySize
+  //
+  //    Bytes.sizeOfUnsignedInt(size) + size
+  //  }
 
   def init(keyValues: MergeKeyValueBuilder.Persistent,
            valuesConfig: ValuesBlock.Config,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
     init(
-      byteSize = keyValues maxSortedIndexSize sortedIndexConfig.enableAccessPositionIndex,
+      maxSize = keyValues maxSortedIndexSize sortedIndexConfig.enableAccessPositionIndex,
       compressDuplicateValues = valuesConfig.compressDuplicateValues,
       compressDuplicateRangeValues = valuesConfig.compressDuplicateRangeValues,
       sortedIndexConfig = sortedIndexConfig
     )
 
-  def init(byteSize: Int,
+  def init(maxSize: Int,
            compressDuplicateValues: Boolean,
            compressDuplicateRangeValues: Boolean,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
     init(
-      bytes = Slice.create[Byte](byteSize + headerSize),
+      bytes = Slice.create[Byte](maxSize),
       compressDuplicateValues = compressDuplicateValues,
       compressDuplicateRangeValues = compressDuplicateRangeValues,
       sortedIndexConfig = sortedIndexConfig
@@ -222,7 +226,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
            compressDuplicateValues: Boolean,
            compressDuplicateRangeValues: Boolean,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State = {
-    bytes moveWritePosition headerSize
+    //    bytes moveWritePosition headerSize
 
     val builder =
       EntryWriter.Builder(
@@ -235,6 +239,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     new State(
       bytes = bytes,
+      header = null,
       smallestIndexEntrySize = Int.MaxValue,
       largestIndexEntrySize = 0,
       largestMergedKeySize = 0,
@@ -257,7 +262,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def write(keyValue: Memory,
             state: SortedIndexBlock.State): Unit = {
-    val positionBeforeWrite = state.bytes.currentWritePosition
+    //currentWritePositionInThisSlice is used here because state.bytes can be a sub-slice.
+    val positionBeforeWrite = state.bytes.currentWritePositionInThisSlice
 
     keyValue match {
       case keyValue: Memory.Put =>
@@ -327,7 +333,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     } else {
       val entry =
         new SecondaryIndexEntry(
-          indexOffset = positionBeforeWrite - headerSize,
+          indexOffset = positionBeforeWrite,
           mergedKey = keyValue.mergedKey,
           unmergedKey = keyValue.key,
           keyType = keyValue.id
@@ -337,9 +343,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
     }
 
     if (state.normaliseIndex)
-      state.indexEntries addOne state.bytes.slice(positionBeforeWrite, state.builder.bytes.currentWritePosition - 1)
+      state.indexEntries addOne state.bytes.slice(positionBeforeWrite, state.builder.bytes.currentWritePositionInThisSlice - 1)
 
-    val indexEntrySize = state.bytes.currentWritePosition - positionBeforeWrite
+    val indexEntrySize = state.bytes.currentWritePositionInThisSlice - positionBeforeWrite
 
     state.smallestIndexEntrySize = state.smallestIndexEntrySize min indexEntrySize
     state.largestIndexEntrySize = state.largestIndexEntrySize max indexEntrySize
@@ -364,8 +370,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
         assert(state.indexEntries.size == state.secondaryIndexEntries.size, s"${state.indexEntries.size} != ${state.secondaryIndexEntries.size}")
 
         val bytesRequired = state.largestIndexEntrySize * state.entriesCount
-        val bytes = Slice.create[Byte](bytesRequired + headerSize)
-        bytes moveWritePosition headerSize
+        val bytes = Slice.create[Byte](bytesRequired)
+//        bytes moveWritePosition headerSize
 
         state.indexEntries foreach {
           entry =>
@@ -389,26 +395,31 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def close(state: State): State = {
     val normalisedBytes: Slice[Byte] = normaliseIfRequired(state)
 
-    val compressedOrUncompressedBytes =
-      Block.block(
-        headerSize = headerSize,
+    val compressionResult =
+      Block.compress(
         bytes = normalisedBytes,
         compressions = state.compressions(UncompressedBlockInfo(normalisedBytes.size)),
         blockName = blockName
       )
 
-    state.bytes = compressedOrUncompressedBytes
-    state.bytes addBoolean state.enableAccessPositionIndex
-    state.bytes addBoolean state.hasPrefixCompression
-    state.bytes addBoolean state.prefixCompressKeysOnly
-    state.bytes addBoolean state.normaliseIndex
-    state.bytes addBoolean state.isPreNormalised
-    state.bytes addUnsignedInt state.largestIndexEntrySize
+    compressionResult.compressedBytes foreach (state.bytes = _)
 
-    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)
-      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
-    else
-      state
+    compressionResult.headerBytes addBoolean state.enableAccessPositionIndex
+    compressionResult.headerBytes addBoolean state.hasPrefixCompression
+    compressionResult.headerBytes addBoolean state.prefixCompressKeysOnly
+    compressionResult.headerBytes addBoolean state.normaliseIndex
+    compressionResult.headerBytes addBoolean state.isPreNormalised
+    compressionResult.headerBytes addUnsignedInt state.largestIndexEntrySize
+
+    compressionResult.fixHeaderSize()
+
+    state.header = compressionResult.headerBytes
+
+
+    //    if (state.bytes.currentWritePosition > state.bytes.fromOffset + headerSize)
+    //      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
+    //    else
+    state
   }
 
   def read(header: Block.Header[SortedIndexBlock.Offset]): SortedIndexBlock = {

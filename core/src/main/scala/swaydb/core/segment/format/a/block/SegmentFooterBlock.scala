@@ -68,7 +68,7 @@ object SegmentFooterBlock {
 
   case class State(footerSize: Int,
                    createdInLevel: Int,
-                   bytes: Slice[Byte],
+                   var bytes: Slice[Byte],
                    keyValuesCount: Int,
                    numberOfRanges: Int,
                    hasPut: Boolean)
@@ -106,53 +106,73 @@ object SegmentFooterBlock {
     //are read when the Group key-value is read.
     footerBytes addUnsignedInt state.keyValuesCount
 
-    var currentBlockOffset = values.map(_.bytes.size) getOrElse 0
+    val valuesSize =
+      if (values.isDefined)
+        values.get.header.size + values.get.bytes.size
+      else
+        0
 
-    footerBytes addUnsignedInt sortedIndex.bytes.size
+    var currentBlockOffset = valuesSize
+
+    val sortedIndexSize = sortedIndex.blockSize
+
+    footerBytes addUnsignedInt sortedIndexSize
     footerBytes addUnsignedInt currentBlockOffset
-    currentBlockOffset = currentBlockOffset + sortedIndex.bytes.size
+    currentBlockOffset = currentBlockOffset + sortedIndexSize
 
-    hashIndex match {
-      case Some(hashIndex) =>
-        footerBytes addUnsignedInt hashIndex.bytes.size
-        footerBytes addUnsignedInt currentBlockOffset
-        currentBlockOffset = currentBlockOffset + hashIndex.bytes.size
+    val hashIndexSize: Int =
+      hashIndex match {
+        case Some(hashIndex) =>
+          val hashIndexSize = hashIndex.blockSize
+          footerBytes addUnsignedInt hashIndexSize
+          footerBytes addUnsignedInt currentBlockOffset
+          currentBlockOffset = currentBlockOffset + hashIndexSize
+          hashIndexSize
 
-      case None =>
-        footerBytes addUnsignedInt 0
-    }
+        case None =>
+          footerBytes addUnsignedInt 0
+          0
+      }
 
-    binarySearchIndex match {
-      case Some(binarySearchIndex) =>
-        footerBytes addUnsignedInt binarySearchIndex.bytes.size
-        footerBytes addUnsignedInt currentBlockOffset
-        currentBlockOffset = currentBlockOffset + binarySearchIndex.bytes.size
+    val binarySearchIndexSize =
+      binarySearchIndex match {
+        case Some(binarySearchIndex) =>
+          val binarySearchIndexSize = binarySearchIndex.blockSize
+          footerBytes addUnsignedInt binarySearchIndexSize
+          footerBytes addUnsignedInt currentBlockOffset
+          currentBlockOffset = currentBlockOffset + binarySearchIndexSize
+          binarySearchIndexSize
 
-      case None =>
-        footerBytes addUnsignedInt 0
-    }
+        case None =>
+          footerBytes addUnsignedInt 0
+          0
+      }
 
-    bloomFilter match {
-      case Some(bloomFilter) =>
-        footerBytes addUnsignedInt bloomFilter.bytes.size
-        footerBytes addUnsignedInt currentBlockOffset
-        currentBlockOffset = currentBlockOffset + bloomFilter.bytes.size
+    val bloomFilterSize =
+      bloomFilter match {
+        case Some(bloomFilter) =>
+          val bloomFilterSize = bloomFilter.blockSize
+          footerBytes addUnsignedInt bloomFilterSize
+          footerBytes addUnsignedInt currentBlockOffset
+          currentBlockOffset = currentBlockOffset + bloomFilterSize
+          bloomFilterSize
 
-      case None =>
-        footerBytes addUnsignedInt 0
-    }
+        case None =>
+          footerBytes addUnsignedInt 0
+          0
+      }
 
     val footerOffset =
-      values.map(_.bytes.size).getOrElse(0) +
-        sortedIndex.bytes.size +
-        hashIndex.map(_.bytes.size).getOrElse(0) +
-        binarySearchIndex.map(_.bytes.size).getOrElse(0) +
-        bloomFilter.map(_.bytes.size).getOrElse(0)
+      valuesSize +
+        sortedIndexSize +
+        hashIndexSize +
+        binarySearchIndexSize +
+        bloomFilterSize
 
     footerBytes addInt footerOffset
     footerBytes addLong CRC32.forBytes(footerBytes)
 
-    state.bytes.close()
+    state.bytes = state.bytes.close()
     state
   }
 

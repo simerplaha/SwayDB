@@ -26,7 +26,7 @@ import swaydb.data.slice.{Reader, Slice, SliceReader}
 /**
  * A typed object that indicates that block is already decompressed and now is reading data bytes.
  *
- * [[Block.unblock]] creates the object and should be the only function that creates it.
+ * [[Block.uncompressed]] creates the object and should be the only function that creates it.
  */
 
 private[core] object UnblockedReader {

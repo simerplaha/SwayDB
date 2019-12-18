@@ -77,17 +77,14 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  case class State(startOffset: Int,
-                   numberOfBits: Int,
+  case class State(numberOfBits: Int,
                    maxProbe: Int,
-                   headerSize: Int,
-                   var _bytes: Slice[Byte],
+                   var bytes: Slice[Byte],
+                   var header: Slice[Byte],
                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
-    def bytes = _bytes
-
-    def bytes_=(bytes: Slice[Byte]) =
-      this._bytes = bytes
+    def blockSize: Int =
+      header.size + bytes.size
 
     def written =
       bytes.size
@@ -128,28 +125,15 @@ private[core] object BloomFilterBlock extends LazyLogging {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe) max 1
 
-    val numberOfBitsSize = Bytes.sizeOfUnsignedInt(numberOfBits)
-    val maxProbeSize = Bytes.sizeOfUnsignedInt(maxProbe)
-
     val hasCompression = compressions(UncompressedBlockInfo(numberOfBits)).nonEmpty
 
-    val headerBytesSize =
-      Block.headerSize(hasCompression) +
-        numberOfBitsSize +
-        maxProbeSize
-
-    val headerSize =
-      Bytes.sizeOfUnsignedInt(headerBytesSize) +
-        headerBytesSize
-
-    val bytes = Slice.create[Byte](headerSize + numberOfBits)
+    val bytes = Slice.create[Byte](numberOfBits)
 
     BloomFilterBlock.State(
-      startOffset = headerSize,
       numberOfBits = numberOfBits,
-      headerSize = headerSize,
       maxProbe = maxProbe,
-      _bytes = bytes,
+      bytes = bytes,
+      header = Slice.emptyBytes,
       compressions =
         if (hasCompression)
           compressions
@@ -185,23 +169,32 @@ private[core] object BloomFilterBlock extends LazyLogging {
     if (state.bytes.isEmpty) {
       None
     } else {
-      val compressedOrUncompressedBytes =
-        Block.block(
-          headerSize = state.headerSize,
+      val compressionResult =
+        Block.compress(
           bytes = state.bytes,
           compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
           blockName = blockName
         )
 
-      state.bytes = compressedOrUncompressedBytes
-      state.bytes addUnsignedInt state.numberOfBits
-      state.bytes addUnsignedInt state.maxProbe
-      if (state.bytes.currentWritePosition > state.headerSize) {
-        throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
-      } else {
-        logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
-        Some(state)
-      }
+      compressionResult.compressedBytes foreach (state.bytes = _)
+
+      compressionResult.headerBytes addUnsignedInt state.numberOfBits
+      compressionResult.headerBytes addUnsignedInt state.maxProbe
+
+      //      compressionResult.headerBytes moveWritePosition state.headerSize
+
+      //header
+      compressionResult.fixHeaderSize()
+
+      state.header = compressionResult.headerBytes
+      //      if (state.bytes.currentWritePosition > state.headerSize) {
+      //        throw IO.throwable(s"Calculated header size was incorrect. Expected: ${state.headerSize}. Used: ${state.bytes.currentWritePosition - 1}")
+      //      } else {
+      //        logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
+      //        Some(state)
+      //      }
+      logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
+      Some(state)
     }
 
   def read(header: Block.Header[BloomFilterBlock.Offset]): BloomFilterBlock = {
@@ -271,7 +264,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
     while (probe < state.maxProbe) {
       val computedHash = hash1 + probe * hash2
       val hashIndex = (computedHash & Long.MaxValue) % state.numberOfBits
-      val offset = (state.startOffset + (hashIndex >>> 6) * 8L).toInt
+      val offset = ((hashIndex >>> 6) * 8L).toInt
       val long = state.bytes.take(offset, ByteSizeOf.long).readLong()
       if ((long & (1L << hashIndex)) == 0) {
         state.bytes moveWritePosition offset

@@ -86,12 +86,6 @@ private[core] object SegmentBlock {
 
   object Closed {
 
-    def empty =
-      apply(Open.empty)
-
-    def emptyIO =
-      IO(empty)
-
     def apply(openSegment: Open): Closed =
       Closed(
         segmentBytes = openSegment.segmentBytes,
@@ -125,66 +119,45 @@ private[core] object SegmentBlock {
       s"Closed Segment. Size: ${segmentSize}"
   }
 
-  object Open {
-    def empty =
-      new Open(
-        headerBytes = Slice.emptyBytes,
-        valuesBlock = None,
-        sortedIndexBlock = Slice.emptyBytes,
-        hashIndexBlock = None,
-        binarySearchIndexBlock = None,
-        bloomFilterBlock = None,
-        footerBlock = Slice.emptyBytes,
-        functionMinMax = None,
-        nearestDeadline = None
-      )
-
-    def emptyIO = IO.Right(empty)
-
-    def apply(headerBytes: Slice[Byte],
-              valuesBlock: Option[Slice[Byte]],
-              sortedIndexBlock: Slice[Byte],
-              hashIndexBlock: Option[Slice[Byte]],
-              binarySearchIndexBlock: Option[Slice[Byte]],
-              bloomFilterBlock: Option[Slice[Byte]],
-              footerBlock: Slice[Byte],
-              functionMinMax: Option[MinMax[Slice[Byte]]],
-              nearestDeadline: Option[Deadline]): Open =
-      new Open(
-        headerBytes = headerBytes,
-        valuesBlock = valuesBlock,
-        sortedIndexBlock = sortedIndexBlock,
-        hashIndexBlock = hashIndexBlock,
-        binarySearchIndexBlock = binarySearchIndexBlock,
-        bloomFilterBlock = bloomFilterBlock,
-        footerBlock = footerBlock,
-        functionMinMax = functionMinMax,
-        nearestDeadline = nearestDeadline
-      )
-  }
-
-  class Open(val headerBytes: Slice[Byte],
+  class Open(val valuesBlockHeader: Option[Slice[Byte]],
              val valuesBlock: Option[Slice[Byte]],
+             val sortedIndexBlockHeader: Slice[Byte],
              val sortedIndexBlock: Slice[Byte],
+             val hashIndexBlockHeader: Option[Slice[Byte]],
              val hashIndexBlock: Option[Slice[Byte]],
+             val binarySearchIndexBlockHeader: Option[Slice[Byte]],
              val binarySearchIndexBlock: Option[Slice[Byte]],
+             val bloomFilterBlockHeader: Option[Slice[Byte]],
              val bloomFilterBlock: Option[Slice[Byte]],
              val footerBlock: Slice[Byte],
              val functionMinMax: Option[MinMax[Slice[Byte]]],
              val nearestDeadline: Option[Deadline]) {
 
-    headerBytes moveWritePosition headerBytes.allocatedSize
+    val segmentHeader: Slice[Byte] = Slice.create[Byte](Byte.MaxValue)
+
+    //make it fully written.
+    //    segmentHeader moveWritePosition segmentHeader.allocatedSize
 
     val segmentBytes: Slice[Slice[Byte]] = {
-      val allBytes = Slice.create[Slice[Byte]](8)
-      allBytes add headerBytes.close()
+      val allBytes = Slice.create[Slice[Byte]](13)
+      allBytes add segmentHeader
+
+      valuesBlockHeader foreach (allBytes add _)
       valuesBlock foreach (allBytes add _)
+
+      allBytes add sortedIndexBlockHeader
       allBytes add sortedIndexBlock
+
+      hashIndexBlockHeader foreach (allBytes add _)
       hashIndexBlock foreach (allBytes add _)
+
+      binarySearchIndexBlockHeader foreach (allBytes add _)
       binarySearchIndexBlock foreach (allBytes add _)
+
+      bloomFilterBlockHeader foreach (allBytes add _)
       bloomFilterBlock foreach (allBytes add _)
+
       allBytes add footerBlock
-      allBytes.filter(_.nonEmpty).close()
     }
 
     def isEmpty: Boolean =
@@ -217,22 +190,6 @@ private[core] object SegmentBlock {
       headerSize = header.headerSize,
       compressionInfo = header.compressionInfo
     )
-
-  val noCompressionHeaderSize = {
-    val size = Block.headerSize(false)
-    Bytes.sizeOfUnsignedInt(size) + size
-  }
-
-  val hasCompressionHeaderSize = {
-    val size = Block.headerSize(true)
-    Bytes.sizeOfUnsignedInt(size) + size
-  }
-
-  def headerSize(hasCompression: Boolean): Int =
-    if (hasCompression)
-      hasCompressionHeaderSize
-    else
-      noCompressionHeaderSize
 
   def writeClosed(keyValues: MergeKeyValueBuilder.Persistent,
                   createdInLevel: Int,
@@ -321,7 +278,7 @@ private[core] object SegmentBlock {
           //to do - maybe check if compression is defined and increase the segmentSize.
           if (currentSegmentSize >= minSegmentSize) {
             val (closedSegment, nextSortedIndex, nextValues) =
-              closeSegment(
+              writeOpenSegment(
                 createdInLevel = createdInLevel,
                 hasMoreKeyValues = processedCount < keyValuesCount,
                 bloomFilterKeys = bloomFilterKeys,
@@ -354,7 +311,7 @@ private[core] object SegmentBlock {
         segments
       } else {
         val (closedSegment, nextSortedIndex, nextValuesBlock) =
-          closeSegment(
+          writeOpenSegment(
             createdInLevel = createdInLevel,
             hasMoreKeyValues = false,
             bloomFilterKeys = bloomFilterKeys,
@@ -374,16 +331,16 @@ private[core] object SegmentBlock {
       }
     }
 
-  private def closeSegment(createdInLevel: Int,
-                           hasMoreKeyValues: Boolean,
-                           bloomFilterKeys: ListBuffer[Slice[Byte]],
-                           sortedIndex: SortedIndexBlock.State,
-                           values: Option[ValuesBlock.State],
-                           bloomFilterConfig: BloomFilterBlock.Config,
-                           hashIndexConfig: HashIndexBlock.Config,
-                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                           sortedIndexConfig: SortedIndexBlock.Config,
-                           valuesConfig: ValuesBlock.Config): (SegmentBlock.Open, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
+  private def writeOpenSegment(createdInLevel: Int,
+                               hasMoreKeyValues: Boolean,
+                               bloomFilterKeys: ListBuffer[Slice[Byte]],
+                               sortedIndex: SortedIndexBlock.State,
+                               values: Option[ValuesBlock.State],
+                               bloomFilterConfig: BloomFilterBlock.Config,
+                               hashIndexConfig: HashIndexBlock.Config,
+                               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                               sortedIndexConfig: SortedIndexBlock.Config,
+                               valuesConfig: ValuesBlock.Config): (SegmentBlock.Open, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
     //tail bytes before closing and compression is applied.
     val unwrittenTailSortedIndexBytes = sortedIndex.bytes.unwrittenTail()
     val unwrittenTailValueBytes = values.map(_.bytes.unwrittenTail())
@@ -412,10 +369,21 @@ private[core] object SegmentBlock {
         closedBlocks = closedBlocks
       )
 
-    val segment =
-      unblocked(
-        footerBlock = closedFooter,
-        closedBlocks = closedBlocks
+    val open =
+      new Open(
+        footerBlock = closedFooter.bytes.close(),
+        valuesBlockHeader = closedBlocks.values.map(_.header.close()),
+        valuesBlock = closedBlocks.values.map(_.bytes.close()),
+        sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
+        sortedIndexBlock = closedBlocks.sortedIndex.bytes.close(),
+        hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
+        hashIndexBlock = closedBlocks.hashIndex map (_.bytes.close()),
+        binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
+        binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.bytes.close()),
+        bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
+        bloomFilterBlock = closedBlocks.bloomFilter map (_.bytes.close()),
+        functionMinMax = closedBlocks.minMaxFunction,
+        nearestDeadline = closedBlocks.nearestDeadline
       )
 
     //start new sortedIndex block only if there are more key-values to process
@@ -449,7 +417,7 @@ private[core] object SegmentBlock {
       else
         None
 
-    (segment, newSortedIndex, newValues)
+    (open, newSortedIndex, newValues)
   }
 
   private def closeBlocks(sortedIndex: SortedIndexBlock.State,
@@ -519,35 +487,6 @@ private[core] object SegmentBlock {
       bloomFilter = bloomFilter.flatMap(BloomFilterBlock.close),
       minMaxFunction = sortedIndexState.minMaxFunctionId
     )
-  }
-
-  private def unblocked(footerBlock: SegmentFooterBlock.State,
-                        closedBlocks: ClosedBlocks): SegmentBlock.Open = {
-    val headerSize = SegmentBlock.headerSize(true)
-    val headerBytes = Slice.create[Byte](headerSize)
-    //set header bytes to be fully written so that it does not closed when compression.
-    headerBytes moveWritePosition headerBytes.allocatedSize
-
-    val open =
-      Open(
-        headerBytes = headerBytes,
-        footerBlock = footerBlock.bytes.close(),
-        valuesBlock = closedBlocks.values.map(_.bytes.close()),
-        sortedIndexBlock = closedBlocks.sortedIndex.bytes.close(),
-        hashIndexBlock = closedBlocks.hashIndex map (_.bytes.close()),
-        binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.bytes.close()),
-        bloomFilterBlock = closedBlocks.bloomFilter map (_.bytes.close()),
-        functionMinMax = closedBlocks.minMaxFunction,
-        nearestDeadline = closedBlocks.nearestDeadline
-      )
-
-    Block.unblock(
-      headerSize = open.headerBytes.size,
-      bytes = open.headerBytes,
-      blockName = blockName
-    )
-
-    open
   }
 
   implicit object SegmentBlockOps extends BlockOps[SegmentBlock.Offset, SegmentBlock] {

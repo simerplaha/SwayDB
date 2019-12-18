@@ -50,7 +50,7 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
   "moveTo & moveWithin" when {
     "random bytes with header" in {
-      val header = Slice(2.toByte, 0.toByte)
+      val header = Slice(1.toByte, 0.toByte)
       val bodyBytes = randomBytesSlice(20)
       val bytes = header ++ bodyBytes
 
@@ -73,17 +73,18 @@ class BlockRefReaderSpec extends TestBase with MockFactory {
 
     "compressed & uncompressed blocks" in {
       def runTest(compressions: Seq[CompressionInternal]) = {
-        val header = Slice.fill(5)(0.toByte)
         val body = randomBytesSlice(1000)
-        val bytes = header ++ body
-        val compressed = Block.block(5, bytes, compressions, "test")
+        val compressed = Block.compress(body, compressions, "test")
+        compressed.fixHeaderSize()
 
-        val ref = BlockRefReader[ValuesBlock.Offset](compressed)
-        ref.copy().readRemaining() shouldBe compressed
-        ref.copy().moveTo(10).readRemaining() shouldBe compressed.drop(10)
+        val compressedBytes = compressed.headerBytes ++ compressed.compressedBytes.getOrElse(body)
+
+        val ref = BlockRefReader[ValuesBlock.Offset](compressedBytes)
+        ref.copy().readRemaining() shouldBe compressedBytes
+        ref.copy().moveTo(10).readRemaining() shouldBe compressedBytes.drop(10)
 
         val blocked = BlockedReader(ref)
-        blocked.copy().readRemaining() shouldBe compressed.drop(5)
+        blocked.copy().readRemaining() shouldBe compressedBytes.drop(compressed.headerBytes.size)
 
         val unblocked = UnblockedReader(blocked, randomBoolean())
         unblocked.copy().readRemaining() shouldBe body
