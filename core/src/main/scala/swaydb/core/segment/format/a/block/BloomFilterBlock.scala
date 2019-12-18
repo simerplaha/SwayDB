@@ -86,6 +86,9 @@ private[core] object BloomFilterBlock extends LazyLogging {
     def blockSize: Int =
       header.size + bytes.size
 
+    def blockBytes: Slice[Byte] =
+      header ++ bytes
+
     def written =
       bytes.size
 

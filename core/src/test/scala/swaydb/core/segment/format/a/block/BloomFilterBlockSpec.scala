@@ -58,16 +58,16 @@ class BloomFilterBlockSpec extends TestBase {
         BloomFilterBlock.close(filter).value
 
         Seq(
-          BlockRefReader[BloomFilterBlock.Offset](filter.bytes),
-          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.bytes))
+          BlockRefReader[BloomFilterBlock.Offset](filter.blockBytes),
+          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(filter.blockBytes))
         ) foreach {
           reader =>
             val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
             (1 to 10) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe true)
             (11 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe false)
 
-            println("numberOfBits: " + filter.numberOfBits)
-            println("written: " + filter.written)
+          //println("numberOfBits: " + filter.numberOfBits)
+          //println("written: " + filter.written)
         }
       }
     }
@@ -89,16 +89,16 @@ class BloomFilterBlockSpec extends TestBase {
         BloomFilterBlock.close(state).value
 
         Seq(
-          BlockRefReader[BloomFilterBlock.Offset](state.bytes),
-          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes))
+          BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
+          BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes))
         ) foreach {
           reader =>
             val bloom = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](reader)
             BloomFilterBlock.mightContain(1, bloom) shouldBe true
             (2 to 20) foreach (key => BloomFilterBlock.mightContain(key, bloom) shouldBe false)
 
-            println("numberOfBits: " + state.numberOfBits)
-            println("written: " + state.written)
+          //println("numberOfBits: " + state.numberOfBits)
+          //println("written: " + state.written)
         }
       }
     }
@@ -295,8 +295,8 @@ class BloomFilterBlockSpec extends TestBase {
       BloomFilterBlock.close(state).value
 
       Seq(
-        BlockRefReader[BloomFilterBlock.Offset](state.bytes),
-        BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.bytes))
+        BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
+        BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes))
       ) foreach {
         blockRefReader =>
           val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](blockRefReader)
