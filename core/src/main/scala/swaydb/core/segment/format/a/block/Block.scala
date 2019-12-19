@@ -84,14 +84,16 @@ private[core] object Block extends LazyLogging {
   }
 
   private val headerSizeWithCompression =
-    ByteSizeOf.byte + //formatId
+    ByteSizeOf.byte + //headerSize
+      ByteSizeOf.byte + //formatId
       ByteSizeOf.byte + //decompressor
       ByteSizeOf.varInt //decompressed length. +1 for larger varints
 
   private val headerSizeNoCompression =
-    ByteSizeOf.byte //formatId
+    ByteSizeOf.byte + //headerSize
+      ByteSizeOf.byte //formatId
 
-  def headerSize(hasCompression: Boolean): Int =
+  def minimumHeaderSize(hasCompression: Boolean): Int =
     if (hasCompression)
       Block.headerSizeWithCompression
     else
@@ -104,7 +106,7 @@ private[core] object Block extends LazyLogging {
    * Mutation is required here because compression is expensive. Instead of copying and merging we
    * ask the compressor to allocate empty header bytes to the compressed array.
    *
-   * Others using this function should ensure that [[headerSize]] is accounted for in the byte size calculations.
+   * Others using this function should ensure that [[minimumHeaderSize]] is accounted for in the byte size calculations.
    * They should also allocate enough bytes to write the total headerSize.
    *
    * NOTE: Always invoke [[CompressionResult.fixHeaderSize()]] when done writing header bytes outside this function.

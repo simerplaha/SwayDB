@@ -48,8 +48,8 @@ object SegmentFooterBlock {
   case class Offset(start: Int, size: Int) extends BlockOffset
 
   val optimalBytesRequired =
-    Block.headerSize(false) +
-      Bytes.sizeOfUnsignedInt(Block.headerSize(false)) +
+    Block.minimumHeaderSize(false) +
+      Bytes.sizeOfUnsignedInt(Block.minimumHeaderSize(false)) +
       ByteSizeOf.byte + //1 byte for format
       ByteSizeOf.varInt + //created in level
       ByteSizeOf.varInt + //numberOfRanges
@@ -78,7 +78,7 @@ object SegmentFooterBlock {
            hasPut: Boolean,
            createdInLevel: Int): SegmentFooterBlock.State =
     SegmentFooterBlock.State(
-      footerSize = Block.headerSize(false),
+      footerSize = Block.minimumHeaderSize(false),
       createdInLevel = createdInLevel,
       keyValuesCount = keyValuesCount,
       bytes = Slice.create[Byte](optimalBytesRequired),

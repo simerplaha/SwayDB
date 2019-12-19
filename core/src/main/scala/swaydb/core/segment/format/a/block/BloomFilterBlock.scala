@@ -104,20 +104,21 @@ private[core] object BloomFilterBlock extends LazyLogging {
     if (falsePositiveRate <= 0.0 || numberOfKeys < minimumNumberOfKeys || numberOfKeys <= 0) {
       0
     } else {
-      val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
-      val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe)
-
-      val numberOfBitsSize = Bytes.sizeOfUnsignedInt(numberOfBits)
-      val maxProbeSize = Bytes.sizeOfUnsignedInt(maxProbe)
-
-      val headerByteSize =
-        Block.headerSize(hasCompression) +
-          numberOfBitsSize +
-          maxProbeSize
-
-      Bytes.sizeOfUnsignedInt(headerByteSize) +
-        headerByteSize +
-        numberOfBits
+      optimalNumberOfBits(numberOfKeys, falsePositiveRate)
+      //      val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
+      //      val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe)
+      //
+      //      val numberOfBitsSize = Bytes.sizeOfUnsignedInt(numberOfBits)
+      //      val maxProbeSize = Bytes.sizeOfUnsignedInt(maxProbe)
+      //
+      ////      val headerByteSize =
+      ////        Block.headerSize(hasCompression) +
+      ////          numberOfBitsSize +
+      ////          maxProbeSize
+      //
+      //      Bytes.sizeOfUnsignedInt(headerByteSize) +
+      //        headerByteSize +
+      //        numberOfBits
     }
   }
 
