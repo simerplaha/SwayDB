@@ -392,6 +392,6 @@ trait SliceCompanionBase {
   def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
     new slice.Slice.SliceBuilder[T](sizeHint)
 
-  def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
+  private[swaydb] def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =
     Aggregator.fromBuilder[T, Slice[T]](newBuilder[T](sizeHint))
 }
