@@ -70,7 +70,7 @@ private[segment] case class MemorySegment(path: Path,
                    hashIndexConfig: HashIndexBlock.Config,
                    bloomFilterConfig: BloomFilterBlock.Config,
                    segmentConfig: SegmentBlock.Config,
-                   targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
+                   pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
@@ -119,7 +119,7 @@ private[segment] case class MemorySegment(path: Path,
                        hashIndexConfig: HashIndexBlock.Config,
                        bloomFilterConfig: BloomFilterBlock.Config,
                        segmentConfig: SegmentBlock.Config,
-                       targetPaths: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
+                       pathsDistributor: PathsDistributor)(implicit idGenerator: IDGenerator): Slice[Segment] =
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {

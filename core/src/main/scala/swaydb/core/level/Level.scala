@@ -922,7 +922,7 @@ private[core] case class Level(dirs: Seq[Dir],
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
           segmentConfig = segmentConfig,
-          targetPaths = paths
+          pathsDistributor = paths
         )
       } flatMap {
         newSegments =>
@@ -1146,7 +1146,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 hashIndexConfig = hashIndexConfig,
                 bloomFilterConfig = bloomFilterConfig,
                 segmentConfig = segmentConfig,
-                targetPaths = paths.addPriorityPath(targetSegment.path.getParent)
+                pathsDistributor = paths.addPriorityPath(targetSegment.path.getParent)
               )
             (targetSegment, newSegments)
           }

@@ -147,7 +147,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
     val currentKeyValues = getAll()
 
     val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
@@ -161,7 +161,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
     Segment.persistent(
       segmentSize = minSegmentSize,
-      pathsDistributor = targetPaths,
+      pathsDistributor = pathsDistributor,
       segmentId = segmentId,
       segmentConfig = segmentConfig,
       createdInLevel = createdInLevel,
@@ -185,7 +185,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
     val keyValueCount = getKeyValueCount()
 
@@ -195,7 +195,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
     Segment.persistent(
       segmentSize = minSegmentSize,
-      pathsDistributor = targetPaths,
+      pathsDistributor = pathsDistributor,
       segmentId = segmentId,
       segmentConfig = segmentConfig,
       createdInLevel = createdInLevel,

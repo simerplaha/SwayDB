@@ -20,15 +20,13 @@
 package swaydb.core.segment.merge
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.KeyValue
-import swaydb.core.data.{Memory, Value, _}
+import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FixedMerger, ValueMerger}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
 
