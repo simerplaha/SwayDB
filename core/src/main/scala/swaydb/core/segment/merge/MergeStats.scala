@@ -199,6 +199,9 @@ private[core] object MergeStats {
     override def clear(): Unit =
       builder.clear()
 
+    def isEmpty: Boolean =
+      segmentSize <= 0
+
     override def add(from: FROM): Unit = {
       val keyValue = converterNullable(from)
       if (keyValue != null) {

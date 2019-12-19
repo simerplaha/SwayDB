@@ -130,7 +130,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
       SegmentMerger.merge(
         newKeyValues = Slice(insert),
         oldKeyValues = oldKeyValues,
-        builder = builder,
+        stats = builder,
         isLastLevel = false
       )
 

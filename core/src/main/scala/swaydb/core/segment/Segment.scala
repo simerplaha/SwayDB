@@ -53,61 +53,89 @@ private[core] object Segment extends LazyLogging {
   val emptyIterable = Iterable.empty[Segment]
   val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.IO.ExceptionHandler.Nothing)
 
-  def memory(path: Path,
+  def memory(segmentSize: Int,
+             pathsDistributor: PathsDistributor,
              segmentId: Long,
              createdInLevel: Long,
-             mergeStats: MergeStats.Persistent[KeyValue, Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                                    functionStore: FunctionStore,
-                                                                    fileSweeper: FileSweeper.Enabled): Slice[Segment] =
-  //    if (keyValues.isEmpty) {
-  //      throw IO.throwable("Empty key-values submitted to memory Segment.")
-  //    } else {
-  //      val bloomFilterOption: Option[BloomFilterBlock.State] = BloomFilterBlock.init(keyValues = keyValues)
-  //      val skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
-  //
-  //      //Note: Memory key-values can be received from Persistent Segments in which case it's important that
-  //      //all byte arrays are unsliced before writing them to Memory Segment.
-  //
-  //      val minMaxDeadline =
-  //        keyValues.foldLeft(DeadlineAndFunctionId.empty) {
-  //          case (deadline, keyValue) =>
-  //            SegmentBlock.writeIndexBlocks(
-  //              keyValue = keyValue,
-  //              skipList = Some(skipList),
-  //              hashIndex = None,
-  //              binarySearchIndex = None,
-  //              bloomFilter = bloomFilterOption,
-  //              currentMinMaxFunction = deadline.minMaxFunctionId,
-  //              currentNearestDeadline = deadline.nearestDeadline
-  //            )
-  //        }
-  //
-  //      val bloomFilter = bloomFilterOption.flatMap(BloomFilterBlock.closeForMemory)
-  //
-  //      MemorySegment(
-  //        path = path,
-  //        segmentId = segmentId,
-  //        minKey = keyValues.head.key.unslice(),
-  //        maxKey =
-  //          keyValues.last match {
-  //            case range: Memory.Range =>
-  //              MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-  //
-  //            case keyValue: Memory.Fixed =>
-  //              MaxKey.Fixed(keyValue.key.unslice())
-  //          },
-  //        minMaxFunctionId = minMaxDeadline.minMaxFunctionId,
-  //        segmentSize = keyValues.last.stats.memorySegmentSize,
-  //        hasRange = keyValues.last.stats.segmentHasRange,
-  //        hasPut = keyValues.last.stats.segmentHasPut,
-  //        createdInLevel = createdInLevel.toInt,
-  //        skipList = skipList,
-  //        bloomFilterReader = bloomFilter,
-  //        nearestExpiryDeadline = minMaxDeadline.nearestDeadline
-  //      )
-  //    }
-    ???
+             mergeStats: MergeStats.Memory[_, Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         functionStore: FunctionStore,
+                                                         fileSweeper: FileSweeper.Enabled,
+                                                         idGenerator: IDGenerator): Slice[Segment] =
+    if (mergeStats.isEmpty) {
+      throw IO.throwable("Empty key-values submitted to memory Segment.")
+    } else {
+      val skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
+
+      val keyValues = mergeStats.result
+
+      keyValues foreach {
+        keyValue =>
+
+      }
+
+      //Note: Memory key-values can be received from Persistent Segments in which case it's important that
+      //all byte arrays are unsliced before writing them to Memory Segment.
+//
+//      splits.mapRecover[Segment](
+//        block =
+//          keyValues => {
+//            val segmentId = idGenerator.nextID
+//            Segment.memory(
+//              path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
+//              segmentId = segmentId,
+//              createdInLevel = createdInLevel,
+//              keyValues = keyValues
+//            )
+//          },
+//
+//        recover =
+//          (segments: Slice[Segment], _: Throwable) =>
+//            segments foreach {
+//              segmentToDelete =>
+//                IO(segmentToDelete.delete) onLeftSideEffect {
+//                  exception =>
+//                    logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+//                }
+//            }
+//      )
+
+      //      val minMaxDeadline =
+      //        keyValues.foldLeft(DeadlineAndFunctionId.empty) {
+      //          case (deadline, keyValue) =>
+      //            SegmentBlock.writeIndexBlocks(
+      //              keyValue = keyValue,
+      //              skipList = Some(skipList),
+      //              hashIndex = None,
+      //              binarySearchIndex = None,
+      //              currentMinMaxFunction = deadline.minMaxFunctionId,
+      //              currentNearestDeadline = deadline.nearestDeadline
+      //            )
+      //        }
+      //
+      //      MemorySegment(
+      //        path = path,
+      //        segmentId = segmentId,
+      //        minKey = keyValues.head.key.unslice(),
+      //        maxKey =
+      //          keyValues.last match {
+      //            case range: Memory.Range =>
+      //              MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+      //
+      //            case keyValue: Memory.Fixed =>
+      //              MaxKey.Fixed(keyValue.key.unslice())
+      //          },
+      //        minMaxFunctionId = minMaxDeadline.minMaxFunctionId,
+      //        segmentSize = keyValues.last.stats.memorySegmentSize,
+      //        hasRange = keyValues.last.stats.segmentHasRange,
+      //        hasPut = keyValues.last.stats.segmentHasPut,
+      //        createdInLevel = createdInLevel.toInt,
+      //        skipList = skipList,
+      //        bloomFilterReader = bloomFilter,
+      //        nearestExpiryDeadline = minMaxDeadline.nearestDeadline
+      //      )
+      ???
+    }
 
   def persistent(segmentSize: Int,
                  pathsDistributor: PathsDistributor,
@@ -961,8 +989,6 @@ private[core] trait Segment extends FileSweeperItem {
   def hasPut: Boolean
 
   def isFooterDefined: Boolean
-
-  def hasBloomFilter: Boolean
 
   def isOpen: Boolean
 

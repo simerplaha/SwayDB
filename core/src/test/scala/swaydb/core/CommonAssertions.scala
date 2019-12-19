@@ -285,7 +285,7 @@ object CommonAssertions {
     SegmentMerger.merge(
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
-      builder = builder,
+      stats = builder,
       isLastLevel = isLastLevel,
     )
 
@@ -685,8 +685,9 @@ object CommonAssertions {
         IO.Defer(segment.mightContainKey(keyValue.key)).runRandomIO.right.value
     } shouldBe keyValues.size
 
-    if (segment.hasBloomFilter)
-      assertBloomNotContains(segment)
+//    if (segment.hasBloomFilter)
+//      assertBloomNotContains(segment)
+    ???
   }
 
   def assertBloom(keyValues: Slice[Memory],
@@ -711,11 +712,12 @@ object CommonAssertions {
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
-    if (segment.hasBloomFilter)
-      (1 to 1000).par.count {
-        _ =>
-          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
-      } should be < 1000
+//    if (segment.hasBloomFilter)
+//      (1 to 1000).par.count {
+//        _ =>
+//          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
+//      } should be < 1000
+  ???
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThisParallel(1000.times) {

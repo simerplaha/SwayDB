@@ -155,7 +155,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     SegmentMerger.merge(
       newKeyValues = newKeyValues,
       oldKeyValues = currentKeyValues,
-      builder = builder,
+      stats = builder,
       isLastLevel = removeDeletes
     )
 
@@ -276,7 +276,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   override def createdInLevel: Int =
     segmentCache.createdInLevel
 
-  override def hasBloomFilter: Boolean =
+  def hasBloomFilter: Boolean =
     segmentCache.hasBloomFilter
 
   def clearCachedKeyValues(): Unit =

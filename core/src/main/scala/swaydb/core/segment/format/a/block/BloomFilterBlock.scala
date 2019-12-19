@@ -161,12 +161,6 @@ private[core] object BloomFilterBlock extends LazyLogging {
     update(optimal)
   }
 
-  def closeForMemory(state: BloomFilterBlock.State): Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
-    BloomFilterBlock.close(state) map {
-      closedBloomFilter =>
-        Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](closedBloomFilter.bytes.unslice())(BloomFilterBlockOps)
-    }
-
   def close(state: State): Option[BloomFilterBlock.State] =
     if (state.bytes.isEmpty) {
       None

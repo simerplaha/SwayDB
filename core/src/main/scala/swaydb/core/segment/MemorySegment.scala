@@ -32,12 +32,14 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
 private[segment] case class MemorySegment(path: Path,
@@ -50,7 +52,6 @@ private[segment] case class MemorySegment(path: Path,
                                           hasPut: Boolean,
                                           createdInLevel: Int,
                                           private[segment] val skipList: SkipList.Immutable[Slice[Byte], Memory],
-                                          bloomFilterReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
@@ -74,40 +75,24 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      //      val currentKeyValues = getAll()
-      //
-      //      val builder = KeyValueMergeBuilder.memory()
-      //
-      //      SegmentMerger.merge(
-      //        newKeyValues = newKeyValues,
-      //        oldKeyValues = currentKeyValues,
-      //        builder = builder,
-      //        isLastLevel = removeDeletes
-      //      )
+      val currentKeyValues = getAll()
 
-      //      splits.mapRecover[Segment](
-      //        block =
-      //          keyValues => {
-      //            val segmentId = idGenerator.nextID
-      //            Segment.memory(
-      //              path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
-      //              segmentId = segmentId,
-      //              createdInLevel = createdInLevel,
-      //              keyValues = keyValues
-      //            )
-      //          },
-      //
-      //        recover =
-      //          (segments: Slice[Segment], _: Throwable) =>
-      //            segments foreach {
-      //              segmentToDelete =>
-      //                IO(segmentToDelete.delete) onLeftSideEffect {
-      //                  exception =>
-      //                    logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
-      //                }
-      //            }
-      //      )
-      ???
+      val stats = MergeStats.memory[Memory, ListBuffer](ListBuffer.newBuilder)
+
+      SegmentMerger.merge(
+        newKeyValues = newKeyValues,
+        oldKeyValues = currentKeyValues,
+        stats = stats,
+        isLastLevel = removeDeletes
+      )
+
+      Segment.memory(
+        segmentId = segmentId,
+        createdInLevel = createdInLevel,
+        segmentSize = minSegmentSize,
+        mergeStats = stats,
+        pathsDistributor = pathsDistributor
+      )
     }
 
   override def refresh(minSegmentSize: Int,
@@ -168,46 +153,31 @@ private[segment] case class MemorySegment(path: Path,
     skipList.get(key)
 
   override def get(key: Slice[Byte], readState: ReadState): Option[Memory] =
-    if (deleted) {
+    if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
-    } else {
-      val mightContain = mightContainKey(key, rangeCheck = true)
-      if (mightContain)
-        maxKey match {
-          case MaxKey.Fixed(maxKey) if key > maxKey =>
-            None
+    else
+      maxKey match {
+        case MaxKey.Fixed(maxKey) if key > maxKey =>
+          None
 
-          case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-            None
+        case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
+          None
 
-          case _ =>
-            if (hasRange)
-              skipList.floor(key) match {
-                case Some(range: Memory.Range) if range contains key =>
-                  Some(range)
+        case _ =>
+          if (hasRange)
+            skipList.floor(key) match {
+              case Some(range: Memory.Range) if range contains key =>
+                Some(range)
 
-                case _ =>
-                  skipList.get(key)
-              }
-            else
-              skipList.get(key)
-        }
-      else
-        None
-    }
-
-  def mightContainKey(key: Slice[Byte], rangeCheck: Boolean): Boolean =
-    rangeCheck && hasRange ||
-      bloomFilterReader.forall {
-        reader =>
-          BloomFilterBlock.mightContain(
-            key = key,
-            reader = reader.copy()
-          )
+              case _ =>
+                skipList.get(key)
+            }
+          else
+            skipList.get(key)
       }
 
   def mightContainKey(key: Slice[Byte]): Boolean =
-    mightContainKey(key = key, rangeCheck = false)
+    true
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =
     minMaxFunctionId.exists {
@@ -314,9 +284,6 @@ private[segment] case class MemorySegment(path: Path,
 
   override def deleteSegmentsEventually: Unit =
     fileSweeper.delete(this)
-
-  override def hasBloomFilter: Boolean =
-    bloomFilterReader.isDefined
 
   override def clearCachedKeyValues(): Unit =
     ()

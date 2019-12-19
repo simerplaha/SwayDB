@@ -60,7 +60,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
       SegmentMerger.merge(
         newKeyValues = keyValues,
         oldKeyValues = keyValues,
-        builder = MergeStats.persistent(ListBuffer.newBuilder),
+        stats = MergeStats.persistent(ListBuffer.newBuilder),
         isLastLevel = false
       )
     }
