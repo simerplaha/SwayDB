@@ -275,7 +275,7 @@ private[core] object SegmentBlock extends LazyLogging {
           //to do - maybe check if compression is defined and increase the segmentSize.
           if (currentSegmentSize >= minSegmentSize) {
 
-            logger.info(s"Creating segment of size: $currentSegmentSize")
+            logger.debug(s"Creating segment of size: $currentSegmentSize.bytes")
 
             val (closedSegment, nextSortedIndex, nextValues) =
               writeOpenSegment(
