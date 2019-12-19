@@ -67,7 +67,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
 
           //if the floor entry is a range try to do a merge.
           case floorRange: Memory.Range if insert.key < floorRange.toKey =>
-            val builder = MergeStats.buffer(ListBuffer.newBuilder)
+            val builder = MergeStats.buffer[Memory, ListBuffer](ListBuffer.newBuilder)
 
             SegmentMerger.merge(
               newKeyValue = insert,
@@ -125,7 +125,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
         }
       }
 
-      val builder = MergeStats.buffer(ListBuffer.newBuilder)
+      val builder = MergeStats.buffer[Memory, ListBuffer](ListBuffer.newBuilder)
 
       SegmentMerger.merge(
         newKeyValues = Slice(insert),

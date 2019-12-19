@@ -23,7 +23,7 @@ import java.nio.file.{Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Aggregator, IO}
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
@@ -56,10 +56,10 @@ private[core] object Segment extends LazyLogging {
   def memory(path: Path,
              segmentId: Long,
              createdInLevel: Long,
-             keyValues: Iterable[Memory])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore,
-                                          fileSweeper: FileSweeper.Enabled): Slice[Segment] =
+             mergeStats: MergeStats.Persistent[KeyValue, Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                                    functionStore: FunctionStore,
+                                                                    fileSweeper: FileSweeper.Enabled): Slice[Segment] =
   //    if (keyValues.isEmpty) {
   //      throw IO.throwable("Empty key-values submitted to memory Segment.")
   //    } else {
@@ -121,14 +121,14 @@ private[core] object Segment extends LazyLogging {
                  sortedIndexConfig: SortedIndexBlock.Config,
                  valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlock.Config,
-                 mergeStats: MergeStats.Persistent[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              fileSweeper: FileSweeper.Enabled,
-                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              blockCache: Option[BlockCache.State],
-                                                              segmentIO: SegmentIO,
-                                                              idGenerator: IDGenerator): Slice[Segment] =
+                 mergeStats: MergeStats.Persistent[_, Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                 timeOrder: TimeOrder[Slice[Byte]],
+                                                                 functionStore: FunctionStore,
+                                                                 fileSweeper: FileSweeper.Enabled,
+                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                 blockCache: Option[BlockCache.State],
+                                                                 segmentIO: SegmentIO,
+                                                                 idGenerator: IDGenerator): Slice[Segment] =
     SegmentBlock.writeClosed(
       keyValues = mergeStats,
       createdInLevel = createdInLevel,
@@ -653,14 +653,14 @@ private[core] object Segment extends LazyLogging {
             segment.getKeyValueCount() + total
         }
 
-      val builder = Slice.newBuilder[KeyValue](totalKeyValues)
+      val aggregator = Slice.newAggregator[KeyValue](totalKeyValues)
 
       segments foreach {
         segment =>
-          segment getAll builder
+          segment getAll aggregator
       }
 
-      builder.result
+      aggregator.result
     }
 
   def deleteSegments(segments: Iterable[Segment]): Int =
@@ -932,7 +932,7 @@ private[core] trait Segment extends FileSweeperItem {
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
 
-  def getAll[T](builder: mutable.Builder[KeyValue, T]): Unit
+  def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit
 
   def getAll(): Slice[KeyValue]
 

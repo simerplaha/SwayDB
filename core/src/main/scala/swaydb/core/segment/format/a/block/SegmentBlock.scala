@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
+import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.MergeStats
@@ -195,7 +196,7 @@ private[core] object SegmentBlock extends LazyLogging {
       compressionInfo = header.compressionInfo
     )
 
-  def writeClosed(keyValues: MergeStats.Persistent[Iterable],
+  def writeClosed(keyValues: MergeStats.Persistent[_, Iterable],
                   createdInLevel: Int,
                   segmentSize: Int,
                   bloomFilterConfig: BloomFilterBlock.Config,
@@ -226,7 +227,7 @@ private[core] object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeOpen(keyValues: MergeStats.Persistent[Iterable],
+  def writeOpen(keyValues: MergeStats.Persistent[_, Iterable],
                 createdInLevel: Int,
                 minSegmentSize: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,

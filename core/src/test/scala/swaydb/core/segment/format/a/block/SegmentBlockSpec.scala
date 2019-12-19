@@ -34,6 +34,8 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
+import scala.collection.mutable.ListBuffer
+
 class SegmentBlockSpec extends TestBase {
 
   val keyValueCount = 100
@@ -48,7 +50,7 @@ class SegmentBlockSpec extends TestBase {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val closedSegment =
         SegmentBlock.writeClosed(
-          keyValues = MergeStats.persistentFrom(Seq.empty),
+          keyValues = MergeStats.persistentFrom[Memory](ListBuffer.empty),
           segmentSize = randomIntMax(Int.MaxValue),
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlock.Config.random,

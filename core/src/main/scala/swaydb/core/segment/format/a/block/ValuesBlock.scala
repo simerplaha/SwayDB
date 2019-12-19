@@ -98,7 +98,7 @@ private[core] object ValuesBlock {
   //      size
   //  }
 
-  def init(keyValues: MergeStats.Persistent[Iterable],
+  def init(keyValues: MergeStats.Persistent[_, Iterable],
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): Option[ValuesBlock.State] =

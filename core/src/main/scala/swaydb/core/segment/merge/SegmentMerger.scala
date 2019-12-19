@@ -34,7 +34,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
   def merge(newKeyValue: Memory,
             oldKeyValue: Memory,
-            builder: MergeStats[Any],
+            builder: MergeStats[Memory, Iterable],
             isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): Unit =
@@ -47,7 +47,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
   def merge(newKeyValues: Slice[KeyValue],
             oldKeyValues: Slice[KeyValue],
-            builder: MergeStats[Any],
+            builder: MergeStats[Memory, Iterable],
             isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): Unit =
@@ -60,7 +60,7 @@ private[core] object SegmentMerger extends LazyLogging {
 
   private def merge(newKeyValues: MergeList[Memory.Range, KeyValue],
                     oldKeyValues: MergeList[Memory.Range, KeyValue],
-                    builder: MergeStats[Any],
+                    builder: MergeStats[Memory, Iterable],
                     isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
                                           functionStore: FunctionStore): Unit = {

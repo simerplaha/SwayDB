@@ -22,86 +22,79 @@ package swaydb.core.segment.merge
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Memory, Persistent, Value, _}
 
-import scala.collection.mutable.ListBuffer
-
 /**
  * SegmentGroups will always group key-values with Groups at the head of key-value List. Groups cannot be randomly
  * added in the middle.
  */
-private[merge] object SegmentGrouper extends LazyLogging {
+private[core] object SegmentGrouper extends LazyLogging {
 
-  def add[T[_]](keyValue: KeyValue,
-                builder: MergeStats[T],
-                isLastLevel: Boolean): Unit =
+  def add(keyValue: KeyValue,
+          builder: MergeStats[Memory, Iterable],
+          isLastLevel: Boolean): Unit = {
+    val keyValueToMerge = getOrNull(keyValue, isLastLevel)
+    if (keyValueToMerge != null)
+      builder add keyValueToMerge.toMemory
+  }
+
+  def getOrNull(keyValue: KeyValue,
+                isLastLevel: Boolean): Memory =
     keyValue match {
       case fixed: KeyValue.Fixed =>
         fixed match {
           case put: Memory.Put =>
             if (!isLastLevel || put.hasTimeLeft())
-              builder add put
+              put
+            else
+              null
 
           case put: Persistent.Put =>
             if (!isLastLevel || put.hasTimeLeft())
-              builder add put.toMemory()
+              put.toMemory()
+            else
+              null
 
-          case remove: Memory.Remove =>
+          case remove: Memory.Fixed =>
             if (!isLastLevel)
-              builder add remove
+              remove
+            else
+              null
 
-          case remove: Persistent.Remove =>
+          case remove: Persistent.Fixed =>
             if (!isLastLevel)
-              builder add remove.toMemory()
-
-          case update: Memory.Update =>
-            if (!isLastLevel)
-              builder add update
-
-          case update: Persistent.Update =>
-            if (!isLastLevel)
-              builder add update.toMemory()
-
-          case function: Memory.Function =>
-            if (!isLastLevel)
-              builder add function
-
-          case function: Persistent.Function =>
-            if (!isLastLevel)
-              builder add function.toMemory()
-
-          case pending: Memory.PendingApply =>
-            if (!isLastLevel)
-              builder add pending
-
-          case pendingApply: Persistent.PendingApply =>
-            if (!isLastLevel)
-              builder add pendingApply.toMemory()
+              remove.toMemory()
+            else
+              null
         }
 
       case range: KeyValue.Range =>
         if (isLastLevel) {
-          range.fetchFromValueUnsafe foreach {
-            case put @ Value.Put(fromValue, deadline, time) =>
-              if (put.hasTimeLeft())
-                builder add
+          val fromValue = range.fetchFromValueUnsafe
+          if (fromValue.isDefined)
+            fromValue.get match {
+              case put @ Value.Put(fromValue, deadline, time) =>
+                if (put.hasTimeLeft())
                   Memory.Put(
                     key = range.fromKey,
                     value = fromValue,
                     deadline = deadline,
                     time = time
                   )
+                else
+                  null
 
-            case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
-              ()
-          }
+              case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
+                null
+            }
+          else
+            null
         } else {
           val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
-          builder add
-            Memory.Range(
-              fromKey = range.fromKey,
-              toKey = range.toKey,
-              fromValue = fromValue,
-              rangeValue = rangeValue
-            )
+          Memory.Range(
+            fromKey = range.fromKey,
+            toKey = range.toKey,
+            fromValue = fromValue,
+            rangeValue = rangeValue
+          )
         }
     }
 }

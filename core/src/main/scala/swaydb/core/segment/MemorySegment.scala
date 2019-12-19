@@ -23,6 +23,7 @@ import java.nio.file.Path
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Aggregator
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
@@ -259,19 +260,19 @@ private[segment] case class MemorySegment(path: Path,
       skipList.higher(key)
 
   override def getAll(): Slice[KeyValue] = {
-    val slice = Slice.newBuilder[KeyValue](skipList.size)
+    val slice = Slice.newAggregator[KeyValue](skipList.size)
     getAll(slice)
     slice.result
   }
 
-  override def getAll[T](builder: mutable.Builder[KeyValue, T]): Unit =
+  override def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
       skipList.values() forEach {
         new Consumer[Memory] {
           override def accept(value: Memory): Unit =
-            builder += value
+            aggregator add value
         }
       }
 

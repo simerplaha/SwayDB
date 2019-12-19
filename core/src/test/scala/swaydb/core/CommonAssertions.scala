@@ -455,16 +455,16 @@ object CommonAssertions {
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
 
-    def toPersistentMergeBuilder: MergeStats.Persistent[ListBuffer] =
+    def toPersistentMergeBuilder: MergeStats.Persistent[Memory, ListBuffer] =
       MergeStats.persistentFrom(actual)
 
-    def toMemoryMergeBuilder: MergeStats.Memory[Iterable] =
+    def toMemoryMergeBuilder: MergeStats.Memory[Memory, ListBuffer] =
       MergeStats.memoryFrom(actual)
 
-    def toBufferMergeBuilder: MergeStats.Buffer[Iterable] =
+    def toBufferMergeBuilder: MergeStats.Buffer[Memory, ListBuffer] =
       MergeStats.bufferFrom(actual)
 
-    def toMergeBuilder: MergeStats[Iterable] =
+    def toMergeBuilder: MergeStats[Memory, ListBuffer] =
       MergeStats.randomFrom(actual)
   }
 

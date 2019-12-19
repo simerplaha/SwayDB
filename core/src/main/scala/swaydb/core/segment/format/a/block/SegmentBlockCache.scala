@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import java.nio.file.Path
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{Aggregator, IO}
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, Lazy}
 import swaydb.core.data.KeyValue
@@ -361,34 +361,34 @@ class SegmentBlockCache(path: Path,
 
   def readAll(): Slice[KeyValue] = {
     val keyValueCount = getFooter().keyValueCount
-    val builder = Slice.newBuilder[KeyValue](keyValueCount)
+    val aggregator = Slice.newAggregator[KeyValue](keyValueCount)
     readAll(
       keyValueCount = keyValueCount,
-      builder = builder
+      aggregator = aggregator
     )
-    builder.result
+    aggregator.result
   }
 
-  def readAll[T](builder: mutable.Builder[KeyValue, T]): Unit =
+  def readAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     readAll(
       keyValueCount = getFooter().keyValueCount,
-      builder = builder
+      aggregator = aggregator
     )
 
   def readAll[T](keyValueCount: Int): Slice[KeyValue] = {
-    val builder = Slice.newBuilder[KeyValue](keyValueCount)
+    val aggregator = Slice.newAggregator[KeyValue](keyValueCount)
     readAll(
       keyValueCount = keyValueCount,
-      builder = builder
+      aggregator = aggregator
     )
-    builder.result
+    aggregator.result
   }
 
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
   def readAll[T](keyValueCount: Int,
-                 builder: mutable.Builder[KeyValue, T]): Unit =
+                 aggregator: Aggregator[KeyValue, T]): Unit =
     try {
       var sortedIndexReader = createSortedIndexReader()
       if (sortedIndexReader.isFile) {
@@ -408,7 +408,7 @@ class SegmentBlockCache(path: Path,
         keyValueCount = keyValueCount,
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader,
-        builder = builder
+        aggregator = aggregator
       )
     } finally {
       forceCacheSortedIndexAndValueReaders = false

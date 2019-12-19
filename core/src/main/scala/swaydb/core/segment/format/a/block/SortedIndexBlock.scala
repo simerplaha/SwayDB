@@ -20,6 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Aggregator
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.reader.Reader
@@ -37,7 +38,6 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
@@ -215,7 +215,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    Bytes.sizeOfUnsignedInt(size) + size
   //  }
 
-  def init(keyValues: MergeStats.Persistent[Iterable],
+  def init(keyValues: MergeStats.Persistent[_, Iterable],
            valuesConfig: ValuesBlock.Config,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
     init(
@@ -601,22 +601,22 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def readAll(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Slice[KeyValue] = {
-    val builder = Slice.newBuilder[KeyValue](keyValueCount)
+    val aggregator = Slice.newAggregator[KeyValue](keyValueCount)
 
     readAll(
       keyValueCount = keyValueCount,
       sortedIndexReader = sortedIndexReader,
       valuesReader = valuesReader,
-      builder = builder
+      aggregator = aggregator
     )
 
-    builder.result
+    aggregator.result
   }
 
   def readAll[T](keyValueCount: Int,
                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                 builder: mutable.Builder[KeyValue, T]): Unit = {
+                 aggregator: Aggregator[KeyValue, T]): Unit = {
     sortedIndexReader moveTo 0
 
     (1 to keyValueCount).foldLeft(Option.empty[Persistent]) {
@@ -638,7 +638,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous = previousMayBe
           )
 
-        builder += next
+        aggregator add next
         Some(next)
     }
   }

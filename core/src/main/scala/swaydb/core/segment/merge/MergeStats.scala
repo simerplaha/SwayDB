@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.merge
 
+import swaydb.Aggregator
 import swaydb.core.data
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
@@ -28,18 +29,24 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
-private[core] sealed trait MergeStats[+T[_]] {
+private[core] sealed trait MergeStats[FROM, +T[_]] extends Aggregator[FROM, T[data.Memory]] {
 
-  def add(keyValue: data.Memory): Unit
+  def add(keyValue: FROM): Unit
 
   def clear(): Unit
 
   def keyValues: T[data.Memory]
+
+  override def result: T[data.Memory] =
+    keyValues
 }
 
 private[core] object MergeStats {
 
-  def randomFrom(keyValues: Iterable[swaydb.core.data.Memory]): MergeStats[ListBuffer] =
+  implicit val memoryToMemory: data.Memory => data.Memory =
+    (memory: data.Memory) => memory
+
+  def randomFrom[FROM](keyValues: Iterable[FROM])(implicit converterNullable: FROM => data.Memory): MergeStats[FROM, ListBuffer] =
     if (Random.nextBoolean())
       persistentFrom(keyValues)
     else if (Random.nextBoolean())
@@ -47,7 +54,7 @@ private[core] object MergeStats {
     else
       bufferFrom(keyValues)
 
-  def random(): MergeStats[ListBuffer] =
+  def random(): MergeStats[data.Memory, ListBuffer] =
     if (Random.nextBoolean())
       persistent(ListBuffer.newBuilder)
     else if (Random.nextBoolean())
@@ -55,25 +62,25 @@ private[core] object MergeStats {
     else
       buffer(ListBuffer.newBuilder)
 
-  def persistentFrom(keyValues: Iterable[swaydb.core.data.Memory]): MergeStats.Persistent[ListBuffer] = {
-    val stats = persistent(ListBuffer.newBuilder)
+  def persistentFrom[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent[FROM, ListBuffer] = {
+    val stats = persistent[FROM, ListBuffer](ListBuffer.newBuilder)
     keyValues foreach stats.add
     stats
   }
 
-  def memoryFrom(keyValues: Iterable[swaydb.core.data.Memory]): MergeStats.Memory[ListBuffer] = {
-    val stats = memory(ListBuffer.newBuilder)
+  def memoryFrom[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory[FROM, ListBuffer] = {
+    val stats = memory[FROM, ListBuffer](ListBuffer.newBuilder)
     keyValues foreach stats.add
     stats
   }
 
-  def bufferFrom(keyValues: Iterable[swaydb.core.data.Memory]): MergeStats.Buffer[ListBuffer] = {
-    val stats = buffer(ListBuffer.newBuilder)
+  def bufferFrom[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] = {
+    val stats = buffer[FROM, ListBuffer](ListBuffer.newBuilder)
     keyValues foreach stats.add
     stats
   }
 
-  def persistent[T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]): MergeStats.Persistent[T] =
+  def persistent[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Persistent[FROM, T] =
     new Persistent(
       maxMergedKeySize = 0,
       totalMergedKeysSize = 0,
@@ -91,31 +98,31 @@ private[core] object MergeStats {
       builder = builder
     )
 
-  def memory[T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]): MergeStats.Memory[T] =
-    new Memory(
+  def memory[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Memory[FROM, T] =
+    new Memory[FROM, T](
       segmentSize = 0,
       hasRange = false,
       hasPut = false,
       builder = builder
     )
 
-  def buffer[T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]): MergeStats.Buffer[T] =
+  def buffer[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
     new Buffer(builder)
 
-  class Persistent[+T[_]](var maxMergedKeySize: Int,
-                          var totalMergedKeysSize: Int,
-                          var maxTimeSize: Int,
-                          var totalTimesSize: Int,
-                          var maxValueSize: Int,
-                          var totalKeyValueCount: Int,
-                          var totalValuesSize: Int,
-                          var totalValuesCount: Int,
-                          var totalDeadlineKeyValues: Int,
-                          var totalRangeCount: Int,
-                          var hasRange: Boolean,
-                          var hasRemoveRange: Boolean,
-                          var hasPut: Boolean,
-                          builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+  class Persistent[FROM, +T[_]](var maxMergedKeySize: Int,
+                                var totalMergedKeysSize: Int,
+                                var maxTimeSize: Int,
+                                var totalTimesSize: Int,
+                                var maxValueSize: Int,
+                                var totalKeyValueCount: Int,
+                                var totalValuesSize: Int,
+                                var totalValuesCount: Int,
+                                var totalDeadlineKeyValues: Int,
+                                var totalRangeCount: Int,
+                                var hasRange: Boolean,
+                                var hasRemoveRange: Boolean,
+                                var hasPut: Boolean,
+                                builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
 
     def hasDeadline = totalDeadlineKeyValues > 0
 
@@ -143,7 +150,7 @@ private[core] object MergeStats {
         (Bytes.sizeOfUnsignedInt(maxValueSize) * totalValuesCount) + //valueLength
         totalTimesSize
 
-    def updateStats(keyValue: swaydb.core.data.Memory) = {
+    def updateStats(keyValue: data.Memory) = {
       maxMergedKeySize = this.maxMergedKeySize max keyValue.mergedKey.size
       totalMergedKeysSize = this.totalMergedKeysSize + keyValue.mergedKey.size
 
@@ -172,45 +179,53 @@ private[core] object MergeStats {
       }
     }
 
-    def add(keyValue: swaydb.core.data.Memory) = {
-      totalKeyValueCount += 1
-      updateStats(keyValue)
-      builder += keyValue
+    def add(from: FROM) = {
+      val keyValue = converterNullable(from)
+      if (keyValue != null) {
+        totalKeyValueCount += 1
+        updateStats(keyValue)
+        builder += keyValue
+      }
     }
-
   }
 
-  class Memory[+T[_]](var segmentSize: Int,
-                      var hasRange: Boolean,
-                      var hasPut: Boolean,
-                      builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+  class Memory[FROM, +T[_]](var segmentSize: Int,
+                            var hasRange: Boolean,
+                            var hasPut: Boolean,
+                            builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
     override def keyValues: T[data.Memory] =
       builder.result()
 
     override def clear(): Unit =
       builder.clear()
 
-    override def add(keyValue: data.Memory): Unit = {
-      segmentSize = segmentSize + keyValue.key.size + {
-        if (keyValue.value.isDefined)
-          keyValue.value.get.size
-        else
-          0
+    override def add(from: FROM): Unit = {
+      val keyValue = converterNullable(from)
+      if (keyValue != null) {
+        segmentSize = segmentSize + keyValue.key.size + {
+          if (keyValue.value.isDefined)
+            keyValue.value.get.size
+          else
+            0
+        }
+
+        if (keyValue.isRange)
+          this.hasRange = true
+        else if (keyValue.isPut)
+          this.hasPut = true
+
+        builder += keyValue
       }
-
-      if (keyValue.isRange)
-        this.hasRange = true
-      else if (keyValue.isPut)
-        this.hasPut = true
-
-      builder += keyValue
     }
   }
 
-  class Buffer[+T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+  class Buffer[FROM, +T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
 
-    override def add(keyValue: data.Memory): Unit =
-      builder += keyValue
+    override def add(from: FROM): Unit = {
+      val keyValue = converterNullable(from)
+      if (keyValue != null)
+        builder += keyValue
+    }
 
     override def clear(): Unit =
       builder.clear()
