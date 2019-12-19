@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.merge
 
-import swaydb.CollectionBuilder
 import swaydb.core.data
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
@@ -29,7 +28,9 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
-private[core] sealed trait MergeStats[+T[_]] extends CollectionBuilder[data.Memory, T[data.Memory]] {
+private[core] sealed trait MergeStats[+T[_]] {
+
+  def builder: mutable.Builder[data.Memory, T[data.Memory]]
 
   def add(keyValue: data.Memory): Unit
 
@@ -116,7 +117,7 @@ private[core] object MergeStats {
                           var hasRange: Boolean,
                           var hasRemoveRange: Boolean,
                           var hasPut: Boolean,
-                          builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+                          val builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
 
     def hasDeadline = totalDeadlineKeyValues > 0
 
@@ -184,7 +185,7 @@ private[core] object MergeStats {
   class Memory[+T[_]](var segmentSize: Int,
                       var hasRange: Boolean,
                       var hasPut: Boolean,
-                      builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+                      val builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
     override def result: T[data.Memory] =
       builder.result()
 
@@ -209,6 +210,7 @@ private[core] object MergeStats {
   }
 
   class Buffer[+T[_]](val builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+
     override def add(keyValue: data.Memory): Unit =
       builder += keyValue
 

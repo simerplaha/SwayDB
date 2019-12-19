@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{CollectionBuilder, IO}
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.reader.Reader
@@ -28,7 +27,7 @@ import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.segment.format.a.entry.writer.{DeadlineWriter, EntryWriter, KeyWriter, TimeWriter, ValueWriter}
+import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.{Bytes, FiniteDurations, MinMax}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
@@ -577,7 +576,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def readAll(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Slice[KeyValue] = {
-    val builder = Slice.newCollectionBuilder[KeyValue](keyValueCount)
+    val builder = Slice.newBuilder[KeyValue](keyValueCount)
 
     readAll(
       keyValueCount = keyValueCount,
@@ -592,7 +591,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def readAll[T](keyValueCount: Int,
                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                 builder: CollectionBuilder[KeyValue, T]): Unit = {
+                 builder: mutable.Builder[KeyValue, T]): Unit = {
     sortedIndexReader moveTo 0
 
     (1 to keyValueCount).foldLeft(Option.empty[Persistent]) {
@@ -614,7 +613,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous = previousMayBe
           )
 
-        builder add next
+        builder += next
         Some(next)
     }
   }

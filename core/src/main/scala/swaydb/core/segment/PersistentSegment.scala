@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{CollectionBuilder, IO}
+import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent}
@@ -261,11 +261,11 @@ private[segment] case class PersistentSegment(file: DBFile,
   def higher(key: Slice[Byte], readState: ReadState): Option[Persistent] =
     segmentCache.higher(key, readState)
 
-  def getAll[T](builder: CollectionBuilder[KeyValue, T]): Unit =
+  def getAll[T](builder: mutable.Builder[KeyValue, T]): Unit =
     segmentCache getAll builder
 
   override def getAll(): Slice[KeyValue] = {
-    val slice = Slice.newCollectionBuilder[KeyValue](getKeyValueCount())
+    val slice = Slice.newBuilder[KeyValue](getKeyValueCount())
     getAll(slice)
     slice.result
   }

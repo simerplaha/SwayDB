@@ -23,7 +23,7 @@ import java.nio.file.{Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{CollectionBuilder, IO}
+import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
@@ -662,7 +662,7 @@ private[core] object Segment extends LazyLogging {
             segment.getKeyValueCount() + total
         }
 
-      val builder = Slice.newCollectionBuilder[KeyValue](totalKeyValues)
+      val builder = Slice.newBuilder[KeyValue](totalKeyValues)
 
       segments foreach {
         segment =>
@@ -941,7 +941,7 @@ private[core] trait Segment extends FileSweeperItem {
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
 
-  def getAll[T](builder: CollectionBuilder[KeyValue, T]): Unit
+  def getAll[T](builder: mutable.Builder[KeyValue, T]): Unit
 
   def getAll(): Slice[KeyValue]
 

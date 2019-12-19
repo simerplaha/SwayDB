@@ -22,7 +22,6 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.CollectionBuilder
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.format.a.block._
@@ -373,7 +372,7 @@ private[core] class SegmentCache(path: Path,
         }
     }
 
-  def getAll[T](builder: CollectionBuilder[KeyValue, T]): Unit =
+  def getAll[T](builder: mutable.Builder[KeyValue, T]): Unit =
     blockCache readAll builder
 
   def getAll(): Slice[KeyValue] =

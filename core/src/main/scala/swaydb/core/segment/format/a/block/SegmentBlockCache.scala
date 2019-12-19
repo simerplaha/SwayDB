@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import java.nio.file.Path
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{CollectionBuilder, IO}
+import swaydb.IO
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, Lazy}
 import swaydb.core.data.KeyValue
@@ -361,19 +361,19 @@ class SegmentBlockCache(path: Path,
 
   def readAll(): Slice[KeyValue] = {
     val keyValueCount = getFooter().keyValueCount
-    val builder = Slice.newCollectionBuilder[KeyValue](keyValueCount)
+    val builder = Slice.newBuilder[KeyValue](keyValueCount)
     readAll(builder)
     builder.result
   }
 
-  def readAll[T](builder: CollectionBuilder[KeyValue, T]): Unit =
+  def readAll[T](builder: mutable.Builder[KeyValue, T]): Unit =
     readAll(
       keyValueCount = getFooter().keyValueCount,
       builder = builder
     )
 
   def readAll[T](keyValueCount: Int): Slice[KeyValue] = {
-    val builder = Slice.newCollectionBuilder[KeyValue](keyValueCount)
+    val builder = Slice.newBuilder[KeyValue](keyValueCount)
     readAll(
       keyValueCount = keyValueCount,
       builder = builder
@@ -385,7 +385,7 @@ class SegmentBlockCache(path: Path,
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
   def readAll[T](keyValueCount: Int,
-                 builder: CollectionBuilder[KeyValue, T]): Unit =
+                 builder: mutable.Builder[KeyValue, T]): Unit =
     try {
       var sortedIndexReader = createSortedIndexReader()
       if (sortedIndexReader.isFile) {

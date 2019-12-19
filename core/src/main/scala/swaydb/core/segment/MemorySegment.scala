@@ -23,9 +23,6 @@ import java.nio.file.Path
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{CollectionBuilder, IO}
-import swaydb.IO._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
@@ -34,7 +31,6 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -263,19 +259,19 @@ private[segment] case class MemorySegment(path: Path,
       skipList.higher(key)
 
   override def getAll(): Slice[KeyValue] = {
-    val slice = Slice.newCollectionBuilder[KeyValue](skipList.size)
+    val slice = Slice.newBuilder[KeyValue](skipList.size)
     getAll(slice)
     slice.result
   }
 
-  override def getAll[T](builder: CollectionBuilder[KeyValue, T]): Unit =
+  override def getAll[T](builder: mutable.Builder[KeyValue, T]): Unit =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
       skipList.values() forEach {
         new Consumer[Memory] {
           override def accept(value: Memory): Unit =
-            builder add value
+            builder += value
         }
       }
 
