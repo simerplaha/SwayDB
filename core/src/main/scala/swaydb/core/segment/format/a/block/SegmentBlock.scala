@@ -263,7 +263,7 @@ private[core] object SegmentBlock extends LazyLogging {
         keyValue =>
           closed = false
           processedCount += 1
-          bloomFilterKeys addOne keyValue.key
+          bloomFilterKeys += keyValue.key
 
           SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
           values foreach (ValuesBlock.write(keyValue, _))
@@ -291,7 +291,7 @@ private[core] object SegmentBlock extends LazyLogging {
                 valuesConfig = valuesConfig
               )
 
-            segments addOne closedSegment
+            segments += closedSegment
 
             //segment's closed. Prepare for next Segment.
             bloomFilterKeys.clear() //clear bloomFilter keys.
@@ -327,7 +327,7 @@ private[core] object SegmentBlock extends LazyLogging {
         //temporary check.
         assert(nextSortedIndex.isEmpty && nextValuesBlock.isEmpty, s"${nextSortedIndex.isEmpty} && ${nextValuesBlock.isEmpty} is not empty.")
 
-        segments addOne closedSegment
+        segments += closedSegment
       }
     }
 

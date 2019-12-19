@@ -397,7 +397,7 @@ trait SliceCompanionBase {
       val sliceBuilder = newBuilder[T](sizeHint)
 
       override def add(item: T): Unit =
-        sliceBuilder addOne item
+        sliceBuilder += item
 
       override def result: Slice[T] =
         sliceBuilder.result

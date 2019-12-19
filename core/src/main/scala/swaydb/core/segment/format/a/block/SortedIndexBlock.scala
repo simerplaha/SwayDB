@@ -346,11 +346,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
           keyType = keyValue.id
         )
 
-      state.secondaryIndexEntries addOne entry
+      state.secondaryIndexEntries += entry
     }
 
     if (state.normaliseIndex)
-      state.indexEntries addOne state.bytes.slice(positionBeforeWrite, state.builder.bytes.currentWritePositionInThisSlice - 1)
+      state.indexEntries += state.bytes.slice(positionBeforeWrite, state.builder.bytes.currentWritePositionInThisSlice - 1)
 
     val indexEntrySize = state.bytes.currentWritePositionInThisSlice - positionBeforeWrite
 
