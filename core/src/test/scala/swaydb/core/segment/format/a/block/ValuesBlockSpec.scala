@@ -71,13 +71,15 @@ class ValuesBlockSpec extends TestBase {
   "close" should {
     "prepare for persisting & concurrent read values" in {
       runThis(100.times, log = true) {
-        val keyValues = randomizedKeyValues(count = randomIntMax(10000) max 1, valueSize = randomIntMax(100) max 1).toPersistentMergeBuilder
+        val stats = randomizedKeyValues(count = randomIntMax(10000) max 1, valueSize = randomIntMax(100) max 1).toPersistentMergeBuilder
         val state =
           ValuesBlock.init(
-            keyValues = keyValues,
+            keyValues = stats,
             valuesConfig = ValuesBlock.Config.random,
             builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
           ).get
+
+        val keyValues = stats.result
 
         keyValues foreach {
           keyValue =>

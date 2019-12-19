@@ -27,7 +27,7 @@ import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.merge.KeyValueMergeBuilder
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice

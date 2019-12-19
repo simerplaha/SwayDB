@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{CollectionBuilder, IO}
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent}
@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
-import swaydb.core.segment.merge.{KeyValueMergeBuilder, SegmentMerger}
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
@@ -42,6 +42,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
 object PersistentSegment {
@@ -151,7 +152,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
     val currentKeyValues = getAll()
 
-    val builder = KeyValueMergeBuilder.persistent()
+    val builder: MergeStats.Persistent[ListBuffer] = MergeStats.persistent(ListBuffer.newBuilder)
 
     SegmentMerger.merge(
       newKeyValues = newKeyValues,
@@ -168,7 +169,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
-      keyValues = builder,
+      mergeStats = builder,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
@@ -187,7 +188,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
-    //    val currentKeyValues = getAll()
+    val currentKeyValues = getAll()
     //    val splits =
     //      SegmentMerger.split(
     //        keyValues = currentKeyValues,
@@ -260,11 +261,11 @@ private[segment] case class PersistentSegment(file: DBFile,
   def higher(key: Slice[Byte], readState: ReadState): Option[Persistent] =
     segmentCache.higher(key, readState)
 
-  def getAll[T[_]](builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit =
+  def getAll[T](builder: CollectionBuilder[KeyValue, T]): Unit =
     segmentCache getAll builder
 
   override def getAll(): Slice[KeyValue] = {
-    val slice = Slice.newBuilder[KeyValue](getKeyValueCount())
+    val slice = Slice.newCollectionBuilder[KeyValue](getKeyValueCount())
     getAll(slice)
     slice.result
   }

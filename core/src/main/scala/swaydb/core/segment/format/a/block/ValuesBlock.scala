@@ -25,7 +25,7 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
-import swaydb.core.segment.merge.KeyValueMergeBuilder
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -92,13 +92,13 @@ private[core] object ValuesBlock {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-//  val headerSize = {
-//    val size = Block.headerSize(true)
-//    Bytes.sizeOfUnsignedInt(size) +
-//      size
-//  }
+  //  val headerSize = {
+  //    val size = Block.headerSize(true)
+  //    Bytes.sizeOfUnsignedInt(size) +
+  //      size
+  //  }
 
-  def init(keyValues: KeyValueMergeBuilder.Persistent,
+  def init(keyValues: MergeStats.Persistent[Iterable],
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): Option[ValuesBlock.State] =

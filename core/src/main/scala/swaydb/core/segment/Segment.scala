@@ -23,7 +23,7 @@ import java.nio.file.{Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
+import swaydb.{CollectionBuilder, IO}
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
@@ -35,7 +35,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.segment.merge.KeyValueMergeBuilder
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.data.MaxKey
@@ -121,16 +121,16 @@ private[core] object Segment extends LazyLogging {
                  sortedIndexConfig: SortedIndexBlock.Config,
                  valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlock.Config,
-                 keyValues: KeyValueMergeBuilder.Persistent)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                             functionStore: FunctionStore,
-                                                             fileSweeper: FileSweeper.Enabled,
-                                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                             blockCache: Option[BlockCache.State],
-                                                             segmentIO: SegmentIO,
-                                                             idGenerator: IDGenerator): Slice[Segment] =
+                 mergeStats: MergeStats.Persistent[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              functionStore: FunctionStore,
+                                                              fileSweeper: FileSweeper.Enabled,
+                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                              blockCache: Option[BlockCache.State],
+                                                              segmentIO: SegmentIO,
+                                                              idGenerator: IDGenerator): Slice[Segment] =
     SegmentBlock.writeClosed(
-      keyValues = keyValues,
+      keyValues = mergeStats,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
@@ -196,24 +196,26 @@ private[core] object Segment extends LazyLogging {
                   autoClose = true
                 )
 
-            PersistentSegment(
-              file = file,
-              segmentId = segmentId,
-              mmapReads = mmapReads,
-              mmapWrites = mmapWrites,
-              minKey = keyValues.head.key.unslice(),
-              maxKey =
-                keyValues.last match {
-                  case range: Memory.Range =>
-                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+//            PersistentSegment(
+//              file = file,
+//              segmentId = segmentId,
+//              mmapReads = mmapReads,
+//              mmapWrites = mmapWrites,
+//              minKey = mergeStats.head.key.unslice(),
+//              maxKey =
+//                mergeStats.last match {
+//                  case range: Memory.Range =>
+//                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+//
+//                  case keyValue: Memory.Fixed =>
+//                    MaxKey.Fixed(keyValue.key.unslice())
+//                },
+//              segmentSize = segment.segmentSize,
+//              minMaxFunctionId = segment.minMaxFunctionId,
+//              nearestExpiryDeadline = segment.nearestDeadline
+//            )
 
-                  case keyValue: Memory.Fixed =>
-                    MaxKey.Fixed(keyValue.key.unslice())
-                },
-              segmentSize = segment.segmentSize,
-              minMaxFunctionId = segment.minMaxFunctionId,
-              nearestExpiryDeadline = segment.nearestDeadline
-            )
+            ".".asInstanceOf[PersistentSegment]
           },
       recover =
         (segments: Slice[Segment], _: Throwable) =>
@@ -660,7 +662,7 @@ private[core] object Segment extends LazyLogging {
             segment.getKeyValueCount() + total
         }
 
-      val builder = Slice.newBuilder[KeyValue](totalKeyValues)
+      val builder = Slice.newCollectionBuilder[KeyValue](totalKeyValues)
 
       segments foreach {
         segment =>
@@ -939,7 +941,7 @@ private[core] trait Segment extends FileSweeperItem {
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
 
-  def getAll[T[_]](builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit
+  def getAll[T](builder: CollectionBuilder[KeyValue, T]): Unit
 
   def getAll(): Slice[KeyValue]
 

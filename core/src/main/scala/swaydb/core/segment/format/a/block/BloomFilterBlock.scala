@@ -20,11 +20,9 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.merge.KeyValueMergeBuilder
-import swaydb.core.util.{Bytes, MurmurHash3Generic}
+import swaydb.core.util.MurmurHash3Generic
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}

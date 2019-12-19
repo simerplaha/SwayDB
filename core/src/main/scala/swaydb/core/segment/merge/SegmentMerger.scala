@@ -32,12 +32,12 @@ import scala.collection.mutable.ListBuffer
 
 private[core] object SegmentMerger extends LazyLogging {
 
-  def merge(newKeyValue: Memory,
-            oldKeyValue: Memory,
-            builder: KeyValueMergeBuilder,
-            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): Unit =
+  def merge[T[_]](newKeyValue: Memory,
+                  oldKeyValue: Memory,
+                  builder: MergeStats[T],
+                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore): Unit =
     merge(
       newKeyValues = Slice(newKeyValue),
       oldKeyValues = Slice(oldKeyValue),
@@ -45,25 +45,25 @@ private[core] object SegmentMerger extends LazyLogging {
       isLastLevel = isLastLevel
     )
 
-  def merge(newKeyValues: Slice[KeyValue],
-            oldKeyValues: Slice[KeyValue],
-            builder: KeyValueMergeBuilder,
-            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): Unit =
-    merge(
+  def merge[T[_]](newKeyValues: Slice[KeyValue],
+                  oldKeyValues: Slice[KeyValue],
+                  builder: MergeStats[T],
+                  isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore): Unit =
+    merge[T](
       newKeyValues = MergeList[Memory.Range, KeyValue](newKeyValues),
       oldKeyValues = MergeList[Memory.Range, KeyValue](oldKeyValues),
       builder = builder,
       isLastLevel = isLastLevel
     )
 
-  private def merge(newKeyValues: MergeList[Memory.Range, KeyValue],
-                    oldKeyValues: MergeList[Memory.Range, KeyValue],
-                    builder: KeyValueMergeBuilder,
-                    isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                          timeOrder: TimeOrder[Slice[Byte]],
-                                          functionStore: FunctionStore): Unit = {
+  private def merge[T[_]](newKeyValues: MergeList[Memory.Range, KeyValue],
+                          oldKeyValues: MergeList[Memory.Range, KeyValue],
+                          builder: MergeStats[T],
+                          isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore): Unit = {
 
     import keyOrder._
 

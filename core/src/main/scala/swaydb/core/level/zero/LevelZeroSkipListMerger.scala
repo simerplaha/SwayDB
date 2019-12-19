@@ -25,7 +25,7 @@ import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.merge.FixedMerger
-import swaydb.core.segment.merge.{KeyValueMergeBuilder, SegmentMerger}
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -67,7 +67,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
 
           //if the floor entry is a range try to do a merge.
           case floorRange: Memory.Range if insert.key < floorRange.toKey =>
-            val builder = KeyValueMergeBuilder.buffer()
+            val builder = MergeStats.buffer(ListBuffer.newBuilder)
 
             SegmentMerger.merge(
               newKeyValue = insert,
@@ -77,7 +77,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
             )
 
             skipList batch {
-              builder map {
+              builder.result map {
                 merged: Memory =>
                   SkipList.Batch.Put(merged.key, merged)
               }
@@ -125,7 +125,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
         }
       }
 
-      val builder = KeyValueMergeBuilder.buffer()
+      val builder = MergeStats.buffer(ListBuffer.newBuilder)
 
       SegmentMerger.merge(
         newKeyValues = Slice(insert),
@@ -141,7 +141,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
           batches += SkipList.Batch.Remove(oldKeyValue.key)
       }
 
-      builder map {
+      builder.result map {
         keyValue =>
           batches += SkipList.Batch.Put(keyValue.key, keyValue)
       }

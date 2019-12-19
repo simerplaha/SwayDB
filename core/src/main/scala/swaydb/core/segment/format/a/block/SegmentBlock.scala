@@ -24,7 +24,7 @@ import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.merge.KeyValueMergeBuilder
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.MinMax
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -188,7 +188,7 @@ private[core] object SegmentBlock extends LazyLogging {
       compressionInfo = header.compressionInfo
     )
 
-  def writeClosed(keyValues: KeyValueMergeBuilder.Persistent,
+  def writeClosed(keyValues: MergeStats.Persistent[Iterable],
                   createdInLevel: Int,
                   segmentSize: Int,
                   bloomFilterConfig: BloomFilterBlock.Config,
@@ -219,7 +219,7 @@ private[core] object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeOpen(keyValues: KeyValueMergeBuilder.Persistent,
+  def writeOpen(keyValues: MergeStats.Persistent[Iterable],
                 createdInLevel: Int,
                 minSegmentSize: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,
@@ -259,7 +259,7 @@ private[core] object SegmentBlock extends LazyLogging {
       var closed = false //true if the following iterator exited after closing the Segment.
 
       //start building the segment.
-      keyValues foreach {
+      keyValues.result foreach {
         keyValue =>
           closed = false
           processedCount += 1

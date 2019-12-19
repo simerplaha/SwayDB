@@ -30,51 +30,51 @@ import scala.collection.mutable.ListBuffer
  */
 private[merge] object SegmentGrouper extends LazyLogging {
 
-  def add(keyValue: KeyValue,
-          builder: KeyValueMergeBuilder,
-          isLastLevel: Boolean): Unit =
+  def add[T[_]](keyValue: KeyValue,
+                builder: MergeStats[T],
+                isLastLevel: Boolean): Unit =
     keyValue match {
       case fixed: KeyValue.Fixed =>
         fixed match {
           case put: Memory.Put =>
             if (!isLastLevel || put.hasTimeLeft())
-              builder addOne put
+              builder add put
 
           case put: Persistent.Put =>
             if (!isLastLevel || put.hasTimeLeft())
-              builder addOne put.toMemory()
+              builder add put.toMemory()
 
           case remove: Memory.Remove =>
             if (!isLastLevel)
-              builder addOne remove
+              builder add remove
 
           case remove: Persistent.Remove =>
             if (!isLastLevel)
-              builder addOne remove.toMemory()
+              builder add remove.toMemory()
 
           case update: Memory.Update =>
             if (!isLastLevel)
-              builder addOne update
+              builder add update
 
           case update: Persistent.Update =>
             if (!isLastLevel)
-              builder addOne update.toMemory()
+              builder add update.toMemory()
 
           case function: Memory.Function =>
             if (!isLastLevel)
-              builder addOne function
+              builder add function
 
           case function: Persistent.Function =>
             if (!isLastLevel)
-              builder addOne function.toMemory()
+              builder add function.toMemory()
 
           case pending: Memory.PendingApply =>
             if (!isLastLevel)
-              builder addOne pending
+              builder add pending
 
           case pendingApply: Persistent.PendingApply =>
             if (!isLastLevel)
-              builder addOne pendingApply.toMemory()
+              builder add pendingApply.toMemory()
         }
 
       case range: KeyValue.Range =>
@@ -82,7 +82,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           range.fetchFromValueUnsafe foreach {
             case put @ Value.Put(fromValue, deadline, time) =>
               if (put.hasTimeLeft())
-                builder addOne
+                builder add
                   Memory.Put(
                     key = range.fromKey,
                     value = fromValue,
@@ -95,7 +95,7 @@ private[merge] object SegmentGrouper extends LazyLogging {
           }
         } else {
           val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
-          builder addOne
+          builder add
             Memory.Range(
               fromKey = range.fromKey,
               toKey = range.toKey,

@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.IO
+import swaydb.{CollectionBuilder, IO}
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.io.reader.Reader
@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.format.a.entry.writer.{DeadlineWriter, EntryWriter, KeyWriter, TimeWriter, ValueWriter}
-import swaydb.core.segment.merge.KeyValueMergeBuilder
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.{Bytes, FiniteDurations, MinMax}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
@@ -206,7 +206,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    Bytes.sizeOfUnsignedInt(size) + size
   //  }
 
-  def init(keyValues: KeyValueMergeBuilder.Persistent,
+  def init(keyValues: MergeStats.Persistent[Iterable],
            valuesConfig: ValuesBlock.Config,
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State =
     init(
@@ -577,7 +577,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def readAll(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Slice[KeyValue] = {
-    val builder = Slice.newBuilder[KeyValue](keyValueCount)
+    val builder = Slice.newCollectionBuilder[KeyValue](keyValueCount)
 
     readAll(
       keyValueCount = keyValueCount,
@@ -589,10 +589,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
     builder.result
   }
 
-  def readAll[T[_]](keyValueCount: Int,
-                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                    builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit = {
+  def readAll[T](keyValueCount: Int,
+                 sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                 valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                 builder: CollectionBuilder[KeyValue, T]): Unit = {
     sortedIndexReader moveTo 0
 
     (1 to keyValueCount).foldLeft(Option.empty[Persistent]) {
@@ -614,7 +614,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous = previousMayBe
           )
 
-        builder addOne next
+        builder add next
         Some(next)
     }
   }

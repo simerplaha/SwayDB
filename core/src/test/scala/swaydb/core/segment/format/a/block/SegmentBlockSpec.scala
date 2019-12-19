@@ -27,7 +27,7 @@ import swaydb.core.data._
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.merge.KeyValueMergeBuilder
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -48,7 +48,7 @@ class SegmentBlockSpec extends TestBase {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val closedSegment =
         SegmentBlock.writeClosed(
-          keyValues = KeyValueMergeBuilder.persistent(Seq.empty),
+          keyValues = MergeStats.persistentFrom(Seq.empty),
           segmentSize = randomIntMax(Int.MaxValue),
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlock.Config.random,
@@ -66,7 +66,7 @@ class SegmentBlockSpec extends TestBase {
       def test(keyValues: Slice[Memory]) = {
         val segmentBytes =
           SegmentBlock
-            .writeClosedSingle(keyValues = KeyValueMergeBuilder.persistent(keyValues))
+            .writeClosedSingle(keyValues = keyValues)
             .flattenSegmentBytes
 
         val reader = Reader(segmentBytes)
@@ -199,7 +199,7 @@ class SegmentBlockSpec extends TestBase {
       def doAssert(keyValues: Slice[Memory]) = {
         val expectedHasRemoveRange = keyValues.exists(_.isRemoveRangeMayBe)
 
-        KeyValueMergeBuilder.persistent(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
+        MergeStats.persistentFrom(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
 
         val blocks = getBlocksSingle(keyValues).get
 

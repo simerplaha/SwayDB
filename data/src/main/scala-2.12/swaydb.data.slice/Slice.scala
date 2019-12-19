@@ -51,7 +51,7 @@ object Slice extends SliceCompanionBase {
       }
 
     def clear() =
-      slice = Slice.empty[T]
+      slice = Slice.create[A](slice.size)
 
     def result: Slice[T] =
       slice.close()
