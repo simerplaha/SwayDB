@@ -84,7 +84,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   //default setting, these can be overridden to apply different settings for test cases.
 
-  def segmentSize: Long = 2.mb
+  def segmentSize: Int = 2.mb
 
   def mapSize: Long = 4.mb
 
@@ -302,7 +302,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     def apply(levelStorage: LevelStorage = levelStorage,
               appendixStorage: AppendixStorage = appendixStorage,
-              segmentSize: Long = segmentSize,
+              segmentSize: Int = segmentSize,
               nextLevel: Option[NextLevel] = None,
               pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,

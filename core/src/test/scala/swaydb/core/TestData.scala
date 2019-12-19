@@ -226,7 +226,7 @@ object TestData {
     def tryReopen: IO[swaydb.Error.Level, Level] =
       tryReopen()
 
-    def reopen(segmentSize: Long = level.segmentSize,
+    def reopen(segmentSize: Int = level.segmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
                nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                fileSweeper: FileSweeper = fileSweeper): Level =
@@ -236,7 +236,7 @@ object TestData {
         nextLevel = nextLevel
       ).right.value
 
-    def tryReopen(segmentSize: Long = level.segmentSize,
+    def tryReopen(segmentSize: Int = level.segmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                   fileSweeper: FileSweeper.Enabled = fileSweeper,

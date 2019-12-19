@@ -83,7 +83,7 @@ private[core] object Level extends LazyLogging {
         IO.none
     }
 
-  def apply(segmentSize: Long,
+  def apply(segmentSize: Int,
             bloomFilterConfig: BloomFilterBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -344,7 +344,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                mmapSegmentsOnWrite: Boolean,
                                mmapSegmentsOnRead: Boolean,
                                inMemory: Boolean,
-                               segmentSize: Long,
+                               segmentSize: Int,
                                pushForward: Boolean,
                                throttle: LevelMeter => Throttle,
                                nextLevel: Option[NextLevel],

@@ -97,7 +97,7 @@ trait NextLevel extends LevelRef {
 
   def levelSize: Long
 
-  def segmentSize: Long
+  def segmentSize: Int
 
   def lastSegmentId: Option[Long]
 

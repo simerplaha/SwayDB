@@ -109,7 +109,7 @@ private[core] object Segment extends LazyLogging {
     ???
 
   def persistent(segmentSize: Int,
-                 path: Path,
+                 pathsDistributor: PathsDistributor,
                  segmentId: Long,
                  createdInLevel: Int,
                  mmapReads: Boolean,
@@ -126,7 +126,8 @@ private[core] object Segment extends LazyLogging {
                                                              fileSweeper: FileSweeper.Enabled,
                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                              blockCache: Option[BlockCache.State],
-                                                             segmentIO: SegmentIO): Slice[Segment] =
+                                                             segmentIO: SegmentIO,
+                                                             idGenerator: IDGenerator): Slice[Segment] =
     SegmentBlock.writeClosed(
       keyValues = keyValues,
       createdInLevel = createdInLevel,
@@ -145,6 +146,9 @@ private[core] object Segment extends LazyLogging {
             //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
             throw IO.throwable("Empty key-values submitted to persistent Segment.")
           } else {
+            val segmentId = idGenerator.nextID
+            val path = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+
             val file =
             //if both read and writes are mmaped. Keep the file open.
               if (mmapWrites && mmapReads)
@@ -216,7 +220,7 @@ private[core] object Segment extends LazyLogging {
             segmentToDelete =>
               IO(segmentToDelete.delete) onLeftSideEffect {
                 exception =>
-                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
+                  logger.error(s"Failed to delete Segment '{}' in recover due to failed put", segmentToDelete.path, exception)
               }
           }
     )
@@ -894,7 +898,7 @@ private[core] trait Segment extends FileSweeperItem {
   def path: Path
 
   def put(newKeyValues: Slice[KeyValue],
-          minSegmentSize: Long,
+          minSegmentSize: Int,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -905,7 +909,7 @@ private[core] trait Segment extends FileSweeperItem {
           segmentConfig: SegmentBlock.Config,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
-  def refresh(minSegmentSize: Long,
+  def refresh(minSegmentSize: Int,
               removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,

@@ -63,7 +63,7 @@ private[segment] case class MemorySegment(path: Path,
   import keyOrder._
 
   override def put(newKeyValues: Slice[KeyValue],
-                   minSegmentSize: Long,
+                   minSegmentSize: Int,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
                    valuesConfig: ValuesBlock.Config,
@@ -112,7 +112,7 @@ private[segment] case class MemorySegment(path: Path,
       ???
     }
 
-  override def refresh(minSegmentSize: Long,
+  override def refresh(minSegmentSize: Int,
                        removeDeletes: Boolean,
                        createdInLevel: Int,
                        valuesConfig: ValuesBlock.Config,

@@ -138,7 +138,7 @@ private[segment] case class PersistentSegment(file: DBFile,
    * Default targetPath is set to this [[PersistentSegment]]'s parent directory.
    */
   def put(newKeyValues: Slice[KeyValue],
-          minSegmentSize: Long,
+          minSegmentSize: Int,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -159,23 +159,24 @@ private[segment] case class PersistentSegment(file: DBFile,
       isLastLevel = removeDeletes
     )
 
-    val segmentId = idGenerator.nextID
-    val path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId))
-
-//    Segment.persistent(
-//      segmentSize = minSegmentSize,
-//      path = path,
-//      segmentId = segmentId,
-//      segmentConfig = segmentConfig,
-//      createdInLevel = createdInLevel,
-//      mmapReads = mmapReads,
-//      mmapWrites = mmapWrites,
-//      keyValues = builder
-//    )
-    ???
+    Segment.persistent(
+      segmentSize = minSegmentSize,
+      pathsDistributor = targetPaths,
+      segmentId = segmentId,
+      segmentConfig = segmentConfig,
+      createdInLevel = createdInLevel,
+      mmapReads = mmapReads,
+      mmapWrites = mmapWrites,
+      keyValues = builder,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig
+    )
   }
 
-  def refresh(minSegmentSize: Long,
+  def refresh(minSegmentSize: Int,
               removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
