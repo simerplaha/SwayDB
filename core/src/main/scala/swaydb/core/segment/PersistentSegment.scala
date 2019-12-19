@@ -23,7 +23,6 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Aggregator, IO}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.function.FunctionStore
@@ -39,8 +38,8 @@ import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import swaydb.{Aggregator, IO}
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
@@ -190,16 +189,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
     val keyValueCount = getKeyValueCount()
 
-    val stats =
-      MergeStats.persistent[KeyValue, Slice](Slice.newBuilder(keyValueCount)) {
-        keyValue => {
-          val mergedKeyValue = SegmentGrouper.getOrNull(keyValue, removeDeletes)
-          if (mergedKeyValue != null)
-            mergedKeyValue
-          else
-            null
-        }
-      }
+    val stats = MergeStats.persistent[KeyValue, Slice](Slice.newBuilder(keyValueCount))(SegmentGrouper.getOrNull(removeDeletes, _))
 
     getAll(stats)
 
@@ -218,47 +208,6 @@ private[segment] case class PersistentSegment(file: DBFile,
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig
     )
-
-    //    val splits =
-    //      SegmentMerger.split(
-    //        keyValues = currentKeyValues,
-    //        minSegmentSize = minSegmentSize,
-    //        isLastLevel = removeDeletes,
-    //        forInMemory = false,
-    //        createdInLevel = createdInLevel,
-    //        valuesConfig = valuesConfig,
-    //        sortedIndexConfig = sortedIndexConfig,
-    //        binarySearchIndexConfig = binarySearchIndexConfig,
-    //        hashIndexConfig = hashIndexConfig,
-    //        bloomFilterConfig = bloomFilterConfig
-    //      )
-    //
-    //    splits.mapRecover(
-    //      block =
-    //        keyValues => {
-    //          val segmentId = idGenerator.nextID
-    //          Segment.persistent(
-    //            path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
-    //            segmentId = segmentId,
-    //            createdInLevel = createdInLevel,
-    //            segmentConfig = segmentConfig,
-    //            mmapReads = mmapReads,
-    //            mmapWrites = mmapWrites,
-    //            keyValues = keyValues
-    //          )
-    //        },
-    //
-    //      recover =
-    //        (segments: Slice[Segment], _: Throwable) =>
-    //          segments foreach {
-    //            segmentToDelete =>
-    //              IO(segmentToDelete.delete) onLeftSideEffect {
-    //                exception =>
-    //                  logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed refresh", path, segmentToDelete.path, exception)
-    //              }
-    //          }
-    //    )
-    ???
   }
 
   def getSegmentBlockOffset(): SegmentBlock.Offset =

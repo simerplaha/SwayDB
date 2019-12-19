@@ -31,13 +31,13 @@ private[core] object SegmentGrouper extends LazyLogging {
   def add(keyValue: KeyValue,
           builder: MergeStats[Memory, Iterable],
           isLastLevel: Boolean): Unit = {
-    val keyValueToMerge = getOrNull(keyValue, isLastLevel)
+    val keyValueToMerge = getOrNull(isLastLevel, keyValue)
     if (keyValueToMerge != null)
       builder add keyValueToMerge.toMemory
   }
 
-  def getOrNull(keyValue: KeyValue,
-                isLastLevel: Boolean): Memory =
+  def getOrNull(isLastLevel: Boolean,
+                keyValue: KeyValue): Memory =
     keyValue match {
       case fixed: KeyValue.Fixed =>
         fixed match {
