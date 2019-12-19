@@ -40,6 +40,7 @@ import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable
 import scala.concurrent.duration.Deadline
 
 private[segment] case class MemorySegment(path: Path,
@@ -76,16 +77,16 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      val currentKeyValues = getAll()
-
-      val builder = KeyValueMergeBuilder.memory()
-
-      SegmentMerger.merge(
-        newKeyValues = newKeyValues,
-        oldKeyValues = currentKeyValues,
-        builder = builder,
-        isLastLevel = removeDeletes
-      )
+      //      val currentKeyValues = getAll()
+      //
+      //      val builder = KeyValueMergeBuilder.memory()
+      //
+      //      SegmentMerger.merge(
+      //        newKeyValues = newKeyValues,
+      //        oldKeyValues = currentKeyValues,
+      //        builder = builder,
+      //        isLastLevel = removeDeletes
+      //      )
 
       //      splits.mapRecover[Segment](
       //        block =
@@ -125,8 +126,8 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      val currentKeyValues = getAll()
-
+      //      val currentKeyValues = getAll()
+      //
       //      val splits =
       //        SegmentMerger.split(
       //          keyValues = currentKeyValues,
@@ -261,19 +262,22 @@ private[segment] case class MemorySegment(path: Path,
     else
       skipList.higher(key)
 
-  override def getAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] =
-    if (deleted) {
+  override def getAll(): Slice[KeyValue] = {
+    val slice = Slice.newBuilder[KeyValue](skipList.size)
+    getAll(slice)
+    slice.result
+  }
+
+  override def getAll[T[_]](builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit =
+    if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
-    } else {
-      val slice = addTo getOrElse Slice.create[KeyValue](skipList.size)
+    else
       skipList.values() forEach {
         new Consumer[Memory] {
           override def accept(value: Memory): Unit =
-            slice add value
+            builder addOne value
         }
       }
-      slice
-    }
 
   override def delete: Unit = {
     //cache should not be cleared.

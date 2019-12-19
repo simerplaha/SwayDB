@@ -34,6 +34,8 @@ import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable
+
 object SegmentBlockCache {
 
   def apply(path: Path,
@@ -357,10 +359,33 @@ class SegmentBlockCache(path: Path,
   def createSortedIndexReader(): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
     createReader(sortedIndexReaderCache, getSortedIndex())
 
+  def readAll(): Slice[KeyValue] = {
+    val keyValueCount = getFooter().keyValueCount
+    val builder = Slice.newBuilder[KeyValue](keyValueCount)
+    readAll(builder)
+    builder.result
+  }
+
+  def readAll[T[_]](builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit =
+    readAll(
+      keyValueCount = getFooter().keyValueCount,
+      builder = builder
+    )
+
+  def readAll[T[_]](keyValueCount: Int): Slice[KeyValue] = {
+    val builder = Slice.newBuilder[KeyValue](keyValueCount)
+    readAll(
+      keyValueCount = keyValueCount,
+      builder = builder
+    )
+    builder.result
+  }
+
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
-  def readAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] =
+  def readAll[T[_]](keyValueCount: Int,
+                    builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit =
     try {
       var sortedIndexReader = createSortedIndexReader()
       if (sortedIndexReader.isFile) {
@@ -377,10 +402,10 @@ class SegmentBlockCache(path: Path,
       }
 
       SortedIndexBlock.readAll(
-        keyValueCount = getFooter().keyValueCount,
+        keyValueCount = keyValueCount,
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader,
-        addTo = addTo
+        builder = builder
       )
     } finally {
       forceCacheSortedIndexAndValueReaders = false

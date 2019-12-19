@@ -31,6 +31,8 @@ import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable
+
 private[core] object SegmentCache {
 
   def apply(path: Path,
@@ -370,8 +372,14 @@ private[core] class SegmentCache(path: Path,
         }
     }
 
-  def getAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] =
-    blockCache readAll addTo
+  def getAll[T[_]](builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit =
+    blockCache readAll builder
+
+  def getAll(): Slice[KeyValue] =
+    blockCache.readAll()
+
+  def getAll(keyValueCount: Int): Slice[KeyValue] =
+    blockCache readAll keyValueCount
 
   def getKeyValueCount(): Int =
     blockCache.getFooter().keyValueCount

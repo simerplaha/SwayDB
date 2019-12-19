@@ -41,6 +41,7 @@ import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable
 import scala.concurrent.duration.Deadline
 
 object PersistentSegment {
@@ -186,7 +187,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
               targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
-    val currentKeyValues = getAll()
+    //    val currentKeyValues = getAll()
     //    val splits =
     //      SegmentMerger.split(
     //        keyValues = currentKeyValues,
@@ -259,8 +260,14 @@ private[segment] case class PersistentSegment(file: DBFile,
   def higher(key: Slice[Byte], readState: ReadState): Option[Persistent] =
     segmentCache.higher(key, readState)
 
-  def getAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] =
-    segmentCache getAll addTo
+  def getAll[T[_]](builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit =
+    segmentCache getAll builder
+
+  override def getAll(): Slice[KeyValue] = {
+    val slice = Slice.newBuilder[KeyValue](getKeyValueCount())
+    getAll(slice)
+    slice.result
+  }
 
   override def hasRange: Boolean =
     segmentCache.hasRange

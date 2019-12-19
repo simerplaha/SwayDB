@@ -43,6 +43,7 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
@@ -369,7 +370,7 @@ private[core] object Segment extends LazyLogging {
                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                segmentIO: SegmentIO): Slice[Segment] =
     copyToMemory(
-      keyValues = segment.getAll(),
+      keyValues = ???, //segment.getAll()
       fetchNextPath = fetchNextPath,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
@@ -659,10 +660,14 @@ private[core] object Segment extends LazyLogging {
             segment.getKeyValueCount() + total
         }
 
-      segments.foldLeftRecover(Slice.create[KeyValue](totalKeyValues)) {
-        case (allKeyValues, segment) =>
-          segment getAll Some(allKeyValues)
+      val builder = Slice.newBuilder[KeyValue](totalKeyValues)
+
+      segments foreach {
+        segment =>
+          segment getAll builder
       }
+
+      builder.result
     }
 
   def deleteSegments(segments: Iterable[Segment]): Int =
@@ -934,7 +939,9 @@ private[core] trait Segment extends FileSweeperItem {
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
 
-  def getAll(addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue]
+  def getAll[T[_]](builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit
+
+  def getAll(): Slice[KeyValue]
 
   def delete: Unit
 

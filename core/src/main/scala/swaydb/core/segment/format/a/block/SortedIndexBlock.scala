@@ -37,6 +37,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
@@ -575,11 +576,24 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def readAll(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              addTo: Option[Slice[KeyValue]] = None): Slice[KeyValue] = {
-    sortedIndexReader moveTo 0
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Slice[KeyValue] = {
+    val builder = Slice.newBuilder[KeyValue](keyValueCount)
 
-    val keyValues = addTo getOrElse Slice.create[Persistent](keyValueCount)
+    readAll(
+      keyValueCount = keyValueCount,
+      sortedIndexReader = sortedIndexReader,
+      valuesReader = valuesReader,
+      builder = builder
+    )
+
+    builder.result
+  }
+
+  def readAll[T[_]](keyValueCount: Int,
+                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                    builder: mutable.Builder[KeyValue, T[KeyValue]]): Unit = {
+    sortedIndexReader moveTo 0
 
     (1 to keyValueCount).foldLeft(Option.empty[Persistent]) {
       case (previousMayBe, _) =>
@@ -600,11 +614,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous = previousMayBe
           )
 
-        keyValues add next
+        builder addOne next
         Some(next)
     }
-
-    keyValues
   }
 
   def seekAndMatch(key: Slice[Byte],
