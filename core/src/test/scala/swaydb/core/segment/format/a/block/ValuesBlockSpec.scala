@@ -79,7 +79,7 @@ class ValuesBlockSpec extends TestBase {
             builder = EntryWriter.Builder(randomBoolean(), randomBoolean(), randomBoolean(), randomBoolean(), Slice.emptyBytes)
           ).get
 
-        val keyValues = stats.result
+        val keyValues = stats.keyValues
 
         keyValues foreach {
           keyValue =>

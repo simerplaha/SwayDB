@@ -144,7 +144,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       val sortedIndex = SortedIndexBlock.init(stats, valuesConfig, sortedIndexConfig)
       val values = ValuesBlock.init(stats, valuesConfig, sortedIndex.builder)
 
-      val keyValues = stats.result
+      val keyValues = stats.keyValues
 
       keyValues foreach {
         keyValue =>

@@ -196,26 +196,17 @@ private[core] object Segment extends LazyLogging {
                   autoClose = true
                 )
 
-//            PersistentSegment(
-//              file = file,
-//              segmentId = segmentId,
-//              mmapReads = mmapReads,
-//              mmapWrites = mmapWrites,
-//              minKey = mergeStats.head.key.unslice(),
-//              maxKey =
-//                mergeStats.last match {
-//                  case range: Memory.Range =>
-//                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-//
-//                  case keyValue: Memory.Fixed =>
-//                    MaxKey.Fixed(keyValue.key.unslice())
-//                },
-//              segmentSize = segment.segmentSize,
-//              minMaxFunctionId = segment.minMaxFunctionId,
-//              nearestExpiryDeadline = segment.nearestDeadline
-//            )
-
-            ".".asInstanceOf[PersistentSegment]
+            PersistentSegment(
+              file = file,
+              segmentId = segmentId,
+              mmapReads = mmapReads,
+              mmapWrites = mmapWrites,
+              minKey = segment.minKey,
+              maxKey = segment.maxKey,
+              segmentSize = segment.segmentSize,
+              minMaxFunctionId = segment.minMaxFunctionId,
+              nearestExpiryDeadline = segment.nearestDeadline
+            )
           },
       recover =
         (segments: Slice[Segment], _: Throwable) =>

@@ -30,13 +30,11 @@ import scala.util.Random
 
 private[core] sealed trait MergeStats[+T[_]] {
 
-  def builder: mutable.Builder[data.Memory, T[data.Memory]]
-
   def add(keyValue: data.Memory): Unit
 
   def clear(): Unit
 
-  def result: T[data.Memory]
+  def keyValues: T[data.Memory]
 }
 
 private[core] object MergeStats {
@@ -117,7 +115,7 @@ private[core] object MergeStats {
                           var hasRange: Boolean,
                           var hasRemoveRange: Boolean,
                           var hasPut: Boolean,
-                          val builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+                          builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
 
     def hasDeadline = totalDeadlineKeyValues > 0
 
@@ -126,7 +124,7 @@ private[core] object MergeStats {
     def isEmpty: Boolean =
       size == 0
 
-    def result: T[data.Memory] =
+    def keyValues: T[data.Memory] =
       builder.result()
 
     override def clear(): Unit =
@@ -185,8 +183,8 @@ private[core] object MergeStats {
   class Memory[+T[_]](var segmentSize: Int,
                       var hasRange: Boolean,
                       var hasPut: Boolean,
-                      val builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
-    override def result: T[data.Memory] =
+                      builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+    override def keyValues: T[data.Memory] =
       builder.result()
 
     override def clear(): Unit =
@@ -209,7 +207,7 @@ private[core] object MergeStats {
     }
   }
 
-  class Buffer[+T[_]](val builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
+  class Buffer[+T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]]) extends MergeStats[T] {
 
     override def add(keyValue: data.Memory): Unit =
       builder += keyValue
@@ -217,7 +215,7 @@ private[core] object MergeStats {
     override def clear(): Unit =
       builder.clear()
 
-    override def result: T[data.Memory] =
+    override def keyValues: T[data.Memory] =
       builder.result()
   }
 }

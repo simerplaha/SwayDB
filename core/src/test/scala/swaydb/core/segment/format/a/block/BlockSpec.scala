@@ -70,6 +70,9 @@ class BlockSpec extends TestBase {
           val headerSize = Block.minimumHeaderSize(false)
           val segment =
             new SegmentBlock.Open(
+              minKey = null,
+              maxKey = null,
+
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               valuesBlock = randomBytesSliceOption(2),
 
@@ -153,6 +156,9 @@ class BlockSpec extends TestBase {
           val headerSize = Block.minimumHeaderSize(true) //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
           val uncompressedSegment =
             new SegmentBlock.Open(
+              minKey = null,
+              maxKey = null,
+
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               valuesBlock = randomBytesSliceOption(randomIntMax(100) + 1),
 
@@ -205,7 +211,7 @@ class BlockSpec extends TestBase {
   }
 
   "unblock" in {
-    val dataBytes = Slice.create[Byte](30, true)
+    val dataBytes = Slice.create[Byte](300, true)
     val compression = randomCompression()
     val compressedBytes = Block.compress(dataBytes, Seq(compression), "testBlock")
     compressedBytes.fixHeaderSize()

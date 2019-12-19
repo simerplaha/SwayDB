@@ -26,6 +26,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.MinMax
+import swaydb.data.MaxKey
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
@@ -88,13 +89,17 @@ private[core] object SegmentBlock extends LazyLogging {
 
     def apply(openSegment: Open): Closed =
       Closed(
+        minKey = openSegment.minKey,
+        maxKey = openSegment.maxKey,
         segmentBytes = openSegment.segmentBytes,
         minMaxFunctionId = openSegment.functionMinMax,
         nearestDeadline = openSegment.nearestDeadline
       )
   }
 
-  case class Closed(segmentBytes: Slice[Slice[Byte]],
+  case class Closed(minKey: Slice[Byte],
+                    maxKey: MaxKey[Slice[Byte]],
+                    segmentBytes: Slice[Slice[Byte]],
                     minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                     nearestDeadline: Option[Deadline]) {
 
@@ -119,7 +124,9 @@ private[core] object SegmentBlock extends LazyLogging {
       s"Closed Segment. Size: ${segmentSize}"
   }
 
-  class Open(val valuesBlockHeader: Option[Slice[Byte]],
+  class Open(val minKey: Slice[Byte],
+             val maxKey: MaxKey[Slice[Byte]],
+             val valuesBlockHeader: Option[Slice[Byte]],
              val valuesBlock: Option[Slice[Byte]],
              val sortedIndexBlockHeader: Slice[Byte],
              val sortedIndexBlock: Slice[Byte],
@@ -259,7 +266,7 @@ private[core] object SegmentBlock extends LazyLogging {
       var closed = false //true if the following iterator exited after closing the Segment.
 
       //start building the segment.
-      keyValues.result foreach {
+      keyValues.keyValues foreach {
         keyValue =>
           closed = false
           processedCount += 1
@@ -371,6 +378,8 @@ private[core] object SegmentBlock extends LazyLogging {
 
     val open =
       new Open(
+        minKey = closedBlocks.sortedIndex.minKey,
+        maxKey = closedBlocks.sortedIndex.maxKey,
         footerBlock = closedFooter.bytes.close(),
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
         valuesBlock = closedBlocks.values.map(_.bytes.close()),

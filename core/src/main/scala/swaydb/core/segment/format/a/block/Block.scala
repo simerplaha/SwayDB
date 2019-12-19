@@ -162,6 +162,8 @@ private[core] object Block extends LazyLogging {
         }
 
       SegmentBlock.Closed(
+        minKey = openSegment.minKey,
+        maxKey = openSegment.maxKey,
         segmentBytes = segmentBytes,
         minMaxFunctionId = openSegment.functionMinMax,
         nearestDeadline = openSegment.nearestDeadline
@@ -183,6 +185,8 @@ private[core] object Block extends LazyLogging {
       compressionResult.fixHeaderSize()
 
       SegmentBlock.Closed(
+        minKey = openSegment.minKey,
+        maxKey = openSegment.maxKey,
         segmentBytes = Slice(compressionResult.headerBytes, compressedOrUncompressedSegmentBytes),
         minMaxFunctionId = openSegment.functionMinMax,
         nearestDeadline = openSegment.nearestDeadline

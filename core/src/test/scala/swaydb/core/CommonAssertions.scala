@@ -289,7 +289,7 @@ object CommonAssertions {
       isLastLevel = isLastLevel,
     )
 
-    val result = builder.result
+    val result = builder.keyValues
 
     if (expected.size == 0) {
       result.isEmpty shouldBe true

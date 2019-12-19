@@ -30,6 +30,7 @@ import swaydb.core.segment.format.a.entry.reader.EntryReader
 import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.{Bytes, FiniteDurations, MinMax}
+import swaydb.data.MaxKey
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -147,8 +148,17 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
+  /**
+   * [[State]] is mostly mutable because these vars calculate runtime stats of
+   * a Segment which is used to build other blocks. Immutable version of this
+   * resulted in very slow compaction because immutable compaction was creation
+   * millions of temporary objects every second causing GC halts.
+   */
   class State(var bytes: Slice[Byte],
               var header: Slice[Byte],
+              var minKey: Slice[Byte],
+              var lastKeyValue: Memory,
+              var maxKey: MaxKey[Slice[Byte]],
               var smallestIndexEntrySize: Int,
               var largestIndexEntrySize: Int,
               var largestMergedKeySize: Int,
@@ -244,6 +254,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
     new State(
       bytes = bytes,
       header = null,
+      minKey = null,
+      maxKey = null,
+      lastKeyValue = null,
       smallestIndexEntrySize = Int.MaxValue,
       largestIndexEntrySize = 0,
       largestMergedKeySize = 0,
@@ -269,6 +282,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
             state: SortedIndexBlock.State): Unit = {
     //currentWritePositionInThisSlice is used here because state.bytes can be a sub-slice.
     val positionBeforeWrite = state.bytes.currentWritePositionInThisSlice
+
+    if (state.minKey == null)
+      state.minKey = keyValue.key.unslice()
 
     keyValue match {
       case keyValue: Memory.Put =>
@@ -417,6 +433,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
     compressionResult.headerBytes addUnsignedInt state.largestIndexEntrySize
 
     compressionResult.fixHeaderSize()
+
+    state.maxKey =
+      state.lastKeyValue match {
+        case range: Memory.Range =>
+          MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+
+        case keyValue: Memory.Fixed =>
+          MaxKey.Fixed(keyValue.key.unslice())
+      }
 
     state.header = compressionResult.headerBytes
 

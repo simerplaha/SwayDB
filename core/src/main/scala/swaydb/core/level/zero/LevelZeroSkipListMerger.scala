@@ -77,7 +77,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
             )
 
             skipList batch {
-              builder.result map {
+              builder.keyValues map {
                 merged: Memory =>
                   SkipList.Batch.Put(merged.key, merged)
               }
@@ -141,7 +141,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[Slice[Byte], Memory] {
           batches += SkipList.Batch.Remove(oldKeyValue.key)
       }
 
-      builder.result map {
+      builder.keyValues map {
         keyValue =>
           batches += SkipList.Batch.Put(keyValue.key, keyValue)
       }

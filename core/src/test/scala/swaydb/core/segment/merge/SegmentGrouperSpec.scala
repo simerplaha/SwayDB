@@ -38,11 +38,11 @@ class SegmentGrouperSpec extends TestBase {
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, Some(expiredDeadline()))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
-        builder.result should contain only keyValue
+        builder.keyValues should contain only keyValue
 
         builder.clear()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
-        builder.result should have size 0
+        builder.keyValues should have size 0
       }
     }
 
@@ -52,14 +52,14 @@ class SegmentGrouperSpec extends TestBase {
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, deadline = None)
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
-        builder.result should contain only keyValue
+        builder.keyValues should contain only keyValue
 
         builder.clear()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         if (keyValue.isPut)
-          builder.result should contain only keyValue
+          builder.keyValues should contain only keyValue
         else
-          builder.result should have size 0
+          builder.keyValues should have size 0
       }
     }
   }
@@ -72,11 +72,11 @@ class SegmentGrouperSpec extends TestBase {
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
-        builder.result should contain only keyValue
+        builder.keyValues should contain only keyValue
 
         builder.clear()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
-        builder.result should have size 0
+        builder.keyValues should have size 0
       }
     }
 
@@ -87,14 +87,14 @@ class SegmentGrouperSpec extends TestBase {
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
-        builder.result should contain only keyValue
+        builder.keyValues should contain only keyValue
 
         builder.clear()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         if (keyValue.isPut)
-          builder.result should contain only keyValue
+          builder.keyValues should contain only keyValue
         else
-          builder.result should have size 0
+          builder.keyValues should have size 0
       }
     }
   }
