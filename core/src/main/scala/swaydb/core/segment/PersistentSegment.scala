@@ -24,7 +24,6 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
-import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.function.FunctionStore
@@ -152,7 +151,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           targetPaths: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
     val currentKeyValues = getAll()
 
-    val builder: MergeStats.Persistent[ListBuffer] = MergeStats.persistent(ListBuffer.newBuilder)
+    val builder = MergeStats.persistent(ListBuffer.newBuilder)
 
     SegmentMerger.merge(
       newKeyValues = newKeyValues,
@@ -264,11 +263,8 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getAll[T](builder: mutable.Builder[KeyValue, T]): Unit =
     segmentCache getAll builder
 
-  override def getAll(): Slice[KeyValue] = {
-    val slice = Slice.newBuilder[KeyValue](getKeyValueCount())
-    getAll(slice)
-    slice.result
-  }
+  override def getAll(): Slice[KeyValue] =
+    segmentCache.getAll()
 
   override def hasRange: Boolean =
     segmentCache.hasRange

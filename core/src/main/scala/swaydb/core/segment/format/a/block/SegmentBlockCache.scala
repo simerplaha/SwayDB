@@ -362,7 +362,10 @@ class SegmentBlockCache(path: Path,
   def readAll(): Slice[KeyValue] = {
     val keyValueCount = getFooter().keyValueCount
     val builder = Slice.newBuilder[KeyValue](keyValueCount)
-    readAll(builder)
+    readAll(
+      keyValueCount = keyValueCount,
+      builder = builder
+    )
     builder.result
   }
 
