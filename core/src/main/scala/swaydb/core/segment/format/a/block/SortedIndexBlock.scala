@@ -158,6 +158,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
               var nearestDeadline: Option[Deadline],
               var rangeCount: Int,
               var hasPut: Boolean,
+              var hasRemoveRange: Boolean,
               var minMaxFunctionId: Option[MinMax[Slice[Byte]]],
               val enableAccessPositionIndex: Boolean,
               val compressDuplicateRangeValues: Boolean,
@@ -252,6 +253,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       nearestDeadline = None,
       rangeCount = 0,
       hasPut = false,
+      hasRemoveRange = false,
       minMaxFunctionId = None,
       enableAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
       compressDuplicateRangeValues = compressDuplicateRangeValues,
@@ -307,6 +309,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case keyValue: Memory.Range =>
         state.minMaxFunctionId = MinMax.minMaxFunction(keyValue, state.minMaxFunctionId)
         state.hasPut = state.hasPut || keyValue.fromValue.exists(_.isPut)
+        state.hasRemoveRange = state.hasRemoveRange || keyValue.rangeValue.hasRemoveMayBe
         state.rangeCount += 1
         //ranges have a special config "compressDuplicateRangeValues" for duplicate value compression.
         //the following set and resets the compressDuplicateValues the builder accordingly.

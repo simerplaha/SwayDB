@@ -426,12 +426,15 @@ private[core] object SegmentBlock {
     val valuesState = values map ValuesBlock.close
 
     val bloomFilter =
-      BloomFilterBlock.init(
-        numberOfKeys = sortedIndexState.entriesCount,
-        falsePositiveRate = bloomFilterConfig.falsePositiveRate,
-        updateMaxProbe = bloomFilterConfig.optimalMaxProbe,
-        compressions = bloomFilterConfig.compressions
-      )
+      if (sortedIndexState.hasRemoveRange)
+        None
+      else
+        BloomFilterBlock.init(
+          numberOfKeys = sortedIndexState.entriesCount,
+          falsePositiveRate = bloomFilterConfig.falsePositiveRate,
+          updateMaxProbe = bloomFilterConfig.optimalMaxProbe,
+          compressions = bloomFilterConfig.compressions
+        )
 
     val hashIndex =
       HashIndexBlock.init(

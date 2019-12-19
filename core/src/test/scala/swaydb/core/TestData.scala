@@ -47,6 +47,7 @@ import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEn
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
+import swaydb.core.segment.merge.KeyValueMergeBuilder
 import swaydb.core.segment.{ReadState, Segment}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
@@ -1666,6 +1667,31 @@ object TestData {
             compressionInfo = Some(compressionInfo)
           )
       )
+
+    def writeClosedSingle(keyValues: Iterable[Memory],
+                          createdInLevel: Int = randomIntMax(),
+                          bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                          hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                          sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                          valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): SegmentBlock.Closed = {
+      val segments =
+        SegmentBlock.writeClosed(
+          keyValues = KeyValueMergeBuilder.persistent(keyValues),
+          createdInLevel = createdInLevel,
+          segmentSize = Int.MaxValue,
+          bloomFilterConfig = bloomFilterConfig,
+          hashIndexConfig = hashIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig
+        )
+
+      segments should have size 1
+      segments.head
+    }
   }
 
   def buildSingleValueCache(bytes: Slice[Byte]): Cache[swaydb.Error.Segment, ValuesBlock.Offset, UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =

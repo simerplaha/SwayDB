@@ -1327,6 +1327,30 @@ object CommonAssertions {
     }
   }
 
+  def getBlocksSingle(keyValues: Iterable[Memory],
+                      valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                      sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                      binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                      hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                      bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                      segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
+                      segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, SegmentBlocks] = {
+    getBlocks(
+      keyValues = keyValues,
+      segmentSize = Int.MaxValue,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig
+    ) map {
+      segments =>
+        segments should have size 1
+        segments.head
+    }
+  }
+
   def readAll(bytes: Slice[Byte])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
     readAll(Reader(bytes))
 
