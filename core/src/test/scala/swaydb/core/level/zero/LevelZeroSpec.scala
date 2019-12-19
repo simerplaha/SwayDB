@@ -192,7 +192,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
 
       assertGet(keyValues, zero)
 
-      zero.bloomFilterKeyValueCount.runRandomIO.right.value shouldBe keyValues.size
+      zero.keyValueCount.runRandomIO.right.value shouldBe keyValues.size
     }
 
     //removed test - empty check are performed at the source where the MapEntry is created.
@@ -257,7 +257,7 @@ sealed trait LevelZeroSpec extends TestBase with MockFactory {
           zero.put(keyValue.key, keyValue.getOrFetchValue).runRandomIO
       }
 
-      zero.bloomFilterKeyValueCount shouldBe 1
+      zero.keyValueCount shouldBe 1
 
       zero.clear(ReadState.random).runRandomIO.get
 

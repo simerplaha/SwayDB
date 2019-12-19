@@ -51,7 +51,7 @@ private[core] object TrashLevel extends NextLevel {
   override val hasNextLevel: Boolean =
     false
 
-  override val bloomFilterKeyValueCount: Int =
+  override val keyValueCount: Int =
     0
 
   override val segmentsCount: Int =

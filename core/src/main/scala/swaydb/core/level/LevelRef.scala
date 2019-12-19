@@ -176,7 +176,7 @@ private[core] trait LevelRef {
 
   def lastKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def bloomFilterKeyValueCount: Int
+  def keyValueCount: Int
 
   def isEmpty: Boolean
 

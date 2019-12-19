@@ -1418,7 +1418,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .skipList
       .contains(minKey)
 
-  override def bloomFilterKeyValueCount: Int = {
+  override def keyValueCount: Int = {
     val countFromThisLevel =
       appendix
         .skipList
@@ -1430,7 +1430,7 @@ private[core] case class Level(dirs: Seq[Dir],
     val countFromNextLevel =
       nextLevel match {
         case Some(nextLevel) =>
-          nextLevel.bloomFilterKeyValueCount
+          nextLevel.keyValueCount
 
         case None =>
           0

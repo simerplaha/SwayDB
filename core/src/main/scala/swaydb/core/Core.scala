@@ -229,7 +229,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     zero.lastKey(readState).run
 
   def bloomFilterKeyValueCount: T[Int] =
-    IO.Defer(zero.bloomFilterKeyValueCount).run
+    IO.Defer(zero.keyValueCount).run
 
   def deadline(key: Slice[Byte],
                readState: ReadState): T[Option[Deadline]] =

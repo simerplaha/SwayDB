@@ -747,11 +747,11 @@ private[swaydb] case class LevelZero(path: Path,
         }
     }
 
-  def bloomFilterKeyValueCount: Int = {
+  def keyValueCount: Int = {
     val keyValueCountInMaps = maps.keyValueCount.getOrElse(0)
     nextLevel match {
       case Some(nextLevel) =>
-        nextLevel.bloomFilterKeyValueCount + keyValueCountInMaps
+        nextLevel.keyValueCount + keyValueCountInMaps
 
       case None =>
         keyValueCountInMaps
