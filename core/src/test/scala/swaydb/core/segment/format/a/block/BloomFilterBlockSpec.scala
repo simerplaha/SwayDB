@@ -158,93 +158,93 @@ class BloomFilterBlockSpec extends TestBase {
       ) shouldBe empty
     }
 
-    "not initialise bloomFilter if it contain removeRange" in {
-      runThisParallel(10.times) {
-        implicit val time = TestTimer.random
+    //    "not initialise bloomFilter if it contain removeRange" in {
+    //      runThisParallel(10.times) {
+    //        implicit val time = TestTimer.random
+    //
+    //        BloomFilterBlock.init(
+    //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(None, time.next)))),
+    //          config = BloomFilterBlock.Config.random
+    //        ) shouldBe empty
+    //
+    //        BloomFilterBlock.init(
+    //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))),
+    //          config = BloomFilterBlock.Config.random
+    //        ) shouldBe empty
+    //      }
+    //    }
+    //
+    //    "not initialise bloomFilter if it contains a range function" in {
+    //      runThisParallel(10.times) {
+    //        implicit val time = TestTimer.random
+    //
+    //        //range functions can also contain Remove so BloomFilter should not be created
+    //        BloomFilterBlock.init(
+    //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Function(Slice.emptyBytes, time.next)))),
+    //          config = BloomFilterBlock.Config.random
+    //        ) shouldBe empty
+    //      }
+    //    }
+    //
+    //    "not initialise bloomFilter if it contain pendingApply with remove or function" in {
+    //      runThisParallel(10.times) {
+    //        implicit val time = TestTimer.random
+    //
+    //        //range functions can also contain Remove so BloomFilter should not be created
+    //        BloomFilterBlock.init(
+    //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))),
+    //          config = BloomFilterBlock.Config.random
+    //        ) shouldBe empty
+    //
+    //        BloomFilterBlock.init(
+    //          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))),
+    //          config = BloomFilterBlock.Config.random
+    //        ) shouldBe empty
+    //      }
+    //    }
+    //
+    //    "initialise bloomFilter if it does not contain pendingApply with remove or function" in {
+    //      runThisParallel(10.times) {
+    //        implicit val time = TestTimer.random
+    //
+    //        //pending apply should allow to create bloomFilter if it does not have remove or function.
+    //        BloomFilterBlock.init(
+    //          keyValues =
+    //            KeyValueMergeBuilder.persistent(
+    //              Slice(
+    //                Memory.Range(
+    //                  fromKey = 1,
+    //                  toKey = 2,
+    //                  fromValue = None,
+    //                  rangeValue = Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next)))
+    //                )
+    //              )
+    //            ),
+    //          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+    //        ) shouldBe defined
+    //      }
+    //    }
 
-        BloomFilterBlock.init(
-          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(None, time.next)))),
-          config = BloomFilterBlock.Config.random
-        ) shouldBe empty
-
-        BloomFilterBlock.init(
-          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Remove(Some(randomDeadline()), time.next)))),
-          config = BloomFilterBlock.Config.random
-        ) shouldBe empty
-      }
-    }
-
-    "not initialise bloomFilter if it contains a range function" in {
-      runThisParallel(10.times) {
-        implicit val time = TestTimer.random
-
-        //range functions can also contain Remove so BloomFilter should not be created
-        BloomFilterBlock.init(
-          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.Function(Slice.emptyBytes, time.next)))),
-          config = BloomFilterBlock.Config.random
-        ) shouldBe empty
-      }
-    }
-
-    "not initialise bloomFilter if it contain pendingApply with remove or function" in {
-      runThisParallel(10.times) {
-        implicit val time = TestTimer.random
-
-        //range functions can also contain Remove so BloomFilter should not be created
-        BloomFilterBlock.init(
-          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Remove(randomDeadlineOption(), time.next)))))),
-          config = BloomFilterBlock.Config.random
-        ) shouldBe empty
-
-        BloomFilterBlock.init(
-          keyValues = KeyValueMergeBuilder.persistent(Slice(Memory.Range(1, 2, None, Value.PendingApply(Slice(Value.Function(randomFunctionId(), time.next)))))),
-          config = BloomFilterBlock.Config.random
-        ) shouldBe empty
-      }
-    }
-
-    "initialise bloomFilter if it does not contain pendingApply with remove or function" in {
-      runThisParallel(10.times) {
-        implicit val time = TestTimer.random
-
-        //pending apply should allow to create bloomFilter if it does not have remove or function.
-        BloomFilterBlock.init(
-          keyValues =
-            KeyValueMergeBuilder.persistent(
-              Slice(
-                Memory.Range(
-                  fromKey = 1,
-                  toKey = 2,
-                  fromValue = None,
-                  rangeValue = Value.PendingApply(Slice(Value.Update(randomStringOption, randomDeadlineOption(), time.next)))
-                )
-              )
-            ),
-          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
-        ) shouldBe defined
-      }
-    }
-
-    "initialise bloomFilter when from value is remove but range value is not" in {
-      runThisParallel(10.times) {
-        implicit val time = TestTimer.random
-        //fromValue is remove but it's not a remove range.
-        BloomFilterBlock.init(
-          keyValues =
-            KeyValueMergeBuilder.persistent(
-              Slice(
-                Memory.Range(
-                  fromKey = 1,
-                  toKey = 2,
-                  fromValue = Some(Value.Remove(None, time.next)),
-                  rangeValue = Value.update(100)
-                )
-              )
-            ),
-          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
-        ) shouldBe defined
-      }
-    }
+    //    "initialise bloomFilter when from value is remove but range value is not" in {
+    //      runThisParallel(10.times) {
+    //        implicit val time = TestTimer.random
+    //        //fromValue is remove but it's not a remove range.
+    //        BloomFilterBlock.init(
+    //          keyValues =
+    //            KeyValueMergeBuilder.persistent(
+    //              Slice(
+    //                Memory.Range(
+    //                  fromKey = 1,
+    //                  toKey = 2,
+    //                  fromValue = Some(Value.Remove(None, time.next)),
+    //                  rangeValue = Value.update(100)
+    //                )
+    //              )
+    //            ),
+    //          config = BloomFilterBlock.Config.random.copy(falsePositiveRate = 0.001, minimumNumberOfKeys = 0)
+    //        ) shouldBe defined
+    //      }
+    //    }
   }
 
   "bloomFilter error check" in {

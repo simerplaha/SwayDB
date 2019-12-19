@@ -1303,8 +1303,7 @@ object CommonAssertions {
                 binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                 hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
-                segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[SegmentBlocks]] = {
+                segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeClosed(
         keyValues = KeyValueMergeBuilder.persistent(keyValues),
@@ -1321,6 +1320,16 @@ object CommonAssertions {
     import IO._
     import swaydb.Error.Segment.ExceptionHandler
 
+    val segmentIO =
+      SegmentIO(
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig
+      )
+
     closedSegments.mapRecoverIO {
       closedSegment =>
         readBlocksFromSegment(closedSegment, segmentIO)
@@ -1333,8 +1342,7 @@ object CommonAssertions {
                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                       hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                      segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
-                      segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, SegmentBlocks] = {
+                      segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, SegmentBlocks] =
     getBlocks(
       keyValues = keyValues,
       segmentSize = Int.MaxValue,
@@ -1349,7 +1357,6 @@ object CommonAssertions {
         segments should have size 1
         segments.head
     }
-  }
 
   def readAll(bytes: Slice[Byte])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
     readAll(Reader(bytes))
@@ -1360,13 +1367,12 @@ object CommonAssertions {
 
   def getSegmentBlockCache(keyValues: Slice[Memory],
                            segmentSize: Int = Int.MaxValue,
-                           segmentIO: SegmentIO = SegmentIO.random,
                            valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                            sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                            binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                           segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] = {
+                           segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] =
     SegmentBlock.writeClosed(
       keyValues = KeyValueMergeBuilder.persistent(keyValues),
       createdInLevel = Int.MaxValue,
@@ -1379,8 +1385,40 @@ object CommonAssertions {
       segmentConfig = segmentConfig
     ) map {
       closed =>
+        val segmentIO =
+          SegmentIO(
+            bloomFilterConfig = bloomFilterConfig,
+            hashIndexConfig = hashIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            valuesConfig = valuesConfig,
+            segmentConfig = segmentConfig
+          )
+
         getSegmentBlockCacheFromSegmentClosed(closed, segmentIO)
     }
+
+  def getSegmentBlockCacheSingle(keyValues: Slice[Memory],
+                                 valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                                 sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                                 binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                                 hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache = {
+    val blockCaches =
+      getSegmentBlockCache(
+        keyValues = keyValues,
+        segmentSize = Int.MaxValue,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig
+      )
+
+    blockCaches should have size 1
+    blockCaches.head
   }
 
   def randomBlockSize(): Option[Int] =

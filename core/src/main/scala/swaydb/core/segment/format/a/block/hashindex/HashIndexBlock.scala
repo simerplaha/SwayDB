@@ -125,18 +125,13 @@ private[core] object HashIndexBlock extends LazyLogging {
           largestMergedKeySize = sortedIndexState.largestUncompressedMergedKeySize
         )
 
-      //The size of hashIndex is not pre-calculated. So create an estimation here.
-      val approximateSize = writeAbleLargestValueSize * sortedIndexState.uncompressedPrefixCount
-      val hasCompression = hashIndexConfig.compressions(UncompressedBlockInfo(approximateSize)).nonEmpty
-
       val optimalBytes =
         optimalBytesRequired(
           keyCounts = sortedIndexState.uncompressedPrefixCount,
           minimumNumberOfKeys = hashIndexConfig.minimumNumberOfKeys,
           writeAbleLargestValueSize = writeAbleLargestValueSize,
           allocateSpace = hashIndexConfig.allocateSpace,
-          format = hashIndexConfig.format,
-          hasCompression = hasCompression
+          format = hashIndexConfig.format
         )
 
       //if the user allocated
@@ -155,36 +150,14 @@ private[core] object HashIndexBlock extends LazyLogging {
             maxProbe = hashIndexConfig.maxProbe,
             bytes = Slice.create[Byte](optimalBytes),
             header = null,
-            compressions =
-              //cannot have no compression to begin with a then have compression because that upsets the total bytes required.
-              if (hasCompression)
-                hashIndexConfig.compressions
-              else
-                _ => Seq.empty
+            compressions = hashIndexConfig.compressions
           )
         )
     }
 
-  //  def maxHeaderSize(keyCounts: Int,
-  //                    writeAbleLargestValueSize: Int,
-  //                    hasCompression: Boolean): Int = {
-  //    val headerSize =
-  //      Block.headerSize(hasCompression) +
-  //        ByteSizeOf.byte + //formatId
-  //        ByteSizeOf.int + //allocated bytes
-  //        ByteSizeOf.varInt + //max probe
-  //        (Bytes.sizeOfUnsignedInt(keyCounts) * 2) + //hit & miss rate
-  //        ByteSizeOf.varLong + //minimumCRC
-  //        Bytes.sizeOfUnsignedInt(writeAbleLargestValueSize) //largest value size
-  //
-  //    Bytes.sizeOfUnsignedInt(headerSize) +
-  //      headerSize
-  //  }
-
   def optimalBytesRequired(keyCounts: Int,
                            minimumNumberOfKeys: Int,
                            writeAbleLargestValueSize: Int,
-                           hasCompression: Boolean,
                            format: HashIndexEntryFormat,
                            allocateSpace: RandomKeyIndex.RequiredSpace => Int): Int =
     if (keyCounts < minimumNumberOfKeys) {

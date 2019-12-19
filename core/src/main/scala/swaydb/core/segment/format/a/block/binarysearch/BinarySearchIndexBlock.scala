@@ -134,7 +134,6 @@ private[core] object BinarySearchIndexBlock {
             largestIndexOffset = largestIndexOffset,
             largestMergedKeySize = largestMergedKeySize,
             valuesCount = uniqueValuesCount,
-            hasCompression = true,
             minimNumberOfKeysForBinarySearchIndex = minimumNumberOfKeys,
             bytesToAllocatedPerEntryMaybe = Maybe.some(bytesPerValue),
             format = format
@@ -186,7 +185,8 @@ private[core] object BinarySearchIndexBlock {
   def init(sortedIndexState: SortedIndexBlock.State,
            binarySearchConfig: BinarySearchIndexBlock.Config): Option[State] = {
 
-    if (sortedIndexState.uncompressedPrefixCount < binarySearchConfig.minimumNumberOfKeys ||
+    if (!binarySearchConfig.enabled ||
+      sortedIndexState.uncompressedPrefixCount < binarySearchConfig.minimumNumberOfKeys ||
       sortedIndexState.normaliseIndex ||
       (!sortedIndexState.hasPrefixCompression && binarySearchConfig.searchSortedIndexDirectlyIfPossible && sortedIndexState.isPreNormalised))
       None
@@ -206,7 +206,6 @@ private[core] object BinarySearchIndexBlock {
   def optimalBytesRequired(largestIndexOffset: Int,
                            largestMergedKeySize: Int,
                            valuesCount: Int,
-                           hasCompression: Boolean,
                            minimNumberOfKeysForBinarySearchIndex: Int,
                            bytesToAllocatedPerEntryMaybe: Maybe[Int],
                            format: BinarySearchEntryFormat): Int =
@@ -220,25 +219,8 @@ private[core] object BinarySearchIndexBlock {
         )
       }
 
-      optimalHeaderSize(
-        valuesCount = valuesCount,
-        hasCompression = hasCompression
-      ) + (bytesToAllocatedPerEntry * valuesCount)
+      bytesToAllocatedPerEntry * valuesCount
     }
-
-  def optimalHeaderSize(valuesCount: Int,
-                        hasCompression: Boolean): Int = {
-
-    val headerSize =
-      Block.headerSize(hasCompression) +
-        ByteSizeOf.byte + //format id
-        Bytes.sizeOfUnsignedInt(valuesCount) + //uniqueValuesCount
-        ByteSizeOf.varInt + //bytesPerValue
-        ByteSizeOf.boolean //isFullIndex
-
-    Bytes.sizeOfUnsignedInt(headerSize) +
-      headerSize
-  }
 
   def close(state: State): Option[State] =
     if (state.bytes.isEmpty)

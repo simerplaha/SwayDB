@@ -212,32 +212,6 @@ private[core] object BloomFilterBlock extends LazyLogging {
     )
   }
 
-  def shouldNotCreateBloomFilter(keyValues: KeyValueMergeBuilder.Persistent,
-                                 config: BloomFilterBlock.Config): Boolean =
-    keyValues.hasRemoveRange ||
-      config.falsePositiveRate <= 0.0 ||
-      config.falsePositiveRate >= 1 ||
-      keyValues.size < config.minimumNumberOfKeys
-
-  def shouldCreateBloomFilter(keyValues: KeyValueMergeBuilder.Persistent,
-                              config: BloomFilterBlock.Config): Boolean =
-    !shouldNotCreateBloomFilter(
-      keyValues = keyValues,
-      config = config
-    )
-
-  def init(keyValues: KeyValueMergeBuilder.Persistent,
-           config: BloomFilterBlock.Config): Option[BloomFilterBlock.State] =
-    if (shouldCreateBloomFilter(keyValues, config))
-      init(
-        numberOfKeys = keyValues.size,
-        falsePositiveRate = config.falsePositiveRate,
-        compressions = config.compressions,
-        updateMaxProbe = config.optimalMaxProbe
-      )
-    else
-      None
-
   /**
    * Initialise bloomFilter if key-values do no contain remove range.
    */
@@ -245,7 +219,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
            falsePositiveRate: Double,
            updateMaxProbe: Int => Int,
            compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[BloomFilterBlock.State] =
-    if (numberOfKeys <= 0 || falsePositiveRate <= 0.0)
+    if (numberOfKeys <= 0 || falsePositiveRate <= 0.0 || falsePositiveRate >= 1)
       None
     else
       Some(

@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
@@ -32,7 +33,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.util.Try
 
-private[core] object SegmentBlock {
+private[core] object SegmentBlock extends LazyLogging {
 
   val blockName = this.getClass.getSimpleName.dropRight(1)
 
@@ -60,10 +61,10 @@ private[core] object SegmentBlock {
         compressions = _ => Seq.empty
       )
 
-    def apply(segmentIO: IOAction => IOStrategy,
+    def apply(ioStrategy: IOAction => IOStrategy,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       new Config(
-        ioStrategy = segmentIO,
+        ioStrategy = ioStrategy,
         compressions =
           uncompressedBlockInfo =>
             Try(compressions(uncompressedBlockInfo))
@@ -273,6 +274,9 @@ private[core] object SegmentBlock {
           //check and close segment if segment size limit is reached.
           //to do - maybe check if compression is defined and increase the segmentSize.
           if (currentSegmentSize >= minSegmentSize) {
+
+            logger.info(s"Creating segment of size: $currentSegmentSize")
+
             val (closedSegment, nextSortedIndex, nextValues) =
               writeOpenSegment(
                 createdInLevel = createdInLevel,
@@ -426,11 +430,11 @@ private[core] object SegmentBlock {
     val valuesState = values map ValuesBlock.close
 
     val bloomFilter =
-      if (sortedIndexState.hasRemoveRange)
+      if (sortedIndexState.hasRemoveRange || bloomFilterKeys.size < bloomFilterConfig.minimumNumberOfKeys)
         None
       else
         BloomFilterBlock.init(
-          numberOfKeys = sortedIndexState.entriesCount,
+          numberOfKeys = bloomFilterKeys.size,
           falsePositiveRate = bloomFilterConfig.falsePositiveRate,
           updateMaxProbe = bloomFilterConfig.optimalMaxProbe,
           compressions = bloomFilterConfig.compressions
@@ -448,31 +452,32 @@ private[core] object SegmentBlock {
         binarySearchConfig = binarySearchIndexConfig
       )
 
-    sortedIndexState.secondaryIndexEntries foreach {
-      indexEntry =>
-        val hit =
-          if (hashIndex.isDefined)
-            HashIndexBlock.write(
+    if (hashIndex.isDefined || binarySearchIndex.isDefined)
+      sortedIndexState.secondaryIndexEntries foreach {
+        indexEntry =>
+          val hit =
+            if (hashIndex.isDefined)
+              HashIndexBlock.write(
+                entry = indexEntry,
+                state = hashIndex.get
+              )
+            else
+              false
+
+          //if it's a hit and binary search is not configured to be full.
+          //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
+          if (binarySearchIndex.isDefined && (binarySearchIndexConfig.fullIndex || !hit))
+            BinarySearchIndexBlock.write(
               entry = indexEntry,
-              state = hashIndex.get
+              state = binarySearchIndex.get
             )
-          else
-            false
+      }
 
-        //if it's a hit and binary search is not configured to be full.
-        //no need to check if the value was previously written to binary search here since BinarySearchIndexBlock itself performs this check.
-        if (binarySearchIndex.isDefined && (binarySearchIndexConfig.fullIndex || !hit))
-          BinarySearchIndexBlock.write(
-            entry = indexEntry,
-            state = binarySearchIndex.get
-          )
-
-        bloomFilter foreach {
-          bloomFilter =>
-            bloomFilterKeys foreach {
-              key =>
-                BloomFilterBlock.add(key, bloomFilter)
-            }
+    bloomFilter foreach {
+      bloomFilter =>
+        bloomFilterKeys foreach {
+          key =>
+            BloomFilterBlock.add(key, bloomFilter)
         }
     }
 
