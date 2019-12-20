@@ -48,13 +48,15 @@ class SegmentBlockSpec extends TestBase {
 
   "SegmentBlock" should {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
+      val sortedIndexConfig = SortedIndexBlock.Config.random
+
       val closedSegment =
         SegmentBlock.writeClosed(
-          keyValues = MergeStats.persistentBuilder[Memory](ListBuffer.empty),
+          mergeStats = MergeStats.persistentBuilder[Memory](ListBuffer.empty).close(sortedIndexConfig.enableAccessPositionIndex),
           segmentSize = randomIntMax(Int.MaxValue),
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlock.Config.random,
-          sortedIndexConfig = SortedIndexBlock.Config.random,
+          sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,

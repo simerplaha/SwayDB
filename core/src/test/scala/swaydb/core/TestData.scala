@@ -1678,7 +1678,7 @@ object TestData {
                           segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): SegmentBlock.Closed = {
       val segments =
         SegmentBlock.writeClosed(
-          keyValues = MergeStats.persistentBuilder(keyValues),
+          mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
           createdInLevel = createdInLevel,
           segmentSize = Int.MaxValue,
           bloomFilterConfig = bloomFilterConfig,

@@ -196,7 +196,7 @@ private[core] object SegmentBlock extends LazyLogging {
       compressionInfo = header.compressionInfo
     )
 
-  def writeClosed(keyValues: MergeStats.Persistent[_, Iterable],
+  def writeClosed(mergeStats: MergeStats.Persistent.Closed[Iterable],
                   createdInLevel: Int,
                   segmentSize: Int,
                   bloomFilterConfig: BloomFilterBlock.Config,
@@ -205,11 +205,11 @@ private[core] object SegmentBlock extends LazyLogging {
                   sortedIndexConfig: SortedIndexBlock.Config,
                   valuesConfig: ValuesBlock.Config,
                   segmentConfig: SegmentBlock.Config): Iterable[SegmentBlock.Closed] =
-    if (keyValues.isEmpty)
+    if (mergeStats.isEmpty)
       Seq.empty
     else
       writeOpen(
-        keyValues = keyValues,
+        keyValues = mergeStats,
         createdInLevel = createdInLevel,
         minSegmentSize = segmentSize,
         bloomFilterConfig = bloomFilterConfig,
@@ -227,7 +227,7 @@ private[core] object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeOpen(keyValues: MergeStats.Persistent[_, Iterable],
+  def writeOpen(keyValues: MergeStats.Persistent.Closed[Iterable],
                 createdInLevel: Int,
                 minSegmentSize: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,

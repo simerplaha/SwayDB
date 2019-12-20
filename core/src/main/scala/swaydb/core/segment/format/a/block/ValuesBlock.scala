@@ -98,13 +98,13 @@ private[core] object ValuesBlock {
   //      size
   //  }
 
-  def init(keyValues: MergeStats.Persistent[_, Iterable],
+  def init(keyValues: MergeStats.Persistent.Closed[Iterable],
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): Option[ValuesBlock.State] = {
-    val size = keyValues.size
-    if (size > 0) {
-      val bytes = Slice.create[Byte](size)
+    val totalValuesSize = keyValues.totalValuesSize
+    if (totalValuesSize > 0) {
+      val bytes = Slice.create[Byte](totalValuesSize)
       //      bytes moveWritePosition headerSize
 
       Some(

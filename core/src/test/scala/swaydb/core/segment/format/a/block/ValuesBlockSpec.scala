@@ -43,7 +43,11 @@ class ValuesBlockSpec extends TestBase {
   "init" should {
     "not initialise if values do not exists" in {
       runThis(100.times) {
-        val keyValues = Slice(Memory.put(key = 1, value = Slice.emptyBytes, removeAfter = 10.seconds), Memory.remove(key = 1)).toPersistentMergeBuilder
+        val keyValues =
+          Slice(Memory.put(key = 1, value = Slice.emptyBytes, removeAfter = 10.seconds), Memory.remove(key = 1))
+            .toPersistentMergeBuilder
+            .close(randomBoolean())
+
         keyValues.size shouldBe 0
         keyValues.size shouldBe 0
 
@@ -57,7 +61,10 @@ class ValuesBlockSpec extends TestBase {
 
     "initialise values exists" in {
       runThis(100.times) {
-        val keyValues = Slice(Memory.put(key = 1, value = Slice.writeInt(1), removeAfter = 10.seconds), randomFixedTransientKeyValue(2, Some(3))).toPersistentMergeBuilder
+        val keyValues =
+          Slice(Memory.put(key = 1, value = Slice.writeInt(1), removeAfter = 10.seconds), randomFixedTransientKeyValue(2, Some(3)))
+            .toPersistentMergeBuilder
+            .close(randomBoolean())
 
         ValuesBlock.init(
           keyValues = keyValues,
@@ -71,7 +78,11 @@ class ValuesBlockSpec extends TestBase {
   "close" should {
     "prepare for persisting & concurrent read values" in {
       runThis(100.times, log = true) {
-        val stats = randomizedKeyValues(count = randomIntMax(10000) max 1, valueSize = randomIntMax(100) max 1).toPersistentMergeBuilder
+        val stats =
+          randomizedKeyValues(count = randomIntMax(10000) max 1, valueSize = randomIntMax(100) max 1)
+            .toPersistentMergeBuilder
+            .close(randomBoolean())
+
         val state =
           ValuesBlock.init(
             keyValues = stats,

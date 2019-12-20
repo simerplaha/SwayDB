@@ -28,12 +28,11 @@ import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
-import swaydb.core.segment.merge.{MergeStats, SegmentGrouper, SegmentMerger}
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
@@ -160,6 +159,8 @@ private[segment] case class PersistentSegment(file: DBFile,
       isLastLevel = removeDeletes
     )
 
+    val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
+
     Segment.persistent(
       segmentSize = minSegmentSize,
       pathsDistributor = pathsDistributor,
@@ -168,7 +169,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
-      mergeStats = builder,
+      mergeStats = closed,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
@@ -188,13 +189,27 @@ private[segment] case class PersistentSegment(file: DBFile,
               segmentConfig: SegmentBlock.Config,
               pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val keyValueCount = getKeyValueCount()
+    val footer = getFooter()
+    val sortedIndexSize = footer.sortedIndexOffset.size
+    val valuesSize =
+      if (footer.valuesOffset.isDefined)
+        footer.valuesOffset.get.size
+      else
+        0
 
-    val stats = MergeStats.persistent[KeyValue, Slice](Slice.newBuilder(keyValueCount))(SegmentGrouper.getOrNull(removeDeletes, _))
+    val keyValues =
+      Segment
+        .cleanIterator(iterator(), removeDeletes)
+        .to(Iterable)
 
-//    new segment.merge.MergeStats.Persistent[Unit, Memory]()
-
-    getAll(stats)
+    val mergeStats =
+      new MergeStats.Persistent.Closed[Iterable](
+        isEmpty = false,
+        size = footer.keyValueCount,
+        keyValues = keyValues,
+        totalValuesSize = valuesSize,
+        maxSortedIndexSize = sortedIndexSize
+      )
 
     Segment.persistent(
       segmentSize = minSegmentSize,
@@ -204,7 +219,7 @@ private[segment] case class PersistentSegment(file: DBFile,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
-      mergeStats = stats,
+      mergeStats = mergeStats,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,

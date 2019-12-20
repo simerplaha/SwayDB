@@ -455,7 +455,7 @@ object CommonAssertions {
           mapEntry.map(_ ++ newEntry) orElse Some(newEntry)
       }
 
-    def toPersistentMergeBuilder: MergeStats.Persistent[Memory, ListBuffer] =
+    def toPersistentMergeBuilder: MergeStats.Persistent.Builder[Memory, ListBuffer] =
       MergeStats.persistentBuilder(actual)
 
     def toMemoryMergeBuilder: MergeStats.Memory[Memory, ListBuffer] =
@@ -1307,7 +1307,7 @@ object CommonAssertions {
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeClosed(
-        keyValues = MergeStats.persistentBuilder(keyValues),
+        mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
         createdInLevel = 0,
         segmentSize = segmentSize,
         bloomFilterConfig = bloomFilterConfig,
@@ -1375,7 +1375,7 @@ object CommonAssertions {
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] =
     SegmentBlock.writeClosed(
-      keyValues = MergeStats.persistentBuilder(keyValues),
+      mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
       createdInLevel = Int.MaxValue,
       segmentSize = segmentSize,
       bloomFilterConfig = bloomFilterConfig,

@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.segment.merge.MergeStats
+import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
 import swaydb.data.MaxKey
@@ -166,16 +166,16 @@ private[core] object Segment extends LazyLogging {
                  sortedIndexConfig: SortedIndexBlock.Config,
                  valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlock.Config,
-                 mergeStats: MergeStats.Persistent[_, Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                 functionStore: FunctionStore,
-                                                                 fileSweeper: FileSweeper.Enabled,
-                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                 blockCache: Option[BlockCache.State],
-                                                                 segmentIO: SegmentIO,
-                                                                 idGenerator: IDGenerator): Slice[Segment] =
+                 mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                                     functionStore: FunctionStore,
+                                                                     fileSweeper: FileSweeper.Enabled,
+                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                     blockCache: Option[BlockCache.State],
+                                                                     segmentIO: SegmentIO,
+                                                                     idGenerator: IDGenerator): Slice[Segment] =
     SegmentBlock.writeClosed(
-      keyValues = mergeStats,
+      mergeStats = mergeStats,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
@@ -330,7 +330,7 @@ private[core] object Segment extends LazyLogging {
         )
     }
 
-  def copyToPersist(keyValues: MergeStats.Persistent[_, Iterable],
+  def copyToPersist(keyValues: MergeStats.Persistent.Closed[Iterable],
                     segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
                     fetchNextPath: => (Long, Path),
@@ -926,9 +926,34 @@ private[core] object Segment extends LazyLogging {
             None
         }
     }
+
+  def cleanIterator(fullIterator: Iterator[KeyValue],
+                    removeDeletes: Boolean): Iterator[Memory] =
+    new Iterator[Memory] {
+
+      var nextOne: Memory = null
+
+      override def hasNext: Boolean = {
+        if (fullIterator.hasNext) {
+          val nextKeyValue = fullIterator.next()
+          val nextKeyValueNullable = SegmentGrouper.getOrNull(removeDeletes, nextKeyValue)
+          if (nextKeyValueNullable == null) {
+            false
+          } else {
+            nextOne = nextKeyValueNullable
+            true
+          }
+        } else {
+          false
+        }
+      }
+
+      override def next(): Memory =
+        nextOne
+    }
 }
 
-private[core] trait Segment extends FileSweeperItem {
+private[core] trait Segment extends FileSweeperItem { self =>
   val segmentId: Long
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]

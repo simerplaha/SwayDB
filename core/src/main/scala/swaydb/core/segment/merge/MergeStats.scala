@@ -22,6 +22,7 @@ package swaydb.core.segment.merge
 import swaydb.Aggregator
 import swaydb.core.data
 import swaydb.core.segment.format.a.entry.id.KeyValueId
+import swaydb.core.segment.merge
 import swaydb.core.util.Bytes
 import swaydb.data.util.ByteSizeOf
 
@@ -42,6 +43,10 @@ private[core] sealed trait MergeStats[FROM, +T[_]] extends Aggregator[FROM, T[da
 }
 
 private[core] object MergeStats {
+
+  private[core] sealed trait Result[FROM, +T[_]] {
+    def keyValues: T[data.Memory]
+  }
 
   implicit val memoryToMemory: data.Memory => data.Memory =
     (memory: data.Memory) => memory
@@ -107,10 +112,12 @@ private[core] object MergeStats {
   def buffer[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
     new Buffer(builder)
 
-  sealed trait Persistent[FROM, +T[_]] extends MergeStats[FROM, T] {
+  sealed trait Persistent[FROM, +T[_]] {
     def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int
     def size: Int
     def isEmpty: Boolean
+    def keyValues: T[data.Memory]
+
   }
 
   object Persistent {
@@ -127,7 +134,16 @@ private[core] object MergeStats {
                                var hasRange: Boolean,
                                var hasRemoveRange: Boolean,
                                var hasPut: Boolean,
-                               builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends Persistent[FROM, T] {
+                               builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends Persistent[FROM, T] with MergeStats[FROM, T] {
+
+      def close(hasAccessPositionIndex: Boolean): MergeStats.Persistent.Closed[T] =
+        new MergeStats.Persistent.Closed[T](
+          isEmpty = this.isEmpty,
+          size = size,
+          keyValues = keyValues,
+          totalValuesSize = totalValuesSize,
+          maxSortedIndexSize = maxSortedIndexSize(hasAccessPositionIndex)
+        )
 
       def hasDeadline = totalDeadlineKeyValues > 0
 
@@ -194,14 +210,11 @@ private[core] object MergeStats {
       }
     }
 
-    class Computed[FROM, +T[_]]() extends Persistent[FROM, T] {
-      override def isEmpty: Boolean = ???
-      override def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int = ???
-      override def add(keyValue: FROM): Unit = ???
-      override def clear(): Unit = ???
-      override def keyValues: T[data.Memory] = ???
-      override def size: Int = ???
-    }
+    class Closed[+T[_]](val isEmpty: Boolean,
+                        val size: Int,
+                        val keyValues: T[data.Memory],
+                        var maxSortedIndexSize: Int,
+                        var totalValuesSize: Int)
   }
 
   object Memory {
