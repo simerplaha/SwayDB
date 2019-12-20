@@ -31,14 +31,12 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
+import swaydb.core.segment.merge.{MergeStats, SegmentGrouper, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
@@ -89,7 +87,7 @@ private[segment] case class MemorySegment(path: Path,
       Segment.memory(
         segmentId = segmentId,
         createdInLevel = createdInLevel,
-        segmentSize = minSegmentSize,
+        minSegmentSize = minSegmentSize,
         mergeStats = stats,
         pathsDistributor = pathsDistributor
       )
@@ -108,45 +106,19 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      //      val currentKeyValues = getAll()
-      //
-      //      val splits =
-      //        SegmentMerger.split(
-      //          keyValues = currentKeyValues,
-      //          minSegmentSize = minSegmentSize,
-      //          isLastLevel = removeDeletes,
-      //          forInMemory = true,
-      //          createdInLevel = createdInLevel,
-      //          valuesConfig = valuesConfig,
-      //          sortedIndexConfig = sortedIndexConfig,
-      //          binarySearchIndexConfig = binarySearchIndexConfig,
-      //          hashIndexConfig = hashIndexConfig,
-      //          bloomFilterConfig = bloomFilterConfig
-      //        )
-      //
-      //      splits.mapRecover[Segment](
-      //        block =
-      //          keyValues => {
-      //            val segmentId = idGenerator.nextID
-      //            Segment.memory(
-      //              path = targetPaths.next.resolve(IDGenerator.segmentId(segmentId)),
-      //              segmentId = segmentId,
-      //              createdInLevel = createdInLevel,
-      //              keyValues = keyValues
-      //            )
-      //          },
-      //
-      //        recover =
-      //          (segments: Slice[Segment], _: Throwable) =>
-      //            segments foreach {
-      //              segmentToDelete =>
-      //                IO(segmentToDelete.delete) onLeftSideEffect {
-      //                  exception =>
-      //                    logger.error(s"{}: Failed to delete Segment '{}' in recover due to failed put", path, segmentToDelete.path, exception)
-      //                }
-      //            }
-      //      )
-      ???
+      val keyValueCount = getKeyValueCount()
+
+      val stats = MergeStats.memory[KeyValue, Slice](Slice.newBuilder(keyValueCount))(SegmentGrouper.getOrNull(removeDeletes, _))
+
+      getAll(stats)
+
+      Segment.memory(
+        minSegmentSize = minSegmentSize,
+        pathsDistributor = pathsDistributor,
+        segmentId = segmentId,
+        createdInLevel = createdInLevel,
+        mergeStats = stats
+      )
     }
 
   override def getFromCache(key: Slice[Byte]): Option[KeyValue] =

@@ -232,25 +232,23 @@ object IO {
                                 recover: (Slice[R], Throwable) => Unit = (_: Slice[R], _: Throwable) => (),
                                 failFast: Boolean = true): Slice[R] = {
       val it = iterable.iterator
-      var failure: Option[Throwable] = None
+      var failure: Throwable = null
       val successes = Slice.create[R](iterable.size)
 
-      while ((!failFast || failure.isEmpty) && it.hasNext) {
+      while ((!failFast || failure == null) && it.hasNext) {
         try
           successes add block(it.next())
         catch {
           case exception: Throwable =>
-            failure = Some(exception)
+            failure = exception
         }
       }
 
-      failure match {
-        case Some(throwable) =>
-          recover(successes, throwable)
-          throw throwable
-
-        case None =>
-          successes
+      if (failure == null) {
+        successes
+      } else {
+        recover(successes, failure)
+        throw failure
       }
     }
 

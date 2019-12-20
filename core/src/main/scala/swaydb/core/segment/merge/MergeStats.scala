@@ -101,8 +101,6 @@ private[core] object MergeStats {
   def memory[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Memory[FROM, T] =
     new Memory[FROM, T](
       segmentSize = 0,
-      hasRange = false,
-      hasPut = false,
       builder = builder
     )
 
@@ -189,9 +187,17 @@ private[core] object MergeStats {
     }
   }
 
+  object Memory {
+    def calculateSize(keyValue: data.Memory): Int =
+      keyValue.key.size + {
+        if (keyValue.value.isDefined)
+          keyValue.value.get.size
+        else
+          0
+      }
+  }
+
   class Memory[FROM, +T[_]](var segmentSize: Int,
-                            var hasRange: Boolean,
-                            var hasPut: Boolean,
                             builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
     override def keyValues: T[data.Memory] =
       builder.result()
@@ -202,21 +208,11 @@ private[core] object MergeStats {
     def isEmpty: Boolean =
       segmentSize <= 0
 
+
     override def add(from: FROM): Unit = {
       val keyValue = converterNullable(from)
       if (keyValue != null) {
-        segmentSize = segmentSize + keyValue.key.size + {
-          if (keyValue.value.isDefined)
-            keyValue.value.get.size
-          else
-            0
-        }
-
-        if (keyValue.isRange)
-          this.hasRange = true
-        else if (keyValue.isPut)
-          this.hasPut = true
-
+        segmentSize = segmentSize + Memory.calculateSize(keyValue)
         builder += keyValue
       }
     }
