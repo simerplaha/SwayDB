@@ -56,7 +56,7 @@ private[core] object Segment extends LazyLogging {
              pathsDistributor: PathsDistributor,
              segmentId: Long,
              createdInLevel: Long,
-             keyValues: Either[Iterable[Memory], MergeStats.Memory[_, Iterable]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+             keyValues: Either[Iterator[Memory], MergeStats.Memory[_, Iterable]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                                   functionStore: FunctionStore,
                                                                                   fileSweeper: FileSweeper.Enabled,
@@ -980,6 +980,8 @@ private[core] trait Segment extends FileSweeperItem {
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit
 
   def getAll(): Slice[KeyValue]
+
+  def iterator(): Iterator[KeyValue]
 
   def delete: Unit
 

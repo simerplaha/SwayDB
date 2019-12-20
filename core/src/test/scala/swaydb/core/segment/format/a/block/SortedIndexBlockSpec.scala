@@ -120,7 +120,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       runThis(100.times, log = true) {
         val sortedIndexConfig = SortedIndexBlock.Config.random
         val valuesConfig = ValuesBlock.Config.random
-        val keyValues = Benchmark("Generating key-values")(MergeStats.persistentFrom(randomizedKeyValues(randomIntMax(1000) max 1)))
+        val keyValues = Benchmark("Generating key-values")(MergeStats.persistentBuilder(randomizedKeyValues(randomIntMax(1000) max 1)))
 
         val state = SortedIndexBlock.init(keyValues, valuesConfig, sortedIndexConfig)
 
@@ -139,7 +139,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
     runThis(30.times, log = true) {
       val sortedIndexConfig = SortedIndexBlock.Config.random
       val valuesConfig = ValuesBlock.Config.random
-      val stats = Benchmark("Generating key-values")(MergeStats.persistentFrom(randomizedKeyValues(randomIntMax(1000) max 1)))
+      val stats = Benchmark("Generating key-values")(MergeStats.persistentBuilder(randomizedKeyValues(randomIntMax(1000) max 1)))
 
       val sortedIndex = SortedIndexBlock.init(stats, valuesConfig, sortedIndexConfig)
       val values = ValuesBlock.init(stats, valuesConfig, sortedIndex.builder)

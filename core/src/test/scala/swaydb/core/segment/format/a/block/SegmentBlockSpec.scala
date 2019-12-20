@@ -50,7 +50,7 @@ class SegmentBlockSpec extends TestBase {
     "convert empty KeyValues and not throw exception but return empty bytes" in {
       val closedSegment =
         SegmentBlock.writeClosed(
-          keyValues = MergeStats.persistentFrom[Memory](ListBuffer.empty),
+          keyValues = MergeStats.persistentBuilder[Memory](ListBuffer.empty),
           segmentSize = randomIntMax(Int.MaxValue),
           createdInLevel = randomIntMax(Int.MaxValue),
           valuesConfig = ValuesBlock.Config.random,
@@ -201,7 +201,7 @@ class SegmentBlockSpec extends TestBase {
       def doAssert(keyValues: Slice[Memory]) = {
         val expectedHasRemoveRange = keyValues.exists(_.isRemoveRangeMayBe)
 
-        MergeStats.persistentFrom(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
+        MergeStats.persistentBuilder(keyValues).hasRemoveRange shouldBe expectedHasRemoveRange
 
         val blocks = getBlocksSingle(keyValues).get
 

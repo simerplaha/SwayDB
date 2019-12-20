@@ -46,13 +46,13 @@ private[core] object MergeStats {
   implicit val memoryToMemory: data.Memory => data.Memory =
     (memory: data.Memory) => memory
 
-  def randomFrom[FROM](keyValues: Iterable[FROM])(implicit converterNullable: FROM => data.Memory): MergeStats[FROM, ListBuffer] =
+  def randomBuilder[FROM](keyValues: Iterable[FROM])(implicit converterNullable: FROM => data.Memory): MergeStats[FROM, ListBuffer] =
     if (Random.nextBoolean())
-      persistentFrom(keyValues)
+      persistentBuilder(keyValues)
     else if (Random.nextBoolean())
-      memoryFrom(keyValues)
+      memoryBuilder(keyValues)
     else
-      bufferFrom(keyValues)
+      bufferBuilder(keyValues)
 
   def random(): MergeStats[data.Memory, ListBuffer] =
     if (Random.nextBoolean())
@@ -62,26 +62,26 @@ private[core] object MergeStats {
     else
       buffer(ListBuffer.newBuilder)
 
-  def persistentFrom[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent[FROM, ListBuffer] = {
+  def persistentBuilder[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, ListBuffer] = {
     val stats = persistent[FROM, ListBuffer](ListBuffer.newBuilder)
     keyValues foreach stats.add
     stats
   }
 
-  def memoryFrom[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory[FROM, ListBuffer] = {
+  def memoryBuilder[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory[FROM, ListBuffer] = {
     val stats = memory[FROM, ListBuffer](ListBuffer.newBuilder)
     keyValues foreach stats.add
     stats
   }
 
-  def bufferFrom[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] = {
+  def bufferBuilder[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Buffer[FROM, ListBuffer] = {
     val stats = buffer[FROM, ListBuffer](ListBuffer.newBuilder)
     keyValues foreach stats.add
     stats
   }
 
-  def persistent[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Persistent[FROM, T] =
-    new Persistent(
+  def persistent[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, T] =
+    new Persistent.Builder(
       maxMergedKeySize = 0,
       totalMergedKeysSize = 0,
       maxTimeSize = 0,
@@ -107,83 +107,100 @@ private[core] object MergeStats {
   def buffer[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Buffer[FROM, T] =
     new Buffer(builder)
 
-  class Persistent[FROM, +T[_]](var maxMergedKeySize: Int,
-                                var totalMergedKeysSize: Int,
-                                var maxTimeSize: Int,
-                                var totalTimesSize: Int,
-                                var maxValueSize: Int,
-                                var totalKeyValueCount: Int,
-                                var totalValuesSize: Int,
-                                var totalValuesCount: Int,
-                                var totalDeadlineKeyValues: Int,
-                                var totalRangeCount: Int,
-                                var hasRange: Boolean,
-                                var hasRemoveRange: Boolean,
-                                var hasPut: Boolean,
-                                builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
+  sealed trait Persistent[FROM, +T[_]] extends MergeStats[FROM, T] {
+    def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int
+    def size: Int
+    def isEmpty: Boolean
+  }
 
-    def hasDeadline = totalDeadlineKeyValues > 0
+  object Persistent {
+    class Builder[FROM, +T[_]](var maxMergedKeySize: Int,
+                               var totalMergedKeysSize: Int,
+                               var maxTimeSize: Int,
+                               var totalTimesSize: Int,
+                               var maxValueSize: Int,
+                               var totalKeyValueCount: Int,
+                               var totalValuesSize: Int,
+                               var totalValuesCount: Int,
+                               var totalDeadlineKeyValues: Int,
+                               var totalRangeCount: Int,
+                               var hasRange: Boolean,
+                               var hasRemoveRange: Boolean,
+                               var hasPut: Boolean,
+                               builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends Persistent[FROM, T] {
 
-    def size = totalKeyValueCount
+      def hasDeadline = totalDeadlineKeyValues > 0
 
-    def isEmpty: Boolean =
-      size == 0
+      def size = totalKeyValueCount
 
-    def keyValues: T[data.Memory] =
-      builder.result()
+      def isEmpty: Boolean =
+        size == 0
 
-    override def clear(): Unit =
-      builder.clear()
+      def keyValues: T[data.Memory] =
+        builder.result()
 
-    /**
-     * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
-     */
-    def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int =
-      (Bytes.sizeOfUnsignedInt(maxMergedKeySize) * totalKeyValueCount) +
-        totalMergedKeysSize +
-        (if (hasAccessPositionIndex) Bytes.sizeOfUnsignedInt(totalKeyValueCount) * totalKeyValueCount else 0) +
-        (KeyValueId.maxKeyValueIdByteSize * totalKeyValueCount) + //keyValueId
-        totalDeadlineKeyValues * ByteSizeOf.varLong + //deadline
-        (Bytes.sizeOfUnsignedInt(totalValuesSize) * totalValuesCount) + //valueOffset
-        (Bytes.sizeOfUnsignedInt(maxValueSize) * totalValuesCount) + //valueLength
-        totalTimesSize
+      override def clear(): Unit =
+        builder.clear()
 
-    def updateStats(keyValue: data.Memory) = {
-      maxMergedKeySize = this.maxMergedKeySize max keyValue.mergedKey.size
-      totalMergedKeysSize = this.totalMergedKeysSize + keyValue.mergedKey.size
+      /**
+       * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
+       */
+      def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int =
+        (Bytes.sizeOfUnsignedInt(maxMergedKeySize) * totalKeyValueCount) +
+          totalMergedKeysSize +
+          (if (hasAccessPositionIndex) Bytes.sizeOfUnsignedInt(totalKeyValueCount) * totalKeyValueCount else 0) +
+          (KeyValueId.maxKeyValueIdByteSize * totalKeyValueCount) + //keyValueId
+          totalDeadlineKeyValues * ByteSizeOf.varLong + //deadline
+          (Bytes.sizeOfUnsignedInt(totalValuesSize) * totalValuesCount) + //valueOffset
+          (Bytes.sizeOfUnsignedInt(maxValueSize) * totalValuesCount) + //valueLength
+          totalTimesSize
 
-      val persistentTimeSize = keyValue.persistentTime.size
-      val timeSize = Bytes.sizeOfUnsignedInt(persistentTimeSize) + persistentTimeSize
-      maxTimeSize = this.maxTimeSize max timeSize
-      totalTimesSize = this.totalTimesSize + timeSize
+      def updateStats(keyValue: data.Memory) = {
+        maxMergedKeySize = this.maxMergedKeySize max keyValue.mergedKey.size
+        totalMergedKeysSize = this.totalMergedKeysSize + keyValue.mergedKey.size
 
-      val valueSize = if (keyValue.value.isDefined) keyValue.value.get.size else 0
-      maxValueSize = this.maxValueSize max valueSize
-      totalValuesSize = this.totalValuesSize + valueSize
+        val persistentTimeSize = keyValue.persistentTime.size
+        val timeSize = Bytes.sizeOfUnsignedInt(persistentTimeSize) + persistentTimeSize
+        maxTimeSize = this.maxTimeSize max timeSize
+        totalTimesSize = this.totalTimesSize + timeSize
 
-      if (keyValue.value.exists(_.nonEmpty))
-        totalValuesCount += 1
+        val valueSize = if (keyValue.value.isDefined) keyValue.value.get.size else 0
+        maxValueSize = this.maxValueSize max valueSize
+        totalValuesSize = this.totalValuesSize + valueSize
 
-      if (keyValue.deadline.isDefined)
-        totalDeadlineKeyValues = this.totalDeadlineKeyValues + 1
+        if (keyValue.value.exists(_.nonEmpty))
+          totalValuesCount += 1
 
-      if (keyValue.isRange) {
-        this.hasRange = true
-        if (keyValue.isRemoveRangeMayBe)
-          this.hasRemoveRange = true
-        this.totalRangeCount = this.totalRangeCount + 1
-      } else if (keyValue.isPut) {
-        this.hasPut = true
+        if (keyValue.deadline.isDefined)
+          totalDeadlineKeyValues = this.totalDeadlineKeyValues + 1
+
+        if (keyValue.isRange) {
+          this.hasRange = true
+          if (keyValue.isRemoveRangeMayBe)
+            this.hasRemoveRange = true
+          this.totalRangeCount = this.totalRangeCount + 1
+        } else if (keyValue.isPut) {
+          this.hasPut = true
+        }
+      }
+
+      def add(from: FROM) = {
+        val keyValue = converterNullable(from)
+        if (keyValue != null) {
+          totalKeyValueCount += 1
+          updateStats(keyValue)
+          builder += keyValue
+        }
       }
     }
 
-    def add(from: FROM) = {
-      val keyValue = converterNullable(from)
-      if (keyValue != null) {
-        totalKeyValueCount += 1
-        updateStats(keyValue)
-        builder += keyValue
-      }
+    class Computed[FROM, +T[_]]() extends Persistent[FROM, T] {
+      override def isEmpty: Boolean = ???
+      override def maxSortedIndexSize(hasAccessPositionIndex: Boolean): Int = ???
+      override def add(keyValue: FROM): Unit = ???
+      override def clear(): Unit = ???
+      override def keyValues: T[data.Memory] = ???
+      override def size: Int = ???
     }
   }
 
@@ -207,7 +224,6 @@ private[core] object MergeStats {
 
     def isEmpty: Boolean =
       segmentSize <= 0
-
 
     override def add(from: FROM): Unit = {
       val keyValue = converterNullable(from)

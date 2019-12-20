@@ -19,6 +19,10 @@
 
 package swaydb.core.segment.merge
 
+import swaydb.data.slice.Slice
+
+import scala.reflect.ClassTag
+
 /**
  * Mutable data type to hold the state of currently being merged key-values and provides functions
  * to mutate it's state.
@@ -28,26 +32,34 @@ package swaydb.core.segment.merge
  * A Segment can easily have over 100,000 key-values to merge and an immutable
  * version of this class would create the same number of of MergeList instances in-memory.
  */
-private[core] sealed trait MergeList[H <: T, T] extends Iterable[T] {
+private[core] sealed trait MergeList[H <: T, T] {
 
   def headOption: Option[T]
-
-  def nextOption: Option[T]
 
   def dropHead(): MergeList[H, T]
 
   def dropPrepend(head: H): MergeList[H, T]
 
   def depth: Int
+
+  def size: Int
+
+  def isEmpty: Boolean
+
+  def iterator: Iterator[T]
+
 }
 
 private[core] object MergeList {
 
   def empty[H <: T, T] =
-    new Single[H, T](Option.empty[H], Iterable.empty[T])
+    new Single[H, T](0, Option.empty[H], None, Iterator.empty[T])
 
-  def apply[H <: T, T](keyValues: Iterable[T]): MergeList[H, T] =
-    new Single[H, T](Option.empty[H], keyValues)
+  def apply[H <: T, T](keyValues: Slice[T]): MergeList[H, T] =
+    new Single[H, T](keyValues.size, Option.empty[H], None, keyValues.iterator)
+
+  def apply[H <: T, T](size: Int, keyValues: Iterator[T]): MergeList[H, T] =
+    new Single[H, T](keyValues.size, Option.empty[H], None, keyValues)
 
   implicit class MergeListImplicit[H <: T, T](left: MergeList[H, T]) {
     def append(right: MergeList[H, T]): MergeList[H, T] =
@@ -60,59 +72,67 @@ private[core] object MergeList {
   }
 }
 
-private[core] class Single[H <: T, T](private var headRange: Option[H],
-                                      private var tailKeyValues: Iterable[T]) extends MergeList[H, T] {
+private[core] class Single[H <: T, T](var size: Int,
+                                      private var headRange: Option[H],
+                                      private var nextPlaceHolder: Option[T],
+                                      private var tailKeyValues: Iterator[T]) extends MergeList[H, T] {
 
   override val depth: Int = 1
 
   override def headOption: Option[T] =
-    headRange orElse tailKeyValues.headOption
-
-  override def nextOption: Option[T] =
-    if (headRange.isDefined)
-      tailKeyValues.headOption
-    else
-      tailKeyValues.drop(1).headOption
+    headRange orElse nextPlaceHolder orElse {
+      nextPlaceHolder = tailKeyValues.nextOption()
+      nextPlaceHolder
+    }
 
   def dropHead(): MergeList[H, T] = {
-    if (headRange.isDefined) {
+    if (headRange.isDefined)
       headRange = None
-      this
-    } else {
+    else if (nextPlaceHolder.isDefined)
+      nextPlaceHolder = None
+    else
       tailKeyValues = tailKeyValues.drop(1)
-      this
-    }
+
+    size -= 1
+
+    this
   }
 
   def dropPrepend(head: H): MergeList[H, T] =
     if (headRange.isDefined) {
       headRange = Some(head)
       this
+    } else if (nextPlaceHolder.isDefined) {
+      nextPlaceHolder = Some(head)
+      this
     } else {
       tailKeyValues = tailKeyValues.drop(1)
-      headRange = Some(head)
+      nextPlaceHolder = Some(head)
       this
     }
 
-  override def iterator =
+  override def isEmpty: Boolean =
+    size <= 0
+
+  override def iterator: Iterator[T] =
     new Iterator[T] {
       private var headDone = false
-      private val sliceIterator = tailKeyValues.iterator
+      private var placeHolderDone = false
 
       override def hasNext: Boolean =
-        (!headDone && headRange.isDefined) || sliceIterator.hasNext
+        (!headDone && headRange.isDefined) || (!placeHolderDone && nextPlaceHolder.isDefined) || tailKeyValues.hasNext
 
       override def next(): T =
         if (!headDone && headRange.isDefined) {
           headDone = true
           headRange.get
+        } else if (!placeHolderDone && nextPlaceHolder.isDefined) {
+          placeHolderDone = true
+          nextPlaceHolder.get
         } else {
-          sliceIterator.next()
+          tailKeyValues.next()
         }
     }
-
-  override def size =
-    tailKeyValues.size + (if (headRange.isDefined) 1 else 0)
 }
 
 private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
@@ -134,7 +154,7 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
   override def dropPrepend(head: H): MergeList[H, T] =
     (left.isEmpty, right.isEmpty) match {
       case (true, true) =>
-        new Single[H, T](Some(head), Iterable.empty[T])
+        new Single[H, T](1, Some(head), None, Iterator.empty[T])
       case (true, false) =>
         right.dropPrepend(head)
       case (false, true) =>
@@ -146,9 +166,6 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
 
   override def headOption: Option[T] =
     left.headOption orElse right.headOption
-
-  override def nextOption: Option[T] =
-    left.nextOption orElse right.nextOption
 
   override def iterator: Iterator[T] =
     new Iterator[T] {
@@ -165,9 +182,13 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
           rightIterator.next()
     }
 
+  override def isEmpty: Boolean =
+    size <= 0
+
   override def depth: Int =
     left.depth + right.depth
 
   override def size =
     left.size + right.size
+
 }

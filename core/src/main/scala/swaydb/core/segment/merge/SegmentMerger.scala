@@ -56,6 +56,20 @@ private[core] object SegmentMerger extends LazyLogging {
       isLastLevel = isLastLevel
     )
 
+  def merge(newKeyValues: Slice[KeyValue],
+            oldKeyValuesCount: Int,
+            oldKeyValues: Iterator[KeyValue],
+            stats: MergeStats[Memory, Iterable],
+            isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                  timeOrder: TimeOrder[Slice[Byte]],
+                                  functionStore: FunctionStore): Unit =
+    merge(
+      newKeyValues = MergeList[Memory.Range, KeyValue](newKeyValues),
+      oldKeyValues = MergeList[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
+      builder = stats,
+      isLastLevel = isLastLevel
+    )
+
   private def merge(newKeyValues: MergeList[Memory.Range, KeyValue],
                     oldKeyValues: MergeList[Memory.Range, KeyValue],
                     builder: MergeStats[Memory, Iterable],
@@ -377,11 +391,11 @@ private[core] object SegmentMerger extends LazyLogging {
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
         case (Some(_), None) =>
-          newKeyValues foreach add
+          newKeyValues.iterator foreach add
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
         case (None, Some(_)) =>
-          oldKeyValues foreach add
+          oldKeyValues.iterator foreach add
 
         case (None, None) =>
         //end

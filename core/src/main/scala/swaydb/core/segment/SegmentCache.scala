@@ -382,6 +382,9 @@ private[core] class SegmentCache(path: Path,
   def getAll(keyValueCount: Int): Slice[KeyValue] =
     blockCache readAll keyValueCount
 
+  def iterator(): Iterator[Persistent] =
+    blockCache.iterator()
+
   def getKeyValueCount(): Int =
     blockCache.getFooter().keyValueCount
 

@@ -456,16 +456,16 @@ object CommonAssertions {
       }
 
     def toPersistentMergeBuilder: MergeStats.Persistent[Memory, ListBuffer] =
-      MergeStats.persistentFrom(actual)
+      MergeStats.persistentBuilder(actual)
 
     def toMemoryMergeBuilder: MergeStats.Memory[Memory, ListBuffer] =
-      MergeStats.memoryFrom(actual)
+      MergeStats.memoryBuilder(actual)
 
     def toBufferMergeBuilder: MergeStats.Buffer[Memory, ListBuffer] =
-      MergeStats.bufferFrom(actual)
+      MergeStats.bufferBuilder(actual)
 
     def toMergeBuilder: MergeStats[Memory, ListBuffer] =
-      MergeStats.randomFrom(actual)
+      MergeStats.randomBuilder(actual)
   }
 
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
@@ -1307,7 +1307,7 @@ object CommonAssertions {
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
       SegmentBlock.writeClosed(
-        keyValues = MergeStats.persistentFrom(keyValues),
+        keyValues = MergeStats.persistentBuilder(keyValues),
         createdInLevel = 0,
         segmentSize = segmentSize,
         bloomFilterConfig = bloomFilterConfig,
@@ -1375,7 +1375,7 @@ object CommonAssertions {
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] =
     SegmentBlock.writeClosed(
-      keyValues = MergeStats.persistentFrom(keyValues),
+      keyValues = MergeStats.persistentBuilder(keyValues),
       createdInLevel = Int.MaxValue,
       segmentSize = segmentSize,
       bloomFilterConfig = bloomFilterConfig,

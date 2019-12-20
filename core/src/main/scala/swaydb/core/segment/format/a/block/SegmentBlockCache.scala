@@ -25,7 +25,7 @@ import swaydb.Error.Segment.ExceptionHandler
 import swaydb.{Aggregator, IO}
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, Lazy}
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -409,6 +409,30 @@ class SegmentBlockCache(path: Path,
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader,
         aggregator = aggregator
+      )
+    } finally {
+      forceCacheSortedIndexAndValueReaders = false
+    }
+
+  def iterator(): Iterator[Persistent] =
+    try {
+      var sortedIndexReader = createSortedIndexReader()
+      if (sortedIndexReader.isFile) {
+        forceCacheSortedIndexAndValueReaders = true
+        sortedIndexReaderCache.clear()
+        sortedIndexReader = createSortedIndexReader()
+      }
+
+      var valuesReader = createValuesReader()
+      if (valuesReader.exists(_.isFile)) {
+        forceCacheSortedIndexAndValueReaders = true
+        valuesReaderCache.clear()
+        valuesReader = createValuesReader()
+      }
+
+      SortedIndexBlock.iterator(
+        sortedIndexReader = sortedIndexReader,
+        valuesReader = valuesReader
       )
     } finally {
       forceCacheSortedIndexAndValueReaders = false

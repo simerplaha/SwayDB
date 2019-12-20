@@ -44,8 +44,8 @@ class ValuesBlockSpec extends TestBase {
     "not initialise if values do not exists" in {
       runThis(100.times) {
         val keyValues = Slice(Memory.put(key = 1, value = Slice.emptyBytes, removeAfter = 10.seconds), Memory.remove(key = 1)).toPersistentMergeBuilder
-        keyValues.totalValuesCount shouldBe 0
-        keyValues.totalValuesSize shouldBe 0
+        keyValues.size shouldBe 0
+        keyValues.size shouldBe 0
 
         ValuesBlock.init(
           keyValues = keyValues,

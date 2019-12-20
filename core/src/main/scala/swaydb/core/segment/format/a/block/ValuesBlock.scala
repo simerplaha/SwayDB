@@ -101,9 +101,10 @@ private[core] object ValuesBlock {
   def init(keyValues: MergeStats.Persistent[_, Iterable],
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
-           builder: EntryWriter.Builder): Option[ValuesBlock.State] =
-    if (keyValues.totalValuesSize > 0) {
-      val bytes = Slice.create[Byte](keyValues.totalValuesSize)
+           builder: EntryWriter.Builder): Option[ValuesBlock.State] = {
+    val size = keyValues.size
+    if (size > 0) {
+      val bytes = Slice.create[Byte](size)
       //      bytes moveWritePosition headerSize
 
       Some(
@@ -117,6 +118,7 @@ private[core] object ValuesBlock {
     }
     else
       None
+  }
 
   def init(bytes: Slice[Byte],
            valuesConfig: ValuesBlock.Config,

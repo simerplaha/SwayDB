@@ -28,6 +28,7 @@ import swaydb.core.data.{KeyValue, Memory, Persistent}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
+import swaydb.core.segment
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
@@ -148,13 +149,13 @@ private[segment] case class PersistentSegment(file: DBFile,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
-    val currentKeyValues = getAll()
 
     val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
 
     SegmentMerger.merge(
       newKeyValues = newKeyValues,
-      oldKeyValues = currentKeyValues,
+      oldKeyValuesCount = getKeyValueCount(),
+      oldKeyValues = iterator(),
       stats = builder,
       isLastLevel = removeDeletes
     )
@@ -190,6 +191,8 @@ private[segment] case class PersistentSegment(file: DBFile,
     val keyValueCount = getKeyValueCount()
 
     val stats = MergeStats.persistent[KeyValue, Slice](Slice.newBuilder(keyValueCount))(SegmentGrouper.getOrNull(removeDeletes, _))
+
+//    new segment.merge.MergeStats.Persistent[Unit, Memory]()
 
     getAll(stats)
 
@@ -245,6 +248,9 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   override def getAll(): Slice[KeyValue] =
     segmentCache.getAll()
+
+  override def iterator(): Iterator[KeyValue] =
+    segmentCache.iterator()
 
   override def hasRange: Boolean =
     segmentCache.hasRange

@@ -36,6 +36,7 @@ import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
+import scala.jdk.CollectionConverters._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
@@ -73,13 +74,13 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      val currentKeyValues = getAll()
 
       val stats = MergeStats.memory[Memory, ListBuffer](ListBuffer.newBuilder)
 
       SegmentMerger.merge(
         newKeyValues = newKeyValues,
-        oldKeyValues = currentKeyValues,
+        oldKeyValuesCount = getKeyValueCount(),
+        oldKeyValues = iterator(),
         stats = stats,
         isLastLevel = removeDeletes
       )
@@ -217,6 +218,9 @@ private[segment] case class MemorySegment(path: Path,
             aggregator add value
         }
       }
+
+  override def iterator(): Iterator[KeyValue] =
+    skipList.values().iterator().asScala
 
   override def delete: Unit = {
     //cache should not be cleared.
