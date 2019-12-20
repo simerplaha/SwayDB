@@ -56,101 +56,103 @@ private[core] object Segment extends LazyLogging {
              pathsDistributor: PathsDistributor,
              segmentId: Long,
              createdInLevel: Long,
-             mergeStats: MergeStats.Memory[_, Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore,
-                                                         fileSweeper: FileSweeper.Enabled,
-                                                         idGenerator: IDGenerator): Slice[Segment] =
-    if (mergeStats.isEmpty) {
-      throw IO.throwable("Empty key-values submitted to memory Segment.")
-    } else {
-      val segments = Slice.create[Segment]((mergeStats.segmentSize / minSegmentSize) + 1)
-
-      var skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
-      var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
-      var nearestDeadline: Option[Deadline] = None
-      var hasRange: Boolean = false
-      var hasPut: Boolean = false
-      var currentSegmentSize = 0
-      var minKey: Slice[Byte] = null
-
-      def resetVars(): Unit = {
-        skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
-        minMaxFunctionId = None
-        nearestDeadline = None
-        hasRange = false
-        hasPut = false
-        currentSegmentSize = 0
-        minKey = null
-      }
-
-      def put(keyValue: Memory): Unit =
-        keyValue match {
-          case keyValue: Memory.Put =>
-            hasPut = true
-            nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, keyValue.deadline)
-            skipList.put(keyValue.key, keyValue)
-
-          case keyValue: Memory.Update =>
-            skipList.put(keyValue.key, keyValue)
-
-          case keyValue: Memory.Function =>
-            minMaxFunctionId = Some(MinMax.minMaxFunction(keyValue, minMaxFunctionId))
-            skipList.put(keyValue.key, keyValue)
-
-          case keyValue: Memory.PendingApply =>
-            minMaxFunctionId = MinMax.minMaxFunction(keyValue.applies, minMaxFunctionId)
-            skipList.put(keyValue.key, keyValue)
-
-          case keyValue: Memory.Remove =>
-            skipList.put(keyValue.key, keyValue)
-
-          case keyValue: Memory.Range =>
-            hasRange = true
-            minMaxFunctionId = MinMax.minMaxFunction(keyValue, minMaxFunctionId)
-            hasPut = hasPut || keyValue.fromValue.exists(_.isPut)
-            skipList.put(keyValue.key, keyValue)
-        }
-
-      mergeStats.result foreach {
-        keyValue =>
-          put(keyValue)
-          currentSegmentSize += MergeStats.Memory calculateSize keyValue
-
-          if (currentSegmentSize >= minSegmentSize) {
-            val segmentId = idGenerator.nextID
-            val path = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
-
-            //Note: Memory key-values can be received from Persistent Segments in which case it's important that
-            //all byte arrays are unsliced before writing them to Memory Segment.
-            val segment =
-            MemorySegment(
-              path = path,
-              segmentId = segmentId,
-              minKey = minKey.unslice(),
-              maxKey =
-                keyValue match {
-                  case range: Memory.Range =>
-                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-
-                  case keyValue: Memory.Fixed =>
-                    MaxKey.Fixed(keyValue.key.unslice())
-                },
-              minMaxFunctionId = minMaxFunctionId,
-              segmentSize = currentSegmentSize,
-              hasRange = hasRange,
-              hasPut = hasPut,
-              createdInLevel = createdInLevel.toInt,
-              skipList = skipList,
-              nearestExpiryDeadline = nearestDeadline
-            )
-
-            segments add segment
-            resetVars()
-          }
-      }
-      segments
-    }
+             keyValues: Either[Iterable[Memory], MergeStats.Memory[_, Iterable]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                                  functionStore: FunctionStore,
+                                                                                  fileSweeper: FileSweeper.Enabled,
+                                                                                  idGenerator: IDGenerator): Slice[Segment] =
+  //    if (keyValues.isEmpty) {
+  //      throw IO.throwable("Empty key-values submitted to memory Segment.")
+  //    } else {
+  //      val segments = ListBuffer.empty[Segment]
+  //
+  //      var skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
+  //      var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
+  //      var nearestDeadline: Option[Deadline] = None
+  //      var hasRange: Boolean = false
+  //      var hasPut: Boolean = false
+  //      var currentSegmentSize = 0
+  //      var minKey: Slice[Byte] = null
+  //
+  //      def resetVars(): Unit = {
+  //        skipList = SkipList.immutable[Slice[Byte], Memory]()(keyOrder)
+  //        minMaxFunctionId = None
+  //        nearestDeadline = None
+  //        hasRange = false
+  //        hasPut = false
+  //        currentSegmentSize = 0
+  //        minKey = null
+  //      }
+  //
+  //      def put(keyValue: Memory): Unit =
+  //        keyValue match {
+  //          case keyValue: Memory.Put =>
+  //            hasPut = true
+  //            nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, keyValue.deadline)
+  //            skipList.put(keyValue.key, keyValue)
+  //
+  //          case keyValue: Memory.Update =>
+  //            skipList.put(keyValue.key, keyValue)
+  //
+  //          case keyValue: Memory.Function =>
+  //            minMaxFunctionId = Some(MinMax.minMaxFunction(keyValue, minMaxFunctionId))
+  //            skipList.put(keyValue.key, keyValue)
+  //
+  //          case keyValue: Memory.PendingApply =>
+  //            minMaxFunctionId = MinMax.minMaxFunction(keyValue.applies, minMaxFunctionId)
+  //            skipList.put(keyValue.key, keyValue)
+  //
+  //          case keyValue: Memory.Remove =>
+  //            skipList.put(keyValue.key, keyValue)
+  //
+  //          case keyValue: Memory.Range =>
+  //            hasRange = true
+  //            minMaxFunctionId = MinMax.minMaxFunction(keyValue, minMaxFunctionId)
+  //            hasPut = hasPut || keyValue.fromValue.exists(_.isPut)
+  //            skipList.put(keyValue.key, keyValue)
+  //        }
+  //
+  //      keyValues foreach {
+  //        keyValue =>
+  //          put(keyValue)
+  //          currentSegmentSize += MergeStats.Memory calculateSize keyValue
+  //
+  //          if (currentSegmentSize >= minSegmentSize) {
+  //            val segmentId = idGenerator.nextID
+  //            val path = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+  //
+  //            //Note: Memory key-values can be received from Persistent Segments in which case it's important that
+  //            //all byte arrays are unsliced before writing them to Memory Segment.
+  //            val segment =
+  //            MemorySegment(
+  //              path = path,
+  //              segmentId = segmentId,
+  //              minKey = minKey.unslice(),
+  //              maxKey =
+  //                keyValue match {
+  //                  case range: Memory.Range =>
+  //                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+  //
+  //                  case keyValue: Memory.Fixed =>
+  //                    MaxKey.Fixed(keyValue.key.unslice())
+  //                },
+  //              minMaxFunctionId = minMaxFunctionId,
+  //              segmentSize = currentSegmentSize,
+  //              hasRange = hasRange,
+  //              hasPut = hasPut,
+  //              createdInLevel = createdInLevel.toInt,
+  //              skipList = skipList,
+  //              nearestExpiryDeadline = nearestDeadline
+  //            )
+  //
+  //            segments += segment
+  //            resetVars()
+  //          }
+  //      }
+  //
+  //      Slice.from(segments)
+  //    }
+    ???
 
   def persistent(segmentSize: Int,
                  pathsDistributor: PathsDistributor,
@@ -312,7 +314,7 @@ private[core] object Segment extends LazyLogging {
 
       case memory: MemorySegment =>
         copyToPersist(
-          keyValues = memory.skipList.values().asScala,
+          keyValues = ???, //memory.skipList.values().asScala
           segmentConfig = segmentConfig,
           createdInLevel = createdInLevel,
           fetchNextPath = fetchNextPath,
@@ -328,7 +330,7 @@ private[core] object Segment extends LazyLogging {
         )
     }
 
-  def copyToPersist(keyValues: Iterable[KeyValue],
+  def copyToPersist(keyValues: MergeStats.Persistent[_, Iterable],
                     segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
                     fetchNextPath: => (Long, Path),

@@ -88,7 +88,7 @@ private[segment] case class MemorySegment(path: Path,
         segmentId = segmentId,
         createdInLevel = createdInLevel,
         minSegmentSize = minSegmentSize,
-        mergeStats = stats,
+        keyValues = Right(stats),
         pathsDistributor = pathsDistributor
       )
     }
@@ -117,7 +117,7 @@ private[segment] case class MemorySegment(path: Path,
         pathsDistributor = pathsDistributor,
         segmentId = segmentId,
         createdInLevel = createdInLevel,
-        mergeStats = stats
+        keyValues = Right(stats)
       )
     }
 

@@ -376,6 +376,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     state.entriesCount += 1
 
+    state.lastKeyValue = keyValue
     state.builder.previous = Some(keyValue)
   }
 
@@ -495,6 +496,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   private def readKeyValue(keySizeOption: Option[Int],
                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                           //todo make previous nullable instead of Option
                            previous: Option[Persistent]): Persistent = {
     val positionBeforeRead = sortedIndexReader.getPosition
 
@@ -642,6 +644,41 @@ private[core] object SortedIndexBlock extends LazyLogging {
         Some(next)
     }
   }
+
+  def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Iterator[Persistent] =
+    new Iterator[Persistent] {
+      sortedIndexReader moveTo 0
+
+      var continue = true
+      var previousMayBe = Option.empty[Persistent]
+
+      override def hasNext: Boolean =
+        continue
+
+      override def next(): Persistent = {
+        val nextKeySize =
+          previousMayBe map {
+            previous =>
+              //If previous is known, keep reading same reader
+              // and set the next position of the reader to be of the next index's offset.
+              sortedIndexReader moveTo previous.nextIndexOffset
+              previous.nextKeySize
+          }
+
+        val keyValue =
+          readKeyValue(
+            keySizeOption = nextKeySize,
+            sortedIndexReader = sortedIndexReader,
+            valuesReader = valuesReader,
+            previous = previousMayBe
+          )
+
+        previousMayBe = Some(keyValue)
+        continue = hasMore(keyValue)
+        keyValue
+      }
+    }
 
   def seekAndMatch(key: Slice[Byte],
                    startFrom: Option[Persistent],

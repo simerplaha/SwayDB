@@ -194,6 +194,12 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       keyValues shouldBe readAllKeyValues
 
       /**
+       * TEST - Iterator
+       */
+      val keyValuesIterator = SortedIndexBlock.iterator(sortedIndexReader, valuesBlockReader)
+      keyValuesIterator.toList shouldBe readAllKeyValues
+
+      /**
        * TEST - READ ONE BY ONE
        */
       val searchedKeyValues = ListBuffer.empty[Persistent]

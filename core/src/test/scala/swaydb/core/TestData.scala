@@ -194,7 +194,7 @@ object TestData {
       else
         IO {
           Segment.copyToPersist(
-            keyValues = keyValues,
+            keyValues = ???, // keyValues
             createdInLevel = level.levelNumber,
             fetchNextPath = fetchNextPath,
             mmapSegmentsOnRead = randomBoolean(),

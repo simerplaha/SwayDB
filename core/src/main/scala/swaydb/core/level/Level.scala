@@ -770,7 +770,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
       if (inMemory)
         Segment.copyToMemory(
-          keyValues = keyValues,
+          keyValues = ???, //keyValues
           fetchNextPath = targetSegmentPath,
           removeDeletes = removeDeletedRecords,
           minSegmentSize = segmentSize,
@@ -783,7 +783,7 @@ private[core] case class Level(dirs: Seq[Dir],
         )
       else
         Segment.copyToPersist(
-          keyValues = keyValues,
+          keyValues = ???, //keyValues
           segmentConfig = segmentConfig,
           createdInLevel = levelNumber,
           fetchNextPath = targetSegmentPath,
