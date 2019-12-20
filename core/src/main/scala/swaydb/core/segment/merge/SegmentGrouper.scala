@@ -31,64 +31,54 @@ private[core] object SegmentGrouper extends LazyLogging {
   def add(keyValue: KeyValue,
           builder: MergeStats[Memory, Iterable],
           isLastLevel: Boolean): Unit = {
-    val keyValueToMerge = getOrNull(isLastLevel, keyValue)
-    if (keyValueToMerge != null)
-      builder add keyValueToMerge
+    if (isLastLevel) {
+      val keyValueToMerge = addLastLevel(keyValue)
+      if (keyValueToMerge != null)
+        builder add keyValueToMerge
+    } else {
+      builder add keyValue.toMemory
+    }
   }
 
-  def getOrNull(isLastLevel: Boolean,
-                keyValue: KeyValue): Memory =
+  def addLastLevel(keyValue: KeyValue): Memory =
     keyValue match {
       case fixed: KeyValue.Fixed =>
         fixed match {
           case put: Memory.Put =>
-            if (!isLastLevel || put.hasTimeLeft())
+            if (put.hasTimeLeft())
               put
             else
               null
 
           case put: Persistent.Put =>
-            if (!isLastLevel || put.hasTimeLeft())
+            if (put.hasTimeLeft())
               put.toMemory()
             else
               null
 
-          case remove: Memory.Fixed =>
-            if (!isLastLevel)
-              remove
-            else
-              null
-
-          case remove: Persistent.Fixed =>
-            if (!isLastLevel)
-              remove.toMemory()
-            else
-              null
+          case _: Memory.Fixed | _: Persistent.Fixed =>
+            null
         }
 
       case range: KeyValue.Range =>
-        if (isLastLevel) {
-          val fromValue = range.fetchFromValueUnsafe
-          if (fromValue.isDefined)
-            fromValue.get match {
-              case put @ Value.Put(fromValue, deadline, time) =>
-                if (put.hasTimeLeft())
-                  Memory.Put(
-                    key = range.fromKey,
-                    value = fromValue,
-                    deadline = deadline,
-                    time = time
-                  )
-                else
-                  null
-
-              case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
+        val fromValue = range.fetchFromValueUnsafe
+        if (fromValue.isDefined)
+          fromValue.get match {
+            case put @ Value.Put(fromValue, deadline, time) =>
+              if (put.hasTimeLeft())
+                Memory.Put(
+                  key = range.fromKey,
+                  value = fromValue,
+                  deadline = deadline,
+                  time = time
+                )
+              else
                 null
-            }
-          else
-            null
-        } else {
-          range.toMemory
-        }
+
+            case _: Value.Remove | _: Value.Update | _: Value.Function | _: Value.PendingApply =>
+              null
+          }
+        else
+          null
     }
 }

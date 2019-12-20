@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import java.nio.file.Path
 
 import swaydb.Error.Segment.ExceptionHandler
-import swaydb.{Aggregator, IO}
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, Lazy}
 import swaydb.core.data.{KeyValue, Persistent}
@@ -33,8 +32,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader,
 import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-
-import scala.collection.mutable
+import swaydb.{Aggregator, IO}
 
 object SegmentBlockCache {
 

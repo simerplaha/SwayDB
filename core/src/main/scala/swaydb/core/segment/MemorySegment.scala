@@ -107,7 +107,7 @@ private[segment] case class MemorySegment(path: Path,
     } else {
       val keyValues =
         Segment
-          .cleanIterator(iterator(), removeDeletes)
+          .toMemoryIterator(iterator(), removeDeletes)
           .to(Iterable)
 
       val mergeStats =

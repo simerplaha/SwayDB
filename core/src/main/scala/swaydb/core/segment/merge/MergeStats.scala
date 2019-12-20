@@ -22,9 +22,6 @@ package swaydb.core.segment.merge
 import swaydb.Aggregator
 import swaydb.core.data
 import swaydb.core.segment.format.a.entry.id.KeyValueId
-import swaydb.core.segment.format.a.entry.writer.EntryWriter
-import swaydb.core.segment.format.a.entry.writer.EntryWriter.Builder
-import swaydb.core.segment.merge
 import swaydb.core.util.Bytes
 import swaydb.data.util.ByteSizeOf
 
@@ -51,7 +48,7 @@ private[core] object MergeStats {
   }
 
   implicit val memoryToMemory: data.Memory => data.Memory =
-    (memory: data.Memory) => memory
+    memory => memory
 
   def randomBuilder[FROM](keyValues: Iterable[FROM])(implicit converterNullable: FROM => data.Memory): MergeStats[FROM, ListBuffer] =
     if (Random.nextBoolean())

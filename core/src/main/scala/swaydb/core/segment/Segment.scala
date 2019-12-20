@@ -34,7 +34,6 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.segment.merge.MergeStats.Persistent
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
@@ -44,6 +43,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{Aggregator, IO}
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
@@ -353,7 +353,7 @@ private[core] object Segment extends LazyLogging {
                                                                 idGenerator: IDGenerator): Slice[Segment] = {
     val builder =
       if (removeDeletes)
-        MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)(SegmentGrouper.getOrNull(true, _))
+        MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)(SegmentGrouper.addLastLevel)
       else
         MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
 
@@ -408,11 +408,10 @@ private[core] object Segment extends LazyLogging {
                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                         segmentIO: SegmentIO,
                                         idGenerator: IDGenerator): Slice[Segment] = {
-
     val builder =
       new MergeStats.Memory.Closed[Iterable](
         isEmpty = false,
-        keyValues = Segment.cleanIterator(keyValues.iterator, removeDeletes).to(Iterable)
+        keyValues = Segment.toMemoryIterator(keyValues.iterator, removeDeletes).to(Iterable)
       )
 
     Segment.memory(
@@ -882,18 +881,24 @@ private[core] object Segment extends LazyLogging {
         }
     }
 
-  def cleanIterator(fullIterator: Iterator[KeyValue],
-                    removeDeletes: Boolean): Iterator[Memory] =
+  def toMemoryIterator(fullIterator: Iterator[KeyValue],
+                       removeDeletes: Boolean): Iterator[Memory] =
     new Iterator[Memory] {
 
-      var nextOne: Memory = null
+      var nextOne: Memory = _
 
-      override def hasNext: Boolean = {
+      @tailrec
+      final override def hasNext: Boolean =
         if (fullIterator.hasNext) {
           val nextKeyValue = fullIterator.next()
-          val nextKeyValueNullable = SegmentGrouper.getOrNull(removeDeletes, nextKeyValue)
+          val nextKeyValueNullable =
+            if (removeDeletes)
+              SegmentGrouper.addLastLevel(nextKeyValue)
+            else
+              nextKeyValue.toMemory
+
           if (nextKeyValueNullable == null) {
-            false
+            hasNext
           } else {
             nextOne = nextKeyValueNullable
             true
@@ -901,7 +906,6 @@ private[core] object Segment extends LazyLogging {
         } else {
           false
         }
-      }
 
       override def next(): Memory =
         nextOne

@@ -22,7 +22,6 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.MergeStats
@@ -264,7 +263,9 @@ private[core] object SegmentBlock extends LazyLogging {
       val bloomFilterKeys = ListBuffer.empty[Slice[Byte]]
 
       var processedCount = 0 //numbers of key-values written
-      var closed = false //true if the following iterator exited after closing the Segment.
+      //start off with true for cases with keyValues are empty.
+      //true if the following iteration exited after closing the Segment.
+      var closed = true
 
       //start building the segment.
       keyValues.keyValues foreach {

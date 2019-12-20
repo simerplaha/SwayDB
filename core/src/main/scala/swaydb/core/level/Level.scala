@@ -106,7 +106,7 @@ private[core] object Level extends LazyLogging {
       lock =>
         //lock acquired.
         //initialise Segment IO for this Level.
-        implicit val segmentIO =
+        implicit val segmentIO: SegmentIO =
           SegmentIO(
             bloomFilterConfig = bloomFilterConfig,
             hashIndexConfig = hashIndexConfig,

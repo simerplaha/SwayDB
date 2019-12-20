@@ -198,7 +198,7 @@ private[segment] case class PersistentSegment(file: DBFile,
 
     val keyValues =
       Segment
-        .cleanIterator(iterator(), removeDeletes)
+        .toMemoryIterator(iterator(), removeDeletes)
         .to(Iterable)
 
     val mergeStats =
