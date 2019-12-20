@@ -33,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Promise}
 
 private[core] object TrashLevel extends NextLevel {
 
-  override val paths: PathsDistributor = PathsDistributor(Seq(), () => Seq())
+  override val pathDistributor: PathsDistributor = PathsDistributor(Seq(), () => Seq())
 
   override val appendixPath: Path = Paths.get("Trash level has no path")
 

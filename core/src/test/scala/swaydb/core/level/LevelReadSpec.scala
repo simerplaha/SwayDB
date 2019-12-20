@@ -172,14 +172,14 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
       level1.meter.levelSize shouldBe 0
       level1.meter.segmentsCount shouldBe 0
 
-      val level1Meter = level1.meterFor(level1.paths.headPath.folderId.toInt).get
+      val level1Meter = level1.meterFor(level1.pathDistributor.headPath.folderId.toInt).get
       level1Meter.levelSize shouldBe 0
       level1Meter.segmentsCount shouldBe 0
 
       level2.meter.segmentsCount shouldBe 1
       level2.meter.levelSize shouldBe segment.segmentSize
 
-      val level2Meter = level1.meterFor(level2.paths.headPath.folderId.toInt).get
+      val level2Meter = level1.meterFor(level2.pathDistributor.headPath.folderId.toInt).get
       level2Meter.segmentsCount shouldBe 1
       level2Meter.levelSize shouldBe segment.segmentSize
     }

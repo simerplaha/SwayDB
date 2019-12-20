@@ -55,7 +55,7 @@ object NextLevel {
  */
 trait NextLevel extends LevelRef {
 
-  def paths: PathsDistributor
+  def pathDistributor: PathsDistributor
 
   def throttle: LevelMeter => Throttle
 

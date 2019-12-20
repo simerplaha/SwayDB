@@ -132,7 +132,7 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         level.dirs should not be empty
 
         //appendix path gets added to the head path
-        val appendixPath = level.paths.headPath.resolve("appendix")
+        val appendixPath = level.pathDistributor.headPath.resolve("appendix")
         appendixPath.exists shouldBe true
         appendixPath.resolve("0.log").exists shouldBe true
 
@@ -156,12 +156,12 @@ sealed trait LevelSpec extends TestBase with MockFactory with PrivateMethodTeste
         level.put(segment).right.right.value.right.value
 
         //delete the appendix file
-        level.paths.headPath.resolve("appendix").files(Extension.Log) map Effect.delete
+        level.pathDistributor.headPath.resolve("appendix").files(Extension.Log) map Effect.delete
         //expect failure when file does not exists
         level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 
         //delete folder
-        Effect.delete(level.paths.headPath.resolve("appendix")).runRandomIO.right.value
+        Effect.delete(level.pathDistributor.headPath.resolve("appendix")).runRandomIO.right.value
         //expect failure when folder does not exist
         level.tryReopen.left.get.exception shouldBe a[IllegalStateException]
 

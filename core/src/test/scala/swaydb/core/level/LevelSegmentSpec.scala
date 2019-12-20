@@ -268,9 +268,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
           //segment to copy
           val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 9)
-          level.paths.queuedPaths foreach { //create this file in all paths.
+          level.pathDistributor.queuedPaths foreach { //create this file in all paths.
             _ =>
-              Files.createFile(level.paths.next.resolve(id))
+              Files.createFile(level.pathDistributor.next.resolve(id))
           }
 
           val appendixBeforePut = level.segmentsInLevel()
@@ -290,9 +290,9 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
           //create a file with the same Segment name as the 4th Segment file. This should result in failure.
           val id = IDGenerator.segmentId(level.segmentIDGenerator.nextID + 4)
-          level.paths.queuedPaths foreach { //create this file in all paths.
+          level.pathDistributor.queuedPaths foreach { //create this file in all paths.
             _ =>
-              Files.createFile(level.paths.next.resolve(id))
+              Files.createFile(level.pathDistributor.next.resolve(id))
           }
           val levelFilesBeforePut = level.segmentFilesOnDisk
 

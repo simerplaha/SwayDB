@@ -31,15 +31,15 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.merge.{MergeStats, SegmentGrouper, SegmentMerger}
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import scala.jdk.CollectionConverters._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
+import scala.jdk.CollectionConverters._
 
 private[segment] case class MemorySegment(path: Path,
                                           segmentId: Long,
@@ -85,7 +85,6 @@ private[segment] case class MemorySegment(path: Path,
       )
 
       Segment.memory(
-        segmentId = segmentId,
         createdInLevel = createdInLevel,
         minSegmentSize = minSegmentSize,
         keyValues = stats.close,
@@ -114,14 +113,12 @@ private[segment] case class MemorySegment(path: Path,
       val mergeStats =
         new MergeStats.Memory.Closed[Iterable](
           isEmpty = false,
-          segmentSize = this.segmentSize,
           keyValues = keyValues
         )
 
       Segment.memory(
         minSegmentSize = minSegmentSize,
         pathsDistributor = pathsDistributor,
-        segmentId = segmentId,
         createdInLevel = createdInLevel,
         keyValues = mergeStats
       )

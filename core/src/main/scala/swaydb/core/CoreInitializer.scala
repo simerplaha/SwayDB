@@ -338,7 +338,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
           val levelNumber: Long =
             previousLowerLevel
-              .flatMap(_.paths.headOption.map(_.path.folderId - 1))
+              .flatMap(_.pathDistributor.headOption.map(_.path.folderId - 1))
               .getOrElse(levelConfigs.size + 1)
 
           createLevel(levelNumber, previousLowerLevel, lowestLevelConfig) flatMap {

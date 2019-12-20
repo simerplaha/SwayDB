@@ -107,7 +107,6 @@ private[core] object MergeStats {
 
   def memory[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Memory.Builder[FROM, T] =
     new Memory.Builder[FROM, T](
-      segmentSize = 0,
       builder = builder
     )
 
@@ -228,13 +227,13 @@ private[core] object MergeStats {
           0
       }
 
-    class Builder[FROM, +T[_]](var segmentSize: Int,
-                               builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
+    class Builder[FROM, +T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
+      var isEmpty: Boolean = true
+
       def close: Memory.Closed[T] =
         new Closed[T](
-          segmentSize = segmentSize,
-          keyValues = keyValues,
-          isEmpty = isEmpty
+          isEmpty = isEmpty,
+          keyValues = keyValues
         )
 
       override def keyValues: T[data.Memory] =
@@ -243,21 +242,17 @@ private[core] object MergeStats {
       override def clear(): Unit =
         builder.clear()
 
-      def isEmpty: Boolean =
-        segmentSize <= 0
-
       override def add(from: FROM): Unit = {
         val keyValue = converterNullable(from)
         if (keyValue != null) {
-          segmentSize = segmentSize + Memory.calculateSize(keyValue)
           builder += keyValue
+          isEmpty = false
         }
       }
     }
 
-    class Closed[+T[_]](val segmentSize: Int,
-                        val keyValues: T[data.Memory],
-                        val isEmpty: Boolean)
+    class Closed[+T[_]](val isEmpty: Boolean,
+                        val keyValues: T[data.Memory])
   }
 
   class Buffer[FROM, +T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {

@@ -34,6 +34,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.merge.MergeStats.Persistent
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
@@ -54,7 +55,6 @@ private[core] object Segment extends LazyLogging {
 
   def memory(minSegmentSize: Int,
              pathsDistributor: PathsDistributor,
-             segmentId: Long,
              createdInLevel: Long,
              keyValues: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                             timeOrder: TimeOrder[Slice[Byte]],
@@ -155,7 +155,6 @@ private[core] object Segment extends LazyLogging {
 
   def persistent(segmentSize: Int,
                  pathsDistributor: PathsDistributor,
-                 segmentId: Long,
                  createdInLevel: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
@@ -266,11 +265,11 @@ private[core] object Segment extends LazyLogging {
   def copyToPersist(segment: Segment,
                     segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
-                    fetchNextPath: => (Long, Path),
+                    pathsDistributor: PathsDistributor,
                     mmapSegmentsOnRead: Boolean,
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
-                    minSegmentSize: Long,
+                    minSegmentSize: Int,
                     valuesConfig: ValuesBlock.Config,
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -281,10 +280,13 @@ private[core] object Segment extends LazyLogging {
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
-                                                                segmentIO: SegmentIO): Slice[Segment] =
+                                                                segmentIO: SegmentIO,
+                                                                idGenerator: IDGenerator): Slice[Segment] =
     segment match {
       case segment: PersistentSegment =>
-        val (segmentId, nextPath) = fetchNextPath
+        val segmentId = idGenerator.nextID
+        val nextPath = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+
         segment.copyTo(nextPath)
         try
           Slice(
@@ -313,10 +315,10 @@ private[core] object Segment extends LazyLogging {
 
       case memory: MemorySegment =>
         copyToPersist(
-          keyValues = ???, //memory.skipList.values().asScala
+          keyValues = memory.skipList.values().asScala,
           segmentConfig = segmentConfig,
           createdInLevel = createdInLevel,
-          fetchNextPath = fetchNextPath,
+          pathsDistributor = pathsDistributor,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
           mmapSegmentsOnWrite = mmapSegmentsOnWrite,
           removeDeletes = removeDeletes,
@@ -329,14 +331,14 @@ private[core] object Segment extends LazyLogging {
         )
     }
 
-  def copyToPersist(keyValues: MergeStats.Persistent.Closed[Iterable],
+  def copyToPersist(keyValues: Iterable[Memory],
                     segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
-                    fetchNextPath: => (Long, Path),
+                    pathsDistributor: PathsDistributor,
                     mmapSegmentsOnRead: Boolean,
                     mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
-                    minSegmentSize: Long,
+                    minSegmentSize: Int,
                     valuesConfig: ValuesBlock.Config,
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -347,124 +349,78 @@ private[core] object Segment extends LazyLogging {
                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                 fileSweeper: FileSweeper.Enabled,
                                                                 blockCache: Option[BlockCache.State],
-                                                                segmentIO: SegmentIO): Slice[Segment] = {
+                                                                segmentIO: SegmentIO,
+                                                                idGenerator: IDGenerator): Slice[Segment] = {
+    val builder =
+      if (removeDeletes)
+        MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)(SegmentGrouper.getOrNull(true, _))
+      else
+        MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
 
-    //    val splits =
-    //      SegmentMerger.split(
-    //        keyValues = keyValues,
-    //        minSegmentSize = minSegmentSize,
-    //        isLastLevel = removeDeletes,
-    //        forInMemory = false,
-    //        valuesConfig = valuesConfig,
-    //        createdInLevel = createdInLevel,
-    //        sortedIndexConfig = sortedIndexConfig,
-    //        binarySearchIndexConfig = binarySearchIndexConfig,
-    //        hashIndexConfig = hashIndexConfig,
-    //        bloomFilterConfig = bloomFilterConfig
-    //      )
-    //
-    //    splits.mapRecover(
-    //      block =
-    //        keyValues => {
-    //          val (segmentId, path) = fetchNextPath
-    //          Segment.persistent(
-    //            path = path,
-    //            segmentId = segmentId,
-    //            createdInLevel = createdInLevel,
-    //            segmentConfig = segmentConfig,
-    //            mmapReads = mmapSegmentsOnRead,
-    //            mmapWrites = mmapSegmentsOnWrite,
-    //            keyValues = keyValues
-    //          )
-    //        },
-    //
-    //      recover =
-    //        (segments: Slice[Segment], _: Throwable) =>
-    //          segments foreach {
-    //            segmentToDelete =>
-    //              IO(segmentToDelete.delete) onLeftSideEffect {
-    //                exception =>
-    //                  logger.error(s"Failed to delete Segment '{}' in recover due to failed copyToPersist", segmentToDelete.path, exception)
-    //              }
-    //          }
-    //    )
-    ???
+    keyValues foreach builder.add
+
+    val closedStats =
+      builder close sortedIndexConfig.enableAccessPositionIndex
+
+    Segment.persistent(
+      segmentSize = minSegmentSize,
+      pathsDistributor = pathsDistributor,
+      createdInLevel = createdInLevel,
+      mmapReads = mmapSegmentsOnRead,
+      mmapWrites = mmapSegmentsOnWrite,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig,
+      mergeStats = closedStats
+    )
   }
 
   def copyToMemory(segment: Segment,
                    createdInLevel: Int,
-                   fetchNextPath: => (Long, Path),
+                   pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
-                   minSegmentSize: Long,
-                   valuesConfig: ValuesBlock.Config,
-                   sortedIndexConfig: SortedIndexBlock.Config,
-                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                   hashIndexConfig: HashIndexBlock.Config,
-                   bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                               functionStore: FunctionStore,
-                                                               fileSweeper: FileSweeper.Enabled,
-                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                               segmentIO: SegmentIO): Slice[Segment] =
+                   minSegmentSize: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore,
+                                        fileSweeper: FileSweeper.Enabled,
+                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                        segmentIO: SegmentIO,
+                                        idGenerator: IDGenerator): Slice[Segment] =
     copyToMemory(
-      keyValues = ???, //segment.getAll()
-      fetchNextPath = fetchNextPath,
+      keyValues = segment.iterator().to(Iterable),
+      pathsDistributor = pathsDistributor,
       removeDeletes = removeDeletes,
-      createdInLevel = createdInLevel,
       minSegmentSize = minSegmentSize,
-      valuesConfig = valuesConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      hashIndexConfig = hashIndexConfig,
-      bloomFilterConfig = bloomFilterConfig
+      createdInLevel = createdInLevel
     )
 
   def copyToMemory(keyValues: Iterable[KeyValue],
-                   fetchNextPath: => (Long, Path),
+                   pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
-                   minSegmentSize: Long,
-                   createdInLevel: Int,
-                   valuesConfig: ValuesBlock.Config,
-                   sortedIndexConfig: SortedIndexBlock.Config,
-                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                   hashIndexConfig: HashIndexBlock.Config,
-                   bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                               functionStore: FunctionStore,
-                                                               fileSweeper: FileSweeper.Enabled,
-                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                               segmentIO: SegmentIO): Slice[Segment] = {
-    //    val splits =
-    //      SegmentMerger.split(
-    //        keyValues = keyValues,
-    //        minSegmentSize = minSegmentSize,
-    //        isLastLevel = removeDeletes,
-    //        forInMemory = true,
-    //        valuesConfig = valuesConfig,
-    //        createdInLevel = createdInLevel,
-    //        sortedIndexConfig = sortedIndexConfig,
-    //        binarySearchIndexConfig = binarySearchIndexConfig,
-    //        hashIndexConfig = hashIndexConfig,
-    //        bloomFilterConfig = bloomFilterConfig
-    //      )
-    //
-    //    //recovery not required. On failure, uncommitted Segments will be GC'd as nothing holds references to them.
-    //    val segments = Slice.create[Segment](splits.size)
-    //
-    //    splits foreach {
-    //      split =>
-    //        val (segmentId, path) = fetchNextPath
-    //        segments add
-    //          Segment.memory(
-    //            path = path,
-    //            segmentId = segmentId,
-    //            createdInLevel = createdInLevel,
-    //            keyValues = split
-    //          )
-    //    }
-    //
-    //    segments
-    ???
+                   minSegmentSize: Int,
+                   createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        functionStore: FunctionStore,
+                                        fileSweeper: FileSweeper.Enabled,
+                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                        segmentIO: SegmentIO,
+                                        idGenerator: IDGenerator): Slice[Segment] = {
+
+    val builder =
+      new MergeStats.Memory.Closed[Iterable](
+        isEmpty = false,
+        keyValues = Segment.cleanIterator(keyValues.iterator, removeDeletes).to(Iterable)
+      )
+
+    Segment.memory(
+      minSegmentSize = minSegmentSize,
+      pathsDistributor = pathsDistributor,
+      createdInLevel = createdInLevel,
+      keyValues = builder
+    )
   }
 
   def apply(path: Path,
