@@ -48,8 +48,8 @@ class ValuesBlockSpec extends TestBase {
             .toPersistentMergeBuilder
             .close(randomBoolean())
 
-        keyValues.size shouldBe 0
-        keyValues.size shouldBe 0
+        keyValues.keyValuesCount shouldBe 0
+        keyValues.keyValuesCount shouldBe 0
 
         ValuesBlock.init(
           keyValues = keyValues,

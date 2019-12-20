@@ -205,7 +205,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     val mergeStats =
       new MergeStats.Persistent.Closed[Iterable](
         isEmpty = false,
-        size = footer.keyValueCount,
+        keyValuesCount = footer.keyValueCount,
         keyValues = keyValues,
         totalValuesSize = valuesSize,
         maxSortedIndexSize = sortedIndexSize

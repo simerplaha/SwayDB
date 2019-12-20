@@ -22,6 +22,8 @@ package swaydb.core.segment.merge
 import swaydb.Aggregator
 import swaydb.core.data
 import swaydb.core.segment.format.a.entry.id.KeyValueId
+import swaydb.core.segment.format.a.entry.writer.EntryWriter
+import swaydb.core.segment.format.a.entry.writer.EntryWriter.Builder
 import swaydb.core.segment.merge
 import swaydb.core.util.Bytes
 import swaydb.data.util.ByteSizeOf
@@ -73,7 +75,7 @@ private[core] object MergeStats {
     stats
   }
 
-  def memoryBuilder[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory[FROM, ListBuffer] = {
+  def memoryBuilder[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Memory.Builder[FROM, ListBuffer] = {
     val stats = memory[FROM, ListBuffer](ListBuffer.newBuilder)
     keyValues foreach stats.add
     stats
@@ -103,8 +105,8 @@ private[core] object MergeStats {
       builder = builder
     )
 
-  def memory[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Memory[FROM, T] =
-    new Memory[FROM, T](
+  def memory[FROM, T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory): MergeStats.Memory.Builder[FROM, T] =
+    new Memory.Builder[FROM, T](
       segmentSize = 0,
       builder = builder
     )
@@ -139,7 +141,7 @@ private[core] object MergeStats {
       def close(hasAccessPositionIndex: Boolean): MergeStats.Persistent.Closed[T] =
         new MergeStats.Persistent.Closed[T](
           isEmpty = this.isEmpty,
-          size = size,
+          keyValuesCount = size,
           keyValues = keyValues,
           totalValuesSize = totalValuesSize,
           maxSortedIndexSize = maxSortedIndexSize(hasAccessPositionIndex)
@@ -211,7 +213,7 @@ private[core] object MergeStats {
     }
 
     class Closed[+T[_]](val isEmpty: Boolean,
-                        val size: Int,
+                        val keyValuesCount: Int,
                         val keyValues: T[data.Memory],
                         var maxSortedIndexSize: Int,
                         var totalValuesSize: Int)
@@ -225,26 +227,37 @@ private[core] object MergeStats {
         else
           0
       }
-  }
 
-  class Memory[FROM, +T[_]](var segmentSize: Int,
-                            builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
-    override def keyValues: T[data.Memory] =
-      builder.result()
+    class Builder[FROM, +T[_]](var segmentSize: Int,
+                               builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
+      def close: Memory.Closed[T] =
+        new Closed[T](
+          segmentSize = segmentSize,
+          keyValues = keyValues,
+          isEmpty = isEmpty
+        )
 
-    override def clear(): Unit =
-      builder.clear()
+      override def keyValues: T[data.Memory] =
+        builder.result()
 
-    def isEmpty: Boolean =
-      segmentSize <= 0
+      override def clear(): Unit =
+        builder.clear()
 
-    override def add(from: FROM): Unit = {
-      val keyValue = converterNullable(from)
-      if (keyValue != null) {
-        segmentSize = segmentSize + Memory.calculateSize(keyValue)
-        builder += keyValue
+      def isEmpty: Boolean =
+        segmentSize <= 0
+
+      override def add(from: FROM): Unit = {
+        val keyValue = converterNullable(from)
+        if (keyValue != null) {
+          segmentSize = segmentSize + Memory.calculateSize(keyValue)
+          builder += keyValue
+        }
       }
     }
+
+    class Closed[+T[_]](val segmentSize: Int,
+                        val keyValues: T[data.Memory],
+                        val isEmpty: Boolean)
   }
 
   class Buffer[FROM, +T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {

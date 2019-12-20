@@ -458,7 +458,7 @@ object CommonAssertions {
     def toPersistentMergeBuilder: MergeStats.Persistent.Builder[Memory, ListBuffer] =
       MergeStats.persistentBuilder(actual)
 
-    def toMemoryMergeBuilder: MergeStats.Memory[Memory, ListBuffer] =
+    def toMemoryMergeBuilder: MergeStats.Memory.Builder[Memory, ListBuffer] =
       MergeStats.memoryBuilder(actual)
 
     def toBufferMergeBuilder: MergeStats.Buffer[Memory, ListBuffer] =

@@ -33,7 +33,7 @@ private[core] object SegmentGrouper extends LazyLogging {
           isLastLevel: Boolean): Unit = {
     val keyValueToMerge = getOrNull(isLastLevel, keyValue)
     if (keyValueToMerge != null)
-      builder add keyValueToMerge.toMemory
+      builder add keyValueToMerge
   }
 
   def getOrNull(isLastLevel: Boolean,
@@ -88,13 +88,7 @@ private[core] object SegmentGrouper extends LazyLogging {
           else
             null
         } else {
-          val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe
-          Memory.Range(
-            fromKey = range.fromKey,
-            toKey = range.toKey,
-            fromValue = fromValue,
-            rangeValue = rangeValue
-          )
+          range.toMemory
         }
     }
 }

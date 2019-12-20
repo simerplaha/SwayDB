@@ -74,7 +74,6 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-
       val stats = MergeStats.memory[Memory, ListBuffer](ListBuffer.newBuilder)
 
       SegmentMerger.merge(
@@ -89,7 +88,7 @@ private[segment] case class MemorySegment(path: Path,
         segmentId = segmentId,
         createdInLevel = createdInLevel,
         minSegmentSize = minSegmentSize,
-        keyValues = Right(stats),
+        keyValues = stats.close,
         pathsDistributor = pathsDistributor
       )
     }
@@ -107,18 +106,24 @@ private[segment] case class MemorySegment(path: Path,
     if (deleted) {
       throw swaydb.Exception.NoSuchFile(path)
     } else {
-      val keyValueCount = getKeyValueCount()
+      val keyValues =
+        Segment
+          .cleanIterator(iterator(), removeDeletes)
+          .to(Iterable)
 
-      val stats = MergeStats.memory[KeyValue, Slice](Slice.newBuilder(keyValueCount))(SegmentGrouper.getOrNull(removeDeletes, _))
-
-      getAll(stats)
+      val mergeStats =
+        new MergeStats.Memory.Closed[Iterable](
+          isEmpty = false,
+          segmentSize = this.segmentSize,
+          keyValues = keyValues
+        )
 
       Segment.memory(
         minSegmentSize = minSegmentSize,
         pathsDistributor = pathsDistributor,
         segmentId = segmentId,
         createdInLevel = createdInLevel,
-        keyValues = Right(stats)
+        keyValues = mergeStats
       )
     }
 

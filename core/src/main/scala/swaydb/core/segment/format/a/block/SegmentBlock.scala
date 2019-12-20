@@ -241,7 +241,7 @@ private[core] object SegmentBlock extends LazyLogging {
     } else {
       //IMPORTANT! - The following is critical for compaction performance!
 
-      val keyValuesCount = keyValues.size
+      val keyValuesCount = keyValues.keyValuesCount
       val segments = ListBuffer.empty[SegmentBlock.Open]
 
       //start sortedIndex for a new Segment.
