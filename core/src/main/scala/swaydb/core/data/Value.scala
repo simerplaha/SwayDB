@@ -21,6 +21,7 @@ package swaydb.core.data
 
 import swaydb.core.segment.Segment
 import swaydb.data.slice.Slice
+import swaydb.data.util.SomeOrNone
 
 import scala.concurrent.duration.Deadline
 
@@ -56,11 +57,32 @@ private[swaydb] object Value {
     def unslice: RangeValue
   }
 
-  private[swaydb] sealed trait FromValue extends Value {
+  sealed trait FromValueOption extends SomeOrNone[FromValueOption, Value.FromValue] {
+    override def none: FromValueOption =
+      Value.FromValue.None
+  }
+
+  object FromValue {
+    final object None extends FromValueOption {
+      override def isEmpty: Boolean =
+        true
+
+      def get: Value.FromValue =
+        throw new Exception("Value.FromValue is None")
+
+    }
+  }
+
+  private[swaydb] sealed trait FromValue extends Value with FromValueOption {
     def isPut: Boolean
     def unslice: FromValue
     def toMemory(key: Slice[Byte]): Memory.Fixed
     def toPutMayBe(key: Slice[Byte]): Option[Memory.Put]
+
+    def get: Value.FromValue =
+      this
+
+    override def isEmpty: Boolean = false
   }
 
   private[swaydb] sealed trait Apply extends RangeValue {
@@ -89,7 +111,7 @@ private[swaydb] object Value {
       )
 
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
-      None
+      scala.None
   }
 
   case class Put(value: Option[Slice[Byte]],
@@ -141,7 +163,7 @@ private[swaydb] object Value {
       deadline.forall(_.hasTimeLeft())
 
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
-      None
+      scala.None
   }
 
   case class Function(function: Slice[Byte],
@@ -162,7 +184,7 @@ private[swaydb] object Value {
       )
 
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
-      None
+      scala.None
   }
 
   /**
@@ -185,9 +207,9 @@ private[swaydb] object Value {
       )
 
     def deadline =
-      Segment.getNearestDeadline(None, applies)
+      Segment.getNearestDeadline(scala.None, applies)
 
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
-      None
+      scala.None
   }
 }
