@@ -671,7 +671,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
               case MaxKey.Fixed(maxKey) =>
                 Seq(Memory.put(segment.minKey), Memory.put(maxKey))
               case MaxKey.Range(fromKey, maxKey) =>
-                Seq(Memory.put(segment.minKey), Memory.Range(fromKey, maxKey, None, Value.update(maxKey)))
+                Seq(Memory.put(segment.minKey), Memory.Range(fromKey, maxKey, Value.FromValue.None, Value.update(maxKey)))
             }
         }
 
@@ -933,7 +933,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             Memory.remove(1, shuffledDeadlines(0)),
             Memory.put(2, 1, shuffledDeadlines(1)),
             Memory.update(3, 10, shuffledDeadlines(2)),
-            Memory.Range(4, 10, None, Value.remove(shuffledDeadlines(3))),
+            Memory.Range(4, 10, Value.FromValue.None, Value.remove(shuffledDeadlines(3))),
             Memory.Range(5, 10, Value.put(10, shuffledDeadlines(4)), Value.remove(shuffledDeadlines(5))),
             Memory.Range(6, 10, Value.put(10, shuffledDeadlines(6)), Value.update(None, Some(shuffledDeadlines(7))))
           )

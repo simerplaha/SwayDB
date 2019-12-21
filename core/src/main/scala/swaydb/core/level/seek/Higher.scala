@@ -21,6 +21,7 @@ package swaydb.core.level.seek
 
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.IO
+import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.LevelSeek
@@ -33,14 +34,16 @@ import scala.annotation.tailrec
 
 private[core] object Higher {
 
+  import swaydb.data.util.SomeOrNone._
+
   /**
    * Check and returns the FromValue if it's a valid higher key-value for the input key
    */
   def higherFromValue(key: Slice[Byte],
                       fromKey: Slice[Byte],
-                      fromValue: Option[Value.FromValue])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
+                      fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
     import keyOrder._
-    fromValue flatMap {
+    fromValue map {
       fromValue =>
         if (fromKey > key)
           fromValue.toMemory(fromKey) match {

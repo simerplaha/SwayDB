@@ -687,133 +687,130 @@ object RangeValueSerializer {
   def bytesRequired[F, R](fromValue: F, rangeValue: R)(implicit serializer: RangeValueSerializer[F, R]): Int =
     serializer.bytesRequired(fromValue, rangeValue)
 
-  implicit object OptionRangeValueSerializer extends RangeValueSerializer[Option[Value.FromValue], Value.RangeValue] {
+  implicit object OptionRangeValueSerializer extends RangeValueSerializer[Value.FromValueOption, Value.RangeValue] {
 
-    override def write(fromValue: Option[Value.FromValue], rangeValue: Value.RangeValue, bytes: Slice[Byte]): Unit =
+    override def write(fromValue: Value.FromValueOption, rangeValue: Value.RangeValue, bytes: Slice[Byte]): Unit =
       (fromValue, rangeValue) match {
 
-        case (None, rangeValue: Value.Remove) =>
+        case (Value.FromValue.None, rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Unit, Value.Remove]((), rangeValue)(bytes)
-        case (None, rangeValue: Value.Update) =>
+        case (Value.FromValue.None, rangeValue: Value.Update) =>
           RangeValueSerializer.write[Unit, Value.Update]((), rangeValue)(bytes)
-        case (None, rangeValue: Value.Function) =>
+        case (Value.FromValue.None, rangeValue: Value.Function) =>
           RangeValueSerializer.write[Unit, Value.Function]((), rangeValue)(bytes)
-        case (None, rangeValue: Value.PendingApply) =>
+        case (Value.FromValue.None, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.write[Unit, Value.PendingApply]((), rangeValue)(bytes)
 
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Update) =>
+        case (fromValue: Value.Remove, rangeValue: Value.Update) =>
           RangeValueSerializer.write[Remove, Update](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Remove, rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Remove, Remove](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Function) =>
+        case (fromValue: Value.Remove, rangeValue: Value.Function) =>
           RangeValueSerializer.write[Remove, Value.Function](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Remove), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Remove, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.write[Remove, Value.PendingApply](fromValue, rangeValue)(bytes)
 
-        case (Some(fromValue: Value.Put), rangeValue: Value.Update) =>
+        case (fromValue: Value.Put, rangeValue: Value.Update) =>
           RangeValueSerializer.write[Put, Update](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Put), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Put, rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Put, Remove](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Put), rangeValue: Value.Function) =>
+        case (fromValue: Value.Put, rangeValue: Value.Function) =>
           RangeValueSerializer.write[Put, Value.Function](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Put), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Put, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.write[Put, Value.PendingApply](fromValue, rangeValue)(bytes)
 
-        case (Some(fromValue: Value.Update), rangeValue: Value.Update) =>
+        case (fromValue: Value.Update, rangeValue: Value.Update) =>
           RangeValueSerializer.write[Update, Update](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Update), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Update, rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Update, Remove](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Update), rangeValue: Value.Function) =>
+        case (fromValue: Value.Update, rangeValue: Value.Function) =>
           RangeValueSerializer.write[Update, Value.Function](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Update), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Update, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.write[Update, Value.PendingApply](fromValue, rangeValue)(bytes)
 
-        case (Some(fromValue: Value.Function), rangeValue: Value.Update) =>
+        case (fromValue: Value.Function, rangeValue: Value.Update) =>
           RangeValueSerializer.write[Value.Function, Update](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Function), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Function, rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Value.Function, Remove](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Function), rangeValue: Value.Function) =>
+        case (fromValue: Value.Function, rangeValue: Value.Function) =>
           RangeValueSerializer.write[Value.Function, Value.Function](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.Function), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Function, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.write[Value.Function, Value.PendingApply](fromValue, rangeValue)(bytes)
 
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.Update) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.Update) =>
           RangeValueSerializer.write[Value.PendingApply, Update](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.Remove) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Value.PendingApply, Remove](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.Function) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.Function) =>
           RangeValueSerializer.write[Value.PendingApply, Value.Function](fromValue, rangeValue)(bytes)
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.write[Value.PendingApply, Value.PendingApply](fromValue, rangeValue)(bytes)
       }
 
-    override def bytesRequired(fromValue: Option[Value.FromValue], rangeValue: Value.RangeValue): Int =
+    override def bytesRequired(fromValue: Value.FromValueOption, rangeValue: Value.RangeValue): Int =
       (fromValue, rangeValue) match {
 
-        case (None, rangeValue: Value.Remove) =>
+        case (Value.FromValue.None, rangeValue: Value.Remove) =>
           RangeValueSerializer.bytesRequired[Unit, Value.Remove]((), rangeValue)
-        case (None, rangeValue: Value.Update) =>
+        case (Value.FromValue.None, rangeValue: Value.Update) =>
           RangeValueSerializer.bytesRequired[Unit, Value.Update]((), rangeValue)
-        case (None, rangeValue: Value.Function) =>
+        case (Value.FromValue.None, rangeValue: Value.Function) =>
           RangeValueSerializer.bytesRequired[Unit, Value.Function]((), rangeValue)
-        case (None, rangeValue: Value.PendingApply) =>
+        case (Value.FromValue.None, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.bytesRequired[Unit, Value.PendingApply]((), rangeValue)
 
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Update) =>
+        case (fromValue: Value.Remove, rangeValue: Value.Update) =>
           RangeValueSerializer.bytesRequired[Remove, Update](fromValue, rangeValue)
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Remove, rangeValue: Value.Remove) =>
           RangeValueSerializer.bytesRequired[Remove, Remove](fromValue, rangeValue)
-        case (Some(fromValue: Value.Remove), rangeValue: Value.Function) =>
+        case (fromValue: Value.Remove, rangeValue: Value.Function) =>
           RangeValueSerializer.bytesRequired[Remove, Value.Function](fromValue, rangeValue)
-        case (Some(fromValue: Value.Remove), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Remove, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.bytesRequired[Remove, Value.PendingApply](fromValue, rangeValue)
 
-        case (Some(fromValue: Value.Put), rangeValue: Value.Update) =>
+        case (fromValue: Value.Put, rangeValue: Value.Update) =>
           RangeValueSerializer.bytesRequired[Put, Update](fromValue, rangeValue)
-        case (Some(fromValue: Value.Put), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Put, rangeValue: Value.Remove) =>
           RangeValueSerializer.bytesRequired[Put, Remove](fromValue, rangeValue)
-        case (Some(fromValue: Value.Put), rangeValue: Value.Function) =>
+        case (fromValue: Value.Put, rangeValue: Value.Function) =>
           RangeValueSerializer.bytesRequired[Put, Value.Function](fromValue, rangeValue)
-        case (Some(fromValue: Value.Put), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Put, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.bytesRequired[Put, Value.PendingApply](fromValue, rangeValue)
 
-        case (Some(fromValue: Value.Update), rangeValue: Value.Update) =>
+        case (fromValue: Value.Update, rangeValue: Value.Update) =>
           RangeValueSerializer.bytesRequired[Update, Update](fromValue, rangeValue)
-        case (Some(fromValue: Value.Update), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Update, rangeValue: Value.Remove) =>
           RangeValueSerializer.bytesRequired[Update, Remove](fromValue, rangeValue)
-        case (Some(fromValue: Value.Update), rangeValue: Value.Function) =>
+        case (fromValue: Value.Update, rangeValue: Value.Function) =>
           RangeValueSerializer.bytesRequired[Update, Value.Function](fromValue, rangeValue)
-        case (Some(fromValue: Value.Update), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Update, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.bytesRequired[Update, Value.PendingApply](fromValue, rangeValue)
 
-        case (Some(fromValue: Value.Function), rangeValue: Value.Update) =>
+        case (fromValue: Value.Function, rangeValue: Value.Update) =>
           RangeValueSerializer.bytesRequired[Value.Function, Update](fromValue, rangeValue)
-        case (Some(fromValue: Value.Function), rangeValue: Value.Remove) =>
+        case (fromValue: Value.Function, rangeValue: Value.Remove) =>
           RangeValueSerializer.bytesRequired[Value.Function, Remove](fromValue, rangeValue)
-        case (Some(fromValue: Value.Function), rangeValue: Value.Function) =>
+        case (fromValue: Value.Function, rangeValue: Value.Function) =>
           RangeValueSerializer.bytesRequired[Value.Function, Value.Function](fromValue, rangeValue)
-        case (Some(fromValue: Value.Function), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.Function, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.bytesRequired[Value.Function, Value.PendingApply](fromValue, rangeValue)
 
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.Update) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.Update) =>
           RangeValueSerializer.bytesRequired[Value.PendingApply, Update](fromValue, rangeValue)
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.Remove) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.Remove) =>
           RangeValueSerializer.bytesRequired[Value.PendingApply, Remove](fromValue, rangeValue)
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.Function) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.Function) =>
           RangeValueSerializer.bytesRequired[Value.PendingApply, Value.Function](fromValue, rangeValue)
-        case (Some(fromValue: Value.PendingApply), rangeValue: Value.PendingApply) =>
+        case (fromValue: Value.PendingApply, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.bytesRequired[Value.PendingApply, Value.PendingApply](fromValue, rangeValue)
       }
   }
 
-  @inline private implicit def fromValueToSome[L, R](tuple: (L, R)): (Option[L], R) =
-    (Some(tuple._1), tuple._2)
-
-  @inline private implicit def unitFromValueToNone[R](tuple: (Unit, R)): (None.type, R) =
-    (None, tuple._2)
+  @inline private implicit def unitFromValueToNone[R](tuple: (Unit, R)): (Value.FromValue.None.type, R) =
+    (Value.FromValue.None, tuple._2)
 
   private def read(rangeId: Int,
-                   reader: ReaderBase): (Option[Value.FromValue], Value.RangeValue) =
+                   reader: ReaderBase): (Value.FromValueOption, Value.RangeValue) =
     rangeId match {
       case RemoveRemoveSerializer.id =>
         RemoveRemoveSerializer.read(reader)
@@ -870,7 +867,7 @@ object RangeValueSerializer {
         UnitPendingApplySerializer.read(reader)
     }
 
-  def read(bytes: Slice[Byte]): (Option[Value.FromValue], Value.RangeValue) = {
+  def read(bytes: Slice[Byte]): (Value.FromValueOption, Value.RangeValue) = {
     val reader = Reader(bytes)
     val rangeId = reader.readUnsignedInt()
     read(rangeId, reader)

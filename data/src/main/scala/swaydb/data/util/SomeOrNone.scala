@@ -19,6 +19,10 @@
 
 package swaydb.data.util
 
+object SomeOrNone {
+  implicit val noneType: Option[Nothing] = None
+}
+
 private[swaydb] trait SomeOrNone[T, SOME <: T] {
 
   def none: T
@@ -26,6 +30,12 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
   def isEmpty: Boolean
 
   def get: SOME
+
+  def toOption: Option[SOME] =
+    if (isDefined)
+      Some(get)
+    else
+      None
 
   def isDefined: Boolean =
     !isEmpty
@@ -36,7 +46,7 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
     else
       none
 
-  def map[B](noneType: B, operation: SOME => B): B =
+  def map[B](operation: SOME => B)(implicit noneType: B): B =
     if (isDefined)
       operation(get)
     else

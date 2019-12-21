@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import swaydb.core.data.{KeyValue, Memory}
+import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
@@ -94,7 +94,7 @@ private[core] object SegmentAssigner {
                 case Some(nextSegment) if keyValue.toKey > nextSegment.minKey =>
                   val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
                   val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
-                  val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = None, rangeValue = rangeValue)
+                  val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.None, rangeValue = rangeValue)
 
                   assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
                   assign(remainingKeyValues.dropPrepend(nextSegmentsRange), Some(nextSegment), getNextSegmentMayBe())

@@ -70,7 +70,7 @@ class SegmentGrouperSpec extends TestBase {
         var builder = MergeStats.random()
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
-        val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))
+        val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(fromKeyValue, Value.FromValue.None))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
@@ -85,7 +85,7 @@ class SegmentGrouperSpec extends TestBase {
         var builder = MergeStats.random()
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
-        val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))
+        val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(fromKeyValue, Value.FromValue.None))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 

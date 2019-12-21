@@ -159,7 +159,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         val fromValue = Value.put(None, randomDeadlineOption(false))
 
-        val range = randomRangeKeyValue(1, 10, Some(fromValue))
+        val range = randomRangeKeyValue(1, 10, fromValue)
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning Some(range)
 
@@ -184,7 +184,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
               )
           )
 
-        val range = randomRangeKeyValue(1, 10, eitherOne(None, Some(functionValue.toRangeValue().runRandomIO.right.value)), functionValue.toRangeValue().runRandomIO.right.value)
+        val range = randomRangeKeyValue(1, 10, eitherOne(Value.FromValue.None, functionValue.toRangeValue().runRandomIO.right.value), functionValue.toRangeValue().runRandomIO.right.value)
         val put = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
 
         val expected = FixedMerger(functionValue, put).runRandomIO.right.value

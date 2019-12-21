@@ -151,7 +151,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).runRandomIO.right.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.None, Value.remove(None)))).runRandomIO.right.value
       level.segmentFilesInAppendix shouldBe 0
 
       level.isEmpty shouldBe true
@@ -168,7 +168,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
       val segmentsCountBeforeRemove = level.segmentFilesInAppendix
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(None)))).runRandomIO.right.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.None, Value.remove(None)))).runRandomIO.right.value
       level.segmentFilesInAppendix shouldBe segmentsCountBeforeRemove
 
       level.isEmpty shouldBe false
@@ -268,7 +268,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.None, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
 
       //expired key-values return empty after 2.seconds
       eventual(5.seconds) {
@@ -299,7 +299,7 @@ sealed trait LevelKeyValuesSpec extends TestBase with MockFactory with PrivateMe
       val keyValues = randomPutKeyValues(keyValuesCount)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
 
-      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, None, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
+      level.putKeyValuesTest(Slice(Memory.Range(keyValues.head.key, keyValues.last.key.readInt() + 1, Value.FromValue.None, Value.remove(2.seconds.fromNow)))).runRandomIO.right.value
 
       //expired key-values return empty after 2.seconds
       eventual(5.seconds) {

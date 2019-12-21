@@ -26,6 +26,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.KeyValue._
+import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect
@@ -262,7 +263,7 @@ private[swaydb] case class LevelZero(path: Path,
         maps
           .write {
             timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
                 MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
           }
     }
@@ -275,7 +276,7 @@ private[swaydb] case class LevelZero(path: Path,
         maps
           .write {
             timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
                 MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
           }
     }
@@ -306,7 +307,7 @@ private[swaydb] case class LevelZero(path: Path,
                 value = Memory.Range(
                   fromKey = fromKey,
                   toKey = toKey,
-                  fromValue = None,
+                  fromValue = Value.FromValue.None,
                   rangeValue = Value.Update(value, None, timer.next)
                 )
               ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
@@ -360,7 +361,7 @@ private[swaydb] case class LevelZero(path: Path,
               if (timer.empty)
                 throw new IllegalArgumentException("Functions are disabled.")
               else
-                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
                   MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
           }
       }
@@ -817,7 +818,16 @@ private[swaydb] case class LevelZero(path: Path,
               FunctionStore.containsFunction(functionId, pendingApply.applies)
 
             case range: Memory.Range =>
-              FunctionStore.containsFunction(functionId, Slice(range.rangeValue) ++ range.fromValue)
+              val values =
+                range.fromValue match {
+                  case FromValue.None =>
+                    Slice(range.rangeValue)
+
+                  case fromValue: Value.FromValue =>
+                    Slice(range.rangeValue, fromValue)
+                }
+
+              FunctionStore.containsFunction(functionId, values)
           }
         }
     } getOrElse false

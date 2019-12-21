@@ -678,7 +678,7 @@ private[core] object Segment extends LazyLogging {
             keyValues add Memory.Put(maxKey, None, None, Time.empty)
 
           case MaxKey.Range(fromKey, maxKey) =>
-            keyValues add Memory.Range(fromKey, maxKey, None, Value.Update(Some(maxKey), None, Time.empty))
+            keyValues add Memory.Range(fromKey, maxKey, Value.FromValue.None, Value.Update(Some(maxKey), None, Time.empty))
         }
     }
 
@@ -690,7 +690,7 @@ private[core] object Segment extends LazyLogging {
           Memory.Put(fixed.key, None, None, Time.empty)
 
         case Memory.Range(fromKey, toKey, _, _) =>
-          Memory.Range(fromKey, toKey, None, Value.Update(None, None, Time.empty))
+          Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Update(None, None, Time.empty))
       }
     } yield
       Slice(minKey, maxKey)
@@ -792,11 +792,11 @@ private[core] object Segment extends LazyLogging {
 
       case range: KeyValue.Range =>
         range.fetchFromAndRangeValueUnsafe match {
-          case (Some(fromValue), rangeValue) =>
+          case (fromValue: Value.FromValue, rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             getNearestDeadline(fromValueDeadline, rangeValue)
 
-          case (None, rangeValue) =>
+          case (Value.FromValue.None, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
     }
@@ -809,11 +809,11 @@ private[core] object Segment extends LazyLogging {
 
       case range: Memory.Range =>
         (range.fromValue, range.rangeValue) match {
-          case (Some(fromValue), rangeValue) =>
+          case (fromValue: Value.FromValue, rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             getNearestDeadline(fromValueDeadline, rangeValue)
 
-          case (None, rangeValue) =>
+          case (Value.FromValue.None, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
     }

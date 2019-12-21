@@ -23,6 +23,7 @@ import java.beans.Transient
 
 import swaydb.IO
 import swaydb.core.cache.{Cache, CacheNoIO}
+import swaydb.core.data.Value.FromValueOption
 import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.Segment
@@ -138,9 +139,9 @@ private[core] object KeyValue {
   sealed trait Range extends KeyValue {
     def fromKey: Slice[Byte]
     def toKey: Slice[Byte]
-    def fetchFromValueUnsafe: Option[Value.FromValue]
+    def fetchFromValueUnsafe: FromValueOption
     def fetchRangeValueUnsafe: Value.RangeValue
-    def fetchFromAndRangeValueUnsafe: (Option[Value.FromValue], Value.RangeValue)
+    def fetchFromAndRangeValueUnsafe: (FromValueOption, Value.RangeValue)
     def fetchFromOrElseRangeValueUnsafe: Value.FromValue = {
       val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
       fromValue getOrElse rangeValue
@@ -484,14 +485,14 @@ private[swaydb] object Memory {
       new Range(
         fromKey = fromKey,
         toKey = toKey,
-        fromValue = Some(fromValue),
+        fromValue = fromValue,
         rangeValue = rangeValue
       )
   }
 
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
-                   fromValue: Option[Value.FromValue],
+                   fromValue: FromValueOption,
                    rangeValue: Value.RangeValue) extends Memory with KeyValue.Range {
 
     override def persistentTime: Time = Time.empty
@@ -519,13 +520,13 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def fetchFromValueUnsafe: Option[Value.FromValue] =
+    override def fetchFromValueUnsafe: FromValueOption =
       fromValue
 
     override def fetchRangeValueUnsafe: Value.RangeValue =
       rangeValue
 
-    override def fetchFromAndRangeValueUnsafe: (Option[Value.FromValue], Value.RangeValue) =
+    override def fetchFromAndRangeValueUnsafe: (FromValueOption, Value.RangeValue) =
       (fromValue, rangeValue)
 
     override def toMemory: Memory.Range =
@@ -1089,7 +1090,7 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, (FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               valuesReader match {
                 case Some(valuesReader) =>
@@ -1101,7 +1102,7 @@ private[core] object Persistent {
                   val (from, range) =
                     RangeValueSerializer.read(bytes)
 
-                  (from.map(_.unslice), range.unslice)
+                  (from.flatMap(_.unslice), range.unslice)
 
                 case None =>
                   throw IO.throwable("ValuesBlock is undefined.")
@@ -1118,7 +1119,7 @@ private[core] object Persistent {
 
   case class Range private(private var _fromKey: Slice[Byte],
                            private var _toKey: Slice[Byte],
-                           valueCache: CacheNoIO[ValuesBlock.Offset, (Option[Value.FromValue], Value.RangeValue)],
+                           valueCache: CacheNoIO[ValuesBlock.Offset, (FromValueOption, Value.RangeValue)],
                            nextIndexOffset: Int,
                            nextKeySize: Int,
                            indexOffset: Int,
@@ -1143,10 +1144,10 @@ private[core] object Persistent {
     def fetchRangeValueUnsafe: Value.RangeValue =
       fetchFromAndRangeValueUnsafe._2
 
-    def fetchFromValueUnsafe: Option[Value.FromValue] =
+    def fetchFromValueUnsafe: FromValueOption =
       fetchFromAndRangeValueUnsafe._1
 
-    def fetchFromAndRangeValueUnsafe: (Option[Value.FromValue], Value.RangeValue) =
+    def fetchFromAndRangeValueUnsafe: (FromValueOption, Value.RangeValue) =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toMemory(): Memory.Range = {

@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.segment.Segment.getNearestDeadline
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{FiniteDurations, MinMax}
@@ -91,17 +91,17 @@ private[core] object DeadlineAndFunctionId {
 
       case range: KeyValue.Range =>
         range.fetchFromAndRangeValueUnsafe match {
-          case (someFromValue @ Some(fromValue), rangeValue) =>
+          case (fromValue: Value.FromValue, rangeValue) =>
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             DeadlineAndFunctionId(
               deadline = getNearestDeadline(fromValueDeadline, rangeValue),
-              minMaxFunctionId = MinMax.minMaxFunction(someFromValue, rangeValue, minMaxFunctionId)
+              minMaxFunctionId = MinMax.minMaxFunction(fromValue, rangeValue, minMaxFunctionId)
             )
 
-          case (None, rangeValue) =>
+          case (Value.FromValue.None, rangeValue) =>
             DeadlineAndFunctionId(
               deadline = getNearestDeadline(deadline, rangeValue),
-              minMaxFunctionId = MinMax.minMaxFunction(None, rangeValue, minMaxFunctionId)
+              minMaxFunctionId = MinMax.minMaxFunction(Value.FromValue.None, rangeValue, minMaxFunctionId)
             )
         }
     }

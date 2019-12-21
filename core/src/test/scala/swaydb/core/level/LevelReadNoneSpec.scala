@@ -162,8 +162,8 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
             (_, _, testTimer) => {
               implicit val time = testTimer
               Slice(
-                Memory.Range(1, 10, Some(Value.put(1, expiredDeadline())), Value.remove(None)),
-                Memory.Range(20, 30, Some(Value.put(2, expiredDeadline())), Value.remove(None))
+                Memory.Range(1, 10, Value.put(1, expiredDeadline()), Value.remove(None)),
+                Memory.Range(20, 30, Value.put(2, expiredDeadline()), Value.remove(None))
               )
             },
 

@@ -39,18 +39,18 @@ class HigherSpec extends WordSpec with Matchers {
 
   "higherFromValue" in {
     runThis(100.times) {
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = None) shouldBe empty
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = None) shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.None) shouldBe empty
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.None) shouldBe empty
 
       Higher.higherFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
       Higher.higherFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
 
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringOption, Some(expiredDeadline()))) shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringOption, Some(expiredDeadline()))) shouldBe empty
 
       val put = Value.put(randomStringOption, randomDeadlineOption(false))
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Some(put)) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Some(put)).value shouldBe put.toMemory(2)
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = put) shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = put).value shouldBe put.toMemory(2)
     }
   }
 }

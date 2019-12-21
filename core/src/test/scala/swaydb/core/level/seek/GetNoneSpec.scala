@@ -215,14 +215,14 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         implicit val getFromCurrentLevel = mock[CurrentGetter]
         implicit val getFromNextLevel = mock[NextGetter]
 
-        val fromValues =
+        val fromValue =
           eitherOne(
             Value.remove(None),
             Value.update(None, Some(expiredDeadline())),
             Value.put(None, Some(expiredDeadline()))
           )
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning Some(randomRangeKeyValue(1, 10, Some(fromValues)))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning Some(randomRangeKeyValue(1, 10, fromValue))
 
         Get(1, ReadState.random).runIO.right.value shouldBe empty
       }
@@ -246,7 +246,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
               )
           ).toRangeValue()
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning Some(randomRangeKeyValue(1, 10, eitherOne(None, Some(functionValue)), functionValue))
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning Some(randomRangeKeyValue(1, 10, eitherOne(Value.FromValue.None, functionValue), functionValue))
         //next level can return anything it will be removed.
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1))).toDefer
 

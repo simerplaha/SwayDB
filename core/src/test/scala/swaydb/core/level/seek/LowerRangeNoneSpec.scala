@@ -83,7 +83,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
+                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
                 next.lower            _ expects (key: Slice[Byte], *)  returning IO.Defer.none
                 current.lower         _ expects (0: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
@@ -135,7 +135,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               implicit val next = mock[NextWalker]
               inSequence {
                 //@formatter:off
-                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue()), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
+                current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
                 next.lower            _ expects (key: Slice[Byte], *)  returning IO.Defer.none
                 current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
@@ -157,7 +157,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           implicit val next = mock[NextWalker]
           inSequence {
             //@formatter:off
-            current.lower         _ expects (12: Slice[Byte], *)   returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, Some(randomRemoveOrUpdateOrFunctionRemoveValue()), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
+            current.lower         _ expects (12: Slice[Byte], *)   returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
             next.lower            _ expects (12: Slice[Byte], *)   returning IO.Defer.none
             current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
             //@formatter:on

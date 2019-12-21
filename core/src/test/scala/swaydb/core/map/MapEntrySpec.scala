@@ -115,7 +115,7 @@ class MapEntrySpec extends TestBase {
       import LevelZeroMapEntryWriter._
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
 
-      val range1 = Memory.Range(1, 10, Some(Value.put("one")), Value.update("range one"))
+      val range1 = Memory.Range(1, 10, Value.put("one"), Value.update("range one"))
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
       entry1.hasRange shouldBe true
 
@@ -123,7 +123,7 @@ class MapEntrySpec extends TestBase {
       skipList should have size 1
       skipList.get(1: Slice[Byte]).value shouldBe range1
 
-      val range2 = Memory.Range(2, 10, None, Value.update("range one"))
+      val range2 = Memory.Range(2, 10, Value.FromValue.None, Value.update("range one"))
       val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
       entry2.hasRange shouldBe true
 
@@ -136,7 +136,7 @@ class MapEntrySpec extends TestBase {
       import LevelZeroMapEntryWriter._
       val skipList = SkipList.concurrent[Slice[Byte], Memory]()(keyOrder)
 
-      val range1 = Memory.Range(1, 10, Some(Value.remove(None)), Value.remove(None))
+      val range1 = Memory.Range(1, 10, Value.remove(None), Value.remove(None))
       val entry1 = MapEntry.Put[Slice[Byte], Memory.Range](1, range1)
       entry1.hasRange shouldBe true
 
@@ -144,7 +144,7 @@ class MapEntrySpec extends TestBase {
       skipList should have size 1
       skipList.get(1: Slice[Byte]).value shouldBe range1
 
-      val range2 = Memory.Range(2, 10, None, Value.remove(None))
+      val range2 = Memory.Range(2, 10, Value.FromValue.None, Value.remove(None))
       val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
       entry2.hasRange shouldBe true
 
@@ -164,10 +164,10 @@ class MapEntrySpec extends TestBase {
           MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.put(3, Some("three"))) ++
           MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2)) ++
           MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.put(4, Some("four"))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](5, Memory.Range(5, 10, None, Value.update(10))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Some(Value.put(20)), Value.update(20))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](21, Memory.Range(21, 30, None, Value.remove(None))) ++
-          MapEntry.Put[Slice[Byte], Memory.Range](31, Memory.Range(31, 40, Some(Value.put(20)), Value.remove(None)))
+          MapEntry.Put[Slice[Byte], Memory.Range](5, Memory.Range(5, 10, Value.FromValue.None, Value.update(10))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](21, Memory.Range(21, 30, Value.FromValue.None, Value.remove(None))) ++
+          MapEntry.Put[Slice[Byte], Memory.Range](31, Memory.Range(31, 40, Value.put(20), Value.remove(None)))
 
       entry applyTo skipList
 
@@ -178,10 +178,10 @@ class MapEntrySpec extends TestBase {
       skipList.get(2: Slice[Byte]).value shouldBe Memory.remove(2)
       skipList.get(3: Slice[Byte]).value shouldBe Memory.put(3, Some("three"))
       skipList.get(4: Slice[Byte]).value shouldBe Memory.put(4, Some("four"))
-      skipList.get(5: Slice[Byte]).value shouldBe Memory.Range(5, 10, None, Value.update(10))
-      skipList.get(11: Slice[Byte]).value shouldBe Memory.Range(11, 20, Some(Value.put(20)), Value.update(20))
-      skipList.get(21: Slice[Byte]).value shouldBe Memory.Range(21, 30, None, Value.remove(None))
-      skipList.get(31: Slice[Byte]).value shouldBe Memory.Range(31, 40, Some(Value.put(20)), Value.remove(None))
+      skipList.get(5: Slice[Byte]).value shouldBe Memory.Range(5, 10, Value.FromValue.None, Value.update(10))
+      skipList.get(11: Slice[Byte]).value shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
+      skipList.get(21: Slice[Byte]).value shouldBe Memory.Range(21, 30, Value.FromValue.None, Value.remove(None))
+      skipList.get(31: Slice[Byte]).value shouldBe Memory.Range(31, 40, Value.put(20), Value.remove(None))
     }
 
     "add Appendix single Put entry to skipList" in {

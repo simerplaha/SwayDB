@@ -24,7 +24,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
 import swaydb.core.data.Value
-import swaydb.core.data.Value.{FromValue, RangeValue}
+import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.data.slice.Slice
 
 class RangeValueSerializerSpec extends WordSpec with Matchers {
@@ -41,11 +41,11 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
 
     //also assert option Serializer
     def doAssertOption(rangeValue: RangeValue) = {
-      val bytesRequired = RangeValueSerializer.bytesRequired(Option.empty[FromValue], rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
+      val bytesRequired = RangeValueSerializer.bytesRequired(Value.FromValue.None: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
       //    rangeId shouldBe expectedId.id
       val bytes = Slice.create[Byte](bytesRequired)
 
-      RangeValueSerializer.write(Option.empty[FromValue], rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
+      RangeValueSerializer.write(Value.FromValue.None: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
       RangeValueSerializer.read(bytes) shouldBe ((None, rangeValue))
@@ -86,10 +86,10 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
 
     //also assert option Serializer
     def doAssertOption(fromValue: FromValue, rangeValue: RangeValue) = {
-      val bytesRequired = RangeValueSerializer.bytesRequired(Option(fromValue), rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
+      val bytesRequired = RangeValueSerializer.bytesRequired(fromValue: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
       //    rangeId shouldBe expectedId.id
       val bytes = Slice.create[Byte](bytesRequired)
-      RangeValueSerializer.write(Option(fromValue), rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
+      RangeValueSerializer.write(fromValue: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
       RangeValueSerializer.read(bytes) shouldBe ((Some(fromValue), rangeValue))

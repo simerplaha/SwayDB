@@ -33,7 +33,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
 import swaydb.core.data.KeyValue
 import swaydb.core.data.Memory.Range
-import swaydb.core.data.Value.{FromValue, RangeValue}
+import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, Effect}
@@ -547,7 +547,7 @@ object TestData {
     randomRangeKeyValue(
       from = from,
       to = to,
-      fromValue = randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions),
+      fromValue = randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions) getOrElse Value.FromValue.None,
       rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions)
     )
 
@@ -806,7 +806,7 @@ object TestData {
   def randomTransientKeyValue(key: Slice[Byte],
                               toKey: Option[Slice[Byte]],
                               value: Option[Slice[Byte]] = randomStringOption,
-                              fromValue: Option[FromValue] = randomFromValueOption(),
+                              fromValue: FromValueOption = randomFromValueOption(),
                               rangeValue: RangeValue = randomRangeValue(),
                               deadline: Option[Deadline] = randomDeadlineOption,
                               time: Time = Time.empty,
@@ -947,7 +947,7 @@ object TestData {
 
   def randomRangeKeyValue(from: Slice[Byte],
                           to: Slice[Byte],
-                          fromValue: Option[FromValue] = randomFromValueOption()(TestTimer.random),
+                          fromValue: FromValueOption = randomFromValueOption()(TestTimer.random),
                           rangeValue: RangeValue = randomRangeValue()(TestTimer.random)): Memory.Range = {
     val range = Memory.Range(from, to, fromValue, rangeValue)
     //println(range)
@@ -956,7 +956,7 @@ object TestData {
 
   def randomRangeKeyValueWithDeadline(from: Slice[Byte],
                                       to: Slice[Byte],
-                                      fromValue: Option[FromValue] = randomFromValueWithDeadlineOption()(TestTimer.random),
+                                      fromValue: FromValueOption = randomFromValueWithDeadlineOption()(TestTimer.random),
                                       rangeValue: RangeValue = randomRangeValueWithDeadline()(TestTimer.random)): Memory.Range = {
     val range = Memory.Range(from, to, fromValue, rangeValue)
     //println(range)
@@ -965,7 +965,7 @@ object TestData {
 
   def randomRangeKeyValueWithFromValueExpiredDeadline(from: Slice[Byte],
                                                       to: Slice[Byte],
-                                                      fromValue: Option[FromValue] = randomFromValueWithDeadlineOption(deadline = expiredDeadline())(TestTimer.random),
+                                                      fromValue: FromValueOption = randomFromValueWithDeadlineOption(deadline = expiredDeadline())(TestTimer.random),
                                                       rangeValue: RangeValue = randomRangeValueWithDeadline()(TestTimer.random)): Memory.Range =
     randomRangeKeyValueWithDeadline(from, to, fromValue, rangeValue)
 
@@ -989,9 +989,8 @@ object TestData {
                             deadline: Option[Deadline] = randomDeadlineOption,
                             functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                             addRemoves: Boolean = randomBoolean(),
-                            addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[Value.FromValue] =
+                            addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
     if (randomBoolean())
-      Some(
         randomFromValue(
           value = value,
           addRemoves = addRemoves,
@@ -999,17 +998,16 @@ object TestData {
           deadline = deadline,
           addPut = addPut
         )
-      )
     else
-      None
+      Value.FromValue.None
 
   def randomFromValueWithDeadlineOption(value: Option[Slice[Byte]] = randomStringOption,
                                         addRangeRemoves: Boolean = randomBoolean(),
-                                        deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Option[Value.FromValue] =
+                                        deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
     if (randomBoolean())
-      Some(randomFromValueWithDeadline(value, addRangeRemoves, deadline))
+      randomFromValueWithDeadline(value, addRangeRemoves, deadline)
     else
-      None
+      Value.FromValue.None
 
   def randomUpdateRangeValue(value: Option[Slice[Byte]] = randomStringOption,
                              addRemoves: Boolean = randomBoolean(),
@@ -1470,7 +1468,7 @@ object TestData {
           case apply: Memory.PendingApply =>
             collectUsedDeadlines(apply.applies.map(_.toMemory(Slice.emptyBytes)), usedDeadlines)
           case range: Memory.Range =>
-            val fromTransient = range.fromValue.map(_.toMemory(Slice.emptyBytes))
+            val fromTransient = range.fromValue.toOption.map(_.toMemory(Slice.emptyBytes))
             val rangeTransient = range.rangeValue.toMemory(Slice.emptyBytes)
             collectUsedDeadlines(Slice(rangeTransient) ++ fromTransient, usedDeadlines)
         }

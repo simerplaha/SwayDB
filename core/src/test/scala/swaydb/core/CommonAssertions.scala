@@ -61,6 +61,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 import scala.util.{Random, Try}
+import swaydb.data.util.SomeOrNone._
 
 object CommonAssertions {
 
@@ -72,7 +73,7 @@ object CommonAssertions {
           Some(keyValue)
 
         case range: KeyValue.Range =>
-          range.fetchFromValueUnsafe flatMap {
+          range.fetchFromValueUnsafe map {
             case put: Value.Put =>
               Some(put.toMemory(range.fromKey))
             case _ =>
@@ -219,7 +220,7 @@ object CommonAssertions {
           else
             None
         case range: Memory.Range =>
-          range.fromValue flatMap {
+          range.fromValue map {
             case range: Value.Put =>
               if (range.hasTimeLeft())
                 Some(range.toMemory(keyValue.key))
@@ -868,7 +869,7 @@ object CommonAssertions {
                             s"""REMOVE - ${key.readInt()} -> ${deadline.map(_.hasTimeLeft())}, ${time.time.readLong()}"""
                         }
                       case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
-                        s"""RANGE - ${fromKey.readInt()} -> ${toKey.readInt()}, $fromValue (${fromValue.map(Value.hasTimeLeft)}), $rangeValue (${Value.hasTimeLeft(rangeValue)})"""
+                        s"""RANGE - ${fromKey.readInt()} -> ${toKey.readInt()}, $fromValue (${fromValue.toOption.map(Value.hasTimeLeft)}), $rangeValue (${Value.hasTimeLeft(rangeValue)})"""
                     }
                 }
             }

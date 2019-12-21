@@ -39,18 +39,18 @@ class LowerSpec extends WordSpec with Matchers {
 
   "lowerFromValue" in {
     runThis(100.times) {
-      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = None) shouldBe empty
-      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = None) shouldBe empty
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.None) shouldBe empty
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.None) shouldBe empty
 
       Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
       Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
 
-      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
-      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Some(Value.put(randomStringOption, Some(expiredDeadline())))) shouldBe empty
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringOption, Some(expiredDeadline()))) shouldBe empty
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringOption, Some(expiredDeadline()))) shouldBe empty
 
       val put = Value.put(randomStringOption, randomDeadlineOption(false))
-      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Some(put)).value shouldBe put.toMemory(1)
-      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Some(put)) shouldBe empty
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = put).value shouldBe put.toMemory(1)
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = put) shouldBe empty
     }
   }
 }

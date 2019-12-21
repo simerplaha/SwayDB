@@ -25,6 +25,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.data.Value
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -84,7 +85,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
 
               inSequence {
                 //@formatter:off
-                current.higher        _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, None, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
+                current.higher        _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, Value.FromValue.None, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
                 current.get           _ expects (10: Slice[Byte], *)   returning IO.Defer.none
                 current.higher        _ expects (10: Slice[Byte], *)   returning LevelSeek.None
                 next.higher           _ expects (10: Slice[Byte], *)   returning IO.Defer.none
@@ -132,7 +133,7 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           implicit val current = mock[CurrentWalker]
           implicit val next = mock[NextWalker]
 
-          val currentHigher = randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))
+          val currentHigher = randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValueOption().getOrElse(Value.FromValue.None), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false))
 
           inSequence {
             //@formatter:off

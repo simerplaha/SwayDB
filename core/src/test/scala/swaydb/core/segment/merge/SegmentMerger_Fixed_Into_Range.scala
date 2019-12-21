@@ -30,6 +30,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import swaydb.data.util.SomeOrNone._
+
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -101,7 +103,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
             Memory.Range(midKey, 10, expectedFromValue.toFromValue(), oldKeyValue.rangeValue)
           )
 
-        val expectedLastLevelFromLowerSplit = oldKeyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(oldKeyValue.key))
+        val expectedLastLevelFromLowerSplit = oldKeyValue.fromValue.map(_.toExpectedLastLevelKeyValue(oldKeyValue.key))
         val expectedLastLevelFromUpperSplit = expectedFromValue.toLastLevelExpected
 
         //println
@@ -126,7 +128,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
         val newKeyValue = randomFixedKeyValue(10)
         val expectedKeyValue = Slice(oldKeyValue, newKeyValue)
 
-        val expectedLastLevelFromLowerSplit = oldKeyValue.fromValue.flatMap(_.toExpectedLastLevelKeyValue(oldKeyValue.key))
+        val expectedLastLevelFromLowerSplit = oldKeyValue.fromValue.map(_.toExpectedLastLevelKeyValue(oldKeyValue.key))
 
         val expectedLastLevelFromUpperSplit = if (newKeyValue.isExpectedInLastLevel) Some(newKeyValue) else None
 
@@ -168,21 +170,21 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
       val oldKeyValues: Slice[Memory] =
         Slice(
-          Memory.Range(10, 20, Option.empty[Value.Put], Value.update("ranges value 1")),
-          Memory.Range(25, 30, Some(Value.put(25)), Value.update("ranges value 2", deadline2))
+          Memory.Range(10, 20, Value.FromValue.None, Value.update("ranges value 1")),
+          Memory.Range(25, 30, Value.put(25), Value.update("ranges value 2", deadline2))
         )
 
       val expected: Slice[Memory] =
         Slice(
           Memory.put(9, 9),
-          Memory.Range(10, 11, Some(Value.put(10)), Value.update("ranges value 1")),
-          Memory.Range(11, 15, Some(Value.put(11, deadline1)), Value.update("ranges value 1")),
-          Memory.Range(15, 18, Some(Value.remove(None)), Value.update("ranges value 1")),
-          Memory.Range(18, 20, Some(Value.put(18)), Value.update("ranges value 1")),
+          Memory.Range(10, 11, Value.put(10), Value.update("ranges value 1")),
+          Memory.Range(11, 15, Value.put(11, deadline1), Value.update("ranges value 1")),
+          Memory.Range(15, 18, Value.remove(None), Value.update("ranges value 1")),
+          Memory.Range(18, 20, Value.put(18), Value.update("ranges value 1")),
           Memory.remove(21),
           Memory.put(23, 23),
-          Memory.Range(25, 27, Some(Value.remove(None)), Value.update("ranges value 2", deadline2)),
-          Memory.Range(27, 30, Some(Value.put(27)), Value.update("ranges value 2", deadline2)),
+          Memory.Range(25, 27, Value.remove(None), Value.update("ranges value 2", deadline2)),
+          Memory.Range(27, 30, Value.put(27), Value.update("ranges value 2", deadline2)),
           Memory.put(30, 30)
         )
 

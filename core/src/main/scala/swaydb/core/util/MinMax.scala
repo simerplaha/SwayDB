@@ -20,6 +20,7 @@
 package swaydb.core.util
 
 import swaydb.core.data.KeyValue
+import swaydb.core.data.Value.{FromValue, FromValueOption}
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.slice.Slice
@@ -163,16 +164,22 @@ private[core] object MinMax {
       current = current
     )
 
-  def minMaxFunction(fromValue: Option[Value.FromValue],
+  def minMaxFunction(fromValue: FromValueOption,
                      rangeValue: Value.RangeValue,
                      current: Option[MinMax[Slice[Byte]]]): Option[MinMax[Slice[Byte]]] =
     minMaxFunction(
       function = rangeValue,
       current =
-        minMaxFunction(
-          function = fromValue,
-          current = current
-        )
+        fromValue match {
+          case FromValue.None =>
+            current
+
+          case fromValue: Value.FromValue =>
+            minMaxFunction(
+              function = fromValue,
+              current = current
+            )
+        }
     )
 
   def minMaxFunction(range: KeyValue.Range,
