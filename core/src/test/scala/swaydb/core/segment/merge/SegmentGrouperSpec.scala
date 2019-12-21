@@ -34,13 +34,13 @@ class SegmentGrouperSpec extends TestBase {
   "add fixed key-value" when {
     "expired" in {
       runThis(100.times) {
-        val builder = MergeStats.random()
+        var builder = MergeStats.random()
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, Some(expiredDeadline()))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
-        builder.clear()
+        builder = MergeStats.random()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         builder.keyValues should have size 0
       }
@@ -48,13 +48,13 @@ class SegmentGrouperSpec extends TestBase {
 
     "not expired" in {
       runThis(100.times) {
-        val builder = MergeStats.random()
+        var builder = MergeStats.random()
 
         val keyValue = randomFixedKeyValue(1, randomStringOption, deadline = None)
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
-        builder.clear()
+        builder = MergeStats.random()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         if (keyValue.isPut)
           builder.keyValues should contain only keyValue
@@ -67,14 +67,14 @@ class SegmentGrouperSpec extends TestBase {
   "add range key-value" when {
     "expired" in {
       runThis(100.times) {
-        val builder = MergeStats.random()
+        var builder = MergeStats.random()
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
-        builder.clear()
+        builder = MergeStats.random()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         builder.keyValues should have size 0
       }
@@ -82,14 +82,14 @@ class SegmentGrouperSpec extends TestBase {
 
     "not expired" in {
       runThis(100.times) {
-        val builder = MergeStats.random()
+        var builder = MergeStats.random()
 
         val fromKeyValue = eitherOne(randomRangeValue(), Value.Put(randomStringOption, deadline = Some(expiredDeadline()), testTimer.next))
         val keyValue = randomRangeKeyValue(1, 100, fromValue = eitherOne(Some(fromKeyValue), None))
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = false)
         builder.keyValues should contain only keyValue
 
-        builder.clear()
+        builder = MergeStats.random()
         SegmentGrouper.add(keyValue = keyValue, builder = builder, isLastLevel = true)
         if (keyValue.isPut)
           builder.keyValues should contain only keyValue

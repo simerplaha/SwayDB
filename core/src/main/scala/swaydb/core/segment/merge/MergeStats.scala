@@ -33,8 +33,6 @@ private[core] sealed trait MergeStats[FROM, +T[_]] extends Aggregator[FROM, T[da
 
   def add(keyValue: FROM): Unit
 
-  def clear(): Unit
-
   def keyValues: T[data.Memory]
 
   override def result: T[data.Memory] =
@@ -153,9 +151,6 @@ private[core] object MergeStats {
       def keyValues: T[data.Memory] =
         builder.result()
 
-      override def clear(): Unit =
-        builder.clear()
-
       /**
        * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
        */
@@ -199,11 +194,11 @@ private[core] object MergeStats {
       }
 
       def add(from: FROM) = {
-        val keyValue = converterNullable(from)
-        if (keyValue != null) {
+        val keyValueOrNull = converterNullable(from)
+        if (keyValueOrNull != null) {
           totalKeyValueCount += 1
-          updateStats(keyValue)
-          builder += keyValue
+          updateStats(keyValueOrNull)
+          builder += keyValueOrNull
         }
       }
     }
@@ -236,13 +231,10 @@ private[core] object MergeStats {
       override def keyValues: T[data.Memory] =
         builder.result()
 
-      override def clear(): Unit =
-        builder.clear()
-
       override def add(from: FROM): Unit = {
-        val keyValue = converterNullable(from)
-        if (keyValue != null) {
-          builder += keyValue
+        val keyValueOrNull = converterNullable(from)
+        if (keyValueOrNull != null) {
+          builder += keyValueOrNull
           isEmpty = false
         }
       }
@@ -255,13 +247,10 @@ private[core] object MergeStats {
   class Buffer[FROM, +T[_]](builder: mutable.Builder[swaydb.core.data.Memory, T[swaydb.core.data.Memory]])(implicit converterNullable: FROM => data.Memory) extends MergeStats[FROM, T] {
 
     override def add(from: FROM): Unit = {
-      val keyValue = converterNullable(from)
-      if (keyValue != null)
-        builder += keyValue
+      val keyValueOrNull = converterNullable(from)
+      if (keyValueOrNull != null)
+        builder += keyValueOrNull
     }
-
-    override def clear(): Unit =
-      builder.clear()
 
     override def keyValues: T[data.Memory] =
       builder.result()
