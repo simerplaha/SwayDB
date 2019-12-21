@@ -70,7 +70,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             )
           )
 
-        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.map(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
+        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //        println
         //        println("newKeyValue: " + newKeyValue)
@@ -109,7 +109,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             )
           )
-        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.map(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
+        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -154,7 +154,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               rangeValue = newKeyValue.rangeValue
             )
           )
-        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.map(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
+        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -207,7 +207,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               rangeValue = oldKeyValue.rangeValue
             )
           )
-        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.map(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
+        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -348,7 +348,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               rangeValue = oldKeyValue.rangeValue
             )
           )
-        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.map(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
+        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -387,7 +387,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
             )
           )
-        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.map(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
+        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //println
         //println("newKeyValue: " + newKeyValue)
@@ -432,7 +432,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
               rangeValue = newKeyValue.rangeValue
             )
           )
-        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.map(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
+        val expectedLastLevel = expectedKeyValue.flatMap(keyValue => keyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(keyValue.key))).toSlice
 
         //println
         //println("newKeyValue: " + newKeyValue)

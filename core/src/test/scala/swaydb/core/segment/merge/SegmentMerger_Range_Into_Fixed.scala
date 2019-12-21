@@ -96,9 +96,9 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
               )
           }
 
-        def expectedLastLevelFromLowerSplit = expectedKeyValue.head.fromValue.map(_.toExpectedLastLevelKeyValue(expectedKeyValue.head.key))
+        def expectedLastLevelFromLowerSplit = expectedKeyValue.head.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(expectedKeyValue.head.key))
 
-        def expectedLastLevelFromUpperSplit = expectedKeyValue.last.fromValue.map(_.toExpectedLastLevelKeyValue(expectedKeyValue.last.key))
+        def expectedLastLevelFromUpperSplit = expectedKeyValue.last.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(expectedKeyValue.last.key))
 
         val lastLevelExpected =
           if (expectedKeyValue.size == 2)
@@ -127,7 +127,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
         val oldKeyValue = randomFixedKeyValue(10)
         val expectedKeyValue = Slice(newKeyValue, oldKeyValue)
 
-        val expectedLastLevelFromLowerSplit = newKeyValue.fromValue.map(_.toExpectedLastLevelKeyValue(newKeyValue.key))
+        val expectedLastLevelFromLowerSplit = newKeyValue.fromValue.flatMapOption(_.toExpectedLastLevelKeyValue(newKeyValue.key))
 
         val expectedLastLevelFromUpperSplit = if (oldKeyValue.isExpectedInLastLevel) Some(oldKeyValue) else None
 

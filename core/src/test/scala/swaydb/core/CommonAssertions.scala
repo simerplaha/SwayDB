@@ -73,7 +73,7 @@ object CommonAssertions {
           Some(keyValue)
 
         case range: KeyValue.Range =>
-          range.fetchFromValueUnsafe map {
+          range.fetchFromValueUnsafe flatMapOption {
             case put: Value.Put =>
               Some(put.toMemory(range.fromKey))
             case _ =>
@@ -220,7 +220,7 @@ object CommonAssertions {
           else
             None
         case range: Memory.Range =>
-          range.fromValue map {
+          range.fromValue flatMapOption {
             case range: Value.Put =>
               if (range.hasTimeLeft())
                 Some(range.toMemory(keyValue.key))
@@ -686,8 +686,8 @@ object CommonAssertions {
         IO.Defer(segment.mightContainKey(keyValue.key)).runRandomIO.right.value
     } shouldBe keyValues.size
 
-//    if (segment.hasBloomFilter)
-//      assertBloomNotContains(segment)
+    //    if (segment.hasBloomFilter)
+    //      assertBloomNotContains(segment)
     ???
   }
 
@@ -713,12 +713,12 @@ object CommonAssertions {
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
-//    if (segment.hasBloomFilter)
-//      (1 to 1000).par.count {
-//        _ =>
-//          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
-//      } should be < 1000
-  ???
+  //    if (segment.hasBloomFilter)
+  //      (1 to 1000).par.count {
+  //        _ =>
+  //          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
+  //      } should be < 1000
+    ???
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThisParallel(1000.times) {

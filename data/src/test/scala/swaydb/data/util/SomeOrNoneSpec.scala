@@ -124,4 +124,37 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
     val none: Option = Option.None
     none.forall(_ => fail()) shouldBe true
   }
+
+  "flatMapSomeOrNone" in {
+    sealed trait Option2 extends SomeOrNone[Option2, Option2.Some2] {
+      override def none: Option2 = Option2.None2
+    }
+
+    object Option2 {
+      implicit final object None2 extends Option2 {
+        override def isEmpty: Boolean = true
+        override def get: Option2.Some2 =
+          throw new Exception("Not a some value")
+      }
+
+      case class Some2(value: String = Random.nextString(10)) extends Option2 {
+        override def isEmpty: Boolean = false
+        override def get: Option2.Some2 = this
+      }
+    }
+
+    val someOption: Option = Option.Some("some")
+
+    someOption.flatMapSomeOrNone(Option2.None2) {
+      some =>
+        some shouldBe someOption
+        Option2.Some2("some")
+    } shouldBe Option2.Some2("some")
+
+    Option.None.flatMapSomeOrNone(Option2.None2) {
+      some =>
+        fail()
+    } shouldBe Option2.None2
+
+  }
 }

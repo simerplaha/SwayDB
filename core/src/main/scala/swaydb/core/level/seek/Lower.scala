@@ -42,7 +42,7 @@ private[core] object Lower {
                      fromKey: Slice[Byte],
                      fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Memory.Put] = {
     import keyOrder._
-    fromValue map {
+    fromValue flatMapOption {
       fromValue =>
         if (fromKey < key)
           fromValue.toMemory(fromKey) match {
