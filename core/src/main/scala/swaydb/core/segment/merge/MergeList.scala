@@ -21,8 +21,6 @@ package swaydb.core.segment.merge
 
 import swaydb.data.slice.Slice
 
-import scala.reflect.ClassTag
-
 /**
  * Mutable data type to hold the state of currently being merged key-values and provides functions
  * to mutate it's state.
@@ -47,7 +45,6 @@ private[core] sealed trait MergeList[H <: T, T] {
   def isEmpty: Boolean
 
   def iterator: Iterator[T]
-
 }
 
 private[core] object MergeList {

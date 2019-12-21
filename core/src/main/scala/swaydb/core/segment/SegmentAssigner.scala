@@ -143,7 +143,7 @@ private[core] object SegmentAssigner {
           ()
       }
 
-    if (segments.size == 1)
+    if (Segment hasOnlyOneSegment segments) //.size iterates the entire Iterable which is not needed.
       mutable.Map((segments.head, keyValues))
     else if (segmentsIterator.hasNext) {
       assign(MergeList(keyValues), Some(segmentsIterator.next()), getNextSegmentMayBe())

@@ -910,6 +910,16 @@ private[core] object Segment extends LazyLogging {
       override def next(): Memory =
         nextOne
     }
+
+  def hasOnlyOneSegment(segments: Iterable[Segment]): Boolean = {
+    val iterator = segments.iterator
+    if (iterator.hasNext) {
+      iterator.next()
+      !iterator.hasNext //no next segment.
+    } else {
+      false
+    }
+  }
 }
 
 private[core] trait Segment extends FileSweeperItem { self =>
