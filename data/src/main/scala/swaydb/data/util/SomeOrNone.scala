@@ -19,7 +19,16 @@
 
 package swaydb.data.util
 
-object SomeOrNone
+object SomeOrNone {
+
+  implicit class OptionalImplicitsForSomeOrNone[A](option: Option[A]) {
+    @inline def flatMapOption[B](none: B)(f: A => B): B =
+      if (option.isDefined)
+        f(option.get)
+      else
+        none
+  }
+}
 
 private[swaydb] trait SomeOrNone[T, SOME <: T] {
 
@@ -50,7 +59,7 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
     else
       none
 
-  def flatMapSomeOrNone[T2, SOME2 <: T2](none: SomeOrNone[T2, SOME2])(f: SOME => SomeOrNone[T2, SOME2]): SomeOrNone[T2, SOME2] =
+  def flatMapSome[T2](none: T2)(f: SOME => T2): T2 =
     if (isDefined)
       f(get)
     else

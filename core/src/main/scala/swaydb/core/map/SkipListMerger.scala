@@ -27,16 +27,16 @@ import swaydb.data.slice.Slice
 import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for SkipListMerge of type [${K}, ${V}]")
-trait SkipListMerger[K, V] {
+trait SkipListMerger[OK, OV, K <: OK, V <: OV] {
 
   def insert(insertKey: K,
              insertValue: V,
-             skipList: SkipList.Concurrent[K, V])(implicit keyOrder: KeyOrder[K],
-                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                  functionStore: FunctionStore): Unit
+             skipList: SkipList.Concurrent[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore): Unit
 
   def insert(entry: MapEntry[K, V],
-             skipList: SkipList.Concurrent[K, V])(implicit keyOrder: KeyOrder[K],
-                                                  timeOrder: TimeOrder[Slice[Byte]],
-                                                  functionStore: FunctionStore): Unit
+             skipList: SkipList.Concurrent[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          functionStore: FunctionStore): Unit
 }

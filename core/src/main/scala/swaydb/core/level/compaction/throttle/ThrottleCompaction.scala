@@ -21,12 +21,12 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.data.Memory
+import swaydb.core.data.{Memory, MemoryOptional}
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
@@ -183,7 +183,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
                                       stateId: Long,
-                                      map: swaydb.core.map.Map[Slice[Byte], Memory])(implicit ec: ExecutionContext): ThrottleLevelState =
+                                      map: swaydb.core.map.Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory])(implicit ec: ExecutionContext): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
@@ -311,7 +311,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
       IO.Right[swaydb.Error.Level, Int](segmentsCompacted)
     else if (checkExpired)
       Segment.getNearestDeadlineSegment(level.segmentsInLevel()) match {
-        case Some(segment) if segment.nearestExpiryDeadline.exists(!_.hasTimeLeft()) =>
+        case segment: Segment if segment.nearestExpiryDeadline.exists(!_.hasTimeLeft()) =>
           level.refresh(segment) match {
             case IO.Right(IO.Right(_)) =>
               logger.debug(s"Level(${level.levelNumber}): Refresh successful.")
@@ -340,7 +340,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
               )
           }
 
-        case None | Some(_) =>
+        case Segment.Null | _: Segment =>
           runLastLevelCompaction(
             level = level,
             checkExpired = false,

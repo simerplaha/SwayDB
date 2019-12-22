@@ -24,7 +24,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{KeyValue, Memory, Persistent}
+import swaydb.core.data.{KeyValue, Memory, Persistent, PersistentOptional}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
@@ -229,7 +229,7 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getSegmentBlockOffset(): SegmentBlock.Offset =
     SegmentBlock.Offset(0, file.fileSize.toInt)
 
-  def getFromCache(key: Slice[Byte]): Option[Persistent] =
+  def getFromCache(key: Slice[Byte]): PersistentOptional =
     segmentCache getFromCache key
 
   def mightContainKey(key: Slice[Byte]): Boolean =
@@ -244,16 +244,16 @@ private[segment] case class PersistentSegment(file: DBFile,
         )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte], readState: ReadState): Option[Persistent] =
+  def get(key: Slice[Byte], readState: ReadState): PersistentOptional =
     segmentCache.get(key, readState)
 
-  def lower(key: Slice[Byte], readState: ReadState): Option[Persistent] =
+  def lower(key: Slice[Byte], readState: ReadState): PersistentOptional =
     segmentCache.lower(key, readState)
 
   def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
     segmentCache floorHigherHint key
 
-  def higher(key: Slice[Byte], readState: ReadState): Option[Persistent] =
+  def higher(key: Slice[Byte], readState: ReadState): PersistentOptional =
     segmentCache.higher(key, readState)
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =

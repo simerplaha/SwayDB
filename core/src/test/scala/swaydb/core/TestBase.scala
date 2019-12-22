@@ -32,7 +32,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.TestSweeper.{fileSweeper, _}
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{Memory, Time}
+import swaydb.core.data.{Memory, MemoryOptional, Time}
 import swaydb.core.io.file.{BlockCache, BufferCleaner, DBFile, Effect}
 import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
@@ -49,7 +49,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.{Dir, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.Futures
 import swaydb.data.util.StorageUnits._
@@ -218,19 +218,23 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               mmap: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                     fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
-                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[Slice[Byte], Memory] = {
+                                    timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): map.Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] = {
       import swaydb.core.map.serializer.LevelZeroMapEntryReader._
       import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
       implicit val merger = swaydb.core.level.zero.LevelZeroSkipListMerger
 
       val testMap =
         if (levelStorage.memory)
-          map.Map.memory[Slice[Byte], Memory](
+          map.Map.memory[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null,
             fileSize = fileSize,
             flushOnOverflow = flushOnOverflow
           )
         else
-          map.Map.persistent[Slice[Byte], Memory](
+          map.Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null,
             folder = path,
             mmap = mmap,
             flushOnOverflow = flushOnOverflow,

@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.IO
-import swaydb.core.data.Persistent
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -33,26 +33,23 @@ sealed trait ValueLengthReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent]): Int
+           previous: PersistentOptional): Int
 }
 
 object ValueLengthReader {
 
   private def readLength(indexReader: ReaderBase,
-                         previous: Option[Persistent],
+                         previous: PersistentOptional,
                          commonBytes: Int): Int =
     previous match {
-      case Some(previous) =>
-        previous match {
-          case previous: Persistent =>
-            Bytes.decompress(
-              previous = Slice.writeInt(previous.valueLength),
-              next = indexReader.read(ByteSizeOf.int - commonBytes),
-              commonBytes = commonBytes
-            ).readInt()
-        }
+      case previous: Persistent =>
+        Bytes.decompress(
+          previous = Slice.writeInt(previous.valueLength),
+          next = indexReader.read(ByteSizeOf.int - commonBytes),
+          commonBytes = commonBytes
+        ).readInt()
 
-      case None =>
+      case Persistent.Null =>
         throw EntryReaderFailure.NoPreviousKeyValue
     }
 
@@ -60,7 +57,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Int =
+                      previous: PersistentOptional): Int =
       readLength(indexReader, previous, 1)
   }
 
@@ -68,7 +65,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Int =
+                      previous: PersistentOptional): Int =
       readLength(indexReader, previous, 2)
   }
 
@@ -76,7 +73,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Int =
+                      previous: PersistentOptional): Int =
       readLength(indexReader, previous, 3)
   }
 
@@ -84,12 +81,12 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Int =
+                      previous: PersistentOptional): Int =
       previous match {
-        case Some(previous: Persistent) =>
+        case previous: Persistent =>
           previous.valueLength
 
-        case None =>
+        case Persistent.Null =>
           throw EntryReaderFailure.NoPreviousKeyValue
       }
   }
@@ -98,7 +95,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Int =
+                      previous: PersistentOptional): Int =
       indexReader.readUnsignedInt()
   }
 
@@ -106,7 +103,7 @@ object ValueLengthReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Int =
+                      previous: PersistentOptional): Int =
       0
   }
 }

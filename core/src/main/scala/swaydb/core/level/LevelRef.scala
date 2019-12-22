@@ -24,7 +24,7 @@ import java.nio.file.Path
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.{ReadState, Segment}
+import swaydb.core.segment.{ReadState, Segment, SegmentOptional}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
@@ -216,7 +216,7 @@ private[core] trait LevelRef {
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean
 
-  def getSegment(minKey: Slice[Byte]): Option[Segment]
+  def getSegment(minKey: Slice[Byte]): SegmentOptional
 
   def existsOnDisk: Boolean
 

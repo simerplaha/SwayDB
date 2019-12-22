@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.core.data.Persistent
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.data.Persistent.Partial
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -40,7 +40,7 @@ trait EntryReader[E] {
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               normalisedByteSize: Int,
-                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
+                              previous: PersistentOptional)(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],
@@ -78,7 +78,7 @@ object EntryReader {
                        valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                        indexOffset: Int,
                        normalisedByteSize: Int,
-                       previous: Option[Persistent],
+                       previous: PersistentOptional,
                        entryReader: EntryReader[T]): T = {
     val baseEntryReaderNullable =
       findReaderNullable(
@@ -114,7 +114,7 @@ object EntryReader {
             indexOffset: Int,
             hasAccessPositionIndex: Boolean,
             normalisedByteSize: Int,
-            previous: Option[Persistent]): Persistent = {
+            previous: PersistentOptional): Persistent = {
     //check if de-normalising is required.
     val reader = Reader(indexEntry)
 

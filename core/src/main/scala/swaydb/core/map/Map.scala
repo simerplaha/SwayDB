@@ -35,60 +35,70 @@ import scala.reflect.ClassTag
 
 private[core] object Map extends LazyLogging {
 
-  def persistent[K, V: ClassTag](folder: Path,
-                                 mmap: Boolean,
-                                 flushOnOverflow: Boolean,
-                                 fileSize: Long,
-                                 dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                                    functionStore: FunctionStore,
-                                                                    fileSweeper: FileSweeper,
-                                                                    writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                    reader: MapEntryReader[MapEntry[K, V]],
-                                                                    skipListMerge: SkipListMerger[K, V]): RecoveryResult[PersistentMap[K, V]] =
+  def persistent[OK, OV, K <: OK, V <: OV : ClassTag](nullKey: OK,
+                                                      nullValue: OV,
+                                                      folder: Path,
+                                                      mmap: Boolean,
+                                                      flushOnOverflow: Boolean,
+                                                      fileSize: Long,
+                                                      dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                                                         functionStore: FunctionStore,
+                                                                                         fileSweeper: FileSweeper,
+                                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                         reader: MapEntryReader[MapEntry[K, V]],
+                                                                                         skipListMerge: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize,
-      dropCorruptedTailEntries = dropCorruptedTailEntries
+      dropCorruptedTailEntries = dropCorruptedTailEntries,
+      nullKey = nullKey,
+      nullValue = nullValue
     )
 
-  def persistent[K, V: ClassTag](folder: Path,
-                                 mmap: Boolean,
-                                 flushOnOverflow: Boolean,
-                                 fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                 functionStore: FunctionStore,
-                                                 fileSweeper: FileSweeper,
-                                                 reader: MapEntryReader[MapEntry[K, V]],
-                                                 writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                 skipListMerger: SkipListMerger[K, V]): PersistentMap[K, V] =
+  def persistent[OK, OV, K <: OK, V <: OV : ClassTag](nullKey: OK,
+                                                      nullValue: OV,
+                                                      folder: Path,
+                                                      mmap: Boolean,
+                                                      flushOnOverflow: Boolean,
+                                                      fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                                      functionStore: FunctionStore,
+                                                                      fileSweeper: FileSweeper,
+                                                                      reader: MapEntryReader[MapEntry[K, V]],
+                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                      skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
       flushOnOverflow = flushOnOverflow,
-      fileSize = fileSize
+      fileSize = fileSize,
+      nullKey = nullKey,
+      nullValue = nullValue
     )
 
-  def memory[K, V: ClassTag](fileSize: Long = 0.byte,
-                             flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              skipListMerge: SkipListMerger[K, V],
-                                                              writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[K, V] =
-    new MemoryMap[K, V](
-      skipList = SkipList.concurrent[K, V]()(keyOrder),
+  def memory[OK, OV, K <: OK, V <: OV : ClassTag](nullKey: OK,
+                                                  nullValue: OV,
+                                                  fileSize: Long = 0.byte,
+                                                  flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
+                                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                                   functionStore: FunctionStore,
+                                                                                   skipListMerge: SkipListMerger[OK, OV, K, V],
+                                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[OK, OV, K, V] =
+    new MemoryMap[OK, OV, K, V](
+      skipList = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder),
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize
     )
 }
 
-private[core] trait Map[K, V] {
+private[core] trait Map[OK, OV, K <: OK, V <: OV] {
 
   def hasRange: Boolean
 
-  val skipList: SkipList.Concurrent[K, V]
+  val skipList: SkipList.Concurrent[OK, OV, K, V]
 
   val fileSize: Long
 

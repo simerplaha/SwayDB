@@ -48,7 +48,7 @@ private[a] object ValueWriter extends ValueWriter {
       )
     else
       builder.previous match {
-        case Some(previous) =>
+        case previous: Memory =>
           compress(
             current = current,
             previous = previous,
@@ -56,7 +56,7 @@ private[a] object ValueWriter extends ValueWriter {
             builder = builder
           )
 
-        case None =>
+        case Memory.Null =>
           uncompressed(
             current = current,
             currentValue = current.value,

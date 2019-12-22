@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.Memory
+import swaydb.core.data.{Memory, MemoryOptional}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId.BaseEntryIdFormat
 import swaydb.core.segment.format.a.entry.id.{BaseEntryIdFormatA, KeyValueId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
@@ -44,7 +44,7 @@ private[core] object EntryWriter {
         startValueOffset = 0,
         endValueOffset = 0,
         accessPositionIndex = 0,
-        previous = None,
+        previous = Memory.Null,
         isCurrentPrefixCompressed = false,
         _segmentHasPrefixCompression = false
       )
@@ -60,7 +60,7 @@ private[core] object EntryWriter {
                 var startValueOffset: Int,
                 var endValueOffset: Int,
                 var accessPositionIndex: Int,
-                var previous: Option[Memory],
+                var previous: MemoryOptional,
                 //this should be reset to false once the entry is written
                 var isCurrentPrefixCompressed: Boolean,
                 private var _segmentHasPrefixCompression: Boolean) {

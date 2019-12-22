@@ -19,8 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.IO
-import swaydb.core.data.{Persistent, Time}
+import swaydb.core.data.{Persistent, PersistentOptional, Time}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.ReaderBase
@@ -32,7 +31,7 @@ sealed trait TimeReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent]): Time
+           previous: PersistentOptional): Time
 }
 
 /**
@@ -45,7 +44,7 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Time =
+                      previous: PersistentOptional): Time =
       Time.empty
   }
 
@@ -53,7 +52,7 @@ object TimeReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Time = {
+                      previous: PersistentOptional): Time = {
       val timeSize = indexReader.readUnsignedInt()
       val time = indexReader.read(timeSize)
       Time(time)
@@ -74,9 +73,9 @@ object TimeReader {
     }
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Time =
+                      previous: PersistentOptional): Time =
       previous match {
-        case Some(previous) =>
+        case previous: Persistent =>
           previous match {
             case previous: Persistent.Put =>
               readTime(indexReader, previous.time)
@@ -96,7 +95,8 @@ object TimeReader {
             case _: Persistent.Range =>
               throw EntryReaderFailure.PreviousIsNotFixedKeyValue
           }
-        case None =>
+
+        case Persistent.Null =>
           throw EntryReaderFailure.NoPreviousKeyValue
       }
   }

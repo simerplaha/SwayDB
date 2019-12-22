@@ -19,8 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.IO
-import swaydb.core.data.Persistent
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
@@ -35,7 +34,7 @@ sealed trait DeadlineReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: Option[Persistent]): Option[duration.Deadline]
+           previous: PersistentOptional): Option[duration.Deadline]
 }
 
 object DeadlineReader {
@@ -43,7 +42,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       None
   }
 
@@ -51,31 +50,26 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       previous match {
-        case Some(previous) =>
-          previous match {
-            case previous: Persistent =>
-              previous.indexEntryDeadline match {
-                case some @ Some(_) =>
-                  some
-                case None =>
-                  throw EntryReaderFailure.NoPreviousDeadline
-              }
-
-            case _ =>
-              throw IO.throwable("Expected Persistent. Received Partial")
+        case previous: Persistent =>
+          previous.indexEntryDeadline match {
+            case some @ Some(_) =>
+              some
+            case None =>
+              throw EntryReaderFailure.NoPreviousDeadline
           }
-        case None =>
+
+        case Persistent.Null =>
           throw EntryReaderFailure.NoPreviousKeyValue
       }
   }
 
   private def decompressDeadline(indexReader: ReaderBase,
                                  commonBytes: Int,
-                                 previous: Option[Persistent]): Option[duration.Deadline] =
+                                 previous: PersistentOptional): Option[duration.Deadline] =
     previous match {
-      case Some(previous: Persistent) =>
+      case previous: Persistent =>
         previous.indexEntryDeadline match {
           case Some(previousDeadline) =>
             Bytes
@@ -91,7 +85,7 @@ object DeadlineReader {
             throw EntryReaderFailure.NoPreviousDeadline
         }
 
-      case None =>
+      case Persistent.Null =>
         throw EntryReaderFailure.NoPreviousKeyValue
     }
 
@@ -99,7 +93,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       decompressDeadline(indexReader = indexReader, commonBytes = 1, previous = previous)
   }
 
@@ -107,7 +101,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       decompressDeadline(indexReader = indexReader, commonBytes = 2, previous = previous)
   }
 
@@ -115,7 +109,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       decompressDeadline(indexReader = indexReader, commonBytes = 3, previous = previous)
   }
 
@@ -123,7 +117,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       decompressDeadline(indexReader = indexReader, commonBytes = 4, previous = previous)
   }
 
@@ -131,7 +125,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       decompressDeadline(indexReader = indexReader, commonBytes = 5, previous = previous)
   }
 
@@ -139,7 +133,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       decompressDeadline(indexReader = indexReader, commonBytes = 6, previous = previous)
   }
 
@@ -147,7 +141,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       decompressDeadline(indexReader = indexReader, commonBytes = 7, previous = previous)
   }
 
@@ -155,7 +149,7 @@ object DeadlineReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: Option[Persistent]): Option[duration.Deadline] =
+                      previous: PersistentOptional): Option[duration.Deadline] =
       indexReader.readUnsignedLong().toDeadlineOption
   }
 }

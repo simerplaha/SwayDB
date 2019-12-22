@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.core.data.Persistent
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, KeyValueId}
@@ -37,7 +37,7 @@ object FunctionReader extends EntryReader[Persistent.Function] {
                               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                               indexOffset: Int,
                               normalisedByteSize: Int,
-                              previous: Option[Persistent])(implicit timeReader: TimeReader[T],
+                              previous: PersistentOptional)(implicit timeReader: TimeReader[T],
                                                             deadlineReader: DeadlineReader[T],
                                                             valueOffsetReader: ValueOffsetReader[T],
                                                             valueLengthReader: ValueLengthReader[T],

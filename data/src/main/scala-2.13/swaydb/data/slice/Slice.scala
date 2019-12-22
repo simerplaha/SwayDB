@@ -29,7 +29,15 @@ import scala.reflect.ClassTag
 /**
  * Documentation - http://swaydb.io/slice
  */
+sealed trait SliceOption[+T] {
+  def toOption: Option[Slice[T]]
+}
 object Slice extends SliceCompanionBase {
+
+  final case object Null extends SliceOption[Nothing] {
+    override def toOption: Option[Slice[Nothing]] =
+      None
+  }
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
@@ -88,10 +96,11 @@ class Slice[+T] private[slice](array: Array[T],
                                fromOffset: Int,
                                toOffset: Int,
                                written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
-                                                                                                              with IterableOps[T, Slice, Slice[T]]
-                                                                                                              with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
-                                                                                                              with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
-//@formatter:on
+  with SliceOption[T]
+  with IterableOps[T, Slice, Slice[T]]
+  with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
+  with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
+  //@formatter:on
 
   override def selfSlice: Slice[T] =
     this

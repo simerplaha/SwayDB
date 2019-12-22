@@ -60,8 +60,8 @@
 //            val valuesCount: Int = values.size
 //            val isFullIndex: Boolean = true
 //            val higherOrLower: Option[Boolean] = None
-//            val lowestKeyValue: Option[Persistent] = None
-//            val highestKeyValue: Option[Persistent] = None
+//            val lowestKeyValue: PersistentOptional = None
+//            val highestKeyValue: PersistentOptional = None
 //
 //            def seek(offset: Int) = {
 //              val foundValue =

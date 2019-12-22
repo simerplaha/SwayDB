@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-import swaydb.core.data.Persistent
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.data.Persistent.Partial
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Get
@@ -35,8 +35,8 @@ private[block] trait BinarySearchContext {
   def bytesPerValue: Int
   def valuesCount: Int
   def isFullIndex: Boolean
-  def lowestKeyValue: Option[Persistent]
-  def highestKeyValue: Option[Persistent]
+  def lowestKeyValue: PersistentOptional
+  def highestKeyValue: PersistentOptional
 
   def seek(offset: Int): KeyMatcher.Result
 }
@@ -44,8 +44,8 @@ private[block] trait BinarySearchContext {
 object BinarySearchContext {
 
   def apply(key: Slice[Byte],
-            lowest: Option[Persistent],
-            highest: Option[Persistent],
+            lowest: PersistentOptional,
+            highest: PersistentOptional,
             binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
@@ -60,9 +60,9 @@ object BinarySearchContext {
 
       override val valuesCount: Int = binarySearchIndex.block.valuesCount
 
-      override val lowestKeyValue: Option[Persistent] = lowest
+      override val lowestKeyValue: PersistentOptional = lowest
 
-      override val highestKeyValue: Option[Persistent] = highest
+      override val highestKeyValue: PersistentOptional = highest
 
       override def seek(offset: Int): KeyMatcher.Result = {
         val partialKeyValue =
@@ -79,8 +79,8 @@ object BinarySearchContext {
     }
 
   def apply(key: Slice[Byte],
-            lowest: Option[Persistent],
-            highest: Option[Persistent],
+            lowest: PersistentOptional,
+            highest: PersistentOptional,
             keyValuesCount: Int,
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
@@ -95,9 +95,9 @@ object BinarySearchContext {
 
       override val valuesCount: Int = keyValuesCount
 
-      override val lowestKeyValue: Option[Persistent] = lowest
+      override val lowestKeyValue: PersistentOptional = lowest
 
-      override val highestKeyValue: Option[Persistent] = highest
+      override val highestKeyValue: PersistentOptional = highest
 
       override def seek(offset: Int): KeyMatcher.Result = {
         val partialKeyValue =

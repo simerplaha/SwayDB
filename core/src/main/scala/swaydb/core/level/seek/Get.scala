@@ -187,10 +187,10 @@ private[core] object Get {
       }
 
     current match {
-      case Some(current) =>
+      case current: KeyValue =>
         resolve(current)
 
-      case None =>
+      case _: KeyValue.Null =>
         nextGetter.get(key, readState)
     }
   }

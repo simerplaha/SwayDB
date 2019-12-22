@@ -19,12 +19,11 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
-import swaydb.core.data.Persistent
+import swaydb.core.data.PersistentOptional
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.data.slice.ReaderBase
 import swaydb.data.slice.{ReaderBase, Slice}
 
 private[core] object BaseEntryReaderUncompressed extends BaseEntryReader {
@@ -38,7 +37,7 @@ private[core] object BaseEntryReaderUncompressed extends BaseEntryReader {
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               indexOffset: Int,
               normalisedByteSize: Int,
-              previous: Option[Persistent],
+              previous: PersistentOptional,
               reader: EntryReader[T]): T =
   //GENERATED CONDITIONS
     if (baseId == 95)

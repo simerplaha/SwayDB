@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.data.Persistent
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.ReadState
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -29,6 +29,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Options._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.SomeOrNone._
 
 private[core] object SegmentSearcher extends LazyLogging {
 
@@ -42,8 +43,8 @@ private[core] object SegmentSearcher extends LazyLogging {
 
   def search(path: Path,
              key: Slice[Byte],
-             start: Option[Persistent],
-             end: => Option[Persistent],
+             start: PersistentOptional,
+             end: => PersistentOptional,
              hashIndexReader: => Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
              binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -51,9 +52,9 @@ private[core] object SegmentSearcher extends LazyLogging {
              hasRange: Boolean,
              keyValueCount: => Int,
              readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                   partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent] =
-    when(start.isDefined && readState.isSequential(path))(start) match {
-      case Some(startFrom) =>
+                                   partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
+    when[PersistentOptional](start.isDefined && readState.isSequential(path), Persistent.Null)(start) match {
+      case startFrom: Persistent =>
         //        seqSeeks += 1
         val found =
           SortedIndexBlock.searchSeekOne(
@@ -91,7 +92,7 @@ private[core] object SegmentSearcher extends LazyLogging {
           result
         }
 
-      case None =>
+      case Persistent.Null =>
         val result =
           hashIndexSearch(
             key = key,
@@ -120,69 +121,70 @@ private[core] object SegmentSearcher extends LazyLogging {
     }
 
   def hashIndexSearch(key: Slice[Byte],
-                      start: Option[Persistent],
-                      end: => Option[Persistent],
+                      start: PersistentOptional,
+                      end: => PersistentOptional,
                       hashIndexReader: => Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                       binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                       valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                       hasRange: Boolean,
                       keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                             partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent] =
-    hashIndexReader match {
-      case Some(hashIndexReader) =>
-        //        hashIndexSeeks += 1
-        //println
-        //println(s"Search key: ${key.readInt()}")
-        HashIndexBlock.search(
-          key = key,
-          hashIndexReader = hashIndexReader,
-          sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader
-        ) match {
-          case None =>
-            if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
-              None
-            } else {
-              //              failedHashIndexSeeks += 1
-              BinarySearchIndexBlock.search(
-                key = key,
-                lowest = start,
-                highest = end,
-                keyValuesCount = keyValueCount,
-                binarySearchIndexReader = binarySearchIndexReader,
-                sortedIndexReader = sortedIndexReader,
-                valuesReader = valuesReader
-              ).toOptionApply(_.toPersistent)
-            }
-
-          case Some(keyValue) =>
-            //            successfulHashIndexSeeks += 1
-            Some(keyValue.toPersistent)
-        }
-
-      case None =>
-        BinarySearchIndexBlock.search(
-          key = key,
-          lowest = start,
-          highest = end,
-          keyValuesCount = keyValueCount,
-          binarySearchIndexReader = binarySearchIndexReader,
-          sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader
-        ).toOptionApply(_.toPersistent)
-    }
+                                             partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
+  //    hashIndexReader match {
+  //      case Some(hashIndexReader) =>
+  //        //        hashIndexSeeks += 1
+  //        //println
+  //        //println(s"Search key: ${key.readInt()}")
+  //        HashIndexBlock.search(
+  //          key = key,
+  //          hashIndexReader = hashIndexReader,
+  //          sortedIndexReader = sortedIndexReader,
+  //          valuesReader = valuesReader
+  //        ) match {
+  //          case None =>
+  //            if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
+  //              Persistent.Null
+  //            } else {
+  //              //              failedHashIndexSeeks += 1
+  //              BinarySearchIndexBlock.search(
+  //                key = key,
+  //                lowest = start,
+  //                highest = end,
+  //                keyValuesCount = keyValueCount,
+  //                binarySearchIndexReader = binarySearchIndexReader,
+  //                sortedIndexReader = sortedIndexReader,
+  //                valuesReader = valuesReader
+  //              ).toOptionApply(_.toPersistent)
+  //            }
+  //
+  //          case Some(keyValue) =>
+  //            //            successfulHashIndexSeeks += 1
+  //            keyValue.toPersistent
+  //        }
+  //
+  //      case None =>
+  //        BinarySearchIndexBlock.search(
+  //          key = key,
+  //          lowest = start,
+  //          highest = end,
+  //          keyValuesCount = keyValueCount,
+  //          binarySearchIndexReader = binarySearchIndexReader,
+  //          sortedIndexReader = sortedIndexReader,
+  //          valuesReader = valuesReader
+  //        ).toOptionApply(_.toPersistent)
+  //    }
+    ???
 
   def searchHigher(key: Slice[Byte],
-                   start: Option[Persistent],
-                   end: => Option[Persistent],
+                   start: PersistentOptional,
+                   end: => PersistentOptional,
                    keyValueCount: => Int,
                    binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent] =
+                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
     start match {
-      case Some(startFrom) =>
+      case startFrom: Persistent =>
         val found =
           SortedIndexBlock.searchHigherMatchOnly(
             key = key,
@@ -202,9 +204,9 @@ private[core] object SegmentSearcher extends LazyLogging {
             binarySearchIndexReader = binarySearchIndexReader,
             sortedIndexReader = sortedIndexReader,
             valuesReader = valuesReader
-          ).map(_.toPersistent)
+          ).flatMapOption(Persistent.Null: PersistentOptional)(_.toPersistent)
 
-      case None =>
+      case Persistent.Null =>
         BinarySearchIndexBlock.searchHigher(
           key = key,
           start = start,
@@ -213,17 +215,17 @@ private[core] object SegmentSearcher extends LazyLogging {
           binarySearchIndexReader = binarySearchIndexReader,
           sortedIndexReader = sortedIndexReader,
           valuesReader = valuesReader
-        ).map(_.toPersistent)
+        ).flatMapOption(Persistent.Null: PersistentOptional)(_.toPersistent)
     }
 
   def searchLower(key: Slice[Byte],
-                  start: Option[Persistent],
-                  end: Option[Persistent],
+                  start: PersistentOptional,
+                  end: PersistentOptional,
                   keyValueCount: => Int,
                   binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                          partialOrdering: KeyOrder[Persistent.Partial]): Option[Persistent] =
+                                                                                          partialOrdering: KeyOrder[Persistent.Partial]): PersistentOptional =
     BinarySearchIndexBlock.searchLower(
       key = key,
       start = start,
@@ -232,5 +234,5 @@ private[core] object SegmentSearcher extends LazyLogging {
       binarySearchIndexReader = binarySearchIndexReader,
       sortedIndexReader = sortedIndexReader,
       valuesReader = valuesReader
-    ).map(_.toPersistent)
+    ).flatMapOption(Persistent.Null: PersistentOptional)(_.toPersistent)
 }

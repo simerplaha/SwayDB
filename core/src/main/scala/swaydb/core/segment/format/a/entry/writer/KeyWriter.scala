@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import swaydb.core.data.Memory
+import swaydb.core.data.{Memory, MemoryOptional}
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.core.util.Options._
@@ -39,7 +39,7 @@ private[a] object KeyWriter extends KeyWriter {
   def write[T <: Memory](current: T,
                          builder: EntryWriter.Builder,
                          deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
-    when(builder.enablePrefixCompression)(builder.previous) flatMap {
+    when[MemoryOptional](builder.enablePrefixCompression, Memory.Null)(builder.previous) flatMapOption {
       previous =>
         writeCompressed(
           current = current,

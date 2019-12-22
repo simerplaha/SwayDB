@@ -19,12 +19,12 @@
 
 package swaydb.core.level.seek
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, KeyValueOptional}
 import swaydb.core.segment.ReadState
 import swaydb.data.slice.Slice
 
 trait CurrentGetter {
 
   def get(key: Slice[Byte],
-          readState: ReadState): Option[KeyValue]
+          readState: ReadState): KeyValueOptional
 }

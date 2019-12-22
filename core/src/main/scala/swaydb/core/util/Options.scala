@@ -33,6 +33,12 @@ private[swaydb] object Options {
     else
       None
 
+  def when[T](condition: Boolean, none: T)(success: => T): T =
+    if (condition)
+      success
+    else
+      none
+
   implicit class OptionsImplicits[A](option: Option[A]) {
     @inline def valueOrElse[B](value: A => B, orElse: => B): B =
       Options.valueOrElse[A, B](option, value, orElse)

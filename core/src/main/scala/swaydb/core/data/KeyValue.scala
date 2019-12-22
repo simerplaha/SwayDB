@@ -36,10 +36,13 @@ import swaydb.data.util.SomeOrNone
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 private[core] sealed trait KeyValueOptional {
-  def asOption: Option[KeyValue] =
+  def getUnsafe: KeyValue
+
+  def toOptions: Option[KeyValue] =
     this match {
       case optional: MemoryOptional =>
         optional.toOption
+
       case optional: PersistentOptional =>
         optional.toOption
     }
@@ -56,6 +59,8 @@ private[core] sealed trait KeyValue {
 }
 
 private[core] object KeyValue {
+
+  sealed trait Null extends KeyValueOptional
 
   /**
    * Key-values that can be added to [[swaydb.core.actor.MemorySweeper]].
@@ -161,6 +166,9 @@ private[core] object KeyValue {
 
 private[swaydb] sealed trait MemoryOptional extends SomeOrNone[MemoryOptional, Memory] with KeyValueOptional {
   override def none: MemoryOptional = Memory.Null
+
+  override def getUnsafe: KeyValue =
+    get
 }
 
 private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
@@ -182,12 +190,13 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
 
 private[swaydb] object Memory {
 
-  final object Null extends MemoryOptional {
+  final object Null extends MemoryOptional with KeyValue.Null {
     override def isEmpty: Boolean =
       true
 
     override def get: Memory =
       throw new Exception("Is Null")
+
   }
 
   implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
@@ -565,7 +574,7 @@ private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptio
   override def none: PersistentOptional = Persistent.Null
 }
 
-private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial with PersistentOptional with Persistent.PersistentPartialOptional {
+private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial with PersistentOptional {
 
   def indexOffset: Int
   val nextIndexOffset: Int
@@ -589,6 +598,9 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   override def get: Persistent =
     this
 
+  override def getUnsafe: KeyValue =
+    get
+
   /**
    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
    * and before inserting into the Segment's cache.
@@ -598,9 +610,10 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
 private[core] object Persistent {
 
-  final object Null extends PersistentOptional {
+  final object Null extends PersistentOptional with KeyValue.Null {
     override def isEmpty: Boolean = true
     override def get: Persistent = throw new Exception("get on Persistent key-value that is none")
+    override def getUnsafe: KeyValue = get
   }
 
   /**
@@ -609,16 +622,13 @@ private[core] object Persistent {
    * and only key is read for processing.
    */
 
-  sealed trait PersistentPartialOptional
-
-  sealed trait Partial extends PersistentPartialOptional {
+  sealed trait Partial {
     def key: Slice[Byte]
     def indexOffset: Int
     def toPersistent: Persistent
   }
 
   object Partial {
-    final case object Null extends PersistentPartialOptional
 
     val noneMaybe: Maybe[Persistent.Partial] =
       null.asInstanceOf[Maybe[Persistent.Partial]]

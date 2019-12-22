@@ -31,13 +31,13 @@ import swaydb.core.io.file.Effect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block.SegmentIO
+import swaydb.core.segment.{Segment, SegmentOptional}
 import swaydb.core.util.Extension
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.StorageUnits._
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
@@ -174,10 +174,12 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
-                                                 skipListMerger: SkipListMerger[Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
+                                                 skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
     IO {
       Effect.walkDelete(appendixDir)
-      Map.persistent[Slice[Byte], Segment](
+      Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](
+        nullKey = Slice.Null,
+        nullValue = Segment.Null,
         folder = appendixDir,
         mmap = false,
         flushOnOverflow = true,

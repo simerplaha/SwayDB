@@ -35,7 +35,7 @@ import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
@@ -50,7 +50,7 @@ private[segment] case class MemorySegment(path: Path,
                                           hasRange: Boolean,
                                           hasPut: Boolean,
                                           createdInLevel: Int,
-                                          private[segment] val skipList: SkipList.Immutable[Slice[Byte], Memory],
+                                          private[segment] val skipList: SkipList.Immutable[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory],
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,
@@ -124,25 +124,25 @@ private[segment] case class MemorySegment(path: Path,
       )
     }
 
-  override def getFromCache(key: Slice[Byte]): Option[KeyValue] =
+  override def getFromCache(key: Slice[Byte]): KeyValueOptional =
     skipList.get(key)
 
-  override def get(key: Slice[Byte], readState: ReadState): Option[Memory] =
+  override def get(key: Slice[Byte], readState: ReadState): MemoryOptional =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
       maxKey match {
         case MaxKey.Fixed(maxKey) if key > maxKey =>
-          None
+          Memory.Null
 
         case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-          None
+          Memory.Null
 
         case _ =>
           if (hasRange)
             skipList.floor(key) match {
-              case Some(range: Memory.Range) if range contains key =>
-                Some(range)
+              case range: Memory.Range if range contains key =>
+                range
 
               case _ =>
                 skipList.get(key)
@@ -164,7 +164,7 @@ private[segment] case class MemorySegment(path: Path,
     }
 
   override def lower(key: Slice[Byte],
-                     readState: ReadState): Option[Memory] =
+                     readState: ReadState): MemoryOptional =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
@@ -184,21 +184,15 @@ private[segment] case class MemorySegment(path: Path,
       None
 
   override def higher(key: Slice[Byte],
-                      readState: ReadState): Option[Memory] =
+                      readState: ReadState): MemoryOptional =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else if (hasRange)
       skipList.floor(key) match {
-        case Some(floor) =>
-          floor match {
-            case floorRange: Memory.Range if floorRange contains key =>
-              Some(floorRange)
+        case floorRange: Memory.Range if floorRange contains key =>
+          floorRange
 
-            case _ =>
-              skipList.higher(key)
-          }
-
-        case None =>
+        case _ =>
           skipList.higher(key)
       }
     else

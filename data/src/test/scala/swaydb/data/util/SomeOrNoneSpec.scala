@@ -145,13 +145,16 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
     val someOption: Option = Option.Some("some")
 
-    someOption.flatMapSomeOrNone(Option2.None2) {
-      some =>
-        some shouldBe someOption
-        Option2.Some2("some")
-    } shouldBe Option2.Some2("some")
+    val result: Option2 =
+      someOption.flatMapSome(Option2.None2: Option2) {
+        some =>
+          some shouldBe someOption
+          Option2.Some2("some")
+      }
 
-    Option.None.flatMapSomeOrNone(Option2.None2) {
+    result shouldBe Option2.Some2("some")
+
+    Option.None.flatMapSome(Option2.None2: Option2) {
       some =>
         fail()
     } shouldBe Option2.None2

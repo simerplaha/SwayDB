@@ -123,22 +123,22 @@ object TestData {
     def reopen(path: Path): Segment =
       tryReopen(path).runRandomIO.right.value
 
-    def get(key: Slice[Byte]): Option[KeyValue] =
+    def get(key: Slice[Byte]): KeyValueOptional =
       segment.get(key, ReadState.random)
 
-    def get(key: Int): Option[KeyValue] =
+    def get(key: Int): KeyValueOptional =
       segment.get(key, ReadState.random)
 
-    def higher(key: Int): Option[KeyValue] =
+    def higher(key: Int): KeyValueOptional =
       segment.higher(key, ReadState.random)
 
-    def higher(key: Slice[Byte]): Option[KeyValue] =
+    def higher(key: Slice[Byte]): KeyValueOptional =
       segment.higher(key, ReadState.random)
 
-    def lower(key: Int): Option[KeyValue] =
+    def lower(key: Int): KeyValueOptional =
       segment.lower(key, ReadState.random)
 
-    def lower(key: Slice[Byte]): Option[KeyValue] =
+    def lower(key: Slice[Byte]): KeyValueOptional =
       segment.lower(key, ReadState.random)
   }
 
