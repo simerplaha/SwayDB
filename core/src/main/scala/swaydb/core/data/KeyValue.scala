@@ -19,11 +19,8 @@
 
 package swaydb.core.data
 
-import java.beans.Transient
-
 import swaydb.IO
 import swaydb.core.cache.{Cache, CacheNoIO}
-import swaydb.core.data.Value.FromValueOption
 import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
 import swaydb.core.segment.Segment
@@ -34,8 +31,19 @@ import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.Maybe.Maybe
+import swaydb.data.util.SomeOrNone
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+
+private[core] sealed trait KeyValueOptional {
+  def asOption: Option[KeyValue] =
+    this match {
+      case optional: MemoryOptional =>
+        optional.toOption
+      case optional: PersistentOptional =>
+        optional.toOption
+    }
+}
 
 private[core] sealed trait KeyValue {
   def key: Slice[Byte]
@@ -50,7 +58,7 @@ private[core] sealed trait KeyValue {
 private[core] object KeyValue {
 
   /**
-   * Key-values that can be added to [[MemorySweeper]].
+   * Key-values that can be added to [[swaydb.core.actor.MemorySweeper]].
    *
    * These key-values can remain in memory depending on the cacheSize and are dropped or uncompressed on overflow.
    */
@@ -139,9 +147,9 @@ private[core] object KeyValue {
   sealed trait Range extends KeyValue {
     def fromKey: Slice[Byte]
     def toKey: Slice[Byte]
-    def fetchFromValueUnsafe: FromValueOption
+    def fetchFromValueUnsafe: Value.FromValueOption
     def fetchRangeValueUnsafe: Value.RangeValue
-    def fetchFromAndRangeValueUnsafe: (FromValueOption, Value.RangeValue)
+    def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue)
     def fetchFromOrElseRangeValueUnsafe: Value.FromValue = {
       val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
       fromValue getOrElse rangeValue
@@ -151,7 +159,11 @@ private[core] object KeyValue {
   type KeyValueTuple = (Slice[Byte], Option[Slice[Byte]])
 }
 
-private[swaydb] sealed trait Memory extends KeyValue {
+private[swaydb] sealed trait MemoryOptional extends SomeOrNone[MemoryOptional, Memory] with KeyValueOptional {
+  override def none: MemoryOptional = Memory.Null
+}
+
+private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
   def id: Byte
   def isRange: Boolean
   def isRemoveRangeMayBe: Boolean
@@ -160,9 +172,24 @@ private[swaydb] sealed trait Memory extends KeyValue {
   def mergedKey: Slice[Byte]
   def value: Option[Slice[Byte]]
   def deadline: Option[Deadline]
+
+  override def isEmpty: Boolean =
+    false
+
+  override def get: Memory =
+    this
 }
 
 private[swaydb] object Memory {
+
+  final object Null extends MemoryOptional {
+    override def isEmpty: Boolean =
+      true
+
+    override def get: Memory =
+      throw new Exception("Is Null")
+  }
+
   implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
     @inline def maxKey(): MaxKey[Slice[Byte]] =
       keyValues.last match {
@@ -492,7 +519,7 @@ private[swaydb] object Memory {
 
   case class Range(fromKey: Slice[Byte],
                    toKey: Slice[Byte],
-                   fromValue: FromValueOption,
+                   fromValue: Value.FromValueOption,
                    rangeValue: Value.RangeValue) extends Memory with KeyValue.Range {
 
     override def persistentTime: Time = Time.empty
@@ -520,13 +547,13 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def fetchFromValueUnsafe: FromValueOption =
+    override def fetchFromValueUnsafe: Value.FromValueOption =
       fromValue
 
     override def fetchRangeValueUnsafe: Value.RangeValue =
       rangeValue
 
-    override def fetchFromAndRangeValueUnsafe: (FromValueOption, Value.RangeValue) =
+    override def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue) =
       (fromValue, rangeValue)
 
     override def toMemory: Memory.Range =
@@ -534,7 +561,11 @@ private[swaydb] object Memory {
   }
 }
 
-private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial {
+private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptional, Persistent] with KeyValueOptional {
+  override def none: PersistentOptional = Persistent.Null
+}
+
+private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial with PersistentOptional with Persistent.PersistentPartialOptional {
 
   def indexOffset: Int
   val nextIndexOffset: Int
@@ -549,8 +580,14 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
   def isValueCached: Boolean
 
-  def toMemoryOption(): Option[Memory] =
-    Some(toMemory())
+  def toMemoryOption(): MemoryOptional =
+    toMemory()
+
+  override def isEmpty: Boolean =
+    false
+
+  override def get: Persistent =
+    this
 
   /**
    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
@@ -561,18 +598,28 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
 private[core] object Persistent {
 
+  final object Null extends PersistentOptional {
+    override def isEmpty: Boolean = true
+    override def get: Persistent = throw new Exception("get on Persistent key-value that is none")
+  }
+
   /**
    * [[Partial]] key-values types are used in persistent databases
    * for quick search where the entire key-value parse is skipped
    * and only key is read for processing.
    */
-  sealed trait Partial {
+
+  sealed trait PersistentPartialOptional
+
+  sealed trait Partial extends PersistentPartialOptional {
     def key: Slice[Byte]
     def indexOffset: Int
     def toPersistent: Persistent
   }
 
   object Partial {
+    final case object Null extends PersistentPartialOptional
+
     val noneMaybe: Maybe[Persistent.Partial] =
       null.asInstanceOf[Maybe[Persistent.Partial]]
 
@@ -1090,7 +1137,7 @@ private[core] object Persistent {
         _fromKey = fromKey,
         _toKey = toKey,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, (FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, (Value.FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               valuesReader match {
                 case Some(valuesReader) =>
@@ -1119,7 +1166,7 @@ private[core] object Persistent {
 
   case class Range private(private var _fromKey: Slice[Byte],
                            private var _toKey: Slice[Byte],
-                           valueCache: CacheNoIO[ValuesBlock.Offset, (FromValueOption, Value.RangeValue)],
+                           valueCache: CacheNoIO[ValuesBlock.Offset, (Value.FromValueOption, Value.RangeValue)],
                            nextIndexOffset: Int,
                            nextKeySize: Int,
                            indexOffset: Int,
@@ -1144,10 +1191,10 @@ private[core] object Persistent {
     def fetchRangeValueUnsafe: Value.RangeValue =
       fetchFromAndRangeValueUnsafe._2
 
-    def fetchFromValueUnsafe: FromValueOption =
+    def fetchFromValueUnsafe: Value.FromValueOption =
       fetchFromAndRangeValueUnsafe._1
 
-    def fetchFromAndRangeValueUnsafe: (FromValueOption, Value.RangeValue) =
+    def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue) =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toMemory(): Memory.Range = {
