@@ -62,7 +62,7 @@ private[core] object SegmentGrouper extends LazyLogging {
 
       case range: KeyValue.Range =>
         val fromValue = range.fetchFromValueUnsafe
-        if (fromValue.isDefined)
+        if (fromValue.isSome)
           fromValue.get match {
             case put @ Value.Put(fromValue, deadline, time) =>
               if (put.hasTimeLeft())

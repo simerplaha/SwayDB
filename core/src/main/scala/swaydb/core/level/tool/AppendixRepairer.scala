@@ -37,7 +37,7 @@ import swaydb.core.util.Extension
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._
 import swaydb.data.repairAppendix.{AppendixRepairStrategy, OverlappingSegmentsException, SegmentInfoUnTyped}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.StorageUnits._
 
 private[swaydb] object AppendixRepairer extends LazyLogging {
@@ -174,10 +174,10 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
                                                  mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
-                                                 skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
+                                                 skipListMerger: SkipListMerger[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
     IO {
       Effect.walkDelete(appendixDir)
-      Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](
+      Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](
         nullKey = Slice.Null,
         nullValue = Segment.Null,
         folder = appendixDir,

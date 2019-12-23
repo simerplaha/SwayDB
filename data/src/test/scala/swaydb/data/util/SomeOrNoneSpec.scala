@@ -31,13 +31,13 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
   private object Option {
     final object None extends Option {
-      override def isEmpty: Boolean = true
+      override def isNone: Boolean = true
       override def get: Option.Some =
         throw new Exception("Not a some value")
     }
 
     case class Some(value: String = Random.nextString(10)) extends Option {
-      override def isEmpty: Boolean = false
+      override def isNone: Boolean = false
       override def get: Option.Some = this
     }
   }
@@ -52,10 +52,10 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
   "isEmpty" in {
     val some: Option = Option.Some()
-    some.isEmpty shouldBe false
+    some.isNone shouldBe false
 
     val none: Option = Option.None
-    none.isEmpty shouldBe true
+    none.isNone shouldBe true
   }
 
   "get" in {
@@ -68,61 +68,61 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
   "flatMap" in {
     val some: Option = Option.Some("some")
-    some.flatMap {
+    some.flatMapSON {
       s =>
         s shouldBe some
         Option.Some("other")
     } shouldBe Option.Some("other")
 
     val none: Option = Option.None
-    none.flatMap(_ => fail()) shouldBe none
+    none.flatMapSON(_ => fail()) shouldBe none
   }
 
   "foreach" in {
     val some: Option = Option.Some("some")
     var invoked = false
-    some.foreach {
+    some.foreachSON {
       _ =>
         invoked = true
     }
     invoked shouldBe true
 
     val none: Option = Option.None
-    none.foreach(_ => fail())
+    none.foreachSON(_ => fail())
   }
 
   "getOrElse" in {
     val some: Option = Option.Some("some")
-    some.getOrElse(fail()) shouldBe some
+    some.getOrElseSON(fail()) shouldBe some
 
     val none: Option = Option.None
-    none.getOrElse(Option.Some("")) shouldBe Option.Some("")
+    none.getOrElseSON(Option.Some("")) shouldBe Option.Some("")
   }
 
   "orElse" in {
     val some: Option = Option.Some("some")
-    some.orElse(fail()) shouldBe some
+    some.orElseSON(fail()) shouldBe some
 
     val none: Option = Option.None
-    none.orElse(Option.Some("")) shouldBe Option.Some("")
+    none.orElseSON(Option.Some("")) shouldBe Option.Some("")
   }
 
   "exists" in {
     val some: Option = Option.Some("some")
-    some.exists(_ => true) shouldBe true
-    some.exists(_ => false) shouldBe false
+    some.existsSON(_ => true) shouldBe true
+    some.existsSON(_ => false) shouldBe false
 
     val none: Option = Option.None
-    none.exists(_ => fail()) shouldBe false
+    none.existsSON(_ => fail()) shouldBe false
   }
 
   "forAll" in {
     val some: Option = Option.Some("some")
-    some.forall(_ => true) shouldBe true
-    some.forall(_ => false) shouldBe false
+    some.forallSON(_ => true) shouldBe true
+    some.forallSON(_ => false) shouldBe false
 
     val none: Option = Option.None
-    none.forall(_ => fail()) shouldBe true
+    none.forallSON(_ => fail()) shouldBe true
   }
 
   "flatMapSomeOrNone" in {
@@ -132,13 +132,13 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
     object Option2 {
       implicit final object None2 extends Option2 {
-        override def isEmpty: Boolean = true
+        override def isNone: Boolean = true
         override def get: Option2.Some2 =
           throw new Exception("Not a some value")
       }
 
       case class Some2(value: String = Random.nextString(10)) extends Option2 {
-        override def isEmpty: Boolean = false
+        override def isNone: Boolean = false
         override def get: Option2.Some2 = this
       }
     }

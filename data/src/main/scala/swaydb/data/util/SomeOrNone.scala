@@ -34,62 +34,62 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
 
   def none: T
 
-  def isEmpty: Boolean
+  def isNone: Boolean
 
   def get: SOME
 
   def toOption: Option[SOME] =
-    if (isDefined)
+    if (isSome)
       Some(get)
     else
       None
 
-  def isDefined: Boolean =
-    !isEmpty
+  def isSome: Boolean =
+    !isNone
 
-  def map[B](f: SOME => B): Option[B] =
-    if (isDefined)
+  def mapSON[B](f: SOME => B): Option[B] =
+    if (isSome)
       Some(f(get))
     else
       None
 
-  def flatMap[B <: T](f: SOME => B): T =
-    if (isDefined)
+  def flatMapSON[B <: T](f: SOME => B): T =
+    if (isSome)
       f(get)
     else
       none
 
   def flatMapSome[T2](none: T2)(f: SOME => T2): T2 =
-    if (isDefined)
+    if (isSome)
       f(get)
     else
       none
 
   def flatMapOption[B](f: SOME => Option[B]): Option[B] =
-    if (isDefined)
+    if (isSome)
       f(get)
     else
       None
 
-  def foreach[B](f: SOME => B): Unit =
-    if (isDefined)
+  def foreachSON[B](f: SOME => B): Unit =
+    if (isSome)
       f(get)
 
-  def getOrElse[B <: SOME](other: => B): SOME =
-    if (isDefined)
+  def getOrElseSON[B <: SOME](other: => B): SOME =
+    if (isSome)
       get
     else
       other
 
-  def orElse[B <: T](other: => B): T =
-    if (isDefined)
+  def orElseSON[B <: T](other: => B): T =
+    if (isSome)
       get
     else
       other
 
-  def exists(f: SOME => Boolean): Boolean =
-    isDefined && f(get)
+  def existsSON(f: SOME => Boolean): Boolean =
+    isSome && f(get)
 
-  def forall(f: SOME => Boolean): Boolean =
-    isEmpty || f(get)
+  def forallSON(f: SOME => Boolean): Boolean =
+    isNone || f(get)
 }

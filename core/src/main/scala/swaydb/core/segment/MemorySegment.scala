@@ -35,7 +35,7 @@ import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOptional}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
@@ -50,7 +50,7 @@ private[segment] case class MemorySegment(path: Path,
                                           hasRange: Boolean,
                                           hasPut: Boolean,
                                           createdInLevel: Int,
-                                          private[segment] val skipList: SkipList.Immutable[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory],
+                                          private[segment] val skipList: SkipList.Immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
                                           nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                    functionStore: FunctionStore,

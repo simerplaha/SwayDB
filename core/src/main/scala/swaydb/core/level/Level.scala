@@ -45,7 +45,7 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
 import swaydb.data.config.MMAP.ReadOnly
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.slice.Slice._
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.{Error, IO}
@@ -131,7 +131,7 @@ private[core] object Level extends LazyLogging {
         implicit val merger = AppendixSkipListMerger
 
         //initialise appendix
-        val appendix: IO[swaydb.Error.Level, Map[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment]] =
+        val appendix: IO[swaydb.Error.Level, Map[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment]] =
           appendixStorage match {
             case AppendixStorage.Persistent(mmap, appendixFlushCheckpointSize) =>
               logger.info("{}: Initialising appendix.", levelStorage.dir)
@@ -143,7 +143,7 @@ private[core] object Level extends LazyLogging {
               } else {
                 IO {
                   Effect createDirectoriesIfAbsent appendixFolder
-                  Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](
+                  Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](
                     nullKey = Slice.Null,
                     nullValue = Segment.Null,
                     folder = appendixFolder,
@@ -158,7 +158,7 @@ private[core] object Level extends LazyLogging {
             case AppendixStorage.Memory =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
               IO {
-                Map.memory[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](
+                Map.memory[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](
                   Slice.Null,
                   Segment.Null
                 )
@@ -355,7 +355,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                pushForward: Boolean,
                                throttle: LevelMeter => Throttle,
                                nextLevel: Option[NextLevel],
-                               appendix: Map[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment],
+                               appendix: Map[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment],
                                lock: Option[FileLock],
                                deleteSegmentsEventually: Boolean,
                                pathDistributor: PathsDistributor,
@@ -495,7 +495,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
-  private[level] implicit def reserve(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
+  private[level] implicit def reserve(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
         map = map,
@@ -549,7 +549,7 @@ private[core] case class Level(dirs: Seq[Dir],
       )
     }
 
-  def isCopyable(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]): Boolean =
+  def isCopyable(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): Boolean =
     Segment
       .minMaxKey(map)
       .forall {
@@ -675,7 +675,7 @@ private[core] case class Level(dirs: Seq[Dir],
           Set(levelNumber)
       }
 
-  def put(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
+  def put(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.skipList.count())
     reserveAndRelease(map) {
       val appendixValues = appendix.skipList.values().asScala
@@ -715,7 +715,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return empty if copied into next Level else Segments copied into this Level.
    */
-  private def copyForwardOrCopyLocal(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
+  private def copyForwardOrCopyLocal(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
     val forwardResult = forward(map)
     if (forwardResult.value)
       IO.Right(forwardResult.updateValue(Segment.emptyIterable))
@@ -732,7 +732,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Returns segments that were not forwarded.
    */
-  private def forward(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]): CompactionResult[Boolean] = {
+  private def forward(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): CompactionResult[Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = $pushForward", pathDistributor.head, map.pathOption)
     if (pushForward)
       nextLevel match {
@@ -764,7 +764,7 @@ private[core] case class Level(dirs: Seq[Dir],
       CompactionResult.`false`
   }
 
-  private[level] def copy(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
+  private[level] def copy(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
     IO {
       logger.trace(s"{}: Copying {} Map", pathDistributor.head, map.pathOption)
 
@@ -1162,7 +1162,7 @@ private[core] case class Level(dirs: Seq[Dir],
       newSegments.foldLeft(initialMapEntry) {
         case (logEntry, newSegment) =>
           //if one of the new segments have the same minKey as the original segment, remove is not required as 'put' will replace old key.
-          if (removeOriginalSegments && originalSegmentMayBe.exists(_.minKey equiv newSegment.minKey))
+          if (removeOriginalSegments && originalSegmentMayBe.existsSON(_.minKey equiv newSegment.minKey))
             removeOriginalSegments = false
 
           val nextLogEntry = MapEntry.Put(newSegment.minKey, newSegment)
@@ -1211,7 +1211,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .skipList
       .floor(key)
-      .exists(_.mightContainKey(key))
+      .existsSON(_.mightContainKey(key))
 
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): Boolean =
     appendix
@@ -1372,7 +1372,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .map {
         nextLevelLastKey =>
           MinMax.maxFavourLeft(
-            left = appendix.skipList.last().map(_.maxKey.maxKey),
+            left = appendix.skipList.last().mapSON(_.maxKey.maxKey),
             right = nextLevelLastKey
           )(keyOrder)
       }
@@ -1552,7 +1552,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasKeyValuesToExpire: Boolean =
     Segment
       .getNearestDeadlineSegment(segmentsInLevel())
-      .isDefined
+      .isSome
 
   def close: IO[swaydb.Error.Close, Unit] =
     nextLevel
@@ -1606,7 +1606,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .skipList
       .last()
-      .map(_.segmentId)
+      .mapSON(_.segmentId)
 
   override def stateId: Long =
     segmentIDGenerator.currentId

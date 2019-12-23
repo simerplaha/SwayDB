@@ -577,7 +577,7 @@ private[core] object BinarySearchIndexBlock {
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                            partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
-    when(start.exists(start => ordering.equiv(start.key, key)), Persistent.Null: PersistentOptional)(start) match {
+    when(start.existsSON(start => ordering.equiv(start.key, key)), Persistent.Null: PersistentOptional)(start) match {
       case start: Persistent =>
         Some(
           SortedIndexBlock.readNextKeyValue(
@@ -624,9 +624,9 @@ private[core] object BinarySearchIndexBlock {
                                            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]) = {
     //next can either be got or end if end is inline with lower.
     val next =
-      if (end.exists(end => lower.exists(_.nextIndexOffset == end.indexOffset)))
+      if (end.existsSON(end => lower.existsSON(_.nextIndexOffset == end.indexOffset)))
         end
-      else if (got.exists(got => lower.exists(_.nextIndexOffset == got.indexOffset)))
+      else if (got.existsSON(got => lower.existsSON(_.nextIndexOffset == got.indexOffset)))
         got
       else
         Persistent.Null
@@ -656,7 +656,7 @@ private[core] object BinarySearchIndexBlock {
             //but there will be cases with binarySearchIndex is partial || sortedIndex is prefixCompressed
             //which means that accessPositions might not be in sync with binarySearch's positions.
             //Here binarySearchLower will triggers are restart if shiftLeft was not successful.
-            sortedIndexReader.block.enableAccessPositionIndex && end.exists(end => ordering.equiv(key, end.key)),
+            sortedIndexReader.block.enableAccessPositionIndex && end.existsSON(end => ordering.equiv(key, end.key)),
           context =
             BinarySearchContext(
               key = key,

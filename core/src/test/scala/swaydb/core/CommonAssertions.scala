@@ -51,7 +51,7 @@ import swaydb.core.segment.{ReadState, Segment, SegmentOptional}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Reader, Slice, SliceOption}
+import swaydb.data.slice.{Reader, Slice, SliceOptional}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.{Error, IO}
@@ -240,7 +240,7 @@ object CommonAssertions {
       }
   }
 
-  implicit class PrintSkipList(skipList: SkipList.Concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]) {
+  implicit class PrintSkipList(skipList: SkipList.Concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]) {
 
     //stringify the skipList so that it's readable
     def asString(value: Value): String =
@@ -256,14 +256,14 @@ object CommonAssertions {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Memory): SkipList.Concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] =
+                          expected: Memory): SkipList.Concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] = {
-    val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] = {
+    val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
     skipList
@@ -497,16 +497,16 @@ object CommonAssertions {
 
   implicit class PersistentKeyValueOptionImplicits(actual: PersistentOptional) {
     def shouldBe(expected: PersistentOptional): Unit = {
-      actual.isDefined shouldBe expected.isDefined
-      if (actual.isDefined)
+      actual.isSome shouldBe expected.isSome
+      if (actual.isSome)
         actual.get shouldBe expected.get
     }
   }
 
   implicit class PersistentKeyValueKeyValueOptionImplicits(actual: PersistentOptional) {
     def shouldBe(expected: MemoryOptional) = {
-      actual.isDefined shouldBe expected.isDefined
-      if (actual.isDefined)
+      actual.isSome shouldBe expected.isSome
+      if (actual.isSome)
         actual.get shouldBe expected.get
     }
 
@@ -576,10 +576,10 @@ object CommonAssertions {
     def shouldBe(expected: MapEntry[Slice[Byte], Segment]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
-      val actualMap = SkipList.concurrent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val actualMap = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
       actual.applyTo(actualMap)
 
-      val expectedMap = SkipList.concurrent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val expectedMap = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
       expected.applyTo(expectedMap)
 
       actualMap.size shouldBe expectedMap.size
@@ -1059,7 +1059,7 @@ object CommonAssertions {
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).runRandomIO.right.value shouldBe empty
+            ).runRandomIO.right.value.toOptions shouldBe empty
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
@@ -1083,7 +1083,7 @@ object CommonAssertions {
               binarySearchIndexReader = blocks.binarySearchIndexReader,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReader = blocks.valuesReader
-            ).runRandomIO.right.value shouldBe empty
+            ).runRandomIO.right.value.toOptions shouldBe empty
         }
         assertLowers(index + 1)
       } else {
@@ -1584,7 +1584,7 @@ object CommonAssertions {
           case Memory.Range(fromKey, toKey, fromValue, rangeValue) =>
             fromKey.shouldBeSliced()
             toKey.shouldBeSliced()
-            fromValue foreach assertSliced
+            fromValue foreachSON assertSliced
             assertSliced(rangeValue)
         }
       case persistent: Persistent =>
@@ -1616,7 +1616,7 @@ object CommonAssertions {
           case range @ Persistent.Range(_fromKey, _toKey, lazyRangeValueReader, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _fromKey.shouldBeSliced()
             _toKey.shouldBeSliced()
-            range.fetchFromValueUnsafe.runRandomIO.right.value foreach assertSliced
+            range.fetchFromValueUnsafe.runRandomIO.right.value foreachSON assertSliced
             assertSliced(range.fetchRangeValueUnsafe.runRandomIO.right.value)
         }
     }

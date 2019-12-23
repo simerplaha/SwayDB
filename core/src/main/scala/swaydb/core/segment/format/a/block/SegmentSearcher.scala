@@ -53,7 +53,7 @@ private[core] object SegmentSearcher extends LazyLogging {
              keyValueCount: => Int,
              readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
-    when[PersistentOptional](start.isDefined && readState.isSequential(path), Persistent.Null)(start) match {
+    when[PersistentOptional](start.isSome && readState.isSequential(path), Persistent.Null)(start) match {
       case startFrom: Persistent =>
         //        seqSeeks += 1
         val found =
@@ -64,7 +64,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             valuesReader = valuesReader
           )
 
-        if (found.isDefined) {
+        if (found.isSome) {
           //          successfulSeqSeeks += 1
           found
         } else {
@@ -82,7 +82,7 @@ private[core] object SegmentSearcher extends LazyLogging {
               hasRange = hasRange
             )
 
-          val isSequential = result.exists(_.indexOffset == startFrom.nextIndexOffset)
+          val isSequential = result.existsSON(_.indexOffset == startFrom.nextIndexOffset)
 
           readState.setSequential(
             path = path,
@@ -107,9 +107,9 @@ private[core] object SegmentSearcher extends LazyLogging {
           )
 
         val isSequential =
-          result exists {
+          result existsSON {
             result =>
-              start.exists(_.nextIndexOffset == result.indexOffset)
+              start.existsSON(_.nextIndexOffset == result.indexOffset)
           }
 
         readState.setSequential(
@@ -193,7 +193,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             valuesReader = valuesReader
           )
 
-        if (found.isDefined)
+        if (found.isSome)
           found
         else
           BinarySearchIndexBlock.searchHigher(

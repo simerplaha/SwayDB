@@ -26,7 +26,7 @@ import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOptional}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
@@ -183,7 +183,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
                                       stateId: Long,
-                                      map: swaydb.core.map.Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory])(implicit ec: ExecutionContext): ThrottleLevelState =
+                                      map: swaydb.core.map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])(implicit ec: ExecutionContext): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")

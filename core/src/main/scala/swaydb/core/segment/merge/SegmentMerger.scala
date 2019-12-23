@@ -125,7 +125,7 @@ private[core] object SegmentMerger extends LazyLogging {
               val newFromValue =
                 FixedMerger(
                   newKeyValue = newKeyValue,
-                  oldKeyValue = oldFromValue.getOrElse(oldRangeValue).toMemory(newKeyValue.key)
+                  oldKeyValue = oldFromValue.getOrElseSON(oldRangeValue).toMemory(newKeyValue.key)
                 ).toFromValue()
 
               val toPrepend =
@@ -164,7 +164,7 @@ private[core] object SegmentMerger extends LazyLogging {
           } else { //is in-range key
             val (newRangeFromValue, newRangeRangeValue) = newRangeKeyValue.fetchFromAndRangeValueUnsafe
             if (newRangeKeyValue.fromKey equiv oldKeyValue.key) {
-              val fromOrRange = newRangeFromValue.getOrElse(newRangeRangeValue)
+              val fromOrRange = newRangeFromValue.getOrElseSON(newRangeRangeValue)
               fromOrRange match {
                 //the range is remove or put simply drop old key-value. No need to merge! Important! do a time check.
                 case Value.Remove(None, _) | _: Value.Put if fromOrRange.time > oldKeyValue.time =>
@@ -174,7 +174,7 @@ private[core] object SegmentMerger extends LazyLogging {
                   //if not then do a merge.
                   val newFromValue: Value.FromValue =
                     FixedMerger(
-                      newKeyValue = newRangeFromValue.getOrElse(newRangeRangeValue).toMemory(oldKeyValue.key),
+                      newKeyValue = newRangeFromValue.getOrElseSON(newRangeRangeValue).toMemory(oldKeyValue.key),
                       oldKeyValue = oldKeyValue
                     ).toFromValue()
 
@@ -236,7 +236,7 @@ private[core] object SegmentMerger extends LazyLogging {
                   Memory.Range(
                     fromKey = oldRangeFromKey,
                     toKey = newRangeToKey,
-                    fromValue = oldRangeFromValue.flatMap(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
+                    fromValue = oldRangeFromValue.flatMapSON(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
                     rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                   )
                 val lowerSplit = Memory.Range(newRangeToKey, oldRangeToKey, Value.FromValue.None, oldRangeRangeValue)
@@ -254,7 +254,7 @@ private[core] object SegmentMerger extends LazyLogging {
                   Memory.Range(
                     fromKey = oldRangeFromKey,
                     toKey = oldRangeToKey,
-                    fromValue = oldRangeFromValue.flatMap(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
+                    fromValue = oldRangeFromValue.flatMapSON(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
                     rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                   )
 
@@ -270,7 +270,7 @@ private[core] object SegmentMerger extends LazyLogging {
                   Memory.Range(
                     fromKey = oldRangeFromKey,
                     toKey = oldRangeToKey,
-                    fromValue = oldRangeFromValue.flatMap(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
+                    fromValue = oldRangeFromValue.flatMapSON(ValueMerger(oldRangeFromKey, newRangeRangeValue, _)),
                     rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                   )
 
@@ -288,8 +288,8 @@ private[core] object SegmentMerger extends LazyLogging {
                   fromKey = newRangeFromKey,
                   toKey = newRangeToKey,
                   fromValue =
-                    oldRangeFromValue.flatMap(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _)) orElse {
-                      newRangeFromValue.flatMap(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
+                    oldRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElseSON(newRangeRangeValue), _)) orElseSON {
+                      newRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
                     },
                   rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                 )
@@ -305,8 +305,8 @@ private[core] object SegmentMerger extends LazyLogging {
                   fromKey = newRangeFromKey,
                   toKey = newRangeToKey,
                   fromValue =
-                    oldRangeFromValue.flatMap(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _)) orElse {
-                      newRangeFromValue.flatMap(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
+                    oldRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElseSON(newRangeRangeValue), _)) orElseSON {
+                      newRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
                     },
                   rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                 )
@@ -321,8 +321,8 @@ private[core] object SegmentMerger extends LazyLogging {
                   fromKey = newRangeFromKey,
                   toKey = oldRangeToKey,
                   fromValue =
-                    oldRangeFromValue.flatMap(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElse(newRangeRangeValue), _)) orElse {
-                      newRangeFromValue.flatMap(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
+                    oldRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, newRangeFromValue.getOrElseSON(newRangeRangeValue), _)) orElseSON {
+                      newRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, _, oldRangeRangeValue))
                     },
                   rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                 )
@@ -341,7 +341,7 @@ private[core] object SegmentMerger extends LazyLogging {
                   Memory.Range(
                     fromKey = newRangeFromKey,
                     toKey = newRangeToKey,
-                    fromValue = newRangeFromValue.flatMap(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
+                    fromValue = newRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
                     rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                   )
 
@@ -359,7 +359,7 @@ private[core] object SegmentMerger extends LazyLogging {
                 val lowerSplit = Memory.Range(
                   fromKey = newRangeFromKey,
                   toKey = newRangeToKey,
-                  fromValue = newRangeFromValue.flatMap(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
+                  fromValue = newRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
                   rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                 )
 
@@ -376,7 +376,7 @@ private[core] object SegmentMerger extends LazyLogging {
                   Memory.Range(
                     fromKey = newRangeFromKey,
                     toKey = oldRangeToKey,
-                    fromValue = newRangeFromValue.flatMap(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
+                    fromValue = newRangeFromValue.flatMapSON(ValueMerger(newRangeFromKey, _, oldRangeRangeValue)),
                     rangeValue = ValueMerger(newRangeRangeValue, oldRangeRangeValue)
                   )
 

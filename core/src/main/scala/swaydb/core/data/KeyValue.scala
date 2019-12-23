@@ -160,7 +160,7 @@ private[core] object KeyValue {
     def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue)
     def fetchFromOrElseRangeValueUnsafe: Value.FromValue = {
       val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
-      fromValue getOrElse rangeValue
+      fromValue getOrElseSON rangeValue
     }
   }
 
@@ -184,7 +184,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
   def value: Option[Slice[Byte]]
   def deadline: Option[Deadline]
 
-  override def isEmpty: Boolean =
+  override def isNone: Boolean =
     false
 
   override def get: Memory =
@@ -194,7 +194,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
 private[swaydb] object Memory {
 
   final object Null extends MemoryOptional with KeyValue.Null {
-    override def isEmpty: Boolean =
+    override def isNone: Boolean =
       true
 
     override def get: Memory =
@@ -577,7 +577,7 @@ private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptio
   override def none: PersistentOptional = Persistent.Null
 
   def asPartial: Persistent.PartialOptional =
-    if (this.isDefined)
+    if (this.isSome)
       get
     else
       Persistent.Partial.Null
@@ -607,7 +607,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   def toMemoryOption(): MemoryOptional =
     toMemory()
 
-  override def isEmpty: Boolean =
+  override def isNone: Boolean =
     false
 
   override def get: Persistent =
@@ -626,7 +626,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 private[core] object Persistent {
 
   final object Null extends PersistentOptional with KeyValue.Null {
-    override def isEmpty: Boolean = true
+    override def isNone: Boolean = true
     override def get: Persistent = throw new Exception("get on Persistent key-value that is none")
     override def getUnsafe: KeyValue = get
   }
@@ -1292,7 +1292,7 @@ private[core] object Persistent {
                   val (from, range) =
                     RangeValueSerializer.read(bytes)
 
-                  (from.flatMap(_.unslice), range.unslice)
+                  (from.flatMapSON(_.unslice), range.unslice)
 
                 case None =>
                   throw IO.throwable("ValuesBlock is undefined.")

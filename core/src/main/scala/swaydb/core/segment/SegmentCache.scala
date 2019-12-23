@@ -30,7 +30,7 @@ import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.util.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone._
 
 private[core] object SegmentCache {
@@ -78,7 +78,7 @@ private[core] object SegmentCache {
 private[core] class SegmentCache(path: Path,
                                  maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
-                                 val skipList: Option[SkipList[SliceOption[Byte], PersistentOptional, Slice[Byte], Persistent]],
+                                 val skipList: Option[SkipList[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent]],
                                  unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                     blockCacheMemorySweeper: Option[MemorySweeper.Block],
@@ -221,7 +221,7 @@ private[core] class SegmentCache(path: Path,
 
   private def getForLower(key: Slice[Byte],
                           readState: ReadState): PersistentOptional =
-    skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.get(key)) orElse get(key, readState)
+    skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.get(key)) orElseSON get(key, readState)
 
   def lower(key: Slice[Byte],
             readState: ReadState): PersistentOptional =

@@ -24,7 +24,7 @@ import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.slice.{Slice, SliceOptional}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -35,7 +35,7 @@ private[core] object SegmentAssigner {
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assignUnsafe(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
 
-  def assignMinMaxOnlyUnsafe(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory],
+  def assignMinMaxOnlyUnsafe(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 segmentIO: SegmentIO): Iterable[Segment] =
     SegmentAssigner.assignUnsafe(Segment.tempMinMaxKeyValues(map), targetSegments).keys
@@ -83,7 +83,7 @@ private[core] object SegmentAssigner {
                nextSegmentMayBe: SegmentOptional): Unit =
       (remainingKeyValues.headOption, thisSegmentMayBe, nextSegmentMayBe) match {
         //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
-        case (Some(keyValue: KeyValue), thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isEmpty =>
+        case (Some(keyValue: KeyValue), thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isNone =>
           keyValue match {
             case keyValue: KeyValue.Fixed =>
               assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)

@@ -64,7 +64,7 @@ private[swaydb] object Value {
 
   object FromValue {
     final object None extends FromValueOption {
-      override def isEmpty: Boolean =
+      override def isNone: Boolean =
         true
 
       def get: Value.FromValue =
@@ -82,7 +82,7 @@ private[swaydb] object Value {
     def get: Value.FromValue =
       this
 
-    override def isEmpty: Boolean = false
+    override def isNone: Boolean = false
   }
 
   private[swaydb] sealed trait Apply extends RangeValue {
