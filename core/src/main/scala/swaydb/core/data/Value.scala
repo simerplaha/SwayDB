@@ -123,7 +123,7 @@ private[swaydb] object Value {
     override val hasRemoveMayBe: Boolean = false
 
     def unslice(): Value.Put =
-      Put(value = value.unslice(), deadline, time.unslice())
+      Put(value = value.unsliceOptional(), deadline, time.unslice())
 
     def toMemory(key: Slice[Byte]): Memory.Put =
       Memory.Put(
@@ -149,7 +149,7 @@ private[swaydb] object Value {
     override val hasRemoveMayBe: Boolean = false
 
     def unslice(): Value.Update =
-      Update(value = value.unslice(), deadline, time.unslice())
+      Update(value = value.unsliceOptional(), deadline, time.unslice())
 
     def toMemory(key: Slice[Byte]): Memory.Update =
       Memory.Update(

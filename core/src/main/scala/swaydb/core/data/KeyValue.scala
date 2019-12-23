@@ -800,7 +800,7 @@ private[core] object Persistent {
                     UnblockedReader.moveTo(offset, valuesReader)
                       .copy()
                       .readFullBlockOrNone()
-                      .unslice()
+                      .unsliceOptional()
 
                   case None =>
                     throw IO.throwable("ValuesBlock is undefined.")
@@ -905,7 +905,7 @@ private[core] object Persistent {
                     UnblockedReader.moveTo(offset, valuesReader)
                       .copy()
                       .readFullBlockOrNone()
-                      .unslice()
+                      .unsliceOptional()
 
                   case None =>
                     throw IO.throwable("ValuesBlock is undefined.")

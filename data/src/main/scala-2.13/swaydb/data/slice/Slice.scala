@@ -32,20 +32,12 @@ import scala.reflect.ClassTag
  */
 sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Slice[T]] {
   override def none: SliceOptional[Nothing] = Slice.Null
-}
 
-object SliceOptional {
-  implicit class SliceOptionalImplicits(slice: SliceOptional[Byte]) {
-
-    @inline def unslice(): SliceOptional[Byte] =
-      slice flatMapSON {
-        slice =>
-          if (slice.isEmpty)
-            Slice.Null
-          else
-            slice.unslice()
-      }
-  }
+  def unsliceOptional(): SliceOptional[T] =
+    if (this.isNone)
+      Slice.Null
+    else
+      this.get.unslice()
 }
 
 object Slice extends SliceCompanionBase {
