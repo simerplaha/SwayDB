@@ -403,7 +403,6 @@ class SegmentBlockCache(path: Path,
       }
 
       SortedIndexBlock.readAll(
-        keyValueCount = keyValueCount,
         sortedIndexReader = sortedIndexReader,
         valuesReader = valuesReader,
         aggregator = aggregator

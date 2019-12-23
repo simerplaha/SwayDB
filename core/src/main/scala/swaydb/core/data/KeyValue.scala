@@ -643,6 +643,42 @@ private[core] object Persistent {
 
   sealed trait Fixed extends Persistent with KeyValue.Fixed with Partial.Fixed
 
+  sealed trait Reader[T <: Persistent] {
+    def apply(key: Slice[Byte],
+              deadline: Option[Deadline],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
+              nextIndexOffset: Int,
+              nextKeySize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int): T
+  }
+
+  object Remove extends Reader[Persistent.Remove] {
+    def apply(key: Slice[Byte],
+              deadline: Option[Deadline],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
+              nextIndexOffset: Int,
+              nextKeySize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int): Persistent.Remove =
+      Persistent.Remove(
+        _key = key,
+        indexOffset = indexOffset,
+        nextIndexOffset = nextIndexOffset,
+        nextKeySize = nextKeySize,
+        deadline = deadline,
+        sortedIndexAccessPosition = sortedIndexAccessPosition,
+        _time = time
+      )
+
+  }
+
   case class Remove(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
                     private var _time: Time,
@@ -694,7 +730,7 @@ private[core] object Persistent {
       this
   }
 
-  object Put {
+  object Put extends Reader[Persistent.Put] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -704,7 +740,7 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int) =
+              sortedIndexAccessPosition: Int): Persistent.Put =
       new Put(
         _key = key,
         deadline = deadline,
@@ -799,7 +835,7 @@ private[core] object Persistent {
       this
   }
 
-  object Update {
+  object Update extends Reader[Persistent.Update] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -809,7 +845,7 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int) =
+              sortedIndexAccessPosition: Int): Persistent.Update =
       new Update(
         _key = key,
         deadline = deadline,
@@ -935,7 +971,31 @@ private[core] object Persistent {
       this
   }
 
-  object Function {
+  object Function extends Reader[Persistent.Function] {
+
+    def apply(key: Slice[Byte],
+              deadline: Option[Deadline],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
+              nextIndexOffset: Int,
+              nextKeySize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int): Persistent.Function =
+      apply(
+        key = key,
+        deadline = deadline,
+        valuesReader = valuesReader,
+        time = time,
+        nextIndexOffset = nextIndexOffset,
+        nextKeySize = nextKeySize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        sortedIndexAccessPosition = sortedIndexAccessPosition
+      )
+
     def apply(key: Slice[Byte],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               time: Time,
@@ -944,7 +1004,7 @@ private[core] object Persistent {
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int) =
+              sortedIndexAccessPosition: Int): Persistent.Function =
       new Function(
         _key = key,
         valueCache =
@@ -1022,17 +1082,18 @@ private[core] object Persistent {
       this
   }
 
-  object PendingApply {
+  object PendingApply extends Reader[Persistent.PendingApply] {
+
     def apply(key: Slice[Byte],
-              time: Time,
               deadline: Option[Deadline],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
               indexOffset: Int,
               valueOffset: Int,
               valueLength: Int,
-              sortedIndexAccessPosition: Int) =
+              sortedIndexAccessPosition: Int): Persistent.PendingApply =
       new PendingApply(
         _key = key,
         _time = time,
@@ -1111,7 +1172,28 @@ private[core] object Persistent {
       this
   }
 
-  object Range {
+  object Range extends Reader[Persistent.Range] {
+    def apply(key: Slice[Byte],
+              deadline: Option[Deadline],
+              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              time: Time,
+              nextIndexOffset: Int,
+              nextKeySize: Int,
+              indexOffset: Int,
+              valueOffset: Int,
+              valueLength: Int,
+              sortedIndexAccessPosition: Int): Persistent.Range =
+      apply(
+        key = key,
+        valuesReader = valuesReader,
+        nextIndexOffset = nextIndexOffset,
+        nextKeySize = nextKeySize,
+        indexOffset = indexOffset,
+        valueOffset = valueOffset,
+        valueLength = valueLength,
+        sortedIndexAccessPosition = sortedIndexAccessPosition
+      )
+
     def apply(key: Slice[Byte],
               valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
               nextIndexOffset: Int,

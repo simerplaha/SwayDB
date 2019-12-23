@@ -19,77 +19,64 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
-import swaydb.core.data.PersistentOptional
-import swaydb.core.segment.format.a.block.ValuesBlock
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
-import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.core.segment.format.a.entry.reader.BaseEntryApplier
 
 private[core] object BaseEntryReaderUncompressed extends BaseEntryReader {
 
   def read[T](baseId: Int,
-              keyValueId: Int,
-              sortedIndexEndOffset: Int,
-              sortedIndexAccessPosition: Int,
-              headerKeyBytes: Slice[Byte],
-              indexReader: ReaderBase,
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              indexOffset: Int,
-              normalisedByteSize: Int,
-              previous: PersistentOptional,
-              reader: EntryReader[T]): T =
+              reader: BaseEntryApplier[T]): T =
   //GENERATED CONDITIONS
     if (baseId == 95)
-      reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+      reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed)
     else if (baseId < 95)
       if (baseId == 23)
-        reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+        reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline)
       else if (baseId < 23)
         if (baseId == 14)
-          reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.NoDeadline, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+          reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.NoDeadline)
         else if (baseId < 14)
           if (baseId == 13)
-            reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+            reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline)
           else
-            throw swaydb.Exception.InvalidKeyValueId(baseId)
+            throw swaydb.Exception.InvalidBaseId(baseId)
         else if (baseId > 14)
           if (baseId == 19)
-            reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+            reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline)
           else
-            throw swaydb.Exception.InvalidKeyValueId(baseId)
+            throw swaydb.Exception.InvalidBaseId(baseId)
         else
-          throw swaydb.Exception.InvalidKeyValueId(baseId)
+          throw swaydb.Exception.InvalidBaseId(baseId)
       else if (baseId > 23)
         if (baseId == 24)
-          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.NoDeadline, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.NoDeadline)
         else if (baseId == 29)
-          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.NoDeadline)
         else
-          throw swaydb.Exception.InvalidKeyValueId(baseId)
+          throw swaydb.Exception.InvalidBaseId(baseId)
       else
-        throw swaydb.Exception.InvalidKeyValueId(baseId)
+        throw swaydb.Exception.InvalidBaseId(baseId)
     else if (baseId > 95)
       if (baseId == 141)
-        reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+        reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueUncompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed)
       else if (baseId < 141)
         if (baseId == 96)
-          reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.DeadlineUncompressed, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+          reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.NoValue.DeadlineUncompressed)
         else if (baseId == 121)
-          reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+          reader(BaseEntryIdFormatA.FormatA1.KeyStart.NoTime.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed)
         else
-          throw swaydb.Exception.InvalidKeyValueId(baseId)
+          throw swaydb.Exception.InvalidBaseId(baseId)
       else if (baseId > 141)
         if (baseId == 142)
-          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineUncompressed, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.NoValue.DeadlineUncompressed)
         else if (baseId == 167)
-          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)
+          reader(BaseEntryIdFormatA.FormatA1.KeyStart.TimeUncompressed.ValueFullyCompressed.ValueOffsetUncompressed.ValueLengthUncompressed.DeadlineUncompressed)
         else
-          throw swaydb.Exception.InvalidKeyValueId(baseId)
+          throw swaydb.Exception.InvalidBaseId(baseId)
       else
-        throw swaydb.Exception.InvalidKeyValueId(baseId)
+        throw swaydb.Exception.InvalidBaseId(baseId)
     else
-      throw swaydb.Exception.InvalidKeyValueId(baseId)
+      throw swaydb.Exception.InvalidBaseId(baseId)
 
   val minID = 13
   val maxID = 167

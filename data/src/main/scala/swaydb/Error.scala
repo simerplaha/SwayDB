@@ -272,7 +272,7 @@ object Error {
       case exception: Exception.FailedToWriteAllBytes => Error.FailedToWriteAllBytes(exception)
       case exception: Exception.CannotCopyInMemoryFiles => Error.CannotCopyInMemoryFiles(exception)
       case exception: Exception.SegmentFileMissing => Error.SegmentFileMissing(exception)
-      case exception: Exception.InvalidKeyValueId => Error.InvalidKeyValueId(exception)
+      case exception: Exception.InvalidBaseId => Error.InvalidKeyValueId(exception)
 
       case exception: Exception.FunctionNotFound => Error.FunctionNotFound(exception.functionId)
 
@@ -398,7 +398,7 @@ object Error {
     def file = exception.file
   }
 
-  case class InvalidKeyValueId(exception: Exception.InvalidKeyValueId) extends Error.Segment {
+  case class InvalidKeyValueId(exception: Exception.InvalidBaseId) extends Error.Segment {
     def id = exception.id
   }
 

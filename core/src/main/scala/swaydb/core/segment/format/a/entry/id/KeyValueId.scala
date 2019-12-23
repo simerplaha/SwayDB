@@ -20,8 +20,7 @@
 package swaydb.core.segment.format.a.entry.id
 
 import swaydb.IO
-import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.core.util.Bytes
+import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import swaydb.macros.Sealed
 
 sealed trait KeyValueId {
@@ -87,7 +86,7 @@ sealed trait KeyValueId {
 
 object KeyValueId {
   //Last max id used in BaseEntryId.
-  val reservedKeysPerGroup = EntryReader.readers.last.maxID
+  val reservedKeysPerGroup = BaseEntryReader.readers.last.maxID
 
   //byte size of the maximum keyValueId that can be persisted.
   //the macro cannot be used because it's make KeyValueIds vals to return 0
@@ -101,7 +100,7 @@ object KeyValueId {
     KeyValueId.Range.hasKeyValueId(id)
 
   object Put extends KeyValueId {
-    override val minKey_Compressed_KeyValueId: Int = EntryReader.readers.head.minID
+    override val minKey_Compressed_KeyValueId: Int = BaseEntryReader.readers.head.minID
     override val maxKey_Compressed_KeyValueId: Int = reservedKeysPerGroup
     override val minKey_Uncompressed_KeyValueId: Int = reservedKeysPerGroup + 1
     override val maxKey_Uncompressed_KeyValueId: Int = minKey_Uncompressed_KeyValueId + reservedKeysPerGroup

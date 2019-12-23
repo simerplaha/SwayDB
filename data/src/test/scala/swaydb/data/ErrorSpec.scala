@@ -107,7 +107,7 @@ class ErrorSpec extends FlatSpec with Matchers {
     val cannotCopyInMemoryFiles = Exception.CannotCopyInMemoryFiles(Paths.get("111"))
     Error(cannotCopyInMemoryFiles) shouldBe Error.CannotCopyInMemoryFiles(cannotCopyInMemoryFiles)
 
-    val invalidKeyValueId = Exception.InvalidKeyValueId(Int.MaxValue)
+    val invalidKeyValueId = Exception.InvalidBaseId(Int.MaxValue)
     Error(invalidKeyValueId) shouldBe Error.InvalidKeyValueId(invalidKeyValueId)
 
     val exception = new Throwable("Some unknown exception")

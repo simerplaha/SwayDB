@@ -19,11 +19,8 @@
 
 package swaydb.core.segment.format.a.entry.reader.base
 
-import swaydb.core.data.PersistentOptional
-import swaydb.core.segment.format.a.block.ValuesBlock
-import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.entry.reader.EntryReader
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.core.segment.format.a.entry.reader.BaseEntryApplier
+import swaydb.core.util.NullOps
 
 private[core] trait BaseEntryReader {
 
@@ -32,14 +29,44 @@ private[core] trait BaseEntryReader {
   def maxID: Int
 
   def read[T](baseId: Int,
-              keyValueId: Int,
-              sortedIndexEndOffset: Int,
-              sortedIndexAccessPosition: Int,
-              headerKeyBytes: Slice[Byte],
-              indexReader: ReaderBase,
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-              indexOffset: Int,
-              normalisedByteSize: Int,
-              previous: PersistentOptional,
-              reader: EntryReader[T]): T
+              reader: BaseEntryApplier[T]): T
+}
+
+object BaseEntryReader {
+
+  val readers: Array[BaseEntryReader] =
+    Array(
+      BaseEntryReader1,
+      BaseEntryReader2,
+      BaseEntryReader3,
+      BaseEntryReader4
+    ) sortBy (_.minID)
+
+  def findReaderNullable(baseId: Int,
+                         mightBeCompressed: Boolean,
+                         keyCompressionOnly: Boolean): BaseEntryReader =
+    if (mightBeCompressed && !keyCompressionOnly)
+      NullOps.find[BaseEntryReader](readers, _.maxID >= baseId)
+    else
+      BaseEntryReaderUncompressed
+
+  def search[T](baseId: Int,
+                mightBeCompressed: Boolean,
+                keyCompressionOnly: Boolean,
+                parser: BaseEntryApplier[T]): T = {
+    val baseEntryReaderNullable: BaseEntryReader =
+      findReaderNullable(
+        baseId = baseId,
+        mightBeCompressed = mightBeCompressed,
+        keyCompressionOnly = keyCompressionOnly
+      )
+
+    if (baseEntryReaderNullable == null)
+      throw swaydb.Exception.InvalidBaseId(baseId)
+    else
+      baseEntryReaderNullable.read(
+        baseId = baseId,
+        reader = parser
+      )
+  }
 }

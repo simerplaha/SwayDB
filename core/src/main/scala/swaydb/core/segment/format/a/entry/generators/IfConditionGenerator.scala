@@ -43,7 +43,7 @@ object IfConditionGenerator extends App {
       val typedId = ids.head
 
       val targetFunction =
-        s"reader(${typedId.name}, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)"
+        s"reader(${typedId.name})"
 
       val ifCondition = s"if (baseId == ${typedId.baseId}) \n$targetFunction"
 
@@ -53,10 +53,10 @@ object IfConditionGenerator extends App {
       val typedId2 = ids.last
 
       val targetFunction1 =
-        s"reader(${typedId1.name}, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)"
+        s"reader(${typedId1.name})"
 
       val targetFunction2 =
-        s"reader(${typedId2.name}, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)"
+        s"reader(${typedId2.name})"
 
       val ifCondition = s"if (baseId == ${typedId1.baseId}) \n$targetFunction1"
       val elseIfCondition = s"else if (baseId == ${typedId2.baseId}) \n$targetFunction2"
@@ -69,7 +69,7 @@ object IfConditionGenerator extends App {
       //      println("Mid:" + mid.id)
 
       s"if(baseId == ${mid.baseId})" + {
-        s"\nreader(${mid.name}, keyValueId, sortedIndexEndOffset, sortedIndexAccessPosition, headerKeyBytes, indexReader, valuesReader, indexOffset, normalisedByteSize, previous)"
+        s"\nreader(${mid.name})"
       } + {
         s"\nelse if(baseId < ${mid.baseId})\n" +
           generateBinarySearchConditions(ids.takeWhile(_.baseId < mid.baseId))
