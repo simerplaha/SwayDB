@@ -37,6 +37,7 @@ private[map] class MemoryMap[OK, OV, K <: OK, V <: OV : ClassTag](val skipList: 
                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]]) extends Map[OK, OV, K, V] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
+  var skipListKeyValuesMaxCount: Int = 0
 
   @volatile private var _hasRange: Boolean = false
 
@@ -56,6 +57,7 @@ private[map] class MemoryMap[OK, OV, K <: OK, V <: OV : ClassTag](val skipList: 
         } else {
           entry applyTo skipList
         }
+        skipListKeyValuesMaxCount += entry.entriesCount
         currentBytesWritten += entry.totalByteSize
         true
       } else {
@@ -68,4 +70,5 @@ private[map] class MemoryMap[OK, OV, K <: OK, V <: OV : ClassTag](val skipList: 
 
   def fileId: Long =
     0
+
 }

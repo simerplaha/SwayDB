@@ -248,6 +248,7 @@ private[map] case class PersistentMap[OK, OV, K <: OK, V <: OV : ClassTag](path:
   private var actualFileSize: Long = fileSize
   // does not account of flushed entries.
   private var bytesWritten: Long = 0
+  var skipListKeyValuesMaxCount: Int = 0
 
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
   @volatile private var _hasRange: Boolean = hasRangeInitial
@@ -284,6 +285,7 @@ private[map] case class PersistentMap[OK, OV, K <: OK, V <: OV : ClassTag](path:
       } else {
         entry applyTo skipList
       }
+      skipListKeyValuesMaxCount += entry.entriesCount
       bytesWritten += entry.totalByteSize
       //          println("bytesWritten: " + bytesWritten)
       true

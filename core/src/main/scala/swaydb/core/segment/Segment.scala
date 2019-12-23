@@ -160,7 +160,7 @@ private[core] object Segment extends LazyLogging {
           }
       }
 
-      Slice.from(segments)
+      Slice.from(segments, segments.size)
     }
 
   def persistent(segmentSize: Int,

@@ -97,8 +97,8 @@ trait SliceCompanionBase {
     slice
   }
 
-  def from[T: ClassTag](iterator: Iterable[T]): Slice[T] = {
-    val slice = Slice.create[T](iterator.size)
+  def from[T: ClassTag](iterator: Iterable[T], size: Int): Slice[T] = {
+    val slice = Slice.create[T](size)
     iterator foreach slice.add
     slice
   }

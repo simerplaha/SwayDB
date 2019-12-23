@@ -100,6 +100,8 @@ private[core] trait Map[OK, OV, K <: OK, V <: OV] {
 
   val skipList: SkipList.Concurrent[OK, OV, K, V]
 
+  def skipListKeyValuesMaxCount: Int
+
   val fileSize: Long
 
   def write(mapEntry: MapEntry[K, V]): Boolean

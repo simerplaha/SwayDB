@@ -405,7 +405,7 @@ private[core] object SkipList {
         }
       }
 
-    def toSlice[V2 >: SomeValue : ClassTag](): Slice[V2] = {
+    def toSlice[V2 >: SomeValue : ClassTag](size: Int): Slice[V2] = {
       val slice = Slice.create[V2](size)
       skipList.values() forEach {
         new Consumer[SomeValue] {

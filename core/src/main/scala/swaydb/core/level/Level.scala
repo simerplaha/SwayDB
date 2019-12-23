@@ -681,8 +681,8 @@ private[core] case class Level(dirs: Seq[Dir],
       val appendixValues = appendix.skipList.values().asScala
       if (Segment.overlaps(map, appendixValues))
         putKeyValues(
-          //TODO - remove toSlice.
-          keyValues = map.skipList.toSlice(),
+          keyValuesCount = map.skipListKeyValuesMaxCount,
+          keyValues = map.skipList.values().asScala,
           targetSegments = appendixValues,
           appendEntry = None
         ) transform {
@@ -1043,6 +1043,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .flatMap {
         keyValues =>
           putKeyValues(
+            keyValuesCount = keyValues.size,
             keyValues = keyValues,
             targetSegments = targetSegments,
             appendEntry = appendEntry
@@ -1053,11 +1054,12 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return Newly created Segments.
    */
-  private[core] def putKeyValues(keyValues: Slice[KeyValue],
+  private[core] def putKeyValues(keyValuesCount: Int,
+                                 keyValues: Iterable[KeyValue],
                                  targetSegments: Iterable[Segment],
                                  appendEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, Unit] = {
     logger.trace(s"{}: Merging {} KeyValues.", pathDistributor.head, keyValues.size)
-    IO(SegmentAssigner.assignUnsafe(keyValues, targetSegments)) flatMap {
+    IO(SegmentAssigner.assignUnsafe(keyValuesCount, keyValues, targetSegments)) flatMap {
       assignments =>
         logger.trace(s"{}: Assigned segments {} for {} KeyValues.", pathDistributor.head, assignments.map(_._1.path.toString), keyValues.size)
         if (assignments.isEmpty) {

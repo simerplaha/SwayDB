@@ -318,7 +318,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel))
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).value //write first Segment to Level
+        level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
         level.put(TestSegment(keyValues.take(1))).right.right.value.right.value should contain only level.levelNumber
@@ -333,7 +333,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
+        level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
         //write non-overlapping key-values
@@ -368,7 +368,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
+        level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGetFromThisLevelOnly(keyValues, level)
 
         //write non-overlapping key-values
@@ -395,7 +395,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
+        level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGet(keyValues, level)
 
         //write non-overlapping key-values
@@ -434,7 +434,7 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
 
         val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
         val keyValues = randomIntKeyStringValues(keyValuesCount, startId = Some(1))
-        level.putKeyValues(keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
+        level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value //write first Segment to Level
         assertGet(keyValues, level)
 
         //write non-overlapping key-values

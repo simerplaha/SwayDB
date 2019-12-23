@@ -33,14 +33,23 @@ private[core] object SegmentAssigner {
 
   def assignMinMaxOnlyUnsafe(inputSegments: Iterable[Segment],
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
+    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
 
   def assignMinMaxOnlyUnsafe(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 segmentIO: SegmentIO): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(Segment.tempMinMaxKeyValues(map), targetSegments).keys
+    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(map), targetSegments).keys
 
   def assignUnsafe(keyValues: Slice[KeyValue],
+                   segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] =
+    assignUnsafe(
+      keyValuesCount = keyValues.size,
+      keyValues = keyValues,
+      segments = segments
+    )
+
+  def assignUnsafe(keyValuesCount: Int,
+                   keyValues: Iterable[KeyValue],
                    segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
     import keyOrder._
     val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue]]
@@ -144,9 +153,9 @@ private[core] object SegmentAssigner {
       }
 
     if (Segment hasOnlyOneSegment segments) //.size iterates the entire Iterable which is not needed.
-      mutable.Map((segments.head, keyValues))
+      mutable.Map((segments.head, Slice.from(keyValues, keyValuesCount)))
     else if (segmentsIterator.hasNext) {
-      assign(MergeList(keyValues), segmentsIterator.next(), getNextSegmentMayBe())
+      assign(MergeList(keyValuesCount, keyValues.iterator), segmentsIterator.next(), getNextSegmentMayBe())
       assignmentsMap map {
         case (segment, keyValues) =>
           (segment, keyValues.close())
