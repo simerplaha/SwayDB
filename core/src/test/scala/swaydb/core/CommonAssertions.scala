@@ -95,9 +95,9 @@ object CommonAssertions {
         case keyValue: Memory =>
           keyValue match {
             case keyValue: Memory.Put =>
-              keyValue.value
+              keyValue.value.toOptionSON
             case keyValue: Memory.Update =>
-              keyValue.value
+              keyValue.value.toOptionSON
             case keyValue: Memory.Function =>
               Some(keyValue.getOrFetchFunction)
             case keyValue: Memory.PendingApply =>
@@ -115,10 +115,10 @@ object CommonAssertions {
         case keyValue: Persistent =>
           keyValue match {
             case keyValue: Persistent.Put =>
-              keyValue.getOrFetchValue.runRandomIO.right.value
+              keyValue.getOrFetchValue.runRandomIO.right.value.toOptionSON
 
             case keyValue: Persistent.Update =>
-              keyValue.getOrFetchValue.runRandomIO.right.value
+              keyValue.getOrFetchValue.runRandomIO.right.value.toOptionSON
 
             case keyValue: Persistent.Function =>
               Some(keyValue.getOrFetchFunction.runRandomIO.right.value)
@@ -248,9 +248,9 @@ object CommonAssertions {
         case Value.Remove(deadline, time) =>
           s"Remove(deadline = $deadline)"
         case Value.Put(value, deadline, time) =>
-          s"Put(${value.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
+          s"Put(${value.toOptionSON.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
         case Value.Update(value, deadline, time) =>
-          s"Update(${value.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
+          s"Update(${value.toOptionSON.map(_.read[Int]).getOrElse("None")}, deadline = $deadline)"
       }
   }
 
@@ -858,10 +858,10 @@ object CommonAssertions {
                       case fixed: Memory.Fixed =>
                         fixed match {
                           case Memory.Put(key, value, deadline, time) =>
-                            s"""PUT - ${key.readInt()} -> ${value.map(_.readInt())}, ${deadline.map(_.hasTimeLeft())}, ${time.time.readLong()}"""
+                            s"""PUT - ${key.readInt()} -> ${value.toOptionSON.map(_.readInt())}, ${deadline.map(_.hasTimeLeft())}, ${time.time.readLong()}"""
 
                           case Memory.Update(key, value, deadline, time) =>
-                            s"""UPDATE - ${key.readInt()} -> ${value.map(_.readInt())}, ${deadline.map(_.hasTimeLeft())}, ${time.time.readLong()}"""
+                            s"""UPDATE - ${key.readInt()} -> ${value.toOptionSON.map(_.readInt())}, ${deadline.map(_.hasTimeLeft())}, ${time.time.readLong()}"""
 
                           case Memory.Function(key, function, time) =>
                             s"""FUNCTION - ${key.readInt()} -> ${functionStore.get(function)}, ${time.time.readLong()}"""
@@ -1536,7 +1536,7 @@ object CommonAssertions {
         time.time.shouldBeSliced()
 
       case Value.Update(value, deadline, time) =>
-        value.shouldBeSliced()
+        value.toOptionSON.shouldBeSliced()
         time.time.shouldBeSliced()
 
       case Value.Function(function, time) =>
@@ -1547,7 +1547,7 @@ object CommonAssertions {
         applies foreach assertSliced
 
       case Value.Put(value, deadline, time) =>
-        value.shouldBeSliced()
+        value.toOptionSON.shouldBeSliced()
         time.time.shouldBeSliced()
     }
 
@@ -1560,12 +1560,12 @@ object CommonAssertions {
         memory match {
           case Memory.Put(key, value, deadline, time) =>
             key.shouldBeSliced()
-            value.shouldBeSliced()
+            value.toOptionSON.shouldBeSliced()
             time.time.shouldBeSliced()
 
           case Memory.Update(key, value, deadline, time) =>
             key.shouldBeSliced()
-            value.shouldBeSliced()
+            value.toOptionSON.shouldBeSliced()
             time.time.shouldBeSliced()
 
           case Memory.Function(key, function, time) =>
@@ -1596,12 +1596,12 @@ object CommonAssertions {
           case put @ Persistent.Put(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            put.getOrFetchValue.runRandomIO.right.value.shouldBeSliced()
+            put.getOrFetchValue.runRandomIO.right.value.toOptionSON.shouldBeSliced()
 
           case updated @ Persistent.Update(_key, deadline, lazyValueReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()
             _time.time.shouldBeSliced()
-            updated.getOrFetchValue.runRandomIO.right.value.shouldBeSliced()
+            updated.getOrFetchValue.runRandomIO.right.value.toOptionSON.shouldBeSliced()
 
           case function @ Persistent.Function(_key, lazyFunctionReader, _time, nextIndexOffset, nextIndexSize, indexOffset, valueOffset, valueLength, _) =>
             _key.shouldBeSliced()

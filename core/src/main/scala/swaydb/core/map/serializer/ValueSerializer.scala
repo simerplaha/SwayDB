@@ -24,7 +24,7 @@ import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.{ReaderBase, Slice, SliceOptional}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
@@ -71,12 +71,12 @@ object ValueSerializer {
       Time(remaining)
   }
 
-  def readValue(reader: ReaderBase): Option[Slice[Byte]] = {
+  def readValue(reader: ReaderBase): SliceOptional[Byte] = {
     val remaining = reader.readRemaining()
     if (remaining.isEmpty)
-      None
+      Slice.Null
     else
-      Some(remaining)
+      remaining
   }
 
   implicit object ValuePutSerializer extends ValueSerializer[Value.Put] {
@@ -86,13 +86,13 @@ object ValueSerializer {
         .addUnsignedLong(value.deadline.toNanos)
         .addUnsignedInt(value.time.size)
         .addAll(value.time.time)
-        .addAll(value.value.getOrElse(Slice.emptyBytes))
+        .addAll(value.value.getOrElseSON(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Put): Int =
       Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
-        value.value.map(_.size).getOrElse(0)
+        value.value.valueOrElse(_.size, 0)
 
     override def read(reader: ReaderBase): Value.Put = {
       val deadline = readDeadline(reader)
@@ -109,13 +109,13 @@ object ValueSerializer {
         .addUnsignedLong(value.deadline.toNanos)
         .addUnsignedInt(value.time.size)
         .addAll(value.time.time)
-        .addAll(value.value.getOrElse(Slice.emptyBytes))
+        .addAll(value.value.getOrElseSON(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Update): Int =
       Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
-        value.value.map(_.size).getOrElse(0)
+        value.value.valueOrElse(_.size, 0)
 
     override def read(reader: ReaderBase): Value.Update = {
       val deadline = readDeadline(reader)
@@ -282,37 +282,37 @@ object ValueSerializer {
   /**
    * Serializer for a tuple of Option bytes and sequence bytes.
    */
-  implicit object TupleBytesAndOptionBytesSerializer extends ValueSerializer[(Slice[Byte], Option[Slice[Byte]])] {
+  implicit object TupleBytesAndOptionBytesSerializer extends ValueSerializer[(Slice[Byte], SliceOptional[Byte])] {
 
-    override def write(value: (Slice[Byte], Option[Slice[Byte]]), bytes: Slice[Byte]): Unit =
+    override def write(value: (Slice[Byte], SliceOptional[Byte]), bytes: Slice[Byte]): Unit =
       value._2 match {
-        case Some(second) =>
+        case second: Slice[Byte] =>
           bytes.addSignedInt(1)
           ValueSerializer.write[(Slice[Byte], Slice[Byte])]((value._1, second))(bytes)
-        case None =>
+        case Slice.Null =>
           bytes.addSignedInt(0)
           bytes.addAll(value._1)
       }
 
-    override def bytesRequired(value: (Slice[Byte], Option[Slice[Byte]])): Int =
+    override def bytesRequired(value: (Slice[Byte], SliceOptional[Byte])): Int =
       value._2 match {
-        case Some(second) =>
+        case second: Slice[Byte] =>
           1 +
             ValueSerializer.bytesRequired[(Slice[Byte], Slice[Byte])](value._1, second)
-        case None =>
+        case Slice.Null =>
           1 +
             value._1.size
       }
 
-    override def read(reader: ReaderBase): (Slice[Byte], Option[Slice[Byte]]) = {
+    override def read(reader: ReaderBase): (Slice[Byte], SliceOptional[Byte]) = {
       val id = reader.readUnsignedInt()
       if (id == 0) {
         val all = reader.readRemaining()
-        (all, None)
+        (all, Slice.Null)
       }
       else {
         val (left, right) = ValueSerializer.read[(Slice[Byte], Slice[Byte])](reader)
-        (left, Some(right))
+        (left, right)
       }
     }
   }

@@ -66,8 +66,8 @@ object LevelZeroMapEntryWriter {
         .addAll(entry.value.key)
         .addInt(entry.value.time.size)
         .addAll(entry.value.time.time)
-        .addInt(entry.value.value.map(_.size).getOrElse(0))
-        .addAll(entry.value.value.getOrElse(Slice.emptyBytes))
+        .addInt(entry.value.value.mapSON(_.size).getOrElse(0))
+        .addAll(entry.value.value.getOrElseSON(Slice.emptyBytes))
         .addLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Put]): Int =
@@ -80,7 +80,7 @@ object LevelZeroMapEntryWriter {
           ByteSizeOf.int +
           entry.value.time.time.size +
           ByteSizeOf.int +
-          entry.value.value.map(_.size).getOrElse(0) +
+          entry.value.value.mapSON(_.size).getOrElse(0) +
           ByteSizeOf.long
   }
 
@@ -97,8 +97,8 @@ object LevelZeroMapEntryWriter {
         .addAll(entry.value.key)
         .addInt(entry.value.time.size)
         .addAll(entry.value.time.time)
-        .addInt(entry.value.value.map(_.size).getOrElse(0))
-        .addAll(entry.value.value.getOrElse(Slice.emptyBytes))
+        .addInt(entry.value.value.mapSON(_.size).getOrElse(0))
+        .addAll(entry.value.value.getOrElseSON(Slice.emptyBytes))
         .addLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Memory.Update]): Int =
@@ -111,7 +111,7 @@ object LevelZeroMapEntryWriter {
           ByteSizeOf.int +
           entry.value.time.time.size +
           ByteSizeOf.int +
-          entry.value.value.map(_.size).getOrElse(0) +
+          entry.value.value.mapSON(_.size).getOrElse(0) +
           ByteSizeOf.long
   }
 

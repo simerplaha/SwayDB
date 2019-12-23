@@ -1356,7 +1356,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .map {
         nextLevelHeadKey =>
           MinMax.minFavourLeft(
-            left = appendix.skipList.headKey.toOption,
+            left = appendix.skipList.headKey.toOptionSON,
             right = nextLevelHeadKey
           )(keyOrder)
       }

@@ -136,7 +136,7 @@ class SegmentBlockSpec extends TestBase {
 
         keyValues foreach {
           keyValue =>
-            keyValue.value shouldBe empty
+            keyValue.value.toOptionSON shouldBe empty
         }
 
         val (bytes, deadline) =
@@ -364,8 +364,8 @@ class SegmentBlockSpec extends TestBase {
 
         //value the first value for either fixed or range.
         //this value is only expected to be written ones.
-        keyValues.head.value shouldBe defined
-        val value = keyValues.head.value.value
+        keyValues.head.value.toOptionSON shouldBe defined
+        val value = keyValues.head.value.get
 
         val blocks =
           getBlocksSingle(

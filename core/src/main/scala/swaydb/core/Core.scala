@@ -95,12 +95,12 @@ private[swaydb] object Core {
             case Prepare.Put(key, value, expire) =>
               if (key.isEmpty) throw new Exception("Key cannot be empty.")
 
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value.getOrElse(Slice.Null), expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Add(key, expire) =>
               if (key.isEmpty) throw new Exception("Key cannot be empty.")
 
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, None, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Remove(key, toKey, expire) =>
               if (key.isEmpty) throw new Exception("Key cannot be empty.")
@@ -120,10 +120,10 @@ private[swaydb] object Core {
 
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.None, Value.Update(value, None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.None, Value.Update(value.getOrElse(Slice.Null), None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value.getOrElse(Slice.Null), None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value.getOrElse(Slice.Null), None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
               }
 
             case Prepare.ApplyFunction(key, toKey, function) =>

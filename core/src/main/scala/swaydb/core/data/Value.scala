@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import swaydb.core.segment.Segment
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone
 
 import scala.concurrent.duration.Deadline
@@ -114,7 +114,7 @@ private[swaydb] object Value {
       scala.None
   }
 
-  case class Put(value: Option[Slice[Byte]],
+  case class Put(value: SliceOptional[Byte],
                  deadline: Option[Deadline],
                  time: Time) extends FromValue {
 
@@ -140,7 +140,7 @@ private[swaydb] object Value {
       deadline.forall(_.hasTimeLeft())
   }
 
-  case class Update(value: Option[Slice[Byte]],
+  case class Update(value: SliceOptional[Byte],
                     deadline: Option[Deadline],
                     time: Time) extends RangeValue with Apply {
 

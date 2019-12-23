@@ -682,25 +682,25 @@ private[core] object Segment extends LazyLogging {
   def tempMinMaxKeyValues(segments: Iterable[Segment]): Slice[Memory] =
     segments.foldLeft(Slice.create[Memory](segments.size * 2)) {
       case (keyValues, segment) =>
-        keyValues add Memory.Put(segment.minKey, None, None, Time.empty)
+        keyValues add Memory.Put(segment.minKey, Slice.Null, None, Time.empty)
         segment.maxKey match {
           case MaxKey.Fixed(maxKey) =>
-            keyValues add Memory.Put(maxKey, None, None, Time.empty)
+            keyValues add Memory.Put(maxKey, Slice.Null, None, Time.empty)
 
           case MaxKey.Range(fromKey, maxKey) =>
-            keyValues add Memory.Range(fromKey, maxKey, Value.FromValue.None, Value.Update(Some(maxKey), None, Time.empty))
+            keyValues add Memory.Range(fromKey, maxKey, Value.FromValue.None, Value.Update(maxKey, None, Time.empty))
         }
     }
 
   def tempMinMaxKeyValues(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): Slice[Memory] = {
     for {
-      minKey <- map.skipList.head().mapSON(memory => Memory.Put(memory.key, None, None, Time.empty))
+      minKey <- map.skipList.head().mapSON(memory => Memory.Put(memory.key, Slice.Null, None, Time.empty))
       maxKey <- map.skipList.last() mapSON {
         case fixed: Memory.Fixed =>
-          Memory.Put(fixed.key, None, None, Time.empty)
+          Memory.Put(fixed.key, Slice.Null, None, Time.empty)
 
         case Memory.Range(fromKey, toKey, _, _) =>
-          Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Update(None, None, Time.empty))
+          Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Update(Slice.Null, None, Time.empty))
       }
     } yield
       Slice(minKey, maxKey)

@@ -1301,12 +1301,12 @@ object TestData {
 
     def put(key: Slice[Byte],
             value: Slice[Byte])(implicit testTimer: TestTimer): Memory.Put =
-      Memory.Put(key, Some(value), None, testTimer.next)
+      Memory.Put(key, value, None, testTimer.next)
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             removeAt: Deadline)(implicit testTimer: TestTimer): Memory.Put =
-      Memory.Put(key, Some(value), Some(removeAt), testTimer.next)
+      Memory.Put(key, value, Some(removeAt), testTimer.next)
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
@@ -1316,19 +1316,19 @@ object TestData {
     def put(key: Slice[Byte],
             value: Slice[Byte],
             removeAt: Option[Deadline])(implicit testTimer: TestTimer): Memory.Put =
-      Memory.Put(key, Some(value), removeAt, testTimer.next)
+      Memory.Put(key, value, removeAt, testTimer.next)
 
     def put(key: Slice[Byte],
             value: Slice[Byte],
             removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Memory.Put =
-      Memory.Put(key, Some(value), Some(removeAfter.fromNow), testTimer.next)
+      Memory.Put(key, value, Some(removeAfter.fromNow), testTimer.next)
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]])(implicit testTimer: TestTimer): Memory.Put =
       Memory.Put(key, value, None, testTimer.next)
 
     def put(key: Slice[Byte])(implicit testTimer: TestTimer): Memory.Put =
-      Memory.Put(key, None, None, testTimer.next)
+      Memory.Put(key, Slice.Null, None, testTimer.next)
 
     def put(key: Slice[Byte],
             value: Option[Slice[Byte]],
@@ -1343,12 +1343,12 @@ object TestData {
 
     def update(key: Slice[Byte],
                value: Slice[Byte])(implicit testTimer: TestTimer): Memory.Update =
-      Memory.Update(key, Some(value), None, testTimer.next)
+      Memory.Update(key, value, None, testTimer.next)
 
     def update(key: Slice[Byte],
                value: Slice[Byte],
                removeAt: Deadline)(implicit testTimer: TestTimer): Memory.Update =
-      Memory.Update(key, Some(value), Some(removeAt), testTimer.next)
+      Memory.Update(key, value, Some(removeAt), testTimer.next)
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
@@ -1358,19 +1358,19 @@ object TestData {
     def update(key: Slice[Byte],
                value: Slice[Byte],
                removeAt: Option[Deadline])(implicit testTimer: TestTimer): Memory.Update =
-      Memory.Update(key, Some(value), removeAt, testTimer.next)
+      Memory.Update(key, value, removeAt, testTimer.next)
 
     def update(key: Slice[Byte],
                value: Slice[Byte],
                removeAfter: FiniteDuration)(implicit testTimer: TestTimer): Memory.Update =
-      Memory.Update(key, Some(value), Some(removeAfter.fromNow), testTimer.next)
+      Memory.Update(key, value, Some(removeAfter.fromNow), testTimer.next)
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]])(implicit testTimer: TestTimer): Memory.Update =
       Memory.Update(key, value, None, testTimer.next)
 
     def update(key: Slice[Byte])(implicit testTimer: TestTimer): Memory.Update =
-      Memory.Update(key, None, None, testTimer.next)
+      Memory.Update(key, Slice.Null, None, testTimer.next)
 
     def update(key: Slice[Byte],
                value: Option[Slice[Byte]],
@@ -1406,22 +1406,22 @@ object TestData {
     def put(value: Option[Slice[Byte]],
             deadline: Option[Deadline],
             time: Time)(implicit testTimer: TestTimer): Value.Put =
-      Value.Put(Some(value), deadline, time)
+      Value.Put(value, deadline, time)
 
     def put(value: Slice[Byte])(implicit testTimer: TestTimer): Value.Put =
-      Value.Put(Some(value), None, testTimer.next)
+      Value.Put(value, None, testTimer.next)
 
     def put(value: Option[Slice[Byte]])(removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, Some(removeAfter), testTimer.next)
 
     def put(value: Slice[Byte], removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Put =
-      Value.Put(Some(value), Some(removeAfter), testTimer.next)
+      Value.Put(value, Some(removeAfter), testTimer.next)
 
     def put(value: Option[Slice[Byte]], removeAfter: Option[Deadline])(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, removeAfter, testTimer.next)
 
     def put(value: Slice[Byte], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Put =
-      Value.Put(Some(value), Some(duration.fromNow), testTimer.next)
+      Value.Put(value, Some(duration.fromNow), testTimer.next)
 
     def put(value: Option[Slice[Byte]], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, Some(duration.fromNow), testTimer.next)
@@ -1429,25 +1429,25 @@ object TestData {
     def update(value: Option[Slice[Byte]],
                deadline: Option[Deadline],
                time: Time): Value.Update =
-      Value.Update(Some(value), deadline, time)
+      Value.Update(value, deadline, time)
 
     def update(value: Slice[Byte])(implicit testTimer: TestTimer): Value.Update =
-      Value.Update(Some(value), None, testTimer.next)
+      Value.Update(value, None, testTimer.next)
 
     def update(value: Slice[Byte], deadline: Option[Deadline])(implicit testTimer: TestTimer): Value.Update =
-      Value.Update(Some(value), deadline, testTimer.next)
+      Value.Update(value, deadline, testTimer.next)
 
     def update(value: Option[Slice[Byte]])(removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, Some(removeAfter), testTimer.next)
 
     def update(value: Slice[Byte], removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Update =
-      Value.Update(Some(value), Some(removeAfter), testTimer.next)
+      Value.Update(value, Some(removeAfter), testTimer.next)
 
     def update(value: Option[Slice[Byte]], removeAfter: Option[Deadline])(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, removeAfter, testTimer.next)
 
     def update(value: Slice[Byte], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Update =
-      Value.Update(Some(value), Some(duration.fromNow), testTimer.next)
+      Value.Update(value, Some(duration.fromNow), testTimer.next)
 
     def update(value: Option[Slice[Byte]], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, Some(duration.fromNow), testTimer.next)

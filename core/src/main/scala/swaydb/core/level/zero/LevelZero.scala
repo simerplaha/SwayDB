@@ -226,22 +226,22 @@ private[swaydb] case class LevelZero(path: Path,
 
   def put(key: Slice[Byte]): Done =
     assertRun(key) {
-      maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, None, None, timer.next)))
+      maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, Slice.Null, None, timer.next)))
     }
 
   def put(key: Slice[Byte], value: Slice[Byte]): Done =
     assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Put(key, Some(value), None, timer.next)))
+      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Done =
     assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), timer.next)))
+      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), Some(removeAt), timer.next)))
     }
 
   def put(key: Slice[Byte], value: Option[Slice[Byte]]): Done =
     assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
+      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), None, timer.next)))
     }
 
   def put(entry: Timer => MapEntry[Slice[Byte], Memory]): Done = {
@@ -287,12 +287,12 @@ private[swaydb] case class LevelZero(path: Path,
 
   def update(key: Slice[Byte], value: Slice[Byte]): Done =
     assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Update(key, Some(value), None, timer.next)))
+      maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     }
 
   def update(key: Slice[Byte], value: Option[Slice[Byte]]): Done =
     assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
+      maps.write(timer => MapEntry.Put(key, Memory.Update(key, value.getOrElse(Slice.Null), None, timer.next)))
     }
 
   def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): Done =
@@ -312,9 +312,9 @@ private[swaydb] case class LevelZero(path: Path,
                   fromKey = fromKey,
                   toKey = toKey,
                   fromValue = Value.FromValue.None,
-                  rangeValue = Value.Update(value, None, timer.next)
+                  rangeValue = Value.Update(value.getOrElse(Slice.Null), None, timer.next)
                 )
-              ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
+              ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value.getOrElse(Slice.Null), None, timer.next))
           }
     }
 
@@ -449,7 +449,7 @@ private[swaydb] case class LevelZero(path: Path,
     get(key, readState).map(_.map(_.key))
 
   def firstKeyFromMaps =
-    maps.reduce[Slice[Byte]](_.skipList.headKey.toOption, MinMax.minFavourLeft(_, _)(keyOrder))
+    maps.reduce[Slice[Byte]](_.skipList.headKey.toOptionSON, MinMax.minFavourLeft(_, _)(keyOrder))
 
   def lastKeyFromMaps =
     maps.reduce[Slice[Byte]](
@@ -918,7 +918,7 @@ private[swaydb] case class LevelZero(path: Path,
         .flatMap {
           case Some(put) =>
             try
-              tag.success(Some(put.key, put.getOrFetchValue)) //getOrFetchValue could also result in ReservedResource.
+              tag.success(Some(put.key, put.getOrFetchValue.toOptionSON)) //getOrFetchValue could also result in ReservedResource.
             catch {
               case throwable: Throwable =>
                 failed = Some(IO.ExceptionHandler.toError(throwable))

@@ -92,6 +92,21 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
 
   def forallSON(f: SOME => Boolean): Boolean =
     isNone || f(get)
+
+  def containsSON(f: SOME): Boolean =
+    isSome && get == f
+
+  def valueOrElse[B](f: SOME => B, orElse: B): B =
+    if (isSome)
+      f(get)
+    else
+      orElse
+
+  def foldLeftSON[B](initial: B)(f: (B, SOME) => B): B =
+    if (isSome)
+      f(initial, get)
+    else
+      initial
 }
 
 private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] {
@@ -151,9 +166,24 @@ private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] {
     else
       other.asInstanceOf[T]
 
+  def valueOrElse[B](f: SOME => B, orElse: B): B =
+    if (isSome)
+      f(get)
+    else
+      orElse
+
   def existsSON(f: SOME => Boolean): Boolean =
     isSome && f(get)
 
   def forallSON(f: SOME => Boolean): Boolean =
     isNone || f(get)
+
+  def containsSON[B >: SOME](f: B): Boolean =
+    isSome && get == f
+
+  def foldLeftSON[B](initial: B)(f: (B, SOME) => B): B =
+    if (isSome)
+      f(initial, get)
+    else
+      initial
 }

@@ -45,7 +45,7 @@ class SegmentMerge_Performance_Spec extends TestBase {
           val put =
             Memory.Put(
               key = key,
-              value = Some(key),
+              value = key,
               deadline = None,
               time = Time.empty,
             )

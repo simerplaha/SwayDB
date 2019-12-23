@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.Maybe.Maybe
 import swaydb.data.util.SomeOrNone
 
@@ -91,7 +91,7 @@ private[core] object KeyValue {
     def hasTimeLeft(): Boolean
     def isOverdue(): Boolean = !hasTimeLeft()
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-    def getOrFetchValue: Option[Slice[Byte]]
+    def getOrFetchValue: SliceOptional[Byte]
     def time: Time
     def toFromValue(): Value.Put
     def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.Put
@@ -115,7 +115,7 @@ private[core] object KeyValue {
     def isOverdue(): Boolean = !hasTimeLeft()
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
     def time: Time
-    def getOrFetchValue: Option[Slice[Byte]]
+    def getOrFetchValue: SliceOptional[Byte]
     def toFromValue(): Value.Update
     def toPut(): KeyValue.Put
     def toPut(deadline: Option[Deadline]): KeyValue.Put
@@ -181,7 +181,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
   def isPut: Boolean
   def persistentTime: Time
   def mergedKey: Slice[Byte]
-  def value: Option[Slice[Byte]]
+  def value: SliceOptional[Byte]
   def deadline: Option[Deadline]
 
   override def isNone: Boolean =
@@ -225,9 +225,9 @@ private[swaydb] object Memory {
   }
 
   //if value is empty byte slice, return None instead of empty Slice.We do not store empty byte arrays.
-  def compressibleValue(keyValue: Memory): Option[Slice[Byte]] =
-    if (keyValue.value.exists(_.isEmpty))
-      None
+  def compressibleValue(keyValue: Memory): SliceOptional[Byte] =
+    if (keyValue.value.existsSON(_.isEmpty))
+      Slice.Null
     else
       keyValue.value
 
@@ -235,29 +235,29 @@ private[swaydb] object Memory {
     (left, right) match {
       //Remove
       case (left: Memory.Remove, right: Memory.Remove) => true
-      case (left: Memory.Remove, right: Memory.Put) => right.value.isEmpty
-      case (left: Memory.Remove, right: Memory.Update) => right.value.isEmpty
+      case (left: Memory.Remove, right: Memory.Put) => right.value.isNone
+      case (left: Memory.Remove, right: Memory.Update) => right.value.isNone
       case (left: Memory.Remove, right: Memory.Function) => false
       case (left: Memory.Remove, right: Memory.PendingApply) => false
       case (left: Memory.Remove, right: Memory.Range) => false
       //Put
-      case (left: Memory.Put, right: Memory.Remove) => left.value.isEmpty
+      case (left: Memory.Put, right: Memory.Remove) => left.value.isNone
       case (left: Memory.Put, right: Memory.Put) => left.value == right.value
       case (left: Memory.Put, right: Memory.Update) => left.value == right.value
-      case (left: Memory.Put, right: Memory.Function) => left.value contains right.function
+      case (left: Memory.Put, right: Memory.Function) => left.value containsSON right.function
       case (left: Memory.Put, right: Memory.PendingApply) => false
       case (left: Memory.Put, right: Memory.Range) => false
       //Update
-      case (left: Memory.Update, right: Memory.Remove) => left.value.isEmpty
+      case (left: Memory.Update, right: Memory.Remove) => left.value.isNone
       case (left: Memory.Update, right: Memory.Put) => left.value == right.value
       case (left: Memory.Update, right: Memory.Update) => left.value == right.value
-      case (left: Memory.Update, right: Memory.Function) => left.value contains right.function
+      case (left: Memory.Update, right: Memory.Function) => left.value containsSON right.function
       case (left: Memory.Update, right: Memory.PendingApply) => false
       case (left: Memory.Update, right: Memory.Range) => false
       //Function
       case (left: Memory.Function, right: Memory.Remove) => false
-      case (left: Memory.Function, right: Memory.Put) => right.value contains left.function
-      case (left: Memory.Function, right: Memory.Update) => right.value contains left.function
+      case (left: Memory.Function, right: Memory.Put) => right.value containsSON left.function
+      case (left: Memory.Function, right: Memory.Update) => right.value containsSON left.function
       case (left: Memory.Function, right: Memory.Function) => left.function == right.function
       case (left: Memory.Function, right: Memory.PendingApply) => false
       case (left: Memory.Function, right: Memory.Range) => false
@@ -278,7 +278,7 @@ private[swaydb] object Memory {
     }
 
   case class Put(key: Slice[Byte],
-                 value: Option[Slice[Byte]],
+                 value: SliceOptional[Byte],
                  deadline: Option[Deadline],
                  time: Time) extends Memory.Fixed with KeyValue.Put {
 
@@ -295,7 +295,7 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = deadline
 
     override def valueLength: Int =
-      value.map(_.size).getOrElse(0)
+      value.mapSON(_.size).getOrElse(0)
 
     def hasTimeLeft(): Boolean =
       deadline.forall(_.hasTimeLeft())
@@ -303,7 +303,7 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: Option[Slice[Byte]] =
+    override def getOrFetchValue: SliceOptional[Byte] =
       value
 
     override def toFromValue(): Value.Put =
@@ -329,7 +329,7 @@ private[swaydb] object Memory {
   }
 
   case class Update(key: Slice[Byte],
-                    value: Option[Slice[Byte]],
+                    value: SliceOptional[Byte],
                     deadline: Option[Deadline],
                     time: Time) extends KeyValue.Update with Memory.Fixed {
 
@@ -351,7 +351,7 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: Option[Slice[Byte]] =
+    override def getOrFetchValue: SliceOptional[Byte] =
       value
 
     override def toFromValue(): Value.Update =
@@ -410,7 +410,7 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def value: Option[Slice[Byte]] = Some(function)
+    override def value: SliceOptional[Byte] = function
 
     override def deadline: Option[Deadline] = None
 
@@ -447,7 +447,7 @@ private[swaydb] object Memory {
 
     override def isRemoveRangeMayBe = false
 
-    override lazy val value: Option[Slice[Byte]] = Some(ValueSerializer.writeBytes(applies))
+    override lazy val value: SliceOptional[Byte] = ValueSerializer.writeBytes(applies)
 
     override val deadline =
       Segment.getNearestDeadline(None, applies)
@@ -489,7 +489,7 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def value: Option[Slice[Byte]] = None
+    override def value: SliceOptional[Byte] = Slice.Null
 
     def hasTimeLeft(): Boolean =
       deadline.exists(_.hasTimeLeft())
@@ -546,10 +546,10 @@ private[swaydb] object Memory {
 
     override lazy val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
 
-    override lazy val value: Option[Slice[Byte]] = {
+    override lazy val value: SliceOptional[Byte] = {
       val bytesRequired = OptionRangeValueSerializer.bytesRequired(fromValue, rangeValue)
-      val bytes = if (bytesRequired == 0) None else Some(Slice.create[Byte](bytesRequired))
-      bytes.foreach(OptionRangeValueSerializer.write(fromValue, rangeValue, _))
+      val bytes = if (bytesRequired == 0) Slice.Null else Slice.create[Byte](bytesRequired)
+      bytes.foreachSON(OptionRangeValueSerializer.write(fromValue, rangeValue, _))
       bytes
     }
 
@@ -796,10 +796,10 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, SliceOptional[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
-                None
+                Slice.Null
               else
                 valuesReader match {
                   case Some(valuesReader) =>
@@ -824,7 +824,7 @@ private[core] object Persistent {
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val valueCache: CacheNoIO[ValuesBlock.Offset, Option[Slice[Byte]]],
+                 private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOptional[Byte]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextKeySize: Int,
@@ -851,7 +851,7 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: Option[Slice[Byte]] =
+    override def getOrFetchValue: SliceOptional[Byte] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def isValueCached: Boolean =
@@ -901,10 +901,10 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, Option[Slice[Byte]]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, SliceOptional[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
-                None
+                Slice.Null
               else
                 valuesReader match {
                   case Some(valuesReader) =>
@@ -929,7 +929,7 @@ private[core] object Persistent {
 
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val valueCache: CacheNoIO[ValuesBlock.Offset, Option[Slice[Byte]]],
+                    private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOptional[Byte]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextKeySize: Int,
@@ -959,7 +959,7 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchValue: Option[Slice[Byte]] =
+    def getOrFetchValue: SliceOptional[Byte] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Update =

@@ -20,7 +20,7 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util.concurrent.{ExecutorService, Executors, ForkJoinPool}
+import java.util.concurrent.{ExecutorService, Executors}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.SingleThreadFactory
@@ -34,7 +34,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
@@ -180,7 +180,7 @@ object SwayDB extends LazyLogging {
 
       case update: Apply.Update[V] =>
         val untypedValue: Slice[Byte] = valueSerializer.write(update.value)
-        SwayFunctionOutput.Update(Some(untypedValue), update.deadline)
+        SwayFunctionOutput.Update(untypedValue, update.deadline)
     }
 
   private[swaydb] def toCoreFunction[K, V](f: (K, Option[Deadline]) => Apply[V])(implicit keySerializer: Serializer[K],
@@ -197,7 +197,7 @@ object SwayDB extends LazyLogging {
                                                                                     valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
-    def function(key: Slice[Byte], value: Option[Slice[Byte]], deadline: Option[Deadline]) =
+    def function(key: Slice[Byte], value: SliceOptional[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
 
     swaydb.core.data.SwayFunction.KeyValueDeadline(function)
@@ -206,7 +206,7 @@ object SwayDB extends LazyLogging {
   private[swaydb] def toCoreFunction[K, V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
-    def function(value: Option[Slice[Byte]]) =
+    def function(value: SliceOptional[Byte]) =
       toCoreFunctionOutput(f(value.read[V]))
 
     swaydb.core.data.SwayFunction.Value(function)

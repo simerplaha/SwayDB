@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 
 package object serializers {
 
@@ -37,5 +37,10 @@ package object serializers {
   implicit class DecodeOption(slice: Option[Slice[Byte]]) {
     @inline def read[T](implicit serializer: Serializer[T]): T =
       slice.map(serializer.read) getOrElse serializer.read(Slice.emptyBytes)
+  }
+
+  implicit class DecodeOptionSliceOptional(slice: SliceOptional[Byte]) {
+    @inline def read[T](implicit serializer: Serializer[T]): T =
+      slice.valueOrElse(serializer.read, serializer.read(Slice.emptyBytes))
   }
 }

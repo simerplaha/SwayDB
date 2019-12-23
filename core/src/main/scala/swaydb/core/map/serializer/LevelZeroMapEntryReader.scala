@@ -54,7 +54,7 @@ object LevelZeroMapEntryReader {
         val timeLength = reader.readInt()
         val time = reader.read(timeLength).unslice()
         val valueLength = reader.readInt()
-        val value = if (valueLength == 0) None else Some(reader.read(valueLength))
+        val value = if (valueLength == 0) Slice.Null else reader.read(valueLength)
         val deadlineLong = reader.readLong()
 
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
@@ -71,7 +71,7 @@ object LevelZeroMapEntryReader {
         val timeLength = reader.readInt()
         val time = reader.read(timeLength).unslice()
         val valueLength = reader.readInt()
-        val value = if (valueLength == 0) None else Some(reader.read(valueLength))
+        val value = if (valueLength == 0) Slice.Null else reader.read(valueLength)
         val deadlineLong = reader.readLong()
 
         val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))

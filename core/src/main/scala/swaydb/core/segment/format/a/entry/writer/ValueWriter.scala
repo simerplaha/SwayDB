@@ -23,7 +23,7 @@ import swaydb.IO
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.{Bytes, Options}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 
 private[a] trait ValueWriter {
   def write[T <: Memory](current: T,
@@ -40,7 +40,7 @@ private[a] object ValueWriter extends ValueWriter {
                          builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
                                                        keyWriter: KeyWriter,
                                                        deadlineWriter: DeadlineWriter): Unit =
-    if (current.value.forall(_.isEmpty))
+    if (current.value.forallSON(_.isEmpty))
       noValue(
         current = current,
         entryId = entryId,
@@ -101,7 +101,7 @@ private[a] object ValueWriter extends ValueWriter {
                                                                          deadlineWriter: DeadlineWriter): Unit =
     if (builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)
       (Memory.compressibleValue(current), Memory.compressibleValue(previous)) match {
-        case (Some(currentValue), Some(previousValue)) =>
+        case (currentValue: Slice[Byte], previousValue: Slice[Byte]) =>
           partialCompress(
             current = current,
             entryId = entryId,
@@ -110,7 +110,7 @@ private[a] object ValueWriter extends ValueWriter {
             previousValue = previousValue
           )
 
-        case (Some(_), None) =>
+        case (_: Slice[Byte], Slice.Null) =>
           uncompressed(
             current = current,
             currentValue = current.value,
@@ -118,7 +118,7 @@ private[a] object ValueWriter extends ValueWriter {
             builder = builder
           )
 
-        case (None, _) =>
+        case (Slice.Null, _) =>
           noValue(
             current = current,
             entryId = entryId,
@@ -134,13 +134,13 @@ private[a] object ValueWriter extends ValueWriter {
       )
 
   private def uncompressed[T <: Memory](current: T,
-                                        currentValue: Option[Slice[Byte]],
+                                        currentValue: SliceOptional[Byte],
                                         entryId: BaseEntryId.Time,
                                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
                                                                       keyWriter: KeyWriter,
                                                                       deadlineWriter: DeadlineWriter): Unit = {
     //if previous does not exists write full offsets and then write deadline.
-    val currentValueSize = currentValue.foldLeft(0)(_ + _.size)
+    val currentValueSize = currentValue.foldLeftSON(0)(_ + _.size)
     val currentValueOffset = builder.nextStartValueOffset
 
     builder.startValueOffset = currentValueOffset
