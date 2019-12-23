@@ -222,7 +222,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
   def headKey(readState: ReadState): T[Option[Slice[Byte]]] =
     zero.headKey(readState).run
 
-  def last(readState: ReadState): T[Option[KeyValueTuple]] =
+  def last(readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.last(readState))
 
   def lastKey(readState: ReadState): T[Option[Slice[Byte]]] =
@@ -257,11 +257,11 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     zero.getKey(key, readState).run
 
   def getKeyValue(key: Slice[Byte],
-                  readState: ReadState): T[Option[KeyValueTuple]] =
+                  readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.get(key, readState))
 
   def before(key: Slice[Byte],
-             readState: ReadState): T[Option[KeyValueTuple]] =
+             readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.lower(key, readState))
 
   def beforeKey(key: Slice[Byte],
@@ -269,7 +269,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     zero.lower(key, readState).run.map(_.map(_.key))
 
   def after(key: Slice[Byte],
-            readState: ReadState): T[Option[KeyValueTuple]] =
+            readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.higher(key, readState))
 
   def afterKey(key: Slice[Byte],

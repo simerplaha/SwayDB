@@ -161,7 +161,6 @@ private[core] object KeyValue {
     }
   }
 
-  type KeyValueTuple = (Slice[Byte], Option[Slice[Byte]])
 }
 
 private[swaydb] sealed trait MemoryOptional extends SomeOrNone[MemoryOptional, Memory] with KeyValueOptional {
