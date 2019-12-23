@@ -28,7 +28,7 @@ private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]
 
   def apply(previous: Persistent.Partial,
-            next: Option[Persistent.Partial],
+            next: Persistent.PartialOptional,
             hasMore: Boolean): KeyMatcher.Result
 
   def keyOrder: KeyOrder[Slice[Byte]]
@@ -44,9 +44,9 @@ private[core] object KeyMatcher {
     sealed trait Complete extends Result
     sealed trait InComplete extends Result
 
-    class Matched(val previous: Option[Persistent.Partial],
+    class Matched(val previous: Persistent.PartialOptional,
                   val result: Persistent.Partial,
-                  val next: Option[Persistent.Partial]) extends Complete
+                  val next: Persistent.PartialOptional) extends Complete
 
     sealed trait Behind {
       def previous: Persistent.Partial
@@ -55,8 +55,8 @@ private[core] object KeyMatcher {
     class BehindFetchNext(val previous: Persistent.Partial) extends InComplete with Behind
     class BehindStopped(val previous: Persistent.Partial) extends Complete with Behind
 
-    val aheadOrNoneOrEndNone = new AheadOrNoneOrEnd(None)
-    class AheadOrNoneOrEnd(val ahead: Option[Persistent.Partial]) extends Complete
+    val aheadOrNoneOrEndNone = new AheadOrNoneOrEnd(Persistent.Partial.Null)
+    class AheadOrNoneOrEnd(val ahead: Persistent.PartialOptional) extends Complete
   }
 
   sealed trait Bounded extends KeyMatcher
@@ -96,33 +96,33 @@ private[core] object KeyMatcher {
                        val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
-                       next: Option[Persistent.Partial],
+                       next: Persistent.PartialOptional,
                        hasMore: Boolean): KeyMatcher.Result =
-      next.getOrElse(previous) match {
+      next.getOrElseP(previous) match {
         case fixed: Persistent.Partial.Fixed =>
           val matchResult = keyOrder.compare(key, fixed.key)
           if (matchResult == 0)
-            new Matched(next map (_ => previous), fixed, None)
+            new Matched(next flatMapP (_ => previous), fixed, Persistent.Partial.Null)
           else if (matchResult > 0 && hasMore)
             if (matchOnly)
               new BehindStopped(fixed)
             else
               new BehindFetchNext(fixed)
           else
-            new AheadOrNoneOrEnd(next orElse Some(previous))
+            new AheadOrNoneOrEnd(next orElseP previous)
 
         case range: Persistent.Partial.Range =>
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
           val toKeyMatch = keyOrder.compare(key, range.toKey)
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
-            new Matched(next map (_ => previous), range, None)
+            new Matched(next flatMapP (_ => previous), range, Persistent.Partial.Null)
           else if (toKeyMatch >= 0 && hasMore)
             if (matchOnly)
               new BehindStopped(range)
             else
               new BehindFetchNext(range)
           else
-            new AheadOrNoneOrEnd(next orElse Some(previous))
+            new AheadOrNoneOrEnd(next orElseP previous)
       }
   }
 
@@ -160,21 +160,21 @@ private[core] object KeyMatcher {
                              val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Lower with Lower.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
-                       next: Option[Persistent.Partial],
+                       next: Persistent.PartialOptional,
                        hasMore: Boolean): KeyMatcher.Result =
       next match {
-        case someNext @ Some(next) =>
+        case next: Persistent.Partial =>
           val nextCompare = keyOrder.compare(next.key, key)
           if (nextCompare >= 0)
             if (keyOrder.compare(previous.key, key) < 0)
-              new Matched(None, previous, someNext)
+              new Matched(Persistent.Partial.Null, previous, next)
             else
-              new AheadOrNoneOrEnd(someNext)
+              new AheadOrNoneOrEnd(next)
           else if (nextCompare < 0)
             if (hasMore)
               next match {
                 case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) <= 0 =>
-                  new Matched(Some(previous), next, None)
+                  new Matched(previous, next, Persistent.Partial.Null)
 
                 case _ =>
                   if (matchOnly)
@@ -183,27 +183,27 @@ private[core] object KeyMatcher {
                     new BehindFetchNext(next)
               }
             else
-              new Matched(Some(previous), next, None)
+              new Matched(previous, next, Persistent.Partial.Null)
           else
-            new AheadOrNoneOrEnd(someNext)
+            new AheadOrNoneOrEnd(next)
 
-        case None =>
+        case Persistent.Partial.Null =>
           val previousCompare = keyOrder.compare(previous.key, key)
           if (previousCompare == 0)
-            new AheadOrNoneOrEnd(Some(previous))
+            new AheadOrNoneOrEnd(previous)
           else if (previousCompare < 0)
             if (hasMore)
               previous match {
                 case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) <= 0 =>
-                  new Matched(None, previous, next)
+                  new Matched(Persistent.Partial.Null, previous, next)
 
                 case _ =>
                   new BehindFetchNext(previous)
               }
             else
-              new Matched(None, previous, next)
+              new Matched(Persistent.Partial.Null, previous, next)
           else
-            new AheadOrNoneOrEnd(Some(previous))
+            new AheadOrNoneOrEnd(previous)
       }
   }
 
@@ -241,16 +241,16 @@ private[core] object KeyMatcher {
                               val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Higher with Higher.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
-                       next: Option[Persistent.Partial],
+                       next: Persistent.PartialOptional,
                        hasMore: Boolean): KeyMatcher.Result = {
-      val keyValue = next getOrElse previous
+      val keyValue = next getOrElseP previous
       val nextCompare = keyOrder.compare(keyValue.key, key)
       if (nextCompare > 0)
-        new Matched(next map (_ => previous), keyValue, None)
+        new Matched(next flatMapP (_ => previous), keyValue, Persistent.Partial.Null)
       else if (nextCompare <= 0)
         keyValue match {
           case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) < 0 =>
-            new Matched(next map (_ => previous), keyValue, None)
+            new Matched(next flatMapP (_ => previous), keyValue, Persistent.Partial.Null)
 
           case _ =>
             if (hasMore)
@@ -259,10 +259,10 @@ private[core] object KeyMatcher {
               else
                 new BehindFetchNext(keyValue)
             else
-              new AheadOrNoneOrEnd(next orElse Some(previous))
+              new AheadOrNoneOrEnd(next orElseP previous)
         }
       else
-        new AheadOrNoneOrEnd(next orElse Some(previous))
+        new AheadOrNoneOrEnd(next orElseP previous)
     }
   }
 }

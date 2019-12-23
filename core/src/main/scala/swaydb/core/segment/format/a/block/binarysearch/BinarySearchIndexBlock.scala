@@ -385,7 +385,7 @@ private[core] object BinarySearchIndexBlock {
                                                                                   partialOrdering: KeyOrder[Persistent.Partial]): BinarySearchLowerResult.Some[Persistent.Partial] = {
 
     @tailrec
-    def hop(start: Int, end: Int, knownLowest: Option[Persistent.Partial], knownMatch: Option[Persistent.Partial]): BinarySearchLowerResult.Some[Persistent.Partial] = {
+    def hop(start: Int, end: Int, knownLowest: Persistent.PartialOptional, knownMatch: Persistent.PartialOptional): BinarySearchLowerResult.Some[Persistent.Partial] = {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
@@ -403,26 +403,27 @@ private[core] object BinarySearchIndexBlock {
        *          shiftLeft will result in 20 which is not the lowest.
        */
       if (start > end || mid < 0)
-        if (fetchLeft && knownLowest.isEmpty) {
+        if (fetchLeft && knownLowest.isNone) {
           //println("Restart")
           binarySearchLower(fetchLeft = false, context = context)
         } else {
           //println("End")
-          BinarySearchLowerResult.Some(
-            lower =
-              MinMax.maxFavourLeft(
-                left = knownLowest,
-                right = context.lowestKeyValue.toOption
-              ),
-            matched = knownMatch
-          )
+          //          BinarySearchLowerResult.Some(
+          //            lower =
+          //              MinMax.maxFavourLeft(
+          //                left = knownLowest,
+          //                right = context.lowestKeyValue
+          //              ),
+          //            matched = knownMatch
+          //          )
+          ???
         }
       else
         context.seek(valueOffset) match {
           case matched: KeyMatcher.Result.Matched =>
             matched.result match {
               case fixed: Persistent.Partial.Fixed =>
-                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(fixed))
+                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseP knownLowest, knownMatch = fixed)
 
               case range: Persistent.Partial.Range =>
                 if (ordering.gt(context.targetKey, range.fromKey))
@@ -431,15 +432,15 @@ private[core] object BinarySearchIndexBlock {
                     matched = Some(range)
                   )
                 else
-                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElse knownLowest, knownMatch = Some(matched.result))
+                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseP knownLowest, knownMatch = matched.result)
             }
 
           case behind: KeyMatcher.Result.Behind =>
-            hop(start = mid + 1, end = end, knownLowest = Some(behind.previous), knownMatch = knownMatch)
+            hop(start = mid + 1, end = end, knownLowest = behind.previous, knownMatch = knownMatch)
 
           case aheadNoneOrEnd: KeyMatcher.Result.AheadOrNoneOrEnd =>
             aheadNoneOrEnd.ahead match {
-              case Some(range: Persistent.Partial.Range) if ordering.gt(context.targetKey, range.fromKey) =>
+              case range: Persistent.Partial.Range if ordering.gt(context.targetKey, range.fromKey) =>
                 BinarySearchLowerResult.Some(
                   lower = None,
                   matched = Some(range)
@@ -457,10 +458,10 @@ private[core] object BinarySearchIndexBlock {
     val end = getEndPosition(context)
 
     if (fetchLeft) {
-      hop(start = end - 1, end = end - 1, knownLowest = context.lowestKeyValue.toOption, knownMatch = None)
+      hop(start = end - 1, end = end - 1, knownLowest = context.lowestKeyValue.asPartial, knownMatch = Persistent.Partial.Null)
     } else {
       val start = getStartPosition(context)
-      hop(start = start, end = end, knownLowest = context.lowestKeyValue.toOption, knownMatch = None)
+      hop(start = start, end = end, knownLowest = context.lowestKeyValue.asPartial, knownMatch = Persistent.Partial.Null)
     }
   }
 

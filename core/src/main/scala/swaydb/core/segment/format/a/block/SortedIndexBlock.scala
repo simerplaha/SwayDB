@@ -977,7 +977,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     matcher(
       previous = persistent,
-      next = None,
+      next = Persistent.Partial.Null,
       hasMore = hasMore(persistent)
     )
   }
@@ -1005,7 +1005,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     matcher(
       previous = persistent,
-      next = Some(next),
+      next = next,
       hasMore = hasMore(next)
     )
   }
@@ -1024,7 +1024,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     matcher(
       previous = previous,
-      next = Some(persistent),
+      next = persistent,
       hasMore = hasMore(persistent)
     )
   }
@@ -1066,7 +1066,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): KeyMatcher.Result.Complete =
     matcher(
       previous = previous,
-      next = next.toOption,
+      next = next.asPartial,
       hasMore = hasMore(next getOrElse previous)
     ) match {
       case result: KeyMatcher.Result.Complete =>
@@ -1074,18 +1074,18 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       case behind: KeyMatcher.Result.BehindFetchNext =>
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
-        //        val readFrom: Persistent = (next getOrElse behind.previous).toPersistent
-        //
-        //        val nextNextKeyValue =
-        //          readKeyValue(
-        //            previous = readFrom,
-        //            indexReader = indexReader,
-        //            valuesReader = valuesReader
-        //          )
+        val readFrom: Persistent = next getOrElse behind.previous.toPersistent
+
+        val nextNextKeyValue =
+          readKeyValue(
+            previous = readFrom,
+            indexReader = indexReader,
+            valuesReader = valuesReader
+          )
 
         matchOrSeek(
-          previous = ???, //readFrom
-          next = ???, //nextNextKeyValue
+          previous = readFrom,
+          next = nextNextKeyValue,
           matcher = matcher,
           indexReader = indexReader,
           valuesReader = valuesReader

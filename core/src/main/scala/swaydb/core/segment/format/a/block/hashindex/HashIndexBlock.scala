@@ -386,7 +386,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           } else {
             matcher(
               previous = partialKeyValueMaybe,
-              next = None,
+              next = Persistent.Partial.Null,
               hasMore = true
             ) match {
               case matched: Result.Matched =>
@@ -519,7 +519,7 @@ private[core] object HashIndexBlock extends LazyLogging {
           else
             matcher(
               previous = partialKeyValueMaybe,
-              next = None,
+              next = Persistent.Partial.Null,
               hasMore = true
             ) match {
               case matched: Result.Matched =>

@@ -45,6 +45,9 @@ private[core] sealed trait KeyValueOptional {
 
       case optional: PersistentOptional =>
         optional.toOption
+
+      case optional: Persistent.PartialOptional =>
+        ???
     }
 }
 
@@ -572,6 +575,12 @@ private[swaydb] object Memory {
 
 private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptional, Persistent] with KeyValueOptional {
   override def none: PersistentOptional = Persistent.Null
+
+  def asPartial: Persistent.PartialOptional =
+    if (this.isDefined)
+      get
+    else
+      Persistent.Partial.Null
 }
 
 private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial with PersistentOptional {
@@ -580,6 +589,12 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   val nextIndexOffset: Int
   val nextKeySize: Int
   val sortedIndexAccessPosition: Int
+
+  override def isSome: Boolean =
+    true
+
+  override def isPartial: Boolean =
+    false
 
   def valueLength: Int
 
@@ -598,7 +613,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   override def get: Persistent =
     this
 
-  override def getUnsafe: KeyValue =
+  override def getUnsafe: Persistent =
     get
 
   /**
@@ -622,16 +637,52 @@ private[core] object Persistent {
    * and only key is read for processing.
    */
 
-  sealed trait Partial {
+  private[core] sealed trait PartialOptional extends KeyValueOptional {
+    def isSome: Boolean
+    def isNone: Boolean = !isSome
+
+    def get: Partial
+
+    def getOrElseP[B <: Partial](other: => B): Partial =
+      if (isSome)
+        get
+      else
+        other
+
+    def orElseP(other: => PartialOptional): PartialOptional =
+      if (isSome)
+        get
+      else
+        other
+
+    def flatMapP(f: Partial => PartialOptional): PartialOptional =
+      if (isSome)
+        f(get)
+      else
+        this
+  }
+
+  sealed trait Partial extends PartialOptional {
     def key: Slice[Byte]
     def indexOffset: Int
     def toPersistent: Persistent
+    def isPartial: Boolean = true
+    def get: Partial = this
+    override def isSome: Boolean = true
+    override def getUnsafe: Persistent =
+      toPersistent
   }
 
   object Partial {
 
     val noneMaybe: Maybe[Persistent.Partial] =
       null.asInstanceOf[Maybe[Persistent.Partial]]
+
+    final object Null extends PartialOptional {
+      override def get: Partial = throw new Exception("Partial is of type Null")
+      override def getUnsafe: KeyValue = throw new Exception("Partial is of type Null")
+      override def isSome: Boolean = false
+    }
 
     trait Fixed extends Persistent.Partial
 

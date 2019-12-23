@@ -20,13 +20,9 @@
 package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.core.data.{Persistent, PersistentOptional}
-import swaydb.core.data.Persistent.Partial
-import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Get
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{KeyMatcher, SortedIndexBlock, ValuesBlock}
-import swaydb.core.segment.format.a.entry.id.KeyValueId
-import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -74,7 +70,7 @@ object BinarySearchContext {
             values = values
           )
         //todo - hasMore should be calculated.
-        matcher(previous = partialKeyValue, next = None, hasMore = true)
+        matcher(previous = partialKeyValue, next = Persistent.Partial.Null, hasMore = true)
       }
     }
 
@@ -108,7 +104,7 @@ object BinarySearchContext {
           )
 
         //todo - hasMore should be calculated.
-        matcher(previous = partialKeyValue, next = None, hasMore = true)
+        matcher(previous = partialKeyValue, next = Persistent.Partial.Null, hasMore = true)
       }
     }
 }
