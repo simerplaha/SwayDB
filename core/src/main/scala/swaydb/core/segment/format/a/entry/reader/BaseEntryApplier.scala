@@ -55,7 +55,7 @@ object BaseEntryApplier {
                    headerInteger: Int,
                    indexEntry: ReaderBase,
                    sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial = {
+                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
 
     val entryKey = indexEntry.read(headerInteger)
 
@@ -73,7 +73,7 @@ object BaseEntryApplier {
           SortedIndexBlock.read(
             fromOffset = offset,
             sortedIndexReader = sortedIndex,
-            valuesReader = valuesReader
+            valuesReaderNullable = valuesReaderNullable
           )
       }
     else if (KeyValueId.Range hasKeyValueId keyValueId)
@@ -90,7 +90,7 @@ object BaseEntryApplier {
           SortedIndexBlock.read(
             fromOffset = offset,
             sortedIndexReader = sortedIndex,
-            valuesReader = valuesReader
+            valuesReaderNullable = valuesReaderNullable
           )
       }
     else

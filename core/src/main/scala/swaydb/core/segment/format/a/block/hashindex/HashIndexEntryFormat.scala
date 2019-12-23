@@ -44,7 +44,7 @@ sealed trait HashIndexEntryFormat {
   def read(entry: Slice[Byte],
            hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
            sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-           values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial]
+           valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Maybe[Persistent.Partial]
 }
 
 object HashIndexEntryFormat {
@@ -77,7 +77,7 @@ object HashIndexEntryFormat {
     override def read(entry: Slice[Byte],
                       hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] = {
+                      valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Maybe[Persistent.Partial] = {
       val (possibleOffset, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(entry)
       //      //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
       if (possibleOffset == 0 || entry.existsFor(bytesRead, _ == Bytes.zero)) {
@@ -88,7 +88,7 @@ object HashIndexEntryFormat {
           SortedIndexBlock.readPartial(
             fromOffset = possibleOffset - 1,
             sortedIndexReader = sortedIndex,
-            valuesReader = values
+            valuesReaderNullable = valuesNullable
           )
 
         Maybe.some(partialKeyValue)
@@ -130,7 +130,7 @@ object HashIndexEntryFormat {
     override def read(entry: Slice[Byte],
                       hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Maybe[Persistent.Partial] =
+                      valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Maybe[Persistent.Partial] =
       try {
         val reader = Reader(entry)
         val keySize = reader.readUnsignedInt()
@@ -159,7 +159,7 @@ object HashIndexEntryFormat {
                   SortedIndexBlock.read(
                     fromOffset = indexOffset,
                     sortedIndexReader = sortedIndex,
-                    valuesReader = values
+                    valuesReaderNullable = valuesNullable
                   )
               }
             else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
@@ -174,7 +174,7 @@ object HashIndexEntryFormat {
                   SortedIndexBlock.read(
                     fromOffset = indexOffset,
                     sortedIndexReader = sortedIndex,
-                    valuesReader = values
+                    valuesReaderNullable = valuesNullable
                   )
               }
             else

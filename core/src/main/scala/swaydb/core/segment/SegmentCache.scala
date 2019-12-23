@@ -26,8 +26,8 @@ import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.util.SkipList
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.util.{NullOps, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOptional}
@@ -115,15 +115,14 @@ private[core] class SegmentCache(path: Path,
     }
 
   def mightContain(key: Slice[Byte]): Boolean =
-    blockCache
-      .createBloomFilterReader()
-      .forall {
-        bloomFilterReader =>
-          BloomFilterBlock.mightContain(
-            key = key,
-            reader = bloomFilterReader
-          )
-      }
+    NullOps.forall(
+      blockCache.createBloomFilterReaderNullable(),
+      (bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) =>
+        BloomFilterBlock.mightContain(
+          key = key,
+          reader = bloomFilterReader
+        )
+    )
 
   private def get(key: Slice[Byte],
                   start: PersistentOptional,
@@ -137,10 +136,10 @@ private[core] class SegmentCache(path: Path,
       start = start,
       end = end,
       keyValueCount = keyValueCount,
-      hashIndexReader = blockCache.createHashIndexReader(),
-      binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+      hashIndexReaderNullable = blockCache.createHashIndexReaderNullable(),
+      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
       sortedIndexReader = blockCache.createSortedIndexReader(),
-      valuesReader = blockCache.createValuesReader(),
+      valuesReaderNullable = blockCache.createValuesReaderNullable(),
       hasRange = hasRange,
       readState = readState
     ) match {
@@ -207,9 +206,9 @@ private[core] class SegmentCache(path: Path,
       start = start,
       end = end,
       keyValueCount = keyValueCount,
-      binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
       sortedIndexReader = blockCache.createSortedIndexReader(),
-      valuesReader = blockCache.createValuesReader()
+      valuesReaderNullable = blockCache.createValuesReaderNullable()
     ) match {
       case resp: Persistent =>
         addToCache(resp.get)
@@ -301,9 +300,9 @@ private[core] class SegmentCache(path: Path,
       start = start,
       end = end,
       keyValueCount = keyValueCount,
-      binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
+      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
       sortedIndexReader = blockCache.createSortedIndexReader(),
-      valuesReader = blockCache.createValuesReader()
+      valuesReaderNullable = blockCache.createValuesReaderNullable()
     ) match {
       case resp: Persistent =>
         addToCache(resp.get)

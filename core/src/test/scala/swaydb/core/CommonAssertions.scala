@@ -357,7 +357,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-//    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
+    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
     ???
     //todo merge with persistent
   }
@@ -369,7 +369,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-//    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
+    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
     ???
     //todo merge with persistent
   }
@@ -381,7 +381,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     RemoveMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-//    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
+    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
     ???
     //todo merge with persistent
   }
@@ -393,7 +393,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-//    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
+    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
     ???
 
     //todo merge with persistent
@@ -406,7 +406,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-//    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
+    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
     ???
     //todo merge with persistent
   }
@@ -418,7 +418,7 @@ object CommonAssertions {
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-//    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
+    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
     ???
 
     //todo merge with persistent
@@ -430,7 +430,7 @@ object CommonAssertions {
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-//    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
+    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
     ???
     //todo merge with persistent
   }
@@ -661,10 +661,10 @@ object CommonAssertions {
           start = Persistent.Null,
           end = Persistent.Null,
           keyValueCount = blocks.footer.keyValueCount,
-          hashIndexReader = blocks.hashIndexReader.map(_.copy()),
-          binarySearchIndexReader = blocks.binarySearchIndexReader.map(_.copy()),
+          hashIndexReaderNullable = blocks.hashIndexReader.map(_.copy()).orNull,
+          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
           sortedIndexReader = blocks.sortedIndexReader.copy(),
-          valuesReader = blocks.valuesReader.map(_.copy()),
+          valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull,
           hasRange = blocks.footer.hasRange,
           readState = ReadState.random
         ).runRandomIO.right.value.get shouldBe keyValue
@@ -1056,9 +1056,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReader = blocks.valuesReader
+              valuesReaderNullable = blocks.valuesReader.orNull
             ).runRandomIO.right.value.toOptions shouldBe empty
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
@@ -1068,9 +1068,9 @@ object CommonAssertions {
                   start = Persistent.Null,
                   end = Persistent.Null,
                   keyValueCount = blocks.footer.keyValueCount,
-                  binarySearchIndexReader = blocks.binarySearchIndexReader,
+                  binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
                   sortedIndexReader = blocks.sortedIndexReader,
-                  valuesReader = blocks.valuesReader
+                  valuesReaderNullable = blocks.valuesReader.orNull
                 ).runRandomIO.right.value.getUnsafe shouldBe range
             }
 
@@ -1080,9 +1080,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReader = blocks.valuesReader
+              valuesReaderNullable = blocks.valuesReader.orNull
             ).runRandomIO.right.value.toOptions shouldBe empty
         }
         assertLowers(index + 1)
@@ -1095,9 +1095,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReader = blocks.valuesReader
+              valuesReaderNullable = blocks.valuesReader.orNull
             ).runRandomIO.right.value.getUnsafe shouldBe expectedLowerKeyValue
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
@@ -1107,9 +1107,9 @@ object CommonAssertions {
                   start = Persistent.Null,
                   end = Persistent.Null,
                   keyValueCount = blocks.footer.keyValueCount,
-                  binarySearchIndexReader = blocks.binarySearchIndexReader,
+                  binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
                   sortedIndexReader = blocks.sortedIndexReader,
-                  valuesReader = blocks.valuesReader
+                  valuesReaderNullable = blocks.valuesReader.orNull
                 ).runRandomIO.right.value.getUnsafe shouldBe range
             }
 
@@ -1119,9 +1119,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReader = blocks.binarySearchIndexReader,
+              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReader = blocks.valuesReader
+              valuesReaderNullable = blocks.valuesReader.orNull
             ).runRandomIO.right.value.getUnsafe shouldBe expectedLowerKeyValue
         }
 
@@ -1147,9 +1147,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReader = blocks.binarySearchIndexReader.map(_.copy()),
+              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
               sortedIndexReader = blocks.sortedIndexReader.copy(),
-              valuesReader = blocks.valuesReader.map(_.copy())
+              valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull
             ).toOptions
           }
     )
@@ -1474,7 +1474,8 @@ object CommonAssertions {
         .readAll(
           keyValueCount = blockCache.getFooter().keyValueCount,
           sortedIndexReader = blockCache.createSortedIndexReader(),
-          valuesReader = blockCache.createValuesReader()
+          valuesReaderNullable
+            = blockCache.createValuesReaderNullable()
         )
     }
 
@@ -1488,11 +1489,11 @@ object CommonAssertions {
     IO {
       SegmentBlocks(
         footer = blockCache.getFooter(),
-        valuesReader = blockCache.createValuesReader(),
+        valuesReader = Option(blockCache.createValuesReaderNullable()),
         sortedIndexReader = blockCache.createSortedIndexReader(),
-        hashIndexReader = blockCache.createHashIndexReader(),
-        binarySearchIndexReader = blockCache.createBinarySearchIndexReader(),
-        bloomFilterReader = blockCache.createBloomFilterReader()
+        hashIndexReader = Option(blockCache.createHashIndexReaderNullable()),
+        binarySearchIndexReader = Option(blockCache.createBinarySearchIndexReaderNullable()),
+        bloomFilterReader = Option(blockCache.createBloomFilterReaderNullable())
       )
     }
 

@@ -690,7 +690,7 @@ private[core] object Persistent {
   sealed trait Reader[T <: Persistent] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -703,7 +703,7 @@ private[core] object Persistent {
   object Remove extends Reader[Persistent.Remove] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -777,7 +777,7 @@ private[core] object Persistent {
   object Put extends Reader[Persistent.Put] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -793,17 +793,13 @@ private[core] object Persistent {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
+              else if (valuesReaderNullable == null)
+                throw IO.throwable("ValuesBlock is undefined.")
               else
-                valuesReader match {
-                  case Some(valuesReader) =>
-                    UnblockedReader.moveTo(offset, valuesReader)
-                      .copy()
-                      .readFullBlockOrNone()
-                      .unsliceOptional()
-
-                  case None =>
-                    throw IO.throwable("ValuesBlock is undefined.")
-                }
+                UnblockedReader.moveTo(offset, valuesReaderNullable)
+                  .copy()
+                  .readFullBlockOrNone()
+                  .unsliceOptional()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -882,7 +878,7 @@ private[core] object Persistent {
   object Update extends Reader[Persistent.Update] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -898,17 +894,13 @@ private[core] object Persistent {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
+              else if (valuesReaderNullable == null)
+                throw IO.throwable("ValuesBlock is undefined.")
               else
-                valuesReader match {
-                  case Some(valuesReader) =>
-                    UnblockedReader.moveTo(offset, valuesReader)
-                      .copy()
-                      .readFullBlockOrNone()
-                      .unsliceOptional()
-
-                  case None =>
-                    throw IO.throwable("ValuesBlock is undefined.")
-                }
+                UnblockedReader.moveTo(offset, valuesReaderNullable)
+                  .copy()
+                  .readFullBlockOrNone()
+                  .unsliceOptional()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1019,7 +1011,7 @@ private[core] object Persistent {
 
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1030,7 +1022,7 @@ private[core] object Persistent {
       apply(
         key = key,
         deadline = deadline,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         time = time,
         nextIndexOffset = nextIndexOffset,
         nextKeySize = nextKeySize,
@@ -1041,7 +1033,7 @@ private[core] object Persistent {
       )
 
     def apply(key: Slice[Byte],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1054,16 +1046,13 @@ private[core] object Persistent {
         valueCache =
           Cache.noIO[ValuesBlock.Offset, Slice[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
-              valuesReader match {
-                case Some(valuesReader) =>
-                  UnblockedReader.moveTo(offset, valuesReader)
-                    .copy()
-                    .readFullBlock()
-                    .unslice()
-
-                case None =>
-                  throw IO.throwable("ValuesBlock is undefined.")
-              }
+              if (valuesReaderNullable == null)
+                throw IO.throwable("ValuesBlock is undefined.")
+              else
+                UnblockedReader.moveTo(offset, valuesReaderNullable)
+                  .copy()
+                  .readFullBlock()
+                  .unslice()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1130,7 +1119,7 @@ private[core] object Persistent {
 
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1145,19 +1134,17 @@ private[core] object Persistent {
         valueCache =
           Cache.noIO[ValuesBlock.Offset, Slice[Value.Apply]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
-              valuesReader match {
-                case Some(valuesReader) =>
-                  val bytes =
-                    UnblockedReader.moveTo(offset, valuesReader)
-                      .copy()
-                      .readFullBlock()
+              if (valuesReaderNullable == null) {
+                throw IO.throwable("ValuesBlock is undefined.")
+              } else {
+                val bytes =
+                  UnblockedReader.moveTo(offset, valuesReaderNullable)
+                    .copy()
+                    .readFullBlock()
 
-                  ValueSerializer
-                    .read[Slice[Value.Apply]](bytes)
-                    .map(_.unslice)
-
-                case None =>
-                  throw IO.throwable("ValuesBlock is undefined.")
+                ValueSerializer
+                  .read[Slice[Value.Apply]](bytes)
+                  .map(_.unslice)
               }
           },
         nextIndexOffset = nextIndexOffset,
@@ -1219,7 +1206,7 @@ private[core] object Persistent {
   object Range extends Reader[Persistent.Range] {
     def apply(key: Slice[Byte],
               deadline: Option[Deadline],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               time: Time,
               nextIndexOffset: Int,
               nextKeySize: Int,
@@ -1229,7 +1216,7 @@ private[core] object Persistent {
               sortedIndexAccessPosition: Int): Persistent.Range =
       apply(
         key = key,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         nextIndexOffset = nextIndexOffset,
         nextKeySize = nextKeySize,
         indexOffset = indexOffset,
@@ -1239,7 +1226,7 @@ private[core] object Persistent {
       )
 
     def apply(key: Slice[Byte],
-              valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
               nextIndexOffset: Int,
               nextKeySize: Int,
               indexOffset: Int,
@@ -1250,7 +1237,7 @@ private[core] object Persistent {
       Range.parsedKey(
         fromKey = fromKey,
         toKey = toKey,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         nextIndexOffset = nextIndexOffset,
         nextKeySize = nextKeySize,
         indexOffset = indexOffset,
@@ -1262,7 +1249,7 @@ private[core] object Persistent {
 
     def parsedKey(fromKey: Slice[Byte],
                   toKey: Slice[Byte],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                  valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                   nextIndexOffset: Int,
                   nextKeySize: Int,
                   indexOffset: Int,
@@ -1275,21 +1262,20 @@ private[core] object Persistent {
         valueCache =
           Cache.noIO[ValuesBlock.Offset, (Value.FromValueOption, Value.RangeValue)](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
-              valuesReader match {
-                case Some(valuesReader) =>
-                  val bytes =
-                    UnblockedReader.moveTo(offset, valuesReader)
-                      .copy()
-                      .readFullBlock()
+              if (valuesReaderNullable == null) {
+                throw IO.throwable("ValuesBlock is undefined.")
+              } else {
+                val bytes =
+                  UnblockedReader.moveTo(offset, valuesReaderNullable)
+                    .copy()
+                    .readFullBlock()
 
-                  val (from, range) =
-                    RangeValueSerializer.read(bytes)
+                val (from, range) =
+                  RangeValueSerializer.read(bytes)
 
-                  (from.flatMapSON(_.unslice), range.unslice)
-
-                case None =>
-                  throw IO.throwable("ValuesBlock is undefined.")
+                (from.flatMapSON(_.unslice), range.unslice)
               }
+
           },
         nextIndexOffset = nextIndexOffset,
         nextKeySize = nextKeySize,

@@ -56,6 +56,9 @@ object NullOps {
     else
       value
 
+  def forall[A](item: A, condition: A => Boolean): Boolean =
+    item == null || condition(item)
+
   def tryOrNull[T >: Null](f: => T): T =
     try
       f

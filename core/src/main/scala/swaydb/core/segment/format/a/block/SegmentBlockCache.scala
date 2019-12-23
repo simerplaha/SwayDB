@@ -32,7 +32,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader,
 import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.{Aggregator, IO}
+import swaydb.{Aggregator, Error, IO}
 
 object SegmentBlockCache {
 
@@ -59,6 +59,8 @@ class SegmentBlockCache(path: Path,
    * @see SegmentBlockCacheSpec which will fail is stored is set to false.
    */
   private val segmentIOStrategyCache = Lazy.value[IOStrategy](synchronised = true, stored = true, initial = None)
+
+  val nullIO = IO(null)
 
   @volatile var forceCacheSortedIndexAndValueReaders = false
 
@@ -155,9 +157,9 @@ class SegmentBlockCache(path: Path,
         }
     }
 
-  def buildBlockReaderCacheOptional[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
+  def buildBlockReaderCacheNullable[O <: BlockOffset, B <: Block[O]](blockIO: IOAction => IOStrategy,
                                                                      resourceName: String)(implicit blockOps: BlockOps[O, B]) =
-    Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]](
+    Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], UnblockedReader[O, B]](
       strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
@@ -177,12 +179,15 @@ class SegmentBlockCache(path: Path,
                 sweeper.add(reader.block.offset.size, self)
             }
 
-          Some(reader)
+          reader
 
         }
 
       case (None, _) =>
-        IO.none
+        //UnblockReader for indexes can be null. These indexes could get read very often (1 million+).
+        //So instead of using Option. Null checks are performed by searchers. All nullable params are
+        //suffixed *Nullable.
+        nullIO
     }
 
   private[block] def createSegmentBlockReader(): UnblockedReader[SegmentBlock.Offset, SegmentBlock] =
@@ -218,22 +223,27 @@ class SegmentBlockCache(path: Path,
       }
       .get
 
-  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, Option[BlockedReader[O, B]], Option[UnblockedReader[O, B]]],
-                                                            getBlock: => Option[B])(implicit blockOps: BlockOps[O, B]): Option[UnblockedReader[O, B]] = {
-    cache
-      .getOrElse {
-        getBlock match {
-          case Some(block) =>
-            val segmentReader = createSegmentBlockReader()
-            cache.value(Some(BlockedReader(block, segmentReader)))
+  def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, Option[BlockedReader[O, B]], UnblockedReader[O, B]],
+                                                            getBlock: => Option[B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] = {
 
-          case None =>
-            cache.value(None)
-        }
-      }
-    }
-    .get
-    .map(_.copy())
+    val reader =
+      cache
+        .getOrElse {
+          getBlock match {
+            case Some(block) =>
+              val segmentReader = createSegmentBlockReader()
+              cache.value(Some(BlockedReader(block, segmentReader)))
+
+            case None =>
+              cache.value(None)
+          }
+        }.get
+
+    if (reader != null)
+      reader.copy()
+    else
+      reader
+  }
 
   def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, BlockedReader[O, B], UnblockedReader[O, B]],
                                                     getBlock: => B)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] = {
@@ -293,17 +303,17 @@ class SegmentBlockCache(path: Path,
   private[block] val sortedIndexReaderCache =
     buildBlockReaderCache[SortedIndexBlock.Offset, SortedIndexBlock](sortedIndexBlockIO, sortedIndexReaderCacheName)
 
-  private[block] val hashIndexReaderCache =
-    buildBlockReaderCacheOptional[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO, "hashIndexReaderCache")
+  private[block] val hashIndexReaderCacheNullable =
+    buildBlockReaderCacheNullable[HashIndexBlock.Offset, HashIndexBlock](hashIndexBlockIO, "hashIndexReaderCache")
 
-  private[block] val bloomFilterReaderCache =
-    buildBlockReaderCacheOptional[BloomFilterBlock.Offset, BloomFilterBlock](bloomFilterBlockIO, "bloomFilterReaderCache")
+  private[block] val bloomFilterReaderCacheNullable =
+    buildBlockReaderCacheNullable[BloomFilterBlock.Offset, BloomFilterBlock](bloomFilterBlockIO, "bloomFilterReaderCache")
 
-  private[block] val binarySearchIndexReaderCache =
-    buildBlockReaderCacheOptional[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO, "binarySearchIndexReaderCache")
+  private[block] val binarySearchIndexReaderCacheNullable =
+    buildBlockReaderCacheNullable[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](binarySearchIndexBlockIO, "binarySearchIndexReaderCache")
 
-  private[block] val valuesReaderCache: Cache[swaydb.Error.Segment, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]] =
-    buildBlockReaderCacheOptional[ValuesBlock.Offset, ValuesBlock](valuesBlockIO, valuesReaderCacheName)
+  private[block] val valuesReaderCacheNullable: Cache[Error.Segment, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+    buildBlockReaderCacheNullable[ValuesBlock.Offset, ValuesBlock](valuesBlockIO, valuesReaderCacheName)
 
   private[block] val allCaches =
     Seq(
@@ -316,10 +326,11 @@ class SegmentBlockCache(path: Path,
       //readers
       segmentReaderCache,
       sortedIndexReaderCache,
-      hashIndexReaderCache,
-      bloomFilterReaderCache,
-      binarySearchIndexReaderCache,
-      valuesReaderCache
+      //nullable caches
+      hashIndexReaderCacheNullable,
+      bloomFilterReaderCacheNullable,
+      binarySearchIndexReaderCacheNullable,
+      valuesReaderCacheNullable
     )
 
   def getFooter(): SegmentFooterBlock =
@@ -342,17 +353,17 @@ class SegmentBlockCache(path: Path,
   def getValues(): Option[ValuesBlock] =
     getBlockOptional(valuesBlockCache, _.valuesOffset)
 
-  def createHashIndexReader(): Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]] =
-    createReaderOptional(hashIndexReaderCache, getHashIndex())
+  def createHashIndexReaderNullable(): UnblockedReader[HashIndexBlock.Offset, HashIndexBlock] =
+    createReaderOptional(hashIndexReaderCacheNullable, getHashIndex())
 
-  def createBloomFilterReader(): Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
-    createReaderOptional(bloomFilterReaderCache, getBloomFilter())
+  def createBloomFilterReaderNullable(): UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock] =
+    createReaderOptional(bloomFilterReaderCacheNullable, getBloomFilter())
 
-  def createBinarySearchIndexReader(): Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]] =
-    createReaderOptional(binarySearchIndexReaderCache, getBinarySearchIndex())
+  def createBinarySearchIndexReaderNullable(): UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] =
+    createReaderOptional(binarySearchIndexReaderCacheNullable, getBinarySearchIndex())
 
-  def createValuesReader(): Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
-    createReaderOptional(valuesReaderCache, getValues())
+  def createValuesReaderNullable(): UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
+    createReaderOptional(valuesReaderCacheNullable, getValues())
 
   def createSortedIndexReader(): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
     createReader(sortedIndexReaderCache, getSortedIndex())
@@ -395,16 +406,16 @@ class SegmentBlockCache(path: Path,
         sortedIndexReader = createSortedIndexReader()
       }
 
-      var valuesReader = createValuesReader()
-      if (valuesReader.exists(_.isFile)) {
+      var valuesReaderNullable = createValuesReaderNullable()
+      if (valuesReaderNullable != null && valuesReaderNullable.isFile) {
         forceCacheSortedIndexAndValueReaders = true
-        valuesReaderCache.clear()
-        valuesReader = createValuesReader()
+        valuesReaderCacheNullable.clear()
+        valuesReaderNullable = createValuesReaderNullable()
       }
 
       SortedIndexBlock.readAll(
         sortedIndexReader = sortedIndexReader,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         aggregator = aggregator
       )
     } finally {
@@ -420,16 +431,16 @@ class SegmentBlockCache(path: Path,
         sortedIndexReader = createSortedIndexReader()
       }
 
-      var valuesReader = createValuesReader()
-      if (valuesReader.exists(_.isFile)) {
+      var valuesReaderNullable = createValuesReaderNullable()
+      if (valuesReaderNullable != null && valuesReaderNullable.isFile) {
         forceCacheSortedIndexAndValueReaders = true
-        valuesReaderCache.clear()
-        valuesReader = createValuesReader()
+        valuesReaderCacheNullable.clear()
+        valuesReaderNullable = createValuesReaderNullable()
       }
 
       SortedIndexBlock.iterator(
         sortedIndexReader = sortedIndexReader,
-        valuesReader = valuesReader
+        valuesReaderNullable = valuesReaderNullable
       )
     } finally {
       forceCacheSortedIndexAndValueReaders = false

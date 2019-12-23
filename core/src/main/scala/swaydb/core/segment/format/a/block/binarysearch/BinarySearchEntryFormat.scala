@@ -49,7 +49,7 @@ sealed trait BinarySearchEntryFormat {
            seekSize: Int,
            binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
            sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-           values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial
+           valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
 
 object BinarySearchEntryFormat {
@@ -83,7 +83,7 @@ object BinarySearchEntryFormat {
                       seekSize: Int,
                       binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial = {
+                      valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val sortedIndexOffsetValue =
         binarySearchIndex
           .moveTo(offset)
@@ -92,7 +92,7 @@ object BinarySearchEntryFormat {
       SortedIndexBlock.readPartial(
         fromOffset = sortedIndexOffsetValue,
         sortedIndexReader = sortedIndex,
-        valuesReader = values
+        valuesReaderNullable = valuesNullable
       )
     }
   }
@@ -123,7 +123,7 @@ object BinarySearchEntryFormat {
                       seekSize: Int,
                       binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                       sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent.Partial = {
+                      valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val entryReader = Reader(binarySearchIndex.moveTo(offset).read(seekSize))
       val keySize = entryReader.readUnsignedInt()
       val entryKey = entryReader.read(keySize)
@@ -144,7 +144,7 @@ object BinarySearchEntryFormat {
             SortedIndexBlock.read(
               fromOffset = indexOffset,
               sortedIndexReader = sortedIndex,
-              valuesReader = values
+              valuesReaderNullable = valuesNullable
             )
         }
       else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
@@ -159,7 +159,7 @@ object BinarySearchEntryFormat {
             SortedIndexBlock.read(
               fromOffset = indexOffset,
               sortedIndexReader = sortedIndex,
-              valuesReader = values
+              valuesReaderNullable = valuesNullable
             )
         }
       else

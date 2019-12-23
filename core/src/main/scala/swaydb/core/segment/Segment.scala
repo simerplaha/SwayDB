@@ -532,13 +532,13 @@ private[core] object Segment extends LazyLogging {
 
     val footer = segmentBlockCache.getFooter()
     val sortedIndexReader = segmentBlockCache.createSortedIndexReader()
-    val valuesReader = segmentBlockCache.createValuesReader()
+    val valuesReaderNullable = segmentBlockCache.createValuesReaderNullable()
 
     val keyValues =
       SortedIndexBlock.readAll(
         keyValueCount = footer.keyValueCount,
         sortedIndexReader = sortedIndexReader,
-        valuesReader = valuesReader
+        valuesReaderNullable = valuesReaderNullable
       )
 
     file.close()

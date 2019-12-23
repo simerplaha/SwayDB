@@ -173,7 +173,7 @@
 //      val header = Block.readHeader(ref.copy())
 //      val sortedIndexBlock = SortedIndexBlock.read(header)
 //
-//      val valuesBlockReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+//      val valuesBlockReader: UnblockedReader[ValuesBlock.Offset, ValuesBlock] =
 //        values map {
 //          valuesBlock =>
 //            val closedState = ValuesBlock.close(valuesBlock)

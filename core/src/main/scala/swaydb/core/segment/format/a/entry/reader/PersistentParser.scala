@@ -38,7 +38,7 @@ object PersistentParser {
             sortedIndexEndOffset: Int,
             normalisedByteSize: Int,
             hasAccessPositionIndex: Boolean,
-            valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]]): Persistent = {
+            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
     val reader = Reader(tailBytes, Bytes.sizeOfUnsignedInt(headerInteger))
 
     val headerKeyBytes = reader.read(headerInteger)
@@ -59,7 +59,7 @@ object PersistentParser {
         sortedIndexEndOffset = sortedIndexEndOffset,
         normalisedByteSize = normalisedByteSize,
         hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         reader = Persistent.Put
       )
     else if (KeyValueId.Range hasKeyValueId keyValueId)
@@ -76,7 +76,7 @@ object PersistentParser {
         sortedIndexEndOffset = sortedIndexEndOffset,
         normalisedByteSize = normalisedByteSize,
         hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         reader = Persistent.Range
       )
     else if (KeyValueId.Remove hasKeyValueId keyValueId)
@@ -93,7 +93,7 @@ object PersistentParser {
         sortedIndexEndOffset = sortedIndexEndOffset,
         normalisedByteSize = normalisedByteSize,
         hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         reader = Persistent.Remove
       )
     else if (KeyValueId.Update hasKeyValueId keyValueId)
@@ -110,7 +110,7 @@ object PersistentParser {
         sortedIndexEndOffset = sortedIndexEndOffset,
         normalisedByteSize = normalisedByteSize,
         hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         reader = Persistent.Update
       )
     else if (KeyValueId.Function hasKeyValueId keyValueId)
@@ -127,7 +127,7 @@ object PersistentParser {
         sortedIndexEndOffset = sortedIndexEndOffset,
         normalisedByteSize = normalisedByteSize,
         hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         reader = Persistent.Function
       )
     else if (KeyValueId.PendingApply hasKeyValueId keyValueId)
@@ -144,7 +144,7 @@ object PersistentParser {
         sortedIndexEndOffset = sortedIndexEndOffset,
         normalisedByteSize = normalisedByteSize,
         hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReader = valuesReader,
+        valuesReaderNullable = valuesReaderNullable,
         reader = Persistent.PendingApply
       )
     else

@@ -44,7 +44,7 @@ object BinarySearchContext {
             highest: PersistentOptional,
             binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-            values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
+            valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
       val matcher: Get.MatchOnly = KeyMatcher.Get.MatchOnly(key)
 
@@ -67,7 +67,7 @@ object BinarySearchContext {
             seekSize = binarySearchIndex.block.bytesPerValue,
             binarySearchIndex = binarySearchIndex,
             sortedIndex = sortedIndex,
-            values = values
+            valuesNullable = valuesNullable
           )
         //todo - hasMore should be calculated.
         matcher(previous = partialKeyValue, next = Persistent.Partial.Null, hasMore = true)
@@ -79,7 +79,7 @@ object BinarySearchContext {
             highest: PersistentOptional,
             keyValuesCount: Int,
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-            values: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
+            valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
       val matcher: Get.MatchOnly = KeyMatcher.Get.MatchOnly(key)
 
@@ -100,7 +100,7 @@ object BinarySearchContext {
           SortedIndexBlock.readPartial(
             fromOffset = offset,
             sortedIndexReader = sortedIndex,
-            valuesReader = values
+            valuesReaderNullable = valuesNullable
           )
 
         //todo - hasMore should be calculated.

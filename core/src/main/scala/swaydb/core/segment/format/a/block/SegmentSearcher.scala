@@ -45,10 +45,10 @@ private[core] object SegmentSearcher extends LazyLogging {
              key: Slice[Byte],
              start: PersistentOptional,
              end: => PersistentOptional,
-             hashIndexReader: => Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-             binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+             hashIndexReaderNullable: => UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+             binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+             valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
              hasRange: Boolean,
              keyValueCount: => Int,
              readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -61,7 +61,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             key = key,
             start = startFrom,
             indexReader = sortedIndexReader,
-            valuesReader = valuesReader
+            valuesReaderNullable = valuesReaderNullable
           )
 
         if (found.isSome) {
@@ -75,10 +75,10 @@ private[core] object SegmentSearcher extends LazyLogging {
               start = start,
               end = end,
               keyValueCount = keyValueCount,
-              hashIndexReader = hashIndexReader,
-              binarySearchIndexReader = binarySearchIndexReader,
+              hashIndexReaderNullable = hashIndexReaderNullable,
+              binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
               sortedIndexReader = sortedIndexReader,
-              valuesReader = valuesReader,
+              valuesReaderNullable = valuesReaderNullable,
               hasRange = hasRange
             )
 
@@ -99,10 +99,10 @@ private[core] object SegmentSearcher extends LazyLogging {
             start = start,
             end = end,
             keyValueCount = keyValueCount,
-            hashIndexReader = hashIndexReader,
-            binarySearchIndexReader = binarySearchIndexReader,
+            hashIndexReaderNullable = hashIndexReaderNullable,
+            binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
             sortedIndexReader = sortedIndexReader,
-            valuesReader = valuesReader,
+            valuesReaderNullable = valuesReaderNullable,
             hasRange = hasRange
           )
 
@@ -123,10 +123,10 @@ private[core] object SegmentSearcher extends LazyLogging {
   def hashIndexSearch(key: Slice[Byte],
                       start: PersistentOptional,
                       end: => PersistentOptional,
-                      hashIndexReader: => Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-                      binarySearchIndexReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                      hashIndexReaderNullable: => UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                      binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                       sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                      valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                       hasRange: Boolean,
                       keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                              partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
@@ -139,7 +139,7 @@ private[core] object SegmentSearcher extends LazyLogging {
   //          key = key,
   //          hashIndexReader = hashIndexReader,
   //          sortedIndexReader = sortedIndexReader,
-  //          valuesReader = valuesReader
+  //          valuesReaderNullable = valuesReaderNullable
   //        ) match {
   //          case None =>
   //            if (hashIndexReader.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
@@ -153,7 +153,7 @@ private[core] object SegmentSearcher extends LazyLogging {
   //                keyValuesCount = keyValueCount,
   //                binarySearchIndexReader = binarySearchIndexReader,
   //                sortedIndexReader = sortedIndexReader,
-  //                valuesReader = valuesReader
+  //                valuesReaderNullable = valuesReaderNullable
   //              ).toOptionApply(_.toPersistent)
   //            }
   //
@@ -170,7 +170,7 @@ private[core] object SegmentSearcher extends LazyLogging {
   //          keyValuesCount = keyValueCount,
   //          binarySearchIndexReader = binarySearchIndexReader,
   //          sortedIndexReader = sortedIndexReader,
-  //          valuesReader = valuesReader
+  //          valuesReaderNullable = valuesReaderNullable
   //        ).toOptionApply(_.toPersistent)
   //    }
     ???
@@ -179,9 +179,9 @@ private[core] object SegmentSearcher extends LazyLogging {
                    start: PersistentOptional,
                    end: => PersistentOptional,
                    keyValueCount: => Int,
-                   binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                   binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                            partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
     start match {
       case startFrom: Persistent =>
@@ -190,7 +190,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             key = key,
             startFrom = startFrom,
             sortedIndexReader = sortedIndexReader,
-            valuesReader = valuesReader
+            valuesReaderNullable = valuesReaderNullable
           )
 
         if (found.isSome)
@@ -201,9 +201,9 @@ private[core] object SegmentSearcher extends LazyLogging {
             start = start,
             end = end,
             keyValuesCount = keyValueCount,
-            binarySearchIndexReader = binarySearchIndexReader,
+            binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
             sortedIndexReader = sortedIndexReader,
-            valuesReader = valuesReader
+            valuesReaderNullable = valuesReaderNullable
           ).flatMapOption(Persistent.Null: PersistentOptional)(_.toPersistent)
 
       case Persistent.Null =>
@@ -212,9 +212,9 @@ private[core] object SegmentSearcher extends LazyLogging {
           start = start,
           end = end,
           keyValuesCount = keyValueCount,
-          binarySearchIndexReader = binarySearchIndexReader,
+          binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
           sortedIndexReader = sortedIndexReader,
-          valuesReader = valuesReader
+          valuesReaderNullable = valuesReaderNullable
         ).flatMapOption(Persistent.Null: PersistentOptional)(_.toPersistent)
     }
 
@@ -222,17 +222,17 @@ private[core] object SegmentSearcher extends LazyLogging {
                   start: PersistentOptional,
                   end: PersistentOptional,
                   keyValueCount: => Int,
-                  binarySearchIndexReader: => Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                  binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                  valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                           partialOrdering: KeyOrder[Persistent.Partial]): PersistentOptional =
     BinarySearchIndexBlock.searchLower(
       key = key,
       start = start,
       end = end,
       keyValuesCount = keyValueCount,
-      binarySearchIndexReader = binarySearchIndexReader,
+      binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
       sortedIndexReader = sortedIndexReader,
-      valuesReader = valuesReader
+      valuesReaderNullable = valuesReaderNullable
     ).flatMapOption(Persistent.Null: PersistentOptional)(_.toPersistent)
 }
