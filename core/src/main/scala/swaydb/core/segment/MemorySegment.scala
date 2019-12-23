@@ -170,19 +170,6 @@ private[segment] case class MemorySegment(path: Path,
     else
       skipList.lower(key)
 
-  def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
-    if (deleted)
-      throw swaydb.Exception.NoSuchFile(path)
-    else if (hasPut)
-      if (key < minKey)
-        Some(minKey)
-      else if (key < maxKey.maxKey)
-        Some(key)
-      else
-        None
-    else
-      None
-
   override def higher(key: Slice[Byte],
                       readState: ReadState): MemoryOptional =
     if (deleted)

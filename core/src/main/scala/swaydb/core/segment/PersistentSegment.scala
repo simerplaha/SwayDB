@@ -250,9 +250,6 @@ private[segment] case class PersistentSegment(file: DBFile,
   def lower(key: Slice[Byte], readState: ReadState): PersistentOptional =
     segmentCache.lower(key, readState)
 
-  def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
-    segmentCache floorHigherHint key
-
   def higher(key: Slice[Byte], readState: ReadState): PersistentOptional =
     segmentCache.higher(key, readState)
 

@@ -292,17 +292,6 @@ private[core] class SegmentCache(path: Path,
           }
       }
 
-  def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]] =
-    if (hasPut)
-      if (key < minKey)
-        Some(minKey)
-      else if (key < maxKey.maxKey)
-        Some(key)
-      else
-        None
-    else
-      None
-
   private def higher(key: Slice[Byte],
                      start: PersistentOptional,
                      end: => PersistentOptional,

@@ -979,8 +979,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
 
   def higher(key: Slice[Byte], readState: ReadState): KeyValueOptional
 
-  def floorHigherHint(key: Slice[Byte]): Option[Slice[Byte]]
-
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit
 
   def getAll(): Slice[KeyValue]
