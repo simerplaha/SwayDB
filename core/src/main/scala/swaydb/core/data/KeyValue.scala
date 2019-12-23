@@ -45,9 +45,6 @@ private[core] sealed trait KeyValueOptional {
 
       case optional: PersistentOptional =>
         optional.toOption
-
-      case optional: Persistent.PartialOptional =>
-        ???
     }
 }
 
@@ -637,7 +634,7 @@ private[core] object Persistent {
    * and only key is read for processing.
    */
 
-  private[core] sealed trait PartialOptional extends KeyValueOptional {
+  private[core] sealed trait PartialOptional {
     def get: Partial
 
     def isSomeP: Boolean
@@ -669,8 +666,6 @@ private[core] object Persistent {
     def isPartial: Boolean = true
     def get: Partial = this
     override def isSomeP: Boolean = true
-    override def getUnsafe: Persistent =
-      toPersistent
   }
 
   object Partial {
@@ -680,7 +675,6 @@ private[core] object Persistent {
 
     final object Null extends PartialOptional {
       override def get: Partial = throw new Exception("Partial is of type Null")
-      override def getUnsafe: KeyValue = throw new Exception("Partial is of type Null")
       override def isSomeP: Boolean = false
     }
 
