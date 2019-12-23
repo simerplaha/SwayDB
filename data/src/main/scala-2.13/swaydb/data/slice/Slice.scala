@@ -20,6 +20,7 @@
 package swaydb.data.slice
 
 import swaydb.data.slice.Slice.SliceFactory
+import swaydb.data.util.SomeOrNoneCovariant
 
 import scala.annotation.tailrec
 import scala.annotation.unchecked.uncheckedVariance
@@ -29,14 +30,19 @@ import scala.reflect.ClassTag
 /**
  * Documentation - http://swaydb.io/slice
  */
-sealed trait SliceOptional[+T] {
+sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Slice[T]] {
+  override def none: SliceOptional[Nothing] = Slice.Null
   def toOption: Option[Slice[T]]
 }
+
 object Slice extends SliceCompanionBase {
 
   final case object Null extends SliceOptional[Nothing] {
     override def toOption: Option[Slice[Nothing]] =
       None
+
+    override def isNone: Boolean = true
+    override def get: Slice[Nothing] = throw new Exception("Slice is of type Null")
   }
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
@@ -102,6 +108,12 @@ class Slice[+T] private[slice](array: Array[T],
                                                                                                            with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
 //@formatter:on
 
+  override def isNone: Boolean =
+    false
+
+  override def get: Slice[T] =
+    this
+
   override def selfSlice: Slice[T] =
     this
 
@@ -111,4 +123,5 @@ class Slice[+T] private[slice](array: Array[T],
   //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
   override def iterableFactory: IterableFactory[Slice] =
     new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
+
 }

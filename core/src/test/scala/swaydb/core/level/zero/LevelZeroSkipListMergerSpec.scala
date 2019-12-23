@@ -226,8 +226,8 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
 
       skipList.get(1: Slice[Byte]).get shouldBe Memory.put(1, 1)
       skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 5, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]) shouldBe empty
-      skipList.get(4: Slice[Byte]) shouldBe empty
+      skipList.get(3: Slice[Byte]).toOption shouldBe empty
+      skipList.get(4: Slice[Byte]).toOption shouldBe empty
       skipList.get(5: Slice[Byte]).get shouldBe Memory.put(5, 5)
 
       insert(5, Memory.remove(5), skipList)
@@ -241,10 +241,10 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(2, Memory.Range(2, 100, Value.FromValue.None, Value.remove(None)), skipList)
       skipList should have size 1
 
-      skipList.get(1: Slice[Byte]) shouldBe empty
+      skipList.get(1: Slice[Byte]).toOption shouldBe empty
       skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 100, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]) shouldBe empty
-      skipList.get(4: Slice[Byte]) shouldBe empty
+      skipList.get(3: Slice[Byte]).toOption shouldBe empty
+      skipList.get(4: Slice[Byte]).toOption shouldBe empty
     }
 
     "remove range should clear removed entries when remove ranges overlaps the left edge" in {
@@ -265,11 +265,11 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
 
       skipList.get(1: Slice[Byte]).get shouldBe Memory.put(1, 1)
       skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 4, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]) shouldBe empty
+      skipList.get(3: Slice[Byte]).toOption shouldBe empty
       skipList.get(4: Slice[Byte]).get shouldBe Memory.Range(4, 5, Value.FromValue.None, Value.remove(None))
       skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 8, Value.FromValue.None, Value.remove(None))
-      skipList.get(6: Slice[Byte]) shouldBe empty
-      skipList.get(7: Slice[Byte]) shouldBe empty
+      skipList.get(6: Slice[Byte]).toOption shouldBe empty
+      skipList.get(7: Slice[Byte]).toOption shouldBe empty
       skipList.get(8: Slice[Byte]).get shouldBe Memory.remove(8)
       skipList.get(9: Slice[Byte]).get shouldBe Memory.put(9, 9)
       skipList.get(10: Slice[Byte]).get shouldBe Memory.put(10, 10)
@@ -293,11 +293,11 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
 
       skipList.get(1: Slice[Byte]).get shouldBe Memory.put(1, 1)
       skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 4, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]) shouldBe empty
+      skipList.get(3: Slice[Byte]).toOption shouldBe empty
       skipList.get(4: Slice[Byte]).get shouldBe Memory.Range(4, 5, Value.FromValue.None, Value.remove(None))
       skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 8, Value.FromValue.None, Value.remove(None))
-      skipList.get(6: Slice[Byte]) shouldBe empty
-      skipList.get(7: Slice[Byte]) shouldBe empty
+      skipList.get(6: Slice[Byte]).toOption shouldBe empty
+      skipList.get(7: Slice[Byte]).toOption shouldBe empty
       skipList.get(8: Slice[Byte]).get shouldBe Memory.put(8, 8)
       skipList.get(9: Slice[Byte]).get shouldBe Memory.put(9, 9)
       skipList.get(10: Slice[Byte]).get shouldBe Memory.put(10, 10)
