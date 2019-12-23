@@ -403,7 +403,7 @@ private[core] object BinarySearchIndexBlock {
        *          shiftLeft will result in 20 which is not the lowest.
        */
       if (start > end || mid < 0)
-        if (fetchLeft && knownLowest.isNone) {
+        if (fetchLeft && knownLowest.isNoneP) {
           //println("Restart")
           binarySearchLower(fetchLeft = false, context = context)
         } else {

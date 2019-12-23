@@ -590,7 +590,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   val nextKeySize: Int
   val sortedIndexAccessPosition: Int
 
-  override def isSome: Boolean =
+  override def isSomeP: Boolean =
     true
 
   override def isPartial: Boolean =
@@ -638,25 +638,25 @@ private[core] object Persistent {
    */
 
   private[core] sealed trait PartialOptional extends KeyValueOptional {
-    def isSome: Boolean
-    def isNone: Boolean = !isSome
-
     def get: Partial
 
+    def isSomeP: Boolean
+    def isNoneP: Boolean = !isSomeP
+
     def getOrElseP[B <: Partial](other: => B): Partial =
-      if (isSome)
+      if (isSomeP)
         get
       else
         other
 
     def orElseP(other: => PartialOptional): PartialOptional =
-      if (isSome)
+      if (isSomeP)
         get
       else
         other
 
     def flatMapP(f: Partial => PartialOptional): PartialOptional =
-      if (isSome)
+      if (isSomeP)
         f(get)
       else
         this
@@ -668,7 +668,7 @@ private[core] object Persistent {
     def toPersistent: Persistent
     def isPartial: Boolean = true
     def get: Partial = this
-    override def isSome: Boolean = true
+    override def isSomeP: Boolean = true
     override def getUnsafe: Persistent =
       toPersistent
   }
@@ -681,7 +681,7 @@ private[core] object Persistent {
     final object Null extends PartialOptional {
       override def get: Partial = throw new Exception("Partial is of type Null")
       override def getUnsafe: KeyValue = throw new Exception("Partial is of type Null")
-      override def isSome: Boolean = false
+      override def isSomeP: Boolean = false
     }
 
     trait Fixed extends Persistent.Partial

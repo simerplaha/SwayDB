@@ -96,11 +96,11 @@ class Slice[+T] private[slice](array: Array[T],
                                fromOffset: Int,
                                toOffset: Int,
                                written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
-  with SliceOption[T]
-  with IterableOps[T, Slice, Slice[T]]
-  with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
-  with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
-  //@formatter:on
+                                                                                                           with SliceOption[T]
+                                                                                                           with IterableOps[T, Slice, Slice[T]]
+                                                                                                           with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
+                                                                                                           with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
+//@formatter:on
 
   override def selfSlice: Slice[T] =
     this
