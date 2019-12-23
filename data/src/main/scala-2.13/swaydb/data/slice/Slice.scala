@@ -37,7 +37,7 @@ sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Sli
     if (this.isNone)
       Slice.Null
     else
-      this.get.unslice()
+      this.getUnsafe.unslice()
 }
 
 object Slice extends SliceCompanionBase {
@@ -45,7 +45,7 @@ object Slice extends SliceCompanionBase {
   final case object Null extends SliceOptional[Nothing] {
 
     override def isNone: Boolean = true
-    override def get: Slice[Nothing] = throw new Exception("Slice is of type Null")
+    override def getUnsafe: Slice[Nothing] = throw new Exception("Slice is of type Null")
   }
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
@@ -114,7 +114,7 @@ class Slice[+T] private[slice](array: Array[T],
   override def isNone: Boolean =
     false
 
-  override def get: Slice[T] =
+  override def getUnsafe: Slice[T] =
     this
 
   override def selfSlice: Slice[T] =

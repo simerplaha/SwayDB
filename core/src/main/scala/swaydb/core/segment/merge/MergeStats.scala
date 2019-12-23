@@ -173,7 +173,7 @@ private[core] object MergeStats {
         maxTimeSize = this.maxTimeSize max timeSize
         totalTimesSize = this.totalTimesSize + timeSize
 
-        val valueSize = if (keyValue.value.isSome) keyValue.value.get.size else 0
+        val valueSize = if (keyValue.value.isSome) keyValue.value.getUnsafe.size else 0
         maxValueSize = this.maxValueSize max valueSize
         totalValuesSize = this.totalValuesSize + valueSize
 
@@ -214,7 +214,7 @@ private[core] object MergeStats {
     def calculateSize(keyValue: data.Memory): Int =
       keyValue.key.size + {
         if (keyValue.value.isSome)
-          keyValue.value.get.size
+          keyValue.value.getUnsafe.size
         else
           0
       }

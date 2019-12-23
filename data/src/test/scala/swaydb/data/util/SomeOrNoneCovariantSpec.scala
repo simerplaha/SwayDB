@@ -32,13 +32,13 @@ class SomeOrNoneCovariantSpec extends WordSpec with Matchers {
   private object Option {
     final object None extends Option {
       override def isNone: Boolean = true
-      override def get: Option.Some =
+      override def getUnsafe: Option.Some =
         throw new Exception("Not a some value")
     }
 
     case class Some(value: String = Random.nextString(10)) extends Option {
       override def isNone: Boolean = false
-      override def get: Option.Some = this
+      override def getUnsafe: Option.Some = this
     }
   }
 
@@ -60,10 +60,10 @@ class SomeOrNoneCovariantSpec extends WordSpec with Matchers {
 
   "get" in {
     val some: Option = Option.Some("some")
-    some.get shouldBe Option.Some("some")
+    some.getUnsafe shouldBe Option.Some("some")
 
     val none: Option = Option.None
-    assertThrows[Exception](none.get)
+    assertThrows[Exception](none.getUnsafe)
   }
 
   "flatMap" in {
@@ -133,13 +133,13 @@ class SomeOrNoneCovariantSpec extends WordSpec with Matchers {
     object Option2 {
       implicit final object None2 extends Option2 {
         override def isNone: Boolean = true
-        override def get: Option2.Some2 =
+        override def getUnsafe: Option2.Some2 =
           throw new Exception("Not a some value")
       }
 
       case class Some2(value: String = Random.nextString(10)) extends Option2 {
         override def isNone: Boolean = false
-        override def get: Option2.Some2 = this
+        override def getUnsafe: Option2.Some2 = this
       }
     }
 

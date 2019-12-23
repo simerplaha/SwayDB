@@ -365,7 +365,7 @@ class SegmentBlockSpec extends TestBase {
         //value the first value for either fixed or range.
         //this value is only expected to be written ones.
         keyValues.head.value.toOptionSON shouldBe defined
-        val value = keyValues.head.value.get
+        val value = keyValues.head.value.getUnsafe
 
         val blocks =
           getBlocksSingle(
