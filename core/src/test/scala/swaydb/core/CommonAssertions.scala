@@ -1204,7 +1204,7 @@ object CommonAssertions {
     def assertLast(keyValue: KeyValue) =
       keyValue match {
         case range: KeyValue.Range =>
-          getHigher(range.fromKey).runRandomIO.right.value shouldBe range
+          getHigher(range.fromKey).runRandomIO.right.value.value shouldBe range
           getHigher(range.toKey).runRandomIO.right.value shouldBe empty
 
         case keyValue =>
@@ -1218,11 +1218,11 @@ object CommonAssertions {
       keyValue match {
         case range: KeyValue.Range =>
           try
-            getHigher(range.fromKey).runRandomIO.right.value shouldBe range
+            getHigher(range.fromKey).runRandomIO.right.value.value shouldBe range
           catch {
             case exception: Exception =>
               exception.printStackTrace()
-              getHigher(range.fromKey).runRandomIO.right.value shouldBe range
+              getHigher(range.fromKey).runRandomIO.right.value.value shouldBe range
               throw exception
           }
           val toKeyHigher = getHigher(range.toKey).runRandomIO.right.value
@@ -1231,7 +1231,7 @@ object CommonAssertions {
           //if the toKey is equal to expected higher's key, then the higher is the next 3rd key.
           next match {
             case next: KeyValue.Range =>
-              toKeyHigher shouldBe next
+              toKeyHigher.value shouldBe next
 
             case _ =>
               //if the range's toKey is the same as next key, higher is next's next.
@@ -1287,7 +1287,7 @@ object CommonAssertions {
   }
 
   def randomExpiredDeadlineOption(): Option[Deadline] =
-    if (randomBoolean)
+    if (randomBoolean())
       None
     else
       Some(expiredDeadline())
