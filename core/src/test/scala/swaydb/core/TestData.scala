@@ -55,7 +55,7 @@ import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{ActorConfig, Dir, IOStrategy, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
@@ -154,69 +154,69 @@ object TestData {
     //key-values in a Level without that level copying it forward to lower Levels.
     def putKeyValuesTest(keyValues: Slice[KeyValue]): IO[swaydb.Error.Level, Unit] = {
 
-//      implicit val idGenerator = level.segmentIDGenerator
-//
-//      //      def fetchNextPath = {
-////        val segmentId = level.segmentIDGenerator.nextID
-////        val path = level.pathDistributor.next.resolve(IDGenerator.segmentId(segmentId))
-////        (segmentId, path)
-////      }
-//
-//      implicit val segmentIO = level.segmentIO
-//      implicit val fileSweeper = level.fileSweeper
-//      implicit val blockCache = level.blockCache
-//
-//      if (keyValues.isEmpty)
-//        IO.unit
-//      else if (!level.isEmpty)
-//        level.putKeyValues(keyValues, level.segmentsInLevel(), None)
-//      else if (level.inMemory)
-//        IO {
-//          Segment.copyToMemory(
-//            keyValues = keyValues,
-////            fetchNextPath = fetchNextPath,
-//            pathsDistributor = level.pathDistributor,
-//            removeDeletes = false,
-//            minSegmentSize = 1000.mb,
-//            createdInLevel = level.levelNumber
-//          )
-//        } flatMap {
-//          segments =>
-//            segments should have size 1
-//            segments mapRecoverIO {
-//              segment =>
-//                level.putKeyValues(keyValues, Seq(segment), None)
-//            } transform {
-//              _ => ()
-//            }
-//        }
-//      else
-//        IO {
-//          Segment.copyToPersist(
-//            keyValues = ???, // keyValues
-//            createdInLevel = level.levelNumber,
-//            fetchNextPath = fetchNextPath,
-//            mmapSegmentsOnRead = randomBoolean(),
-//            mmapSegmentsOnWrite = randomBoolean(),
-//            removeDeletes = false,
-//            minSegmentSize = 1000.mb,
-//            segmentConfig = level.segmentConfig,
-//            valuesConfig = level.valuesConfig,
-//            sortedIndexConfig = level.sortedIndexConfig,
-//            binarySearchIndexConfig = level.binarySearchIndexConfig,
-//            hashIndexConfig = level.hashIndexConfig,
-//            bloomFilterConfig = level.bloomFilterConfig
-//          )
-//        } flatMap {
-//          segments =>
-//            segments should have size 1
-//            segments mapRecoverIO {
-//              segment =>
-//                level.putKeyValues(keyValues, Seq(segment), None)
-//            } transform {
-//              _ => ()
-//            }
-//        }
+      //      implicit val idGenerator = level.segmentIDGenerator
+      //
+      //      //      def fetchNextPath = {
+      ////        val segmentId = level.segmentIDGenerator.nextID
+      ////        val path = level.pathDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+      ////        (segmentId, path)
+      ////      }
+      //
+      //      implicit val segmentIO = level.segmentIO
+      //      implicit val fileSweeper = level.fileSweeper
+      //      implicit val blockCache = level.blockCache
+      //
+      //      if (keyValues.isEmpty)
+      //        IO.unit
+      //      else if (!level.isEmpty)
+      //        level.putKeyValues(keyValues, level.segmentsInLevel(), None)
+      //      else if (level.inMemory)
+      //        IO {
+      //          Segment.copyToMemory(
+      //            keyValues = keyValues,
+      ////            fetchNextPath = fetchNextPath,
+      //            pathsDistributor = level.pathDistributor,
+      //            removeDeletes = false,
+      //            minSegmentSize = 1000.mb,
+      //            createdInLevel = level.levelNumber
+      //          )
+      //        } flatMap {
+      //          segments =>
+      //            segments should have size 1
+      //            segments mapRecoverIO {
+      //              segment =>
+      //                level.putKeyValues(keyValues, Seq(segment), None)
+      //            } transform {
+      //              _ => ()
+      //            }
+      //        }
+      //      else
+      //        IO {
+      //          Segment.copyToPersist(
+      //            keyValues = ???, // keyValues
+      //            createdInLevel = level.levelNumber,
+      //            fetchNextPath = fetchNextPath,
+      //            mmapSegmentsOnRead = randomBoolean(),
+      //            mmapSegmentsOnWrite = randomBoolean(),
+      //            removeDeletes = false,
+      //            minSegmentSize = 1000.mb,
+      //            segmentConfig = level.segmentConfig,
+      //            valuesConfig = level.valuesConfig,
+      //            sortedIndexConfig = level.sortedIndexConfig,
+      //            binarySearchIndexConfig = level.binarySearchIndexConfig,
+      //            hashIndexConfig = level.hashIndexConfig,
+      //            bloomFilterConfig = level.bloomFilterConfig
+      //          )
+      //        } flatMap {
+      //          segments =>
+      //            segments should have size 1
+      //            segments mapRecoverIO {
+      //              segment =>
+      //                level.putKeyValues(keyValues, Seq(segment), None)
+      //            } transform {
+      //              _ => ()
+      //            }
+      //        }
       ???
     }
 
@@ -445,6 +445,12 @@ object TestData {
     else
       None
 
+  def randomStringSliceOptional: SliceOptional[Byte] =
+    if (randomBoolean())
+      randomString
+    else
+      Slice.Null
+
   def randomString =
     randomCharacters()
 
@@ -470,7 +476,7 @@ object TestData {
     )
 
   def randomPutKeyValue(key: Slice[Byte],
-                        value: Option[Slice[Byte]] = randomStringOption,
+                        value: SliceOptional[Byte] = randomStringSliceOptional,
                         deadline: Option[Deadline] = randomDeadlineOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put = {
     val put = Memory.Put(key, value, deadline, testTimer.next)
     //println(put)
@@ -478,11 +484,11 @@ object TestData {
   }
 
   def randomExpiredPutKeyValue(key: Slice[Byte],
-                               value: Option[Slice[Byte]] = randomStringOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
+                               value: SliceOptional[Byte] = randomStringSliceOptional)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
     randomPutKeyValue(key, value, deadline = Some(expiredDeadline()))
 
   def randomUpdateKeyValue(key: Slice[Byte],
-                           value: Option[Slice[Byte]] = randomStringOption,
+                           value: SliceOptional[Byte] = randomStringSliceOptional,
                            deadline: Option[Deadline] = randomDeadlineOption)(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
     Memory.Update(key, value, deadline, testTimer.next)
 
@@ -575,7 +581,7 @@ object TestData {
 
   def randomPendingApplyKeyValue(key: Slice[Byte],
                                  max: Int = 5,
-                                 value: Option[Slice[Byte]] = randomStringOption,
+                                 value: SliceOptional[Byte] = randomStringSliceOptional,
                                  deadline: Option[Deadline] = randomDeadlineOption,
                                  functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                                  includeFunctions: Boolean = true)(implicit testTimer: TestTimer = TestTimer.Incremental()) =
@@ -749,7 +755,7 @@ object TestData {
     functionId
   }
 
-  def randomApply(value: Option[Slice[Byte]] = randomStringOption,
+  def randomApply(value: SliceOptional[Byte] = randomStringSliceOptional,
                   deadline: Option[Deadline] = randomDeadlineOption,
                   addRemoves: Boolean = randomBoolean(),
                   functionOutput: SwayFunctionOutput = randomFunctionOutput(),
@@ -761,7 +767,7 @@ object TestData {
     else
       Value.Update(value, deadline, testTimer.next)
 
-  def randomApplyWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
+  def randomApplyWithDeadline(value: SliceOptional[Byte] = randomStringSliceOptional,
                               addRangeRemoves: Boolean = randomBoolean(),
                               deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()) =
     if (addRangeRemoves && randomBoolean())
@@ -770,7 +776,7 @@ object TestData {
       Value.Update(value, Some(deadline), testTimer.next)
 
   def randomApplies(max: Int = 5,
-                    value: Option[Slice[Byte]] = randomStringOption,
+                    value: SliceOptional[Byte] = randomStringSliceOptional,
                     deadline: Option[Deadline] = randomDeadlineOption,
                     addRemoves: Boolean = randomBoolean(),
                     functionOutput: SwayFunctionOutput = randomFunctionOutput(),
@@ -789,7 +795,7 @@ object TestData {
     }
 
   def randomAppliesWithDeadline(max: Int = 5,
-                                value: Option[Slice[Byte]] = randomStringOption,
+                                value: SliceOptional[Byte] = randomStringSliceOptional,
                                 addRangeRemoves: Boolean = randomBoolean(),
                                 deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Value.Apply] =
     Slice {
@@ -804,8 +810,8 @@ object TestData {
     }
 
   def randomTransientKeyValue(key: Slice[Byte],
-                              toKey: Option[Slice[Byte]],
-                              value: Option[Slice[Byte]] = randomStringOption,
+                              toKey: SliceOptional[Byte],
+                              value: SliceOptional[Byte] = randomStringSliceOptional,
                               fromValue: FromValueOption = randomFromValueOption(),
                               rangeValue: RangeValue = randomRangeValue(),
                               deadline: Option[Deadline] = randomDeadlineOption,
@@ -816,10 +822,10 @@ object TestData {
                               includeRemoves: Boolean = true,
                               includePuts: Boolean = true,
                               includeRanges: Boolean = true): Memory =
-    if (toKey.isDefined && includeRanges && randomBoolean())
+    if (toKey.isSomeC && includeRanges && randomBoolean())
       Memory.Range(
         fromKey = key,
-        toKey = toKey.get,
+        toKey = toKey.getC,
         fromValue = fromValue,
         rangeValue = rangeValue
       )
@@ -837,7 +843,7 @@ object TestData {
       )
 
   def randomFixedTransientKeyValue(key: Slice[Byte],
-                                   value: Option[Slice[Byte]] = randomStringOption,
+                                   value: SliceOptional[Byte] = randomStringSliceOptional,
                                    deadline: Option[Deadline] = randomDeadlineOption,
                                    time: Time = Time.empty,
                                    functionOutput: SwayFunctionOutput = randomFunctionOutput(),
@@ -886,7 +892,7 @@ object TestData {
       )
 
   def randomFixedKeyValue(key: Slice[Byte],
-                          value: Option[Slice[Byte]] = randomStringOption,
+                          value: SliceOptional[Byte] = randomStringSliceOptional,
                           deadline: Option[Deadline] = randomDeadlineOption,
                           functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                           includePendingApply: Boolean = true,
@@ -985,23 +991,23 @@ object TestData {
     else
       None
 
-  def randomFromValueOption(value: Option[Slice[Byte]] = randomStringOption,
+  def randomFromValueOption(value: SliceOptional[Byte] = randomStringSliceOptional,
                             deadline: Option[Deadline] = randomDeadlineOption,
                             functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                             addRemoves: Boolean = randomBoolean(),
                             addPut: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
     if (randomBoolean())
-        randomFromValue(
-          value = value,
-          addRemoves = addRemoves,
-          functionOutput = functionOutput,
-          deadline = deadline,
-          addPut = addPut
-        )
+      randomFromValue(
+        value = value,
+        addRemoves = addRemoves,
+        functionOutput = functionOutput,
+        deadline = deadline,
+        addPut = addPut
+      )
     else
       Value.FromValue.None
 
-  def randomFromValueWithDeadlineOption(value: Option[Slice[Byte]] = randomStringOption,
+  def randomFromValueWithDeadlineOption(value: SliceOptional[Byte] = randomStringSliceOptional,
                                         addRangeRemoves: Boolean = randomBoolean(),
                                         deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): FromValueOption =
     if (randomBoolean())
@@ -1009,7 +1015,7 @@ object TestData {
     else
       Value.FromValue.None
 
-  def randomUpdateRangeValue(value: Option[Slice[Byte]] = randomStringOption,
+  def randomUpdateRangeValue(value: SliceOptional[Byte] = randomStringSliceOptional,
                              addRemoves: Boolean = randomBoolean(),
                              functionOutput: SwayFunctionOutput = randomUpdateFunctionOutput())(implicit testTimer: TestTimer = TestTimer.Incremental()) = {
     val deadline =
@@ -1022,7 +1028,7 @@ object TestData {
     randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
   }
 
-  def randomFromValue(value: Option[Slice[Byte]] = randomStringOption,
+  def randomFromValue(value: SliceOptional[Byte] = randomStringSliceOptional,
                       addRemoves: Boolean = randomBoolean(),
                       deadline: Option[Deadline] = randomDeadlineOption,
                       functionOutput: SwayFunctionOutput = randomFunctionOutput(),
@@ -1032,7 +1038,7 @@ object TestData {
     else
       randomRangeValue(value = value, addRemoves = addRemoves, functionOutput = functionOutput, deadline = deadline)
 
-  def randomRangeValue(value: Option[Slice[Byte]] = randomStringOption,
+  def randomRangeValue(value: SliceOptional[Byte] = randomStringSliceOptional,
                        deadline: Option[Deadline] = randomDeadlineOption,
                        functionOutput: SwayFunctionOutput = randomFunctionOutput(),
                        addRemoves: Boolean = randomBoolean())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
@@ -1045,7 +1051,7 @@ object TestData {
     else
       Value.Update(value, deadline, testTimer.next)
 
-  def randomFromValueWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
+  def randomFromValueWithDeadline(value: SliceOptional[Byte] = randomStringSliceOptional,
                                   addRangeRemoves: Boolean = randomBoolean(),
                                   deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.FromValue =
     if (randomBoolean())
@@ -1053,7 +1059,7 @@ object TestData {
     else
       randomRangeValueWithDeadline(value = value, addRangeRemoves = addRangeRemoves, deadline = deadline)
 
-  def randomRangeValueWithDeadline(value: Option[Slice[Byte]] = randomStringOption,
+  def randomRangeValueWithDeadline(value: SliceOptional[Byte] = randomStringSliceOptional,
                                    addRangeRemoves: Boolean = randomBoolean(),
                                    deadline: Deadline = randomDeadline())(implicit testTimer: TestTimer = TestTimer.Incremental()): Value.RangeValue =
     if (addRangeRemoves && randomBoolean())
@@ -1079,10 +1085,13 @@ object TestData {
   def randomBytesSlice(size: Int = 10) = Slice(randomBytes(size))
 
   def randomBytesSliceOption(size: Int = 10): Option[Slice[Byte]] =
+    randomBytesSliceOptional(size).toOptionC
+
+  def randomBytesSliceOptional(size: Int = 10): SliceOptional[Byte] =
     if (randomBoolean() || size == 0)
-      None
+      Slice.Null
     else
-      Some(randomBytesSlice(size))
+      randomBytesSlice(size)
 
   def someByteSlice(size: Int = 10): Option[Slice[Byte]] =
     if (size == 0)
@@ -1210,8 +1219,8 @@ object TestData {
 
       if (addRanges && randomBoolean()) {
         val toKey = key + 10
-        val fromValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
-        val rangeValueValueBytes = eitherOne(None, Some(randomBytesSlice(valueSize)))
+        val fromValueValueBytes = eitherOne(Slice.Null, randomBytesSlice(valueSize))
+        val rangeValueValueBytes = eitherOne(Slice.Null, randomBytesSlice(valueSize))
         val fromValueDeadline =
           if (addPutDeadlines || addRemoveDeadlines || addUpdateDeadlines)
             randomDeadlineOption(addExpiredPutDeadlines)
@@ -1237,7 +1246,7 @@ object TestData {
           )
         key = key + 1
       } else if (addUpdates && randomBoolean()) {
-        val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
+        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, randomBytesSlice(valueSize))
         slice add
           randomUpdateKeyValue(
             key = key: Slice[Byte],
@@ -1252,7 +1261,7 @@ object TestData {
           )
         key = key + 1
       } else if (addPendingApply && randomBoolean()) {
-        val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
+        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, randomBytesSlice(valueSize))
         slice add
           randomPendingApplyKeyValue(
             key = key: Slice[Byte],
@@ -1261,7 +1270,7 @@ object TestData {
           )
         key = key + 1
       } else if (addPut) {
-        val valueBytes = if (valueSize == 0) None else eitherOne(None, Some(randomBytesSlice(valueSize)))
+        val valueBytes = if (valueSize == 0) Slice.Null else eitherOne(Slice.Null, randomBytesSlice(valueSize))
         val deadline = if (addPutDeadlines) randomDeadlineOption(addExpiredPutDeadlines) else None
         slice add
           randomPutKeyValue(
@@ -1309,7 +1318,7 @@ object TestData {
       Memory.Put(key, value, Some(removeAt), testTimer.next)
 
     def put(key: Slice[Byte],
-            value: Option[Slice[Byte]],
+            value: SliceOptional[Byte],
             removeAt: Deadline)(implicit testTimer: TestTimer): Memory.Put =
       Memory.Put(key, value, Some(removeAt), testTimer.next)
 
@@ -1324,20 +1333,20 @@ object TestData {
       Memory.Put(key, value, Some(removeAfter.fromNow), testTimer.next)
 
     def put(key: Slice[Byte],
-            value: Option[Slice[Byte]])(implicit testTimer: TestTimer): Memory.Put =
+            value: SliceOptional[Byte])(implicit testTimer: TestTimer): Memory.Put =
       Memory.Put(key, value, None, testTimer.next)
 
     def put(key: Slice[Byte])(implicit testTimer: TestTimer): Memory.Put =
       Memory.Put(key, Slice.Null, None, testTimer.next)
 
     def put(key: Slice[Byte],
-            value: Option[Slice[Byte]],
+            value: SliceOptional[Byte],
             deadline: Option[Deadline],
             time: Time): Memory.Put =
       Memory.Put(key, value, deadline, time)
 
     def put(key: Slice[Byte],
-            value: Option[Slice[Byte]],
+            value: SliceOptional[Byte],
             deadline: Option[Deadline])(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Put =
       Memory.Put(key, value, deadline, testTimer.next)
 
@@ -1351,7 +1360,7 @@ object TestData {
       Memory.Update(key, value, Some(removeAt), testTimer.next)
 
     def update(key: Slice[Byte],
-               value: Option[Slice[Byte]],
+               value: SliceOptional[Byte],
                removeAt: Deadline)(implicit testTimer: TestTimer): Memory.Update =
       Memory.Update(key, value, Some(removeAt), testTimer.next)
 
@@ -1366,14 +1375,14 @@ object TestData {
       Memory.Update(key, value, Some(removeAfter.fromNow), testTimer.next)
 
     def update(key: Slice[Byte],
-               value: Option[Slice[Byte]])(implicit testTimer: TestTimer): Memory.Update =
+               value: SliceOptional[Byte])(implicit testTimer: TestTimer): Memory.Update =
       Memory.Update(key, value, None, testTimer.next)
 
     def update(key: Slice[Byte])(implicit testTimer: TestTimer): Memory.Update =
       Memory.Update(key, Slice.Null, None, testTimer.next)
 
     def update(key: Slice[Byte],
-               value: Option[Slice[Byte]],
+               value: SliceOptional[Byte],
                deadline: Option[Deadline])(implicit testTimer: TestTimer = TestTimer.Incremental()): Memory.Update =
       Memory.Update(key, value, deadline, testTimer.next)
 
@@ -1403,7 +1412,7 @@ object TestData {
     def remove(deadline: Option[Deadline])(implicit testTimer: TestTimer): Value.Remove =
       Value.Remove(deadline, testTimer.next)
 
-    def put(value: Option[Slice[Byte]],
+    def put(value: SliceOptional[Byte],
             deadline: Option[Deadline],
             time: Time)(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, deadline, time)
@@ -1411,22 +1420,22 @@ object TestData {
     def put(value: Slice[Byte])(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, None, testTimer.next)
 
-    def put(value: Option[Slice[Byte]])(removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Put =
+    def put(value: SliceOptional[Byte])(removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, Some(removeAfter), testTimer.next)
 
     def put(value: Slice[Byte], removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, Some(removeAfter), testTimer.next)
 
-    def put(value: Option[Slice[Byte]], removeAfter: Option[Deadline])(implicit testTimer: TestTimer): Value.Put =
+    def put(value: SliceOptional[Byte], removeAfter: Option[Deadline])(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, removeAfter, testTimer.next)
 
     def put(value: Slice[Byte], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, Some(duration.fromNow), testTimer.next)
 
-    def put(value: Option[Slice[Byte]], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Put =
+    def put(value: SliceOptional[Byte], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Put =
       Value.Put(value, Some(duration.fromNow), testTimer.next)
 
-    def update(value: Option[Slice[Byte]],
+    def update(value: SliceOptional[Byte],
                deadline: Option[Deadline],
                time: Time): Value.Update =
       Value.Update(value, deadline, time)
@@ -1437,19 +1446,19 @@ object TestData {
     def update(value: Slice[Byte], deadline: Option[Deadline])(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, deadline, testTimer.next)
 
-    def update(value: Option[Slice[Byte]])(removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Update =
+    def update(value: SliceOptional[Byte])(removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, Some(removeAfter), testTimer.next)
 
     def update(value: Slice[Byte], removeAfter: Deadline)(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, Some(removeAfter), testTimer.next)
 
-    def update(value: Option[Slice[Byte]], removeAfter: Option[Deadline])(implicit testTimer: TestTimer): Value.Update =
+    def update(value: SliceOptional[Byte], removeAfter: Option[Deadline])(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, removeAfter, testTimer.next)
 
     def update(value: Slice[Byte], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, Some(duration.fromNow), testTimer.next)
 
-    def update(value: Option[Slice[Byte]], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Update =
+    def update(value: SliceOptional[Byte], duration: FiniteDuration)(implicit testTimer: TestTimer): Value.Update =
       Value.Update(value, Some(duration.fromNow), testTimer.next)
   }
 
@@ -1537,7 +1546,7 @@ object TestData {
    * Used for testing all updates work for all existing put key-values.
    */
   def randomUpdate(keyValues: Iterable[KeyValue.Put],
-                   updatedValue: Option[Slice[Byte]],
+                   updatedValue: SliceOptional[Byte],
                    deadline: Option[Deadline],
                    randomlyDropUpdates: Boolean)(implicit testTimer: TestTimer = TestTimer.Incremental()): Slice[Memory] = {
     var keyUsed = keyValues.head.key.readInt() - 1

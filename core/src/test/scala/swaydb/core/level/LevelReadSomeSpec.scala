@@ -80,7 +80,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
 
     "contains put that were updated" in {
       runThis(times) {
-        val updatedValue = randomStringOption
+        val updatedValue = randomStringSliceOptional
         //also update the deadline so that no puts are expired
         val updatedDeadline = eitherOne(None, randomDeadlineOption(false))
 

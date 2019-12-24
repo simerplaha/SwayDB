@@ -218,8 +218,8 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val fromValue =
           eitherOne(
             Value.remove(None),
-            Value.update(None, Some(expiredDeadline())),
-            Value.put(None, Some(expiredDeadline()))
+            Value.update(Slice.Null, Some(expiredDeadline())),
+            Value.put(Slice.Null, Some(expiredDeadline()))
           )
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomRangeKeyValue(1, 10, fromValue)

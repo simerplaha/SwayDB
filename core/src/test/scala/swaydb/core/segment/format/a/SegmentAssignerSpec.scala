@@ -215,10 +215,10 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "debugger" in {
-      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.None, Value.update(None, None))))
-      val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.None, Value.update(None, None))))
-      val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, Value.FromValue.None, Value.update(None, None))))
-      val segment4 = TestSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, Value.FromValue.None, Value.update(None, None))))
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.None, Value.update(Slice.Null, None))))
+      val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.None, Value.update(Slice.Null, None))))
+      val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, Value.FromValue.None, Value.update(Slice.Null, None))))
+      val segment4 = TestSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, Value.FromValue.None, Value.update(Slice.Null, None))))
       val segment5 = TestSegment(Slice(Memory.put(74605), Memory.put(100000)))
 
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)

@@ -1002,7 +1002,6 @@ private[core] object Persistent {
               sortedIndexAccessPosition: Int): Persistent.Function =
       apply(
         key = key,
-        deadline = deadline,
         valuesReaderNullable = valuesReaderNullable,
         time = time,
         nextIndexOffset = nextIndexOffset,

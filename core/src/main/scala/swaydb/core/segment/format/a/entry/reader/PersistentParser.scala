@@ -24,7 +24,6 @@ import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
-import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 
 object PersistentParser {
@@ -39,7 +38,7 @@ object PersistentParser {
             normalisedByteSize: Int,
             hasAccessPositionIndex: Boolean,
             valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
-    val reader = Reader(tailBytes, Bytes.sizeOfUnsignedInt(headerInteger))
+    val reader = Reader(tailBytes)
 
     val headerKeyBytes = reader.read(headerInteger)
 
