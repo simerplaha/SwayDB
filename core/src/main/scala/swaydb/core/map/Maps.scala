@@ -384,12 +384,11 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV : ClassTag](val maps: Concurre
     if (!persisted) {
       val accelerate = acceleration(meter)
 
-      accelerate.brake match {
-        case None =>
-          brakePedal = null
-
-        case Some(brake) =>
-          brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
+      if (accelerate.brake.isEmpty) {
+        brakePedal = null
+      } else {
+        val brake = accelerate.brake.get
+        brakePedal = new BrakePedal(brake.brakeFor, brake.releaseRate)
       }
 
       val nextMapSize = accelerate.nextMapSize max entry.totalByteSize
