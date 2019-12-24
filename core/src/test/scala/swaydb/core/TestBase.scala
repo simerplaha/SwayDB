@@ -25,7 +25,7 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec, path}
 import swaydb.ActorWire
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -38,12 +38,13 @@ import swaydb.core.io.reader.FileReader
 import swaydb.core.level.compaction._
 import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.level.{Level, LevelRef, NextLevel}
+import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.map.MapEntry
 import swaydb.core.segment.Segment
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
@@ -250,32 +251,90 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   }
 
   object TestSegment {
-    def apply(keyValues: Slice[Memory] = randomizedKeyValues(addPut = true)(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
+    def apply(keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
               path: Path = testSegmentFile,
+              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+              hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+              bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
               segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
                                                                                timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                                               blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
-                                                                               segmentIO: SegmentIO = SegmentIO.random): Segment =
-    //      if (levelStorage.memory)
-    //        Segment.memory(
-    //          path = path,
-    //          segmentId = Effect.fileId(path)._1,
-    //          keyValues = keyValues,
-    //          createdInLevel = 0
-    //        )
-    //      else
-    //        Segment.persistent(
-    //          path = path,
-    //          segmentId = Effect.fileId(path)._1,
-    //          createdInLevel = 0,
-    //          segmentConfig = segmentConfig,
-    //          mmapReads = levelStorage.mmapSegmentsOnRead,
-    //          mmapWrites = levelStorage.mmapSegmentsOnWrite,
-    //          keyValues = keyValues
-    //        )
-      ???
+                                                                               blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Segment = {
+
+      val segmentId = Effect.fileId(path)._1 - 1
+
+      implicit val idGenerator: IDGenerator = IDGenerator(segmentId)
+
+      implicit val pathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq.empty)
+
+      val segments =
+        many(
+          segmentSize = Int.MaxValue,
+          keyValues = keyValues,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+
+      segments should have size 1
+
+      segments.head
+    }
+
+    def many(segmentSize: Int = randomIntMax(30.mb),
+             keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
+             valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+             sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+             binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+             hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+             bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+             segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                              fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
+                                                                              timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                                              pathsDistributor: PathsDistributor,
+                                                                              idGenerator: IDGenerator,
+                                                                              blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache): Slice[Segment] = {
+
+      implicit val segmentIO: SegmentIO =
+        SegmentIO(
+          bloomFilterConfig = bloomFilterConfig,
+          hashIndexConfig = hashIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig
+        )
+
+      if (levelStorage.memory)
+        Segment.memory(
+          minSegmentSize = segmentSize,
+          pathsDistributor = pathsDistributor,
+          createdInLevel = 0,
+          keyValues = MergeStats.memoryBuilder(keyValues).close
+        )
+      else
+        Segment.persistent(
+          segmentSize = segmentSize,
+          pathsDistributor = pathsDistributor,
+          createdInLevel = 0,
+          mmapReads = levelStorage.mmapSegmentsOnRead,
+          mmapWrites = levelStorage.mmapSegmentsOnWrite,
+          bloomFilterConfig = bloomFilterConfig,
+          hashIndexConfig = hashIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig,
+          mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex)
+        )
+    }
   }
 
   object TestLevel {

@@ -358,11 +358,11 @@ object TestData {
     def random: ValuesBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean): ValuesBlock.Config =
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): ValuesBlock.Config =
       ValuesBlock.Config(
         compressDuplicateValues = randomBoolean(),
         compressDuplicateRangeValues = randomBoolean(),
-        ioStrategy = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -371,9 +371,9 @@ object TestData {
     def random: SortedIndexBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean): SortedIndexBlock.Config =
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): SortedIndexBlock.Config =
       SortedIndexBlock.Config(
-        ioStrategy = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         prefixCompressKeysOnly = randomBoolean(),
         prefixCompressionResetCount = randomIntMax(10),
         enableAccessPositionIndex = randomBoolean(),
@@ -386,14 +386,14 @@ object TestData {
     def random: BinarySearchIndexBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean): BinarySearchIndexBlock.Config =
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): BinarySearchIndexBlock.Config =
       BinarySearchIndexBlock.Config(
         enabled = randomBoolean(),
         format = randomBinarySearchFormat(),
         minimumNumberOfKeys = randomIntMax(5),
         searchSortedIndexDirectlyIfPossible = randomBoolean(),
         fullIndex = randomBoolean(),
-        ioStrategy = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -402,14 +402,14 @@ object TestData {
     def random: HashIndexBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean): HashIndexBlock.Config =
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): HashIndexBlock.Config =
       HashIndexBlock.Config(
         maxProbe = randomIntMax(10),
         minimumNumberOfKeys = randomIntMax(5),
         minimumNumberOfHits = randomIntMax(5),
         format = randomHashIndexSearchFormat(),
         allocateSpace = _.requiredSpace * randomIntMax(3),
-        ioStrategy = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -418,12 +418,12 @@ object TestData {
     def random: BloomFilterBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean): BloomFilterBlock.Config =
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): BloomFilterBlock.Config =
       BloomFilterBlock.Config(
         falsePositiveRate = Random.nextDouble() min 0.5,
         minimumNumberOfKeys = randomIntMax(5),
         optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
-        ioStrategy = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -432,9 +432,9 @@ object TestData {
     def random: SegmentBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean): SegmentBlock.Config =
+    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
       new SegmentBlock.Config(
-        ioStrategy = _ => randomIOAccess(),
+        ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
