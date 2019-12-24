@@ -42,6 +42,10 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
   def putIfAbsent(key: SomeKey, value: SomeValue): Boolean
   def get(key: SomeKey): OptionalValue
   def remove(key: SomeKey): Unit
+
+  def lower(key: SomeKey): OptionalValue
+  def lowerKey(key: SomeKey): OptionalKey
+
   def floor(key: SomeKey): OptionalValue
   def floorKeyValue(key: SomeKey): Option[(SomeKey, SomeValue)]
 
@@ -60,8 +64,6 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
   def headKey: OptionalKey
   def lastKey: OptionalKey
 
-  def lower(key: SomeKey): OptionalValue
-  def lowerKey(key: SomeKey): OptionalKey
   def count(): Int
   def last(): OptionalValue
   def head(): OptionalValue
