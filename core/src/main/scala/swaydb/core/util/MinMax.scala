@@ -19,11 +19,11 @@
 
 package swaydb.core.util
 
-import swaydb.core.data.KeyValue
+import swaydb.core.data.{KeyValue, Memory, Persistent, Value}
 import swaydb.core.data.Value.{FromValue, FromValueOption}
-import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.data.slice.Slice
+import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant}
 
 import scala.annotation.tailrec
 
@@ -83,6 +83,28 @@ private[core] object MinMax {
       case None =>
         left
     }
+
+  def maxFavourLeft[T](left: T,
+                       right: T)(implicit ordering: Ordering[T]): T =
+    maximum[T](left, right)
+
+  def maxFavourLeftC[T <: SomeOrNoneCovariant[T, SOME], SOME <: T](left: T,
+                                                                   right: T)(implicit ordering: Ordering[SOME]): T =
+    if (left.isNoneC)
+      right
+    else if (right.isNoneC)
+      left
+    else
+      maximum(left.getC, right.getC)
+
+  def maxFavourLeftS[T <: SomeOrNone[T, SOME], SOME <: T](left: T,
+                                                          right: T)(implicit ordering: Ordering[SOME]): T =
+    if (left.isNoneS)
+      right
+    else if (right.isNoneS)
+      left
+    else
+      maximum(left.getS, right.getS)
 
   def maxFavourLeft[T](left: Option[T],
                        right: T)(implicit ordering: Ordering[T]): T =

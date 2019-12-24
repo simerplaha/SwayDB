@@ -19,10 +19,13 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-private[block] sealed trait BinarySearchLowerResult[+T] {
-  def lower: Option[T]
+import swaydb.core.data.Persistent
+
+private[block] sealed trait BinarySearchLowerResult {
+  def lower: Persistent.PartialOptional
 }
 
 private[block] object BinarySearchLowerResult {
-  case class Some[T](lower: Option[T], matched: Option[T]) extends BinarySearchLowerResult[T]
+  class Some(val lower: Persistent.PartialOptional,
+             val matched: Persistent.PartialOptional) extends BinarySearchLowerResult
 }

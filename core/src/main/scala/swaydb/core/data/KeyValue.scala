@@ -632,6 +632,12 @@ private[core] object Persistent {
 
   private[core] sealed trait PartialOptional extends SomeOrNoneCovariant[PartialOptional, Partial] {
     override def noneC: PartialOptional = Partial.Null
+
+    def toPersistentOptional: PersistentOptional =
+      if (isNoneC)
+        Persistent.Null
+      else
+        getC.toPersistent
   }
 
   sealed trait Partial extends PartialOptional {

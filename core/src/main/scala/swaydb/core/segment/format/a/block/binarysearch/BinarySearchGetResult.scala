@@ -19,25 +19,23 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-private[block] sealed trait BinarySearchGetResult[+T] {
-  def toOption: Option[T]
-  def toOptionApply[B](f: T => B): Option[B]
+import swaydb.core.data.{Persistent, PersistentOptional}
+
+private[block] sealed trait BinarySearchGetResult {
+  def toPersistentOptional: PersistentOptional
 }
 
 private[block] object BinarySearchGetResult {
 
-  val none: BinarySearchGetResult.None[Nothing] =
-    new BinarySearchGetResult.None(Option.empty[Nothing])
+  val none: BinarySearchGetResult.None =
+    new BinarySearchGetResult.None(Persistent.Partial.Null)
 
-  class None[T](val lower: Option[T]) extends BinarySearchGetResult[T] {
-    override val toOption: Option[T] = scala.None
-
-    override def toOptionApply[B](f: T => B): Option[B] = scala.None
+  class None(val lower: Persistent.PartialOptional) extends BinarySearchGetResult {
+    override def toPersistentOptional: PersistentOptional = Persistent.Null
   }
 
-  class Some[T](val value: T) extends BinarySearchGetResult[T] {
-    override def toOption: Option[T] = scala.Some(value)
-
-    override def toOptionApply[B](f: T => B): Option[B] = scala.Some(f(value))
+  class Some(val value: Persistent.Partial) extends BinarySearchGetResult {
+    override def toPersistentOptional: PersistentOptional =
+      value.toPersistentOptional
   }
 }

@@ -75,11 +75,11 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
     if (isSomeS)
       f(getS)
 
-  def getOrElseS[B <: SOME](other: => B): SOME =
+  def getOrElseS[B >: SOME](other: => B): SOME =
     if (isSomeS)
       getS
     else
-      other
+      other.asInstanceOf[SOME]
 
   def orElseS[B <: T](other: => B): T =
     if (isSomeS)
