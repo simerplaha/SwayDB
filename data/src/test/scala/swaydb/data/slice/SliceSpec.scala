@@ -187,7 +187,7 @@ class SliceSpec extends WordSpec with Matchers {
 
       Range.inclusive(0, 4).foreach {
         index =>
-          slice.getSONC(index) shouldBe array(index)
+          slice.getC(index) shouldBe array(index)
       }
 
       val subSlice = slice.slice(1, 2)

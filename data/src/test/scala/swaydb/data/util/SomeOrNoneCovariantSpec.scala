@@ -26,127 +26,127 @@ import scala.util.Random
 class SomeOrNoneCovariantSpec extends WordSpec with Matchers {
 
   private sealed trait Option extends SomeOrNoneCovariant[Option, Option.Some] {
-    override def noneSONC: Option = Option.None
+    override def noneC: Option = Option.None
   }
 
   private object Option {
     final object None extends Option {
-      override def isNoneSONC: Boolean = true
-      override def getSONC: Option.Some =
+      override def isNoneC: Boolean = true
+      override def getC: Option.Some =
         throw new Exception("Not a some value")
     }
 
     case class Some(value: String = Random.nextString(10)) extends Option {
-      override def isNoneSONC: Boolean = false
-      override def getSONC: Option.Some = this
+      override def isNoneC: Boolean = false
+      override def getC: Option.Some = this
     }
   }
 
   "none" in {
     val some: Option = Option.Some()
-    some.noneSONC shouldBe Option.None
+    some.noneC shouldBe Option.None
 
     val none: Option = Option.None
-    none.noneSONC shouldBe Option.None
+    none.noneC shouldBe Option.None
   }
 
   "isEmpty" in {
     val some: Option = Option.Some()
-    some.isNoneSONC shouldBe false
+    some.isNoneC shouldBe false
 
     val none: Option = Option.None
-    none.isNoneSONC shouldBe true
+    none.isNoneC shouldBe true
   }
 
   "get" in {
     val some: Option = Option.Some("some")
-    some.getSONC shouldBe Option.Some("some")
+    some.getC shouldBe Option.Some("some")
 
     val none: Option = Option.None
-    assertThrows[Exception](none.getSONC)
+    assertThrows[Exception](none.getC)
   }
 
   "flatMap" in {
     val some: Option = Option.Some("some")
-    some.flatMapSONC {
+    some.flatMapC {
       s =>
         s shouldBe some
         Option.Some("other")
     } shouldBe Option.Some("other")
 
     val none: Option = Option.None
-    none.flatMapSONC(_ => fail()) shouldBe none
+    none.flatMapC(_ => fail()) shouldBe none
   }
 
   "foreach" in {
     val some: Option = Option.Some("some")
     var invoked = false
-    some.foreachSONC {
+    some.foreachC {
       _ =>
         invoked = true
     }
     invoked shouldBe true
 
     val none: Option = Option.None
-    none.foreachSONC(_ => fail())
+    none.foreachC(_ => fail())
   }
 
   "getOrElse" in {
     val some: Option = Option.Some("some")
-    some.getOrElseSONC(fail()) shouldBe some
+    some.getOrElseC(fail()) shouldBe some
 
     val none: Option = Option.None
-    none.getOrElseSONC(Option.Some("")) shouldBe Option.Some("")
+    none.getOrElseC(Option.Some("")) shouldBe Option.Some("")
   }
 
   "orElse" in {
     val some: Option = Option.Some("some")
-    some.orElseSONC(fail()) shouldBe some
+    some.orElseC(fail()) shouldBe some
 
     val none: Option = Option.None
-    none.orElseSONC(Option.Some("")) shouldBe Option.Some("")
+    none.orElseC(Option.Some("")) shouldBe Option.Some("")
   }
 
   "exists" in {
     val some: Option = Option.Some("some")
-    some.existsSONC(_ => true) shouldBe true
-    some.existsSONC(_ => false) shouldBe false
+    some.existsC(_ => true) shouldBe true
+    some.existsC(_ => false) shouldBe false
 
     val none: Option = Option.None
-    none.existsSONC(_ => fail()) shouldBe false
+    none.existsC(_ => fail()) shouldBe false
   }
 
   "forAll" in {
     val some: Option = Option.Some("some")
-    some.forallSONC(_ => true) shouldBe true
-    some.forallSONC(_ => false) shouldBe false
+    some.forallC(_ => true) shouldBe true
+    some.forallC(_ => false) shouldBe false
 
     val none: Option = Option.None
-    none.forallSONC(_ => fail()) shouldBe true
+    none.forallC(_ => fail()) shouldBe true
   }
 
   "flatMapSomeOrNone" in {
     sealed trait Option2 extends SomeOrNoneCovariant[Option2, Option2.Some2] {
-      override def noneSONC: Option2 = Option2.None2
+      override def noneC: Option2 = Option2.None2
     }
 
     object Option2 {
       implicit final object None2 extends Option2 {
-        override def isNoneSONC: Boolean = true
-        override def getSONC: Option2.Some2 =
+        override def isNoneC: Boolean = true
+        override def getC: Option2.Some2 =
           throw new Exception("Not a some value")
       }
 
       case class Some2(value: String = Random.nextString(10)) extends Option2 {
-        override def isNoneSONC: Boolean = false
-        override def getSONC: Option2.Some2 = this
+        override def isNoneC: Boolean = false
+        override def getC: Option2.Some2 = this
       }
     }
 
     val someOption: Option = Option.Some("some")
 
     val result: Option2 =
-      someOption.flatMapSomeSONC(Option2.None2: Option2) {
+      someOption.flatMapSomeC(Option2.None2: Option2) {
         some =>
           some shouldBe someOption
           Option2.Some2("some")
@@ -154,7 +154,7 @@ class SomeOrNoneCovariantSpec extends WordSpec with Matchers {
 
     result shouldBe Option2.Some2("some")
 
-    Option.None.flatMapSomeSONC(Option2.None2: Option2) {
+    Option.None.flatMapSomeC(Option2.None2: Option2) {
       some =>
         fail()
     } shouldBe Option2.None2

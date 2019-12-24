@@ -1164,7 +1164,7 @@ private[core] case class Level(dirs: Seq[Dir],
       newSegments.foldLeft(initialMapEntry) {
         case (logEntry, newSegment) =>
           //if one of the new segments have the same minKey as the original segment, remove is not required as 'put' will replace old key.
-          if (removeOriginalSegments && originalSegmentMayBe.existsSON(_.minKey equiv newSegment.minKey))
+          if (removeOriginalSegments && originalSegmentMayBe.existsS(_.minKey equiv newSegment.minKey))
             removeOriginalSegments = false
 
           val nextLogEntry = MapEntry.Put(newSegment.minKey, newSegment)
@@ -1194,7 +1194,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .skipList
       .floor(key)
-      .flatMapSome(Memory.Null: KeyValueOptional)(_.get(key, readState))
+      .flatMapSomeS(Memory.Null: KeyValueOptional)(_.get(key, readState))
 
   def getFromNextLevel(key: Slice[Byte],
                        readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
@@ -1213,7 +1213,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .skipList
       .floor(key)
-      .existsSON(_.mightContainKey(key))
+      .existsS(_.mightContainKey(key))
 
   private def mightContainFunctionInThisLevel(functionId: Slice[Byte]): Boolean =
     appendix
@@ -1246,7 +1246,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .skipList
       .lower(key)
-      .flatMapSome(LevelSeek.None: LevelSeek[KeyValue]) {
+      .flatMapSomeS(LevelSeek.None: LevelSeek[KeyValue]) {
         segment =>
           LevelSeek(
             segmentId = segment.segmentId,
@@ -1358,7 +1358,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .map {
         nextLevelHeadKey =>
           MinMax.minFavourLeft(
-            left = appendix.skipList.headKey.toOptionSONC,
+            left = appendix.skipList.headKey.toOptionC,
             right = nextLevelHeadKey
           )(keyOrder)
       }
@@ -1374,7 +1374,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .map {
         nextLevelLastKey =>
           MinMax.maxFavourLeft(
-            left = appendix.skipList.last().mapSON(_.maxKey.maxKey),
+            left = appendix.skipList.last().mapS(_.maxKey.maxKey),
             right = nextLevelLastKey
           )(keyOrder)
       }
@@ -1554,7 +1554,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasKeyValuesToExpire: Boolean =
     Segment
       .getNearestDeadlineSegment(segmentsInLevel())
-      .isSomeSON
+      .isSomeS
 
   def close: IO[swaydb.Error.Close, Unit] =
     nextLevel
@@ -1608,7 +1608,7 @@ private[core] case class Level(dirs: Seq[Dir],
     appendix
       .skipList
       .last()
-      .mapSON(_.segmentId)
+      .mapS(_.segmentId)
 
   override def stateId: Long =
     segmentIDGenerator.currentId

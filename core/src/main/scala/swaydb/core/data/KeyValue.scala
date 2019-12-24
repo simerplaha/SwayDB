@@ -41,10 +41,10 @@ private[core] sealed trait KeyValueOptional {
   def toOptions: Option[KeyValue] =
     this match {
       case optional: MemoryOptional =>
-        optional.toOptionSON
+        optional.toOptionS
 
       case optional: PersistentOptional =>
-        optional.toOptionSON
+        optional.toOptionS
     }
 }
 
@@ -157,17 +157,17 @@ private[core] object KeyValue {
     def fetchFromAndRangeValueUnsafe: (Value.FromValueOption, Value.RangeValue)
     def fetchFromOrElseRangeValueUnsafe: Value.FromValue = {
       val (fromValue, rangeValue) = fetchFromAndRangeValueUnsafe
-      fromValue getOrElseSON rangeValue
+      fromValue getOrElseS rangeValue
     }
   }
 
 }
 
 private[swaydb] sealed trait MemoryOptional extends SomeOrNone[MemoryOptional, Memory] with KeyValueOptional {
-  override def noneSON: MemoryOptional = Memory.Null
+  override def noneS: MemoryOptional = Memory.Null
 
   override def getUnsafe: KeyValue =
-    getSON
+    getS
 }
 
 private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
@@ -180,20 +180,20 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
   def value: SliceOptional[Byte]
   def deadline: Option[Deadline]
 
-  override def isNoneSON: Boolean =
+  override def isNoneS: Boolean =
     false
 
-  override def getSON: Memory =
+  override def getS: Memory =
     this
 }
 
 private[swaydb] object Memory {
 
   final object Null extends MemoryOptional with KeyValue.Null {
-    override def isNoneSON: Boolean =
+    override def isNoneS: Boolean =
       true
 
-    override def getSON: Memory =
+    override def getS: Memory =
       throw new Exception("Is Null")
 
   }
@@ -222,7 +222,7 @@ private[swaydb] object Memory {
 
   //if value is empty byte slice, return None instead of empty Slice.We do not store empty byte arrays.
   def compressibleValue(keyValue: Memory): SliceOptional[Byte] =
-    if (keyValue.value.existsSONC(_.isEmpty))
+    if (keyValue.value.existsC(_.isEmpty))
       Slice.Null
     else
       keyValue.value
@@ -231,29 +231,29 @@ private[swaydb] object Memory {
     (left, right) match {
       //Remove
       case (left: Memory.Remove, right: Memory.Remove) => true
-      case (left: Memory.Remove, right: Memory.Put) => right.value.isNoneSONC
-      case (left: Memory.Remove, right: Memory.Update) => right.value.isNoneSONC
+      case (left: Memory.Remove, right: Memory.Put) => right.value.isNoneC
+      case (left: Memory.Remove, right: Memory.Update) => right.value.isNoneC
       case (left: Memory.Remove, right: Memory.Function) => false
       case (left: Memory.Remove, right: Memory.PendingApply) => false
       case (left: Memory.Remove, right: Memory.Range) => false
       //Put
-      case (left: Memory.Put, right: Memory.Remove) => left.value.isNoneSONC
+      case (left: Memory.Put, right: Memory.Remove) => left.value.isNoneC
       case (left: Memory.Put, right: Memory.Put) => left.value == right.value
       case (left: Memory.Put, right: Memory.Update) => left.value == right.value
-      case (left: Memory.Put, right: Memory.Function) => left.value containsSONC right.function
+      case (left: Memory.Put, right: Memory.Function) => left.value containsC right.function
       case (left: Memory.Put, right: Memory.PendingApply) => false
       case (left: Memory.Put, right: Memory.Range) => false
       //Update
-      case (left: Memory.Update, right: Memory.Remove) => left.value.isNoneSONC
+      case (left: Memory.Update, right: Memory.Remove) => left.value.isNoneC
       case (left: Memory.Update, right: Memory.Put) => left.value == right.value
       case (left: Memory.Update, right: Memory.Update) => left.value == right.value
-      case (left: Memory.Update, right: Memory.Function) => left.value containsSONC right.function
+      case (left: Memory.Update, right: Memory.Function) => left.value containsC right.function
       case (left: Memory.Update, right: Memory.PendingApply) => false
       case (left: Memory.Update, right: Memory.Range) => false
       //Function
       case (left: Memory.Function, right: Memory.Remove) => false
-      case (left: Memory.Function, right: Memory.Put) => right.value containsSONC left.function
-      case (left: Memory.Function, right: Memory.Update) => right.value containsSONC left.function
+      case (left: Memory.Function, right: Memory.Put) => right.value containsC left.function
+      case (left: Memory.Function, right: Memory.Update) => right.value containsC left.function
       case (left: Memory.Function, right: Memory.Function) => left.function == right.function
       case (left: Memory.Function, right: Memory.PendingApply) => false
       case (left: Memory.Function, right: Memory.Range) => false
@@ -291,7 +291,7 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = deadline
 
     override def valueLength: Int =
-      value.mapSONC(_.size).getOrElse(0)
+      value.mapC(_.size).getOrElse(0)
 
     def hasTimeLeft(): Boolean =
       deadline.forall(_.hasTimeLeft())
@@ -545,7 +545,7 @@ private[swaydb] object Memory {
     override lazy val value: SliceOptional[Byte] = {
       val bytesRequired = OptionRangeValueSerializer.bytesRequired(fromValue, rangeValue)
       val bytes = if (bytesRequired == 0) Slice.Null else Slice.create[Byte](bytesRequired)
-      bytes.foreachSONC(OptionRangeValueSerializer.write(fromValue, rangeValue, _))
+      bytes.foreachC(OptionRangeValueSerializer.write(fromValue, rangeValue, _))
       bytes
     }
 
@@ -570,11 +570,11 @@ private[swaydb] object Memory {
 }
 
 private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptional, Persistent] with KeyValueOptional {
-  override def noneSON: PersistentOptional = Persistent.Null
+  override def noneS: PersistentOptional = Persistent.Null
 
   def asPartial: Persistent.PartialOptional =
-    if (this.isSomeSON)
-      getSON
+    if (this.isSomeS)
+      getS
     else
       Persistent.Partial.Null
 }
@@ -600,14 +600,14 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   def toMemoryOption(): MemoryOptional =
     toMemory()
 
-  override def isNoneSON: Boolean =
+  override def isNoneS: Boolean =
     false
 
-  override def getSON: Persistent =
+  override def getS: Persistent =
     this
 
   override def getUnsafe: Persistent =
-    getSON
+    getS
 
   /**
    * This function is NOT thread-safe and is mutable. It should always be invoke at the time of creation
@@ -619,9 +619,9 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 private[core] object Persistent {
 
   final object Null extends PersistentOptional with KeyValue.Null {
-    override def isNoneSON: Boolean = true
-    override def getSON: Persistent = throw new Exception("get on Persistent key-value that is none")
-    override def getUnsafe: KeyValue = getSON
+    override def isNoneS: Boolean = true
+    override def getS: Persistent = throw new Exception("get on Persistent key-value that is none")
+    override def getUnsafe: KeyValue = getS
   }
 
   /**
@@ -631,7 +631,7 @@ private[core] object Persistent {
    */
 
   private[core] sealed trait PartialOptional extends SomeOrNoneCovariant[PartialOptional, Partial] {
-    override def noneSONC: PartialOptional = Partial.Null
+    override def noneC: PartialOptional = Partial.Null
   }
 
   sealed trait Partial extends PartialOptional {
@@ -648,18 +648,18 @@ private[core] object Persistent {
       null.asInstanceOf[Maybe[Persistent.Partial]]
 
     final object Null extends PartialOptional {
-      override def getSONC: Partial = throw new Exception("Partial is of type Null")
-      override def isNoneSONC: Boolean = true
+      override def getC: Partial = throw new Exception("Partial is of type Null")
+      override def isNoneC: Boolean = true
     }
 
     trait Fixed extends Persistent.Partial {
-      override def getSONC: Partial = this
-      override def isNoneSONC: Boolean = false
+      override def getC: Partial = this
+      override def isNoneC: Boolean = false
     }
 
     trait Range extends Persistent.Partial {
-      override def getSONC: Partial = this
-      override def isNoneSONC: Boolean = false
+      override def getC: Partial = this
+      override def isNoneC: Boolean = false
 
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
@@ -1254,7 +1254,7 @@ private[core] object Persistent {
                 val (from, range) =
                   RangeValueSerializer.read(bytes)
 
-                (from.flatMapSON(_.unslice), range.unslice)
+                (from.flatMapS(_.unslice), range.unslice)
               }
 
           },

@@ -26,127 +26,127 @@ import scala.util.Random
 class SomeOrNoneSpec extends WordSpec with Matchers {
 
   private sealed trait Option extends SomeOrNone[Option, Option.Some] {
-    override def noneSON: Option = Option.None
+    override def noneS: Option = Option.None
   }
 
   private object Option {
     final object None extends Option {
-      override def isNoneSON: Boolean = true
-      override def getSON: Option.Some =
+      override def isNoneS: Boolean = true
+      override def getS: Option.Some =
         throw new Exception("Not a some value")
     }
 
     case class Some(value: String = Random.nextString(10)) extends Option {
-      override def isNoneSON: Boolean = false
-      override def getSON: Option.Some = this
+      override def isNoneS: Boolean = false
+      override def getS: Option.Some = this
     }
   }
 
   "none" in {
     val some: Option = Option.Some()
-    some.noneSON shouldBe Option.None
+    some.noneS shouldBe Option.None
 
     val none: Option = Option.None
-    none.noneSON shouldBe Option.None
+    none.noneS shouldBe Option.None
   }
 
   "isEmpty" in {
     val some: Option = Option.Some()
-    some.isNoneSON shouldBe false
+    some.isNoneS shouldBe false
 
     val none: Option = Option.None
-    none.isNoneSON shouldBe true
+    none.isNoneS shouldBe true
   }
 
   "get" in {
     val some: Option = Option.Some("some")
-    some.getSON shouldBe Option.Some("some")
+    some.getS shouldBe Option.Some("some")
 
     val none: Option = Option.None
-    assertThrows[Exception](none.getSON)
+    assertThrows[Exception](none.getS)
   }
 
   "flatMap" in {
     val some: Option = Option.Some("some")
-    some.flatMapSON {
+    some.flatMapS {
       s =>
         s shouldBe some
         Option.Some("other")
     } shouldBe Option.Some("other")
 
     val none: Option = Option.None
-    none.flatMapSON(_ => fail()) shouldBe none
+    none.flatMapS(_ => fail()) shouldBe none
   }
 
   "foreach" in {
     val some: Option = Option.Some("some")
     var invoked = false
-    some.foreachSON {
+    some.foreachS {
       _ =>
         invoked = true
     }
     invoked shouldBe true
 
     val none: Option = Option.None
-    none.foreachSON(_ => fail())
+    none.foreachS(_ => fail())
   }
 
   "getOrElse" in {
     val some: Option = Option.Some("some")
-    some.getOrElseSON(fail()) shouldBe some
+    some.getOrElseS(fail()) shouldBe some
 
     val none: Option = Option.None
-    none.getOrElseSON(Option.Some("")) shouldBe Option.Some("")
+    none.getOrElseS(Option.Some("")) shouldBe Option.Some("")
   }
 
   "orElse" in {
     val some: Option = Option.Some("some")
-    some.orElseSON(fail()) shouldBe some
+    some.orElseS(fail()) shouldBe some
 
     val none: Option = Option.None
-    none.orElseSON(Option.Some("")) shouldBe Option.Some("")
+    none.orElseS(Option.Some("")) shouldBe Option.Some("")
   }
 
   "exists" in {
     val some: Option = Option.Some("some")
-    some.existsSON(_ => true) shouldBe true
-    some.existsSON(_ => false) shouldBe false
+    some.existsS(_ => true) shouldBe true
+    some.existsS(_ => false) shouldBe false
 
     val none: Option = Option.None
-    none.existsSON(_ => fail()) shouldBe false
+    none.existsS(_ => fail()) shouldBe false
   }
 
   "forAll" in {
     val some: Option = Option.Some("some")
-    some.forallSON(_ => true) shouldBe true
-    some.forallSON(_ => false) shouldBe false
+    some.forallS(_ => true) shouldBe true
+    some.forallS(_ => false) shouldBe false
 
     val none: Option = Option.None
-    none.forallSON(_ => fail()) shouldBe true
+    none.forallS(_ => fail()) shouldBe true
   }
 
   "flatMapSomeOrNone" in {
     sealed trait Option2 extends SomeOrNone[Option2, Option2.Some2] {
-      override def noneSON: Option2 = Option2.None2
+      override def noneS: Option2 = Option2.None2
     }
 
     object Option2 {
       implicit final object None2 extends Option2 {
-        override def isNoneSON: Boolean = true
-        override def getSON: Option2.Some2 =
+        override def isNoneS: Boolean = true
+        override def getS: Option2.Some2 =
           throw new Exception("Not a some value")
       }
 
       case class Some2(value: String = Random.nextString(10)) extends Option2 {
-        override def isNoneSON: Boolean = false
-        override def getSON: Option2.Some2 = this
+        override def isNoneS: Boolean = false
+        override def getS: Option2.Some2 = this
       }
     }
 
     val someOption: Option = Option.Some("some")
 
     val result: Option2 =
-      someOption.flatMapSome(Option2.None2: Option2) {
+      someOption.flatMapSomeS(Option2.None2: Option2) {
         some =>
           some shouldBe someOption
           Option2.Some2("some")
@@ -154,7 +154,7 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
     result shouldBe Option2.Some2("some")
 
-    Option.None.flatMapSome(Option2.None2: Option2) {
+    Option.None.flatMapSomeS(Option2.None2: Option2) {
       some =>
         fail()
     } shouldBe Option2.None2

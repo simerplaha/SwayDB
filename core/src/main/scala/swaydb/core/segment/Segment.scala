@@ -50,14 +50,14 @@ import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
 private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional, Segment] {
-  override def noneSON: SegmentOptional =
+  override def noneS: SegmentOptional =
     Segment.Null
 }
 private[core] object Segment extends LazyLogging {
 
   final case object Null extends SegmentOptional {
-    override def isNoneSON: Boolean = true
-    override def getSON: Segment = throw new Exception("Segment is of type Null")
+    override def isNoneS: Boolean = true
+    override def getS: Segment = throw new Exception("Segment is of type Null")
   }
 
   val emptyIterable = Iterable.empty[Segment]
@@ -118,7 +118,7 @@ private[core] object Segment extends LazyLogging {
           case keyValue: Memory.Range =>
             hasRange = true
             minMaxFunctionId = MinMax.minMaxFunction(keyValue, minMaxFunctionId)
-            hasPut = hasPut || keyValue.fromValue.existsSON(_.isPut)
+            hasPut = hasPut || keyValue.fromValue.existsS(_.isPut)
             skipList.put(keyValue.key, keyValue)
         }
 
@@ -694,8 +694,8 @@ private[core] object Segment extends LazyLogging {
 
   def tempMinMaxKeyValues(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): Slice[Memory] = {
     for {
-      minKey <- map.skipList.head().mapSON(memory => Memory.Put(memory.key, Slice.Null, None, Time.empty))
-      maxKey <- map.skipList.last() mapSON {
+      minKey <- map.skipList.head().mapS(memory => Memory.Put(memory.key, Slice.Null, None, Time.empty))
+      maxKey <- map.skipList.last() mapS {
         case fixed: Memory.Fixed =>
           Memory.Put(fixed.key, Slice.Null, None, Time.empty)
 
@@ -708,8 +708,8 @@ private[core] object Segment extends LazyLogging {
 
   def minMaxKey(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {
-      minKey <- map.skipList.head().mapSON(_.key)
-      maxKey <- map.skipList.last() mapSON {
+      minKey <- map.skipList.head().mapS(_.key)
+      maxKey <- map.skipList.last() mapS {
         case fixed: Memory.Fixed =>
           (fixed.key, true)
 
@@ -766,8 +766,8 @@ private[core] object Segment extends LazyLogging {
       false
     else {
       for {
-        head <- map.skipList.head().toOptionSON
-        last <- map.skipList.last().toOptionSON
+        head <- map.skipList.head().toOptionS
+        last <- map.skipList.last().toOptionS
       } yield {
         val assignments =
           if (keyOrder.equiv(head.key, last.key))
@@ -880,7 +880,7 @@ private[core] object Segment extends LazyLogging {
   def getNearestDeadlineSegment(segments: Iterable[Segment]): SegmentOptional =
     segments.foldLeft(Segment.Null: SegmentOptional) {
       case (previous, next) =>
-        previous mapSON {
+        previous mapS {
           previous =>
             getNearestDeadlineSegment(previous, next)
         } getOrElse {
@@ -1021,9 +1021,9 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
 
   def existsOnDisk: Boolean
 
-  override def isNoneSON: Boolean =
+  override def isNoneS: Boolean =
     false
 
-  override def getSON: Segment =
+  override def getS: Segment =
     this
 }

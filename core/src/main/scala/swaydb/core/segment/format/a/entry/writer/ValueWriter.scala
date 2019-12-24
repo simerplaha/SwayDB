@@ -40,7 +40,7 @@ private[a] object ValueWriter extends ValueWriter {
                          builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
                                                        keyWriter: KeyWriter,
                                                        deadlineWriter: DeadlineWriter): Unit =
-    if (current.value.forallSONC(_.isEmpty))
+    if (current.value.forallC(_.isEmpty))
       noValue(
         current = current,
         entryId = entryId,
@@ -140,7 +140,7 @@ private[a] object ValueWriter extends ValueWriter {
                                                                       keyWriter: KeyWriter,
                                                                       deadlineWriter: DeadlineWriter): Unit = {
     //if previous does not exists write full offsets and then write deadline.
-    val currentValueSize = currentValue.foldLeftSONC(0)(_ + _.size)
+    val currentValueSize = currentValue.foldLeftC(0)(_ + _.size)
     val currentValueOffset = builder.nextStartValueOffset
 
     builder.startValueOffset = currentValueOffset

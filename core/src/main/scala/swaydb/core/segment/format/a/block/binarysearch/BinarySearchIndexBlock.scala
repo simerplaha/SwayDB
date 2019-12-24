@@ -358,7 +358,7 @@ private[core] object BinarySearchIndexBlock {
         new BinarySearchGetResult.None(
           MinMax.maxFavourLeft(
             left = knownLowest,
-            right = context.lowestKeyValue.toOptionSON
+            right = context.lowestKeyValue.toOptionS
           )
         )
       else
@@ -378,7 +378,7 @@ private[core] object BinarySearchIndexBlock {
     val end = getEndPosition(context)
 
     //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
-    hop(start = start, end = end, context.lowestKeyValue.toOptionSON, None)
+    hop(start = start, end = end, context.lowestKeyValue.toOptionS, None)
   }
 
   private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]],
@@ -403,7 +403,7 @@ private[core] object BinarySearchIndexBlock {
        *          shiftLeft will result in 20 which is not the lowest.
        */
       if (start > end || mid < 0)
-        if (fetchLeft && knownLowest.isNoneSONC) {
+        if (fetchLeft && knownLowest.isNoneC) {
           //println("Restart")
           binarySearchLower(fetchLeft = false, context = context)
         } else {
@@ -423,7 +423,7 @@ private[core] object BinarySearchIndexBlock {
           case matched: KeyMatcher.Result.Matched =>
             matched.result match {
               case fixed: Persistent.Partial.Fixed =>
-                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseSONC knownLowest, knownMatch = fixed)
+                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseC knownLowest, knownMatch = fixed)
 
               case range: Persistent.Partial.Range =>
                 if (ordering.gt(context.targetKey, range.fromKey))
@@ -432,7 +432,7 @@ private[core] object BinarySearchIndexBlock {
                     matched = Some(range)
                   )
                 else
-                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseSONC knownLowest, knownMatch = matched.result)
+                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseC knownLowest, knownMatch = matched.result)
             }
 
           case behind: KeyMatcher.Result.Behind =>
@@ -573,7 +573,7 @@ private[core] object BinarySearchIndexBlock {
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                            partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
-    when(start.existsSON(start => ordering.equiv(start.key, key)), Persistent.Null: PersistentOptional)(start) match {
+    when(start.existsS(start => ordering.equiv(start.key, key)), Persistent.Null: PersistentOptional)(start) match {
       case start: Persistent =>
         Some(
           SortedIndexBlock.readNextKeyValue(
@@ -620,9 +620,9 @@ private[core] object BinarySearchIndexBlock {
                                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]) = {
     //next can either be got or end if end is inline with lower.
     val next =
-      if (end.existsSON(end => lower.existsSON(_.nextIndexOffset == end.indexOffset)))
+      if (end.existsS(end => lower.existsS(_.nextIndexOffset == end.indexOffset)))
         end
-      else if (got.existsSON(got => lower.existsSON(_.nextIndexOffset == got.indexOffset)))
+      else if (got.existsS(got => lower.existsS(_.nextIndexOffset == got.indexOffset)))
         got
       else
         Persistent.Null
@@ -652,7 +652,7 @@ private[core] object BinarySearchIndexBlock {
             //but there will be cases with binarySearchIndex is partial || sortedIndex is prefixCompressed
             //which means that accessPositions might not be in sync with binarySearch's positions.
             //Here binarySearchLower will triggers are restart if shiftLeft was not successful.
-            sortedIndexReader.block.enableAccessPositionIndex && end.existsSON(end => ordering.equiv(key, end.key)),
+            sortedIndexReader.block.enableAccessPositionIndex && end.existsS(end => ordering.equiv(key, end.key)),
           context =
             BinarySearchContext(
               key = key,

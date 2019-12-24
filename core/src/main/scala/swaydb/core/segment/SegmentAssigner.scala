@@ -92,7 +92,7 @@ private[core] object SegmentAssigner {
                nextSegmentMayBe: SegmentOptional): Unit =
       (remainingKeyValues.headOrNull, thisSegmentMayBe, nextSegmentMayBe) match {
         //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
-        case (keyValue: KeyValue, thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isNoneSON =>
+        case (keyValue: KeyValue, thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isNoneS =>
           keyValue match {
             case keyValue: KeyValue.Fixed =>
               assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)

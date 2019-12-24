@@ -104,7 +104,7 @@ object LevelZeroSkipListMerger extends SkipListMerger[SliceOptional[Byte], Memor
     import keyOrder._
     //value the start position of this range to fetch the range's start and end key-values for the skipList.
     val startKey =
-      skipList.floor(insert.fromKey) mapSON {
+      skipList.floor(insert.fromKey) mapS {
         case range: Memory.Range if insert.fromKey < range.toKey =>
           range.fromKey
 

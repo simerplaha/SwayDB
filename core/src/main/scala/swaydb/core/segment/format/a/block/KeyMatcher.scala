@@ -98,31 +98,31 @@ private[core] object KeyMatcher {
     override def apply(previous: Persistent.Partial,
                        next: Persistent.PartialOptional,
                        hasMore: Boolean): KeyMatcher.Result =
-      next.getOrElseSONC(previous) match {
+      next.getOrElseC(previous) match {
         case fixed: Persistent.Partial.Fixed =>
           val matchResult = keyOrder.compare(key, fixed.key)
           if (matchResult == 0)
-            new Matched(next flatMapSONC (_ => previous), fixed, Persistent.Partial.Null)
+            new Matched(next flatMapC (_ => previous), fixed, Persistent.Partial.Null)
           else if (matchResult > 0 && hasMore)
             if (matchOnly)
               new BehindStopped(fixed)
             else
               new BehindFetchNext(fixed)
           else
-            new AheadOrNoneOrEnd(next orElseSONC previous)
+            new AheadOrNoneOrEnd(next orElseC previous)
 
         case range: Persistent.Partial.Range =>
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
           val toKeyMatch = keyOrder.compare(key, range.toKey)
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
-            new Matched(next flatMapSONC (_ => previous), range, Persistent.Partial.Null)
+            new Matched(next flatMapC (_ => previous), range, Persistent.Partial.Null)
           else if (toKeyMatch >= 0 && hasMore)
             if (matchOnly)
               new BehindStopped(range)
             else
               new BehindFetchNext(range)
           else
-            new AheadOrNoneOrEnd(next orElseSONC previous)
+            new AheadOrNoneOrEnd(next orElseC previous)
       }
   }
 
@@ -243,14 +243,14 @@ private[core] object KeyMatcher {
     override def apply(previous: Persistent.Partial,
                        next: Persistent.PartialOptional,
                        hasMore: Boolean): KeyMatcher.Result = {
-      val keyValue = next getOrElseSONC previous
+      val keyValue = next getOrElseC previous
       val nextCompare = keyOrder.compare(keyValue.key, key)
       if (nextCompare > 0)
-        new Matched(next flatMapSONC (_ => previous), keyValue, Persistent.Partial.Null)
+        new Matched(next flatMapC (_ => previous), keyValue, Persistent.Partial.Null)
       else if (nextCompare <= 0)
         keyValue match {
           case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) < 0 =>
-            new Matched(next flatMapSONC (_ => previous), keyValue, Persistent.Partial.Null)
+            new Matched(next flatMapC (_ => previous), keyValue, Persistent.Partial.Null)
 
           case _ =>
             if (hasMore)
@@ -259,10 +259,10 @@ private[core] object KeyMatcher {
               else
                 new BehindFetchNext(keyValue)
             else
-              new AheadOrNoneOrEnd(next orElseSONC previous)
+              new AheadOrNoneOrEnd(next orElseC previous)
         }
       else
-        new AheadOrNoneOrEnd(next orElseSONC previous)
+        new AheadOrNoneOrEnd(next orElseC previous)
     }
   }
 }

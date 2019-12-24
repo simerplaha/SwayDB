@@ -1468,7 +1468,7 @@ object TestData {
           case apply: Memory.PendingApply =>
             collectUsedDeadlines(apply.applies.map(_.toMemory(Slice.emptyBytes)), usedDeadlines)
           case range: Memory.Range =>
-            val fromTransient = range.fromValue.toOptionSON.map(_.toMemory(Slice.emptyBytes))
+            val fromTransient = range.fromValue.toOptionS.map(_.toMemory(Slice.emptyBytes))
             val rangeTransient = range.rangeValue.toMemory(Slice.emptyBytes)
             collectUsedDeadlines(Slice(rangeTransient) ++ fromTransient, usedDeadlines)
         }

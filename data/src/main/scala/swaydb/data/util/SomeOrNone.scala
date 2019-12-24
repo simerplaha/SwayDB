@@ -32,158 +32,158 @@ object SomeOrNone {
 
 private[swaydb] trait SomeOrNone[T, SOME <: T] {
 
-  def noneSON: T
+  def noneS: T
 
-  def isNoneSON: Boolean
+  def isNoneS: Boolean
 
-  def getSON: SOME
+  def getS: SOME
 
-  def toOptionSON: Option[SOME] =
-    if (isSomeSON)
-      Some(getSON)
+  def toOptionS: Option[SOME] =
+    if (isSomeS)
+      Some(getS)
     else
       None
 
-  def isSomeSON: Boolean =
-    !isNoneSON
+  def isSomeS: Boolean =
+    !isNoneS
 
-  def mapSON[B](f: SOME => B): Option[B] =
-    if (isSomeSON)
-      Some(f(getSON))
+  def mapS[B](f: SOME => B): Option[B] =
+    if (isSomeS)
+      Some(f(getS))
     else
       None
 
-  def flatMapSON[B <: T](f: SOME => B): T =
-    if (isSomeSON)
-      f(getSON)
+  def flatMapS[B <: T](f: SOME => B): T =
+    if (isSomeS)
+      f(getS)
     else
-      noneSON
+      noneS
 
-  def flatMapSome[T2](none: T2)(f: SOME => T2): T2 =
-    if (isSomeSON)
-      f(getSON)
+  def flatMapSomeS[T2](none: T2)(f: SOME => T2): T2 =
+    if (isSomeS)
+      f(getS)
     else
       none
 
-  def flatMapOption[B](f: SOME => Option[B]): Option[B] =
-    if (isSomeSON)
-      f(getSON)
+  def flatMapOptionS[B](f: SOME => Option[B]): Option[B] =
+    if (isSomeS)
+      f(getS)
     else
       None
 
-  def foreachSON[B](f: SOME => B): Unit =
-    if (isSomeSON)
-      f(getSON)
+  def foreachS[B](f: SOME => B): Unit =
+    if (isSomeS)
+      f(getS)
 
-  def getOrElseSON[B <: SOME](other: => B): SOME =
-    if (isSomeSON)
-      getSON
+  def getOrElseS[B <: SOME](other: => B): SOME =
+    if (isSomeS)
+      getS
     else
       other
 
-  def orElseSON[B <: T](other: => B): T =
-    if (isSomeSON)
-      getSON
+  def orElseS[B <: T](other: => B): T =
+    if (isSomeS)
+      getS
     else
       other
 
-  def existsSON(f: SOME => Boolean): Boolean =
-    isSomeSON && f(getSON)
+  def existsS(f: SOME => Boolean): Boolean =
+    isSomeS && f(getS)
 
-  def forallSON(f: SOME => Boolean): Boolean =
-    isNoneSON || f(getSON)
+  def forallS(f: SOME => Boolean): Boolean =
+    isNoneS || f(getS)
 
-  def containsSON(f: SOME): Boolean =
-    isSomeSON && getSON == f
+  def containsS(f: SOME): Boolean =
+    isSomeS && getS == f
 
-  def valueOrElseSON[B](f: SOME => B, orElse: B): B =
-    if (isSomeSON)
-      f(getSON)
+  def valueOrElseS[B](f: SOME => B, orElse: B): B =
+    if (isSomeS)
+      f(getS)
     else
       orElse
 
-  def foldLeftSON[B](initial: B)(f: (B, SOME) => B): B =
-    if (isSomeSON)
-      f(initial, getSON)
+  def foldLeftS[B](initial: B)(f: (B, SOME) => B): B =
+    if (isSomeS)
+      f(initial, getS)
     else
       initial
 }
 
 private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] {
 
-  def noneSONC: T
+  def noneC: T
 
-  def isNoneSONC: Boolean
+  def isNoneC: Boolean
 
-  def getSONC: SOME
+  def getC: SOME
 
-  def toOptionSONC: Option[SOME] =
-    if (isSomeSONC)
-      Some(getSONC)
+  def toOptionC: Option[SOME] =
+    if (isSomeC)
+      Some(getC)
     else
       None
 
-  def isSomeSONC: Boolean =
-    !isNoneSONC
+  def isSomeC: Boolean =
+    !isNoneC
 
-  def mapSONC[B](f: SOME => B): Option[B] =
-    if (isSomeSONC)
-      Some(f(getSONC))
+  def mapC[B](f: SOME => B): Option[B] =
+    if (isSomeC)
+      Some(f(getC))
     else
       None
 
-  def flatMapSONC[B >: T](f: SOME => B): T =
-    if (isSomeSONC)
-      f(getSONC).asInstanceOf[T]
+  def flatMapC[B >: T](f: SOME => B): T =
+    if (isSomeC)
+      f(getC).asInstanceOf[T]
     else
-      noneSONC
+      noneC
 
-  def flatMapSomeSONC[T2](none: T2)(f: SOME => T2): T2 =
-    if (isSomeSONC)
-      f(getSONC)
+  def flatMapSomeC[T2](none: T2)(f: SOME => T2): T2 =
+    if (isSomeC)
+      f(getC)
     else
       none
 
-  def flatMapOptionSONC[B](f: SOME => Option[B]): Option[B] =
-    if (isSomeSONC)
-      f(getSONC)
+  def flatMapOptionC[B](f: SOME => Option[B]): Option[B] =
+    if (isSomeC)
+      f(getC)
     else
       None
 
-  def foreachSONC[B](f: SOME => B): Unit =
-    if (isSomeSONC)
-      f(getSONC)
+  def foreachC[B](f: SOME => B): Unit =
+    if (isSomeC)
+      f(getC)
 
-  def getOrElseSONC[B >: SOME](other: => B): SOME =
-    if (isSomeSONC)
-      getSONC
+  def getOrElseC[B >: SOME](other: => B): SOME =
+    if (isSomeC)
+      getC
     else
       other.asInstanceOf[SOME]
 
-  def orElseSONC[B >: T](other: => B): T =
-    if (isSomeSONC)
-      getSONC
+  def orElseC[B >: T](other: => B): T =
+    if (isSomeC)
+      getC
     else
       other.asInstanceOf[T]
 
-  def valueOrElseSONC[B](f: SOME => B, orElse: B): B =
-    if (isSomeSONC)
-      f(getSONC)
+  def valueOrElseC[B](f: SOME => B, orElse: B): B =
+    if (isSomeC)
+      f(getC)
     else
       orElse
 
-  def existsSONC(f: SOME => Boolean): Boolean =
-    isSomeSONC && f(getSONC)
+  def existsC(f: SOME => Boolean): Boolean =
+    isSomeC && f(getC)
 
-  def forallSONC(f: SOME => Boolean): Boolean =
-    isNoneSONC || f(getSONC)
+  def forallC(f: SOME => Boolean): Boolean =
+    isNoneC || f(getC)
 
-  def containsSONC[B >: SOME](f: B): Boolean =
-    isSomeSONC && getSONC == f
+  def containsC[B >: SOME](f: B): Boolean =
+    isSomeC && getC == f
 
-  def foldLeftSONC[B](initial: B)(f: (B, SOME) => B): B =
-    if (isSomeSONC)
-      f(initial, getSONC)
+  def foldLeftC[B](initial: B)(f: (B, SOME) => B): B =
+    if (isSomeC)
+      f(initial, getC)
     else
       initial
 }

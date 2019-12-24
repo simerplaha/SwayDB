@@ -136,7 +136,7 @@
 //
 //        keyValues foreach {
 //          keyValue =>
-//            keyValue.value.toOptionSON shouldBe empty
+//            keyValue.value.toOptionS shouldBe empty
 //        }
 //
 //        val (bytes, deadline) =
@@ -364,7 +364,7 @@
 //
 //        //value the first value for either fixed or range.
 //        //this value is only expected to be written ones.
-//        keyValues.head.value.toOptionSON shouldBe defined
+//        keyValues.head.value.toOptionS shouldBe defined
 //        val value = keyValues.head.value.getUnsafe
 //
 //        val blocks =

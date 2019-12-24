@@ -62,8 +62,8 @@ private[core] object SegmentGrouper extends LazyLogging {
 
       case range: KeyValue.Range =>
         val fromValue = range.fetchFromValueUnsafe
-        if (fromValue.isSomeSON)
-          fromValue.getSON match {
+        if (fromValue.isSomeS)
+          fromValue.getS match {
             case put @ Value.Put(fromValue, deadline, time) =>
               if (put.hasTimeLeft())
                 Memory.Put(

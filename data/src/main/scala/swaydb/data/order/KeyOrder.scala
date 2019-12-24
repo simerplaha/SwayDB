@@ -36,8 +36,8 @@ object KeyOrder {
         val minimum = Math.min(a.size, b.size)
         var i = 0
         while (i < minimum) {
-          val aB = a.getSONC(i) & 0xFF
-          val bB = b.getSONC(i) & 0xFF
+          val aB = a.getC(i) & 0xFF
+          val bB = b.getC(i) & 0xFF
           if (aB != bB) return aB - bB
           i += 1
         }

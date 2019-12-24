@@ -144,7 +144,7 @@ private[core] class SegmentCache(path: Path,
       readState = readState
     ) match {
       case resp: Persistent =>
-        addToCache(resp.getSON)
+        addToCache(resp.getS)
         resp
 
       case Persistent.Null =>
@@ -211,7 +211,7 @@ private[core] class SegmentCache(path: Path,
       valuesReaderNullable = blockCache.createValuesReaderNullable()
     ) match {
       case resp: Persistent =>
-        addToCache(resp.getSON)
+        addToCache(resp.getS)
         resp
 
       case Persistent.Null =>
@@ -220,7 +220,7 @@ private[core] class SegmentCache(path: Path,
 
   private def getForLower(key: Slice[Byte],
                           readState: ReadState): PersistentOptional =
-    skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.get(key)) orElseSON get(key, readState)
+    skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.get(key)) orElseS get(key, readState)
 
   def lower(key: Slice[Byte],
             readState: ReadState): PersistentOptional =
@@ -305,7 +305,7 @@ private[core] class SegmentCache(path: Path,
       valuesReaderNullable = blockCache.createValuesReaderNullable()
     ) match {
       case resp: Persistent =>
-        addToCache(resp.getSON)
+        addToCache(resp.getS)
         resp
 
       case Persistent.Null =>

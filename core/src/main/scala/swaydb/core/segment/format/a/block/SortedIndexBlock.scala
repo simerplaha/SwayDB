@@ -325,7 +325,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       case keyValue: Memory.Range =>
         state.minMaxFunctionId = MinMax.minMaxFunction(keyValue, state.minMaxFunctionId)
-        state.hasPut = state.hasPut || keyValue.fromValue.existsSON(_.isPut)
+        state.hasPut = state.hasPut || keyValue.fromValue.existsS(_.isPut)
         state.hasRemoveRange = state.hasRemoveRange || keyValue.rangeValue.hasRemoveMayBe
         state.rangeCount += 1
         //ranges have a special config "compressDuplicateRangeValues" for duplicate value compression.
@@ -670,7 +670,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       override def next(): Persistent = {
         val nextKeySize =
-          previousMayBe mapSON {
+          previousMayBe mapS {
             previous =>
               //If previous is known, keep reading same reader
               // and set the next position of the reader to be of the next index's offset.
@@ -1067,14 +1067,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
     matcher(
       previous = previous,
       next = next.asPartial,
-      hasMore = hasMore(next getOrElseSON previous)
+      hasMore = hasMore(next getOrElseS previous)
     ) match {
       case result: KeyMatcher.Result.Complete =>
         result
 
       case behind: KeyMatcher.Result.BehindFetchNext =>
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
-        val readFrom: Persistent = next getOrElseSON behind.previous.toPersistent
+        val readFrom: Persistent = next getOrElseS behind.previous.toPersistent
 
         val nextNextKeyValue =
           readKeyValue(
@@ -1099,13 +1099,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
                          valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result.Complete = {
     val nextNextKeyValue =
       readKeyValue(
-        previous = next getOrElseSON previous,
+        previous = next getOrElseS previous,
         indexReader = indexReader,
         valuesReaderNullable = valuesReaderNullable
       )
 
     matchOrSeek(
-      previous = next getOrElseSON previous,
+      previous = next getOrElseS previous,
       next = nextNextKeyValue,
       matcher = matcher,
       indexReader = indexReader,

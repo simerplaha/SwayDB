@@ -42,7 +42,7 @@ private[a] object TimeWriter extends TimeWriter {
                                                                   keyWriter: KeyWriter,
                                                                   deadlineWriter: DeadlineWriter): Unit =
     if (current.persistentTime.nonEmpty)
-      when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(builder.previous.mapSON(getTime)) flatMap {
+      when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(builder.previous.mapS(getTime)) flatMap {
         previousTime =>
           //need to compress at least 4 bytes because the meta data required after compression is minimum 2 bytes.
           writePartiallyCompressed(
