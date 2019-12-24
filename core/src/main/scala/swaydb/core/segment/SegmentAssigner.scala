@@ -90,9 +90,9 @@ private[core] object SegmentAssigner {
     def assign(remainingKeyValues: MergeList[Memory.Range, KeyValue],
                thisSegmentMayBe: SegmentOptional,
                nextSegmentMayBe: SegmentOptional): Unit =
-      (remainingKeyValues.headOption, thisSegmentMayBe, nextSegmentMayBe) match {
+      (remainingKeyValues.headOrNull, thisSegmentMayBe, nextSegmentMayBe) match {
         //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
-        case (Some(keyValue: KeyValue), thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isNone =>
+        case (keyValue: KeyValue, thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isNone =>
           keyValue match {
             case keyValue: KeyValue.Fixed =>
               assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
@@ -116,7 +116,7 @@ private[core] object SegmentAssigner {
 
 
         // is this a gap key between thisSegment and the nextSegment
-        case (Some(keyValue: KeyValue), thisSegment: Segment, nextSegment: Segment) if keyValue.key < nextSegment.minKey =>
+        case (keyValue: KeyValue, thisSegment: Segment, nextSegment: Segment) if keyValue.key < nextSegment.minKey =>
           keyValue match {
             case keyValue: KeyValue.Fixed =>
               //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
@@ -145,7 +145,7 @@ private[core] object SegmentAssigner {
               }
           }
 
-        case (Some(_), _: Segment, nextSegment: Segment) =>
+        case (_: KeyValue, _: Segment, nextSegment: Segment) =>
           assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
 
         case (_, _, _) =>

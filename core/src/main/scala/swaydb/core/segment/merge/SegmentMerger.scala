@@ -89,9 +89,9 @@ private[core] object SegmentMerger extends LazyLogging {
     @tailrec
     def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue],
                 oldKeyValues: MergeList[Memory.Range, KeyValue]): Unit =
-      (newKeyValues.headOption, oldKeyValues.headOption) match {
+      (newKeyValues.headOrNull, oldKeyValues.headOrNull) match {
 
-        case (Some(newKeyValue: KeyValue.Fixed), Some(oldKeyValue: KeyValue.Fixed)) =>
+        case (newKeyValue: KeyValue.Fixed, oldKeyValue: KeyValue.Fixed) =>
           if (oldKeyValue.key < newKeyValue.key) {
             add(oldKeyValue)
             doMerge(newKeyValues, oldKeyValues.dropHead())
@@ -112,7 +112,7 @@ private[core] object SegmentMerger extends LazyLogging {
         /**
          * When the input is an overwrite key-value and the existing is a range key-value.
          */
-        case (Some(newKeyValue: KeyValue.Fixed), Some(oldRangeKeyValue: KeyValue.Range)) =>
+        case (newKeyValue: KeyValue.Fixed, oldRangeKeyValue: KeyValue.Range) =>
           if (newKeyValue.key < oldRangeKeyValue.fromKey) {
             add(newKeyValue)
             doMerge(newKeyValues.dropHead(), oldKeyValues)
@@ -154,7 +154,7 @@ private[core] object SegmentMerger extends LazyLogging {
         /**
          * When the input is a range and the existing is a fixed key-value.
          */
-        case (Some(newRangeKeyValue: KeyValue.Range), Some(oldKeyValue: KeyValue.Fixed)) =>
+        case (newRangeKeyValue: KeyValue.Range, oldKeyValue: KeyValue.Fixed) =>
           if (oldKeyValue.key >= newRangeKeyValue.toKey) {
             add(newRangeKeyValue)
             doMerge(newKeyValues.dropHead(), oldKeyValues)
@@ -212,7 +212,7 @@ private[core] object SegmentMerger extends LazyLogging {
         /**
          * When both the key-values are ranges.
          */
-        case (Some(newRangeKeyValue: KeyValue.Range), Some(oldRangeKeyValue: KeyValue.Range)) =>
+        case (newRangeKeyValue: KeyValue.Range, oldRangeKeyValue: KeyValue.Range) =>
           if (newRangeKeyValue.toKey <= oldRangeKeyValue.fromKey) {
             add(newRangeKeyValue)
             doMerge(newKeyValues.dropHead(), oldKeyValues)
@@ -390,14 +390,14 @@ private[core] object SegmentMerger extends LazyLogging {
           }
 
         //there are no more oldKeyValues. Add all remaining newKeyValues
-        case (Some(_), None) =>
+        case (_: KeyValue, null) =>
           newKeyValues.iterator foreach add
 
         //there are no more newKeyValues. Add all remaining oldKeyValues
-        case (None, Some(_)) =>
+        case (null, _: KeyValue) =>
           oldKeyValues.iterator foreach add
 
-        case (None, None) =>
+        case (null, null) =>
         //end
       }
 

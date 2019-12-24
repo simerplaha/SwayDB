@@ -30,9 +30,9 @@ import swaydb.data.slice.Slice
  * A Segment can easily have over 100,000 key-values to merge and an immutable
  * version of this class would create the same number of of MergeList instances in-memory.
  */
-private[core] sealed trait MergeList[H <: T, T] {
+private[core] sealed trait MergeList[H >: Null <: T, T >: Null] {
 
-  def headOption: Option[T]
+  def headOrNull: T
 
   def dropHead(): MergeList[H, T]
 
@@ -49,16 +49,16 @@ private[core] sealed trait MergeList[H <: T, T] {
 
 private[core] object MergeList {
 
-  def empty[H <: T, T] =
-    new Single[H, T](0, Option.empty[H], None, Iterator.empty[T])
+  def empty[H >: Null <: T, T >: Null] =
+    new Single[H, T](0, null, null, Iterator.empty[T])
 
-  def apply[H <: T, T](keyValues: Slice[T]): MergeList[H, T] =
-    new Single[H, T](keyValues.size, Option.empty[H], None, keyValues.iterator)
+  def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): MergeList[H, T] =
+    new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
-  def apply[H <: T, T](size: Int, keyValues: Iterator[T]): MergeList[H, T] =
-    new Single[H, T](keyValues.size, Option.empty[H], None, keyValues)
+  def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): MergeList[H, T] =
+    new Single[H, T](keyValues.size, null, null, keyValues)
 
-  implicit class MergeListImplicit[H <: T, T](left: MergeList[H, T]) {
+  implicit class MergeListImplicit[H >: Null <: T, T >: Null](left: MergeList[H, T]) {
     def append(right: MergeList[H, T]): MergeList[H, T] =
       if (left.isEmpty)
         right
@@ -69,24 +69,32 @@ private[core] object MergeList {
   }
 }
 
-private[core] class Single[H <: T, T](var size: Int,
-                                      private var headRange: Option[H],
-                                      private var nextPlaceHolder: Option[T],
-                                      private var tailKeyValues: Iterator[T]) extends MergeList[H, T] {
+private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
+                                                      private var headRangeNullable: H,
+                                                      private var nextPlaceHolderNullable: T,
+                                                      private var tailKeyValues: Iterator[T]) extends MergeList[H, T] {
 
   override val depth: Int = 1
 
-  override def headOption: Option[T] =
-    headRange orElse nextPlaceHolder orElse {
-      nextPlaceHolder = tailKeyValues.nextOption()
-      nextPlaceHolder
-    }
+  override def headOrNull: T =
+    if (headRangeNullable == null)
+      if (nextPlaceHolderNullable == null)
+        if (tailKeyValues.hasNext) {
+          nextPlaceHolderNullable = tailKeyValues.next()
+          nextPlaceHolderNullable
+        } else {
+          nextPlaceHolderNullable
+        }
+      else
+        nextPlaceHolderNullable
+    else
+      headRangeNullable
 
   def dropHead(): MergeList[H, T] = {
-    if (headRange.isDefined)
-      headRange = None
-    else if (nextPlaceHolder.isDefined)
-      nextPlaceHolder = None
+    if (headRangeNullable != null)
+      headRangeNullable = null
+    else if (nextPlaceHolderNullable != null)
+      nextPlaceHolderNullable = null
     else
       tailKeyValues = tailKeyValues.drop(1)
 
@@ -96,15 +104,15 @@ private[core] class Single[H <: T, T](var size: Int,
   }
 
   def dropPrepend(head: H): MergeList[H, T] =
-    if (headRange.isDefined) {
-      headRange = Some(head)
+    if (headRangeNullable != null) {
+      headRangeNullable = head
       this
-    } else if (nextPlaceHolder.isDefined) {
-      nextPlaceHolder = Some(head)
+    } else if (nextPlaceHolderNullable != null) {
+      nextPlaceHolderNullable = head
       this
     } else {
       tailKeyValues = tailKeyValues.drop(1)
-      nextPlaceHolder = Some(head)
+      nextPlaceHolderNullable = head
       this
     }
 
@@ -117,23 +125,23 @@ private[core] class Single[H <: T, T](var size: Int,
       private var placeHolderDone = false
 
       override def hasNext: Boolean =
-        (!headDone && headRange.isDefined) || (!placeHolderDone && nextPlaceHolder.isDefined) || tailKeyValues.hasNext
+        (!headDone && headRangeNullable != null) || (!placeHolderDone && nextPlaceHolderNullable != null) || tailKeyValues.hasNext
 
       override def next(): T =
-        if (!headDone && headRange.isDefined) {
+        if (!headDone && headRangeNullable != null) {
           headDone = true
-          headRange.get
-        } else if (!placeHolderDone && nextPlaceHolder.isDefined) {
+          headRangeNullable
+        } else if (!placeHolderDone && nextPlaceHolderNullable != null) {
           placeHolderDone = true
-          nextPlaceHolder.get
+          nextPlaceHolderNullable
         } else {
           tailKeyValues.next()
         }
     }
 }
 
-private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
-                                        right: MergeList[H, T]) extends MergeList[H, T] {
+private[core] class Multiple[H >: Null <: T, T >: Null](private var left: MergeList[H, T],
+                                                        right: MergeList[H, T]) extends MergeList[H, T] {
 
   override def dropHead(): MergeList[H, T] =
     (left.isEmpty, right.isEmpty) match {
@@ -151,7 +159,7 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
   override def dropPrepend(head: H): MergeList[H, T] =
     (left.isEmpty, right.isEmpty) match {
       case (true, true) =>
-        new Single[H, T](1, Some(head), None, Iterator.empty[T])
+        new Single[H, T](1, head, null, Iterator.empty[T])
       case (true, false) =>
         right.dropPrepend(head)
       case (false, true) =>
@@ -161,8 +169,11 @@ private[core] class Multiple[H <: T, T](private var left: MergeList[H, T],
         this
     }
 
-  override def headOption: Option[T] =
-    left.headOption orElse right.headOption
+  override def headOrNull: T =
+    if (left.headOrNull == null)
+      right.headOrNull
+    else
+      left.headOrNull
 
   override def iterator: Iterator[T] =
     new Iterator[T] {
