@@ -48,6 +48,10 @@ private[core] object SegmentAssigner {
       segments = segments
     )
 
+  /**
+   * @param keyValuesCount keyValuesCount is needed here because keyValues could be a [[ConcurrentSkipList]]
+   *                       where calculating size is not constant time.
+   */
   def assignUnsafe(keyValuesCount: Int,
                    keyValues: Iterable[KeyValue],
                    segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
