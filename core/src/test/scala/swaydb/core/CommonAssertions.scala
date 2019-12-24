@@ -301,12 +301,12 @@ object CommonAssertions {
     result
   }
 
-  def assertMerge(newKeyValue: KeyValue,
-                  oldKeyValue: KeyValue,
-                  expected: KeyValue,
-                  lastLevelExpect: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                             timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] =
-    assertMerge(newKeyValue, oldKeyValue, Slice(expected), Slice(lastLevelExpect))
+//  def assertMerge(newKeyValue: KeyValue,
+  //                  oldKeyValue: KeyValue,
+  //                  expected: KeyValue,
+  //                  lastLevelExpect: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]],
+  //                                             timeOrder: TimeOrder[Slice[Byte]]): Iterable[Memory] =
+  //    assertMerge(newKeyValue, oldKeyValue, Slice(expected), Slice(lastLevelExpect))
 
   def assertMerge(newKeyValue: KeyValue,
                   oldKeyValue: KeyValue,
