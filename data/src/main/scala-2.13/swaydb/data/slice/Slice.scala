@@ -31,21 +31,20 @@ import scala.reflect.ClassTag
  * Documentation - http://swaydb.io/slice
  */
 sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Slice[T]] {
-  override def none: SliceOptional[Nothing] = Slice.Null
+  override def noneSONC: SliceOptional[Nothing] = Slice.Null
 
   def unsliceOptional(): SliceOptional[T] =
-    if (this.isNone)
+    if (this.isNoneSONC)
       Slice.Null
     else
-      this.getUnsafe.unslice()
+      this.getSONC.unslice()
 }
 
 object Slice extends SliceCompanionBase {
 
   final case object Null extends SliceOptional[Nothing] {
-
-    override def isNone: Boolean = true
-    override def getUnsafe: Slice[Nothing] = throw new Exception("Slice is of type Null")
+    override def isNoneSONC: Boolean = true
+    override def getSONC: Slice[Nothing] = throw new Exception("Slice is of type Null")
   }
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
@@ -111,10 +110,10 @@ class Slice[+T] private[slice](array: Array[T],
                                                                                                            with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
 //@formatter:on
 
-  override def isNone: Boolean =
+  override def isNoneSONC: Boolean =
     false
 
-  override def getUnsafe: Slice[T] =
+  override def getSONC: Slice[T] =
     this
 
   override def selfSlice: Slice[T] =

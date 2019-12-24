@@ -53,7 +53,7 @@ private[core] object SegmentSearcher extends LazyLogging {
              keyValueCount: => Int,
              readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
-    when[PersistentOptional](start.isSome && readState.isSequential(path), Persistent.Null)(start) match {
+    when[PersistentOptional](start.isSomeSON && readState.isSequential(path), Persistent.Null)(start) match {
       case startFrom: Persistent =>
         //        seqSeeks += 1
         val found =
@@ -64,7 +64,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             valuesReaderNullable = valuesReaderNullable
           )
 
-        if (found.isSome) {
+        if (found.isSomeSON) {
           //          successfulSeqSeeks += 1
           found
         } else {
@@ -193,7 +193,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             valuesReaderNullable = valuesReaderNullable
           )
 
-        if (found.isSome)
+        if (found.isSomeSON)
           found
         else
           BinarySearchIndexBlock.searchHigher(

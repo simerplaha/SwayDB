@@ -1358,7 +1358,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .map {
         nextLevelHeadKey =>
           MinMax.minFavourLeft(
-            left = appendix.skipList.headKey.toOptionSON,
+            left = appendix.skipList.headKey.toOptionSONC,
             right = nextLevelHeadKey
           )(keyOrder)
       }
@@ -1554,7 +1554,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def hasKeyValuesToExpire: Boolean =
     Segment
       .getNearestDeadlineSegment(segmentsInLevel())
-      .isSome
+      .isSomeSON
 
   def close: IO[swaydb.Error.Close, Unit] =
     nextLevel

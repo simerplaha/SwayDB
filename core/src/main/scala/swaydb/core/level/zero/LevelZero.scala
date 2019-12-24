@@ -449,7 +449,7 @@ private[swaydb] case class LevelZero(path: Path,
     get(key, readState).map(_.map(_.key))
 
   def firstKeyFromMaps =
-    maps.reduce[Slice[Byte]](_.skipList.headKey.toOptionSON, MinMax.minFavourLeft(_, _)(keyOrder))
+    maps.reduce[Slice[Byte]](_.skipList.headKey.toOptionSONC, MinMax.minFavourLeft(_, _)(keyOrder))
 
   def lastKeyFromMaps =
     maps.reduce[Slice[Byte]](
@@ -613,13 +613,13 @@ private[swaydb] case class LevelZero(path: Path,
       override def higher(key: Slice[Byte], readState: ReadState): LevelSeek[Memory] =
         LevelSeek(
           segmentId = 0,
-          result = higherFromMap(key, currentMap).toOption
+          result = higherFromMap(key, currentMap).toOptionSON
         )
 
       override def lower(key: Slice[Byte], readState: ReadState): LevelSeek[Memory] =
         LevelSeek(
           segmentId = 0,
-          result = lowerFromMap(key, currentMap).toOption
+          result = lowerFromMap(key, currentMap).toOptionSON
         )
 
       override def levelNumber: String =
@@ -918,7 +918,7 @@ private[swaydb] case class LevelZero(path: Path,
         .flatMap {
           case Some(put) =>
             try
-              tag.success(Some(put.key, put.getOrFetchValue.toOptionSON)) //getOrFetchValue could also result in ReservedResource.
+              tag.success(Some(put.key, put.getOrFetchValue.toOptionSONC)) //getOrFetchValue could also result in ReservedResource.
             catch {
               case throwable: Throwable =>
                 failed = Some(IO.ExceptionHandler.toError(throwable))

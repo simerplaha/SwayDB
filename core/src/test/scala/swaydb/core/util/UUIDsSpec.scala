@@ -28,4 +28,10 @@ class UUIDsSpec extends TestBase {
       UUIDs.randomIdNoHyphen() should not include "-"
     }
   }
+
+  "randomIdNoHyphenBytes" should {
+    "return unique UUID without hyphens" in {
+      UUIDs.randomIdNoHyphenBytes().readString() should not include "-"
+    }
+  }
 }

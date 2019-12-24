@@ -26,44 +26,44 @@ import scala.util.Random
 class SomeOrNoneSpec extends WordSpec with Matchers {
 
   private sealed trait Option extends SomeOrNone[Option, Option.Some] {
-    override def none: Option = Option.None
+    override def noneSON: Option = Option.None
   }
 
   private object Option {
     final object None extends Option {
-      override def isNone: Boolean = true
-      override def get: Option.Some =
+      override def isNoneSON: Boolean = true
+      override def getSON: Option.Some =
         throw new Exception("Not a some value")
     }
 
     case class Some(value: String = Random.nextString(10)) extends Option {
-      override def isNone: Boolean = false
-      override def get: Option.Some = this
+      override def isNoneSON: Boolean = false
+      override def getSON: Option.Some = this
     }
   }
 
   "none" in {
     val some: Option = Option.Some()
-    some.none shouldBe Option.None
+    some.noneSON shouldBe Option.None
 
     val none: Option = Option.None
-    none.none shouldBe Option.None
+    none.noneSON shouldBe Option.None
   }
 
   "isEmpty" in {
     val some: Option = Option.Some()
-    some.isNone shouldBe false
+    some.isNoneSON shouldBe false
 
     val none: Option = Option.None
-    none.isNone shouldBe true
+    none.isNoneSON shouldBe true
   }
 
   "get" in {
     val some: Option = Option.Some("some")
-    some.get shouldBe Option.Some("some")
+    some.getSON shouldBe Option.Some("some")
 
     val none: Option = Option.None
-    assertThrows[Exception](none.get)
+    assertThrows[Exception](none.getSON)
   }
 
   "flatMap" in {
@@ -127,19 +127,19 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
   "flatMapSomeOrNone" in {
     sealed trait Option2 extends SomeOrNone[Option2, Option2.Some2] {
-      override def none: Option2 = Option2.None2
+      override def noneSON: Option2 = Option2.None2
     }
 
     object Option2 {
       implicit final object None2 extends Option2 {
-        override def isNone: Boolean = true
-        override def get: Option2.Some2 =
+        override def isNoneSON: Boolean = true
+        override def getSON: Option2.Some2 =
           throw new Exception("Not a some value")
       }
 
       case class Some2(value: String = Random.nextString(10)) extends Option2 {
-        override def isNone: Boolean = false
-        override def get: Option2.Some2 = this
+        override def isNoneSON: Boolean = false
+        override def getSON: Option2.Some2 = this
       }
     }
 

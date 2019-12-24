@@ -41,6 +41,6 @@ package object serializers {
 
   implicit class DecodeOptionSliceOptional(slice: SliceOptional[Byte]) {
     @inline def read[T](implicit serializer: Serializer[T]): T =
-      slice.valueOrElse(serializer.read, serializer.read(Slice.emptyBytes))
+      slice.valueOrElseSONC(serializer.read, serializer.read(Slice.emptyBytes))
   }
 }

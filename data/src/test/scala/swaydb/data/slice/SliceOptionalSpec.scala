@@ -32,26 +32,26 @@ class SliceOptionalSpec extends WordSpec with Matchers {
   val slice: Slice[Int] = Slice(1, 2, 3)
 
   "getOrElse" in {
-    (Slice.Null getOrElseSON slice) shouldBe slice
+    (Slice.Null getOrElseSONC slice) shouldBe slice
   }
 
   "orElse" in {
-    (Slice.Null orElseSON slice) shouldBe slice
-    Slice.Null.orElseSON(slice: SliceOptional[Int]) shouldBe slice
+    (Slice.Null orElseSONC slice) shouldBe slice
+    Slice.Null.orElseSONC(slice: SliceOptional[Int]) shouldBe slice
 
-    (Slice.Null orElseSON Slice.Null) shouldBe Slice.Null
+    (Slice.Null orElseSONC Slice.Null) shouldBe Slice.Null
   }
 
   "map" in {
-    (Slice.Null mapSON (_ => slice)) shouldBe None
-    (slice mapSON (_ => Slice.Null)) shouldBe Some(Slice.Null)
-    (slice mapSON (_ => Slice(10))) shouldBe Some(Slice(10))
+    (Slice.Null mapSONC (_ => slice)) shouldBe None
+    (slice mapSONC (_ => Slice.Null)) shouldBe Some(Slice.Null)
+    (slice mapSONC (_ => Slice(10))) shouldBe Some(Slice(10))
 
   }
 
   "flatMap" in {
-    (Slice.Null flatMapSON (_ => slice)) shouldBe Slice.Null
-    (slice flatMapSON (_ => Slice.Null)) shouldBe Slice.Null
-    (slice flatMapSON (_ => Slice(10))) shouldBe Slice(10)
+    (Slice.Null flatMapSONC (_ => slice)) shouldBe Slice.Null
+    (slice flatMapSONC (_ => Slice.Null)) shouldBe Slice.Null
+    (slice flatMapSONC (_ => Slice(10))) shouldBe Slice(10)
   }
 }

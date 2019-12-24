@@ -58,16 +58,16 @@ private[swaydb] object Value {
   }
 
   sealed trait FromValueOption extends SomeOrNone[FromValueOption, Value.FromValue] {
-    override def none: FromValueOption =
+    override def noneSON: FromValueOption =
       Value.FromValue.None
   }
 
   object FromValue {
     final object None extends FromValueOption {
-      override def isNone: Boolean =
+      override def isNoneSON: Boolean =
         true
 
-      def get: Value.FromValue =
+      def getSON: Value.FromValue =
         throw new Exception("Value.FromValue is None")
 
     }
@@ -79,10 +79,10 @@ private[swaydb] object Value {
     def toMemory(key: Slice[Byte]): Memory.Fixed
     def toPutMayBe(key: Slice[Byte]): Option[Memory.Put]
 
-    def get: Value.FromValue =
+    def getSON: Value.FromValue =
       this
 
-    override def isNone: Boolean = false
+    override def isNoneSON: Boolean = false
   }
 
   private[swaydb] sealed trait Apply extends RangeValue {

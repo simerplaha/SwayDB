@@ -138,7 +138,7 @@ private[core] object ValuesBlock {
     if (state.builder.isValueFullyCompressed)
       state.builder.isValueFullyCompressed = false
     else
-      keyValue.value foreachSON state.bytes.addAll
+      keyValue.value foreachSONC state.bytes.addAll
 
   def close(state: State): State = {
     val compressionResult =

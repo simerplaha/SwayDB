@@ -86,13 +86,13 @@ object ValueSerializer {
         .addUnsignedLong(value.deadline.toNanos)
         .addUnsignedInt(value.time.size)
         .addAll(value.time.time)
-        .addAll(value.value.getOrElseSON(Slice.emptyBytes))
+        .addAll(value.value.getOrElseSONC(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Put): Int =
       Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
-        value.value.valueOrElse(_.size, 0)
+        value.value.valueOrElseSONC(_.size, 0)
 
     override def read(reader: ReaderBase): Value.Put = {
       val deadline = readDeadline(reader)
@@ -109,13 +109,13 @@ object ValueSerializer {
         .addUnsignedLong(value.deadline.toNanos)
         .addUnsignedInt(value.time.size)
         .addAll(value.time.time)
-        .addAll(value.value.getOrElseSON(Slice.emptyBytes))
+        .addAll(value.value.getOrElseSONC(Slice.emptyBytes))
 
     override def bytesRequired(value: Value.Update): Int =
       Bytes.sizeOfUnsignedLong(value.deadline.toNanos) +
         Bytes.sizeOfUnsignedInt(value.time.size) +
         value.time.size +
-        value.value.valueOrElse(_.size, 0)
+        value.value.valueOrElseSONC(_.size, 0)
 
     override def read(reader: ReaderBase): Value.Update = {
       val deadline = readDeadline(reader)

@@ -96,9 +96,9 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(1, Memory.Range(1, 15, Value.FromValue.None, Value.update(40)), skipList)
       skipList should have size 3
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.Range(1, 10, Value.FromValue.None, Value.update(40))
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.Range(10, 15, Value.FromValue.None, Value.update(40))
-      skipList.get(15: Slice[Byte]).get shouldBe Memory.Range(15, 20, Value.FromValue.None, Value.update(20))
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.Range(1, 10, Value.FromValue.None, Value.update(40))
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.Range(10, 15, Value.FromValue.None, Value.update(40))
+      skipList.get(15: Slice[Byte]).getSON shouldBe Memory.Range(15, 20, Value.FromValue.None, Value.update(20))
     }
 
     "insert overlapping ranges when insert fromKey is less than existing range's from key and fromKey is set" in {
@@ -131,9 +131,9 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(10, Memory.Range(10, 20, Value.FromValue.None, Value.update(20)), skipList)
       skipList should have size 3
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.Range(1, 10, Value.FromValue.None, Value.update(40))
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.Range(10, 15, Value.FromValue.None, Value.update(20))
-      skipList.get(15: Slice[Byte]).get shouldBe Memory.Range(15, 20, Value.FromValue.None, Value.update(20))
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.Range(1, 10, Value.FromValue.None, Value.update(40))
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.Range(10, 15, Value.FromValue.None, Value.update(20))
+      skipList.get(15: Slice[Byte]).getSON shouldBe Memory.Range(15, 20, Value.FromValue.None, Value.update(20))
     }
 
     "insert overlapping ranges when insert fromKey is greater than existing range's fromKey and fromKey is set" in {
@@ -145,9 +145,9 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
 
       skipList should have size 3
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.Range(1, 10, Value.put(1), Value.update(40))
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.Range(10, 15, Value.FromValue.None, Value.update(20))
-      skipList.get(15: Slice[Byte]).get shouldBe Memory.Range(15, 20, Value.FromValue.None, Value.update(20))
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.Range(1, 10, Value.put(1), Value.update(40))
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.Range(10, 15, Value.FromValue.None, Value.update(20))
+      skipList.get(15: Slice[Byte]).getSON shouldBe Memory.Range(15, 20, Value.FromValue.None, Value.update(20))
     }
 
     "insert overlapping ranges without values set and no splits required" in {
@@ -162,13 +162,13 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(10, Memory.Range(10, 100, Value.FromValue.None, Value.update(100)), skipList)
       skipList should have size 7
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.Range(1, 5, Value.FromValue.None, Value.update(5))
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 10, Value.FromValue.None, Value.update(10))
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.Range(10, 20, Value.FromValue.None, Value.update(100))
-      skipList.get(20: Slice[Byte]).get shouldBe Memory.Range(20, 30, Value.FromValue.None, Value.update(100))
-      skipList.get(30: Slice[Byte]).get shouldBe Memory.Range(30, 40, Value.FromValue.None, Value.update(100))
-      skipList.get(40: Slice[Byte]).get shouldBe Memory.Range(40, 50, Value.FromValue.None, Value.update(100))
-      skipList.get(50: Slice[Byte]).get shouldBe Memory.Range(50, 100, Value.FromValue.None, Value.update(100))
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.Range(1, 5, Value.FromValue.None, Value.update(5))
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.Range(5, 10, Value.FromValue.None, Value.update(10))
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.Range(10, 20, Value.FromValue.None, Value.update(100))
+      skipList.get(20: Slice[Byte]).getSON shouldBe Memory.Range(20, 30, Value.FromValue.None, Value.update(100))
+      skipList.get(30: Slice[Byte]).getSON shouldBe Memory.Range(30, 40, Value.FromValue.None, Value.update(100))
+      skipList.get(40: Slice[Byte]).getSON shouldBe Memory.Range(40, 50, Value.FromValue.None, Value.update(100))
+      skipList.get(50: Slice[Byte]).getSON shouldBe Memory.Range(50, 100, Value.FromValue.None, Value.update(100))
     }
 
     "insert overlapping ranges with values set and no splits required" in {
@@ -183,13 +183,13 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(10, Memory.Range(10, 100, Value.FromValue.None, Value.update(100)), skipList)
       skipList should have size 7
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 10, Value.FromValue.None, Value.update(10))
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
-      skipList.get(20: Slice[Byte]).get shouldBe Memory.Range(20, 30, Value.FromValue.None, Value.update(100))
-      skipList.get(30: Slice[Byte]).get shouldBe Memory.Range(30, 40, Value.put(100), Value.update(100))
-      skipList.get(40: Slice[Byte]).get shouldBe Memory.Range(40, 50, Value.FromValue.None, Value.update(100))
-      skipList.get(50: Slice[Byte]).get shouldBe Memory.Range(50, 100, Value.FromValue.None, Value.update(100))
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.Range(5, 10, Value.FromValue.None, Value.update(10))
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
+      skipList.get(20: Slice[Byte]).getSON shouldBe Memory.Range(20, 30, Value.FromValue.None, Value.update(100))
+      skipList.get(30: Slice[Byte]).getSON shouldBe Memory.Range(30, 40, Value.put(100), Value.update(100))
+      skipList.get(40: Slice[Byte]).getSON shouldBe Memory.Range(40, 50, Value.FromValue.None, Value.update(100))
+      skipList.get(50: Slice[Byte]).getSON shouldBe Memory.Range(50, 100, Value.FromValue.None, Value.update(100))
     }
 
     "insert overlapping ranges with values set and splits required" in {
@@ -204,14 +204,14 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(7, Memory.Range(7, 35, Value.FromValue.None, Value.update(100)), skipList)
       skipList should have size 8
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 7, Value.FromValue.None, Value.update(10))
-      skipList.get(7: Slice[Byte]).get shouldBe Memory.Range(7, 10, Value.FromValue.None, Value.update(100))
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
-      skipList.get(20: Slice[Byte]).get shouldBe Memory.Range(20, 30, Value.FromValue.None, Value.update(100))
-      skipList.get(30: Slice[Byte]).get shouldBe Memory.Range(30, 35, Value.put(100), Value.update(100))
-      skipList.get(35: Slice[Byte]).get shouldBe Memory.Range(35, 40, Value.FromValue.None, Value.update(40))
-      skipList.get(40: Slice[Byte]).get shouldBe Memory.Range(40, 50, Value.FromValue.None, Value.update(50))
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.Range(1, 5, Value.put(1), Value.update(5))
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.Range(5, 7, Value.FromValue.None, Value.update(10))
+      skipList.get(7: Slice[Byte]).getSON shouldBe Memory.Range(7, 10, Value.FromValue.None, Value.update(100))
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.Range(10, 20, Value.put(100), Value.update(100))
+      skipList.get(20: Slice[Byte]).getSON shouldBe Memory.Range(20, 30, Value.FromValue.None, Value.update(100))
+      skipList.get(30: Slice[Byte]).getSON shouldBe Memory.Range(30, 35, Value.put(100), Value.update(100))
+      skipList.get(35: Slice[Byte]).getSON shouldBe Memory.Range(35, 40, Value.FromValue.None, Value.update(40))
+      skipList.get(40: Slice[Byte]).getSON shouldBe Memory.Range(40, 50, Value.FromValue.None, Value.update(50))
     }
 
     "remove range should remove invalid entries" in {
@@ -224,14 +224,14 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(2, Memory.Range(2, 5, Value.FromValue.None, Value.remove(None)), skipList)
       skipList should have size 3
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.put(1, 1)
-      skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 5, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]).toOption shouldBe empty
-      skipList.get(4: Slice[Byte]).toOption shouldBe empty
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.put(5, 5)
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.put(1, 1)
+      skipList.get(2: Slice[Byte]).getSON shouldBe Memory.Range(2, 5, Value.FromValue.None, Value.remove(None))
+      skipList.get(3: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(4: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.put(5, 5)
 
       insert(5, Memory.remove(5), skipList)
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.remove(5)
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.remove(5)
 
       skipList should have size 3
     }
@@ -241,10 +241,10 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(2, Memory.Range(2, 100, Value.FromValue.None, Value.remove(None)), skipList)
       skipList should have size 1
 
-      skipList.get(1: Slice[Byte]).toOption shouldBe empty
-      skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 100, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]).toOption shouldBe empty
-      skipList.get(4: Slice[Byte]).toOption shouldBe empty
+      skipList.get(1: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(2: Slice[Byte]).getSON shouldBe Memory.Range(2, 100, Value.FromValue.None, Value.remove(None))
+      skipList.get(3: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(4: Slice[Byte]).toOptionSON shouldBe empty
     }
 
     "remove range should clear removed entries when remove ranges overlaps the left edge" in {
@@ -263,16 +263,16 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       //   2    -    5
       insert(2, Memory.Range(2, 5, Value.FromValue.None, Value.remove(None)), skipList)
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.put(1, 1)
-      skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 4, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]).toOption shouldBe empty
-      skipList.get(4: Slice[Byte]).get shouldBe Memory.Range(4, 5, Value.FromValue.None, Value.remove(None))
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 8, Value.FromValue.None, Value.remove(None))
-      skipList.get(6: Slice[Byte]).toOption shouldBe empty
-      skipList.get(7: Slice[Byte]).toOption shouldBe empty
-      skipList.get(8: Slice[Byte]).get shouldBe Memory.remove(8)
-      skipList.get(9: Slice[Byte]).get shouldBe Memory.put(9, 9)
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.put(10, 10)
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.put(1, 1)
+      skipList.get(2: Slice[Byte]).getSON shouldBe Memory.Range(2, 4, Value.FromValue.None, Value.remove(None))
+      skipList.get(3: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(4: Slice[Byte]).getSON shouldBe Memory.Range(4, 5, Value.FromValue.None, Value.remove(None))
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.Range(5, 8, Value.FromValue.None, Value.remove(None))
+      skipList.get(6: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(7: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(8: Slice[Byte]).getSON shouldBe Memory.remove(8)
+      skipList.get(9: Slice[Byte]).getSON shouldBe Memory.put(9, 9)
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.put(10, 10)
     }
 
     "remove range should clear removed entries when remove ranges overlaps the right edge" in {
@@ -291,16 +291,16 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
       insert(4, Memory.Range(4, 8, Value.FromValue.None, Value.remove(None)), skipList)
       //      insert(8, Memory.remove(8), skipList)
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.put(1, 1)
-      skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 4, Value.FromValue.None, Value.remove(None))
-      skipList.get(3: Slice[Byte]).toOption shouldBe empty
-      skipList.get(4: Slice[Byte]).get shouldBe Memory.Range(4, 5, Value.FromValue.None, Value.remove(None))
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 8, Value.FromValue.None, Value.remove(None))
-      skipList.get(6: Slice[Byte]).toOption shouldBe empty
-      skipList.get(7: Slice[Byte]).toOption shouldBe empty
-      skipList.get(8: Slice[Byte]).get shouldBe Memory.put(8, 8)
-      skipList.get(9: Slice[Byte]).get shouldBe Memory.put(9, 9)
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.put(10, 10)
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.put(1, 1)
+      skipList.get(2: Slice[Byte]).getSON shouldBe Memory.Range(2, 4, Value.FromValue.None, Value.remove(None))
+      skipList.get(3: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(4: Slice[Byte]).getSON shouldBe Memory.Range(4, 5, Value.FromValue.None, Value.remove(None))
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.Range(5, 8, Value.FromValue.None, Value.remove(None))
+      skipList.get(6: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(7: Slice[Byte]).toOptionSON shouldBe empty
+      skipList.get(8: Slice[Byte]).getSON shouldBe Memory.put(8, 8)
+      skipList.get(9: Slice[Byte]).getSON shouldBe Memory.put(9, 9)
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.put(10, 10)
     }
 
     "insert fixed key-values into remove range" in {
@@ -312,16 +312,16 @@ class LevelZeroSkipListMergerSpec extends WordSpec with Matchers {
           insert(i, Memory.put(i, i), skipList)
       }
 
-      skipList.get(1: Slice[Byte]).get shouldBe Memory.Range(1, 2, Value.put(1), Value.remove(None))
-      skipList.get(2: Slice[Byte]).get shouldBe Memory.Range(2, 3, Value.put(2), Value.remove(None))
-      skipList.get(3: Slice[Byte]).get shouldBe Memory.Range(3, 4, Value.put(3), Value.remove(None))
-      skipList.get(4: Slice[Byte]).get shouldBe Memory.Range(4, 5, Value.put(4), Value.remove(None))
-      skipList.get(5: Slice[Byte]).get shouldBe Memory.Range(5, 6, Value.put(5), Value.remove(None))
-      skipList.get(6: Slice[Byte]).get shouldBe Memory.Range(6, 7, Value.put(6), Value.remove(None))
-      skipList.get(7: Slice[Byte]).get shouldBe Memory.Range(7, 8, Value.put(7), Value.remove(None))
-      skipList.get(8: Slice[Byte]).get shouldBe Memory.Range(8, 9, Value.put(8), Value.remove(None))
-      skipList.get(9: Slice[Byte]).get shouldBe Memory.Range(9, 10, Value.put(9), Value.remove(None))
-      skipList.get(10: Slice[Byte]).get shouldBe Memory.put(10, 10)
+      skipList.get(1: Slice[Byte]).getSON shouldBe Memory.Range(1, 2, Value.put(1), Value.remove(None))
+      skipList.get(2: Slice[Byte]).getSON shouldBe Memory.Range(2, 3, Value.put(2), Value.remove(None))
+      skipList.get(3: Slice[Byte]).getSON shouldBe Memory.Range(3, 4, Value.put(3), Value.remove(None))
+      skipList.get(4: Slice[Byte]).getSON shouldBe Memory.Range(4, 5, Value.put(4), Value.remove(None))
+      skipList.get(5: Slice[Byte]).getSON shouldBe Memory.Range(5, 6, Value.put(5), Value.remove(None))
+      skipList.get(6: Slice[Byte]).getSON shouldBe Memory.Range(6, 7, Value.put(6), Value.remove(None))
+      skipList.get(7: Slice[Byte]).getSON shouldBe Memory.Range(7, 8, Value.put(7), Value.remove(None))
+      skipList.get(8: Slice[Byte]).getSON shouldBe Memory.Range(8, 9, Value.put(8), Value.remove(None))
+      skipList.get(9: Slice[Byte]).getSON shouldBe Memory.Range(9, 10, Value.put(9), Value.remove(None))
+      skipList.get(10: Slice[Byte]).getSON shouldBe Memory.put(10, 10)
     }
   }
 }

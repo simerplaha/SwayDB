@@ -50,14 +50,14 @@ import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
 private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional, Segment] {
-  override def none: SegmentOptional =
+  override def noneSON: SegmentOptional =
     Segment.Null
 }
 private[core] object Segment extends LazyLogging {
 
   final case object Null extends SegmentOptional {
-    override def isNone: Boolean = true
-    override def get: Segment = throw new Exception("Segment is of type Null")
+    override def isNoneSON: Boolean = true
+    override def getSON: Segment = throw new Exception("Segment is of type Null")
   }
 
   val emptyIterable = Iterable.empty[Segment]
@@ -766,8 +766,8 @@ private[core] object Segment extends LazyLogging {
       false
     else {
       for {
-        head <- map.skipList.head().toOption
-        last <- map.skipList.last().toOption
+        head <- map.skipList.head().toOptionSON
+        last <- map.skipList.last().toOptionSON
       } yield {
         val assignments =
           if (keyOrder.equiv(head.key, last.key))
@@ -1021,9 +1021,9 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
 
   def existsOnDisk: Boolean
 
-  override def isNone: Boolean =
+  override def isNoneSON: Boolean =
     false
 
-  override def get: Segment =
+  override def getSON: Segment =
     this
 }

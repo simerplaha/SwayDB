@@ -144,7 +144,7 @@ private[core] class SegmentCache(path: Path,
       readState = readState
     ) match {
       case resp: Persistent =>
-        addToCache(resp.get)
+        addToCache(resp.getSON)
         resp
 
       case Persistent.Null =>
@@ -211,7 +211,7 @@ private[core] class SegmentCache(path: Path,
       valuesReaderNullable = blockCache.createValuesReaderNullable()
     ) match {
       case resp: Persistent =>
-        addToCache(resp.get)
+        addToCache(resp.getSON)
         resp
 
       case Persistent.Null =>
@@ -305,7 +305,7 @@ private[core] class SegmentCache(path: Path,
       valuesReaderNullable = blockCache.createValuesReaderNullable()
     ) match {
       case resp: Persistent =>
-        addToCache(resp.get)
+        addToCache(resp.getSON)
         resp
 
       case Persistent.Null =>

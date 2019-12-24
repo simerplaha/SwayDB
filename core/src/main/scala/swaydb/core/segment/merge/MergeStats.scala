@@ -173,11 +173,11 @@ private[core] object MergeStats {
         maxTimeSize = this.maxTimeSize max timeSize
         totalTimesSize = this.totalTimesSize + timeSize
 
-        val valueSize = if (keyValue.value.isSome) keyValue.value.getUnsafe.size else 0
+        val valueSize = if (keyValue.value.isSomeSONC) keyValue.value.getSONC.size else 0
         maxValueSize = this.maxValueSize max valueSize
         totalValuesSize = this.totalValuesSize + valueSize
 
-        if (keyValue.value.existsSON(_.nonEmpty))
+        if (keyValue.value.existsSONC(_.nonEmpty))
           totalValuesCount += 1
 
         if (keyValue.deadline.isDefined)
@@ -213,8 +213,8 @@ private[core] object MergeStats {
   object Memory {
     def calculateSize(keyValue: data.Memory): Int =
       keyValue.key.size + {
-        if (keyValue.value.isSome)
-          keyValue.value.getUnsafe.size
+        if (keyValue.value.isSomeSONC)
+          keyValue.value.getSONC.size
         else
           0
       }

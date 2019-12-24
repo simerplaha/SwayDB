@@ -358,7 +358,7 @@ private[core] object BinarySearchIndexBlock {
         new BinarySearchGetResult.None(
           MinMax.maxFavourLeft(
             left = knownLowest,
-            right = context.lowestKeyValue.toOption
+            right = context.lowestKeyValue.toOptionSON
           )
         )
       else
@@ -378,7 +378,7 @@ private[core] object BinarySearchIndexBlock {
     val end = getEndPosition(context)
 
     //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
-    hop(start = start, end = end, context.lowestKeyValue.toOption, None)
+    hop(start = start, end = end, context.lowestKeyValue.toOptionSON, None)
   }
 
   private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]],
@@ -403,7 +403,7 @@ private[core] object BinarySearchIndexBlock {
        *          shiftLeft will result in 20 which is not the lowest.
        */
       if (start > end || mid < 0)
-        if (fetchLeft && knownLowest.isNoneP) {
+        if (fetchLeft && knownLowest.isNoneSONC) {
           //println("Restart")
           binarySearchLower(fetchLeft = false, context = context)
         } else {
@@ -423,7 +423,7 @@ private[core] object BinarySearchIndexBlock {
           case matched: KeyMatcher.Result.Matched =>
             matched.result match {
               case fixed: Persistent.Partial.Fixed =>
-                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseP knownLowest, knownMatch = fixed)
+                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseSONC knownLowest, knownMatch = fixed)
 
               case range: Persistent.Partial.Range =>
                 if (ordering.gt(context.targetKey, range.fromKey))
@@ -432,7 +432,7 @@ private[core] object BinarySearchIndexBlock {
                     matched = Some(range)
                   )
                 else
-                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseP knownLowest, knownMatch = matched.result)
+                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseSONC knownLowest, knownMatch = matched.result)
             }
 
           case behind: KeyMatcher.Result.Behind =>
