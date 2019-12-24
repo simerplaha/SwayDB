@@ -338,7 +338,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   private[block] def searchReference(key: Slice[Byte],
                                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                      sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                     valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] = {
+                                     valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -349,9 +349,9 @@ private[core] object HashIndexBlock extends LazyLogging {
     val matcher = KeyMatcher.Get(key)
 
     @tailrec
-    def doFind(probe: Int): Option[Persistent.Partial] =
+    def doFind(probe: Int): Persistent.PartialOptional =
       if (probe >= block.maxProbe) {
-        None
+        Persistent.Partial.Null
       } else {
         val hashIndex =
           adjustHash(
@@ -391,7 +391,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             ) match {
               case matched: Result.Matched =>
                 //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
-                Some(matched.result)
+                matched.result
 
               case _: Result.Behind | _: Result.AheadOrNoneOrEnd =>
                 //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = Behind || Ahead || None || End")
@@ -474,7 +474,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   private[block] def searchCopy(key: Slice[Byte],
                                 hasIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                 sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[Persistent.Partial] = {
+                                valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -485,9 +485,9 @@ private[core] object HashIndexBlock extends LazyLogging {
     val matcher = KeyMatcher.Get(key)
 
     @tailrec
-    def doFind(probe: Int): Option[Persistent.Partial] =
+    def doFind(probe: Int): Persistent.PartialOptional =
       if (probe >= block.maxProbe) {
-        None
+        Persistent.Partial.Null
       } else {
         val hashIndex =
           adjustHash(
@@ -524,7 +524,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             ) match {
               case matched: Result.Matched =>
                 //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
-                Some(matched.result)
+                matched.result
 
               case _: Result.Behind | _: Result.AheadOrNoneOrEnd =>
                 //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = Behind || Ahead || None || End")
@@ -540,7 +540,7 @@ private[core] object HashIndexBlock extends LazyLogging {
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): Option[Persistent.Partial] =
+                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOptional =
     if (hashIndexReader.block.format.isCopy)
       searchCopy(
         key = key,

@@ -152,7 +152,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         sortedIndexReader = sortedIndexReader,
         valuesReaderNullable = valuesReaderNullable
       ) match {
-        case None =>
+        case Persistent.Partial.Null =>
           if (hashIndex.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
             Persistent.Null
           } else {
@@ -168,7 +168,7 @@ private[core] object SegmentSearcher extends LazyLogging {
             ).toPersistentOptional
           }
 
-        case Some(keyValue) =>
+        case keyValue: Persistent.Partial =>
           //            successfulHashIndexSeeks += 1
           keyValue.toPersistent
       }

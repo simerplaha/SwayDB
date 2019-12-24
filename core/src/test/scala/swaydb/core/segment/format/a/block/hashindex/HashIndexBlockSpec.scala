@@ -95,11 +95,11 @@ class HashIndexBlockSpec extends TestBase {
           sortedIndexReader = segment.sortedIndexReader,
           valuesReaderNullable = segment.valuesReader.orNull
         ) match {
-          case None =>
+          case Persistent.Partial.Null =>
             //may be it's in the next Segment.
             segmentsIndex += 1
 
-          case Some(found) =>
+          case found: Persistent.Partial =>
             found.toPersistent shouldBe keyValue
             successCount += 1
             keyValueIndex += 1
