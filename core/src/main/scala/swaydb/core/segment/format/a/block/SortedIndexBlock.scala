@@ -483,7 +483,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     PersistentParser.parse(
       headerInteger = nextIndexEntry.headerInteger,
-      indexOffset = indexReader.getPosition,
+      indexOffset = previous.nextIndexOffset,
       tailBytes = nextIndexEntry.tailBytes,
       previous = previous,
       normalisedByteSize = indexReader.block.normalisedByteSize,
@@ -507,7 +507,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     PersistentParser.parse(
       headerInteger = nextIndexEntry.headerInteger,
-      indexOffset = indexReader.getPosition,
+      indexOffset = fromPosition,
       tailBytes = nextIndexEntry.tailBytes,
       previous = Persistent.Null,
       normalisedByteSize = indexReader.block.normalisedByteSize,
