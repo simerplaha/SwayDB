@@ -678,6 +678,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
               previous.nextKeySize
           }
 
+        val indexOffset = sortedIndexReader.getPosition
+
         val nextIndexEntry =
           readIndexEntry(
             keySizeOption = nextKeySize,
@@ -687,7 +689,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         val next =
           PersistentParser.parse(
             headerInteger = nextIndexEntry.headerInteger,
-            indexOffset = sortedIndexReader.getPosition,
+            indexOffset = indexOffset,
             tailBytes = nextIndexEntry.tailBytes,
             previous = previousMayBe,
             mightBeCompressed = sortedIndexReader.block.hasPrefixCompression,

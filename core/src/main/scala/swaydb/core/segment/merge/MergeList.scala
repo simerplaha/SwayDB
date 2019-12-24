@@ -71,30 +71,28 @@ private[core] object MergeList {
 
 private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
                                                       private var headRangeNullable: H,
-                                                      private var nextPlaceHolderNullable: T,
+                                                      private var tailHead: T,
                                                       private var tailKeyValues: Iterator[T]) extends MergeList[H, T] {
 
   override val depth: Int = 1
 
   override def headOrNull: T =
     if (headRangeNullable == null)
-      if (nextPlaceHolderNullable == null)
-        if (tailKeyValues.hasNext) {
-          nextPlaceHolderNullable = tailKeyValues.next()
-          nextPlaceHolderNullable
-        } else {
-          nextPlaceHolderNullable
-        }
-      else
-        nextPlaceHolderNullable
+      if (tailHead == null) {
+        if (tailKeyValues.hasNext)
+          tailHead = tailKeyValues.next()
+        tailHead
+      } else {
+        tailHead
+      }
     else
       headRangeNullable
 
   def dropHead(): MergeList[H, T] = {
     if (headRangeNullable != null)
       headRangeNullable = null
-    else if (nextPlaceHolderNullable != null)
-      nextPlaceHolderNullable = null
+    else if (tailHead != null)
+      tailHead = null
     else
       tailKeyValues = tailKeyValues.drop(1)
 
@@ -107,12 +105,12 @@ private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
     if (headRangeNullable != null) {
       headRangeNullable = head
       this
-    } else if (nextPlaceHolderNullable != null) {
-      nextPlaceHolderNullable = head
+    } else if (tailHead != null) {
+      tailHead = head
       this
     } else {
       tailKeyValues = tailKeyValues.drop(1)
-      nextPlaceHolderNullable = head
+      tailHead = head
       this
     }
 
@@ -125,15 +123,15 @@ private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
       private var placeHolderDone = false
 
       override def hasNext: Boolean =
-        (!headDone && headRangeNullable != null) || (!placeHolderDone && nextPlaceHolderNullable != null) || tailKeyValues.hasNext
+        (!headDone && headRangeNullable != null) || (!placeHolderDone && tailHead != null) || tailKeyValues.hasNext
 
       override def next(): T =
         if (!headDone && headRangeNullable != null) {
           headDone = true
           headRangeNullable
-        } else if (!placeHolderDone && nextPlaceHolderNullable != null) {
+        } else if (!placeHolderDone && tailHead != null) {
           placeHolderDone = true
-          nextPlaceHolderNullable
+          tailHead
         } else {
           tailKeyValues.next()
         }
