@@ -692,13 +692,13 @@ object RangeValueSerializer {
     override def write(fromValue: Value.FromValueOption, rangeValue: Value.RangeValue, bytes: Slice[Byte]): Unit =
       (fromValue, rangeValue) match {
 
-        case (Value.FromValue.None, rangeValue: Value.Remove) =>
+        case (Value.FromValue.Null, rangeValue: Value.Remove) =>
           RangeValueSerializer.write[Unit, Value.Remove]((), rangeValue)(bytes)
-        case (Value.FromValue.None, rangeValue: Value.Update) =>
+        case (Value.FromValue.Null, rangeValue: Value.Update) =>
           RangeValueSerializer.write[Unit, Value.Update]((), rangeValue)(bytes)
-        case (Value.FromValue.None, rangeValue: Value.Function) =>
+        case (Value.FromValue.Null, rangeValue: Value.Function) =>
           RangeValueSerializer.write[Unit, Value.Function]((), rangeValue)(bytes)
-        case (Value.FromValue.None, rangeValue: Value.PendingApply) =>
+        case (Value.FromValue.Null, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.write[Unit, Value.PendingApply]((), rangeValue)(bytes)
 
         case (fromValue: Value.Remove, rangeValue: Value.Update) =>
@@ -750,13 +750,13 @@ object RangeValueSerializer {
     override def bytesRequired(fromValue: Value.FromValueOption, rangeValue: Value.RangeValue): Int =
       (fromValue, rangeValue) match {
 
-        case (Value.FromValue.None, rangeValue: Value.Remove) =>
+        case (Value.FromValue.Null, rangeValue: Value.Remove) =>
           RangeValueSerializer.bytesRequired[Unit, Value.Remove]((), rangeValue)
-        case (Value.FromValue.None, rangeValue: Value.Update) =>
+        case (Value.FromValue.Null, rangeValue: Value.Update) =>
           RangeValueSerializer.bytesRequired[Unit, Value.Update]((), rangeValue)
-        case (Value.FromValue.None, rangeValue: Value.Function) =>
+        case (Value.FromValue.Null, rangeValue: Value.Function) =>
           RangeValueSerializer.bytesRequired[Unit, Value.Function]((), rangeValue)
-        case (Value.FromValue.None, rangeValue: Value.PendingApply) =>
+        case (Value.FromValue.Null, rangeValue: Value.PendingApply) =>
           RangeValueSerializer.bytesRequired[Unit, Value.PendingApply]((), rangeValue)
 
         case (fromValue: Value.Remove, rangeValue: Value.Update) =>
@@ -806,8 +806,8 @@ object RangeValueSerializer {
       }
   }
 
-  @inline private implicit def unitFromValueToNone[R](tuple: (Unit, R)): (Value.FromValue.None.type, R) =
-    (Value.FromValue.None, tuple._2)
+  @inline private implicit def unitFromValueToNone[R](tuple: (Unit, R)): (Value.FromValue.Null.type, R) =
+    (Value.FromValue.Null, tuple._2)
 
   private def read(rangeId: Int,
                    reader: ReaderBase): (Value.FromValueOption, Value.RangeValue) =

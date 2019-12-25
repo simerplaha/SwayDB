@@ -46,17 +46,17 @@ import scala.reflect.ClassTag
 
 private[core] object Maps extends LazyLogging {
 
-  def memory[OK, OV, K <: OK, V <: OV : ClassTag](fileSize: Long,
-                                                  acceleration: LevelZeroMeter => Accelerator,
-                                                  nullKey: OK,
-                                                  nullValue: OV)(implicit keyOrder: KeyOrder[K],
-                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                 fileSweeper: FileSweeper,
-                                                                 functionStore: FunctionStore,
-                                                                 mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                 writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                 skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                 timer: Timer): Maps[OK, OV, K, V] =
+  def memory[OK, OV, K <: OK, V <: OV](fileSize: Long,
+                                       acceleration: LevelZeroMeter => Accelerator,
+                                       nullKey: OK,
+                                       nullValue: OV)(implicit keyOrder: KeyOrder[K],
+                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                      fileSweeper: FileSweeper,
+                                                      functionStore: FunctionStore,
+                                                      mapReader: MapEntryReader[MapEntry[K, V]],
+                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                      skipListMerger: SkipListMerger[OK, OV, K, V],
+                                                      timer: Timer): Maps[OK, OV, K, V] =
     new Maps[OK, OV, K, V](
       maps = new ConcurrentLinkedDeque[Map[OK, OV, K, V]](),
       fileSize = fileSize,
@@ -70,20 +70,20 @@ private[core] object Maps extends LazyLogging {
         )
     )
 
-  def persistent[OK, OV, K <: OK, V <: OV : ClassTag](path: Path,
-                                                      mmap: Boolean,
-                                                      fileSize: Long,
-                                                      acceleration: LevelZeroMeter => Accelerator,
-                                                      recovery: RecoveryMode,
-                                                      nullKey: OK,
-                                                      nullValue: OV)(implicit keyOrder: KeyOrder[K],
-                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                     fileSweeper: FileSweeper,
-                                                                     functionStore: FunctionStore,
-                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                     reader: MapEntryReader[MapEntry[K, V]],
-                                                                     skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                     timer: Timer): IO[swaydb.Error.Map, Maps[OK, OV, K, V]] = {
+  def persistent[OK, OV, K <: OK, V <: OV](path: Path,
+                                           mmap: Boolean,
+                                           fileSize: Long,
+                                           acceleration: LevelZeroMeter => Accelerator,
+                                           recovery: RecoveryMode,
+                                           nullKey: OK,
+                                           nullValue: OV)(implicit keyOrder: KeyOrder[K],
+                                                          timeOrder: TimeOrder[Slice[Byte]],
+                                                          fileSweeper: FileSweeper,
+                                                          functionStore: FunctionStore,
+                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                          reader: MapEntryReader[MapEntry[K, V]],
+                                                          skipListMerger: SkipListMerger[OK, OV, K, V],
+                                                          timer: Timer): IO[swaydb.Error.Map, Maps[OK, OV, K, V]] = {
     logger.debug("{}: Maps persistent started. Initialising recovery.", path)
     //reverse to keep the newest maps at the top.
     recover[OK, OV, K, V](
@@ -138,18 +138,18 @@ private[core] object Maps extends LazyLogging {
     }
   }
 
-  private def recover[OK, OV, K <: OK, V <: OV : ClassTag](folder: Path,
-                                                           mmap: Boolean,
-                                                           fileSize: Long,
-                                                           recovery: RecoveryMode,
-                                                           nullKey: OK,
-                                                           nullValue: OV)(implicit keyOrder: KeyOrder[K],
-                                                                          timeOrder: TimeOrder[Slice[Byte]],
-                                                                          fileSweeper: FileSweeper,
-                                                                          functionStore: FunctionStore,
-                                                                          writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                          mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                          skipListMerger: SkipListMerger[OK, OV, K, V]): IO[swaydb.Error.Map, ListBuffer[Map[OK, OV, K, V]]] = {
+  private def recover[OK, OV, K <: OK, V <: OV](folder: Path,
+                                                mmap: Boolean,
+                                                fileSize: Long,
+                                                recovery: RecoveryMode,
+                                                nullKey: OK,
+                                                nullValue: OV)(implicit keyOrder: KeyOrder[K],
+                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                               fileSweeper: FileSweeper,
+                                                               functionStore: FunctionStore,
+                                                               writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                               mapReader: MapEntryReader[MapEntry[K, V]],
+                                                               skipListMerger: SkipListMerger[OK, OV, K, V]): IO[swaydb.Error.Map, ListBuffer[Map[OK, OV, K, V]]] = {
     /**
      * Performs corruption handling based on the the value set for [[RecoveryMode]].
      */
@@ -267,14 +267,14 @@ private[core] object Maps extends LazyLogging {
     )
   }
 
-  def nextMapUnsafe[OK, OV, K <: OK, V <: OV : ClassTag](nextMapSize: Long,
-                                                         currentMap: Map[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
-                                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                                        fileSweeper: FileSweeper,
-                                                                                        functionStore: FunctionStore,
-                                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                        skipListMerger: SkipListMerger[OK, OV, K, V]): Map[OK, OV, K, V] =
+  def nextMapUnsafe[OK, OV, K <: OK, V <: OV](nextMapSize: Long,
+                                              currentMap: Map[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
+                                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                                             fileSweeper: FileSweeper,
+                                                                             functionStore: FunctionStore,
+                                                                             mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                             skipListMerger: SkipListMerger[OK, OV, K, V]): Map[OK, OV, K, V] =
     currentMap match {
       case currentMap @ PersistentMap(_, _, _, _, _, _, _) =>
         currentMap.close()
@@ -297,17 +297,17 @@ private[core] object Maps extends LazyLogging {
     }
 }
 
-private[core] class Maps[OK, OV, K <: OK, V <: OV : ClassTag](val maps: ConcurrentLinkedDeque[Map[OK, OV, K, V]],
-                                                              fileSize: Long,
-                                                              acceleration: LevelZeroMeter => Accelerator,
-                                                              @volatile private var currentMap: Map[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
-                                                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                   fileSweeper: FileSweeper,
-                                                                                                                   functionStore: FunctionStore,
-                                                                                                                   mapReader: MapEntryReader[MapEntry[K, V]],
-                                                                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                   skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                                                                   timer: Timer) extends LazyLogging { self =>
+private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeque[Map[OK, OV, K, V]],
+                                                   fileSize: Long,
+                                                   acceleration: LevelZeroMeter => Accelerator,
+                                                   @volatile private var currentMap: Map[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
+                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                        fileSweeper: FileSweeper,
+                                                                                                        functionStore: FunctionStore,
+                                                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
+                                                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                        skipListMerger: SkipListMerger[OK, OV, K, V],
+                                                                                                        timer: Timer) extends LazyLogging { self =>
 
   //this listener is invoked when currentMap is full.
   private var onNextMapListener: () => Unit = () => ()

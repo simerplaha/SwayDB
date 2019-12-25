@@ -37,23 +37,22 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.reflect.ClassTag
 
 private[map] object PersistentMap extends LazyLogging {
 
-  private[map] def apply[OK, OV, K <: OK, V <: OV : ClassTag](folder: Path,
-                                                              mmap: Boolean,
-                                                              flushOnOverflow: Boolean,
-                                                              fileSize: Long,
-                                                              dropCorruptedTailEntries: Boolean,
-                                                              nullKey: OK,
-                                                              nullValue: OV)(implicit keyOrder: KeyOrder[K],
-                                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                                             functionStore: FunctionStore,
-                                                                             fileSweeper: FileSweeper,
-                                                                             reader: MapEntryReader[MapEntry[K, V]],
-                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                             skipListMerger: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] = {
+  private[map] def apply[OK, OV, K <: OK, V <: OV](folder: Path,
+                                                   mmap: Boolean,
+                                                   flushOnOverflow: Boolean,
+                                                   fileSize: Long,
+                                                   dropCorruptedTailEntries: Boolean,
+                                                   nullKey: OK,
+                                                   nullValue: OV)(implicit keyOrder: KeyOrder[K],
+                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                  functionStore: FunctionStore,
+                                                                  fileSweeper: FileSweeper,
+                                                                  reader: MapEntryReader[MapEntry[K, V]],
+                                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                  skipListMerger: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] = {
     Effect.createDirectoryIfAbsent(folder)
     val skipList: SkipList.Concurrent[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
     val (fileRecoveryResult, hasRange) = recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries)
@@ -72,18 +71,18 @@ private[map] object PersistentMap extends LazyLogging {
     )
   }
 
-  private[map] def apply[OK, OV, K <: OK, V <: OV : ClassTag](folder: Path,
-                                                              mmap: Boolean,
-                                                              flushOnOverflow: Boolean,
-                                                              fileSize: Long,
-                                                              nullKey: OK,
-                                                              nullValue: OV)(implicit keyOrder: KeyOrder[K],
-                                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                                             fileSweeper: FileSweeper,
-                                                                             functionStore: FunctionStore,
-                                                                             reader: MapEntryReader[MapEntry[K, V]],
-                                                                             writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                             skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] = {
+  private[map] def apply[OK, OV, K <: OK, V <: OV](folder: Path,
+                                                   mmap: Boolean,
+                                                   flushOnOverflow: Boolean,
+                                                   fileSize: Long,
+                                                   nullKey: OK,
+                                                   nullValue: OV)(implicit keyOrder: KeyOrder[K],
+                                                                  timeOrder: TimeOrder[Slice[Byte]],
+                                                                  fileSweeper: FileSweeper,
+                                                                  functionStore: FunctionStore,
+                                                                  reader: MapEntryReader[MapEntry[K, V]],
+                                                                  writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                  skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] = {
     Effect.createDirectoryIfAbsent(folder)
     val skipList: SkipList.Concurrent[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
     val file = firstFile(folder, mmap, fileSize)
@@ -227,19 +226,19 @@ private[map] object PersistentMap extends LazyLogging {
   }
 }
 
-private[map] case class PersistentMap[OK, OV, K <: OK, V <: OV : ClassTag](path: Path,
-                                                                           mmap: Boolean,
-                                                                           fileSize: Long,
-                                                                           flushOnOverflow: Boolean,
-                                                                           skipList: SkipList.Concurrent[OK, OV, K, V],
-                                                                           private var currentFile: DBFile,
-                                                                           private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                 fileSweeper: FileSweeper,
-                                                                                                                 functionStore: FunctionStore,
-                                                                                                                 reader: MapEntryReader[MapEntry[K, V]],
-                                                                                                                 writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                                 skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
+private[map] case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
+                                                                mmap: Boolean,
+                                                                fileSize: Long,
+                                                                flushOnOverflow: Boolean,
+                                                                skipList: SkipList.Concurrent[OK, OV, K, V],
+                                                                private var currentFile: DBFile,
+                                                                private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                      fileSweeper: FileSweeper,
+                                                                                                      functionStore: FunctionStore,
+                                                                                                      reader: MapEntryReader[MapEntry[K, V]],
+                                                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                      skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).

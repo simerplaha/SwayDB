@@ -375,7 +375,7 @@ object TestData {
       SortedIndexBlock.Config(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         prefixCompressKeysOnly = randomBoolean(),
-        prefixCompressionResetCount = randomIntMax(10),
+        prefixCompressionInterval = randomIntMax(10),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
@@ -553,7 +553,7 @@ object TestData {
     randomRangeKeyValue(
       from = from,
       to = to,
-      fromValue = randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions) getOrElse Value.FromValue.None,
+      fromValue = randomRemoveOrUpdateOrFunctionRemoveValueOption(addFunctions) getOrElse Value.FromValue.Null,
       rangeValue = randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions)
     )
 
@@ -1005,7 +1005,7 @@ object TestData {
         addPut = addPut
       )
     else
-      Value.FromValue.None
+      Value.FromValue.Null
 
   def randomFromValueWithDeadlineOption(value: SliceOptional[Byte] = randomStringSliceOptional,
                                         addRangeRemoves: Boolean = randomBoolean(),
@@ -1013,7 +1013,7 @@ object TestData {
     if (randomBoolean())
       randomFromValueWithDeadline(value, addRangeRemoves, deadline)
     else
-      Value.FromValue.None
+      Value.FromValue.Null
 
   def randomUpdateRangeValue(value: SliceOptional[Byte] = randomStringSliceOptional,
                              addRemoves: Boolean = randomBoolean(),
@@ -1740,5 +1740,4 @@ object TestData {
       enableAccessPositionIndex = enableAccessPositionIndex,
       bytes = Slice.create[Byte](allocateBytes)
     )
-
 }

@@ -301,7 +301,7 @@ object CommonAssertions {
     result
   }
 
-//  def assertMerge(newKeyValue: KeyValue,
+  //  def assertMerge(newKeyValue: KeyValue,
   //                  oldKeyValue: KeyValue,
   //                  expected: KeyValue,
   //                  lastLevelExpect: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -314,7 +314,7 @@ object CommonAssertions {
                   lastLevelExpect: KeyValueOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                      timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     //    println("*** Expected assert ***")
-    assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.toOptions.map(Slice(_)).getOrElse(Slice.empty))
+    assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.toOptional.map(Slice(_)).getOrElse(Slice.empty))
     //println("*** Skip list assert ***")
     assertSkipListMerge(Slice(newKeyValue), Slice(oldKeyValue), Slice(expected))
   }
@@ -686,16 +686,15 @@ object CommonAssertions {
     assertBloomNotContains(bloom)
   }
 
-  def assertBloom(keyValues: Slice[Memory],
+  def assertBloom(keyValues: Slice[KeyValue],
                   segment: Segment) = {
     keyValues.par.count {
       keyValue =>
         IO.Defer(segment.mightContainKey(keyValue.key)).runRandomIO.right.value
     } shouldBe keyValues.size
 
-    //    if (segment.hasBloomFilter)
-    //      assertBloomNotContains(segment)
-    ???
+    if (segment.hasBloomFilter || segment.memory)
+      assertBloomNotContains(segment)
   }
 
   def assertBloom(keyValues: Slice[Memory],
@@ -720,12 +719,11 @@ object CommonAssertions {
     } should be <= 300
 
   def assertBloomNotContains(segment: Segment) =
-  //    if (segment.hasBloomFilter)
-  //      (1 to 1000).par.count {
-  //        _ =>
-  //          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
-  //      } should be < 1000
-    ???
+    if (segment.hasBloomFilter)
+      (1 to 1000).par.count {
+        _ =>
+          segment.mightContainKey(randomBytesSlice(100)).runRandomIO.right.value
+      } should be < 1000
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThisParallel(1000.times) {
@@ -984,7 +982,7 @@ object CommonAssertions {
                                      level: Level) =
     keyValues foreach {
       keyValue =>
-        level.getFromThisLevel(keyValue.key, ReadState.random).runRandomIO.right.value.toOptions shouldBe empty
+        level.getFromThisLevel(keyValue.key, ReadState.random).runRandomIO.right.value.toOptional shouldBe empty
     }
 
   /**
@@ -1059,7 +1057,7 @@ object CommonAssertions {
               binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderNullable = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.toOptions shouldBe empty
+            ).runRandomIO.right.value.toOptional shouldBe empty
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
               key =>
@@ -1083,7 +1081,7 @@ object CommonAssertions {
               binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderNullable = blocks.valuesReader.orNull
-            ).runRandomIO.right.value.toOptions shouldBe empty
+            ).runRandomIO.right.value.toOptional shouldBe empty
         }
         assertLowers(index + 1)
       } else {
@@ -1150,7 +1148,7 @@ object CommonAssertions {
               binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
               sortedIndexReader = blocks.sortedIndexReader.copy(),
               valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull
-            ).toOptions
+            ).toOptional
           }
     )
   }
@@ -1165,7 +1163,7 @@ object CommonAssertions {
       } else if (index == 0) {
         val actualKeyValue = keyValues(index)
         //        println(s"Lower: ${actualKeyValue.key.readInt()}")
-        IO.Defer(segment.lower(actualKeyValue.key, ReadState.random)).runRandomIO.right.value.toOptions shouldBe empty
+        IO.Defer(segment.lower(actualKeyValue.key, ReadState.random)).runRandomIO.right.value.toOptional shouldBe empty
         assertLowers(index + 1)
       } else {
         val expectedLower = keyValues(index - 1)
@@ -1190,7 +1188,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ReadState.random)).runRandomIO.right.value.toOptions))
+    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ReadState.random)).runRandomIO.right.value.toOptional))
 
   /**
    * Asserts that all key-values are returned in order when fetching higher in sequence.
@@ -1296,9 +1294,24 @@ object CommonAssertions {
     readAll(closedSegment.flattenSegmentBytes)
 
   def writeAndRead(keyValues: Iterable[Memory])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
-    //    val segment = SegmentBlock.writeClosed(keyValues, 0, SegmentBlock.Config.random)
-    //    readAll(segment.flattenSegmentBytes)
-    ???
+    val sortedIndexBlock = SortedIndexBlock.Config.random
+
+    val segment =
+      SegmentBlock.writeClosed(
+        mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexBlock.enableAccessPositionIndex),
+        createdInLevel = 0,
+        segmentSize = Int.MaxValue,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        valuesConfig = ValuesBlock.Config.random,
+        segmentConfig = SegmentBlock.Config.random
+      )
+
+    segment should have size 1
+
+    readAll(segment.head.flattenSegmentBytes)
   }
 
   def readBlocksFromSegment(closedSegment: SegmentBlock.Closed,
@@ -1474,8 +1487,7 @@ object CommonAssertions {
         .readAll(
           keyValueCount = blockCache.getFooter().keyValueCount,
           sortedIndexReader = blockCache.createSortedIndexReader(),
-          valuesReaderNullable
-            = blockCache.createValuesReaderNullable()
+          valuesReaderNullable = blockCache.createValuesReaderNullable()
         )
     }
 

@@ -19,13 +19,11 @@
 
 package swaydb.core.util
 
-import scala.reflect.ClassTag
-
 private[swaydb] object Collections {
 
   val emptyStringSeq = Seq.empty[String]
 
-  implicit class IterableImplicit[T: ClassTag](items: Iterable[T]) {
+  implicit class IterableImplicit[T](items: Iterable[T]) {
 
     def foreachBreak(f: T => Boolean): Unit = {
       val iterator = items.iterator

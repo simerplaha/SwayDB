@@ -44,7 +44,7 @@ private[a] object DeadlineWriter extends DeadlineWriter {
                                                             keyWriter: KeyWriter): Unit =
     current.deadline match {
       case Some(currentDeadline) =>
-        when(builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)(builder.previous.flatMapOptionS(_.deadline)) flatMap {
+        when(builder.enablePrefixCompressionForCurrentWrite && !builder.prefixCompressKeysOnly)(builder.previous.flatMapOptionS(_.deadline)) flatMap {
           previousDeadline =>
             compress(
               current = current,

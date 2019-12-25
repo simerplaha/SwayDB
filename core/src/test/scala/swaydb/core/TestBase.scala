@@ -159,6 +159,9 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def createNextLevelPath: Path =
     Effect.createDirectoriesIfAbsent(nextLevelPath)
 
+  def createPathDistributor =
+    PathsDistributor(Seq(Dir(createNextLevelPath, 1)), () => Seq.empty)
+
   def nextLevelPath: Path =
     testDir.resolve(nextLevelId.toString)
 

@@ -65,7 +65,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 15,
               toKey = 20,
-              fromValue = Value.FromValue.None,
+              fromValue = Value.FromValue.Null,
               rangeValue = oldKeyValue.rangeValue
             )
           )
@@ -150,7 +150,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 20,
               toKey = 21,
-              fromValue = Value.FromValue.None,
+              fromValue = Value.FromValue.Null,
               rangeValue = newKeyValue.rangeValue
             )
           )
@@ -183,12 +183,12 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
           oldKeyValue.fromValue match {
             case oldFromValue: Value.FromValue =>
               FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()
-            case Value.FromValue.None =>
+            case Value.FromValue.Null =>
               newKeyValue.fromValue match {
                 case newFromValue: Value.FromValue =>
                   FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElseS(oldKeyValue.rangeValue).toMemory(10)).toFromValue()
-                case Value.FromValue.None =>
-                  Value.FromValue.None
+                case Value.FromValue.Null =>
+                  Value.FromValue.Null
               }
           }
 
@@ -203,7 +203,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 15,
               toKey = 20,
-              fromValue = Value.FromValue.None,
+              fromValue = Value.FromValue.Null,
               rangeValue = oldKeyValue.rangeValue
             )
           )
@@ -241,12 +241,12 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
                 oldKeyValue.fromValue match {
                   case oldFromValue: Value.FromValue =>
                     FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()
-                  case Value.FromValue.None =>
+                  case Value.FromValue.Null =>
                     newKeyValue.fromValue match {
                       case newFromValue: Value.FromValue =>
                         FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElseS(oldKeyValue.rangeValue).toMemory(10)).toFromValue()
-                      case Value.FromValue.None =>
-                        Value.FromValue.None
+                      case Value.FromValue.Null =>
+                        Value.FromValue.Null
                     }
                 },
               rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
@@ -286,12 +286,12 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
                 oldKeyValue.fromValue match {
                   case oldFromValue: Value.FromValue =>
                     FixedMerger(newKeyValue.fromValue.getOrElseS(newKeyValue.rangeValue).toMemory(10), oldFromValue.toMemory(10)).toFromValue()
-                  case Value.FromValue.None =>
+                  case Value.FromValue.Null =>
                     newKeyValue.fromValue match {
                       case newFromValue: Value.FromValue =>
                         FixedMerger(newFromValue.toMemory(10), oldKeyValue.fromValue.getOrElseS(oldKeyValue.rangeValue).toMemory(10)).toFromValue()
-                      case Value.FromValue.None =>
-                        Value.FromValue.None
+                      case Value.FromValue.Null =>
+                        Value.FromValue.Null
                     }
                 },
               rangeValue = FixedMerger(newKeyValue.rangeValue.toMemory(Slice.emptyBytes), oldKeyValue.rangeValue.toMemory(Slice.emptyBytes)).toRangeValue()
@@ -299,7 +299,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 20,
               toKey = 21,
-              fromValue = Value.FromValue.None,
+              fromValue = Value.FromValue.Null,
               rangeValue = newKeyValue.rangeValue
             )
           )
@@ -344,7 +344,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 15,
               toKey = 20,
-              fromValue = Value.FromValue.None,
+              fromValue = Value.FromValue.Null,
               rangeValue = oldKeyValue.rangeValue
             )
           )
@@ -428,7 +428,7 @@ class SegmentMerger_Range_Into_Range extends WordSpec {
             Memory.Range(
               fromKey = 20,
               toKey = 21,
-              fromValue = Value.FromValue.None,
+              fromValue = Value.FromValue.Null,
               rangeValue = newKeyValue.rangeValue
             )
           )

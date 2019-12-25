@@ -39,7 +39,7 @@ object PersistentReader {
   def populateBaseEntryIds() = {
     cachedBaseEntryIds = new util.HashMap[Int, (TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])](BaseEntryReader.readers.head.maxID + 200)
 
-    (BaseEntryReader.readers.head.minID to BaseEntryReader.readers.head.maxID) foreach {
+    (BaseEntryReader.readers.head.minID to BaseEntryReader.readers.last.maxID) foreach {
       baseId =>
         val readers =
           BaseEntryReader.search(

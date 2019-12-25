@@ -448,7 +448,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               sortedIndexConfig =
                 SortedIndexBlock.Config(
                   ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  prefixCompressionResetCount = 0,
+                  prefixCompressionInterval = 0,
                   prefixCompressKeysOnly = randomBoolean(),
                   enableAccessPositionIndex = true,
                   normaliseIndex = randomBoolean(),

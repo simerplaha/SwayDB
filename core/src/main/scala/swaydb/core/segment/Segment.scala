@@ -83,8 +83,9 @@ private[core] object Segment extends LazyLogging {
       var hasPut: Boolean = false
       var currentSegmentSize = 0
       var minKey: Slice[Byte] = null
+      var lastKeyValue: Memory = null
 
-      def resetVars(): Unit = {
+      def setClosed(): Unit = {
         skipList = SkipList.immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         minMaxFunctionId = None
         nearestDeadline = None
@@ -92,6 +93,7 @@ private[core] object Segment extends LazyLogging {
         hasPut = false
         currentSegmentSize = 0
         minKey = null
+        lastKeyValue = null
       }
 
       def put(keyValue: Memory): Unit =
@@ -122,43 +124,54 @@ private[core] object Segment extends LazyLogging {
             skipList.put(keyValue.key, keyValue)
         }
 
+      def createSegment() = {
+        val segmentId = idGenerator.nextID
+        val path = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+
+        //Note: Memory key-values can be received from Persistent Segments in which case it's important that
+        //all byte arrays are unsliced before writing them to Memory Segment.
+
+        val segment =
+          MemorySegment(
+            path = path,
+            segmentId = segmentId,
+            minKey = minKey.unslice(),
+            maxKey =
+              lastKeyValue match {
+                case range: Memory.Range =>
+                  MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+
+                case keyValue: Memory.Fixed =>
+                  MaxKey.Fixed(keyValue.key.unslice())
+              },
+            minMaxFunctionId = minMaxFunctionId,
+            segmentSize = currentSegmentSize,
+            hasRange = hasRange,
+            hasPut = hasPut,
+            createdInLevel = createdInLevel.toInt,
+            skipList = skipList,
+            nearestExpiryDeadline = nearestDeadline
+          )
+
+        segments += segment
+        setClosed()
+      }
+
       keyValues.keyValues foreach {
         keyValue =>
+          if (minKey == null) minKey = keyValue.key
+          lastKeyValue = keyValue
+
           put(keyValue)
+
           currentSegmentSize += MergeStats.Memory calculateSize keyValue
 
-          if (currentSegmentSize >= minSegmentSize) {
-            val segmentId = idGenerator.nextID
-            val path = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
-
-            //Note: Memory key-values can be received from Persistent Segments in which case it's important that
-            //all byte arrays are unsliced before writing them to Memory Segment.
-            val segment =
-            MemorySegment(
-              path = path,
-              segmentId = segmentId,
-              minKey = minKey.unslice(),
-              maxKey =
-                keyValue match {
-                  case range: Memory.Range =>
-                    MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-
-                  case keyValue: Memory.Fixed =>
-                    MaxKey.Fixed(keyValue.key.unslice())
-                },
-              minMaxFunctionId = minMaxFunctionId,
-              segmentSize = currentSegmentSize,
-              hasRange = hasRange,
-              hasPut = hasPut,
-              createdInLevel = createdInLevel.toInt,
-              skipList = skipList,
-              nearestExpiryDeadline = nearestDeadline
-            )
-
-            segments += segment
-            resetVars()
-          }
+          if (currentSegmentSize >= minSegmentSize)
+            createSegment()
       }
+
+      if (lastKeyValue != null)
+        createSegment()
 
       Slice.from(segments, segments.size)
     }
@@ -273,7 +286,6 @@ private[core] object Segment extends LazyLogging {
     )
 
   def copyToPersist(segment: Segment,
-                    segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
                     pathsDistributor: PathsDistributor,
                     mmapSegmentsOnRead: Boolean,
@@ -284,14 +296,15 @@ private[core] object Segment extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore,
-                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                fileSweeper: FileSweeper.Enabled,
-                                                                blockCache: Option[BlockCache.State],
-                                                                segmentIO: SegmentIO,
-                                                                idGenerator: IDGenerator): Slice[Segment] =
+                    bloomFilterConfig: BloomFilterBlock.Config,
+                    segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                        functionStore: FunctionStore,
+                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                        fileSweeper: FileSweeper.Enabled,
+                                                        blockCache: Option[BlockCache.State],
+                                                        segmentIO: SegmentIO,
+                                                        idGenerator: IDGenerator): Slice[Segment] =
     segment match {
       case segment: PersistentSegment =>
         val segmentId = idGenerator.nextID
@@ -400,14 +413,14 @@ private[core] object Segment extends LazyLogging {
                                         segmentIO: SegmentIO,
                                         idGenerator: IDGenerator): Slice[Segment] =
     copyToMemory(
-      keyValues = segment.iterator().to(Iterable),
+      keyValues = segment.iterator(),
       pathsDistributor = pathsDistributor,
       removeDeletes = removeDeletes,
       minSegmentSize = minSegmentSize,
       createdInLevel = createdInLevel
     )
 
-  def copyToMemory(keyValues: Iterable[KeyValue],
+  def copyToMemory(keyValues: Iterator[KeyValue],
                    pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
                    minSegmentSize: Int,
@@ -421,7 +434,7 @@ private[core] object Segment extends LazyLogging {
     val builder =
       new MergeStats.Memory.Closed[Iterable](
         isEmpty = false,
-        keyValues = Segment.toMemoryIterator(keyValues.iterator, removeDeletes).to(Iterable)
+        keyValues = Segment.toMemoryIterator(keyValues, removeDeletes).to(Iterable)
       )
 
     Segment.memory(
@@ -565,6 +578,18 @@ private[core] object Segment extends LazyLogging {
     )
   }
 
+  def segmentSizeForMerge(segment: Segment): Int =
+    segment match {
+      case segment: MemorySegment =>
+        segment.segmentSize
+
+      case segment: PersistentSegment =>
+        val footer = segment.getFooter()
+        footer.sortedIndexOffset.size +
+          footer.valuesOffset.map(_.size).getOrElse(0) +
+          SegmentFooterBlock.optimalBytesRequired
+    }
+
   def belongsTo(keyValue: KeyValue,
                 segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
     import keyOrder._
@@ -688,7 +713,7 @@ private[core] object Segment extends LazyLogging {
             keyValues add Memory.Put(maxKey, Slice.Null, None, Time.empty)
 
           case MaxKey.Range(fromKey, maxKey) =>
-            keyValues add Memory.Range(fromKey, maxKey, Value.FromValue.None, Value.Update(maxKey, None, Time.empty))
+            keyValues add Memory.Range(fromKey, maxKey, Value.FromValue.Null, Value.Update(maxKey, None, Time.empty))
         }
     }
 
@@ -700,7 +725,7 @@ private[core] object Segment extends LazyLogging {
           Memory.Put(fixed.key, Slice.Null, None, Time.empty)
 
         case Memory.Range(fromKey, toKey, _, _) =>
-          Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Update(Slice.Null, None, Time.empty))
+          Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Update(Slice.Null, None, Time.empty))
       }
     } yield
       Slice(minKey, maxKey)
@@ -806,7 +831,7 @@ private[core] object Segment extends LazyLogging {
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             getNearestDeadline(fromValueDeadline, rangeValue)
 
-          case (Value.FromValue.None, rangeValue) =>
+          case (Value.FromValue.Null, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
     }
@@ -823,7 +848,7 @@ private[core] object Segment extends LazyLogging {
             val fromValueDeadline = getNearestDeadline(deadline, fromValue)
             getNearestDeadline(fromValueDeadline, rangeValue)
 
-          case (Value.FromValue.None, rangeValue) =>
+          case (Value.FromValue.Null, rangeValue) =>
             getNearestDeadline(deadline, rangeValue)
         }
     }
@@ -1020,6 +1045,8 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
   def persistent: Boolean
 
   def existsOnDisk: Boolean
+
+  def hasBloomFilter: Boolean
 
   override def isNoneS: Boolean =
     false

@@ -53,7 +53,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
 
         val expectedKeyValue =
           (newKeyValue.fromValue, newKeyValue.rangeValue) match {
-            case (Value.FromValue.None, Value.Remove(None, _)) =>
+            case (Value.FromValue.Null, Value.Remove(None, _)) =>
               newKeyValue
             case (Value.Put(_, None, _), Value.Remove(None, _)) =>
               newKeyValue
@@ -170,7 +170,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
 
       //       3  -    20
       //  1, 2, 7, 10, 20
-      val newKeyValues = Slice(Memory.Range(3, 20, Value.FromValue.None, Value.remove(None)))
+      val newKeyValues = Slice(Memory.Range(3, 20, Value.FromValue.Null, Value.remove(None)))
       val oldKeyValues =
         Slice(
           Memory.remove(1),
@@ -184,7 +184,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
         Slice(
           Memory.remove(1),
           Memory.put(2, "new value value"),
-          Memory.Range(3, 20, Value.FromValue.None, Value.remove(None)),
+          Memory.Range(3, 20, Value.FromValue.Null, Value.remove(None)),
           Memory.put(20, "new value value")
         )
 
@@ -206,7 +206,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   "remove all key-values within the range only when range's keys overlaps and existing key" in {
     //     2    -    20
     //  1, 2, 7, 10, 20
-    val newKeyValues = Slice(Memory.Range(2, 20, Value.FromValue.None, Value.remove(None)))
+    val newKeyValues = Slice(Memory.Range(2, 20, Value.FromValue.Null, Value.remove(None)))
     val oldKeyValues =
       Slice(
         Memory.remove(1),
@@ -218,7 +218,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
 
     val expected = Slice(
       Memory.remove(1),
-      Memory.Range(2, 20, Value.FromValue.None, Value.remove(None)),
+      Memory.Range(2, 20, Value.FromValue.Null, Value.remove(None)),
       Memory.put(20, "new value value")
     )
 
@@ -238,7 +238,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   "remove all key-values within the range only when range's first key does not overlap and existing key" in {
     // 1    -   8
     //     2, 7, 10, 20
-    val newKeyValues = Slice(Memory.Range(1, 8, Value.FromValue.None, Value.remove(None)))
+    val newKeyValues = Slice(Memory.Range(1, 8, Value.FromValue.Null, Value.remove(None)))
 
     val oldKeyValues =
       Slice(
@@ -250,7 +250,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
 
     val expected =
       Slice(
-        Memory.Range(1, 8, Value.FromValue.None, Value.remove(None)),
+        Memory.Range(1, 8, Value.FromValue.Null, Value.remove(None)),
         Memory.remove(10),
         Memory.put(20, "new value value")
       )
@@ -299,7 +299,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   "update all key-values within the range only when range's first key does not overlap and existing key" in {
     // 1     -     15
     //     2, 7, 10, 20
-    val newKeyValues = Slice(Memory.Range(1, 15, Value.FromValue.None, Value.update(15)))
+    val newKeyValues = Slice(Memory.Range(1, 15, Value.FromValue.Null, Value.update(15)))
     val oldKeyValues =
       Slice(
         Memory.put(2, "new value value"),
@@ -309,7 +309,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
       )
     val expected =
       Slice(
-        Memory.Range(1, 2, Value.FromValue.None, Value.update(15)),
+        Memory.Range(1, 2, Value.FromValue.Null, Value.update(15)),
         Memory.Range(2, 7, Value.put(15), Value.update(15)),
         Memory.Range(7, 10, Value.put(15), Value.update(15)),
         Memory.Range(10, 15, Value.remove(None), Value.update(15)),
@@ -333,7 +333,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
   "update all key-values within the range only when range's last key does not overlap and existing key" in {
     //       6     -     30
     //     2, 7, 10, 20  30, 31
-    val newKeyValues = Slice(Memory.Range(6, 30, Value.FromValue.None, Value.update("updated")))
+    val newKeyValues = Slice(Memory.Range(6, 30, Value.FromValue.Null, Value.update("updated")))
 
     val oldKeyValues =
       Slice(
@@ -346,7 +346,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
       )
     val expected = Slice(
       Memory.put(2, "new value"),
-      Memory.Range(6, 7, Value.FromValue.None, Value.update("updated")),
+      Memory.Range(6, 7, Value.FromValue.Null, Value.update("updated")),
       Memory.Range(7, 10, Value.put("updated"), Value.update("updated")),
       Memory.Range(10, 20, Value.remove(None), Value.update("updated")),
       Memory.Range(20, 30, Value.put("updated"), Value.update("updated")),
@@ -410,7 +410,7 @@ class SegmentMerger_Range_Into_Fixed extends WordSpec {
     //  1, 2, 7, 10,   20  30, 35, 50,  53, 80
     val newKeyValues =
     Slice(
-      Memory.Range(2, 11, Value.FromValue.None, Value.update("updated")),
+      Memory.Range(2, 11, Value.FromValue.Null, Value.update("updated")),
       Memory.Range(31, 51, Value.remove(None), Value.update("updated 2"))
     )
 

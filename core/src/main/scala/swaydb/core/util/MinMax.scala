@@ -193,7 +193,7 @@ private[core] object MinMax {
       function = rangeValue,
       current =
         fromValue match {
-          case FromValue.None =>
+          case FromValue.Null =>
             current
 
           case fromValue: Value.FromValue =>

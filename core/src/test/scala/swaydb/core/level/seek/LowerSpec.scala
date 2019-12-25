@@ -39,8 +39,8 @@ class LowerSpec extends WordSpec with Matchers {
 
   "lowerFromValue" in {
     runThis(100.times) {
-      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.None) shouldBe empty
-      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.None) shouldBe empty
+      Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.Null) shouldBe empty
+      Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.Null) shouldBe empty
 
       Lower.lowerFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
       Lower.lowerFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty

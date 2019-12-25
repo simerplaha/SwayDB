@@ -66,7 +66,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val disabled =
       Config(
         ioStrategy = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-        prefixCompressionResetCount = 0,
+        prefixCompressionInterval = 0,
         prefixCompressKeysOnly = false,
         enableAccessPositionIndex = false,
         normaliseIndex = false,
@@ -82,8 +82,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
     def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
         enableAccessPositionIndex = enable.enablePositionIndex,
-        prefixCompressionResetCount = enable.prefixCompression.resetCount max 0,
-        prefixCompressKeysOnly = enable.prefixCompression.keysOnly && enable.prefixCompression.resetCount > 1,
+        prefixCompressionInterval = enable.prefixCompression.compressionInterval max 0,
+        prefixCompressKeysOnly = enable.prefixCompression.keysOnly && enable.prefixCompression.compressionInterval > 1,
         normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
         //cannot normalise if prefix compression is enabled.
         ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
@@ -95,15 +95,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
 
     def apply(ioStrategy: IOAction => IOStrategy,
-              prefixCompressionResetCount: Int,
+              prefixCompressionInterval: Int,
               prefixCompressKeysOnly: Boolean,
               enableAccessPositionIndex: Boolean,
               normaliseIndex: Boolean,
               compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
       new Config(
         ioStrategy = ioStrategy,
-        prefixCompressionResetCount = if (normaliseIndex) 0 else prefixCompressionResetCount max 0,
-        prefixCompressKeysOnly = prefixCompressKeysOnly && prefixCompressionResetCount > 1,
+        prefixCompressionInterval = if (normaliseIndex) -1 else prefixCompressionInterval max -1,
+        prefixCompressKeysOnly = prefixCompressKeysOnly && prefixCompressionInterval > -1,
         enableAccessPositionIndex = enableAccessPositionIndex,
         //cannot normalise if prefix compression is enabled.
         normaliseIndex = normaliseIndex,
@@ -115,24 +115,24 @@ private[core] object SortedIndexBlock extends LazyLogging {
    * Do not create [[Config]] directly. Use one of the apply functions.
    */
   class Config private(val ioStrategy: IOAction => IOStrategy,
-                       val prefixCompressionResetCount: Int,
+                       val prefixCompressionInterval: Int,
                        val prefixCompressKeysOnly: Boolean,
                        val enableAccessPositionIndex: Boolean,
                        val normaliseIndex: Boolean,
                        val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
-    def enablePrefixCompression: Boolean =
-      prefixCompressionResetCount > 1
+    val enablePrefixCompression: Boolean =
+      prefixCompressionInterval > -1
 
     def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
-             prefixCompressionResetCount: Int = prefixCompressionResetCount,
+             prefixCompressionResetCount: Int = prefixCompressionInterval,
              enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
              normaliseIndex: Boolean = normaliseIndex,
              compressions: UncompressedBlockInfo => Seq[CompressionInternal] = compressions) =
     //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
       Config(
         ioStrategy = ioStrategy,
-        prefixCompressionResetCount = prefixCompressionResetCount,
+        prefixCompressionInterval = prefixCompressionResetCount,
         enableAccessPositionIndex = enableAccessPositionIndex,
         prefixCompressKeysOnly = prefixCompressKeysOnly,
         normaliseIndex = normaliseIndex,
@@ -163,8 +163,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
               var largestIndexEntrySize: Int,
               var largestMergedKeySize: Int,
               var largestUncompressedMergedKeySize: Int,
+              val enablePrefixCompression: Boolean,
               var entriesCount: Int,
               var prefixCompressedCount: Int,
+              val prefixCompressionInterval: Int,
               var nearestDeadline: Option[Deadline],
               var rangeCount: Int,
               var hasPut: Boolean,
@@ -201,6 +203,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   }
 
   class IndexEntry(val headerInteger: Int,
+                   val headerIntegerByteSize: Int,
                    val tailBytes: Slice[Byte])
 
   //sortedIndex's byteSize is not know at the time of creation headerSize includes hasCompression
@@ -245,7 +248,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State = {
     val builder =
       EntryWriter.Builder(
-        enablePrefixCompression = sortedIndexConfig.enablePrefixCompression,
+        enablePrefixCompression = false, //this gets mutated during write.
         prefixCompressKeysOnly = sortedIndexConfig.prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         enableAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,
@@ -256,12 +259,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
       bytes = bytes,
       header = null,
       minKey = null,
-      maxKey = null,
       lastKeyValue = null,
+      maxKey = null,
       smallestIndexEntrySize = Int.MaxValue,
       largestIndexEntrySize = 0,
       largestMergedKeySize = 0,
       largestUncompressedMergedKeySize = 0,
+      enablePrefixCompression = sortedIndexConfig.enablePrefixCompression,
+      prefixCompressionInterval = sortedIndexConfig.prefixCompressionInterval,
       entriesCount = 0,
       prefixCompressedCount = 0,
       nearestDeadline = None,
@@ -286,6 +291,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     if (state.minKey == null)
       state.minKey = keyValue.key.unslice()
+
+    //    if (state.enablePrefixCompression && state.entriesCount + 1 % state.prefixCompressionInterval == 0)
+    //      state.builder.enablePrefixCompressionForCurrentWrite = true
 
     keyValue match {
       case keyValue: Memory.Put =>
@@ -376,6 +384,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
     state.largestMergedKeySize = state.largestMergedKeySize max keyValue.mergedKey.size
 
     state.entriesCount += 1
+
+    state.builder.enablePrefixCompressionForCurrentWrite = false
 
     state.lastKeyValue = keyValue
     state.builder.previous = keyValue
@@ -538,19 +548,21 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       new IndexEntry(
         headerInteger = keySizeNullable,
+        headerIntegerByteSize = Bytes.sizeOfUnsignedInt(keySizeNullable),
         tailBytes = indexEntry
       )
     } else if (sortedIndexReader.block.isBinarySearchable) { //if the reader has a block cache try fetching the bytes required within one seek.
       val indexSize = sortedIndexReader.block.segmentMaxIndexEntrySize
       val bytes = sortedIndexReader.read(sortedIndexReader.block.segmentMaxIndexEntrySize + ByteSizeOf.varInt)
       val reader = Reader(bytes)
-      val headerInteger = reader.readUnsignedInt()
+      val (headerInteger, headerIntegerByteSize) = reader.readUnsignedIntWithByteSize()
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = reader read (indexSize + ByteSizeOf.varInt)
 
       new IndexEntry(
         headerInteger = headerInteger,
+        headerIntegerByteSize = headerIntegerByteSize,
         tailBytes = indexEntry
       )
     } else if (sortedIndexReader.hasBlockCache) {
@@ -578,10 +590,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       new IndexEntry(
         headerInteger = headerInteger,
+        headerIntegerByteSize = headerIntegerByteSize,
         tailBytes = indexEntry
       )
     } else {
-      val headerInteger = sortedIndexReader.readUnsignedInt()
+      val (headerInteger, headerIntegerByteSize) = sortedIndexReader.readUnsignedIntWithByteSize()
       val indexSize = EntryWriter.maxEntrySize(headerInteger, sortedIndexReader.block.enableAccessPositionIndex)
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
@@ -589,6 +602,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       new IndexEntry(
         headerInteger = headerInteger,
+        headerIntegerByteSize = headerIntegerByteSize,
         tailBytes = indexEntry
       )
     }
@@ -596,35 +610,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def readPartial(fromOffset: Int,
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
-
     sortedIndexReader moveTo fromOffset
-
     //try reading entry bytes within one seek.
-    val (headerInteger, indexEntryReader) =
     //if the reader has a block cache try fetching the bytes required within one seek.
-      if (sortedIndexReader.hasBlockCache) {
-        //read the minimum number of bytes required for parse this indexEntry.
-        val bytes = sortedIndexReader.read(ByteSizeOf.varInt)
-        val (headerInteger, headerIntegerByteSize) = bytes.readUnsignedIntWithByteSize()
-        //open the slice if it's a subslice,
-        val openBytes = bytes.openEnd()
+    val indexEntry: IndexEntry = readIndexEntry(null, sortedIndexReader)
 
-        val maxIndexSize = headerInteger + headerIntegerByteSize + KeyValueId.maxKeyValueIdByteSize
-
-        //if openBytes results in enough bytes to then read the open bytes only.
-        if (openBytes.size >= maxIndexSize)
-          (headerInteger, Reader(openBytes, headerIntegerByteSize))
-        else
-          (headerInteger, sortedIndexReader.moveTo(fromOffset + headerIntegerByteSize))
-      } else {
-        val headerInteger = sortedIndexReader.readUnsignedInt()
-        (headerInteger, sortedIndexReader)
-      }
+    sortedIndexReader.moveTo(fromOffset + indexEntry.headerIntegerByteSize)
 
     BaseEntryApplier.parsePartial(
       offset = fromOffset,
-      headerInteger = headerInteger,
-      indexEntry = indexEntryReader,
+      indexEntry = indexEntry,
       sortedIndex = sortedIndexReader,
       valuesReaderNullable = valuesReaderNullable
     )

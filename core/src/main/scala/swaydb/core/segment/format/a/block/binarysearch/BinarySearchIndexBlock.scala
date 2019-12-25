@@ -330,7 +330,7 @@ private[core] object BinarySearchIndexBlock {
         context.valuesCount - 1
     }
 
-  //  var totalHops = 0
+  var totalHops = 0
   //  var maxHop = 0
   //  var minHop = 0
   //  var currentHops = 0
@@ -343,42 +343,70 @@ private[core] object BinarySearchIndexBlock {
 
   private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): BinarySearchGetResult = {
 
-    @tailrec
-    def hop(start: Int, end: Int, knownLowest: Persistent.PartialOptional, knownMatch: Persistent.PartialOptional): BinarySearchGetResult = {
+    var start = getStartPosition(context)
+    var end = getEndPosition(context)
+
+    var knownLowest: Persistent.PartialOptional = Persistent.Partial.Null
+
+    while (start <= end) {
+      totalHops += 1
+      //            currentHops += 1
+
       val mid = start + (end - start) / 2
 
-      //      println(s"start: $start, mid: $mid, end: $end")
+      context.seek(mid * context.bytesPerValue) match {
+        case matched: KeyMatcher.Result.Matched =>
+          return new BinarySearchGetResult.Some(value = matched.result)
 
-      //      totalHops += 1
-      //      currentHops += 1
+        case behind: KeyMatcher.Result.Behind =>
+          start = mid + 1
+          knownLowest = behind.previous
 
-      val valueOffset = mid * context.bytesPerValue
-
-      if (start > end)
-        new BinarySearchGetResult.None(
-          MinMax.maxFavourLeftC[Persistent.PartialOptional, Persistent.Partial](
-            left = knownLowest,
-            right = context.lowestKeyValue.asPartial
-          )
-        )
-      else
-        context.seek(valueOffset) match {
-          case matched: KeyMatcher.Result.Matched =>
-            new BinarySearchGetResult.Some(value = matched.result)
-
-          case behind: KeyMatcher.Result.Behind =>
-            hop(start = mid + 1, end = end, knownLowest = behind.previous, knownMatch = knownMatch)
-
-          case _: KeyMatcher.Result.AheadOrNoneOrEnd =>
-            hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
-        }
+        case _: KeyMatcher.Result.AheadOrNoneOrEnd =>
+          end = mid - 1
+      }
     }
 
-    val start = getStartPosition(context)
-    val end = getEndPosition(context)
+    new BinarySearchGetResult.None(
+      MinMax.maxFavourLeftC[Persistent.PartialOptional, Persistent.Partial](
+        left = knownLowest,
+        right = context.lowestKeyValue.asPartial
+      )
+    )
 
-    //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
-    hop(start = start, end = end, context.lowestKeyValue.asPartial, Persistent.Partial.Null)
+    // recursive version
+    //    @tailrec
+    //    def hop(start: Int, end: Int, knownLowest: Persistent.PartialOptional): BinarySearchGetResult = {
+    //      val mid = start + (end - start) / 2
+    //
+    //      // totalHops += 1
+    //      //      currentHops += 1
+    //
+    //      if (start > end)
+    //        new BinarySearchGetResult.None(
+    //          MinMax.maxFavourLeftC[Persistent.PartialOptional, Persistent.Partial](
+    //            left = knownLowest,
+    //            right = context.lowestKeyValue.asPartial
+    //          )
+    //        )
+    //      else
+    //        context.seek(mid * context.bytesPerValue) match {
+    //          case matched: KeyMatcher.Result.Matched =>
+    //            new BinarySearchGetResult.Some(value = matched.result)
+    //
+    //          case behind: KeyMatcher.Result.Behind =>
+    //            hop(start = mid + 1, end = end, knownLowest = behind.previous)
+    //
+    //          case _: KeyMatcher.Result.AheadOrNoneOrEnd =>
+    //            hop(start = start, end = mid - 1, knownLowest = knownLowest)
+    //        }
+    //    }
+    //
+    //    val start = getStartPosition(context)
+    //    val end = getEndPosition(context)
+    //
+    //    //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
+    //    hop(start = start, end = end, context.lowestKeyValue.asPartial)
   }
 
   private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]],

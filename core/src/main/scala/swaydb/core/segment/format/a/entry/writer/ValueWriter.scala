@@ -99,7 +99,7 @@ private[a] object ValueWriter extends ValueWriter {
                                            builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
                                                                          keyWriter: KeyWriter,
                                                                          deadlineWriter: DeadlineWriter): Unit =
-    if (builder.enablePrefixCompression && !builder.prefixCompressKeysOnly)
+    if (builder.enablePrefixCompressionForCurrentWrite && !builder.prefixCompressKeysOnly)
       (Memory.compressibleValue(current), Memory.compressibleValue(previous)) match {
         case (currentValue: Slice[Byte], previousValue: Slice[Byte]) =>
           partialCompress(
@@ -140,7 +140,7 @@ private[a] object ValueWriter extends ValueWriter {
                                                                       keyWriter: KeyWriter,
                                                                       deadlineWriter: DeadlineWriter): Unit = {
     //if previous does not exists write full offsets and then write deadline.
-    val currentValueSize = currentValue.foldLeftC(0)(_ + _.size)
+    val currentValueSize = currentValue.valueOrElseC(_.size, 0)
     val currentValueOffset = builder.nextStartValueOffset
 
     builder.startValueOffset = currentValueOffset
@@ -178,7 +178,7 @@ private[a] object ValueWriter extends ValueWriter {
                                                                         keyWriter: KeyWriter,
                                                                         deadlineWriter: DeadlineWriter): Option[Unit] =
     Options.when(Memory.hasSameValue(previous, current)) { //no need to serialised values and then compare. Simply compare the value objects and check for equality.
-      if (builder.enablePrefixCompression && !builder.prefixCompressKeysOnly) {
+      if (builder.enablePrefixCompressionForCurrentWrite && !builder.prefixCompressKeysOnly) {
         //values are the same, no need to write offset & length, jump straight to deadline.
         builder.setSegmentHasPrefixCompression()
         builder.isValueFullyCompressed = true

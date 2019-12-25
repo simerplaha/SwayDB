@@ -52,14 +52,13 @@ object BaseEntryApplier {
   }
 
   def parsePartial(offset: Int,
-                   headerInteger: Int,
-                   indexEntry: ReaderBase,
+                   indexEntry: SortedIndexBlock.IndexEntry,
                    sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
 
-    val entryKey = indexEntry.read(headerInteger)
+    val entryKey = sortedIndex.read(indexEntry.headerInteger)
 
-    val keyValueId = indexEntry.readUnsignedInt()
+    val keyValueId = sortedIndex.readUnsignedInt()
 
     if (KeyValueId isFixedId keyValueId)
       new Partial.Fixed {
@@ -70,9 +69,16 @@ object BaseEntryApplier {
           entryKey
 
         override def toPersistent: Persistent =
-          SortedIndexBlock.read(
-            fromOffset = offset,
-            sortedIndexReader = sortedIndex,
+          PersistentParser.parse(
+            headerInteger = indexEntry.headerInteger,
+            indexOffset = offset,
+            tailBytes = indexEntry.tailBytes,
+            previous = Persistent.Null,
+            normalisedByteSize = sortedIndex.block.normalisedByteSize,
+            mightBeCompressed = sortedIndex.block.hasPrefixCompression,
+            keyCompressionOnly = sortedIndex.block.prefixCompressKeysOnly,
+            sortedIndexEndOffset = sortedIndex.block.sortedIndexEndOffsetForReads,
+            hasAccessPositionIndex = sortedIndex.block.enableAccessPositionIndex,
             valuesReaderNullable = valuesReaderNullable
           )
       }
@@ -87,13 +93,20 @@ object BaseEntryApplier {
           fromKey
 
         override def toPersistent: Persistent =
-          SortedIndexBlock.read(
-            fromOffset = offset,
-            sortedIndexReader = sortedIndex,
+          PersistentParser.parse(
+            headerInteger = indexEntry.headerInteger,
+            indexOffset = offset,
+            tailBytes = indexEntry.tailBytes,
+            previous = Persistent.Null,
+            normalisedByteSize = sortedIndex.block.normalisedByteSize,
+            mightBeCompressed = sortedIndex.block.hasPrefixCompression,
+            keyCompressionOnly = sortedIndex.block.prefixCompressKeysOnly,
+            sortedIndexEndOffset = sortedIndex.block.sortedIndexEndOffsetForReads,
+            hasAccessPositionIndex = sortedIndex.block.enableAccessPositionIndex,
             valuesReaderNullable = valuesReaderNullable
           )
       }
     else
-      throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, headerInteger: $headerInteger")
+      throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, headerInteger: ${indexEntry.headerInteger}")
   }
 }

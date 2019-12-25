@@ -41,11 +41,11 @@ class RangeValueSerializerSpec extends WordSpec with Matchers {
 
     //also assert option Serializer
     def doAssertOption(rangeValue: RangeValue) = {
-      val bytesRequired = RangeValueSerializer.bytesRequired(Value.FromValue.None: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
+      val bytesRequired = RangeValueSerializer.bytesRequired(Value.FromValue.Null: FromValueOption, rangeValue)(RangeValueSerializer.OptionRangeValueSerializer)
       //    rangeId shouldBe expectedId.id
       val bytes = Slice.create[Byte](bytesRequired)
 
-      RangeValueSerializer.write(Value.FromValue.None: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
+      RangeValueSerializer.write(Value.FromValue.Null: FromValueOption, rangeValue)(bytes)(RangeValueSerializer.OptionRangeValueSerializer)
       bytes.isFull shouldBe true
 
       RangeValueSerializer.read(bytes) shouldBe ((None, rangeValue))

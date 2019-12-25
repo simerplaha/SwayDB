@@ -21,6 +21,8 @@ package swaydb.data.slice
 
 import java.nio.file.Paths
 
+import swaydb.data.util.Bytez
+
 /**
  * http://www.swaydb.io/slice/byte-slice
  */
@@ -60,6 +62,12 @@ private[swaydb] case class SliceReader(slice: Slice[Byte],
     position += 1
     byte
   }
+
+  override def readUnsignedInt(): Int =
+    Bytez.readUnsignedInt(this)
+
+  override def readUnsignedIntWithByteSize(): (Int, Int) =
+    Bytez.readUnsignedIntWithByteSize(this)
 
   def hasMore =
     position < slice.size

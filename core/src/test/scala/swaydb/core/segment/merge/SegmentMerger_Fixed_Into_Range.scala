@@ -169,7 +169,7 @@ class SegmentMerger_Fixed_Into_Range extends WordSpec {
 
       val oldKeyValues: Slice[Memory] =
         Slice(
-          Memory.Range(10, 20, Value.FromValue.None, Value.update("ranges value 1")),
+          Memory.Range(10, 20, Value.FromValue.Null, Value.update("ranges value 1")),
           Memory.Range(25, 30, Value.put(25), Value.update("ranges value 2", deadline2))
         )
 

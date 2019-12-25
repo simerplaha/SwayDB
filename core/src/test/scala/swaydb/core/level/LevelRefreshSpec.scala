@@ -82,7 +82,7 @@ sealed trait LevelRefreshSpec extends TestBase with MockFactory with PrivateMeth
       level.segmentsCount() should be >= 1
 
       //expire all key-values
-      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.None, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
+      level.putKeyValuesTest(Slice(Memory.Range(0, Int.MaxValue, Value.FromValue.Null, Value.Remove(Some(2.seconds.fromNow), Time.empty)))).runRandomIO.right.value
       level.segmentFilesInAppendix should be > 1
 
       sleep(3.seconds)

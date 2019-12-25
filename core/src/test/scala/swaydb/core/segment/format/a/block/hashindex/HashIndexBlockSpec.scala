@@ -57,7 +57,7 @@ class HashIndexBlockSpec extends TestBase {
           sortedIndexConfig =
             SortedIndexBlock.Config(
               ioStrategy = _ => randomIOStrategy(),
-              prefixCompressionResetCount = 0,
+              prefixCompressionInterval = 0,
               prefixCompressKeysOnly = randomBoolean(),
               enableAccessPositionIndex = randomBoolean(),
               normaliseIndex = randomBoolean(),

@@ -246,7 +246,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
               )
           ).toRangeValue()
 
-        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomRangeKeyValue(1, 10, eitherOne(Value.FromValue.None, functionValue), functionValue)
+        getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomRangeKeyValue(1, 10, eitherOne(Value.FromValue.Null, functionValue), functionValue)
         //next level can return anything it will be removed.
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1))).toDefer
 

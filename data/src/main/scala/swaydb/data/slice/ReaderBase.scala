@@ -27,7 +27,6 @@ import swaydb.data.util.Bytez
 import swaydb.data.util.Maybe.Maybe
 
 import scala.annotation.tailrec
-import scala.reflect.ClassTag
 
 private[swaydb] abstract class ReaderBase { self =>
 
@@ -116,7 +115,7 @@ private[swaydb] abstract class ReaderBase { self =>
     this moveTo 0
 
   @tailrec
-  final def foldLeftIO[E: IO.ExceptionHandler, R: ClassTag](result: R)(f: (R, ReaderBase) => IO[E, R]): IO[E, R] =
+  final def foldLeftIO[E: IO.ExceptionHandler, R](result: R)(f: (R, ReaderBase) => IO[E, R]): IO[E, R] =
     IO(hasMore) match {
       case IO.Left(error) =>
         IO.Left(error)
@@ -135,7 +134,7 @@ private[swaydb] abstract class ReaderBase { self =>
     }
 
   @tailrec
-  final def foldLeft[R: ClassTag](result: R)(f: (R, ReaderBase) => R): R =
+  final def foldLeft[R](result: R)(f: (R, ReaderBase) => R): R =
     if (hasMore)
       foldLeft(f(result, self))(f)
     else

@@ -21,7 +21,7 @@ package swaydb.data.util
 
 import java.nio.charset.Charset
 
-import swaydb.data.slice.{Reader, ReaderBase, Slice}
+import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceReader}
 import swaydb.data.util.Maybe.Maybe
 
 private[swaydb] trait Bytez {
@@ -268,6 +268,21 @@ private[swaydb] trait Bytez {
     int
   }
 
+  def readUnsignedInt(sliceReader: SliceReader): Int = {
+    var index = 0
+    var byte = sliceReader.get()
+    var int: Int = byte & 0x7F
+
+    while ((byte & 0x80) != 0) {
+      index += 1
+      byte = sliceReader.get()
+
+      int <<= 7
+      int |= (byte & 0x7F)
+    }
+    int
+  }
+
   def readUnsignedInt(slice: Slice[Byte]): Int = {
     var index = 0
     var byte = slice.get(index)
@@ -314,6 +329,22 @@ private[swaydb] trait Bytez {
     }
 
     reader.moveTo(beforeReadPosition + index + 1)
+    (int, index + 1)
+  }
+
+  def readUnsignedIntWithByteSize(reader: SliceReader): (Int, Int) = {
+    var index = 0
+    var byte = reader.get()
+    var int: Int = byte & 0x7F
+
+    while ((byte & 0x80) != 0) {
+      index += 1
+      byte = reader.get()
+
+      int <<= 7
+      int |= (byte & 0x7F)
+    }
+
     (int, index + 1)
   }
 

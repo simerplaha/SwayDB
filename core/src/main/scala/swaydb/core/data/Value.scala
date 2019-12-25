@@ -59,11 +59,11 @@ private[swaydb] object Value {
 
   sealed trait FromValueOption extends SomeOrNone[FromValueOption, Value.FromValue] {
     override def noneS: FromValueOption =
-      Value.FromValue.None
+      Value.FromValue.Null
   }
 
   object FromValue {
-    final object None extends FromValueOption {
+    final object Null extends FromValueOption {
       override def isNoneS: Boolean =
         true
 

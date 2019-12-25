@@ -267,7 +267,7 @@ private[swaydb] case class LevelZero(path: Path,
         maps
           .write {
             timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
                 MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
           }
     }
@@ -280,7 +280,7 @@ private[swaydb] case class LevelZero(path: Path,
         maps
           .write {
             timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
                 MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
           }
     }
@@ -311,7 +311,7 @@ private[swaydb] case class LevelZero(path: Path,
                 value = Memory.Range(
                   fromKey = fromKey,
                   toKey = toKey,
-                  fromValue = Value.FromValue.None,
+                  fromValue = Value.FromValue.Null,
                   rangeValue = Value.Update(value.getOrElse(Slice.Null), None, timer.next)
                 )
               ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value.getOrElse(Slice.Null), None, timer.next))
@@ -365,7 +365,7 @@ private[swaydb] case class LevelZero(path: Path,
               if (timer.empty)
                 throw new IllegalArgumentException("Functions are disabled.")
               else
-                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.None, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
                   MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
           }
       }
@@ -824,7 +824,7 @@ private[swaydb] case class LevelZero(path: Path,
             case range: Memory.Range =>
               val values =
                 range.fromValue match {
-                  case FromValue.None =>
+                  case FromValue.Null =>
                     Slice(range.rangeValue)
 
                   case fromValue: Value.FromValue =>

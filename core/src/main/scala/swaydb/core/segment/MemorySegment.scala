@@ -152,7 +152,28 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   def mightContainKey(key: Slice[Byte]): Boolean =
-    true
+    if (deleted)
+      throw swaydb.Exception.NoSuchFile(path)
+    else
+      maxKey match {
+        case MaxKey.Fixed(maxKey) if key > maxKey =>
+          false
+
+        case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
+          false
+
+        case _ =>
+          if (hasRange)
+            skipList.floor(key) match {
+              case range: Memory.Range if range contains key =>
+                true
+
+              case _ =>
+                skipList.contains(key)
+            }
+          else
+            skipList.contains(key)
+      }
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =
     minMaxFunctionId.exists {
@@ -261,4 +282,7 @@ private[segment] case class MemorySegment(path: Path,
 
   override def cachedKeyValueSize: Int =
     skipList.size
+
+  override def hasBloomFilter: Boolean =
+    false
 }

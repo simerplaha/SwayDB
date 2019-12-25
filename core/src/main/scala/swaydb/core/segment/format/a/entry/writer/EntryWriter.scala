@@ -35,14 +35,14 @@ private[core] object EntryWriter {
               enableAccessPositionIndex: Boolean,
               bytes: Slice[Byte]): Builder =
       new Builder(
-        enablePrefixCompression = enablePrefixCompression,
+        enablePrefixCompressionForCurrentWrite = enablePrefixCompression,
         prefixCompressKeysOnly = prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         isValueFullyCompressed = false,
         enableAccessPositionIndex = enableAccessPositionIndex,
         bytes = bytes,
         startValueOffset = 0,
-        endValueOffset = 0,
+        endValueOffset = -1,
         accessPositionIndex = 0,
         previous = Memory.Null,
         isCurrentPrefixCompressed = false,
@@ -50,7 +50,7 @@ private[core] object EntryWriter {
       )
   }
 
-  class Builder(val enablePrefixCompression: Boolean,
+  class Builder(var enablePrefixCompressionForCurrentWrite: Boolean,
                 val prefixCompressKeysOnly: Boolean,
                 var compressDuplicateValues: Boolean,
                 //this should be reset to false once the entry is written
@@ -75,7 +75,7 @@ private[core] object EntryWriter {
     }
 
     def nextStartValueOffset: Int =
-      if (endValueOffset == 0)
+      if (endValueOffset == -1)
         0
       else
         endValueOffset + 1

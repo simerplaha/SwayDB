@@ -58,7 +58,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             )
           )
 
-        configFromUserConfig.prefixCompressionResetCount shouldBe prefixCompression.resetCount
+        configFromUserConfig.prefixCompressionInterval shouldBe prefixCompression.compressionInterval
         configFromUserConfig.normaliseIndex shouldBe false
 
         //internal creation
@@ -66,14 +66,14 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           SortedIndexBlock.Config(
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
-            prefixCompressionResetCount = prefixCompression.resetCount,
+            prefixCompressionInterval = prefixCompression.compressionInterval,
             prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
           )
 
-        internalConfig.prefixCompressionResetCount shouldBe 0
+        internalConfig.prefixCompressionInterval shouldBe 0
         internalConfig.normaliseIndex shouldBe true
       }
     }
@@ -93,7 +93,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             )
           )
 
-        configFromUserConfig.prefixCompressionResetCount shouldBe 0
+        configFromUserConfig.prefixCompressionInterval shouldBe 0
         configFromUserConfig.normaliseIndex shouldBe true
 
         //internal creation
@@ -101,14 +101,14 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           SortedIndexBlock.Config(
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is disabled, normaliseIndex will always return true.
-            prefixCompressionResetCount = 0 - randomIntMax(10),
+            prefixCompressionInterval = 0 - randomIntMax(10),
             prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
             compressions = _ => randomCompressions()
           )
 
-        internalConfig.prefixCompressionResetCount shouldBe 0
+        internalConfig.prefixCompressionInterval shouldBe 0
         internalConfig.normaliseIndex shouldBe true
       }
     }

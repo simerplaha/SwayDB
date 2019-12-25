@@ -39,8 +39,8 @@ class HigherSpec extends WordSpec with Matchers {
 
   "higherFromValue" in {
     runThis(100.times) {
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.None) shouldBe empty
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.None) shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.Null) shouldBe empty
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.Null) shouldBe empty
 
       Higher.higherFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
       Higher.higherFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty

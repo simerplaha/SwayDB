@@ -98,10 +98,10 @@ private[core] object DeadlineAndFunctionId {
               minMaxFunctionId = MinMax.minMaxFunction(fromValue, rangeValue, minMaxFunctionId)
             )
 
-          case (Value.FromValue.None, rangeValue) =>
+          case (Value.FromValue.Null, rangeValue) =>
             DeadlineAndFunctionId(
               deadline = getNearestDeadline(deadline, rangeValue),
-              minMaxFunctionId = MinMax.minMaxFunction(Value.FromValue.None, rangeValue, minMaxFunctionId)
+              minMaxFunctionId = MinMax.minMaxFunction(Value.FromValue.Null, rangeValue, minMaxFunctionId)
             )
         }
     }

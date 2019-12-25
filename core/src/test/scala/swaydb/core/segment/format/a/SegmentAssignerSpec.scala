@@ -88,7 +88,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
     }
 
     "assign KeyValues to second Segment when none of the keys belong to the first Segment" in {
-      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.None, Value.remove(10.seconds.fromNow))))
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(10.seconds.fromNow))))
       val segment2 = TestSegment(Slice(Memory.put(10)))
       val segments = Seq(segment1, segment2)
 
@@ -117,7 +117,7 @@ sealed trait SegmentAssignerSpec extends TestBase {
         Slice(
           Memory.put(1, 1),
           Memory.put(15),
-          Memory.Range(16, 20, Value.FromValue.None, Value.update(16))
+          Memory.Range(16, 20, Value.FromValue.Null, Value.update(16))
         )
 
       val result = SegmentAssigner.assignUnsafe(keyValues, segments)
@@ -151,13 +151,13 @@ sealed trait SegmentAssignerSpec extends TestBase {
 
     "assign gap Range KeyValue to all Segments that fall within the Range's toKey" in {
       // 1 - 10(exclusive)
-      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.None, Value.remove(None))))
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(2, 10, Value.FromValue.Null, Value.remove(None))))
       // 20 - 20
       val segment2 = TestSegment(Slice(Memory.remove(20)))
       //21 - 30
-      val segment3 = TestSegment(Slice(Memory.Range(21, 30, Value.FromValue.None, Value.remove(None)), Memory.put(30)))
+      val segment3 = TestSegment(Slice(Memory.Range(21, 30, Value.FromValue.Null, Value.remove(None)), Memory.put(30)))
       //40 - 60
-      val segment4 = TestSegment(Slice(Memory.remove(40), Memory.Range(41, 50, Value.FromValue.None, Value.remove(None)), Memory.put(60)))
+      val segment4 = TestSegment(Slice(Memory.remove(40), Memory.Range(41, 50, Value.FromValue.Null, Value.remove(None)), Memory.put(60)))
       //70 - 80
       val segment5 = TestSegment(Slice(Memory.put(70), Memory.remove(80)))
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)
@@ -172,8 +172,8 @@ sealed trait SegmentAssignerSpec extends TestBase {
       def assertResult(assignments: mutable.Map[Segment, Slice[KeyValue]]) = {
         assignments.size shouldBe 3
         assignments.find(_._1 == segment2).value._2 should contain only Memory.Range(15, 21, Value.remove(None), Value.update(10))
-        assignments.find(_._1 == segment3).value._2 should contain only Memory.Range(21, 40, Value.FromValue.None, Value.update(10))
-        assignments.find(_._1 == segment4).value._2 should contain only Memory.Range(40, 50, Value.FromValue.None, Value.update(10))
+        assignments.find(_._1 == segment3).value._2 should contain only Memory.Range(21, 40, Value.FromValue.Null, Value.update(10))
+        assignments.find(_._1 == segment4).value._2 should contain only Memory.Range(40, 50, Value.FromValue.Null, Value.update(10))
       }
 
       assertResult(SegmentAssigner.assignUnsafe(keyValues, segments))
@@ -209,16 +209,16 @@ sealed trait SegmentAssignerSpec extends TestBase {
         assignments =>
           assignments.size shouldBe 3
           assignments.find(_._1 == segment1).value._2 should contain only Memory.Range(0, 4, Value.put(0), Value.remove(None))
-          assignments.find(_._1 == segment2).value._2 should contain only Memory.Range(4, 6, Value.FromValue.None, Value.remove(None))
-          assignments.find(_._1 == segment3).value._2 should contain only Memory.Range(6, 20, Value.FromValue.None, Value.remove(None))
+          assignments.find(_._1 == segment2).value._2 should contain only Memory.Range(4, 6, Value.FromValue.Null, Value.remove(None))
+          assignments.find(_._1 == segment3).value._2 should contain only Memory.Range(6, 20, Value.FromValue.Null, Value.remove(None))
       }
     }
 
     "debugger" in {
-      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.None, Value.update(Slice.Null, None))))
-      val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.None, Value.update(Slice.Null, None))))
-      val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, Value.FromValue.None, Value.update(Slice.Null, None))))
-      val segment4 = TestSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, Value.FromValue.None, Value.update(Slice.Null, None))))
+      val segment1 = TestSegment(Slice(Memory.put(1), Memory.Range(26074, 26075, Value.FromValue.Null, Value.update(Slice.Null, None))))
+      val segment2 = TestSegment(Slice(Memory.put(26075), Memory.Range(28122, 28123, Value.FromValue.Null, Value.update(Slice.Null, None))))
+      val segment3 = TestSegment(Slice(Memory.put(28123), Memory.Range(32218, 32219, Value.FromValue.Null, Value.update(Slice.Null, None))))
+      val segment4 = TestSegment(Slice(Memory.put(32219), Memory.Range(40410, 40411, Value.FromValue.Null, Value.update(Slice.Null, None))))
       val segment5 = TestSegment(Slice(Memory.put(74605), Memory.put(100000)))
 
       val segments = Seq(segment1, segment2, segment3, segment4, segment5)

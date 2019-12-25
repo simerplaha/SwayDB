@@ -770,7 +770,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
       if (inMemory)
         Segment.copyToMemory(
-          keyValues = map.skipList.values().asScala,
+          keyValues = map.skipList.values().iterator().asScala,
           pathsDistributor = pathDistributor,
           removeDeletes = removeDeletedRecords,
           minSegmentSize = segmentSize,
@@ -1250,7 +1250,7 @@ private[core] case class Level(dirs: Seq[Dir],
         segment =>
           LevelSeek(
             segmentId = segment.segmentId,
-            result = segment.lower(key, readState).toOptions
+            result = segment.lower(key, readState).toOptional
           )
       }
 
@@ -1289,7 +1289,7 @@ private[core] case class Level(dirs: Seq[Dir],
       case segment: Segment =>
         LevelSeek(
           segmentId = segment.segmentId,
-          result = segment.higher(key, readState).toOptions
+          result = segment.higher(key, readState).toOptional
         )
 
       case Segment.Null =>
@@ -1301,7 +1301,7 @@ private[core] case class Level(dirs: Seq[Dir],
       case segment: Segment =>
         LevelSeek(
           segmentId = segment.segmentId,
-          result = segment.higher(key, readState).toOptions
+          result = segment.higher(key, readState).toOptional
         )
 
       case Segment.Null =>

@@ -289,7 +289,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReaderNullable = blocks.valuesReader.orNull
-              ).toOptions
+              ).toOptional
 
             keyValue match {
               case fixed: Memory.Fixed =>

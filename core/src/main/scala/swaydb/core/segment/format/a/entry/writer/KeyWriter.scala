@@ -39,7 +39,7 @@ private[a] object KeyWriter extends KeyWriter {
   def write[T <: Memory](current: T,
                          builder: EntryWriter.Builder,
                          deadlineId: BaseEntryId.Deadline)(implicit binder: MemoryToKeyValueIdBinder[T]): Unit =
-    when[MemoryOptional](builder.enablePrefixCompression, Memory.Null)(builder.previous) flatMapOptionS {
+    when[MemoryOptional](builder.enablePrefixCompressionForCurrentWrite, Memory.Null)(builder.previous) flatMapOptionS {
       previous =>
         writeCompressed(
           current = current,

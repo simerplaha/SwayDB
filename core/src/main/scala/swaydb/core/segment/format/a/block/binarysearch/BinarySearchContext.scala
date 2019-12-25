@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block.KeyMatcher.Get
+import swaydb.core.segment.format.a.block.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{KeyMatcher, SortedIndexBlock, ValuesBlock}
 import swaydb.data.order.KeyOrder
@@ -48,17 +49,20 @@ object BinarySearchContext {
     new BinarySearchContext {
       val matcher: Get.MatchOnly = KeyMatcher.Get.MatchOnly(key)
 
-      override val targetKey = key
+//      println
+//      println(s"Matcher: ${key.readInt()}")
 
-      override val bytesPerValue: Int = binarySearchIndex.block.bytesPerValue
+      override def targetKey = key
 
-      override val isFullIndex: Boolean = binarySearchIndex.block.isFullIndex
+      override def bytesPerValue: Int = binarySearchIndex.block.bytesPerValue
 
-      override val valuesCount: Int = binarySearchIndex.block.valuesCount
+      override def isFullIndex: Boolean = binarySearchIndex.block.isFullIndex
 
-      override val lowestKeyValue: PersistentOptional = lowest
+      override def valuesCount: Int = binarySearchIndex.block.valuesCount
 
-      override val highestKeyValue: PersistentOptional = highest
+      override def lowestKeyValue: PersistentOptional = lowest
+
+      override def highestKeyValue: PersistentOptional = highest
 
       override def seek(offset: Int): KeyMatcher.Result = {
         val partialKeyValue =
@@ -69,8 +73,23 @@ object BinarySearchContext {
             sortedIndex = sortedIndex,
             valuesNullable = valuesNullable
           )
-        //todo - hasMore should be calculated.
-        matcher(previous = partialKeyValue, next = Persistent.Partial.Null, hasMore = true)
+
+        //                  binarySearchIndex
+        //                    .moveTo(offset)
+        //                    .readUnsignedInt()
+
+        //        KeyOrder.default.equiv(key, key)
+        //        //todo - hasMore should be calculated.
+        //        matcher(previous = partialKeyValue, next = Persistent.Partial.Null, hasMore = true)
+        //                  KeyMatcher.Result.aheadOrNoneOrEndNone
+
+        val matchResult = ordering.compare(key, partialKeyValue.key)
+        if (matchResult == 0)
+          new Matched(Persistent.Partial.Null, partialKeyValue, Persistent.Partial.Null)
+        else if (matchResult > 0)
+          new BehindStopped(partialKeyValue)
+        else
+          KeyMatcher.Result.aheadOrNoneOrEndNone
       }
     }
 
@@ -83,17 +102,17 @@ object BinarySearchContext {
     new BinarySearchContext {
       val matcher: Get.MatchOnly = KeyMatcher.Get.MatchOnly(key)
 
-      override val targetKey = key
+      override def targetKey = key
 
-      override val bytesPerValue: Int = sortedIndex.block.segmentMaxIndexEntrySize
+      override def bytesPerValue: Int = sortedIndex.block.segmentMaxIndexEntrySize
 
-      override val isFullIndex: Boolean = true
+      override def isFullIndex: Boolean = true
 
-      override val valuesCount: Int = keyValuesCount
+      override def valuesCount: Int = keyValuesCount
 
-      override val lowestKeyValue: PersistentOptional = lowest
+      override def lowestKeyValue: PersistentOptional = lowest
 
-      override val highestKeyValue: PersistentOptional = highest
+      override def highestKeyValue: PersistentOptional = highest
 
       override def seek(offset: Int): KeyMatcher.Result = {
         val partialKeyValue =

@@ -35,19 +35,19 @@ import scala.reflect.ClassTag
 
 private[core] object Map extends LazyLogging {
 
-  def persistent[OK, OV, K <: OK, V <: OV : ClassTag](nullKey: OK,
-                                                      nullValue: OV,
-                                                      folder: Path,
-                                                      mmap: Boolean,
-                                                      flushOnOverflow: Boolean,
-                                                      fileSize: Long,
-                                                      dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                                                         functionStore: FunctionStore,
-                                                                                         fileSweeper: FileSweeper,
-                                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                         reader: MapEntryReader[MapEntry[K, V]],
-                                                                                         skipListMerge: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] =
+  def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
+                                           nullValue: OV,
+                                           folder: Path,
+                                           mmap: Boolean,
+                                           flushOnOverflow: Boolean,
+                                           fileSize: Long,
+                                           dropCorruptedTailEntries: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                                              functionStore: FunctionStore,
+                                                                              fileSweeper: FileSweeper,
+                                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                              reader: MapEntryReader[MapEntry[K, V]],
+                                                                              skipListMerge: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -58,18 +58,18 @@ private[core] object Map extends LazyLogging {
       nullValue = nullValue
     )
 
-  def persistent[OK, OV, K <: OK, V <: OV : ClassTag](nullKey: OK,
-                                                      nullValue: OV,
-                                                      folder: Path,
-                                                      mmap: Boolean,
-                                                      flushOnOverflow: Boolean,
-                                                      fileSize: Long)(implicit keyOrder: KeyOrder[K],
-                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                      functionStore: FunctionStore,
-                                                                      fileSweeper: FileSweeper,
-                                                                      reader: MapEntryReader[MapEntry[K, V]],
-                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                      skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] =
+  def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
+                                           nullValue: OV,
+                                           folder: Path,
+                                           mmap: Boolean,
+                                           flushOnOverflow: Boolean,
+                                           fileSize: Long)(implicit keyOrder: KeyOrder[K],
+                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                           functionStore: FunctionStore,
+                                                           fileSweeper: FileSweeper,
+                                                           reader: MapEntryReader[MapEntry[K, V]],
+                                                           writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                           skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] =
     PersistentMap(
       folder = folder,
       mmap = mmap,
@@ -79,14 +79,14 @@ private[core] object Map extends LazyLogging {
       nullValue = nullValue
     )
 
-  def memory[OK, OV, K <: OK, V <: OV : ClassTag](nullKey: OK,
-                                                  nullValue: OV,
-                                                  fileSize: Long = 0.byte,
-                                                  flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
-                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                   functionStore: FunctionStore,
-                                                                                   skipListMerge: SkipListMerger[OK, OV, K, V],
-                                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[OK, OV, K, V] =
+  def memory[OK, OV, K <: OK, V <: OV](nullKey: OK,
+                                       nullValue: OV,
+                                       fileSize: Long = 0.byte,
+                                       flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
+                                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                                        functionStore: FunctionStore,
+                                                                        skipListMerge: SkipListMerger[OK, OV, K, V],
+                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[OK, OV, K, V] =
     new MemoryMap[OK, OV, K, V](
       skipList = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder),
       flushOnOverflow = flushOnOverflow,

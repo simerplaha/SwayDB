@@ -39,7 +39,7 @@ class MergeListSpec extends WordSpec with Matchers {
   "MergeList" should {
     //mutate the state of this List and assert.
     var list = MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](1, 2, 3))
-    val range = Memory.Range(1, 2, FromValue.None, Value.update(1))
+    val range = Memory.Range(1, 2, FromValue.Null, Value.update(1))
 
     "store key-values" in {
       list.depth shouldBe 1
@@ -126,7 +126,7 @@ class MergeListSpec extends WordSpec with Matchers {
         MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](5, 6)) append
         MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](7, 8))
 
-    val range = Memory.Range(1, 2, FromValue.None, Value.update(1))
+    val range = Memory.Range(1, 2, FromValue.Null, Value.update(1))
 
     "store key-values" in {
       list.depth shouldBe 4
