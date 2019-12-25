@@ -166,6 +166,8 @@ private[core] object KeyValue {
 private[swaydb] sealed trait MemoryOptional extends SomeOrNone[MemoryOptional, Memory] with KeyValueOptional {
   override def noneS: MemoryOptional = Memory.Null
 
+  override def self = this
+
   override def getUnsafe: KeyValue =
     getS
 }
@@ -571,6 +573,8 @@ private[swaydb] object Memory {
 
 private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptional, Persistent] with KeyValueOptional {
   override def noneS: PersistentOptional = Persistent.Null
+
+  override def self = this
 
   def asPartial: Persistent.PartialOptional =
     if (this.isSomeS)

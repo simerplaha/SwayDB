@@ -34,6 +34,8 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
 
   def noneS: T
 
+  def self: T
+
   def isNoneS: Boolean
 
   def getS: SOME
@@ -107,6 +109,13 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
       f(initial, getS)
     else
       initial
+
+  def sizeEffect(f: SOME => Unit): T = {
+    if (isSomeS)
+      f(getS)
+
+    self
+  }
 }
 
 private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] {

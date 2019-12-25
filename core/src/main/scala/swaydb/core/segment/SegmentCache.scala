@@ -97,9 +97,9 @@ private[core] class SegmentCache(path: Path,
    * reverse iterations are slower than forward.
    */
   private def addToCache(keyValue: Persistent): Unit = {
-    if (unsliceKey) keyValue.unsliceKeys
     skipList foreach {
       skipList =>
+        if (unsliceKey) keyValue.unsliceKeys
         if (skipList.putIfAbsent(keyValue.key, keyValue))
           keyValueMemorySweeper.foreach(_.add(keyValue, skipList))
     }
@@ -129,7 +129,7 @@ private[core] class SegmentCache(path: Path,
                   end: => PersistentOptional,
                   hasRange: Boolean,
                   keyValueCount: Int,
-                  readState: ReadState): PersistentOptional =
+                  readState: ReadState): PersistentOptional = {
     SegmentSearcher.search(
       path = path,
       key = key,
@@ -142,14 +142,8 @@ private[core] class SegmentCache(path: Path,
       valuesReaderNullable = blockCache.createValuesReaderNullable(),
       hasRange = hasRange,
       readState = readState
-    ) match {
-      case resp: Persistent =>
-        addToCache(resp.getS)
-        resp
-
-      case Persistent.Null =>
-        Persistent.Null
-    }
+    ).sizeEffect(addToCache)
+  }
 
   def get(key: Slice[Byte],
           readState: ReadState): PersistentOptional =
@@ -209,14 +203,7 @@ private[core] class SegmentCache(path: Path,
       binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReaderNullable = blockCache.createValuesReaderNullable()
-    ) match {
-      case resp: Persistent =>
-        addToCache(resp.getS)
-        resp
-
-      case Persistent.Null =>
-        Persistent.Null
-    }
+    ).sizeEffect(addToCache)
 
   private def getForLower(key: Slice[Byte],
                           readState: ReadState): PersistentOptional =
@@ -303,14 +290,7 @@ private[core] class SegmentCache(path: Path,
       binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
       sortedIndexReader = blockCache.createSortedIndexReader(),
       valuesReaderNullable = blockCache.createValuesReaderNullable()
-    ) match {
-      case resp: Persistent =>
-        addToCache(resp.getS)
-        resp
-
-      case Persistent.Null =>
-        Persistent.Null
-    }
+    ).sizeEffect(addToCache)
 
   def higher(key: Slice[Byte],
              readState: ReadState): PersistentOptional =
