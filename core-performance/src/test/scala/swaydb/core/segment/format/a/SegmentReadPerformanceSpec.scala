@@ -90,13 +90,9 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   var segment: Segment = null
 
-  def warmUp() =
-    Benchmark("warm up") {
-      BaseEntryIdFormatA.baseIds.foreach(id => id.getClass)
-    }
 
   def initSegment() = {
-    warmUp()
+    PersistentReader.populateBaseEntryIds()
 
     Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
       segment =
@@ -223,8 +219,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   "Segment value benchmark 1" in {
     initSegment()
-
-    PersistentReader.populateBaseEntryIds()
 
     //    val all = segment.getAll()
 

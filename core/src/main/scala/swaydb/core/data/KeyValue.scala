@@ -650,6 +650,8 @@ private[core] object Persistent {
     def toPersistent: Persistent
     def isPartial: Boolean = true
     def get: Partial = this
+
+    def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete
   }
 
   object Partial {
@@ -665,6 +667,12 @@ private[core] object Persistent {
     trait Fixed extends Persistent.Partial {
       override def getC: Partial = this
       override def isNoneC: Boolean = false
+
+      def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
+        KeyMatcher.Get.matchForBinarySearch(
+          key = key,
+          partialKeyValue = this
+        )
     }
 
     trait Range extends Persistent.Partial {
@@ -673,6 +681,12 @@ private[core] object Persistent {
 
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
+
+      def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
+        KeyMatcher.Get.matchForBinarySearch(
+          key = key,
+          range = this
+        )
     }
   }
 

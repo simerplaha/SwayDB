@@ -89,7 +89,7 @@ object BinarySearchEntryFormat {
           .moveTo(offset)
           .readUnsignedInt()
 
-      SortedIndexBlock.readPartial(
+      SortedIndexBlock.readPartialKeyValue(
         fromOffset = sortedIndexOffsetValue,
         sortedIndexReader = sortedIndex,
         valuesReaderNullable = valuesNullable

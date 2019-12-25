@@ -203,7 +203,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
   }
 
   class IndexEntry(val headerInteger: Int,
-                   val headerIntegerByteSize: Int,
                    val tailBytes: Slice[Byte])
 
   //sortedIndex's byteSize is not know at the time of creation headerSize includes hasCompression
@@ -481,6 +480,24 @@ private[core] object SortedIndexBlock extends LazyLogging {
     )
   }
 
+  def readPartialKeyValue(fromOffset: Int,
+                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                          valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+    val indexEntry =
+      readIndexEntry(
+        keySizeNullable = null,
+        sortedIndexReader = sortedIndexReader moveTo fromOffset
+      )
+
+    PersistentParser.parsePartial(
+      offset = fromOffset,
+      headerInteger = indexEntry.headerInteger,
+      tailBytes = indexEntry.tailBytes,
+      sortedIndex = sortedIndexReader,
+      valuesReaderNullable = valuesReaderNullable
+    )
+  }
+
   private def readKeyValue(previous: Persistent,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
@@ -548,21 +565,19 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       new IndexEntry(
         headerInteger = keySizeNullable,
-        headerIntegerByteSize = Bytes.sizeOfUnsignedInt(keySizeNullable),
         tailBytes = indexEntry
       )
     } else if (sortedIndexReader.block.isBinarySearchable) { //if the reader has a block cache try fetching the bytes required within one seek.
       val indexSize = sortedIndexReader.block.segmentMaxIndexEntrySize
       val bytes = sortedIndexReader.read(sortedIndexReader.block.segmentMaxIndexEntrySize + ByteSizeOf.varInt)
       val reader = Reader(bytes)
-      val (headerInteger, headerIntegerByteSize) = reader.readUnsignedIntWithByteSize()
+      val headerInteger = reader.readUnsignedInt()
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = reader read (indexSize + ByteSizeOf.varInt)
 
       new IndexEntry(
         headerInteger = headerInteger,
-        headerIntegerByteSize = headerIntegerByteSize,
         tailBytes = indexEntry
       )
     } else if (sortedIndexReader.hasBlockCache) {
@@ -590,11 +605,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       new IndexEntry(
         headerInteger = headerInteger,
-        headerIntegerByteSize = headerIntegerByteSize,
         tailBytes = indexEntry
       )
     } else {
-      val (headerInteger, headerIntegerByteSize) = sortedIndexReader.readUnsignedIntWithByteSize()
+      val headerInteger = sortedIndexReader.readUnsignedInt()
       val indexSize = EntryWriter.maxEntrySize(headerInteger, sortedIndexReader.block.enableAccessPositionIndex)
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
@@ -602,28 +616,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       new IndexEntry(
         headerInteger = headerInteger,
-        headerIntegerByteSize = headerIntegerByteSize,
         tailBytes = indexEntry
       )
     }
-
-  def readPartial(fromOffset: Int,
-                  sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
-    sortedIndexReader moveTo fromOffset
-    //try reading entry bytes within one seek.
-    //if the reader has a block cache try fetching the bytes required within one seek.
-    val indexEntry: IndexEntry = readIndexEntry(null, sortedIndexReader)
-
-    sortedIndexReader.moveTo(fromOffset + indexEntry.headerIntegerByteSize)
-
-    BaseEntryApplier.parsePartial(
-      offset = fromOffset,
-      indexEntry = indexEntry,
-      sortedIndex = sortedIndexReader,
-      valuesReaderNullable = valuesReaderNullable
-    )
-  }
 
   def readAll(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],

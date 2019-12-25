@@ -89,6 +89,29 @@ private[core] object KeyMatcher {
     sealed trait MatchOnly extends Bounded {
       def matchOnly: Boolean
     }
+
+    def matchForBinarySearch(key: Slice[Byte],
+                             partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Slice[Byte]]): Result.Complete = {
+      val matchResult = keyOrder.compare(key, partialKeyValue.key)
+      if (matchResult == 0)
+        new Matched(Persistent.Partial.Null, partialKeyValue, Persistent.Partial.Null)
+      else if (matchResult > 0)
+        new BehindStopped(partialKeyValue)
+      else
+        new AheadOrNoneOrEnd(partialKeyValue)
+    }
+
+    def matchForBinarySearch(key: Slice[Byte],
+                             range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Result.Complete = {
+      val fromKeyMatch = keyOrder.compare(key, range.fromKey)
+      val toKeyMatch = keyOrder.compare(key, range.toKey)
+      if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
+        new Matched(Persistent.Partial.Null, range, Persistent.Partial.Null)
+      else if (toKeyMatch >= 0)
+        new BehindStopped(range)
+      else
+        new AheadOrNoneOrEnd(range)
+    }
   }
 
   //private to disallow creating hashIndex Get from here.

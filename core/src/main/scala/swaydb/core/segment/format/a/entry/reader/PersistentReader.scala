@@ -100,7 +100,7 @@ object PersistentReader {
                             hasAccessPositionIndex: Boolean,
                             valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
-    val baseId = binder.keyValueId.adjustKeyValueIdToBaseId(keyValueId)
+    val baseId = binder.keyValueId adjustKeyValueIdToBaseId keyValueId
 
     val sortedIndexAccessPosition =
       if (hasAccessPositionIndex)
