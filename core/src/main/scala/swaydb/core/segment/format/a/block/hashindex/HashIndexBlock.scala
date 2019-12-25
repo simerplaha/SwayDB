@@ -381,16 +381,10 @@ private[core] object HashIndexBlock extends LazyLogging {
           if (partialKeyValueNullable == null) {
             //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${entry.take(bytesRead).exists(_ == 0)} = failed")
             doFind(probe + 1)
+          } else if (partialKeyValueNullable matchForHashIndex key) {
+            partialKeyValueNullable
           } else {
-            partialKeyValueNullable.matchForSecondaryIndexes(key) match {
-              case matched: Result.Matched =>
-                //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
-                matched.result
-
-              case _: Result.Behind | _: Result.AheadOrNoneOrEnd =>
-                //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = Behind || Ahead || None || End")
-                doFind(probe + 1)
-            }
+            doFind(probe + 1)
           }
         }
       }
@@ -508,16 +502,10 @@ private[core] object HashIndexBlock extends LazyLogging {
 
           if (partialKeyValueNullable == null)
             doFind(probe + 1)
+          else if (partialKeyValueNullable matchForHashIndex key)
+            partialKeyValueNullable
           else
-            partialKeyValueNullable.matchForSecondaryIndexes(key) match {
-              case matched: Result.Matched =>
-                //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
-                matched.result
-
-              case _: Result.Behind | _: Result.AheadOrNoneOrEnd =>
-                //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = Behind || Ahead || None || End")
-                doFind(probe + 1)
-            }
+            doFind(probe + 1)
         }
       }
 

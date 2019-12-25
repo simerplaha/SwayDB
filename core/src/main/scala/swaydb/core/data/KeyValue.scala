@@ -651,7 +651,9 @@ private[core] object Persistent {
     def isPartial: Boolean = true
     def get: Partial = this
 
-    def matchForSecondaryIndexes(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete
+    def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete
+
+    def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean
   }
 
   object Partial {
@@ -665,8 +667,14 @@ private[core] object Persistent {
       override def getC: Partial = this
       override def isNoneC: Boolean = false
 
-      def matchForSecondaryIndexes(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
+      def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
         KeyMatcher.Get.matchForBinarySearch(
+          key = key,
+          partialKeyValue = this
+        )
+
+      def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+        KeyMatcher.Get.matchForHashIndex(
           key = key,
           partialKeyValue = this
         )
@@ -679,8 +687,14 @@ private[core] object Persistent {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
 
-      def matchForSecondaryIndexes(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
+      def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
         KeyMatcher.Get.matchForBinarySearch(
+          key = key,
+          range = this
+        )
+
+      def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+        KeyMatcher.Get.matchForHashIndex(
           key = key,
           range = this
         )

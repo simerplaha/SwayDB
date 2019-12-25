@@ -112,6 +112,17 @@ private[core] object KeyMatcher {
       else
         new AheadOrNoneOrEnd(range)
     }
+
+    def matchForHashIndex(key: Slice[Byte],
+                          partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
+      keyOrder.equiv(key, partialKeyValue.key)
+
+    def matchForHashIndex(key: Slice[Byte],
+                          range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+      val fromKeyMatch = keyOrder.compare(key, range.fromKey)
+      val toKeyMatch = keyOrder.compare(key, range.toKey)
+      fromKeyMatch >= 0 && toKeyMatch < 0
+    }
   }
 
   //private to disallow creating hashIndex Get from here.
