@@ -90,7 +90,6 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   var segment: Segment = null
 
-
   def initSegment() = {
     PersistentReader.populateBaseEntryIds()
 
@@ -126,17 +125,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
               compressions = _ => Seq.empty
             ),
-          //          hashIndexConfig =
-          //            HashIndexBlock.Config(
-          //              maxProbe = 5,
-          //              format = HashIndexEntryFormat.Reference,
-          //              minimumNumberOfKeys = 5,
-          //              minimumNumberOfHits = 5,
-          //              allocateSpace = _.requiredSpace * 2,
-          //              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-          //              compressions = _ => Seq.empty
-          //            ),
-          hashIndexConfig = HashIndexBlock.Config.disabled,
+          hashIndexConfig =
+            HashIndexBlock.Config(
+              maxProbe = 5,
+              format = HashIndexEntryFormat.Reference,
+              minimumNumberOfKeys = 5,
+              minimumNumberOfHits = 5,
+              allocateSpace = _.requiredSpace * 2,
+              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+              compressions = _ => Seq.empty
+            ),
+          //          hashIndexConfig = HashIndexBlock.Config.disabled,
           bloomFilterConfig =
             BloomFilterBlock.Config.disabled,
           //        BloomFilterBlock.Config(

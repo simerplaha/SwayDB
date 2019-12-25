@@ -41,10 +41,10 @@ sealed trait HashIndexEntryFormat {
   def bytesToAllocatePerEntry(largestIndexOffset: Int,
                               largestMergedKeySize: Int): Int
 
-  def read(entry: Slice[Byte],
-           hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-           sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-           valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Maybe[Persistent.Partial]
+  def readNullable(entry: Slice[Byte],
+                   hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                   sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
 
 object HashIndexEntryFormat {
@@ -74,24 +74,21 @@ object HashIndexEntryFormat {
               bytes: Slice[Byte]): Unit =
       bytes addNonZeroUnsignedInt (indexOffset + 1)
 
-    override def read(entry: Slice[Byte],
-                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                      sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Maybe[Persistent.Partial] = {
+    override def readNullable(entry: Slice[Byte],
+                              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                              sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                              valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val (possibleOffset, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(entry)
       //      //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
       if (possibleOffset == 0 || entry.existsFor(bytesRead, _ == Bytes.zero)) {
         ////println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${possibleValueWithoutHeader.take(bytesRead).exists(_ == 0)} = failed")
-        Persistent.Partial.noneMaybe
+        null
       } else {
-        val partialKeyValue =
-          SortedIndexBlock.readPartialKeyValue(
-            fromOffset = possibleOffset - 1,
-            sortedIndexReader = sortedIndex,
-            valuesReaderNullable = valuesNullable
-          )
-
-        Maybe.some(partialKeyValue)
+        SortedIndexBlock.readPartialKeyValue(
+          fromOffset = possibleOffset - 1,
+          sortedIndexReader = sortedIndex,
+          valuesReaderNullable = valuesNullable
+        )
       }
     }
   }
@@ -127,10 +124,10 @@ object HashIndexEntryFormat {
       crc
     }
 
-    override def read(entry: Slice[Byte],
-                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                      sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Maybe[Persistent.Partial] =
+    override def readNullable(entry: Slice[Byte],
+                              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                              sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                              valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
       try {
         val reader = Reader(entry)
         val keySize = reader.readUnsignedInt()
@@ -141,51 +138,49 @@ object HashIndexEntryFormat {
         val readCRC = reader.readUnsignedLong()
 
         if (readCRC == -1 || readCRC < hashIndexReader.block.minimumCRC || readCRC != CRC32.forBytes(entry.take(entrySize))) {
-          Persistent.Partial.noneMaybe
+          null
         } else {
           //create a temporary partially read key-value for matcher.
-          val partialKeyValue =
-            if (keyType == Memory.Range.id)
-              new Partial.Range {
-                val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
+          if (keyType == Memory.Range.id)
+            new Partial.Range {
+              val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
-                override def indexOffset: Int =
-                  indexOffset_
+              override def indexOffset: Int =
+                indexOffset_
 
-                override def key: Slice[Byte] =
-                  fromKey
+              override def key: Slice[Byte] =
+                fromKey
 
-                override def toPersistent: Persistent =
-                  SortedIndexBlock.read(
-                    fromOffset = indexOffset,
-                    sortedIndexReader = sortedIndex,
-                    valuesReaderNullable = valuesNullable
-                  )
-              }
-            else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
-              new Partial.Fixed {
-                override def indexOffset: Int =
-                  indexOffset_
+              override def toPersistent: Persistent =
+                SortedIndexBlock.read(
+                  fromOffset = indexOffset,
+                  sortedIndexReader = sortedIndex,
+                  valuesReaderNullable = valuesNullable
+                )
+            }
+          else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
+            new Partial.Fixed {
+              override def indexOffset: Int =
+                indexOffset_
 
-                override def key: Slice[Byte] =
-                  entryKey
+              override def key: Slice[Byte] =
+                entryKey
 
-                override def toPersistent: Persistent =
-                  SortedIndexBlock.read(
-                    fromOffset = indexOffset,
-                    sortedIndexReader = sortedIndex,
-                    valuesReaderNullable = valuesNullable
-                  )
-              }
-            else
-              Persistent.Partial.noneMaybe
+              override def toPersistent: Persistent =
+                SortedIndexBlock.read(
+                  fromOffset = indexOffset,
+                  sortedIndexReader = sortedIndex,
+                  valuesReaderNullable = valuesNullable
+                )
+            }
+          else
+            null
 
-          Maybe.some(partialKeyValue)
         }
       } catch {
         case _: ArrayIndexOutOfBoundsException =>
           //println("ArrayIndexOutOfBoundsException")
-          Persistent.Partial.noneMaybe
+          null
       }
   }
 

@@ -129,7 +129,7 @@ private[core] class SegmentCache(path: Path,
                   end: => PersistentOptional,
                   hasRange: Boolean,
                   keyValueCount: Int,
-                  readState: ReadState): PersistentOptional = {
+                  readState: ReadState): PersistentOptional =
     SegmentSearcher.search(
       path = path,
       key = key,
@@ -143,7 +143,6 @@ private[core] class SegmentCache(path: Path,
       hasRange = hasRange,
       readState = readState
     ).sizeEffect(addToCache)
-  }
 
   def get(key: Slice[Byte],
           readState: ReadState): PersistentOptional =

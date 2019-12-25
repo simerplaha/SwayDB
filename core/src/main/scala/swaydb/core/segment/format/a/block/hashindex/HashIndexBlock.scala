@@ -346,8 +346,6 @@ private[core] object HashIndexBlock extends LazyLogging {
 
     val block = hashIndexReader.block
 
-    val matcher = KeyMatcher.Get(key)
-
     @tailrec
     def doFind(probe: Int): Persistent.PartialOptional =
       if (probe >= block.maxProbe) {
@@ -372,23 +370,19 @@ private[core] object HashIndexBlock extends LazyLogging {
         } else {
           val entry = possibleValueBytes.dropHead()
           //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
-          val partialKeyValueMaybe =
-            block.format.read(
+          val partialKeyValueNullable =
+            block.format.readNullable(
               entry = entry,
               hashIndexReader = hashIndexReader,
               sortedIndex = sortedIndexReader,
               valuesNullable = valuesReaderNullable
             )
 
-          if (partialKeyValueMaybe.isNone) {
+          if (partialKeyValueNullable == null) {
             //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${entry.take(bytesRead).exists(_ == 0)} = failed")
             doFind(probe + 1)
           } else {
-            matcher(
-              previous = partialKeyValueMaybe,
-              next = Persistent.Partial.Null,
-              hasMore = true
-            ) match {
+            partialKeyValueNullable.matchForSecondaryIndexes(key) match {
               case matched: Result.Matched =>
                 //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
                 matched.result
@@ -482,8 +476,6 @@ private[core] object HashIndexBlock extends LazyLogging {
 
     val block = hasIndexReader.block
 
-    val matcher = KeyMatcher.Get(key)
-
     @tailrec
     def doFind(probe: Int): Persistent.PartialOptional =
       if (probe >= block.maxProbe) {
@@ -506,22 +498,18 @@ private[core] object HashIndexBlock extends LazyLogging {
           //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe = failure - invalid start offset.")
           doFind(probe + 1)
         } else {
-          val partialKeyValueMaybe: Maybe[Persistent.Partial] =
-            block.format.read(
+          val partialKeyValueNullable: Persistent.Partial =
+            block.format.readNullable(
               entry = entry,
               hashIndexReader = hasIndexReader,
               sortedIndex = sortedIndexReader,
               valuesNullable = valuesReaderNullable
             )
 
-          if (partialKeyValueMaybe.isNone)
+          if (partialKeyValueNullable == null)
             doFind(probe + 1)
           else
-            matcher(
-              previous = partialKeyValueMaybe,
-              next = Persistent.Partial.Null,
-              hasMore = true
-            ) match {
+            partialKeyValueNullable.matchForSecondaryIndexes(key) match {
               case matched: Result.Matched =>
                 //println(s"Key: ${key.readInt()}: Found: ${partialKeyValueMaybe.key} = success")
                 matched.result

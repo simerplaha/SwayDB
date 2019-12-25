@@ -65,7 +65,7 @@ object BinarySearchContext {
           binarySearchIndex = binarySearchIndex,
           sortedIndex = sortedIndex,
           valuesNullable = valuesNullable
-        ).matchForBinarySearch(key)
+        ).matchForSecondaryIndexes(key)
     }
 
   def apply(key: Slice[Byte],
@@ -93,6 +93,6 @@ object BinarySearchContext {
           fromOffset = offset,
           sortedIndexReader = sortedIndex,
           valuesReaderNullable = valuesNullable
-        ).matchForBinarySearch(key)
+        ).matchForSecondaryIndexes(key)
     }
 }
