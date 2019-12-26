@@ -114,15 +114,14 @@ private[core] class SegmentCache(path: Path,
         Persistent.Null
     }
 
-  def mightContain(key: Slice[Byte]): Boolean =
-    NullOps.forall(
-      blockCache.createBloomFilterReaderNullable(),
-      (bloomFilterReader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]) =>
-        BloomFilterBlock.mightContain(
-          key = key,
-          reader = bloomFilterReader
-        )
-    )
+  def mightContain(key: Slice[Byte]): Boolean = {
+    val bloomFilterReader = blockCache.createBloomFilterReaderNullable()
+    bloomFilterReader == null ||
+      BloomFilterBlock.mightContain(
+        key = key,
+        reader = bloomFilterReader
+      )
+  }
 
   private def get(key: Slice[Byte],
                   start: PersistentOptional,

@@ -334,9 +334,9 @@ private[core] object BinarySearchIndexBlock {
   //  var maxHop = 0
   //  var minHop = 0
   //  var currentHops = 0
-  //  var binarySeeks = 0
-  //  var binarySuccessfulSeeks = 0
-  //  var binaryFailedSeeks = 0
+  var binarySeeks = 0
+  var binarySuccessfulSeeks = 0
+  var binaryFailedSeeks = 0
   //  var failedWithLower = 0
   //  var sameLower = 0
   //  var greaterLower = 0
@@ -354,7 +354,7 @@ private[core] object BinarySearchIndexBlock {
 
       val mid = start + (end - start) / 2
 
-      context.seek(mid * context.bytesPerValue) match {
+      context.seekAndMatch(mid * context.bytesPerValue) match {
         case matched: KeyMatcher.Result.Matched =>
           return new BinarySearchGetResult.Some(value = matched.result)
 
@@ -390,7 +390,7 @@ private[core] object BinarySearchIndexBlock {
     //          )
     //        )
     //      else
-    //        context.seek(mid * context.bytesPerValue) match {
+    //        context.seekAndMatch(mid * context.bytesPerValue) match {
     //          case matched: KeyMatcher.Result.Matched =>
     //            new BinarySearchGetResult.Some(value = matched.result)
     //
@@ -417,8 +417,6 @@ private[core] object BinarySearchIndexBlock {
       val mid = start + (end - start) / 2
 
       //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
-
-      val valueOffset = mid * context.bytesPerValue
 
       /**
        * if shifting left did not result in a valid lower key-value then reboot binarySearch without shift.
@@ -448,7 +446,7 @@ private[core] object BinarySearchIndexBlock {
           )
         }
       else
-        context.seek(valueOffset) match {
+        context.seekAndMatch(mid * context.bytesPerValue) match {
           case matched: KeyMatcher.Result.Matched =>
             matched.result match {
               case fixed: Persistent.Partial.Fixed =>
@@ -503,7 +501,7 @@ private[core] object BinarySearchIndexBlock {
              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                      partialKeyOrder: KeyOrder[Persistent.Partial]): BinarySearchGetResult =
     if (sortedIndexReader.block.isBinarySearchable) {
-      //      binarySeeks += 1
+      binarySeeks += 1
       binarySearch(
         BinarySearchContext(
           key = key,
@@ -514,8 +512,7 @@ private[core] object BinarySearchIndexBlock {
           valuesNullable = valuesReaderNullable
         )
       )
-    }
-    else if (binarySearchIndexReaderNullable == null)
+    } else if (binarySearchIndexReaderNullable == null) {
       SortedIndexBlock.seekAndMatch(
         key = key,
         startFrom = Persistent.Null,
@@ -528,14 +525,13 @@ private[core] object BinarySearchIndexBlock {
         case Persistent.Null =>
           BinarySearchGetResult.none
       }
-    else
-    //println
-    //println(s"Key: ${key.readInt()}")
-    //          hops = 0
-    //          binarySeeks += 1
-    //          maxHop = maxHop max currentHops
-    //          minHop = minHop min currentHops
-    //          currentHops = 0
+    } else {
+      //println(s"Key: ${key.readInt()}")
+      //          hops = 0
+      binarySeeks += 1
+      //          maxHop = maxHop max currentHops
+      //          minHop = minHop min currentHops
+      //          currentHops = 0
 
       binarySearch(
         BinarySearchContext(
@@ -548,11 +544,11 @@ private[core] object BinarySearchIndexBlock {
         )
       ) match {
         case some: BinarySearchGetResult.Some =>
-          //              binarySuccessfulSeeks += 1
+          binarySuccessfulSeeks += 1
           some
 
         case none: BinarySearchGetResult.None =>
-          //              binaryFailedSeeks += 1
+          binaryFailedSeeks += 1
           if (binarySearchIndexReaderNullable.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
             none
           else
@@ -592,6 +588,7 @@ private[core] object BinarySearchIndexBlock {
                 }
             }
       }
+    }
 
   //it's assumed that input param start will not be a higher value of key.
   def searchHigher(key: Slice[Byte],

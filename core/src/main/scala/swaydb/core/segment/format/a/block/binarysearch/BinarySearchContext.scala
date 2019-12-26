@@ -33,7 +33,7 @@ private[block] trait BinarySearchContext {
   def lowestKeyValue: PersistentOptional
   def highestKeyValue: PersistentOptional
 
-  def seek(offset: Int): KeyMatcher.Result
+  def seekAndMatch(offset: Int): KeyMatcher.Result
 }
 
 object BinarySearchContext {
@@ -58,7 +58,7 @@ object BinarySearchContext {
 
       override def highestKeyValue: PersistentOptional = highest
 
-      override def seek(offset: Int): KeyMatcher.Result =
+      override def seekAndMatch(offset: Int): KeyMatcher.Result =
         binarySearchIndex.block.format.read(
           offset = offset,
           seekSize = binarySearchIndex.block.bytesPerValue,
@@ -88,7 +88,7 @@ object BinarySearchContext {
 
       override def highestKeyValue: PersistentOptional = highest
 
-      override def seek(offset: Int): KeyMatcher.Result =
+      override def seekAndMatch(offset: Int): KeyMatcher.Result =
         SortedIndexBlock.readPartialKeyValue(
           fromOffset = offset,
           sortedIndexReader = sortedIndex,

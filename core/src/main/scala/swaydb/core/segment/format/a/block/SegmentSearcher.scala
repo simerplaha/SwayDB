@@ -32,13 +32,13 @@ import swaydb.data.slice.Slice
 
 private[core] object SegmentSearcher extends LazyLogging {
 
-  //  var seqSeeks = 0
-  //  var successfulSeqSeeks = 0
-  //  var failedSeqSeeks = 0
-  //
-  //  var hashIndexSeeks = 0
-  //  var successfulHashIndexSeeks = 0
-  //  var failedHashIndexSeeks = 0
+  var seqSeeks = 0
+  var successfulSeqSeeks = 0
+  var failedSeqSeeks = 0
+
+  var hashIndexSeeks = 0
+  var successfulHashIndexSeeks = 0
+  var failedHashIndexSeeks = 0
 
   /**
    * Sets read state after successful sequential read.
@@ -137,7 +137,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                                    partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional = {
     val segmentStateOrNull = readState getSegmentStateOrNull path
     if (segmentStateOrNull == null || segmentStateOrNull.isSequential) {
-      //        seqSeeks += 1
+      seqSeeks += 1
       val found =
         if (segmentStateOrNull == null)
           SortedIndexBlock.searchSeekOne(
@@ -157,6 +157,7 @@ private[core] object SegmentSearcher extends LazyLogging {
           )
 
       if (found.isSomeS) { //found is sequential read.
+        successfulSeqSeeks += 1
         setReadStateOnSuccessSequentialRead(
           path = path,
           readState = readState,
@@ -166,7 +167,7 @@ private[core] object SegmentSearcher extends LazyLogging {
 
         found
       } else { //not found via sequential seek.
-        //          failedSeqSeeks += 1
+        failedSeqSeeks += 1
         val found =
           hashIndexSearch(
             key = key,
@@ -229,7 +230,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                                              partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional = {
     val hashIndex = hashIndexReaderNullable
 
-    if (hashIndex == null)
+    if (hashIndex == null) {
       BinarySearchIndexBlock.search(
         key = key,
         lowest = start,
@@ -239,8 +240,8 @@ private[core] object SegmentSearcher extends LazyLogging {
         sortedIndexReader = sortedIndexReader,
         valuesReaderNullable = valuesReaderNullable
       ).toPersistentOptional
-    else {
-      //        hashIndexSeeks += 1
+    } else {
+      hashIndexSeeks += 1
       //println
       //println(s"Search key: ${key.readInt()}")
       HashIndexBlock.search(
@@ -253,7 +254,7 @@ private[core] object SegmentSearcher extends LazyLogging {
           if (hashIndex.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
             Persistent.Null
           } else {
-            //              failedHashIndexSeeks += 1
+            failedHashIndexSeeks += 1
             BinarySearchIndexBlock.search(
               key = key,
               lowest = start,
@@ -266,7 +267,7 @@ private[core] object SegmentSearcher extends LazyLogging {
           }
 
         case keyValue: Persistent.Partial =>
-          //            successfulHashIndexSeeks += 1
+          successfulHashIndexSeeks += 1
           keyValue.toPersistent
       }
     }

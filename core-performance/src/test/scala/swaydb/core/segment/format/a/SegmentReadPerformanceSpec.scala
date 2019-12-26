@@ -73,8 +73,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
   //    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax
-  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
-  //  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
+  //  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
+  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
   implicit val blockCache: Option[BlockCache.State] = TestSweeper.blockCache
 
   implicit val timer = TestTimer.Empty
@@ -91,7 +91,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   var segment: Segment = null
 
   def initSegment() = {
-    PersistentReader.populateBaseEntryIds()
+    //    PersistentReader.populateBaseEntryIds()
 
     Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
       segment =
@@ -125,17 +125,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
               compressions = _ => Seq.empty
             ),
-          hashIndexConfig =
-            HashIndexBlock.Config(
-              maxProbe = 5,
-              format = HashIndexEntryFormat.Reference,
-              minimumNumberOfKeys = 5,
-              minimumNumberOfHits = 5,
-              allocateSpace = _.requiredSpace * 2,
-              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-              compressions = _ => Seq.empty
-            ),
-          //          hashIndexConfig = HashIndexBlock.Config.disabled,
+          //          hashIndexConfig =
+          //            HashIndexBlock.Config(
+          //              maxProbe = 5,
+          //              format = HashIndexEntryFormat.Reference,
+          //              minimumNumberOfKeys = 5,
+          //              minimumNumberOfHits = 5,
+          //              allocateSpace = _.requiredSpace,
+          //              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+          //              compressions = _ => Seq.empty
+          //            ),
+          hashIndexConfig = HashIndexBlock.Config.disabled,
           bloomFilterConfig =
             BloomFilterBlock.Config.disabled,
           //        BloomFilterBlock.Config(
@@ -147,7 +147,14 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           //      ),
           segmentConfig =
             SegmentBlock.Config(
-              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = false),
+              ioStrategy = {
+                case IOAction.OpenResource =>
+                  IOStrategy.ConcurrentIO(cacheOnAccess = true)
+                case IOAction.ReadDataOverview =>
+                  IOStrategy.ConcurrentIO(cacheOnAccess = true)
+                case action: IOAction.DataAction =>
+                  IOStrategy.ConcurrentIO(cacheOnAccess = false)
+              },
               compressions = _ => Seq.empty
             )
         )
@@ -158,8 +165,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     val readState = ReadState.limitHashMap(1)
     shuffledKeyValues foreach {
       keyValue =>
-        //        if (index % 10000 == 0)
-        //          segment.get(shuffledKeyValues.head.key)
+        //        if (keyValue.key.readInt() % 10000 == 0)
+        //          segment.get(shuffledKeyValues.head.key, readState)
         //
         //        val key = keyValue.key.readInt()
         ////        if (key % 1000 == 0)
@@ -283,19 +290,19 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     def printStats() = {
 
-      //      println("seqSeeks: " + SegmentSearcher.seqSeeks)
-      //      println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
-      //      println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
-      //      println
+      println("seqSeeks: " + SegmentSearcher.seqSeeks)
+      println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
+      println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
+      println
       //
-      //      println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
-      //      println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
-      //      println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
-      //      println
+      println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
+      println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
+      println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
+      println
 
-      //      println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
-      //      println("binarySuccessfulSeeks: " + BinarySearchIndexBlock.binarySuccessfulSeeks)
-      //      println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
+      println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
+      println("binarySuccessfulSeeks: " + BinarySearchIndexBlock.binarySuccessfulSeeks)
+      println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
       //      println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
       //      println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
       //      println("sameLower: " + BinarySearchIndexBlock.sameLower)
