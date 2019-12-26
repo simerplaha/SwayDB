@@ -26,7 +26,9 @@ import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.util.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
@@ -40,9 +42,15 @@ private[core] object SegmentCache {
             minKey: Slice[Byte],
             unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
-            segmentIO: SegmentIO)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
+            segmentIO: SegmentIO,
+            valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+            sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+            hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+            binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+            bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
     new SegmentCache(
       path = path,
       maxKey = maxKey,
@@ -69,8 +77,14 @@ private[core] object SegmentCache {
       blockCache =
         SegmentBlockCache(
           path = path,
+          segmentIO = segmentIO,
           blockRef = blockRef,
-          segmentIO = segmentIO
+          valuesReaderCacheable = valuesReaderCacheable,
+          sortedIndexReaderCacheable = sortedIndexReaderCacheable,
+          hashIndexReaderCacheable = hashIndexReaderCacheable,
+          binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
+          bloomFilterReaderCacheable = bloomFilterReaderCacheable,
+          footerCacheable = footerCacheable
         )
     )
 }

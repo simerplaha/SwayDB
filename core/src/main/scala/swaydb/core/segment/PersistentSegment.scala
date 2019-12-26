@@ -30,7 +30,7 @@ import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.{SegmentBlock, _}
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
@@ -52,13 +52,19 @@ object PersistentSegment {
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             segmentSize: Int,
-            nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                     functionStore: FunctionStore,
-                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                     blockCache: Option[BlockCache.State],
-                                                     fileSweeper: FileSweeper.Enabled,
-                                                     segmentIO: SegmentIO): PersistentSegment = {
+            nearestExpiryDeadline: Option[Deadline],
+            valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+            sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+            hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+            binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+            bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              functionStore: FunctionStore,
+                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                              blockCache: Option[BlockCache.State],
+                                                              fileSweeper: FileSweeper.Enabled,
+                                                              segmentIO: SegmentIO): PersistentSegment = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
@@ -69,7 +75,13 @@ object PersistentSegment {
         minKey = minKey,
         segmentIO = segmentIO,
         unsliceKey = true,
-        blockRef = BlockRefReader(file, segmentSize)
+        blockRef = BlockRefReader(file, segmentSize),
+        valuesReaderCacheable = valuesReaderCacheable,
+        sortedIndexReaderCacheable = sortedIndexReaderCacheable,
+        hashIndexReaderCacheable = hashIndexReaderCacheable,
+        binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
+        bloomFilterReaderCacheable = bloomFilterReaderCacheable,
+        footerCacheable = footerCacheable
       )
 
     new PersistentSegment(

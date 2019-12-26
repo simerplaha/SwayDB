@@ -33,7 +33,7 @@ import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
@@ -273,7 +273,13 @@ private[core] object Segment extends LazyLogging {
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
               minMaxFunctionId = segment.minMaxFunctionId,
-              nearestExpiryDeadline = segment.nearestDeadline
+              nearestExpiryDeadline = segment.nearestDeadline,
+              valuesReaderCacheable = segment.valuesUnblockedReader,
+              sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
+              hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
+              binarySearchIndexReaderCacheable = segment.binarySearchUnblockedReader,
+              bloomFilterReaderCacheable = segment.bloomFilterUnblockedReader,
+              footerCacheable = segment.footerUnblocked
             )
           },
       recover =
@@ -492,7 +498,13 @@ private[core] object Segment extends LazyLogging {
       maxKey = maxKey,
       segmentSize = segmentSize,
       minMaxFunctionId = minMaxFunctionId,
-      nearestExpiryDeadline = nearestExpiryDeadline
+      nearestExpiryDeadline = nearestExpiryDeadline,
+      valuesReaderCacheable = None,
+      sortedIndexReaderCacheable = None,
+      hashIndexReaderCacheable = None,
+      binarySearchIndexReaderCacheable = None,
+      bloomFilterReaderCacheable = None,
+      footerCacheable = None
     )
   }
 
@@ -542,7 +554,13 @@ private[core] object Segment extends LazyLogging {
       SegmentBlockCache(
         path = Paths.get("Reading segment"),
         segmentIO = segmentIO,
-        blockRef = refReader
+        blockRef = refReader,
+        valuesReaderCacheable = None,
+        sortedIndexReaderCacheable = None,
+        hashIndexReaderCacheable = None,
+        binarySearchIndexReaderCacheable = None,
+        bloomFilterReaderCacheable = None,
+        footerCacheable = None
       )
 
     val footer = segmentBlockCache.getFooter()
@@ -576,7 +594,13 @@ private[core] object Segment extends LazyLogging {
         },
       minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
       segmentSize = refReader.offset.size,
-      nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline
+      nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
+      valuesReaderCacheable = segmentBlockCache.valuesReaderCacheable,
+      sortedIndexReaderCacheable = segmentBlockCache.sortedIndexReaderCacheable,
+      hashIndexReaderCacheable = segmentBlockCache.hashIndexReaderCacheable,
+      binarySearchIndexReaderCacheable = segmentBlockCache.binarySearchIndexReaderCacheable,
+      bloomFilterReaderCacheable = segmentBlockCache.bloomFilterReaderCacheable,
+      footerCacheable = segmentBlockCache.footerCacheable
     )
   }
 

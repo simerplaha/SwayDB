@@ -68,22 +68,42 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
   /**
    * Return a partial cache with applied configuration which requires the cache body.
    */
-  def getTestCache(isBlockIO: Boolean,
+  def getTestCache(isDeferred: Boolean,
                    isConcurrent: Boolean,
                    isSynchronised: Boolean,
                    isReserved: Boolean,
                    stored: Boolean,
                    initialValue: Option[Int]): ((Unit, Cache[swaydb.Error.Segment, Unit, Int]) => IO[swaydb.Error.Segment, Int]) => Cache[swaydb.Error.Segment, Unit, Int] =
-    if (isBlockIO)
-      Cache.deferredIO(getIOStrategy(isConcurrent, isSynchronised, isReserved, stored), swaydb.Error.ReservedResource(Reserve.free(name = "test")))
+    if (isDeferred)
+      Cache.deferredIO(
+        initial = initialValue,
+        strategy = getIOStrategy(isConcurrent, isSynchronised, isReserved, stored),
+        reserveError = swaydb.Error.ReservedResource(Reserve.free(name = "test"))
+      )
     else if (isConcurrent)
-      Cache.concurrentIO(synchronised = false, stored = stored, initial = initialValue)
+      Cache.concurrentIO(
+        synchronised = false,
+        stored = stored,
+        initial = initialValue
+      )
     else if (isSynchronised)
-      Cache.concurrentIO(synchronised = true, stored = stored, initial = initialValue)
+      Cache.concurrentIO(
+        synchronised = true,
+        stored = stored,
+        initial = initialValue
+      )
     else if (isReserved)
-      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](stored = stored, swaydb.Error.ReservedResource(Reserve.free(name = "test")), initial = initialValue)
+      Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](
+        stored = stored,
+        swaydb.Error.ReservedResource(Reserve.free(name = "test")),
+        initial = initialValue
+      )
     else
-      Cache.io(getIOStrategy(isConcurrent, isSynchronised, isReserved, stored)(()), swaydb.Error.ReservedResource(Reserve.free(name = "test")), initialValue) //then it's strategy IO
+      Cache.io(
+        strategy = getIOStrategy(isConcurrent, isSynchronised, isReserved, stored)(()),
+        reserveError = swaydb.Error.ReservedResource(Reserve.free(name = "test")),
+        initial = initialValue
+      ) //then it's strategy IO
 
   "valueIO" should {
     "always return initial value" in {
@@ -98,20 +118,19 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
   "it" should {
     "fetch data only once on success" in {
-      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
+      def doTest(isDeferredIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
 
         val initialValue = eitherOne(Some(1), None)
 
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true, initialValue = initialValue)((_, _) => mock.apply())
+        val cache = getTestCache(isDeferredIO, isConcurrent, isSynchronised, isReserved, stored = true, initialValue = initialValue)((_, _) => mock.apply())
 
-        if (!isBlockIO)
-          initialValue foreach {
-            initialValue =>
-              cache.isCached shouldBe true
-              cache.getIO().get.get shouldBe initialValue
-              cache.clear()
-          }
+        initialValue foreach {
+          initialValue =>
+            cache.isCached shouldBe true
+            cache.getIO().get.get shouldBe initialValue
+            cache.clear()
+        }
 
         cache.isCached shouldBe false
 
@@ -184,10 +203,10 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "not cache on failure" in {
-      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
+      def doTest(isDeferredIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
 
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true, None)((_, _: Cache[swaydb.Error.Segment, Unit, Int]) => mock.apply())
+        val cache = getTestCache(isDeferredIO, isConcurrent, isSynchronised, isReserved, stored = true, None)((_, _: Cache[swaydb.Error.Segment, Unit, Int]) => mock.apply())
 
         val kaboom = IO.failed("Kaboom!").exception
 
@@ -225,10 +244,21 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "cache on successful map and flatMap" in {
-      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
+      def doTest(isDeferredIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
 
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true, None)((_, _: Cache[swaydb.Error.Segment, Unit, Int]) => mock.apply())
+        val cache =
+          getTestCache(
+            isDeferred = isDeferredIO,
+            isConcurrent = isConcurrent,
+            isSynchronised = isSynchronised,
+            isReserved = isReserved,
+            stored = true,
+            initialValue = None
+          ) {
+            (_, _: Cache[swaydb.Error.Segment, Unit, Int]) =>
+              mock.apply()
+          }
 
         cache.isCached shouldBe false
 
@@ -292,10 +322,18 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     }
 
     "not cache on unsuccessful map and flatMap" in {
-      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
+      def doTest(isDeferredIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
         val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
 
-        val cache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = true, None)((_, _: Cache[swaydb.Error.Segment, Unit, Int]) => mock.apply())
+        val cache =
+          getTestCache(
+            isDeferred = isDeferredIO,
+            isConcurrent = isConcurrent,
+            isSynchronised = isSynchronised,
+            isReserved = isReserved,
+            stored = true,
+            initialValue = None
+          )((_, _: Cache[swaydb.Error.Segment, Unit, Int]) => mock.apply())
 
         cache.isCached shouldBe false
 
@@ -345,9 +383,9 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     }
 
     //    "store cache value on mapStored" in {
-    //      def doTest(isBlockIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
+    //      def doTest(isDeferredIO: Boolean, isConcurrent: Boolean, isSynchronised: Boolean, isReserved: Boolean) = {
     //        val mock = mockFunction[IO[swaydb.Error.Segment, Int]]
-    //        val rootCache = getTestCache(isBlockIO, isConcurrent, isSynchronised, isReserved, stored = false, None)((_, self) => mock.apply())
+    //        val rootCache = getTestCache(isDeferredIO, isConcurrent, isSynchronised, isReserved, stored = false, None)((_, self) => mock.apply())
     //        //ensure rootCache is not stored
     //        mock.expects() returning IO(1)
     //        mock.expects() returning IO(2)
@@ -407,7 +445,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve.free(name = "test"))) {
+              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](None, strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve.free(name = "test"))) {
                 (_, _) =>
                   invokeCount += 1
                   sleep(1.millisecond) //delay access

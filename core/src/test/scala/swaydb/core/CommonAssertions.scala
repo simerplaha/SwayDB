@@ -1468,7 +1468,13 @@ object CommonAssertions {
     SegmentBlockCache(
       path = Paths.get("test"),
       segmentIO = segmentIO,
-      blockRef = BlockRefReader(segment.flattenSegmentBytes)
+      blockRef = BlockRefReader(segment.flattenSegmentBytes),
+      valuesReaderCacheable = segment.valuesUnblockedReader,
+      sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
+      hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
+      binarySearchIndexReaderCacheable = segment.binarySearchUnblockedReader,
+      bloomFilterReaderCacheable = segment.bloomFilterUnblockedReader,
+      footerCacheable = segment.footerUnblocked
     )
 
   def getSegmentBlockCacheFromReader(reader: Reader,
@@ -1476,7 +1482,13 @@ object CommonAssertions {
     SegmentBlockCache(
       path = Paths.get("test-cache"),
       segmentIO = segmentIO,
-      blockRef = BlockRefReader[SegmentBlock.Offset](reader.copy())(SegmentBlockOps)
+      blockRef = BlockRefReader[SegmentBlock.Offset](reader.copy())(SegmentBlockOps),
+      valuesReaderCacheable = None,
+      sortedIndexReaderCacheable = None,
+      hashIndexReaderCacheable = None,
+      binarySearchIndexReaderCacheable = None,
+      bloomFilterReaderCacheable = None,
+      footerCacheable = None
     )
 
   def readAll(reader: Reader)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
@@ -1711,5 +1723,4 @@ object CommonAssertions {
 
         }
     }
-
 }

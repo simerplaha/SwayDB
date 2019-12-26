@@ -98,7 +98,13 @@ private[core] object SegmentBlock extends LazyLogging {
         maxKey = openSegment.maxKey,
         segmentBytes = openSegment.segmentBytes,
         minMaxFunctionId = openSegment.functionMinMax,
-        nearestDeadline = openSegment.nearestDeadline
+        nearestDeadline = openSegment.nearestDeadline,
+        valuesUnblockedReader = openSegment.valuesUnblockedReader,
+        sortedIndexUnblockedReader = openSegment.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = openSegment.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = openSegment.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = openSegment.bloomFilterUnblockedReader,
+        footerUnblocked = openSegment.footerUnblocked
       )
   }
 
@@ -106,7 +112,13 @@ private[core] object SegmentBlock extends LazyLogging {
                val maxKey: MaxKey[Slice[Byte]],
                val segmentBytes: Slice[Slice[Byte]],
                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-               val nearestDeadline: Option[Deadline]) {
+               val nearestDeadline: Option[Deadline],
+               val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+               val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+               val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+               val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+               val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+               val footerUnblocked: Option[SegmentFooterBlock]) {
 
     def isEmpty: Boolean =
       segmentBytes.exists(_.isEmpty)

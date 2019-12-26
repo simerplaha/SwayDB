@@ -123,19 +123,32 @@ private[core] object Cache {
         )(fetch)
     }
 
-  def deferredIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, I, O](strategy: I => IOStrategy,
-                                                                                      reserveError: => ER)(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] =
-    new BlockIOCache[E, I, O](
-      Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = None) {
+  def deferredIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, I, O](initial: Option[O],
+                                                                                      strategy: I => IOStrategy,
+                                                                                      reserveError: => ER)(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] = {
+
+    def innerCache(ioStrategy: IOStrategy, initial: Option[O]): Cache[E, I, O] =
+      Cache.io[E, ER, I, O](
+        strategy = ioStrategy,
+        reserveError = reserveError,
+        initial = initial
+      )(fetch)
+
+    val initialInner: Option[Cache[E, I, O]] =
+      if (initial.isDefined)
+        Some(innerCache(IOStrategy.ConcurrentIO(true), initial))
+      else
+        None
+
+    val cache =
+      Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = initialInner) {
         (i, _) =>
-          val ioStrategy = Functions.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
-          Cache.io[E, ER, I, O](
-            strategy = ioStrategy,
-            reserveError = reserveError,
-            initial = None
-          )(fetch)
+          val ioStrategy: IOStrategy = Functions.safe((_: I) => IOStrategy.SynchronisedIO(false), strategy)(i)
+          innerCache(ioStrategy, None)
       }
-    )
+
+    new DeferredIO[E, I, O](cache)
+  }
 }
 
 /**
@@ -235,7 +248,7 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
     }
 }
 
-private class BlockIOCache[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
+private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cache[E, I, B]]) extends Cache[E, I, B] {
 
   override def isStored: Boolean =
     cache.isStored

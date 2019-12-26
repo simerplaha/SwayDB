@@ -166,7 +166,13 @@ private[core] object Block extends LazyLogging {
         maxKey = openSegment.maxKey,
         segmentBytes = segmentBytes,
         minMaxFunctionId = openSegment.functionMinMax,
-        nearestDeadline = openSegment.nearestDeadline
+        nearestDeadline = openSegment.nearestDeadline,
+        valuesUnblockedReader = openSegment.valuesUnblockedReader,
+        sortedIndexUnblockedReader = openSegment.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = openSegment.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = openSegment.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = openSegment.bloomFilterUnblockedReader,
+        footerUnblocked = openSegment.footerUnblocked
       )
     } else {
       //header is empty so no header bytes are included.
@@ -189,7 +195,13 @@ private[core] object Block extends LazyLogging {
         maxKey = openSegment.maxKey,
         segmentBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),
         minMaxFunctionId = openSegment.functionMinMax,
-        nearestDeadline = openSegment.nearestDeadline
+        nearestDeadline = openSegment.nearestDeadline,
+        valuesUnblockedReader = openSegment.valuesUnblockedReader,
+        sortedIndexUnblockedReader = openSegment.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = openSegment.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = openSegment.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = openSegment.bloomFilterUnblockedReader,
+        footerUnblocked = openSegment.footerUnblocked
       )
     }
 
