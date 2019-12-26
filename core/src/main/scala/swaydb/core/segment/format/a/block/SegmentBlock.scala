@@ -97,11 +97,11 @@ private[core] object SegmentBlock extends LazyLogging {
       )
   }
 
-   class Closed(val minKey: Slice[Byte],
-                val maxKey: MaxKey[Slice[Byte]],
-                val segmentBytes: Slice[Slice[Byte]],
-                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                val nearestDeadline: Option[Deadline]) {
+  class Closed(val minKey: Slice[Byte],
+               val maxKey: MaxKey[Slice[Byte]],
+               val segmentBytes: Slice[Slice[Byte]],
+               val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+               val nearestDeadline: Option[Deadline]) {
 
     def isEmpty: Boolean =
       segmentBytes.exists(_.isEmpty)
@@ -179,12 +179,12 @@ private[core] object SegmentBlock extends LazyLogging {
     }
   }
 
-  private[block] case class ClosedBlocks(sortedIndex: SortedIndexBlock.State,
-                                         values: Option[ValuesBlock.State],
-                                         hashIndex: Option[HashIndexBlock.State],
-                                         binarySearchIndex: Option[BinarySearchIndexBlock.State],
-                                         bloomFilter: Option[BloomFilterBlock.State],
-                                         minMaxFunction: Option[MinMax[Slice[Byte]]]) {
+  private[block] class ClosedBlocks(val sortedIndex: SortedIndexBlock.State,
+                                    val values: Option[ValuesBlock.State],
+                                    val hashIndex: Option[HashIndexBlock.State],
+                                    val binarySearchIndex: Option[BinarySearchIndexBlock.State],
+                                    val bloomFilter: Option[BloomFilterBlock.State],
+                                    val minMaxFunction: Option[MinMax[Slice[Byte]]]) {
     def nearestDeadline: Option[Deadline] = sortedIndex.nearestDeadline
   }
 
@@ -492,7 +492,7 @@ private[core] object SegmentBlock extends LazyLogging {
         }
     }
 
-    ClosedBlocks(
+    new ClosedBlocks(
       sortedIndex = sortedIndexState,
       values = valuesState,
       hashIndex = hashIndex.flatMap(HashIndexBlock.close),
