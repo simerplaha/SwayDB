@@ -187,85 +187,91 @@ object SegmentFooterBlock {
     val footerSize = segmentBlockSize - footerStartOffset
     val footerBytes = fullFooterBytes.moveTo(fullFooterBytes.size - footerSize).readRemaining()
     val actualCRC = CRC32.forBytes(footerBytes dropRight ByteSizeOf.long) //drop crc bytes.
-    if (expectedCRC != actualCRC) {
+    if (expectedCRC != actualCRC)
       throw IO.throwable(s"Corrupted Segment: CRC Check failed. $expectedCRC != $actualCRC")
-    } else {
-      val footerReader = Reader(footerBytes)
-      val formatId = footerReader.readUnsignedInt()
-      if (formatId != SegmentBlock.formatId) {
-        throw IO.throwable(message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
-      } else {
-        val createdInLevel = footerReader.readUnsignedInt()
-        val numberOfRanges = footerReader.readUnsignedInt()
-        val hasPut = footerReader.readBoolean()
-        val keyValueCount = footerReader.readUnsignedInt()
-
-        val sortedIndexOffset =
-          SortedIndexBlock.Offset(
-            size = footerReader.readUnsignedInt(),
-            start = footerReader.readUnsignedInt()
-          )
-
-        val hashIndexSize = footerReader.readUnsignedInt()
-        val hashIndexOffset =
-          if (hashIndexSize == 0)
-            None
-          else
-            Some(
-              HashIndexBlock.Offset(
-                start = footerReader.readUnsignedInt(),
-                size = hashIndexSize
-              )
-            )
-
-        val binarySearchIndexSize = footerReader.readUnsignedInt()
-        val binarySearchIndexOffset =
-          if (binarySearchIndexSize == 0)
-            None
-          else
-            Some(
-              BinarySearchIndexBlock.Offset(
-                start = footerReader.readUnsignedInt(),
-                size = binarySearchIndexSize
-              )
-            )
-
-        val bloomFilterSize = footerReader.readUnsignedInt()
-        val bloomFilterOffset =
-          if (bloomFilterSize == 0)
-            None
-          else
-            Some(
-              BloomFilterBlock.Offset(
-                start = footerReader.readUnsignedInt(),
-                size = bloomFilterSize
-              )
-            )
-
-        val valuesOffset =
-          if (sortedIndexOffset.start == 0)
-            None
-          else
-            Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
-
-        SegmentFooterBlock(
-          SegmentFooterBlock.Offset(footerStartOffset, footerSize),
-          headerSize = 0,
-          compressionInfo = None,
-          valuesOffset = valuesOffset,
-          sortedIndexOffset = sortedIndexOffset,
-          hashIndexOffset = hashIndexOffset,
-          binarySearchIndexOffset = binarySearchIndexOffset,
-          bloomFilterOffset = bloomFilterOffset,
-          keyValueCount = keyValueCount,
-          createdInLevel = createdInLevel,
-          numberOfRanges = numberOfRanges,
-          hasPut = hasPut
-        )
-      }
-    }
+    else
+      readCRCPassed(
+        footerStartOffset = footerStartOffset,
+        footerSize = footerSize,
+        footerBytes = footerBytes
+      )
   }
 
+  def readCRCPassed(footerStartOffset: Int, footerSize: Int, footerBytes: Slice[Byte]) = {
+    val footerReader = Reader(footerBytes)
+    val formatId = footerReader.readUnsignedInt()
+    if (formatId != SegmentBlock.formatId) {
+      throw IO.throwable(message = s"Invalid Segment formatId: $formatId. Expected: ${SegmentBlock.formatId}")
+    } else {
+      val createdInLevel = footerReader.readUnsignedInt()
+      val numberOfRanges = footerReader.readUnsignedInt()
+      val hasPut = footerReader.readBoolean()
+      val keyValueCount = footerReader.readUnsignedInt()
+
+      val sortedIndexOffset =
+        SortedIndexBlock.Offset(
+          size = footerReader.readUnsignedInt(),
+          start = footerReader.readUnsignedInt()
+        )
+
+      val hashIndexSize = footerReader.readUnsignedInt()
+      val hashIndexOffset =
+        if (hashIndexSize == 0)
+          None
+        else
+          Some(
+            HashIndexBlock.Offset(
+              start = footerReader.readUnsignedInt(),
+              size = hashIndexSize
+            )
+          )
+
+      val binarySearchIndexSize = footerReader.readUnsignedInt()
+      val binarySearchIndexOffset =
+        if (binarySearchIndexSize == 0)
+          None
+        else
+          Some(
+            BinarySearchIndexBlock.Offset(
+              start = footerReader.readUnsignedInt(),
+              size = binarySearchIndexSize
+            )
+          )
+
+      val bloomFilterSize = footerReader.readUnsignedInt()
+      val bloomFilterOffset =
+        if (bloomFilterSize == 0)
+          None
+        else
+          Some(
+            BloomFilterBlock.Offset(
+              start = footerReader.readUnsignedInt(),
+              size = bloomFilterSize
+            )
+          )
+
+      val valuesOffset =
+        if (sortedIndexOffset.start == 0)
+          None
+        else
+          Some(ValuesBlock.Offset(0, sortedIndexOffset.start))
+
+      SegmentFooterBlock(
+        SegmentFooterBlock.Offset(footerStartOffset, footerSize),
+        headerSize = 0,
+        compressionInfo = None,
+        valuesOffset = valuesOffset,
+        sortedIndexOffset = sortedIndexOffset,
+        hashIndexOffset = hashIndexOffset,
+        binarySearchIndexOffset = binarySearchIndexOffset,
+        bloomFilterOffset = bloomFilterOffset,
+        keyValueCount = keyValueCount,
+        createdInLevel = createdInLevel,
+        numberOfRanges = numberOfRanges,
+        hasPut = hasPut
+      )
+    }
+  }
   implicit object SegmentFooterBlockOps extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {
     override def updateBlockOffset(block: SegmentFooterBlock, start: Int, size: Int): SegmentFooterBlock =
       block.copy(offset = createOffset(start, size))
