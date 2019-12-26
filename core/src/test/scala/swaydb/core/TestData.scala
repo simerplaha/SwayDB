@@ -435,6 +435,7 @@ object TestData {
     def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
       new SegmentBlock.Config(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
+        cacheBlocksOnCreate = randomBoolean(),
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }

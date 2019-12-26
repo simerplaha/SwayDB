@@ -24,6 +24,7 @@ import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
@@ -59,13 +60,16 @@ private[core] object SegmentBlock extends LazyLogging {
             //cache only if the data is compressed.
             IOStrategy.ConcurrentIO(cacheOnAccess = data.isCompressed)
         },
+        cacheBlocksOnCreate = true,
         compressions = _ => Seq.empty
       )
 
     def apply(ioStrategy: IOAction => IOStrategy,
+              cacheBlocksOnCreate: Boolean,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
       new Config(
         ioStrategy = ioStrategy,
+        cacheBlocksOnCreate = cacheBlocksOnCreate,
         compressions =
           uncompressedBlockInfo =>
             Try(compressions(uncompressedBlockInfo))
@@ -76,6 +80,7 @@ private[core] object SegmentBlock extends LazyLogging {
   }
 
   class Config(val ioStrategy: IOAction => IOStrategy,
+               val cacheBlocksOnCreate: Boolean,
                val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
 
   object Offset {
@@ -126,17 +131,24 @@ private[core] object SegmentBlock extends LazyLogging {
 
   class Open(val minKey: Slice[Byte],
              val maxKey: MaxKey[Slice[Byte]],
+             //values
              val valuesBlockHeader: Option[Slice[Byte]],
              val valuesBlock: Option[Slice[Byte]],
+             //sortedIndex
              val sortedIndexBlockHeader: Slice[Byte],
              val sortedIndexBlock: Slice[Byte],
+             //hashIndex
              val hashIndexBlockHeader: Option[Slice[Byte]],
              val hashIndexBlock: Option[Slice[Byte]],
+             //binarySearch
              val binarySearchIndexBlockHeader: Option[Slice[Byte]],
              val binarySearchIndexBlock: Option[Slice[Byte]],
+             //bloomFilter
              val bloomFilterBlockHeader: Option[Slice[Byte]],
              val bloomFilterBlock: Option[Slice[Byte]],
+             //footer
              val footerBlock: Slice[Byte],
+             //other
              val functionMinMax: Option[MinMax[Slice[Byte]]],
              val nearestDeadline: Option[Deadline]) {
 
@@ -184,8 +196,39 @@ private[core] object SegmentBlock extends LazyLogging {
                                     val hashIndex: Option[HashIndexBlock.State],
                                     val binarySearchIndex: Option[BinarySearchIndexBlock.State],
                                     val bloomFilter: Option[BloomFilterBlock.State],
-                                    val minMaxFunction: Option[MinMax[Slice[Byte]]]) {
+                                    val minMaxFunction: Option[MinMax[Slice[Byte]]],
+                                    prepareForCachingSegmentBlocksOnCreate: Boolean) {
     def nearestDeadline: Option[Deadline] = sortedIndex.nearestDeadline
+
+    val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
+      if (prepareForCachingSegmentBlocksOnCreate)
+        Some(SortedIndexBlock.unblockedReader(sortedIndex))
+      else
+        None
+
+    val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+      if (prepareForCachingSegmentBlocksOnCreate)
+        values.map(ValuesBlock.unblockedReader)
+      else
+        None
+
+    val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]] =
+      if (prepareForCachingSegmentBlocksOnCreate)
+        hashIndex.map(HashIndexBlock.unblockedReader)
+      else
+        None
+
+    val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]] =
+      if (prepareForCachingSegmentBlocksOnCreate)
+        binarySearchIndex.map(BinarySearchIndexBlock.unblockedReader)
+      else
+        None
+
+    val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
+      if (prepareForCachingSegmentBlocksOnCreate)
+        bloomFilter.map(BloomFilterBlock.unblockedReader)
+      else
+        None
   }
 
   def read(header: Block.Header[Offset]): SegmentBlock =
@@ -297,7 +340,8 @@ private[core] object SegmentBlock extends LazyLogging {
                 hashIndexConfig = hashIndexConfig,
                 binarySearchIndexConfig = binarySearchIndexConfig,
                 sortedIndexConfig = sortedIndexConfig,
-                valuesConfig = valuesConfig
+                valuesConfig = valuesConfig,
+                prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
               )
 
             segments += closedSegment
@@ -330,7 +374,8 @@ private[core] object SegmentBlock extends LazyLogging {
             hashIndexConfig = hashIndexConfig,
             binarySearchIndexConfig = binarySearchIndexConfig,
             sortedIndexConfig = sortedIndexConfig,
-            valuesConfig = valuesConfig
+            valuesConfig = valuesConfig,
+            prepareForCachingSegmentBlocksOnCreate = segmentConfig.cacheBlocksOnCreate
           )
 
         //temporary check.
@@ -349,7 +394,8 @@ private[core] object SegmentBlock extends LazyLogging {
                                hashIndexConfig: HashIndexBlock.Config,
                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                                sortedIndexConfig: SortedIndexBlock.Config,
-                               valuesConfig: ValuesBlock.Config): (SegmentBlock.Open, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
+                               valuesConfig: ValuesBlock.Config,
+                               prepareForCachingSegmentBlocksOnCreate: Boolean): (SegmentBlock.Open, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
     //tail bytes before closing and compression is applied.
     val unwrittenTailSortedIndexBytes = sortedIndex.compressibleBytes.unwrittenTail()
     val unwrittenTailValueBytes = values.map(_.compressibleBytes.unwrittenTail())
@@ -361,7 +407,8 @@ private[core] object SegmentBlock extends LazyLogging {
         bloomFilterKeys = bloomFilterKeys,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        prepareForCachingSegmentBlocksOnCreate = prepareForCachingSegmentBlocksOnCreate
       )
 
     val footer =
@@ -372,7 +419,7 @@ private[core] object SegmentBlock extends LazyLogging {
         createdInLevel = createdInLevel
       )
 
-    val closedFooter =
+    val closedFooter: SegmentFooterBlock.State =
       SegmentFooterBlock.writeAndClose(
         state = footer,
         closedBlocks = closedBlocks
@@ -382,17 +429,24 @@ private[core] object SegmentBlock extends LazyLogging {
       new Open(
         minKey = closedBlocks.sortedIndex.minKey,
         maxKey = closedBlocks.sortedIndex.maxKey,
+
         footerBlock = closedFooter.bytes.close(),
+
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
         valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
+
         sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
         sortedIndexBlock = closedBlocks.sortedIndex.compressibleBytes.close(),
+
         hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
         hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
+
         binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
         binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
+
         bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
         bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
+
         functionMinMax = closedBlocks.minMaxFunction,
         nearestDeadline = closedBlocks.nearestDeadline
       )
@@ -436,7 +490,8 @@ private[core] object SegmentBlock extends LazyLogging {
                           bloomFilterKeys: ListBuffer[Slice[Byte]],
                           bloomFilterConfig: BloomFilterBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
-                          binarySearchIndexConfig: BinarySearchIndexBlock.Config): ClosedBlocks = {
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                          prepareForCachingSegmentBlocksOnCreate: Boolean): ClosedBlocks = {
     val sortedIndexState = SortedIndexBlock.close(sortedIndex)
     val valuesState = values map ValuesBlock.close
 
@@ -498,7 +553,8 @@ private[core] object SegmentBlock extends LazyLogging {
       hashIndex = hashIndex.flatMap(HashIndexBlock.close),
       binarySearchIndex = binarySearchIndex.flatMap(BinarySearchIndexBlock.close),
       bloomFilter = bloomFilter.flatMap(BloomFilterBlock.close),
-      minMaxFunction = sortedIndexState.minMaxFunctionId
+      minMaxFunction = sortedIndexState.minMaxFunctionId,
+      prepareForCachingSegmentBlocksOnCreate = prepareForCachingSegmentBlocksOnCreate
     )
   }
 

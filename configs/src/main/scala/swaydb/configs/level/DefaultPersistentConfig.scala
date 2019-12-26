@@ -126,9 +126,12 @@ object DefaultPersistentConfig {
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
-        segmentIO =
-          ioAction =>
-            IOStrategy.ConcurrentIO(cacheOnAccess = false),
+        segmentIO = {
+          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+        },
+        cacheSegmentBlocksOnCreate = true,
         segmentCompressions = _ => Seq.empty,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -187,9 +190,12 @@ object DefaultPersistentConfig {
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
-        segmentIO =
-          ioAction =>
-            IOStrategy.ConcurrentIO(cacheOnAccess = false),
+        segmentIO = {
+          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+        },
+        cacheSegmentBlocksOnCreate = true,
         segmentCompressions = _ => Seq.empty,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -248,9 +254,12 @@ object DefaultPersistentConfig {
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
-        segmentIO =
-          ioAction =>
-            IOStrategy.ConcurrentIO(cacheOnAccess = false),
+        segmentIO = {
+          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+        },
+        cacheSegmentBlocksOnCreate = true,
         segmentCompressions = _ => Seq.empty,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -309,9 +318,12 @@ object DefaultPersistentConfig {
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
-        segmentIO =
-          ioAction =>
-            IOStrategy.ConcurrentIO(cacheOnAccess = false),
+        segmentIO = {
+          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+        },
+        cacheSegmentBlocksOnCreate = true,
         segmentCompressions = _ => Seq.empty,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -370,9 +382,12 @@ object DefaultPersistentConfig {
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
-        segmentIO =
-          ioAction =>
-            IOStrategy.ConcurrentIO(cacheOnAccess = false),
+        segmentIO = {
+          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+        },
+        cacheSegmentBlocksOnCreate = true,
         segmentCompressions = _ => Seq.empty,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
@@ -431,9 +446,12 @@ object DefaultPersistentConfig {
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
-        segmentIO =
-          ioAction =>
-            IOStrategy.ConcurrentIO(cacheOnAccess = false),
+        segmentIO = {
+          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+        },
+        cacheSegmentBlocksOnCreate = true,
         segmentCompressions = _ => Seq.empty,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =

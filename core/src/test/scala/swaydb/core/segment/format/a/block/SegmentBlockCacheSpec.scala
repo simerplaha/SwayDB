@@ -133,7 +133,7 @@ class SegmentBlockCacheSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
             hashIndexConfig = HashIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
             bloomFilterConfig = BloomFilterBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
-            segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false), _ => randomCompressions())
+            segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false), randomBoolean(), _ => randomCompressions())
           )
 
         blockCache.isCached shouldBe false
@@ -207,7 +207,7 @@ class SegmentBlockCacheSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
             hashIndexConfig = HashIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
             bloomFilterConfig = BloomFilterBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-            segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), _ => randomCompressions())
+            segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), randomBoolean(), _ => randomCompressions())
           )
         blockCache.isCached shouldBe false
 

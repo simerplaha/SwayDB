@@ -155,6 +155,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
                 case action: IOAction.DataAction =>
                   IOStrategy.ConcurrentIO(cacheOnAccess = false)
               },
+              cacheBlocksOnCreate = true,
               compressions = _ => Seq.empty
             )
         )

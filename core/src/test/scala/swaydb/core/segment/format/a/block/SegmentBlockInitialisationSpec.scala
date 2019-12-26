@@ -485,6 +485,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               segmentConfig =
                 new SegmentBlock.Config(
                   ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
+                  cacheBlocksOnCreate = randomBoolean(),
                   compressions = _ => compressions(4)
                 )
             )
