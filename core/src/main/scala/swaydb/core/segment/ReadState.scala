@@ -26,40 +26,42 @@ import swaydb.core.util.LimitHashMap
 import scala.util.Random
 
 private[swaydb] sealed trait ReadState {
-  def isSequential(path: Path): Boolean
-  def setSequential(path: Path, isSequential: Boolean): Unit
+  def getSegmentStateOrNull(path: Path): ReadState.SegmentState
+  def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit
 }
 
 private[swaydb] object ReadState {
 
+  class SegmentState(var nextIndexOffset: Int,
+                     var nextKeySizeOrNull: Int,
+                     var isSequential: Boolean)
+
   def hashMap(): ReadState =
-    new HashMapState(new java.util.HashMap[Path, Boolean]())
+    new HashMapState(new java.util.HashMap[Path, ReadState.SegmentState]())
 
   def limitHashMap(maxSize: Int,
                    probe: Int): ReadState =
-    new LimitHashMapState(LimitHashMap[Path, Boolean](maxSize, probe))
+    new LimitHashMapState(LimitHashMap[Path, ReadState.SegmentState](maxSize, probe))
 
   def limitHashMap(maxSize: Int): ReadState =
-    new LimitHashMapState(LimitHashMap[Path, Boolean](maxSize))
+    new LimitHashMapState(LimitHashMap[Path, ReadState.SegmentState](maxSize))
 
-  private class HashMapState(map: java.util.HashMap[Path, Boolean]) extends ReadState {
+  private class HashMapState(map: java.util.HashMap[Path, ReadState.SegmentState]) extends ReadState {
 
-    def isSequential(path: Path): Boolean = {
-      val isSeq = map.get(path)
-      isSeq == null || isSeq
-    }
+    def getSegmentStateOrNull(path: Path): ReadState.SegmentState =
+      map.get(path)
 
-    def setSequential(path: Path, isSequential: Boolean): Unit =
-      map.put(path, isSequential)
+    def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit =
+      map.put(path, nextIndexOffset)
   }
 
-  private class LimitHashMapState(map: LimitHashMap[Path, Boolean]) extends ReadState {
+  private class LimitHashMapState(map: LimitHashMap[Path, ReadState.SegmentState]) extends ReadState {
 
-    def isSequential(path: Path): Boolean =
-      map.get(path).forall(_ == true)
+    def getSegmentStateOrNull(path: Path): ReadState.SegmentState =
+      map.getOrNull(path)
 
-    def setSequential(path: Path, isSequential: Boolean): Unit =
-      map.put(path, isSequential)
+    def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit =
+      map.put(path, nextIndexOffset)
 
     override def toString: String =
       map.toString

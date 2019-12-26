@@ -524,11 +524,22 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   private def readKeyValue(fromPosition: Int,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                           valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
+    readKeyValue(
+      fromPosition = fromPosition,
+      keySizeNullable = null,
+      indexReader = indexReader,
+      valuesReaderNullable = valuesReaderNullable
+    )
+
+  private def readKeyValue(fromPosition: Int,
+                           keySizeNullable: Integer,
+                           indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
 
     val nextIndexEntry =
       readIndexEntry(
-        keySizeNullable = null,
+        keySizeNullable = keySizeNullable,
         sortedIndexReader = indexReader moveTo fromPosition
       )
 
@@ -742,6 +753,22 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReaderNullable = valuesReaderNullable
     )
 
+  def searchSeekOne(key: Slice[Byte],
+                    fromPosition: Int,
+                    keySizeOrNull: Integer,
+                    indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOptional =
+  //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    seekAndMatchOrSeekToPersistent(
+      matcher = KeyMatcher.Get.MatchOnly(key),
+      fromOffset = fromPosition,
+      keySizeOrNull = keySizeOrNull,
+      indexReader = indexReader,
+      valuesReaderNullable = valuesReaderNullable
+    )
+
   def searchHigher(key: Slice[Byte],
                    startFrom: PersistentOptional,
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -895,17 +922,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       //No start from. Get the first index entry from the File and start from there.
       case Persistent.Null =>
-        val keyValue =
-          readKeyValue(
-            fromPosition = 0,
-            indexReader = indexReader,
-            valuesReaderNullable = valuesReaderNullable
-          )
-
-        matchOrSeekToPersistent(
-          previous = keyValue,
-          next = Persistent.Null,
+        seekAndMatchOrSeekToPersistent(
           matcher = matcher,
+          fromOffset = 0,
           indexReader = indexReader,
           valuesReaderNullable = valuesReaderNullable
         )
@@ -935,10 +954,24 @@ private[core] object SortedIndexBlock extends LazyLogging {
   def seekAndMatchOrSeekToPersistent(matcher: KeyMatcher,
                                      fromOffset: Int,
                                      indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                     valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): PersistentOptional =
+    seekAndMatchOrSeekToPersistent(
+      matcher = matcher,
+      fromOffset = fromOffset,
+      keySizeOrNull = null,
+      indexReader = indexReader,
+      valuesReaderNullable = valuesReaderNullable
+    )
+
+  def seekAndMatchOrSeekToPersistent(matcher: KeyMatcher,
+                                     fromOffset: Int,
+                                     keySizeOrNull: Integer,
+                                     indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                      valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): PersistentOptional = {
     val persistent =
       readKeyValue(
         fromPosition = fromOffset,
+        keySizeNullable = keySizeOrNull,
         indexReader = indexReader,
         valuesReaderNullable = valuesReaderNullable
       )

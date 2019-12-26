@@ -26,10 +26,10 @@ import scala.annotation.tailrec
  * overwrites older key-values if the space is occupied by an older
  * key-value.
  */
-private[swaydb] sealed trait LimitHashMap[K, V] extends Iterable[(K, V)] {
+private[swaydb] sealed trait LimitHashMap[K, V >: Null] extends Iterable[(K, V)] {
   def limit: Int
   def put(key: K, value: V): Unit
-  def get(key: K): Option[V]
+  def getOrNull(key: K): V
 }
 
 private[swaydb] object LimitHashMap {
@@ -41,8 +41,8 @@ private[swaydb] object LimitHashMap {
    * @param limit    Max number of key-values
    * @param maxProbe Number of re-tries on hash collision.
    */
-  def apply[K, V](limit: Int,
-                  maxProbe: Int): LimitHashMap[K, V] =
+  def apply[K, V >: Null](limit: Int,
+                          maxProbe: Int): LimitHashMap[K, V] =
     if (limit <= 0)
       new Empty[K, V]
     else if (maxProbe <= 0)
@@ -58,7 +58,7 @@ private[swaydb] object LimitHashMap {
   /**
    * @param limit Max number of key-values
    */
-  def apply[K, V](limit: Int): LimitHashMap[K, V] =
+  def apply[K, V >: Null](limit: Int): LimitHashMap[K, V] =
     if (limit <= 0)
       new Empty[K, V]
     else
@@ -66,7 +66,7 @@ private[swaydb] object LimitHashMap {
         array = new Array[(K, V)](limit)
       )
 
-  private class Probed[K, V](array: Array[(K, V)], maxProbe: Int) extends LimitHashMap[K, V] {
+  private class Probed[K, V >: Null](array: Array[(K, V)], maxProbe: Int) extends LimitHashMap[K, V] {
 
     val limit = array.length
 
@@ -87,19 +87,19 @@ private[swaydb] object LimitHashMap {
           put(key, value, hashIndex, if (targetIndex + 1 >= limit) 0 else targetIndex + 1, probe + 1)
       }
 
-    def get(key: K): Option[V] = {
+    def getOrNull(key: K): V = {
       val index = Math.abs(key.##) % limit
       get(key, index, 0)
     }
 
     @tailrec
-    private def get(key: K, index: Int, probe: Int): Option[V] =
+    private def get(key: K, index: Int, probe: Int): V =
       if (probe == maxProbe) {
-        None
+        null
       } else {
         val keyValue = array(index)
         if (keyValue != null && keyValue._1 == key)
-          Some(keyValue._2)
+          keyValue._2
         else
           get(key, if (index + 1 >= limit) 0 else index + 1, probe + 1)
       }
@@ -108,29 +108,29 @@ private[swaydb] object LimitHashMap {
       array.iterator
   }
 
-  private class NoProbe[K, V](array: Array[(K, V)]) extends LimitHashMap[K, V] {
+  private class NoProbe[K, V >: Null](array: Array[(K, V)]) extends LimitHashMap[K, V] {
 
     val limit = array.length
 
     def put(key: K, value: V) =
       array(Math.abs(key.##) % limit) = (key, value)
 
-    def get(key: K): Option[V] = {
+    def getOrNull(key: K): V = {
       val value = array(Math.abs(key.##) % limit)
       if (value != null && value._1 == key)
-        Some(value._2)
+        value._2
       else
-        None
+        null
     }
 
     override def iterator: Iterator[(K, V)] =
       array.iterator
   }
 
-  private class Empty[K, V] extends LimitHashMap[K, V] {
+  private class Empty[K, V >: Null] extends LimitHashMap[K, V] {
     override def limit: Int = 0
     override def put(key: K, value: V): Unit = ()
-    override def get(key: K): Option[V] = None
+    override def getOrNull(key: K): V = null
     override def iterator: Iterator[(K, V)] = Iterator.empty
   }
 }

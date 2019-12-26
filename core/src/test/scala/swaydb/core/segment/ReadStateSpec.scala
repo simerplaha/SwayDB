@@ -14,7 +14,7 @@ class ReadStateSpec extends WordSpec with Matchers {
 
       (1 to 100) foreach {
         _ =>
-          state.isSequential(Paths.get(randomString)) shouldBe true
+          state.getSegmentStateOrNull(Paths.get(randomString)) shouldBe null
       }
     }
 
@@ -25,13 +25,13 @@ class ReadStateSpec extends WordSpec with Matchers {
         (1 to 100) map {
           _ =>
             val key = Paths.get(randomString)
-            state.setSequential(key, false)
+            state.setSegmentState(key, null)
             key
         }
 
       keys foreach {
         key =>
-          state.isSequential(key) shouldBe false
+          state.getSegmentStateOrNull(key) should be(null)
       }
     }
   }
