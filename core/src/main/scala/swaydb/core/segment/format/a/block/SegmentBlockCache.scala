@@ -72,6 +72,19 @@ class SegmentBlockCache(path: Path,
                         var footerCacheable: Option[SegmentFooterBlock])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
 
   /**
+   * Value configured in [[SegmentBlock.Config.cacheBlocksOnCreate]]
+   */
+  val areBlocksCacheableOnCreate = sortedIndexReaderCacheable.isDefined
+
+  //names for Unblocked reader caches.
+  private val sortedIndexReaderCacheName = "sortedIndexReaderCache"
+  private val valuesReaderCacheName = "valuesReaderCache"
+  private val segmentReaderCacheName = "segmentReaderCache"
+  private val hashIndexReaderCacheName = "hashIndexReaderCache"
+  private val bloomFilterReaderCacheName = "bloomFilterReaderCache"
+  private val binarySearchIndexReaderCacheName = "binarySearchIndexReaderCache"
+
+  /**
    * @note Segment's [[IOStrategy]] is required to be immutable ones read and cannot mutate during runtime.
    *       Changing IOStrategy during runtime causes offset conflicts.
    * @see SegmentBlockCacheSpec which will fail is stored is set to false.
@@ -82,9 +95,6 @@ class SegmentBlockCache(path: Path,
 
   @volatile var forceCacheSortedIndexAndValueReaders = false
 
-  val sortedIndexReaderCacheName = "sortedIndexReaderCache"
-  val valuesReaderCacheName = "valuesReaderCache"
-
   def segmentBlockIO(action: IOAction) =
     segmentIOStrategyCache getOrSet segmentIO.segmentBlockIO(action)
 
@@ -94,6 +104,15 @@ class SegmentBlockCache(path: Path,
   def sortedIndexBlockIO = segmentIO.sortedIndexBlockIO
   def valuesBlockIO = segmentIO.valuesBlockIO
   def segmentFooterBlockIO = segmentIO.segmentFooterBlockIO
+
+  def invalidateCachedReaders() = {
+    this.valuesReaderCacheable = None
+    this.sortedIndexReaderCacheable = None
+    this.hashIndexReaderCacheable = None
+    this.binarySearchIndexReaderCacheable = None
+    this.bloomFilterReaderCacheable = None
+    this.footerCacheable = None
+  }
 
   /**
    * Builds a required cache for [[SortedIndexBlock]].
@@ -181,7 +200,7 @@ class SegmentBlockCache(path: Path,
                                                                      blockIO: IOAction => IOStrategy,
                                                                      resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], UnblockedReader[O, B]](
-      initial = initial,
+      initial = if (areBlocksCacheableOnCreate && initial.isEmpty) Some(null) else initial,
       strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
@@ -226,8 +245,7 @@ class SegmentBlockCache(path: Path,
         val offset = getOffset(footer)
         offset match {
           case Some(offset) =>
-            val segmentReader = createSegmentBlockReader()
-            cache.value(Some(BlockRefReader.moveTo(offset, segmentReader)))
+            cache value Some(BlockRefReader.moveTo(offset, createSegmentBlockReader()))
 
           case None =>
             cache.value(None)
@@ -239,9 +257,11 @@ class SegmentBlockCache(path: Path,
                                                 offset: SegmentFooterBlock => O)(implicit blockOps: BlockOps[O, B]): B =
     cache
       .getOrElse {
-        val footer = getFooter()
-        val segmentReader = createSegmentBlockReader()
-        cache.value(BlockRefReader.moveTo(offset(footer), segmentReader))
+        cache.value {
+          val footer = getFooter()
+          val segmentReader = createSegmentBlockReader()
+          BlockRefReader.moveTo(offset(footer), segmentReader)
+        }
       }
       .get
 
@@ -253,8 +273,7 @@ class SegmentBlockCache(path: Path,
         .getOrElse {
           getBlock match {
             case Some(block) =>
-              val segmentReader = createSegmentBlockReader()
-              cache.value(Some(BlockedReader(block, segmentReader)))
+              cache value Some(BlockedReader(block, createSegmentBlockReader()))
 
             case None =>
               cache.value(None)
@@ -323,7 +342,7 @@ class SegmentBlockCache(path: Path,
     buildBlockReaderCache[SegmentBlock.Offset, SegmentBlock](
       initial = None,
       blockIO = segmentBlockIO,
-      resourceName = "segmentReaderCache"
+      resourceName = segmentReaderCacheName
     )
 
   private[block] val sortedIndexReaderCache =
@@ -337,21 +356,21 @@ class SegmentBlockCache(path: Path,
     buildBlockReaderCacheNullable[HashIndexBlock.Offset, HashIndexBlock](
       initial = hashIndexReaderCacheable,
       blockIO = hashIndexBlockIO,
-      resourceName = "hashIndexReaderCache"
+      resourceName = hashIndexReaderCacheName
     )
 
   private[block] val bloomFilterReaderCacheNullable =
     buildBlockReaderCacheNullable[BloomFilterBlock.Offset, BloomFilterBlock](
       initial = bloomFilterReaderCacheable,
       blockIO = bloomFilterBlockIO,
-      resourceName = "bloomFilterReaderCache"
+      resourceName = bloomFilterReaderCacheName
     )
 
   private[block] val binarySearchIndexReaderCacheNullable =
     buildBlockReaderCacheNullable[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock](
       initial = binarySearchIndexReaderCacheable,
       blockIO = binarySearchIndexBlockIO,
-      resourceName = "binarySearchIndexReaderCache"
+      resourceName = binarySearchIndexReaderCacheName
     )
 
   private[block] val valuesReaderCacheNullable: Cache[Error.Segment, Option[BlockedReader[ValuesBlock.Offset, ValuesBlock]], UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
@@ -507,10 +526,5 @@ class SegmentBlockCache(path: Path,
   def isBloomFilterDefined =
     bloomFilterBlockCache.isCached
 
-  this.valuesReaderCacheable = None
-  this.sortedIndexReaderCacheable = None
-  this.hashIndexReaderCacheable = None
-  this.binarySearchIndexReaderCacheable = None
-  this.bloomFilterReaderCacheable = None
-  this.footerCacheable = None
+  invalidateCachedReaders()
 }

@@ -31,7 +31,7 @@ private[core] object Cache {
 
   def valueIO[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
     new Cache[E, I, B] {
-      override def value(i: => I): IO[E, B] =
+      override def value(input: => I): IO[E, B] =
         IO(output)
 
       override def isCached: Boolean =
@@ -156,7 +156,7 @@ private[core] object Cache {
  * For example: A file's size.
  */
 private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] extends LazyLogging { self =>
-  def value(i: => I): IO[E, O]
+  def value(input: => I): IO[E, O]
   def isCached: Boolean
   def isStored: Boolean
   def clear(): Unit
@@ -176,8 +176,8 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
    */
   def map[F >: E : IO.ExceptionHandler, B](f: O => IO[F, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
-      override def value(i: => I): IO[F, B] =
-        self.value(i).flatMap(f)
+      override def value(input: => I): IO[F, B] =
+        self.value(input).flatMap(f)
 
       override def isCached: Boolean =
         self.isCached
@@ -210,8 +210,8 @@ private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] exten
 
   def flatMap[F >: E : IO.ExceptionHandler, B](next: Cache[F, O, B]): Cache[F, I, B] =
     new Cache[F, I, B] {
-      override def value(i: => I): IO[F, B] =
-        getOrElse(self.value(i).flatMap(next.value(_)))
+      override def value(input: => I): IO[F, B] =
+        getOrElse(self.value(input).flatMap(next.value(_)))
 
       override def isCached: Boolean =
         self.isCached || next.isCached
@@ -253,13 +253,13 @@ private class DeferredIO[E: IO.ExceptionHandler, -I, +B](cache: CacheNoIO[I, Cac
   override def isStored: Boolean =
     cache.isStored
 
-  override def value(i: => I): IO[E, B] = {
+  override def value(input: => I): IO[E, B] = {
     //ensure that i is not executed multiple times.
     var executed: I = null.asInstanceOf[I]
 
     def fetch =
       if (executed == null) {
-        executed = i
+        executed = input
         executed
       } else {
         executed
@@ -290,8 +290,8 @@ private class SynchronisedIO[E: IO.ExceptionHandler, -I, +B](fetch: (I, Cache[E,
   def isStored: Boolean =
     lazyIO.stored
 
-  override def value(i: => I): IO[E, B] =
-    lazyIO getOrSet fetch(i, this)
+  override def value(input: => I): IO[E, B] =
+    lazyIO getOrSet fetch(input, this)
 
   override def getOrElse[F >: E : IO.ExceptionHandler, BB >: B](f: => IO[F, BB]): IO[F, BB] =
     lazyIO getOrElse f
@@ -317,11 +317,11 @@ private class ReservedIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recov
   def isStored: Boolean =
     lazyIO.stored
 
-  override def value(i: => I): IO[E, O] =
+  override def value(input: => I): IO[E, O] =
     lazyIO getOrElse {
       if (Reserve.setBusyOrGet((), error.reserve).isEmpty)
         try
-          lazyIO getOrElse (lazyIO set fetch(i, this)) //check if it's set again in the block.
+          lazyIO getOrElse (lazyIO set fetch(input, this)) //check if it's set again in the block.
         finally
           Reserve.setFree(error.reserve)
       else
