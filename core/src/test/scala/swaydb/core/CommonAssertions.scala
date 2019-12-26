@@ -1315,11 +1315,31 @@ object CommonAssertions {
   }
 
   def readBlocksFromSegment(closedSegment: SegmentBlock.Closed,
-                            segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
-    readBlocks(closedSegment.flattenSegmentBytes, segmentIO)
+                            segmentIO: SegmentIO = SegmentIO.random,
+                            useCacheableReaders: Boolean = randomBoolean())(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
+    if (useCacheableReaders && closedSegment.sortedIndexUnblockedReader.isDefined && randomBoolean()) //randomly also use cacheable readers
+      IO(readCachedBlocksFromSegment(closedSegment).get)
+    else
+      readBlocks(closedSegment.flattenSegmentBytes, segmentIO)
+
+  def readCachedBlocksFromSegment(closedSegment: SegmentBlock.Closed): Option[SegmentBlocks] =
+    if (closedSegment.sortedIndexUnblockedReader.isDefined)
+      Some(
+        SegmentBlocks(
+          valuesReader = closedSegment.valuesUnblockedReader,
+          sortedIndexReader = closedSegment.sortedIndexUnblockedReader.get,
+          hashIndexReader = closedSegment.hashIndexUnblockedReader,
+          binarySearchIndexReader = closedSegment.binarySearchUnblockedReader,
+          bloomFilterReader = closedSegment.bloomFilterUnblockedReader,
+          footer = closedSegment.footerUnblocked.get
+        )
+      )
+    else
+      None
 
   def getBlocks(keyValues: Iterable[Memory],
                 segmentSize: Int = Int.MaxValue,
+                useCacheableReaders: Boolean = randomBoolean(),
                 valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                 sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                 binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1354,7 +1374,11 @@ object CommonAssertions {
 
     closedSegments.mapRecoverIO {
       closedSegment =>
-        readBlocksFromSegment(closedSegment, segmentIO)
+        readBlocksFromSegment(
+          useCacheableReaders = useCacheableReaders,
+          closedSegment = closedSegment,
+          segmentIO = segmentIO
+        )
     }
   }
 

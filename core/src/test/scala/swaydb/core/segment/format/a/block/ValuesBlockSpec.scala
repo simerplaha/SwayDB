@@ -109,26 +109,31 @@ class ValuesBlockSpec extends TestBase {
         manuallyReadBlock.offset shouldBe blocked.block.offset
         manuallyReadBlock.headerSize shouldBe blocked.block.headerSize
 
-        val unblocked = Block.unblock(blocked, randomBoolean())
+        val uncompressedUnblockedReader = Block.unblock(blocked, randomBoolean())
+        val cachedUnblockedReader = ValuesBlock.unblockedReader(state)
 
-        val keyValuesOffset = ListBuffer.empty[(Int, Slice[Byte])]
+        Seq(uncompressedUnblockedReader, cachedUnblockedReader) foreach {
+          unblockedReader =>
 
-        keyValues.foldLeft(0) {
-          case (offset, keyValue) =>
-            val valueBytes = keyValue.value
-            if (valueBytes.isNoneC) {
-              offset
-            } else {
-              keyValuesOffset += ((offset, valueBytes.getC))
-              ValuesBlock.read(offset, valueBytes.getC.size, unblocked).value shouldBe valueBytes.getC
-              offset + valueBytes.getC.size
+            val keyValuesOffset = ListBuffer.empty[(Int, Slice[Byte])]
+
+            keyValues.foldLeft(0) {
+              case (offset, keyValue) =>
+                val valueBytes = keyValue.value
+                if (valueBytes.isNoneC) {
+                  offset
+                } else {
+                  keyValuesOffset += ((offset, valueBytes.getC))
+                  ValuesBlock.read(offset, valueBytes.getC.size, unblockedReader).value shouldBe valueBytes.getC
+                  offset + valueBytes.getC.size
+                }
             }
-        }
 
-        //concurrent read values
-        keyValuesOffset.par foreach {
-          case (offset, value) =>
-            ValuesBlock.read(offset, value.size, unblocked.copy()) should contain(value)
+            //concurrent read values
+            keyValuesOffset.par foreach {
+              case (offset, value) =>
+                ValuesBlock.read(offset, value.size, unblockedReader.copy()) should contain(value)
+            }
         }
       }
     }

@@ -54,6 +54,7 @@ class HashIndexBlockSpec extends TestBase {
         getBlocks(
           segmentSize = randomIntMax(1000) max 1,
           keyValues = keyValues,
+          useCacheableReaders = randomBoolean(),
           sortedIndexConfig =
             SortedIndexBlock.Config(
               ioStrategy = _ => randomIOStrategy(),

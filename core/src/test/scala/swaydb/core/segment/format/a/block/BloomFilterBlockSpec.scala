@@ -294,14 +294,23 @@ class BloomFilterBlockSpec extends TestBase {
 
       BloomFilterBlock.close(state).value
 
+      runAssert(
+        data = data,
+        reader = BloomFilterBlock.unblockedReader(state)
+      )
+
       Seq(
         BlockRefReader[BloomFilterBlock.Offset](state.blockBytes),
         BlockRefReader[BloomFilterBlock.Offset](createRandomFileReader(state.blockBytes))
       ) foreach {
         blockRefReader =>
           val reader = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](blockRefReader)
-          runAssert(data, reader)
+          runAssert(
+            data = data,
+            reader = reader
+          )
       }
+
     }
   }
 }

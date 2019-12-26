@@ -239,7 +239,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         miss = closedState.miss,
         writeAbleLargestValueSize = closedState.writeAbleLargestValueSize,
         headerSize = 0,
-        allocatedBytes = closedState.compressibleBytes.allocatedSize
+        allocatedBytes = closedState.cacheableBytes.allocatedSize
       )
 
     UnblockedReader(

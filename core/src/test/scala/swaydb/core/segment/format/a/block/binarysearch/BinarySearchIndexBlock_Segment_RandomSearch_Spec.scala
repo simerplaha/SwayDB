@@ -66,6 +66,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
       getBlocks(
         segmentSize = Int.MaxValue,
         keyValues = keyValues,
+        useCacheableReaders = randomBoolean(),
         sortedIndexConfig =
           SortedIndexBlock.Config.random.copy(
             //            normaliseIndex = true,
