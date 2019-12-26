@@ -277,8 +277,8 @@ private[core] object SegmentBlock extends LazyLogging {
           SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
           values foreach (ValuesBlock.write(keyValue, _))
 
-          var currentSegmentSize = sortedIndex.bytes.size + SegmentFooterBlock.optimalBytesRequired
-          values foreach (currentSegmentSize += _.bytes.size)
+          var currentSegmentSize = sortedIndex.compressibleBytes.size + SegmentFooterBlock.optimalBytesRequired
+          values foreach (currentSegmentSize += _.compressibleBytes.size)
 
           //check and close segment if segment size limit is reached.
           //to do - maybe check if compression is defined and increase the segmentSize.
@@ -351,8 +351,8 @@ private[core] object SegmentBlock extends LazyLogging {
                                sortedIndexConfig: SortedIndexBlock.Config,
                                valuesConfig: ValuesBlock.Config): (SegmentBlock.Open, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
     //tail bytes before closing and compression is applied.
-    val unwrittenTailSortedIndexBytes = sortedIndex.bytes.unwrittenTail()
-    val unwrittenTailValueBytes = values.map(_.bytes.unwrittenTail())
+    val unwrittenTailSortedIndexBytes = sortedIndex.compressibleBytes.unwrittenTail()
+    val unwrittenTailValueBytes = values.map(_.compressibleBytes.unwrittenTail())
 
     val closedBlocks =
       closeBlocks(
@@ -384,15 +384,15 @@ private[core] object SegmentBlock extends LazyLogging {
         maxKey = closedBlocks.sortedIndex.maxKey,
         footerBlock = closedFooter.bytes.close(),
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
-        valuesBlock = closedBlocks.values.map(_.bytes.close()),
+        valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
         sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
-        sortedIndexBlock = closedBlocks.sortedIndex.bytes.close(),
+        sortedIndexBlock = closedBlocks.sortedIndex.compressibleBytes.close(),
         hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
-        hashIndexBlock = closedBlocks.hashIndex map (_.bytes.close()),
+        hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
         binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
-        binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.bytes.close()),
+        binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
         bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
-        bloomFilterBlock = closedBlocks.bloomFilter map (_.bytes.close()),
+        bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
         functionMinMax = closedBlocks.minMaxFunction,
         nearestDeadline = closedBlocks.nearestDeadline
       )

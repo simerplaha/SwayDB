@@ -673,7 +673,7 @@ object CommonAssertions {
 
   def assertBloom(keyValues: Slice[Memory],
                   bloom: BloomFilterBlock.State) = {
-    val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.bytes)
+    val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
 
     keyValues.par.count {
       keyValue =>
@@ -727,7 +727,7 @@ object CommonAssertions {
 
   def assertBloomNotContains(bloom: BloomFilterBlock.State) =
     runThisParallel(1000.times) {
-      val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.bytes)
+      val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
       BloomFilterBlock.mightContain(
         key = randomBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter.copy()

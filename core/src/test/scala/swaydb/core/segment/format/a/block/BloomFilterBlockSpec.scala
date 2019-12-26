@@ -127,7 +127,7 @@ class BloomFilterBlockSpec extends TestBase {
               compressions = _ => compression
             ).value
 
-          bloomFilter.bytes.size should be <=
+          bloomFilter.compressibleBytes.size should be <=
             BloomFilterBlock.optimalSize(
               numberOfKeys = numberOfItems,
               updateMaxProbe = probe => probe,

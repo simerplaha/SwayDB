@@ -26,7 +26,6 @@ import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.util.Bytes
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.Functions
@@ -75,15 +74,16 @@ private[core] object ValuesBlock {
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =
     IO.Left(swaydb.Error.Fatal("Value block not initialised."))
 
-  class State(var bytes: Slice[Byte],
+  class State(var compressibleBytes: Slice[Byte],
+              val cacheableBytes: Slice[Byte],
               var header: Slice[Byte],
               val compressions: UncompressedBlockInfo => Seq[CompressionInternal],
               val builder: EntryWriter.Builder) {
     def blockSize: Int =
-      header.size + bytes.size
+      header.size + compressibleBytes.size
 
     def blockBytes =
-      header ++ bytes
+      header ++ compressibleBytes
   }
 
   object Offset {
@@ -107,7 +107,8 @@ private[core] object ValuesBlock {
       val bytes = Slice.create[Byte](totalValuesSize)
       val state =
         new ValuesBlock.State(
-          bytes = bytes,
+          compressibleBytes = bytes,
+          cacheableBytes = bytes,
           header = null,
           compressions = valuesConfig.compressions,
           builder = builder
@@ -123,7 +124,8 @@ private[core] object ValuesBlock {
            //the builder created by SortedIndex.
            builder: EntryWriter.Builder): ValuesBlock.State =
     new ValuesBlock.State(
-      bytes = bytes,
+      compressibleBytes = bytes,
+      cacheableBytes = bytes,
       header = null,
       compressions = valuesConfig.compressions,
       builder = builder
@@ -133,17 +135,17 @@ private[core] object ValuesBlock {
     if (state.builder.isValueFullyCompressed)
       state.builder.isValueFullyCompressed = false
     else
-      keyValue.value foreachC state.bytes.addAll
+      keyValue.value foreachC state.compressibleBytes.addAll
 
   def close(state: State): State = {
     val compressionResult =
       Block.compress(
-        bytes = state.bytes,
-        compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
+        bytes = state.compressibleBytes,
+        compressions = state.compressions(UncompressedBlockInfo(state.compressibleBytes.size)),
         blockName = blockName
       )
 
-    compressionResult.compressedBytes foreach (state.bytes = _)
+    compressionResult.compressedBytes foreach (state.compressibleBytes = _)
 
     compressionResult.fixHeaderSize()
 
@@ -153,6 +155,20 @@ private[core] object ValuesBlock {
     //      throw IO.throwable(s"Calculated header size was incorrect. Expected: $headerSize. Used: ${state.bytes.currentWritePosition - 1}")
 
     state
+  }
+
+  def unblockedReader(closedState: ValuesBlock.State): UnblockedReader[ValuesBlock.Offset, ValuesBlock] = {
+    val block =
+      ValuesBlock(
+        offset = ValuesBlock.Offset(0, closedState.cacheableBytes.size),
+        headerSize = 0,
+        compressionInfo = None
+      )
+
+    UnblockedReader(
+      block = block,
+      bytes = closedState.cacheableBytes.close()
+    )
   }
 
   def read(header: Block.Header[ValuesBlock.Offset]): ValuesBlock =

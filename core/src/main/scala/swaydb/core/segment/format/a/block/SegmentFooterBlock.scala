@@ -108,7 +108,7 @@ object SegmentFooterBlock {
 
     val valuesSize =
       if (values.isDefined)
-        values.get.header.size + values.get.bytes.size
+        values.get.header.size + values.get.compressibleBytes.size
       else
         0
 

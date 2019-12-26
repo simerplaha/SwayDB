@@ -144,7 +144,8 @@ private[core] object BinarySearchIndexBlock {
             writtenValues = 0,
             minimumNumberOfKeys = minimumNumberOfKeys,
             isFullIndex = isFullIndex,
-            bytes = bytes,
+            compressibleBytes = bytes,
+            cacheableBytes = bytes,
             header = null,
             compressions = compressions
           )
@@ -160,12 +161,13 @@ private[core] object BinarySearchIndexBlock {
               var writtenValues: Int,
               val minimumNumberOfKeys: Int,
               val isFullIndex: Boolean,
-              var bytes: Slice[Byte],
+              var compressibleBytes: Slice[Byte],
+              val cacheableBytes: Slice[Byte],
               var header: Slice[Byte],
               val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def blockSize: Int =
-      header.size + bytes.size
+      header.size + compressibleBytes.size
 
     def incrementWrittenValuesCount() =
       writtenValues += 1
@@ -220,17 +222,17 @@ private[core] object BinarySearchIndexBlock {
     }
 
   def close(state: State): Option[State] =
-    if (state.bytes.isEmpty)
+    if (state.compressibleBytes.isEmpty)
       None
     else if (state.hasMinimumKeys) {
       val compressionResult =
         Block.compress(
-          bytes = state.bytes,
-          compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
+          bytes = state.compressibleBytes,
+          compressions = state.compressions(UncompressedBlockInfo(state.compressibleBytes.size)),
           blockName = blockName
         )
 
-      compressionResult.compressedBytes foreach (state.bytes = _)
+      compressionResult.compressedBytes foreach (state.compressibleBytes = _)
 
       compressionResult.headerBytes addByte state.format.id
       compressionResult.headerBytes addUnsignedInt state.writtenValues
@@ -248,12 +250,31 @@ private[core] object BinarySearchIndexBlock {
     else
       None
 
+  def unblockedReader(closedState: BinarySearchIndexBlock.State): UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock] = {
+    val block =
+      BinarySearchIndexBlock(
+        format = closedState.format,
+        offset = BinarySearchIndexBlock.Offset(0, closedState.cacheableBytes.size),
+        valuesCount = closedState.writtenValues,
+        headerSize = 0,
+        bytesPerValue = closedState.bytesPerValue,
+        isFullIndex = closedState.isFullIndex,
+        compressionInfo = None
+      )
+
+    UnblockedReader(
+      block = block,
+      bytes = closedState.cacheableBytes.close()
+    )
+  }
+
   def read(header: Block.Header[BinarySearchIndexBlock.Offset]): BinarySearchIndexBlock = {
     val formatId = header.headerReader.get()
     val format: BinarySearchEntryFormat = BinarySearchEntryFormat.formats.find(_.id == formatId) getOrElse IO.throws(s"Invalid binary search formatId: $formatId")
     val valuesCount = header.headerReader.readUnsignedInt()
     val bytesPerValue = header.headerReader.readInt()
     val isFullIndex = header.headerReader.readBoolean()
+
     BinarySearchIndexBlock(
       format = format,
       offset = header.offset,
@@ -282,18 +303,18 @@ private[core] object BinarySearchIndexBlock {
       ()
     } else {
       //      if (state.bytes.size == 0) state.bytes moveWritePosition state.headerSize //if this the first write then skip the header bytes.
-      val writePosition = state.bytes.currentWritePosition
+      val writePosition = state.compressibleBytes.currentWritePosition
 
       state.format.write(
         indexOffset = indexOffset,
         mergedKey = mergedKey,
         keyType = keyType,
-        bytes = state.bytes
+        bytes = state.compressibleBytes
       )
 
-      val missedBytes = state.bytesPerValue - (state.bytes.currentWritePosition - writePosition)
+      val missedBytes = state.bytesPerValue - (state.compressibleBytes.currentWritePosition - writePosition)
       if (missedBytes > 0)
-        state.bytes moveWritePosition (state.bytes.currentWritePosition + missedBytes) //fill in the missing bytes to maintain fixed size for each entry.
+        state.compressibleBytes moveWritePosition (state.compressibleBytes.currentWritePosition + missedBytes) //fill in the missing bytes to maintain fixed size for each entry.
 
       state.incrementWrittenValuesCount()
       state.previouslyWritten = indexOffset

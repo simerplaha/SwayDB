@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
+import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.MurmurHash3Generic
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
@@ -77,21 +78,22 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   class State(val numberOfBits: Int,
               val maxProbe: Int,
-              var bytes: Slice[Byte],
+              var compressibleBytes: Slice[Byte],
+              val cacheableBytes: Slice[Byte],
               var header: Slice[Byte],
               val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def blockSize: Int =
-      header.size + bytes.size
+      header.size + compressibleBytes.size
 
     def blockBytes: Slice[Byte] =
-      header ++ bytes
+      header ++ compressibleBytes
 
     def written =
-      bytes.size
+      compressibleBytes.size
 
     override def hashCode(): Int =
-      bytes.hashCode()
+      compressibleBytes.hashCode()
   }
 
   def optimalSize(numberOfKeys: Int,
@@ -134,7 +136,8 @@ private[core] object BloomFilterBlock extends LazyLogging {
     new BloomFilterBlock.State(
       numberOfBits = numberOfBits,
       maxProbe = maxProbe,
-      bytes = bytes,
+      compressibleBytes = bytes,
+      cacheableBytes = bytes,
       header = Slice.emptyBytes,
       compressions =
         if (hasCompression)
@@ -162,17 +165,17 @@ private[core] object BloomFilterBlock extends LazyLogging {
   }
 
   def close(state: State): Option[BloomFilterBlock.State] =
-    if (state.bytes.isEmpty) {
+    if (state.compressibleBytes.isEmpty) {
       None
     } else {
       val compressionResult =
         Block.compress(
-          bytes = state.bytes,
-          compressions = state.compressions(UncompressedBlockInfo(state.bytes.size)),
+          bytes = state.compressibleBytes,
+          compressions = state.compressions(UncompressedBlockInfo(state.compressibleBytes.size)),
           blockName = blockName
         )
 
-      compressionResult.compressedBytes foreach (state.bytes = _)
+      compressionResult.compressedBytes foreach (state.compressibleBytes = _)
 
       compressionResult.headerBytes addUnsignedInt state.numberOfBits
       compressionResult.headerBytes addUnsignedInt state.maxProbe
@@ -189,9 +192,25 @@ private[core] object BloomFilterBlock extends LazyLogging {
       //        logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
       //        Some(state)
       //      }
-      logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.bytes.size}. maxProbe: ${state.maxProbe}")
+      logger.trace(s"BloomFilter stats: allocatedSpace: ${state.numberOfBits}. actualSpace: ${state.compressibleBytes.size}. maxProbe: ${state.maxProbe}")
       Some(state)
     }
+
+  def unblockedReader(closedState: BloomFilterBlock.State): UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock] = {
+    val block =
+      BloomFilterBlock(
+        offset = BloomFilterBlock.Offset(0, closedState.cacheableBytes.size),
+        maxProbe = closedState.maxProbe,
+        numberOfBits = closedState.numberOfBits,
+        headerSize = 0,
+        compressionInfo = None
+      )
+
+    UnblockedReader(
+      block = block,
+      bytes = closedState.cacheableBytes.close()
+    )
+  }
 
   def read(header: Block.Header[BloomFilterBlock.Offset]): BloomFilterBlock = {
     val numberOfBits = header.headerReader.readUnsignedInt()
@@ -235,10 +254,10 @@ private[core] object BloomFilterBlock extends LazyLogging {
       val computedHash = hash1 + probe * hash2
       val hashIndex = (computedHash & Long.MaxValue) % state.numberOfBits
       val offset = ((hashIndex >>> 6) * 8L).toInt
-      val long = state.bytes.take(offset, ByteSizeOf.long).readLong()
+      val long = state.compressibleBytes.take(offset, ByteSizeOf.long).readLong()
       if ((long & (1L << hashIndex)) == 0) {
-        state.bytes moveWritePosition offset
-        state.bytes addLong (long | (1L << hashIndex))
+        state.compressibleBytes moveWritePosition offset
+        state.compressibleBytes addLong (long | (1L << hashIndex))
       }
       probe += 1
     }

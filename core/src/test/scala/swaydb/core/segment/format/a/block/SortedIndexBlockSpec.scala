@@ -133,7 +133,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
         state.compressions(uncompressedBlockInfo).nonEmpty shouldBe compressions.nonEmpty
         state.enableAccessPositionIndex shouldBe sortedIndexConfig.enableAccessPositionIndex
         state.header shouldBe null
-        state.bytes.allocatedSize should be > 1 //should have size more than the header bytes.
+        state.compressibleBytes.allocatedSize should be > 1 //should have size more than the header bytes.
       }
     }
   }
@@ -180,7 +180,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             Block.unblock[ValuesBlock.Offset, ValuesBlock](closedState.blockBytes)
         } orNull
 
-      val expectsCompressions = sortedIndexConfig.compressions(UncompressedBlockInfo(sortedIndex.bytes.size)).nonEmpty
+      val expectsCompressions = sortedIndexConfig.compressions(UncompressedBlockInfo(sortedIndex.compressibleBytes.size)).nonEmpty
       sortedIndexBlock.compressionInfo.isDefined shouldBe expectsCompressions
       sortedIndexBlock.enableAccessPositionIndex shouldBe sortedIndexConfig.enableAccessPositionIndex
       if (!sortedIndexConfig.enablePrefixCompression) sortedIndexBlock.hasPrefixCompression shouldBe false
@@ -193,43 +193,48 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
       else
         sortedIndex.indexEntries shouldBe empty
 
-      val sortedIndexReader = Block.unblock(ref.copy())
-      //values are not required for this test. Create an empty reader.
-      /**
-       * TEST - READ ALL
-       */
-      val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, sortedIndexReader, valuesBlockReader)
-      keyValues shouldBe readAllKeyValues
+      val compressibleSortedIndexReader = Block.unblock(ref.copy())
+      val cacheableSortedIndexReader = SortedIndexBlock.unblockedReader(closedSortedIndexBlock)
 
-      /**
-       * TEST - Iterator
-       */
-      val keyValuesIterator = SortedIndexBlock.iterator(sortedIndexReader, valuesBlockReader)
-      keyValuesIterator.toList shouldBe readAllKeyValues
+      Seq(compressibleSortedIndexReader, cacheableSortedIndexReader) foreach {
+        sortedIndexReader =>
+          //values are not required for this test. Create an empty reader.
+          /**
+           * TEST - READ ALL
+           */
+          val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, sortedIndexReader, valuesBlockReader)
+          keyValues shouldBe readAllKeyValues
 
-      /**
-       * TEST - READ ONE BY ONE
-       */
-      val searchedKeyValues = ListBuffer.empty[Persistent]
-      keyValues.foldLeft(Option.empty[Persistent]) {
-        case (previous, keyValue) =>
-          val searchedKeyValue = SortedIndexBlock.seekAndMatch(keyValue.key, previous.getOrElse(Persistent.Null), sortedIndexReader, valuesBlockReader).getS
-          searchedKeyValue.key shouldBe keyValue.key
-          searchedKeyValues += searchedKeyValue
-          //randomly set previous
-          eitherOne(Some(searchedKeyValue), previous, None)
-      }
+          /**
+           * TEST - Iterator
+           */
+          val keyValuesIterator = SortedIndexBlock.iterator(sortedIndexReader, valuesBlockReader)
+          keyValuesIterator.toList shouldBe readAllKeyValues
 
-      keyValues shouldBe searchedKeyValues
+          /**
+           * TEST - READ ONE BY ONE
+           */
+          val searchedKeyValues = ListBuffer.empty[Persistent]
+          keyValues.foldLeft(Option.empty[Persistent]) {
+            case (previous, keyValue) =>
+              val searchedKeyValue = SortedIndexBlock.seekAndMatch(keyValue.key, previous.getOrElse(Persistent.Null), sortedIndexReader, valuesBlockReader).getS
+              searchedKeyValue.key shouldBe keyValue.key
+              searchedKeyValues += searchedKeyValue
+              //randomly set previous
+              eitherOne(Some(searchedKeyValue), previous, None)
+          }
 
-      /**
-       * SEARCH CONCURRENTLY
-       */
-      searchedKeyValues.zip(keyValues).par foreach {
-        case (persistent, memory) =>
-          val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, Persistent.Null, sortedIndexReader.copy(), valuesBlockReader)
-          searchedPersistent.getS shouldBe persistent
-          searchedPersistent.getS shouldBe memory
+          keyValues shouldBe searchedKeyValues
+
+          /**
+           * SEARCH CONCURRENTLY
+           */
+          searchedKeyValues.zip(keyValues).par foreach {
+            case (persistent, memory) =>
+              val searchedPersistent = SortedIndexBlock.seekAndMatch(persistent.key, Persistent.Null, sortedIndexReader.copy(), valuesBlockReader)
+              searchedPersistent.getS shouldBe persistent
+              searchedPersistent.getS shouldBe memory
+          }
       }
     }
   }
