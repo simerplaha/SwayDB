@@ -95,17 +95,17 @@ private[core] object HashIndexBlock extends LazyLogging {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  final case class State(var hit: Int,
-                         var miss: Int,
-                         format: HashIndexEntryFormat,
-                         minimumNumberOfKeys: Int,
-                         minimumNumberOfHits: Int,
-                         writeAbleLargestValueSize: Int,
-                         @BeanProperty var minimumCRC: Long,
-                         maxProbe: Int,
-                         var bytes: Slice[Byte],
-                         var header: Slice[Byte],
-                         compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+  final class State(var hit: Int,
+                    var miss: Int,
+                    val format: HashIndexEntryFormat,
+                    val minimumNumberOfKeys: Int,
+                    val minimumNumberOfHits: Int,
+                    val writeAbleLargestValueSize: Int,
+                    @BeanProperty var minimumCRC: Long,
+                    val maxProbe: Int,
+                    var bytes: Slice[Byte],
+                    var header: Slice[Byte],
+                    val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def blockSize: Int =
       header.size + bytes.size
@@ -135,11 +135,12 @@ private[core] object HashIndexBlock extends LazyLogging {
         )
 
       //if the user allocated
-      if (optimalBytes < ByteSizeOf.int)
+      if (optimalBytes < ByteSizeOf.int) {
         None
-      else
-        Some(
-          HashIndexBlock.State(
+      } else {
+        val bytes = Slice.create[Byte](optimalBytes)
+        val state =
+          new HashIndexBlock.State(
             hit = 0,
             miss = sortedIndexState.prefixCompressedCount,
             format = hashIndexConfig.format,
@@ -148,11 +149,13 @@ private[core] object HashIndexBlock extends LazyLogging {
             writeAbleLargestValueSize = writeAbleLargestValueSize,
             minimumCRC = CRC32.disabledCRC,
             maxProbe = hashIndexConfig.maxProbe,
-            bytes = Slice.create[Byte](optimalBytes),
+            bytes = bytes,
             header = null,
             compressions = hashIndexConfig.compressions
           )
-        )
+
+        Some(state)
+      }
     }
 
   def optimalBytesRequired(keyCounts: Int,

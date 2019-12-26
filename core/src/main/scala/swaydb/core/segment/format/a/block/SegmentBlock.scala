@@ -88,7 +88,7 @@ private[core] object SegmentBlock extends LazyLogging {
   object Closed {
 
     def apply(openSegment: Open): Closed =
-      Closed(
+      new Closed(
         minKey = openSegment.minKey,
         maxKey = openSegment.maxKey,
         segmentBytes = openSegment.segmentBytes,
@@ -97,11 +97,11 @@ private[core] object SegmentBlock extends LazyLogging {
       )
   }
 
-  case class Closed(minKey: Slice[Byte],
-                    maxKey: MaxKey[Slice[Byte]],
-                    segmentBytes: Slice[Slice[Byte]],
-                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                    nearestDeadline: Option[Deadline]) {
+   class Closed(val minKey: Slice[Byte],
+                val maxKey: MaxKey[Slice[Byte]],
+                val segmentBytes: Slice[Slice[Byte]],
+                val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                val nearestDeadline: Option[Deadline]) {
 
     def isEmpty: Boolean =
       segmentBytes.exists(_.isEmpty)

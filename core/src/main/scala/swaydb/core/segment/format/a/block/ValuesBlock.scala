@@ -75,10 +75,10 @@ private[core] object ValuesBlock {
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =
     IO.Left(swaydb.Error.Fatal("Value block not initialised."))
 
-  case class State(var bytes: Slice[Byte],
-                   var header: Slice[Byte],
-                   compressions: UncompressedBlockInfo => Seq[CompressionInternal],
-                   builder: EntryWriter.Builder) {
+  class State(var bytes: Slice[Byte],
+              var header: Slice[Byte],
+              val compressions: UncompressedBlockInfo => Seq[CompressionInternal],
+              val builder: EntryWriter.Builder) {
     def blockSize: Int =
       header.size + bytes.size
 
@@ -105,16 +105,14 @@ private[core] object ValuesBlock {
     val totalValuesSize = keyValues.totalValuesSize
     if (totalValuesSize > 0) {
       val bytes = Slice.create[Byte](totalValuesSize)
-      //      bytes moveWritePosition headerSize
-
-      Some(
-        ValuesBlock.State(
+      val state =
+        new ValuesBlock.State(
           bytes = bytes,
           header = null,
           compressions = valuesConfig.compressions,
           builder = builder
         )
-      )
+      Some(state)
     }
     else
       None
@@ -123,16 +121,13 @@ private[core] object ValuesBlock {
   def init(bytes: Slice[Byte],
            valuesConfig: ValuesBlock.Config,
            //the builder created by SortedIndex.
-           builder: EntryWriter.Builder): ValuesBlock.State = {
-    //    bytes moveWritePosition headerSize
-
-    ValuesBlock.State(
+           builder: EntryWriter.Builder): ValuesBlock.State =
+    new ValuesBlock.State(
       bytes = bytes,
       header = null,
       compressions = valuesConfig.compressions,
       builder = builder
     )
-  }
 
   def write(keyValue: Memory, state: ValuesBlock.State) =
     if (state.builder.isValueFullyCompressed)

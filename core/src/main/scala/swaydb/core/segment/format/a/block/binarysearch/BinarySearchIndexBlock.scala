@@ -117,19 +117,13 @@ private[core] object BinarySearchIndexBlock {
       if (uniqueValuesCount < minimumNumberOfKeys) {
         None
       } else {
-        //        val headerSize: Int =
-        //          optimalHeaderSize(
-        //            valuesCount = uniqueValuesCount,
-        //            hasCompression = true
-        //          )
-
         val bytesPerValue =
           format.bytesToAllocatePerEntry(
             largestIndexOffset = largestIndexOffset,
             largestMergedKeySize = largestMergedKeySize
           )
 
-        val bytes: Int =
+        val bytesRequired: Int =
           optimalBytesRequired(
             largestIndexOffset = largestIndexOffset,
             largestMergedKeySize = largestMergedKeySize,
@@ -139,7 +133,9 @@ private[core] object BinarySearchIndexBlock {
             format = format
           )
 
-        Some(
+        val bytes = Slice.create[Byte](bytesRequired)
+
+        val state =
           new State(
             format = format,
             bytesPerValue = bytesPerValue,
@@ -148,11 +144,12 @@ private[core] object BinarySearchIndexBlock {
             writtenValues = 0,
             minimumNumberOfKeys = minimumNumberOfKeys,
             isFullIndex = isFullIndex,
-            bytes = Slice.create[Byte](bytes),
+            bytes = bytes,
             header = null,
             compressions = compressions
           )
-        )
+
+        Some(state)
       }
   }
 

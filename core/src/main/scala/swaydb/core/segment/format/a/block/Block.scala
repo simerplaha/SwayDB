@@ -161,7 +161,7 @@ private[core] object Block extends LazyLogging {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 
-      SegmentBlock.Closed(
+      new SegmentBlock.Closed(
         minKey = openSegment.minKey,
         maxKey = openSegment.maxKey,
         segmentBytes = segmentBytes,
@@ -184,7 +184,7 @@ private[core] object Block extends LazyLogging {
 
       compressionResult.fixHeaderSize()
 
-      SegmentBlock.Closed(
+      new SegmentBlock.Closed(
         minKey = openSegment.minKey,
         maxKey = openSegment.maxKey,
         segmentBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),

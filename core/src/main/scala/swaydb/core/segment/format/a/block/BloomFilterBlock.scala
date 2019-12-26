@@ -75,11 +75,11 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
-  case class State(numberOfBits: Int,
-                   maxProbe: Int,
-                   var bytes: Slice[Byte],
-                   var header: Slice[Byte],
-                   compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+  class State(val numberOfBits: Int,
+              val maxProbe: Int,
+              var bytes: Slice[Byte],
+              var header: Slice[Byte],
+              val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
     def blockSize: Int =
       header.size + bytes.size
@@ -131,7 +131,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
 
     val bytes = Slice.create[Byte](numberOfBits)
 
-    BloomFilterBlock.State(
+    new BloomFilterBlock.State(
       numberOfBits = numberOfBits,
       maxProbe = maxProbe,
       bytes = bytes,

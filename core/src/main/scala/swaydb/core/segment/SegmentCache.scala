@@ -26,8 +26,8 @@ import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.segment.format.a.block._
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.util.{NullOps, SkipList}
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.util.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOptional}
