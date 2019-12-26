@@ -134,18 +134,23 @@ private[core] object SegmentBlock extends LazyLogging {
              //values
              val valuesBlockHeader: Option[Slice[Byte]],
              val valuesBlock: Option[Slice[Byte]],
+             val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
              //sortedIndex
              val sortedIndexBlockHeader: Slice[Byte],
              val sortedIndexBlock: Slice[Byte],
+             val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
              //hashIndex
              val hashIndexBlockHeader: Option[Slice[Byte]],
              val hashIndexBlock: Option[Slice[Byte]],
+             val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
              //binarySearch
              val binarySearchIndexBlockHeader: Option[Slice[Byte]],
              val binarySearchIndexBlock: Option[Slice[Byte]],
+             val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
              //bloomFilter
              val bloomFilterBlockHeader: Option[Slice[Byte]],
              val bloomFilterBlock: Option[Slice[Byte]],
+             val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
              //footer
              val footerBlock: Slice[Byte],
              //other
@@ -175,6 +180,21 @@ private[core] object SegmentBlock extends LazyLogging {
 
       allBytes add footerBlock
     }
+
+    //If sortedIndexUnblockedReader is defined then caching is enabled
+    //so read footer block.
+
+    val footerUnblocked: Option[SegmentFooterBlock] =
+      if (sortedIndexUnblockedReader.isDefined)
+        Some(
+          SegmentFooterBlock.readCRCPassed(
+            footerStartOffset = 0,
+            footerSize = footerBlock.size,
+            footerBytes = footerBlock
+          )
+        )
+      else
+        None
 
     def isEmpty: Boolean =
       segmentBytes.exists(_.isEmpty)
@@ -434,18 +454,23 @@ private[core] object SegmentBlock extends LazyLogging {
 
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
         valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
+        valuesUnblockedReader = closedBlocks.valuesUnblockedReader,
 
         sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
         sortedIndexBlock = closedBlocks.sortedIndex.compressibleBytes.close(),
+        sortedIndexUnblockedReader = closedBlocks.sortedIndexUnblockedReader,
 
         hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
         hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
+        hashIndexUnblockedReader = closedBlocks.hashIndexUnblockedReader,
 
         binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
         binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
+        binarySearchUnblockedReader = closedBlocks.binarySearchUnblockedReader,
 
         bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
         bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
+        bloomFilterUnblockedReader = closedBlocks.bloomFilterUnblockedReader,
 
         functionMinMax = closedBlocks.minMaxFunction,
         nearestDeadline = closedBlocks.nearestDeadline

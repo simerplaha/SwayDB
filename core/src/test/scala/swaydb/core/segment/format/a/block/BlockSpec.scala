@@ -75,18 +75,23 @@ class BlockSpec extends TestBase {
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               valuesBlock = randomBytesSliceOption(2),
+              valuesUnblockedReader = None,
 
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
               sortedIndexBlock = randomBytesSlice(2),
+              sortedIndexUnblockedReader = None,
 
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               hashIndexBlock = randomBytesSliceOption(2),
+              hashIndexUnblockedReader = None,
 
               binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               binarySearchIndexBlock = randomBytesSliceOption(2),
+              binarySearchUnblockedReader = None,
 
               bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               bloomFilterBlock = randomBytesSliceOption(2),
+              bloomFilterUnblockedReader = None,
 
               footerBlock = randomBytesSlice(),
 
@@ -161,18 +166,23 @@ class BlockSpec extends TestBase {
 
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               valuesBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              valuesUnblockedReader = None,
 
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
               sortedIndexBlock = randomBytesSlice(randomIntMax(100) + 1),
+              sortedIndexUnblockedReader = None,
 
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               hashIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              hashIndexUnblockedReader = None,
 
               binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               binarySearchIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              binarySearchUnblockedReader = None,
 
               bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
               bloomFilterBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+              bloomFilterUnblockedReader = None,
 
               footerBlock = randomBytesSlice(randomIntMax(100) + 1),
 
