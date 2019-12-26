@@ -85,6 +85,15 @@ private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val
         None
     }
 
+  def underlyingArraySizeOrReaderSize: Int =
+    reader match {
+      case reader: FileReader =>
+        reader.size.toInt
+
+      case SliceReader(slice, _) =>
+        slice.underlyingArraySize
+    }
+
   override def moveTo(newPosition: Long): UnblockedReader[O, B] = {
     state moveTo newPosition.toInt
     this

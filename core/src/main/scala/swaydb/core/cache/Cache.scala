@@ -125,7 +125,7 @@ private[core] object Cache {
 
   def deferredIO[E: IO.ExceptionHandler, ER <: E with swaydb.Error.Recoverable, I, O](initial: Option[O],
                                                                                       strategy: I => IOStrategy,
-                                                                                      reserveError: => ER)(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] = {
+                                                                                      reserveError: => ER)(onInitialSet: (O, Cache[E, I, O]) => Unit = (_: O, _: Cache[E, I, O]) => ())(fetch: (I, Cache[E, I, O]) => IO[E, O]): Cache[E, I, O] = {
 
     def innerCache(ioStrategy: IOStrategy, initial: Option[O]): Cache[E, I, O] =
       Cache.io[E, ER, I, O](
@@ -135,10 +135,13 @@ private[core] object Cache {
       )(fetch)
 
     val initialInner: Option[Cache[E, I, O]] =
-      if (initial.isDefined)
-        Some(innerCache(IOStrategy.ConcurrentIO(true), initial))
-      else
+      if (initial.isDefined) {
+        val cache = innerCache(IOStrategy.ConcurrentIO(true), initial)
+        onInitialSet(initial.get, cache)
+        Some(cache)
+      } else {
         None
+      }
 
     val cache =
       Cache.noIO[I, Cache[E, I, O]](synchronised = true, stored = true, initial = initialInner) {

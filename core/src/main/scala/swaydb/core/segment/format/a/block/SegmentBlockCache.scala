@@ -175,6 +175,12 @@ class SegmentBlockCache(path: Path,
       strategy = reader => blockIO(reader.block.dataType).forceCacheOnAccess,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
+      (initial, self) => //initial set clean up.
+        cacheMemorySweeper foreach {
+          cacheMemorySweeper =>
+            cacheMemorySweeper.add(initial.underlyingArraySizeOrReaderSize, self)
+        }
+    } {
       (blockedReader, self) =>
         IO {
 
@@ -204,6 +210,13 @@ class SegmentBlockCache(path: Path,
       strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
+      (initial, self) => //initial set clean up.
+        if (initial != null)
+          cacheMemorySweeper foreach {
+            cacheMemorySweeper =>
+              cacheMemorySweeper.add(initial.underlyingArraySizeOrReaderSize, self)
+          }
+    } {
       case (Some(blockedReader), self) =>
         IO {
           val cacheOnAccess = shouldForceCache(resourceName) || blockIO(blockedReader.block.dataType).cacheOnAccess
@@ -248,7 +261,7 @@ class SegmentBlockCache(path: Path,
             cache value Some(BlockRefReader.moveTo(offset, createSegmentBlockReader()))
 
           case None =>
-            cache.value(None)
+            cache value None
         }
       }
       .get
@@ -276,7 +289,7 @@ class SegmentBlockCache(path: Path,
               cache value Some(BlockedReader(block, createSegmentBlockReader()))
 
             case None =>
-              cache.value(None)
+              cache value None
           }
         }.get
 

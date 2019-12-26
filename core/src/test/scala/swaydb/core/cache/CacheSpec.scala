@@ -75,11 +75,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                    stored: Boolean,
                    initialValue: Option[Int]): ((Unit, Cache[swaydb.Error.Segment, Unit, Int]) => IO[swaydb.Error.Segment, Int]) => Cache[swaydb.Error.Segment, Unit, Int] =
     if (isDeferred)
-      Cache.deferredIO(
+      Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](
         initial = initialValue,
         strategy = getIOStrategy(isConcurrent, isSynchronised, isReserved, stored),
         reserveError = swaydb.Error.ReservedResource(Reserve.free(name = "test"))
-      )
+      )()
     else if (isConcurrent)
       Cache.concurrentIO(
         synchronised = false,
@@ -445,7 +445,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
           val simpleCache =
             if (blockIO)
-              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](None, strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve.free(name = "test"))) {
+              Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, Int](None, strategy = _ => IOStrategy.AsyncIO(true), swaydb.Error.ReservedResource(Reserve.free(name = "test")))() {
                 (_, _) =>
                   invokeCount += 1
                   sleep(1.millisecond) //delay access
