@@ -134,7 +134,7 @@ object BinarySearchEntryFormat {
         new Partial.Range {
           val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
-          override lazy val indexOffset: Int =
+          override def indexOffset: Int =
             entryReader.readUnsignedInt()
 
           override def key: Slice[Byte] =
@@ -143,13 +143,14 @@ object BinarySearchEntryFormat {
           override def toPersistent: Persistent =
             SortedIndexBlock.read(
               fromOffset = indexOffset,
+              keySize = keySize,
               sortedIndexReader = sortedIndex,
               valuesReaderNullable = valuesNullable
             )
         }
       else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
         new Partial.Fixed {
-          override lazy val indexOffset: Int =
+          override def indexOffset: Int =
             entryReader.readUnsignedInt()
 
           override def key: Slice[Byte] =
@@ -158,6 +159,7 @@ object BinarySearchEntryFormat {
           override def toPersistent: Persistent =
             SortedIndexBlock.read(
               fromOffset = indexOffset,
+              keySize = keySize,
               sortedIndexReader = sortedIndex,
               valuesReaderNullable = valuesNullable
             )

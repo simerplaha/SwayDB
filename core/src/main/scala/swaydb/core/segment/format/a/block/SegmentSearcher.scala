@@ -163,6 +163,8 @@ private[core] object SegmentSearcher extends LazyLogging {
           segmentStateOrNull = segmentStateOrNull,
           found = found.getS
         )
+
+        found
       } else { //not found via sequential seek.
         //          failedSeqSeeks += 1
         val found =
@@ -185,9 +187,10 @@ private[core] object SegmentSearcher extends LazyLogging {
           segmentStateOrNull = segmentStateOrNull,
           found = found
         )
+
+        found
       }
 
-      found
     } else {
       val found =
         hashIndexSearch(

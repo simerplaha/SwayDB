@@ -169,6 +169,7 @@ object HashIndexEntryFormat {
               override def toPersistent: Persistent =
                 SortedIndexBlock.read(
                   fromOffset = indexOffset,
+                  keySize = keySize,
                   sortedIndexReader = sortedIndex,
                   valuesReaderNullable = valuesNullable
                 )

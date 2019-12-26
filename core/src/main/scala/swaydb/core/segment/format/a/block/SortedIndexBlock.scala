@@ -485,7 +485,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                           valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
     val indexEntry =
       readIndexEntry(
-        keySizeNullable = null,
+        keySizeOrNull = null,
         sortedIndexReader = sortedIndexReader moveTo fromOffset
       )
 
@@ -504,7 +504,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     val nextIndexEntry =
       readIndexEntry(
-        keySizeNullable = previous.nextKeySize,
+        keySizeOrNull = previous.nextKeySize,
         sortedIndexReader = indexReader moveTo previous.nextIndexOffset
       )
 
@@ -527,19 +527,19 @@ private[core] object SortedIndexBlock extends LazyLogging {
                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
     readKeyValue(
       fromPosition = fromPosition,
-      keySizeNullable = null,
+      keySizeOrNull = null,
       indexReader = indexReader,
       valuesReaderNullable = valuesReaderNullable
     )
 
   private def readKeyValue(fromPosition: Int,
-                           keySizeNullable: Integer,
+                           keySizeOrNull: Integer,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
 
     val nextIndexEntry =
       readIndexEntry(
-        keySizeNullable = keySizeNullable,
+        keySizeOrNull = keySizeOrNull,
         sortedIndexReader = indexReader moveTo fromPosition
       )
 
@@ -560,22 +560,22 @@ private[core] object SortedIndexBlock extends LazyLogging {
   /**
    * Pre-requisite: The position of the index on the reader should be set.
    */
-  private def readIndexEntry(keySizeNullable: Integer,
+  private def readIndexEntry(keySizeOrNull: Integer,
                              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]): IndexEntry =
-    if (keySizeNullable != null && keySizeNullable > 0) { //try reading entry bytes within one seek.
-      sortedIndexReader skip Bytes.sizeOfUnsignedInt(keySizeNullable)
+    if (keySizeOrNull != null && keySizeOrNull > 0) { //try reading entry bytes within one seek.
+      sortedIndexReader skip Bytes.sizeOfUnsignedInt(keySizeOrNull)
 
       val indexSize =
         if (sortedIndexReader.block.isBinarySearchable)
           sortedIndexReader.block.segmentMaxIndexEntrySize
         else
-          EntryWriter.maxEntrySize(keySizeNullable, sortedIndexReader.block.enableAccessPositionIndex)
+          EntryWriter.maxEntrySize(keySizeOrNull, sortedIndexReader.block.enableAccessPositionIndex)
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = sortedIndexReader read (indexSize + ByteSizeOf.varInt)
 
       new IndexEntry(
-        headerInteger = keySizeNullable,
+        headerInteger = keySizeOrNull,
         tailBytes = indexEntry
       )
     } else if (sortedIndexReader.block.isBinarySearchable) { //if the reader has a block cache try fetching the bytes required within one seek.
@@ -680,7 +680,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
         val nextIndexEntry =
           readIndexEntry(
-            keySizeNullable = nextKeySize,
+            keySizeOrNull = nextKeySize,
             sortedIndexReader = sortedIndexReader
           )
 
@@ -971,7 +971,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val persistent =
       readKeyValue(
         fromPosition = fromOffset,
-        keySizeNullable = keySizeOrNull,
+        keySizeOrNull = keySizeOrNull,
         indexReader = indexReader,
         valuesReaderNullable = valuesReaderNullable
       )
@@ -1009,6 +1009,17 @@ private[core] object SortedIndexBlock extends LazyLogging {
            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
     readKeyValue(
       fromPosition = fromOffset,
+      indexReader = sortedIndexReader,
+      valuesReaderNullable = valuesReaderNullable
+    )
+
+  def read(fromOffset: Int,
+           keySize: Int,
+           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+           valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
+    readKeyValue(
+      fromPosition = fromOffset,
+      keySizeOrNull = keySize,
       indexReader = sortedIndexReader,
       valuesReaderNullable = valuesReaderNullable
     )
