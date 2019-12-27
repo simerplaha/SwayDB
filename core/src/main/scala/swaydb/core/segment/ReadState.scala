@@ -21,20 +21,105 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 
-import swaydb.core.data.Persistent
+import swaydb.core
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.util.LimitHashMap
+import swaydb.data.util.SomeOrNone
 
 import scala.util.Random
 
 private[swaydb] sealed trait ReadState {
-  def getSegmentStateOrNull(path: Path): ReadState.SegmentState
+  def getSegmentState(path: Path): ReadState.SegmentStateOptional
   def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit
 }
 
 private[swaydb] object ReadState {
 
+  sealed trait SegmentStateOptional extends SomeOrNone[SegmentStateOptional, SegmentState] {
+    override def noneS: SegmentStateOptional = SegmentState.Null
+  }
+  object SegmentState {
+    final object Null extends SegmentStateOptional {
+      override def self: SegmentStateOptional = this
+      override def isNoneS: Boolean = true
+      override def getS: SegmentState = throw new Exception("SegmentState is of type Null")
+    }
+
+    /**
+     * Sets read state after successful sequential read.
+     */
+
+    def createOnSuccessSequentialRead(path: Path,
+                                      readState: ReadState,
+                                      found: Persistent): Unit = {
+      found.unsliceKeys
+
+      val segmentState =
+        new ReadState.SegmentState(
+          keyValue = found,
+          isSequential = true
+        )
+
+      readState.setSegmentState(path, segmentState)
+    }
+
+    def mutateOnSuccessSequentialRead(path: Path,
+                                      readState: ReadState,
+                                      segmentState: ReadState.SegmentState,
+                                      found: Persistent): Unit = {
+      found.unsliceKeys
+      val state = segmentState.getS
+      //mutate segmentState for next sequential read
+      state.keyValue = found
+      state.isSequential = true
+    }
+
+    /**
+     * Sets read state after a random read WITHOUT an existing [[ReadState.SegmentState]] exists.
+     */
+    def createAfterRandomRead(path: Path,
+                              start: PersistentOptional,
+                              readState: ReadState,
+                              found: PersistentOptional): Unit =
+
+      if (found.isSomeS) {
+        val foundKeyValue = found.getS
+
+        foundKeyValue.unsliceKeys
+
+        val segmentState =
+          new core.segment.ReadState.SegmentState(
+            keyValue = foundKeyValue,
+            isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
+          )
+
+        readState.setSegmentState(path, segmentState)
+      }
+
+    /**
+     * Sets read state after a random read WITH an existing [[ReadState.SegmentState]] exists.
+     */
+    def mutateAfterRandomRead(path: Path,
+                              readState: ReadState,
+                              segmentState: ReadState.SegmentState, //should not be null.
+                              found: PersistentOptional): Unit =
+      if (found.isSomeS) {
+        val foundKeyValue = found.getS
+        foundKeyValue.unsliceKeys
+        segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue.nextIndexOffset
+        segmentState.keyValue = foundKeyValue
+      } else {
+        segmentState.isSequential = false
+      }
+
+  }
+
   class SegmentState(var keyValue: Persistent,
-                     var isSequential: Boolean)
+                     var isSequential: Boolean) extends SegmentStateOptional {
+    override def self: SegmentState = this
+    override def isNoneS: Boolean = false
+    override def getS: SegmentState = this
+  }
 
   def hashMap(): ReadState =
     new HashMapState(new java.util.HashMap[Path, ReadState.SegmentState]())
@@ -48,8 +133,13 @@ private[swaydb] object ReadState {
 
   private class HashMapState(map: java.util.HashMap[Path, ReadState.SegmentState]) extends ReadState {
 
-    def getSegmentStateOrNull(path: Path): ReadState.SegmentState =
-      map.get(path)
+    def getSegmentState(path: Path): ReadState.SegmentStateOptional = {
+      val state = map.get(path)
+      if (state == null)
+        SegmentState.Null
+      else
+        state
+    }
 
     def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit =
       map.put(path, nextIndexOffset)
@@ -57,8 +147,13 @@ private[swaydb] object ReadState {
 
   private class LimitHashMapState(map: LimitHashMap[Path, ReadState.SegmentState]) extends ReadState {
 
-    def getSegmentStateOrNull(path: Path): ReadState.SegmentState =
-      map.getOrNull(path)
+    def getSegmentState(path: Path): ReadState.SegmentStateOptional = {
+      val state = map.getOrNull(path)
+      if (state == null)
+        SegmentState.Null
+      else
+        state
+    }
 
     def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit =
       map.put(path, nextIndexOffset)

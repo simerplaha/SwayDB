@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
+import swaydb.core.segment.ReadState.SegmentState
 
 class ReadStateSpec extends WordSpec with Matchers {
 
@@ -14,7 +15,7 @@ class ReadStateSpec extends WordSpec with Matchers {
 
       (1 to 100) foreach {
         _ =>
-          state.getSegmentStateOrNull(Paths.get(randomString)) shouldBe null
+          state.getSegmentState(Paths.get(randomString)) shouldBe SegmentState.Null
       }
     }
 
@@ -31,7 +32,7 @@ class ReadStateSpec extends WordSpec with Matchers {
 
       keys foreach {
         key =>
-          state.getSegmentStateOrNull(key) should be(null)
+          state.getSegmentState(key) shouldBe SegmentState.Null
       }
     }
   }

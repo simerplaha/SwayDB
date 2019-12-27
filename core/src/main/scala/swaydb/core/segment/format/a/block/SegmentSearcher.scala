@@ -24,6 +24,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.ReadState
+import swaydb.core.segment.ReadState.SegmentState
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -40,91 +41,6 @@ private[core] object SegmentSearcher extends LazyLogging {
   var successfulHashIndexSeeks = 0
   var failedHashIndexSeeks = 0
 
-  /**
-   * Sets read state after successful sequential read.
-   */
-  private def setReadStateOnSuccessSequentialRead(path: Path,
-                                                  readState: ReadState,
-                                                  segmentStateOrNull: ReadState.SegmentState,
-                                                  found: Persistent): Unit =
-    if (segmentStateOrNull == null) {
-      found.unsliceKeys
-
-      val segmentState =
-        new ReadState.SegmentState(
-          keyValue = found,
-          isSequential = true
-        )
-
-      readState.setSegmentState(path, segmentState)
-    } else {
-      found.unsliceKeys
-      //mutate segmentState for next sequential read
-      segmentStateOrNull.keyValue = found
-      segmentStateOrNull.isSequential = true
-    }
-
-  /**
-   * Sets read state after a random read WITHOUT an existing [[ReadState.SegmentState]] exists.
-   */
-  private def setReadStateAfterRandomRead(path: Path,
-                                          start: PersistentOptional,
-                                          readState: ReadState,
-                                          found: PersistentOptional): Unit =
-
-    if (found.isSomeS) {
-      val foundKeyValue = found.getS
-
-      foundKeyValue.unsliceKeys
-
-      val segmentState =
-        new core.segment.ReadState.SegmentState(
-          keyValue = foundKeyValue,
-          isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
-        )
-
-      readState.setSegmentState(path, segmentState)
-    }
-
-  /**
-   * Sets read state after a random read WITH an existing [[ReadState.SegmentState]] exists.
-   */
-  private def mutateReadStateAfterRandomRead(path: Path,
-                                             readState: ReadState,
-                                             segmentState: ReadState.SegmentState, //should not be null.
-                                             found: PersistentOptional): Unit =
-    if (found.isSomeS) {
-      val foundKeyValue = found.getS
-      foundKeyValue.unsliceKeys
-      segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue.nextIndexOffset
-      segmentState.keyValue = foundKeyValue
-    } else {
-      segmentState.isSequential = false
-    }
-
-  /**
-   * Sets read state after a random read where [[ReadState.SegmentState]] can be null.
-   */
-  private def setReadStateAfterRandomReadCheckNull(path: Path,
-                                                   start: PersistentOptional,
-                                                   readState: ReadState,
-                                                   segmentStateOrNull: ReadState.SegmentState,
-                                                   found: PersistentOptional): Unit =
-    if (segmentStateOrNull == null)
-      setReadStateAfterRandomRead(
-        path = path,
-        start = start,
-        readState = readState,
-        found = found
-      )
-    else
-      mutateReadStateAfterRandomRead(
-        path = path,
-        readState = readState,
-        segmentState = segmentStateOrNull,
-        found = found
-      )
-
   def search(path: Path,
              key: Slice[Byte],
              start: PersistentOptional,
@@ -136,88 +52,114 @@ private[core] object SegmentSearcher extends LazyLogging {
              hasRange: Boolean,
              keyValueCount: => Int,
              readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                   partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional = {
-    val segmentStateOrNull = readState getSegmentStateOrNull path
-    if (segmentStateOrNull == null || segmentStateOrNull.isSequential) {
-      seqSeeks += 1
-      val found =
-        if (segmentStateOrNull == null)
-          SortedIndexBlock.searchSeekOne(
-            key = key,
-            fromPosition = 0,
-            keySizeOrNull = null,
-            indexReader = sortedIndexReader,
-            valuesReaderNullable = valuesReaderNullable
-          )
-        else
-          SortedIndexBlock.searchSeekOne(
-            key = key,
-            start = segmentStateOrNull.keyValue,
-            indexReader = sortedIndexReader,
-            valuesReaderNullable = valuesReaderNullable
-          )
-
-      if (found.isSomeS) { //found is sequential read.
-        successfulSeqSeeks += 1
-        setReadStateOnSuccessSequentialRead(
-          path = path,
-          readState = readState,
-          segmentStateOrNull = segmentStateOrNull,
-          found = found.getS
-        )
-
-        found
-      } else { //not found via sequential seek.
-        failedSeqSeeks += 1
+                                   partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
+    readState.getSegmentState(path) match {
+      case SegmentState.Null =>
         val found =
-          hashIndexSearch(
-            key = key,
-            start = start,
-            end = end,
-            keyValueCount = keyValueCount,
-            hashIndexReaderNullable = hashIndexReaderNullable,
-            binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
-            sortedIndexReader = sortedIndexReader,
-            valuesReaderNullable = valuesReaderNullable,
-            hasRange = hasRange
+          if (start.isSomeS)
+            SortedIndexBlock.searchSeekOne(
+              key = key,
+              start = start.getS,
+              indexReader = sortedIndexReader,
+              valuesReaderNullable = valuesReaderNullable
+            )
+          else
+            SortedIndexBlock.searchSeekOne(
+              key = key,
+              fromPosition = 0,
+              keySizeOrNull = null,
+              indexReader = sortedIndexReader,
+              valuesReaderNullable = valuesReaderNullable
+            )
+
+        if (found.isSomeS) { //found is sequential read.
+          successfulSeqSeeks += 1
+          SegmentState.createOnSuccessSequentialRead(
+            path = path,
+            readState = readState,
+            found = found.getS
           )
 
-        setReadStateAfterRandomReadCheckNull(
-          path = path,
-          start = start,
-          readState = readState,
-          segmentStateOrNull = segmentStateOrNull,
-          found = found
-        )
+          found
+        } else {
+          failedSeqSeeks += 1
+          val found =
+            hashIndexSearch(
+              key = key,
+              start = start,
+              end = end,
+              keyValueCount = keyValueCount,
+              hashIndexReaderNullable = hashIndexReaderNullable,
+              binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
+              sortedIndexReader = sortedIndexReader,
+              valuesReaderNullable = valuesReaderNullable,
+              hasRange = hasRange
+            )
 
-        found
-      }
+          SegmentState.createAfterRandomRead(
+            path = path,
+            start = start,
+            readState = readState,
+            found = found
+          )
 
-    } else {
-      val found =
-        hashIndexSearch(
-          key = key,
-          start = start,
-          end = end,
-          keyValueCount = keyValueCount,
-          hashIndexReaderNullable = hashIndexReaderNullable,
-          binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
-          sortedIndexReader = sortedIndexReader,
-          valuesReaderNullable = valuesReaderNullable,
-          hasRange = hasRange
-        )
+          found
+        }
 
-      //segmentStateOrNull is never null here. If it's null it's a sequential read.
-      mutateReadStateAfterRandomRead(
-        path = path,
-        readState = readState,
-        segmentState = segmentStateOrNull,
-        found = found
-      )
+      case state: ReadState.SegmentState =>
+        val sequentialFound =
+          if (state.isSequential) {
+            val found =
+              SortedIndexBlock.searchSeekOne(
+                key = key,
+                start = state.keyValue,
+                indexReader = sortedIndexReader,
+                valuesReaderNullable = valuesReaderNullable
+              )
 
-      found
+            if (found.isSomeS) {
+              successfulSeqSeeks += 1
+            } else {
+              failedSeqSeeks += 1
+            }
+
+            found
+          } else {
+            Persistent.Null
+          }
+
+        if (sequentialFound.isSomeS) {
+          SegmentState.mutateOnSuccessSequentialRead(
+            path = path,
+            readState = readState,
+            segmentState = state,
+            found = sequentialFound.getS
+          )
+          sequentialFound
+        } else {
+          val found =
+            hashIndexSearch(
+              key = key,
+              start = start,
+              end = end,
+              keyValueCount = keyValueCount,
+              hashIndexReaderNullable = hashIndexReaderNullable,
+              binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
+              sortedIndexReader = sortedIndexReader,
+              valuesReaderNullable = valuesReaderNullable,
+              hasRange = hasRange
+            )
+
+          SegmentState.mutateAfterRandomRead(
+            path = path,
+            readState = readState,
+            segmentState = state,
+            found = found
+          )
+
+          found
+        }
     }
-  }
 
   def hashIndexSearch(key: Slice[Byte],
                       start: PersistentOptional,

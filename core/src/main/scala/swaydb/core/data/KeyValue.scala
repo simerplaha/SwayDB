@@ -586,9 +586,9 @@ private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptio
 private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial with PersistentOptional {
 
   def indexOffset: Int
-  val nextIndexOffset: Int
-  val nextKeySize: Int
-  val sortedIndexAccessPosition: Int
+  def nextIndexOffset: Int
+  def nextKeySize: Int
+  def sortedIndexAccessPosition: Int
 
   override def isPartial: Boolean =
     false
