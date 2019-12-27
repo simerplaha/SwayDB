@@ -126,6 +126,12 @@ private[core] class SegmentCache(path: Path,
         Persistent.Null
     }
 
+  private def applyToSkipList(f: SkipList[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent] => PersistentOptional): PersistentOptional =
+    if (skipList.isDefined)
+      f(skipList.get)
+    else
+      Persistent.Null
+
   def mightContain(key: Slice[Byte]): Boolean = {
     val bloomFilterReader = blockCache.createBloomFilterReaderNullable()
     bloomFilterReader == null ||
@@ -149,7 +155,7 @@ private[core] class SegmentCache(path: Path,
       //        None
 
       case _ =>
-        skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.floor(key)) match {
+        applyToSkipList(_.floor(key)) match {
           case floor: Persistent if floor.key equiv key =>
             floor
 
@@ -163,7 +169,7 @@ private[core] class SegmentCache(path: Path,
                 path = path,
                 key = key,
                 start = floorValue,
-                end = skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)),
+                end = applyToSkipList(_.higher(key)),
                 keyValueCount = footer.keyValueCount,
                 hashIndexReaderNullable = blockCache.createHashIndexReaderNullable(),
                 binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
@@ -187,14 +193,14 @@ private[core] class SegmentCache(path: Path,
         Persistent.Null
 
       case _ =>
-        skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.floor(key)) match {
+        applyToSkipList(_.floor(key)) match {
           case someFloor: Persistent =>
             someFloor match {
               case floor: Persistent.Range if floor contains key =>
                 someFloor
 
               case _ =>
-                skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)) match {
+                applyToSkipList(_.higher(key)) match {
                   case higher: Persistent.Range if higher contains key =>
                     higher
 
@@ -236,7 +242,7 @@ private[core] class SegmentCache(path: Path,
                 SegmentSearcher.searchHigher(
                   key = key,
                   start = start,
-                  end = skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)),
+                  end = applyToSkipList(_.higher(key)),
                   keyValueCount = getFooter().keyValueCount,
                   readState = readState,
                   binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
@@ -263,7 +269,7 @@ private[core] class SegmentCache(path: Path,
 
   private def getForLower(key: Slice[Byte],
                           readState: ReadState): PersistentOptional =
-    skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.get(key)) orElseS get(key, readState)
+    applyToSkipList(_.get(key)) orElseS get(key, readState)
 
   def lower(key: Slice[Byte],
             readState: ReadState): PersistentOptional =
@@ -278,7 +284,7 @@ private[core] class SegmentCache(path: Path,
           get(fromKey, readState)
 
         case _ =>
-          skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.lower(key)) match {
+          applyToSkipList(_.lower(key)) match {
             case lowerKeyValue: Persistent =>
               //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
               if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
