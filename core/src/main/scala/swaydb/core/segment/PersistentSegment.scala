@@ -59,12 +59,12 @@ object PersistentSegment {
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
             footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              blockCache: Option[BlockCache.State],
-                                                              fileSweeper: FileSweeper.Enabled,
-                                                              segmentIO: SegmentIO): PersistentSegment = {
+                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                         functionStore: FunctionStore,
+                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                         blockCache: Option[BlockCache.State],
+                                                         fileSweeper: FileSweeper.Enabled,
+                                                         segmentIO: SegmentIO): PersistentSegment = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
@@ -114,6 +114,11 @@ private[segment] case class PersistentSegment(file: DBFile,
                                                                                                fileSweeper: FileSweeper.Enabled,
                                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                                segmentIO: SegmentIO) extends Segment with LazyLogging {
+
+  implicit val segmentCacheImplicit: SegmentCache = segmentCache
+  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
+  implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
 
   def path = file.path
 
@@ -256,13 +261,13 @@ private[segment] case class PersistentSegment(file: DBFile,
     }
 
   def get(key: Slice[Byte], readState: ReadState): PersistentOptional =
-    segmentCache.get(key, readState)
+    SegmentCache.get(key, readState)
 
   def lower(key: Slice[Byte], readState: ReadState): PersistentOptional =
-    segmentCache.lower(key, readState)
+    SegmentCache.lower(key, readState)
 
   def higher(key: Slice[Byte], readState: ReadState): PersistentOptional =
-    segmentCache.higher(key, readState)
+    SegmentCache.higher(key, readState)
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     segmentCache getAll aggregator

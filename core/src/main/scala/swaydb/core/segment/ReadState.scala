@@ -40,7 +40,6 @@ private[swaydb] object ReadState {
   }
   object SegmentState {
     final object Null extends SegmentStateOptional {
-      override def self: SegmentStateOptional = this
       override def isNoneS: Boolean = true
       override def getS: SegmentState = throw new Exception("SegmentState is of type Null")
     }
@@ -116,7 +115,6 @@ private[swaydb] object ReadState {
 
   class SegmentState(var keyValue: Persistent,
                      var isSequential: Boolean) extends SegmentStateOptional {
-    override def self: SegmentState = this
     override def isNoneS: Boolean = false
     override def getS: SegmentState = this
   }

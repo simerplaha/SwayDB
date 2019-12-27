@@ -126,4 +126,5 @@ class Slice[+T] private[slice](array: Array[T],
   override def iterableFactory: IterableFactory[Slice] =
     new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
 
+
 }

@@ -60,8 +60,6 @@ private[swaydb] object Value {
   sealed trait FromValueOption extends SomeOrNone[FromValueOption, Value.FromValue] {
     override def noneS: FromValueOption =
       Value.FromValue.Null
-
-    override def self = this
   }
 
   object FromValue {

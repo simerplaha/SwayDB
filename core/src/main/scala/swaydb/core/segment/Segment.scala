@@ -52,8 +52,6 @@ import scala.jdk.CollectionConverters._
 private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional, Segment] {
   override def noneS: SegmentOptional =
     Segment.Null
-
-  override def self = this
 }
 private[core] object Segment extends LazyLogging {
 

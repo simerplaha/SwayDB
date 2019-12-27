@@ -655,19 +655,20 @@ object CommonAssertions {
         //        val key = keyValue.minKey.readInt()
         //        if (key % 100 == 0)
         //          println(s"Key: $key")
-        SegmentSearcher.search(
-          path = Paths.get("test"),
-          key = keyValue.key,
-          start = Persistent.Null,
-          end = Persistent.Null,
-          keyValueCount = blocks.footer.keyValueCount,
-          hashIndexReaderNullable = blocks.hashIndexReader.map(_.copy()).orNull,
-          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
-          sortedIndexReader = blocks.sortedIndexReader.copy(),
-          valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull,
-          hasRange = blocks.footer.hasRange,
-          readState = ReadState.random
-        ).runRandomIO.right.value.getS shouldBe keyValue
+//        SegmentSearcher.search(
+//          path = Paths.get("test"),
+//          key = keyValue.key,
+//          start = Persistent.Null,
+//          end = Persistent.Null,
+//          keyValueCount = blocks.footer.keyValueCount,
+//          hashIndexReaderNullable = blocks.hashIndexReader.map(_.copy()).orNull,
+//          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
+//          sortedIndexReader = blocks.sortedIndexReader.copy(),
+//          valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull,
+//          hasRange = blocks.footer.hasRange,
+//          readState = ReadState.random
+//        ).runRandomIO.right.value.getS shouldBe keyValue
+        ???
     }
   }
 

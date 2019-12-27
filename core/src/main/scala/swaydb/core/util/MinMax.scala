@@ -84,6 +84,10 @@ private[core] object MinMax {
         left
     }
 
+  def minFavourLeft[T](left: T,
+                       right: T)(implicit ordering: Ordering[T]): T =
+    minimum[T](left, right)
+
   def maxFavourLeft[T](left: T,
                        right: T)(implicit ordering: Ordering[T]): T =
     maximum[T](left, right)

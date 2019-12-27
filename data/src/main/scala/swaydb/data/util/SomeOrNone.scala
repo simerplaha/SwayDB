@@ -30,11 +30,9 @@ object SomeOrNone {
   }
 }
 
-private[swaydb] trait SomeOrNone[T, SOME <: T] {
+private[swaydb] trait SomeOrNone[T, SOME <: T] { selfS: T =>
 
   def noneS: T
-
-  def self: T
 
   def isNoneS: Boolean
 
@@ -110,15 +108,20 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] {
     else
       initial
 
-  def sizeEffect(f: SOME => Unit): T = {
+  def onSomeSideEffectS(f: SOME => Unit): T = {
     if (isSomeS)
       f(getS)
 
-    self
+    selfS
+  }
+
+  def onSideEffectS(f: T => Unit): T = {
+    f(selfS)
+    selfS
   }
 }
 
-private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] {
+private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] { selfC: T =>
 
   def noneC: T
 
@@ -195,4 +198,16 @@ private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] {
       f(initial, getC)
     else
       initial
+
+  def onSomeSideEffectC(f: SOME => Unit): T = {
+    if (isSomeC)
+      f(getC)
+
+    selfC
+  }
+
+  def onSideEffectC(f: T => Unit): T = {
+    f(selfC)
+    selfC
+  }
 }

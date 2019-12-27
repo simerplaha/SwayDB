@@ -27,7 +27,6 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
 
   private sealed trait Option extends SomeOrNone[Option, Option.Some] {
     override def noneS: Option = Option.None
-    override def self: Option = this
   }
 
   private object Option {
@@ -129,7 +128,6 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
   "flatMapSomeOrNone" in {
     sealed trait Option2 extends SomeOrNone[Option2, Option2.Some2] {
       override def noneS: Option2 = Option2.None2
-      override def self = this
     }
 
     object Option2 {
@@ -160,6 +158,13 @@ class SomeOrNoneSpec extends WordSpec with Matchers {
       some =>
         fail()
     } shouldBe Option2.None2
+  }
 
+  "onSomeSideEffect" in {
+
+    val some = Option.Some()
+    some.onSomeSideEffectS(_ shouldBe some) shouldBe some
+
+    Option.None.onSomeSideEffectS(_ => fail()) shouldBe Option.None
   }
 }

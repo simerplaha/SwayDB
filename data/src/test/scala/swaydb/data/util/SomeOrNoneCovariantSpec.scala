@@ -135,6 +135,7 @@ class SomeOrNoneCovariantSpec extends WordSpec with Matchers {
         override def isNoneC: Boolean = true
         override def getC: Option2.Some2 =
           throw new Exception("Not a some value")
+
       }
 
       case class Some2(value: String = Random.nextString(10)) extends Option2 {
@@ -159,5 +160,12 @@ class SomeOrNoneCovariantSpec extends WordSpec with Matchers {
         fail()
     } shouldBe Option2.None2
 
+  }
+
+  "onSomeSideEffect" in {
+    val some = Option.Some()
+    some.onSomeSideEffectC(_ shouldBe some) shouldBe some
+
+    Option.None.onSomeSideEffectC(_ => fail()) shouldBe Option.None
   }
 }

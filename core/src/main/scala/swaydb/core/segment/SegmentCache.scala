@@ -25,15 +25,15 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
+import swaydb.core.segment.ReadState.{SegmentState, SegmentStateOptional}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.util.SkipList
+import swaydb.core.util.{MinMax, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOptional}
-import swaydb.data.util.SomeOrNone._
 
 private[core] object SegmentCache {
 
@@ -85,19 +85,425 @@ private[core] object SegmentCache {
           footerCacheable = footerCacheable
         )
     )
+
+  def bestStartForHigherSearch(key: Slice[Byte],
+                               segmentState: SegmentStateOptional,
+                               floorFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                      persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
+    SegmentCache.bestStartForHigherSearch(
+      key = key,
+      keyValueFromState = if (segmentState.isSomeS) segmentState.getS.keyValue else Persistent.Null,
+      floorFromSkipList = floorFromSkipList
+    )
+
+  /**
+   * Finds the best key to start from fetch highest.
+   *
+   * @param key               The key being searched
+   * @param keyValueFromState KeyValue read from the [[ReadState]]. This keyValue could also
+   *                          be higher than key itself so a check to ensure that key is <=
+   *                          than the search key is required.
+   * @param floorFromSkipList KeyValue read from the [[SegmentCache.skipList]]. This will always
+   *                          be <= to the key being search.
+   * @return the best possible key-value to search higher search from.
+   */
+  def bestStartForHigherSearch(key: Slice[Byte],
+                               keyValueFromState: PersistentOptional,
+                               floorFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                      persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
+    if (keyValueFromState.isNoneS) {
+      floorFromSkipList
+    } else if (floorFromSkipList.isNoneS) {
+      if (keyOrder.lteq(keyValueFromState.getS.key, key))
+        keyValueFromState
+      else
+        Persistent.Null
+    } else {
+      val fromState = keyValueFromState.getS
+      val fromSkipList = floorFromSkipList.getS
+      MinMax.minFavourLeft[Persistent](
+        left = fromState,
+        right = fromSkipList
+      )
+    }
+
+  def bestEndForLowerSearch(key: Slice[Byte],
+                            segmentState: SegmentStateOptional,
+                            ceilingFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                     persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
+    SegmentCache.bestEndForLowerSearch(
+      key = key,
+      keyValueFromState = if (segmentState.isSomeS) segmentState.getS.keyValue else Persistent.Null,
+      ceilingFromSkipList = ceilingFromSkipList
+    )
+
+  def bestEndForLowerSearch(key: Slice[Byte],
+                            keyValueFromState: PersistentOptional,
+                            ceilingFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                     persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
+    if (keyValueFromState.isNoneS) {
+      ceilingFromSkipList
+    } else if (ceilingFromSkipList.isNoneS) {
+      if (keyOrder.gteq(keyValueFromState.getS.key, key))
+        keyValueFromState
+      else
+        Persistent.Null
+    } else {
+      val fromState = keyValueFromState.getS
+      val fromSkipList = ceilingFromSkipList.getS
+      MinMax.minFavourLeft[Persistent](
+        left = fromState,
+        right = fromSkipList
+      )
+    }
+
+  def get(key: Slice[Byte],
+          readState: ReadState)(implicit segmentCache: SegmentCache,
+                                keyOrder: KeyOrder[Slice[Byte]],
+                                partialKeyOrder: KeyOrder[Persistent.Partial],
+                                segmentSearcher: SegmentSearcher): PersistentOptional = {
+    import keyOrder._
+
+    segmentCache.maxKey match {
+      case MaxKey.Fixed(maxKey) if key > maxKey =>
+        Persistent.Null
+
+      case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
+        Persistent.Null
+
+      //check for minKey inside the Segment is not required since Levels already do minKey check.
+      //      case _ if key < minKey =>
+      //        None
+
+      case _ =>
+        val footer = segmentCache.blockCache.getFooter()
+        val segmentState = readState.getSegmentState(segmentCache.path)
+        val getFromState =
+          if (footer.hasRange && segmentState.isSomeS)
+            segmentState.getS.keyValue match {
+              case fixed: Persistent if fixed.key equiv key =>
+                fixed
+
+              case range: Persistent.Range if range contains key =>
+                range
+
+              case _ =>
+                Persistent.Null
+            }
+          else
+            Persistent.Null
+
+        if (getFromState.isSomeS)
+          getFromState.getS
+        else
+          segmentCache.applyToSkipList(_.floor(key)) match {
+            case floor: Persistent if floor.key equiv key =>
+              floor
+
+            case floorRange: Persistent.Range if floorRange contains key =>
+              floorRange
+
+            case floorValue =>
+              if (footer.hasRange || segmentCache.mightContain(key))
+                segmentSearcher.search(
+                  path = segmentCache.path,
+                  key = key,
+                  start = floorValue,
+                  end = segmentCache.applyToSkipList(_.higher(key)),
+                  keyValueCount = footer.keyValueCount,
+                  hashIndexReaderNullable = segmentCache.blockCache.createHashIndexReaderNullable(),
+                  binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
+                  sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
+                  valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
+                  hasRange = footer.hasRange,
+                  readState = readState,
+                  segmentState = segmentState
+                ).onSomeSideEffectS(segmentCache.addToCache)
+              else
+                Persistent.Null
+          }
+    }
+  }
+
+  private[segment] def updateReadStateAfterHigher(foundOptional: PersistentOptional,
+                                                  segmentState: SegmentStateOptional,
+                                                  readState: ReadState)(implicit segmentCache: SegmentCache): Unit =
+    if (foundOptional.isSomeS) {
+      val found = foundOptional.getS
+      segmentCache.addToCache(found)
+      if (segmentState.isSomeS)
+        SegmentState.mutateOnSuccessSequentialRead(
+          path = segmentCache.path,
+          readState = readState,
+          segmentState = segmentState.getS,
+          found = found
+        )
+      else
+        SegmentState.createOnSuccessSequentialRead(
+          path = segmentCache.path,
+          readState = readState,
+          found = found
+        )
+    }
+
+  def higher(key: Slice[Byte],
+             readState: ReadState)(implicit segmentCache: SegmentCache,
+                                   keyOrder: KeyOrder[Slice[Byte]],
+                                   persistentKeyOrder: KeyOrder[Persistent],
+                                   partialKeyOrder: KeyOrder[Persistent.Partial],
+                                   segmentSearcher: SegmentSearcher): PersistentOptional = {
+    import keyOrder._
+
+    segmentCache.maxKey match {
+      case MaxKey.Fixed(maxKey) if key >= maxKey =>
+        Persistent.Null
+
+      case MaxKey.Range(_, maxKey) if key >= maxKey =>
+        Persistent.Null
+
+      case _ =>
+        val blockCache = segmentCache.blockCache
+        val footer = blockCache.getFooter()
+        val segmentState = readState.getSegmentState(segmentCache.path)
+        val higherFromState =
+          if (footer.hasRange && segmentState.isSomeS)
+            segmentState.getS.keyValue match {
+              case range: Persistent.Range if range contains key =>
+                range
+
+              case _ =>
+                Persistent.Null
+            }
+          else
+            Persistent.Null
+
+        if (higherFromState.isSomeS)
+          higherFromState.getS
+        else
+          segmentCache.applyToSkipList(_.floor(key)) match {
+            case floor: Persistent =>
+              floor match {
+                case floor: Persistent.Range if floor contains key =>
+                  floor
+
+                case _ =>
+                  segmentCache.applyToSkipList(_.higher(key)) match {
+                    case higher: Persistent.Range if higher contains key =>
+                      higher
+
+                    case higher: Persistent =>
+                      if (floor.nextIndexOffset == higher.indexOffset)
+                        higher
+                      else
+                        segmentSearcher.searchHigher(
+                          key = key,
+                          start = SegmentCache.bestStartForHigherSearch(key, segmentState, floor),
+                          end = higher,
+                          keyValueCount = segmentCache.getFooter().keyValueCount,
+                          readState = readState,
+                          binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                          sortedIndexReader = blockCache.createSortedIndexReader(),
+                          valuesReaderNullable = blockCache.createValuesReaderNullable()
+                        ) onSideEffectS {
+                          optional =>
+                            updateReadStateAfterHigher(
+                              foundOptional = optional,
+                              segmentState = segmentState,
+                              readState = readState
+                            )
+                        }
+
+                    case Persistent.Null =>
+                      segmentSearcher.searchHigher(
+                        key = key,
+                        start = SegmentCache.bestStartForHigherSearch(key, segmentState, floor),
+                        end = Persistent.Null,
+                        keyValueCount = segmentCache.getFooter().keyValueCount,
+                        readState = readState,
+                        binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                        sortedIndexReader = blockCache.createSortedIndexReader(),
+                        valuesReaderNullable = blockCache.createValuesReaderNullable()
+                      ) onSideEffectS {
+                        optional =>
+                          updateReadStateAfterHigher(
+                            foundOptional = optional,
+                            segmentState = segmentState,
+                            readState = readState
+                          )
+                      }
+                  }
+              }
+
+            case Persistent.Null =>
+              //floor from skipList is null so bestStartForHigherSearch check is not required here.
+              val bestStartFrom =
+                if (segmentState.isSomeS && keyOrder.lteq(segmentState.getS.keyValue.key, key))
+                  segmentState.getS.keyValue
+                else
+                  get(key, readState)
+
+              bestStartFrom match {
+                case floor: Persistent.Range if floor contains key =>
+                  floor
+
+                case startFrom =>
+                  segmentSearcher.searchHigher(
+                    key = key,
+                    start = startFrom,
+                    end = segmentCache.applyToSkipList(_.higher(key)),
+                    keyValueCount = segmentCache.getFooter().keyValueCount,
+                    readState = readState,
+                    binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                    sortedIndexReader = blockCache.createSortedIndexReader(),
+                    valuesReaderNullable = blockCache.createValuesReaderNullable()
+                  ) onSideEffectS {
+                    optional =>
+                      updateReadStateAfterHigher(
+                        foundOptional = optional,
+                        segmentState = segmentState,
+                        readState = readState
+                      )
+                  }
+              }
+          }
+    }
+  }
+
+  private def lower(key: Slice[Byte],
+                    start: PersistentOptional,
+                    end: => PersistentOptional,
+                    keyValueCount: => Int)(implicit segmentCache: SegmentCache,
+                                           keyOrder: KeyOrder[Slice[Byte]],
+                                           partialKeyOrder: KeyOrder[Persistent.Partial],
+                                           segmentSearcher: SegmentSearcher): PersistentOptional = {
+
+    segmentSearcher.searchLower(
+      key = key,
+      start = start,
+      end = end,
+      keyValueCount = keyValueCount,
+      binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
+      sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
+      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable()
+    ).onSomeSideEffectS(segmentCache.addToCache)
+  }
+
+  private def getEndLower(key: Slice[Byte],
+                          segmentState: SegmentStateOptional,
+                          readState: ReadState)(implicit segmentCache: SegmentCache,
+                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                persistentKeyOrder: KeyOrder[Persistent],
+                                                partialKeyOrder: KeyOrder[Persistent.Partial],
+                                                segmentSearcher: SegmentSearcher): PersistentOptional = {
+
+    SegmentCache.bestEndForLowerSearch(
+      key = key,
+      segmentState = segmentState,
+      ceilingFromSkipList = segmentCache.applyToSkipList(_.get(key)) orElseS get(key, readState)
+    )
+  }
+
+  def lower(key: Slice[Byte],
+            readState: ReadState)(implicit segmentCache: SegmentCache,
+                                  keyOrder: KeyOrder[Slice[Byte]],
+                                  persistentKeyOrder: KeyOrder[Persistent],
+                                  partialKeyOrder: KeyOrder[Persistent.Partial],
+                                  segmentSearcher: SegmentSearcher): PersistentOptional = {
+    import keyOrder._
+
+    if (key <= segmentCache.minKey)
+      Persistent.Null
+    else
+      segmentCache.maxKey match {
+        case MaxKey.Fixed(maxKey) if key > maxKey =>
+          get(maxKey, readState)
+
+        case MaxKey.Range(fromKey, _) if key > fromKey =>
+          get(fromKey, readState)
+
+        case _ =>
+          val blockCache = segmentCache.blockCache
+          val footer = blockCache.getFooter()
+          val segmentState = readState.getSegmentState(segmentCache.path)
+          val lowerFromState =
+            if (footer.hasRange && segmentState.isSomeS)
+              segmentState.getS.keyValue match {
+                case range: Persistent.Range if range containsLower key =>
+                  range
+
+                case _ =>
+                  Persistent.Null
+              }
+            else
+              Persistent.Null
+
+          if (lowerFromState.isSomeS)
+            lowerFromState.getS
+          else
+            segmentCache.applyToSkipList(_.lower(key)) match {
+              case lowerKeyValue: Persistent =>
+                //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
+                if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
+                  lowerKeyValue
+                else
+                  lowerKeyValue match {
+                    case lowerRange: Persistent.Range if lowerRange containsLower key =>
+                      lowerRange
+
+                    case lowerKeyValue: Persistent =>
+                      getEndLower(key, segmentState, readState) match {
+                        case ceilingRange: Persistent.Range =>
+                          if (ceilingRange containsLower key)
+                            ceilingRange
+                          else if (lowerKeyValue.nextIndexOffset == ceilingRange.indexOffset)
+                            lowerKeyValue
+                          else
+                            lower(
+                              key = key,
+                              start = lowerKeyValue,
+                              end = ceilingRange,
+                              keyValueCount = footer.keyValueCount
+                            )
+
+                        case ceiling: Persistent.Fixed =>
+                          if (lowerKeyValue.nextIndexOffset == ceiling.indexOffset)
+                            lowerKeyValue
+                          else
+                            lower(
+                              key = key,
+                              start = lowerKeyValue,
+                              end = ceiling,
+                              keyValueCount = footer.keyValueCount
+                            )
+
+                        case Persistent.Null =>
+                          lower(
+                            key = key,
+                            start = lowerKeyValue,
+                            end = Persistent.Null,
+                            keyValueCount = footer.keyValueCount
+                          )
+                      }
+                  }
+
+              case Persistent.Null =>
+                lower(
+                  key = key,
+                  start = Persistent.Null,
+                  end = getEndLower(key, segmentState, readState),
+                  keyValueCount = footer.keyValueCount
+                )
+            }
+      }
+  }
+
 }
 
-private[core] class SegmentCache(path: Path,
-                                 maxKey: MaxKey[Slice[Byte]],
-                                 minKey: Slice[Byte],
+private[core] class SegmentCache(val path: Path,
+                                 val maxKey: MaxKey[Slice[Byte]],
+                                 val minKey: Slice[Byte],
                                  val skipList: Option[SkipList[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent]],
-                                 val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
-
-  import keyOrder._
-
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+                                 val blockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
@@ -140,205 +546,6 @@ private[core] class SegmentCache(path: Path,
         reader = bloomFilterReader
       )
   }
-
-  def get(key: Slice[Byte],
-          readState: ReadState): PersistentOptional =
-    maxKey match {
-      case MaxKey.Fixed(maxKey) if key > maxKey =>
-        Persistent.Null
-
-      case range: MaxKey.Range[Slice[Byte]] if key >= range.maxKey =>
-        Persistent.Null
-
-      //check for minKey inside the Segment is not required since Levels already do minKey check.
-      //      case _ if key < minKey =>
-      //        None
-
-      case _ =>
-        applyToSkipList(_.floor(key)) match {
-          case floor: Persistent if floor.key equiv key =>
-            floor
-
-          case floorRange: Persistent.Range if floorRange contains key =>
-            floorRange
-
-          case floorValue =>
-            val footer = blockCache.getFooter()
-            if (footer.hasRange || mightContain(key))
-              SegmentSearcher.search(
-                path = path,
-                key = key,
-                start = floorValue,
-                end = applyToSkipList(_.higher(key)),
-                keyValueCount = footer.keyValueCount,
-                hashIndexReaderNullable = blockCache.createHashIndexReaderNullable(),
-                binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-                sortedIndexReader = blockCache.createSortedIndexReader(),
-                valuesReaderNullable = blockCache.createValuesReaderNullable(),
-                hasRange = footer.hasRange,
-                readState = readState
-              ).sizeEffect(addToCache)
-            else
-              Persistent.Null
-        }
-    }
-
-  def higher(key: Slice[Byte],
-             readState: ReadState): PersistentOptional =
-    maxKey match {
-      case MaxKey.Fixed(maxKey) if key >= maxKey =>
-        Persistent.Null
-
-      case MaxKey.Range(_, maxKey) if key >= maxKey =>
-        Persistent.Null
-
-      case _ =>
-        applyToSkipList(_.floor(key)) match {
-          case someFloor: Persistent =>
-            someFloor match {
-              case floor: Persistent.Range if floor contains key =>
-                someFloor
-
-              case _ =>
-                applyToSkipList(_.higher(key)) match {
-                  case higher: Persistent.Range if higher contains key =>
-                    higher
-
-                  case higher: Persistent =>
-                    if (someFloor.nextIndexOffset == higher.indexOffset)
-                      higher
-                    else
-                      SegmentSearcher.searchHigher(
-                        key = key,
-                        start = someFloor,
-                        end = higher,
-                        keyValueCount = getFooter().keyValueCount,
-                        readState = readState,
-                        binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-                        sortedIndexReader = blockCache.createSortedIndexReader(),
-                        valuesReaderNullable = blockCache.createValuesReaderNullable()
-                      ).sizeEffect(addToCache)
-
-                  case Persistent.Null =>
-                    SegmentSearcher.searchHigher(
-                      key = key,
-                      start = someFloor,
-                      end = Persistent.Null,
-                      keyValueCount = getFooter().keyValueCount,
-                      readState = readState,
-                      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-                      sortedIndexReader = blockCache.createSortedIndexReader(),
-                      valuesReaderNullable = blockCache.createValuesReaderNullable()
-                    ).sizeEffect(addToCache)
-                }
-            }
-
-          case Persistent.Null =>
-            get(key, readState) match {
-              case floor: Persistent.Range if floor contains key =>
-                floor
-
-              case start =>
-                SegmentSearcher.searchHigher(
-                  key = key,
-                  start = start,
-                  end = applyToSkipList(_.higher(key)),
-                  keyValueCount = getFooter().keyValueCount,
-                  readState = readState,
-                  binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-                  sortedIndexReader = blockCache.createSortedIndexReader(),
-                  valuesReaderNullable = blockCache.createValuesReaderNullable()
-                ).sizeEffect(addToCache)
-            }
-        }
-    }
-
-  private def lower(key: Slice[Byte],
-                    start: PersistentOptional,
-                    end: => PersistentOptional,
-                    keyValueCount: => Int): PersistentOptional =
-    SegmentSearcher.searchLower(
-      key = key,
-      start = start,
-      end = end,
-      keyValueCount = keyValueCount,
-      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-      sortedIndexReader = blockCache.createSortedIndexReader(),
-      valuesReaderNullable = blockCache.createValuesReaderNullable()
-    ).sizeEffect(addToCache)
-
-  private def getForLower(key: Slice[Byte],
-                          readState: ReadState): PersistentOptional =
-    applyToSkipList(_.get(key)) orElseS get(key, readState)
-
-  def lower(key: Slice[Byte],
-            readState: ReadState): PersistentOptional =
-    if (key <= minKey)
-      Persistent.Null
-    else
-      maxKey match {
-        case MaxKey.Fixed(maxKey) if key > maxKey =>
-          get(maxKey, readState)
-
-        case MaxKey.Range(fromKey, _) if key > fromKey =>
-          get(fromKey, readState)
-
-        case _ =>
-          applyToSkipList(_.lower(key)) match {
-            case lowerKeyValue: Persistent =>
-              //if the lowest key-value in the cache is the last key-value, then lower is the next lowest key-value for the key.
-              if (lowerKeyValue.nextIndexOffset == -1) //-1 indicated last key-value in the Segment.
-                lowerKeyValue
-              else
-                lowerKeyValue match {
-                  case lowerRange: Persistent.Range if lowerRange containsLower key =>
-                    lowerRange
-
-                  case lowerKeyValue: Persistent =>
-                    getForLower(key, readState) match {
-                      case ceilingRange: Persistent.Range =>
-                        if (ceilingRange containsLower key)
-                          ceilingRange
-                        else if (lowerKeyValue.nextIndexOffset == ceilingRange.indexOffset)
-                          lowerKeyValue
-                        else
-                          lower(
-                            key = key,
-                            start = lowerKeyValue,
-                            end = ceilingRange,
-                            keyValueCount = getFooter().keyValueCount
-                          )
-
-                      case ceiling: Persistent.Fixed =>
-                        if (lowerKeyValue.nextIndexOffset == ceiling.indexOffset)
-                          lowerKeyValue
-                        else
-                          lower(
-                            key = key,
-                            start = lowerKeyValue,
-                            end = ceiling,
-                            keyValueCount = getFooter().keyValueCount
-                          )
-
-                      case Persistent.Null =>
-                        lower(
-                          key = key,
-                          start = lowerKeyValue,
-                          end = Persistent.Null,
-                          keyValueCount = getFooter().keyValueCount
-                        )
-                    }
-                }
-
-            case Persistent.Null =>
-              lower(
-                key = key,
-                start = Persistent.Null,
-                end = getForLower(key, readState),
-                keyValueCount = getFooter().keyValueCount
-              )
-          }
-      }
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     blockCache readAll aggregator
