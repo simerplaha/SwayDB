@@ -25,11 +25,18 @@ import swaydb.data.slice.{Reader, Slice, SliceReader}
 
 /**
  * A typed object that indicates that block is already decompressed and now is reading data bytes.
- *
- * [[Block.uncompressed]] creates the object and should be the only function that creates it.
  */
 
+sealed trait UnblockedReaderOptional[+O <: BlockOffset, +B <: Block[O]] {
+  def isNone: Boolean
+  def isSome: Boolean = !isNone
+}
+
 private[core] object UnblockedReader {
+
+  final case object Null extends UnblockedReaderOptional[Nothing, Nothing] {
+    override def isNone: Boolean = true
+  }
 
   def empty[O <: BlockOffset, B <: Block[O]](block: B)(implicit blockOps: BlockOps[O, B]) =
     new UnblockedReader[O, B](
@@ -66,9 +73,11 @@ private[core] object UnblockedReader {
 }
 
 private[core] class UnblockedReader[O <: BlockOffset, B <: Block[O]] private(val block: B,
-                                                                             private[reader] val reader: Reader) extends BlockReaderBase {
+                                                                             private[reader] val reader: Reader) extends BlockReaderBase with UnblockedReaderOptional[O, B] {
 
   val offset = block.offset
+
+  override def isNone: Boolean = false
 
   override val state: BlockReader.State =
     BlockReader(offset, reader)

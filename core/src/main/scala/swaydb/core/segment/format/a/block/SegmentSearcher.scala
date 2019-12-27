@@ -219,7 +219,6 @@ private[core] object SegmentSearcher extends LazyLogging {
     }
   }
 
-  //TODO - update READ-STATE
   def hashIndexSearch(key: Slice[Byte],
                       start: PersistentOptional,
                       end: => PersistentOptional,
