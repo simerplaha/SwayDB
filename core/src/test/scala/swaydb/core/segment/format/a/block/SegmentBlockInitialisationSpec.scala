@@ -127,7 +127,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
               keyValues = keyValues,
               sortedIndexConfig =
                 SortedIndexBlock.Config.random.copy(
-                  prefixCompressionResetCount = 0,
+                  shouldPrefixCompress = _ => randomBoolean(),
+                  enablePrefixCompression = randomBoolean(),
                   normaliseIndex = false
                 ),
               binarySearchIndexConfig =
@@ -204,7 +205,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
                 ),
               sortedIndexConfig =
                 SortedIndexBlock.Config.random.copy(
-                  prefixCompressionResetCount = 0,
+                  shouldPrefixCompress = _ => randomBoolean(),
+                  enablePrefixCompression = randomBoolean(),
                   normaliseIndex = false
                 )
             ).get
@@ -448,7 +450,8 @@ class SegmentBlockInitialisationSpec extends TestBase {
               sortedIndexConfig =
                 SortedIndexBlock.Config(
                   ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  prefixCompressionInterval = 0,
+                  shouldPrefixCompress = _ => randomBoolean(),
+                  enablePrefixCompression = randomBoolean(),
                   prefixCompressKeysOnly = randomBoolean(),
                   enableAccessPositionIndex = true,
                   normaliseIndex = randomBoolean(),

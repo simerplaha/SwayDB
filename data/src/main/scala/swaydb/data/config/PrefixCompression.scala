@@ -20,19 +20,39 @@
 package swaydb.data.config
 
 sealed trait PrefixCompression {
-  def compressionInterval: Int
+  private[swaydb] def shouldCompress(interval: Int): Boolean
+  def enabled: Boolean
   def keysOnly: Boolean
   def normaliseIndexForBinarySearch: Boolean
 }
 object PrefixCompression {
   case class Disable(normaliseIndexForBinarySearch: Boolean) extends PrefixCompression {
-    def compressionInterval: Int = 0
-    def keysOnly = false
-    def disableKeyPrefixCompression = true
+    override def keysOnly = false
+    override def enabled: Boolean = false
+    private[swaydb] override def shouldCompress(interval: Int): Boolean = false
   }
 
-  case class Enable(compressionInterval: Int, keysOnly: Boolean) extends PrefixCompression {
-    def normaliseIndexForBinarySearch: Boolean = false
-    def disableKeyPrefixCompression = false
+  sealed trait Interval {
+    private[swaydb] def shouldCompress(index: Int): Boolean
+  }
+
+  object Interval {
+    case class ResetCompressionAt(indexInterval: Int) extends Interval {
+      private[swaydb] override def shouldCompress(index: Int): Boolean =
+        index % this.indexInterval != 0
+    }
+
+    case class CompressAt(indexInterval: Int) extends Interval {
+      private[swaydb] override def shouldCompress(index: Int): Boolean =
+        index % this.indexInterval == 0
+    }
+  }
+
+  case class Enable(keysOnly: Boolean, interval: Interval) extends PrefixCompression {
+    override def normaliseIndexForBinarySearch: Boolean = false
+    override def enabled: Boolean = true
+
+    private[swaydb] override def shouldCompress(interval: Int): Boolean =
+      this.interval.shouldCompress(interval)
   }
 }

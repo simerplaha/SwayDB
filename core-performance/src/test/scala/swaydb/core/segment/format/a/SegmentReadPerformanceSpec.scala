@@ -100,7 +100,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
           sortedIndexConfig =
             SortedIndexBlock.Config(
               ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-              prefixCompressionInterval = 0,
+              enablePrefixCompression = true,
+              shouldPrefixCompress = _ % 2 == 0,
               prefixCompressKeysOnly = false,
               enableAccessPositionIndex = true,
               normaliseIndex = false,
@@ -155,7 +156,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
                 case action: IOAction.DataAction =>
                   IOStrategy.ConcurrentIO(cacheOnAccess = false)
               },
-              cacheBlocksOnCreate = true,
+              cacheBlocksOnCreate = false,
               compressions = _ => Seq.empty
             )
         )

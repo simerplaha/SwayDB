@@ -32,7 +32,7 @@ import swaydb.core.segment.format.a.entry.writer._
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.{Bytes, FiniteDurations, MinMax}
 import swaydb.data.MaxKey
-import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
+import swaydb.data.config.{IOAction, IOStrategy, PrefixCompression, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.{ByteSizeOf, Functions}
@@ -66,10 +66,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
     val disabled =
       Config(
         ioStrategy = (dataType: IOAction) => IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed),
-        prefixCompressionInterval = 0,
+        shouldPrefixCompress = _ => false,
         prefixCompressKeysOnly = false,
         enableAccessPositionIndex = false,
         normaliseIndex = false,
+        enablePrefixCompression = false,
         compressions = (_: UncompressedBlockInfo) => Seq.empty
       )
 
@@ -81,12 +82,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
-        enableAccessPositionIndex = enable.enablePositionIndex,
-        prefixCompressionInterval = enable.prefixCompression.compressionInterval max 0,
-        prefixCompressKeysOnly = enable.prefixCompression.keysOnly && enable.prefixCompression.compressionInterval > 1,
-        normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
-        //cannot normalise if prefix compression is enabled.
         ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+        shouldPrefixCompress = enable.prefixCompression.shouldCompress,
+        prefixCompressKeysOnly = enable.prefixCompression.enabled && enable.prefixCompression.keysOnly,
+        enableAccessPositionIndex = enable.enablePositionIndex,
+        normaliseIndex = enable.prefixCompression.normaliseIndexForBinarySearch,
+        enablePrefixCompression = enable.prefixCompression.enabled && !enable.prefixCompression.normaliseIndexForBinarySearch,
         compressions =
           Functions.safe(
             default = (_: UncompressedBlockInfo) => Seq.empty[CompressionInternal],
@@ -95,17 +96,18 @@ private[core] object SortedIndexBlock extends LazyLogging {
       )
 
     def apply(ioStrategy: IOAction => IOStrategy,
-              prefixCompressionInterval: Int,
+              enablePrefixCompression: Boolean,
+              shouldPrefixCompress: Int => Boolean,
               prefixCompressKeysOnly: Boolean,
               enableAccessPositionIndex: Boolean,
               normaliseIndex: Boolean,
               compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
       new Config(
         ioStrategy = ioStrategy,
-        prefixCompressionInterval = if (normaliseIndex) -1 else prefixCompressionInterval max -1,
-        prefixCompressKeysOnly = prefixCompressKeysOnly && prefixCompressionInterval > -1,
+        shouldPrefixCompress = if (normaliseIndex || !enablePrefixCompression) _ => false else shouldPrefixCompress,
+        prefixCompressKeysOnly = if (normaliseIndex || !enablePrefixCompression) false else prefixCompressKeysOnly,
         enableAccessPositionIndex = enableAccessPositionIndex,
-        //cannot normalise if prefix compression is enabled.
+        enablePrefixCompression = enablePrefixCompression,
         normaliseIndex = normaliseIndex,
         compressions = compressions
       )
@@ -115,26 +117,26 @@ private[core] object SortedIndexBlock extends LazyLogging {
    * Do not create [[Config]] directly. Use one of the apply functions.
    */
   class Config private(val ioStrategy: IOAction => IOStrategy,
-                       val prefixCompressionInterval: Int,
+                       val shouldPrefixCompress: Int => Boolean,
                        val prefixCompressKeysOnly: Boolean,
                        val enableAccessPositionIndex: Boolean,
+                       val enablePrefixCompression: Boolean,
                        val normaliseIndex: Boolean,
                        val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
-    val enablePrefixCompression: Boolean =
-      prefixCompressionInterval > -1
-
     def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
-             prefixCompressionResetCount: Int = prefixCompressionInterval,
+             shouldPrefixCompress: Int => Boolean = shouldPrefixCompress,
              enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
              normaliseIndex: Boolean = normaliseIndex,
+             enablePrefixCompression: Boolean = enablePrefixCompression,
              compressions: UncompressedBlockInfo => Seq[CompressionInternal] = compressions) =
     //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
       Config(
         ioStrategy = ioStrategy,
-        prefixCompressionInterval = prefixCompressionResetCount,
+        shouldPrefixCompress = shouldPrefixCompress,
         enableAccessPositionIndex = enableAccessPositionIndex,
         prefixCompressKeysOnly = prefixCompressKeysOnly,
+        enablePrefixCompression = enablePrefixCompression,
         normaliseIndex = normaliseIndex,
         compressions = compressions
       )
@@ -167,7 +169,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
               val enablePrefixCompression: Boolean,
               var entriesCount: Int,
               var prefixCompressedCount: Int,
-              val prefixCompressionInterval: Int,
+              val shouldPrefixCompress: Int => Boolean,
               var nearestDeadline: Option[Deadline],
               var rangeCount: Int,
               var hasPut: Boolean,
@@ -267,7 +269,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
       largestMergedKeySize = 0,
       largestUncompressedMergedKeySize = 0,
       enablePrefixCompression = sortedIndexConfig.enablePrefixCompression,
-      prefixCompressionInterval = sortedIndexConfig.prefixCompressionInterval,
+      shouldPrefixCompress = sortedIndexConfig.shouldPrefixCompress,
       entriesCount = 0,
       prefixCompressedCount = 0,
       nearestDeadline = None,
@@ -293,8 +295,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
     if (state.minKey == null)
       state.minKey = keyValue.key.unslice()
 
-    //    if (state.enablePrefixCompression && state.entriesCount + 1 % state.prefixCompressionInterval == 0)
-    //      state.builder.enablePrefixCompressionForCurrentWrite = true
+    if (state.enablePrefixCompression && state.shouldPrefixCompress(state.entriesCount))
+      state.builder.enablePrefixCompressionForCurrentWrite = true
 
     keyValue match {
       case keyValue: Memory.Put =>
