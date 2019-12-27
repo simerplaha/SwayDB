@@ -29,13 +29,12 @@ import swaydb.data.util.ByteSizeOf
 private[core] object EntryWriter {
 
   object Builder {
-    def apply(enablePrefixCompression: Boolean,
-              prefixCompressKeysOnly: Boolean,
+    def apply(prefixCompressKeysOnly: Boolean,
               compressDuplicateValues: Boolean,
               enableAccessPositionIndex: Boolean,
               bytes: Slice[Byte]): Builder =
       new Builder(
-        enablePrefixCompressionForCurrentWrite = enablePrefixCompression,
+        enablePrefixCompressionForCurrentWrite = false,
         prefixCompressKeysOnly = prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         isValueFullyCompressed = false,

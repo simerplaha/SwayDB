@@ -250,7 +250,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
            sortedIndexConfig: SortedIndexBlock.Config): SortedIndexBlock.State = {
     val builder =
       EntryWriter.Builder(
-        enablePrefixCompression = false, //this gets mutated during write.
         prefixCompressKeysOnly = sortedIndexConfig.prefixCompressKeysOnly,
         compressDuplicateValues = compressDuplicateValues,
         enableAccessPositionIndex = sortedIndexConfig.enableAccessPositionIndex,

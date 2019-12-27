@@ -742,6 +742,9 @@ object TestData {
 
         case SwayFunctionOutput.Update(newValue, newDeadline) =>
           Memory.Update(key, newValue, newDeadline, time)
+
+        case SwayFunctionOutput.Nothing =>
+          fail("SwayFunctionOutput.Nothing")
       }
   }
 
@@ -1736,7 +1739,6 @@ object TestData {
                     enableAccessPositionIndex: Boolean = randomBoolean(),
                     allocateBytes: Int = 10000): EntryWriter.Builder =
     EntryWriter.Builder(
-      enablePrefixCompression = enablePrefixCompression,
       prefixCompressKeysOnly = prefixCompressKeysOnly,
       compressDuplicateValues = compressDuplicateValues,
       enableAccessPositionIndex = enableAccessPositionIndex,
