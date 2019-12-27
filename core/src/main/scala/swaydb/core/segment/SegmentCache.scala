@@ -135,26 +135,6 @@ private[core] class SegmentCache(path: Path,
       )
   }
 
-  private def get(key: Slice[Byte],
-                  start: PersistentOptional,
-                  end: => PersistentOptional,
-                  hasRange: Boolean,
-                  keyValueCount: Int,
-                  readState: ReadState): PersistentOptional =
-    SegmentSearcher.search(
-      path = path,
-      key = key,
-      start = start,
-      end = end,
-      keyValueCount = keyValueCount,
-      hashIndexReaderNullable = blockCache.createHashIndexReaderNullable(),
-      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-      sortedIndexReader = blockCache.createSortedIndexReader(),
-      valuesReaderNullable = blockCache.createValuesReaderNullable(),
-      hasRange = hasRange,
-      readState = readState
-    ).sizeEffect(addToCache)
-
   def get(key: Slice[Byte],
           readState: ReadState): PersistentOptional =
     maxKey match {
@@ -178,26 +158,92 @@ private[core] class SegmentCache(path: Path,
 
           case floorValue =>
             val footer = blockCache.getFooter()
-            if (footer.hasRange)
-              get(
+            if (footer.hasRange || mightContain(key))
+              SegmentSearcher.search(
+                path = path,
                 key = key,
                 start = floorValue,
-                keyValueCount = footer.keyValueCount,
                 end = skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)),
-                readState = readState,
-                hasRange = footer.hasRange
-              )
-            else if (mightContain(key))
-              get(
-                key = key,
-                start = floorValue,
                 keyValueCount = footer.keyValueCount,
-                readState = readState,
-                end = skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)),
-                hasRange = footer.hasRange
-              )
+                hashIndexReaderNullable = blockCache.createHashIndexReaderNullable(),
+                binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                sortedIndexReader = blockCache.createSortedIndexReader(),
+                valuesReaderNullable = blockCache.createValuesReaderNullable(),
+                hasRange = footer.hasRange,
+                readState = readState
+              ).sizeEffect(addToCache)
             else
               Persistent.Null
+        }
+    }
+
+  def higher(key: Slice[Byte],
+             readState: ReadState): PersistentOptional =
+    maxKey match {
+      case MaxKey.Fixed(maxKey) if key >= maxKey =>
+        Persistent.Null
+
+      case MaxKey.Range(_, maxKey) if key >= maxKey =>
+        Persistent.Null
+
+      case _ =>
+        skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.floor(key)) match {
+          case someFloor: Persistent =>
+            someFloor match {
+              case floor: Persistent.Range if floor contains key =>
+                someFloor
+
+              case _ =>
+                skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)) match {
+                  case higher: Persistent.Range if higher contains key =>
+                    higher
+
+                  case higher: Persistent =>
+                    if (someFloor.nextIndexOffset == higher.indexOffset)
+                      higher
+                    else
+                      SegmentSearcher.searchHigher(
+                        key = key,
+                        start = someFloor,
+                        end = higher,
+                        keyValueCount = getFooter().keyValueCount,
+                        readState = readState,
+                        binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                        sortedIndexReader = blockCache.createSortedIndexReader(),
+                        valuesReaderNullable = blockCache.createValuesReaderNullable()
+                      ).sizeEffect(addToCache)
+
+                  case Persistent.Null =>
+                    SegmentSearcher.searchHigher(
+                      key = key,
+                      start = someFloor,
+                      end = Persistent.Null,
+                      keyValueCount = getFooter().keyValueCount,
+                      readState = readState,
+                      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                      sortedIndexReader = blockCache.createSortedIndexReader(),
+                      valuesReaderNullable = blockCache.createValuesReaderNullable()
+                    ).sizeEffect(addToCache)
+                }
+            }
+
+          case Persistent.Null =>
+            get(key, readState) match {
+              case floor: Persistent.Range if floor contains key =>
+                floor
+
+              case start =>
+                SegmentSearcher.searchHigher(
+                  key = key,
+                  start = start,
+                  end = skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)),
+                  keyValueCount = getFooter().keyValueCount,
+                  readState = readState,
+                  binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                  sortedIndexReader = blockCache.createSortedIndexReader(),
+                  valuesReaderNullable = blockCache.createValuesReaderNullable()
+                ).sizeEffect(addToCache)
+            }
         }
     }
 
@@ -287,78 +333,6 @@ private[core] class SegmentCache(path: Path,
               )
           }
       }
-
-  private def higher(key: Slice[Byte],
-                     start: PersistentOptional,
-                     end: => PersistentOptional,
-                     keyValueCount: => Int): PersistentOptional =
-    SegmentSearcher.searchHigher(
-      key = key,
-      start = start,
-      end = end,
-      keyValueCount = keyValueCount,
-      binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-      sortedIndexReader = blockCache.createSortedIndexReader(),
-      valuesReaderNullable = blockCache.createValuesReaderNullable()
-    ).sizeEffect(addToCache)
-
-  def higher(key: Slice[Byte],
-             readState: ReadState): PersistentOptional =
-    maxKey match {
-      case MaxKey.Fixed(maxKey) if key >= maxKey =>
-        Persistent.Null
-
-      case MaxKey.Range(_, maxKey) if key >= maxKey =>
-        Persistent.Null
-
-      case _ =>
-        skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.floor(key)) match {
-          case someFloor: Persistent =>
-            someFloor match {
-              case floor: Persistent.Range if floor contains key =>
-                someFloor
-
-              case _ =>
-                skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)) match {
-                  case someHigher: Persistent.Range if someHigher contains key =>
-                    someHigher
-
-                  case someHigher: Persistent =>
-                    if (someFloor.nextIndexOffset == someHigher.indexOffset)
-                      someHigher
-                    else
-                      higher(
-                        key = key,
-                        start = someFloor,
-                        end = someHigher,
-                        keyValueCount = getFooter().keyValueCount
-                      )
-
-                  case Persistent.Null =>
-                    higher(
-                      key = key,
-                      start = someFloor,
-                      end = Persistent.Null,
-                      keyValueCount = getFooter().keyValueCount
-                    )
-                }
-            }
-
-          case Persistent.Null =>
-            get(key, readState) match {
-              case floor: Persistent.Range if floor contains key =>
-                floor
-
-              case start =>
-                higher(
-                  key = key,
-                  start = start,
-                  end = skipList.flatMapOption(Persistent.Null: PersistentOptional)(_.higher(key)),
-                  keyValueCount = getFooter().keyValueCount
-                )
-            }
-        }
-    }
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     blockCache readAll aggregator

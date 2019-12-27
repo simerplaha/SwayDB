@@ -1145,6 +1145,7 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
+              readState = ???,
               binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
               sortedIndexReader = blocks.sortedIndexReader.copy(),
               valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull

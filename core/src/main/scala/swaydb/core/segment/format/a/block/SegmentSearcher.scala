@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a.block
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.ReadState
 import swaydb.core.segment.ReadState.SegmentState
@@ -224,6 +223,7 @@ private[core] object SegmentSearcher extends LazyLogging {
                    start: PersistentOptional,
                    end: => PersistentOptional,
                    keyValueCount: => Int,
+                   readState: ReadState,
                    binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],

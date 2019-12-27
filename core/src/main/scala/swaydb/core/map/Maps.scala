@@ -40,9 +40,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
-import scala.reflect.ClassTag
+import scala.jdk.CollectionConverters._
 
 private[core] object Maps extends LazyLogging {
 
