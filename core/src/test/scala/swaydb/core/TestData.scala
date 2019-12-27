@@ -53,7 +53,7 @@ import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{ActorConfig, Dir, IOStrategy, RecoveryMode}
+import swaydb.data.config.{ActorConfig, Dir, IOStrategy, PrefixCompression, RecoveryMode}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -1743,5 +1743,13 @@ object TestData {
       compressDuplicateValues = compressDuplicateValues,
       enableAccessPositionIndex = enableAccessPositionIndex,
       bytes = Slice.create[Byte](allocateBytes)
+    )
+
+  def randomPrefixCompressionInterval(): PrefixCompression.Interval =
+    eitherOne(
+      PrefixCompression.Interval.ResetCompressionAt(randomIntMax(100)),
+      PrefixCompression.Interval.ResetCompressionAt(randomIntMax()),
+      PrefixCompression.Interval.CompressAt(randomIntMax(100)),
+      PrefixCompression.Interval.CompressAt(randomIntMax())
     )
 }

@@ -48,18 +48,19 @@ private[core] object SegmentSearcher extends LazyLogging {
                                                   segmentStateOrNull: ReadState.SegmentState,
                                                   found: Persistent): Unit =
     if (segmentStateOrNull == null) {
+      found.unsliceKeys
+
       val segmentState =
         new ReadState.SegmentState(
-          nextIndexOffset = found.nextIndexOffset,
-          nextKeySizeOrNull = found.nextKeySize,
+          keyValue = found,
           isSequential = true
         )
 
       readState.setSegmentState(path, segmentState)
     } else {
+      found.unsliceKeys
       //mutate segmentState for next sequential read
-      segmentStateOrNull.nextIndexOffset = found.nextIndexOffset
-      segmentStateOrNull.nextKeySizeOrNull = found.nextKeySize
+      segmentStateOrNull.keyValue = found
       segmentStateOrNull.isSequential = true
     }
 
@@ -74,10 +75,11 @@ private[core] object SegmentSearcher extends LazyLogging {
     if (found.isSomeS) {
       val foundKeyValue = found.getS
 
+      foundKeyValue.unsliceKeys
+
       val segmentState =
         new core.segment.ReadState.SegmentState(
-          nextIndexOffset = foundKeyValue.nextIndexOffset,
-          nextKeySizeOrNull = foundKeyValue.nextKeySize,
+          keyValue = foundKeyValue,
           isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
         )
 
@@ -93,9 +95,9 @@ private[core] object SegmentSearcher extends LazyLogging {
                                              found: PersistentOptional): Unit =
     if (found.isSomeS) {
       val foundKeyValue = found.getS
-      segmentState.isSequential = foundKeyValue.indexOffset == segmentState.nextIndexOffset
-      segmentState.nextIndexOffset = foundKeyValue.nextIndexOffset
-      segmentState.nextKeySizeOrNull = foundKeyValue.nextKeySize
+      foundKeyValue.unsliceKeys
+      segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue.nextIndexOffset
+      segmentState.keyValue = foundKeyValue
     } else {
       segmentState.isSequential = false
     }
@@ -150,8 +152,7 @@ private[core] object SegmentSearcher extends LazyLogging {
         else
           SortedIndexBlock.searchSeekOne(
             key = key,
-            fromPosition = segmentStateOrNull.nextIndexOffset,
-            keySizeOrNull = segmentStateOrNull.nextKeySizeOrNull,
+            start = segmentStateOrNull.keyValue,
             indexReader = sortedIndexReader,
             valuesReaderNullable = valuesReaderNullable
           )
@@ -218,6 +219,7 @@ private[core] object SegmentSearcher extends LazyLogging {
     }
   }
 
+  //TODO - update READ-STATE
   def hashIndexSearch(key: Slice[Byte],
                       start: PersistentOptional,
                       end: => PersistentOptional,
@@ -273,6 +275,7 @@ private[core] object SegmentSearcher extends LazyLogging {
     }
   }
 
+  //TODO - update READ-STATE
   def searchHigher(key: Slice[Byte],
                    start: PersistentOptional,
                    end: => PersistentOptional,
@@ -284,7 +287,7 @@ private[core] object SegmentSearcher extends LazyLogging {
     start match {
       case startFrom: Persistent =>
         val found =
-          SortedIndexBlock.searchHigherMatchOnly(
+          SortedIndexBlock.searchHigherSeekOne(
             key = key,
             startFrom = startFrom,
             sortedIndexReader = sortedIndexReader,

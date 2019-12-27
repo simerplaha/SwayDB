@@ -21,6 +21,7 @@ package swaydb.core.segment
 
 import java.nio.file.Path
 
+import swaydb.core.data.Persistent
 import swaydb.core.util.LimitHashMap
 
 import scala.util.Random
@@ -32,8 +33,7 @@ private[swaydb] sealed trait ReadState {
 
 private[swaydb] object ReadState {
 
-  class SegmentState(var nextIndexOffset: Int,
-                     var nextKeySizeOrNull: Int,
+  class SegmentState(var keyValue: Persistent,
                      var isSequential: Boolean)
 
   def hashMap(): ReadState =

@@ -43,9 +43,13 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
   implicit def segmentIO = SegmentIO.random
 
   "Config" should {
-    "set prefixCompression to zero if normalise defined" in {
+    "disable prefixCompression when normalise defined" in {
       runThis(100.times) {
-        val prefixCompression = PrefixCompression.Enable(randomIntMax(10) max 1, randomBoolean())
+        val prefixCompression =
+          PrefixCompression.Enable(
+            keysOnly = randomBoolean(),
+            interval = randomPrefixCompressionInterval()
+          )
 
         //test via User created object.
         val configFromUserConfig =
@@ -58,7 +62,12 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             )
           )
 
-        configFromUserConfig.prefixCompressionInterval shouldBe prefixCompression.compressionInterval
+
+        runThis(100.times) {
+          val index = randomIntMax(1000)
+          configFromUserConfig.shouldPrefixCompress(index) shouldBe prefixCompression.interval.shouldCompress(index)
+        }
+
         configFromUserConfig.normaliseIndex shouldBe false
 
         //internal creation
@@ -66,14 +75,15 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           SortedIndexBlock.Config(
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is enabled, so normaliseIndex even though true will set to false in the Config.
-            prefixCompressionInterval = prefixCompression.compressionInterval,
+            shouldPrefixCompress = prefixCompression.interval.shouldCompress,
             prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
-            compressions = _ => randomCompressions()
+            compressions = _ => randomCompressions(),
+            enablePrefixCompression = randomBoolean()
           )
 
-        internalConfig.prefixCompressionInterval shouldBe 0
+        internalConfig.enablePrefixCompression shouldBe false
         internalConfig.normaliseIndex shouldBe true
       }
     }
@@ -93,7 +103,11 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
             )
           )
 
-        configFromUserConfig.prefixCompressionInterval shouldBe 0
+        runThis(100.times) {
+          val index = randomIntMax(1000)
+          configFromUserConfig.shouldPrefixCompress(index) shouldBe false
+        }
+
         configFromUserConfig.normaliseIndex shouldBe true
 
         //internal creation
@@ -101,14 +115,15 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           SortedIndexBlock.Config(
             ioStrategy = _ => randomIOStrategy(),
             //prefix compression is disabled, normaliseIndex will always return true.
-            prefixCompressionInterval = 0 - randomIntMax(10),
+            shouldPrefixCompress = _ => false,
             prefixCompressKeysOnly = randomBoolean(),
             enableAccessPositionIndex = randomBoolean(),
             normaliseIndex = true,
-            compressions = _ => randomCompressions()
+            compressions = _ => randomCompressions(),
+            enablePrefixCompression = true
           )
 
-        internalConfig.prefixCompressionInterval shouldBe 0
+        internalConfig.enablePrefixCompression shouldBe false
         internalConfig.normaliseIndex shouldBe true
       }
     }

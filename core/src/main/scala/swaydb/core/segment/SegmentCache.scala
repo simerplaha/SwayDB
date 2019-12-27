@@ -40,7 +40,6 @@ private[core] object SegmentCache {
   def apply(path: Path,
             maxKey: MaxKey[Slice[Byte]],
             minKey: Slice[Byte],
-            unsliceKey: Boolean,
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
@@ -49,8 +48,8 @@ private[core] object SegmentCache {
             binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
             bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
             footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
+                                                         blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentCache =
     new SegmentCache(
       path = path,
       maxKey = maxKey,
@@ -73,7 +72,6 @@ private[core] object SegmentCache {
                 )
             }
         },
-      unsliceKey = unsliceKey,
       blockCache =
         SegmentBlockCache(
           path = path,
@@ -93,7 +91,6 @@ private[core] class SegmentCache(path: Path,
                                  maxKey: MaxKey[Slice[Byte]],
                                  minKey: Slice[Byte],
                                  val skipList: Option[SkipList[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent]],
-                                 unsliceKey: Boolean,
                                  val blockCache: SegmentBlockCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                     blockCacheMemorySweeper: Option[MemorySweeper.Block],
                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
@@ -113,7 +110,8 @@ private[core] class SegmentCache(path: Path,
   private def addToCache(keyValue: Persistent): Unit = {
     skipList foreach {
       skipList =>
-        if (unsliceKey) keyValue.unsliceKeys
+        //unslice not required anymore since SegmentSearch always unsliced.
+        //keyValue.unsliceKeys
         if (skipList.putIfAbsent(keyValue.key, keyValue))
           keyValueMemorySweeper.foreach(_.add(keyValue, skipList))
     }

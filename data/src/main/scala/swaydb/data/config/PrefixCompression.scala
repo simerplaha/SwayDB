@@ -39,12 +39,12 @@ object PrefixCompression {
   object Interval {
     case class ResetCompressionAt(indexInterval: Int) extends Interval {
       private[swaydb] override def shouldCompress(index: Int): Boolean =
-        index % this.indexInterval != 0
+        indexInterval != 0 && index % this.indexInterval != 0
     }
 
     case class CompressAt(indexInterval: Int) extends Interval {
       private[swaydb] override def shouldCompress(index: Int): Boolean =
-        index % this.indexInterval == 0
+        indexInterval != 0 && index % this.indexInterval == 0
     }
   }
 

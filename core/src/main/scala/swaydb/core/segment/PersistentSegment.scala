@@ -74,7 +74,6 @@ object PersistentSegment {
         maxKey = maxKey,
         minKey = minKey,
         segmentIO = segmentIO,
-        unsliceKey = true,
         blockRef = BlockRefReader(file, segmentSize),
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,

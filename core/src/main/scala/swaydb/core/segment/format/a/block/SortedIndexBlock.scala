@@ -107,7 +107,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         shouldPrefixCompress = if (normaliseIndex || !enablePrefixCompression) _ => false else shouldPrefixCompress,
         prefixCompressKeysOnly = if (normaliseIndex || !enablePrefixCompression) false else prefixCompressKeysOnly,
         enableAccessPositionIndex = enableAccessPositionIndex,
-        enablePrefixCompression = enablePrefixCompression,
+        enablePrefixCompression = !normaliseIndex && enablePrefixCompression,
         normaliseIndex = normaliseIndex,
         compressions = compressions
       )
@@ -839,10 +839,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
         )
     }
 
-  def searchHigherMatchOnly(key: Slice[Byte],
-                            startFrom: Persistent,
-                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOptional =
+  def searchHigherSeekOne(key: Slice[Byte],
+                          startFrom: Persistent,
+                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                          valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOptional =
   //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
