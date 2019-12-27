@@ -353,7 +353,8 @@ private[core] object BinarySearchIndexBlock {
   //  var minHop = 0
   //  var currentHops = 0
   var binarySeeks = 0
-  var binarySuccessfulSeeks = 0
+  var binarySuccessfulDirectSeeks = 0
+  var binarySuccessfulSeeksWithWalkForward = 0
   var binaryFailedSeeks = 0
   //  var failedWithLower = 0
   //  var sameLower = 0
@@ -562,14 +563,14 @@ private[core] object BinarySearchIndexBlock {
         )
       ) match {
         case some: BinarySearchGetResult.Some =>
-          binarySuccessfulSeeks += 1
+          binarySuccessfulDirectSeeks += 1
           some
 
         case none: BinarySearchGetResult.None =>
-          binaryFailedSeeks += 1
-          if (binarySearchIndexReaderNullable.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression)
+          if (binarySearchIndexReaderNullable.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression) {
+            binaryFailedSeeks += 1
             none
-          else
+          } else {
             none.lower match {
               case lower: Persistent.Partial =>
                 //                    failedWithLower += 1
@@ -585,9 +586,11 @@ private[core] object BinarySearchIndexBlock {
                   valuesReaderNullable = valuesReaderNullable
                 ) match {
                   case got: Persistent =>
+                    binarySuccessfulSeeksWithWalkForward += 1
                     new BinarySearchGetResult.Some(got)
 
                   case Persistent.Null =>
+                    binarySuccessfulDirectSeeks += 1
                     new BinarySearchGetResult.None(lower)
                 }
 
@@ -599,12 +602,15 @@ private[core] object BinarySearchIndexBlock {
                   valuesReaderNullable = valuesReaderNullable
                 ) match {
                   case got: Persistent =>
+                    binarySuccessfulSeeksWithWalkForward += 1
                     new BinarySearchGetResult.Some(got)
 
                   case Persistent.Null =>
+                    binaryFailedSeeks += 1
                     BinarySearchGetResult.none
                 }
             }
+          }
       }
     }
 

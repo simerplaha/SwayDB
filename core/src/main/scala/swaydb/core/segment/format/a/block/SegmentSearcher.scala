@@ -55,6 +55,8 @@ private[core] object SegmentSearcher extends LazyLogging {
                                    partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
     readState.getSegmentState(path) match {
       case SegmentState.Null =>
+        seqSeeks += 1
+
         val found =
           if (start.isSomeS)
             SortedIndexBlock.searchSeekOne(
@@ -109,6 +111,7 @@ private[core] object SegmentSearcher extends LazyLogging {
       case state: ReadState.SegmentState =>
         val sequentialFound =
           if (state.isSequential) {
+            seqSeeks += 1
             val found =
               SortedIndexBlock.searchSeekOne(
                 key = key,

@@ -102,7 +102,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
               enablePrefixCompression = true,
               shouldPrefixCompress = _ % 2 == 0,
-              prefixCompressKeysOnly = true,
+              prefixCompressKeysOnly = false,
               enableAccessPositionIndex = true,
               normaliseIndex = false,
               compressions = _ => Seq.empty
@@ -167,8 +167,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     val readState = ReadState.limitHashMap(1)
     shuffledKeyValues foreach {
       keyValue =>
-        //        if (keyValue.key.readInt() % 10000 == 0)
-        //          segment.get(shuffledKeyValues.head.key, readState)
+//        if (keyValue.key.readInt() % 10000 == 0)
+//          segment.get(shuffledKeyValues.head.key, readState)
         //
         //        val key = keyValue.key.readInt()
         ////        if (key % 1000 == 0)
@@ -303,7 +303,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       println
 
       println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
-      println("binarySuccessfulSeeks: " + BinarySearchIndexBlock.binarySuccessfulSeeks)
+      println("binarySuccessfulDirectSeeks: " + BinarySearchIndexBlock.binarySuccessfulDirectSeeks)
+      println("binarySuccessfulSeeksWithWalkForward: " + BinarySearchIndexBlock.binarySuccessfulSeeksWithWalkForward)
       println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
       //      println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
       //      println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
