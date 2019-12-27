@@ -909,8 +909,8 @@ class SliceSpec extends WordSpec with Matchers {
   "head and last" when {
     "empty" in {
       val slice = Slice.empty[Int]
-      slice.headNullable.asInstanceOf[Integer] shouldBe null
-      slice.lastNullable.asInstanceOf[Integer] shouldBe null
+      slice.headOrNull.asInstanceOf[Integer] shouldBe null
+      slice.lastOrNull.asInstanceOf[Integer] shouldBe null
       slice.headOption shouldBe empty
       slice.lastOption shouldBe empty
     }
