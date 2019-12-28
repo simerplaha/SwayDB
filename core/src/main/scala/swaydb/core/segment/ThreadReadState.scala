@@ -45,6 +45,24 @@ private[swaydb] object ThreadReadState {
       override def getS: SegmentState = throw new Exception("SegmentState is of type Null")
     }
 
+    def updateOnSuccessSequentialRead(path: Path,
+                                      segmentState: SegmentStateOptional,
+                                      threadReadState: ThreadReadState,
+                                      found: Persistent): Unit =
+      if (segmentState.isNoneS)
+        createOnSuccessSequentialRead(
+          path = path,
+          readState = threadReadState,
+          found = found
+        )
+      else
+        mutateOnSuccessSequentialRead(
+          path = path,
+          readState = threadReadState,
+          segmentState = segmentState.getS,
+          found = found
+        )
+
     /**
      * Sets read state after successful sequential read.
      */

@@ -196,21 +196,46 @@ private[core] object SegmentCache {
               floorRange
 
             case floorValue =>
-              if (footer.hasRange || segmentCache.mightContain(key))
-                segmentSearcher.search(
-                  path = segmentCache.path,
-                  key = key,
-                  start = floorValue,
-                  end = segmentCache.applyToSkipList(_.higher(key)),
-                  keyValueCount = footer.keyValueCount,
-                  hashIndexReaderNullable = segmentCache.blockCache.createHashIndexReaderNullable(),
-                  binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
-                  sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
-                  valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
-                  hasRange = footer.hasRange,
-                  readState = readState,
-                  segmentState = segmentState
-                ).onSomeSideEffectS(segmentCache.addToSkipList)
+              if (footer.hasRange || segmentCache.mightContain(key)) {
+                val sequentialReadResult =
+                  if (segmentState.isNoneS || segmentState.getS.isSequential)
+                  //do sequential read
+                    segmentSearcher.searchSequential(
+                      key = key,
+                      start = floorValue,
+                      sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
+                      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
+                    )
+                  else
+                    Persistent.Null
+
+                if (sequentialReadResult.isSomeS) {
+                  val found = sequentialReadResult.getS
+                  //          successfulSeqSeeks += 1
+                  SegmentState.updateOnSuccessSequentialRead(
+                    path = segmentCache.path,
+                    segmentState = segmentState,
+                    threadReadState = readState,
+                    found = found
+                  )
+                  segmentCache.addToSkipList(found)
+
+                  found
+                } else {
+                  segmentSearcher.searchRandom(
+                    key = key,
+                    start = floorValue,
+                    end = segmentCache.applyToSkipList(_.higher(key)),
+                    keyValueCount = footer.keyValueCount,
+                    hashIndexReaderNullable = segmentCache.blockCache.createHashIndexReaderNullable(),
+                    binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
+                    sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
+                    valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
+                    hasRange = footer.hasRange
+                  ).onSomeSideEffectS(segmentCache.addToSkipList)
+                }
+              }
+
               else
                 Persistent.Null
           }
@@ -289,7 +314,6 @@ private[core] object SegmentCache {
                           start = SegmentCache.bestStartForHigherSearch(key, segmentState, floor),
                           end = higher,
                           keyValueCount = segmentCache.getFooter().keyValueCount,
-                          readState = readState,
                           binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
                           sortedIndexReader = blockCache.createSortedIndexReader(),
                           valuesReaderNullable = blockCache.createValuesReaderNullable()
@@ -308,7 +332,6 @@ private[core] object SegmentCache {
                         start = SegmentCache.bestStartForHigherSearch(key, segmentState, floor),
                         end = Persistent.Null,
                         keyValueCount = segmentCache.getFooter().keyValueCount,
-                        readState = readState,
                         binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
                         sortedIndexReader = blockCache.createSortedIndexReader(),
                         valuesReaderNullable = blockCache.createValuesReaderNullable()
@@ -341,7 +364,6 @@ private[core] object SegmentCache {
                     start = startFrom,
                     end = segmentCache.applyToSkipList(_.higher(key)),
                     keyValueCount = segmentCache.getFooter().keyValueCount,
-                    readState = readState,
                     binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
                     sortedIndexReader = blockCache.createSortedIndexReader(),
                     valuesReaderNullable = blockCache.createValuesReaderNullable()
