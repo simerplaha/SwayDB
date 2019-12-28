@@ -59,7 +59,7 @@ private[core] sealed trait SegmentSearcher {
                   start: PersistentOptional,
                   end: PersistentOptional,
                   keyValueCount: => Int,
-                  binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                  binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                           partialOrdering: KeyOrder[Persistent.Partial]): PersistentOptional
@@ -303,7 +303,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
                   start: PersistentOptional,
                   end: PersistentOptional,
                   keyValueCount: => Int,
-                  binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                  binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                           partialOrdering: KeyOrder[Persistent.Partial]): PersistentOptional =

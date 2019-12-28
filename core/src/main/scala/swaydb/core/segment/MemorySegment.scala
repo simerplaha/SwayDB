@@ -141,7 +141,7 @@ private[segment] case class MemorySegment(path: Path,
         case _ =>
           if (hasRange)
             skipList.floor(key) match {
-              case range: Memory.Range if range contains key =>
+              case range: Memory.Range if KeyValue.Range.contains(range, key) =>
                 range
 
               case _ =>
@@ -165,7 +165,7 @@ private[segment] case class MemorySegment(path: Path,
         case _ =>
           if (hasRange)
             skipList.floor(key) match {
-              case range: Memory.Range if range contains key =>
+              case range: Memory.Range if KeyValue.Range.contains(range, key) =>
                 true
 
               case _ =>
@@ -197,7 +197,7 @@ private[segment] case class MemorySegment(path: Path,
       throw swaydb.Exception.NoSuchFile(path)
     else if (hasRange)
       skipList.floor(key) match {
-        case floorRange: Memory.Range if floorRange contains key =>
+        case floorRange: Memory.Range if KeyValue.Range.contains(floorRange, key) =>
           floorRange
 
         case _ =>

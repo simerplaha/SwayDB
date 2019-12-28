@@ -136,17 +136,11 @@ private[core] object KeyValue {
   }
 
   object Range {
-    implicit class RangeImplicit(range: KeyValue.Range) {
-      @inline def contains(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
-        import keyOrder._
-        key >= range.fromKey && key < range.toKey
-      }
+    def contains(range: KeyValue.Range, key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+      keyOrder.gteq(key, range.fromKey) && keyOrder.lt(key, range.toKey) //key >= range.fromKey && key < range.toKey
 
-      @inline def containsLower(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
-        import keyOrder._
-        key > range.fromKey && key <= range.toKey
-      }
-    }
+    def containsLower(range: KeyValue.Range, key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]) =
+      keyOrder.gt(key, range.fromKey) && keyOrder.lteq(key, range.toKey) //key > range.fromKey && key <= range.toKey
   }
 
   sealed trait Range extends KeyValue {
