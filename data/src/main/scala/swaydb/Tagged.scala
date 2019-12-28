@@ -19,16 +19,9 @@
 
 package swaydb
 
-import swaydb.Tag.Implicits._
 
 trait Tagged[A, T[_]] {
   def get: T[A]
-
-  @inline def map[B](f: A => B)(implicit tag: Tag[T]): T[B] =
-    get map f
-
-  @inline def foreach[B](f: A => B)(implicit tag: Tag[T]): Unit =
-    get map f
 
   @inline def isSuccess[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
     tag.isSuccess(b)

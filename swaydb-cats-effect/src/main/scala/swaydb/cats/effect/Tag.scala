@@ -77,8 +77,8 @@ object Tag {
       override def apply[A](a: => A): IO[A] =
         IO(a)
 
-      override def map[A, B](a: A)(f: A => B): IO[B] =
-        IO(f(a))
+      override def map[A, B](a: IO[A])(f: A => B): IO[B] =
+        a.map(f)
 
       override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] =
         fa.flatMap(f)
@@ -89,8 +89,8 @@ object Tag {
       override def failure[A](exception: Throwable): IO[A] =
         IO.fromTry(Failure(exception))
 
-      override def foreach[A, B](a: A)(f: A => B): Unit =
-        f(a)
+      override def foreach[A](a: IO[A])(f: A => Unit): Unit =
+        f(a.unsafeRunSync())
 
       def fromPromise[A](a: Promise[A]): IO[A] =
         IO.fromFuture(IO(a.future))

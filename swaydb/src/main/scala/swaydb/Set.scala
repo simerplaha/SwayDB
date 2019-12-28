@@ -20,7 +20,6 @@
 package swaydb
 
 import swaydb.PrepareImplicits._
-import swaydb.Tag.Implicits._
 import swaydb.core.Core
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
@@ -47,7 +46,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
                                                                                   tag: Tag[T]) extends Streamable[A, T] { self =>
 
   def get(elem: A): T[Option[A]] =
-    tag.point(core.getKey(elem, core.readStates.get()).map(_.map(_.read[A])))
+    tag.point(tag.map(core.getKey(elem, core.readStates.get()))(_.map(_.read[A])))
 
   def contains(elem: A): T[Boolean] =
     tag.point(core.contains(elem, core.readStates.get()))
@@ -174,7 +173,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
     tag.point(core.deadline(elem, core.readStates.get()))
 
   def timeLeft(elem: A): T[Option[FiniteDuration]] =
-    expiration(elem).map(_.map(_.timeLeft))
+    tag.map(expiration(elem))(_.map(_.timeLeft))
 
   def from(key: A): Set[A, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
@@ -196,31 +195,36 @@ case class Set[A, F, T[_]](private val core: Core[T],
 
   protected def headOption(readState: ThreadReadState): T[Option[A]] =
     tag.point {
-      from match {
-        case Some(from) =>
-          val fromKeyBytes: Slice[Byte] = from.key
-          if (from.before)
-            core.beforeKey(fromKeyBytes, readState)
-          else if (from.after)
-            core.afterKey(fromKeyBytes, readState)
-          else
-            tag.flatMap(core.getKey(fromKeyBytes, readState)) {
-              case Some(key) =>
-                tag.success(Some(key)): T[Option[Slice[Byte]]]
+      val result =
+        from match {
+          case Some(from) =>
+            val fromKeyBytes: Slice[Byte] = from.key
+            if (from.before)
+              core.beforeKey(fromKeyBytes, readState)
+            else if (from.after)
+              core.afterKey(fromKeyBytes, readState)
+            else
+              tag.flatMap(core.getKey(fromKeyBytes, readState)) {
+                case Some(key) =>
+                  tag.success(Some(key)): T[Option[Slice[Byte]]]
 
-              case _ =>
-                if (from.orAfter)
-                  core.afterKey(fromKeyBytes, readState)
-                else if (from.orBefore)
-                  core.beforeKey(fromKeyBytes, readState)
-                else
-                  tag.success(None): T[Option[Slice[Byte]]]
-            }
+                case _ =>
+                  if (from.orAfter)
+                    core.afterKey(fromKeyBytes, readState)
+                  else if (from.orBefore)
+                    core.beforeKey(fromKeyBytes, readState)
+                  else
+                    tag.success(None): T[Option[Slice[Byte]]]
+              }
 
-        case None =>
-          if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
-      }
-    } map (_.map(_.read[A]))
+          case None =>
+            if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
+
+        }
+
+      tag.map(result)(_.map(_.read[A]))
+
+    }
 
   override def drop(count: Int): Stream[A, T] =
     stream drop count
@@ -262,27 +266,30 @@ case class Set[A, F, T[_]](private val core: Core[T],
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
         tag.point {
-          if (reverseIteration)
-            core.beforeKey(serializer.write(previous), core.readStates.get())
-          else
-            core.afterKey(serializer.write(previous), core.readStates.get())
-        } map (_.map(_.read[A]))
+          val result =
+            if (reverseIteration)
+              core.beforeKey(serializer.write(previous), core.readStates.get())
+            else
+              core.afterKey(serializer.write(previous), core.readStates.get())
+
+          tag.map(result)(_.map(_.read[A]))
+        }
     }
 
   def sizeOfBloomFilterEntries: T[Int] =
     tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =
-    tag.point(core.headKey(core.readStates.get()).map(_.isEmpty))
+    tag.point(tag.map(core.headKey(core.readStates.get()))(_.isEmpty))
 
   def nonEmpty: T[Boolean] =
-    isEmpty.map(!_)
+    tag.map(isEmpty)(!_)
 
   def lastOption: T[Option[A]] =
     if (reverseIteration)
-      tag.point(core.headKey(core.readStates.get()).map(_.map(_.read[A])))
+      tag.point(tag.map(core.headKey(core.readStates.get()))(_.map(_.read[A])))
     else
-      tag.point(core.lastKey(core.readStates.get()).map(_.map(_.read[A])))
+      tag.point(tag.map(core.lastKey(core.readStates.get()))(_.map(_.read[A])))
 
   def reverse: Set[A, F, T] =
     copy(reverseIteration = true)

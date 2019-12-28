@@ -20,7 +20,6 @@
 package swaydb
 
 import swaydb.PrepareImplicits._
-import swaydb.Tag.Implicits._
 import swaydb.core.Core
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
@@ -186,7 +185,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
    * Returns target value for the input key.
    */
   def get(key: K): T[Option[V]] =
-    tag.point(core.get(key, core.readStates.get()).map(_.map(_.read[V])))
+    tag.point(tag.map(core.get(key, core.readStates.get()))(_.map(_.read[V])))
 
   /**
    * Returns target full key for the input partial key.
@@ -194,11 +193,11 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
    * This function is mostly used for Set databases where partial ordering on the Key is provided.
    */
   def getKey(key: K): T[Option[K]] =
-    tag.point(core.getKey(key, core.readStates.get()).map(_.map(_.read[K])))
+    tag.point(tag.map(core.getKey(key, core.readStates.get()))(_.map(_.read[K])))
 
   def getKeyValue(key: K): T[Option[(K, V)]] =
     tag.point {
-      core.getKeyValue(key, core.readStates.get()).map(_.map {
+      tag.map(core.getKeyValue(key, core.readStates.get()))(_.map {
         case (key, value) =>
           (key.read[K], value.read[V])
       })
@@ -239,7 +238,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(core.deadline(key, core.readStates.get()))
 
   def timeLeft(key: K): T[Option[FiniteDuration]] =
-    tag.point(expiration(key).map(_.map(_.timeLeft)))
+    tag.point(tag.map(expiration(key))(_.map(_.timeLeft)))
 
   def from(key: K): Map[K, V, F, T] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = false, before = false, after = false)))
@@ -261,35 +260,40 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
 
   protected def headOption(readState: ThreadReadState): T[Option[(K, V)]] =
     tag.point {
-      from match {
-        case Some(from) =>
-          val fromKeyBytes: Slice[Byte] = from.key
+      val fromResult =
+        from match {
+          case Some(from) =>
+            val fromKeyBytes: Slice[Byte] = from.key
 
-          if (from.before)
-            core.before(fromKeyBytes, readState)
-          else if (from.after)
-            core.after(fromKeyBytes, readState)
-          else
-            tag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
-              case some @ Some(_) =>
-                tag.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+            if (from.before)
+              core.before(fromKeyBytes, readState)
+            else if (from.after)
+              core.after(fromKeyBytes, readState)
+            else
+              tag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
+                case some @ Some(_) =>
+                  tag.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
-              case _ =>
-                if (from.orAfter)
-                  core.after(fromKeyBytes, readState)
-                else if (from.orBefore)
-                  core.before(fromKeyBytes, readState)
-                else
-                  tag.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
-            }
+                case _ =>
+                  if (from.orAfter)
+                    core.after(fromKeyBytes, readState)
+                  else if (from.orBefore)
+                    core.before(fromKeyBytes, readState)
+                  else
+                    tag.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+              }
 
-        case None =>
-          if (reverseIteration) core.last(readState) else core.head(readState)
+          case None =>
+            if (reverseIteration) core.last(readState) else core.head(readState)
+        }
+
+      tag.map(fromResult) {
+        _.map {
+          case (key, value) =>
+            (key.read[K], value.read[V])
+        }
       }
-    } map (_.map {
-      case (key, value) =>
-        (key.read[K], value.read[V])
-    })
+    }
 
   override def drop(count: Int): Stream[(K, V), T] =
     stream drop count
@@ -338,10 +342,12 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
             else
               core.after(keySerializer.write(previous._1), readState)
 
-          next map (_.map {
-            case (key, value) =>
-              (key.read[K], value.read[V])
-          })
+          tag.map(next) {
+            _.map {
+              case (key, value) =>
+                (key.read[K], value.read[V])
+            }
+          }
         }
     }
 
@@ -349,15 +355,15 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: T[Boolean] =
-    tag.point(core.headKey(core.readStates.get()).map(_.isEmpty))
+    tag.point(tag.map(core.headKey(core.readStates.get()))(_.isEmpty))
 
   def nonEmpty: T[Boolean] =
-    isEmpty.map(!_)
+    tag.map(isEmpty)(!_)
 
   def lastOption: T[Option[(K, V)]] =
     if (reverseIteration)
       tag.point {
-        core.head(core.readStates.get()) map {
+        tag.map(core.head(core.readStates.get())) {
           case Some((key, value)) =>
             Some(key.read[K], value.read[V])
 
@@ -367,7 +373,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
       }
     else
       tag.point {
-        core.last(core.readStates.get()) map {
+        tag.map(core.last(core.readStates.get())) {
           case Some((key, value)) =>
             Some(key.read[K], value.read[V])
           case _ =>

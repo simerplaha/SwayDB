@@ -145,8 +145,6 @@ private[swaydb] object Core {
 private[swaydb] class Core[T[_]](val zero: LevelZero,
                                  onClose: => IO.Defer[swaydb.Error.Close, Unit])(implicit tag: Tag[T]) {
 
-  import Tag.Implicits._
-
   private val serial = tag.createSerial()
 
   protected[swaydb] val readStates =
@@ -250,7 +248,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def get(key: Slice[Byte],
           readState: ThreadReadState): T[Option[Option[Slice[Byte]]]] =
-    zero.run(_.get(key, readState)).map(_.map(_._2))
+    tag.map(zero.run(_.get(key, readState)))(_.map(_._2))
 
   def getKey(key: Slice[Byte],
              readState: ThreadReadState): T[Option[Slice[Byte]]] =
@@ -266,7 +264,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def beforeKey(key: Slice[Byte],
                 readState: ThreadReadState): T[Option[Slice[Byte]]] =
-    zero.lower(key, readState).run.map(_.map(_.key))
+    tag.map(zero.lower(key, readState).run)(_.map(_.key))
 
   def after(key: Slice[Byte],
             readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
@@ -274,7 +272,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def afterKey(key: Slice[Byte],
                readState: ThreadReadState): T[Option[Slice[Byte]]] =
-    zero.higher(key, readState).run.map(_.map(_.key))
+    tag.map(zero.higher(key, readState).run)(_.map(_.key))
 
   def valueSize(key: Slice[Byte],
                 readState: ThreadReadState): T[Option[Int]] =

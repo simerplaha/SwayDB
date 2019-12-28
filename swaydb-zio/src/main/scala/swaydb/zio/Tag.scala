@@ -77,8 +77,8 @@ object Tag {
       override def apply[A](a: => A): Task[A] =
         Task(a)
 
-      override def map[A, B](a: A)(f: A => B): Task[B] =
-        Task(f(a))
+      override def map[A, B](a: Task[A])(f: A => B): Task[B] =
+        a.map(f)
 
       override def flatMap[A, B](fa: Task[A])(f: A => Task[B]): Task[B] =
         fa.flatMap(f)
@@ -89,8 +89,8 @@ object Tag {
       override def failure[A](exception: Throwable): Task[A] =
         Task.fromTry(Failure(exception))
 
-      override def foreach[A, B](a: A)(f: A => B): Unit =
-        f(a)
+      override def foreach[A](a: Task[A])(f: A => Unit): Unit =
+        f(runTime.unsafeRun(a))
 
       def fromPromise[A](a: Promise[A]): Task[A] =
         Task.fromFuture(_ => a.future)

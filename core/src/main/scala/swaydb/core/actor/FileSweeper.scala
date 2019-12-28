@@ -68,7 +68,12 @@ private[swaydb] object FileSweeper extends LazyLogging {
     if (action.isDelete) 10 else 1
 
   def apply(fileCache: FileCache): Option[FileSweeper.Enabled] =
-    fileCache map apply
+    fileCache match {
+      case FileCache.Disable =>
+        None
+      case enable: FileCache.Enable =>
+        Some(apply(enable))
+    }
 
   def apply(fileCache: FileCache.Enable): FileSweeper.Enabled =
     apply(

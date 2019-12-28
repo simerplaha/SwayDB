@@ -19,8 +19,6 @@
 
 package swaydb
 
-import swaydb.Tag.Implicits._
-
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -134,7 +132,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   def takeWhile(f: A => Boolean): Stream[A, T] =
     new Stream[A, T] {
       override def headOption: T[Option[A]] =
-        self.headOption map {
+        tag.map(self.headOption) {
           head =>
             if (head.exists(f))
               head
@@ -200,7 +198,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       var previousA: Option[A] = Option.empty
 
       override def headOption: T[Option[B]] =
-        self.headOption map {
+        tag.map(self.headOption) {
           previousAOption =>
             previousA = previousAOption
             previousAOption.map(f)
@@ -212,7 +210,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       override private[swaydb] def next(previous: B): T[Option[B]] =
         previousA match {
           case Some(previous) =>
-            self.next(previous) map {
+            tag.map(self.next(previous)) {
               nextA =>
                 previousA = nextA
                 nextA.map(f)
@@ -257,6 +255,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
 
             //collectFirst is a stackSafe way reading the stream until a condition is met.
             //use collectFirst to stream until the first match.
+            val collected =
             tag
               .collectFirst(startFrom, self) {
                 nextA =>
@@ -264,11 +263,12 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
                   nextMatch = this.previousA.collectFirst(pf)
                   nextMatch.isDefined
               }
-              .map {
-                _ =>
-                  //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
-                  nextMatch
-              }
+
+            tag.map(collected) {
+              _ =>
+                //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
+                nextMatch
+            }
 
           case None =>
             tag.none

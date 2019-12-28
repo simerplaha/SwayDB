@@ -37,8 +37,8 @@ sealed trait Tag[T[_]] {
   def none[A]: T[Option[A]]
   def apply[A](a: => A): T[A]
   def createSerial(): Serial[T]
-  def foreach[A, B](a: A)(f: A => B): Unit
-  def map[A, B](a: A)(f: A => B): T[B]
+  def foreach[A](a: T[A])(f: A => Unit): Unit
+  def map[A, B](a: T[A])(f: A => B): T[B]
   def flatMap[A, B](fa: T[A])(f: A => T[B]): T[B]
   def success[A](value: A): T[A]
   def failure[A](exception: Throwable): T[A]
@@ -60,23 +60,6 @@ sealed trait Tag[T[_]] {
 }
 
 object Tag extends LazyLogging {
-
-  object Implicits {
-    implicit class TagImplicits[A, T[_]](a: T[A])(implicit tag: Tag[T]) {
-      @inline def map[B](f: A => B): T[B] =
-        tag.flatMap(a) {
-          a =>
-            tag.map[A, B](a)(f)
-        }
-
-      @inline def foreach[B](f: A => B): Unit =
-        tag.flatMap(a) {
-          value =>
-            tag.foreach(value)(f)
-            a
-        }
-    }
-  }
 
   /**
    * Converts containers. More tags can be created from existing Tags with this trait using [[Tag.toTag]]
@@ -189,11 +172,11 @@ object Tag extends LazyLogging {
     def apply[A](a: => A): X[A] =
       baseConverter.to(base.apply(a))
 
-    def foreach[A, B](a: A)(f: A => B): Unit =
-      base.foreach(a)(f)
+    def foreach[A](a: X[A])(f: A => Unit): Unit =
+      base.foreach(baseConverter.from(a))(f)
 
-    def map[A, B](a: A)(f: A => B): X[B] =
-      baseConverter.to(base.map(a)(f))
+    def map[A, B](a: X[A])(f: A => B): X[B] =
+      baseConverter.to(base.map(baseConverter.from(a))(f))
 
     def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
       baseConverter.to {
@@ -396,11 +379,11 @@ object Tag extends LazyLogging {
       def isFailure[A](a: IO.ThrowableIO[A]): Boolean =
         a.isLeft
 
-      override def map[A, B](a: A)(f: A => B): IO.ThrowableIO[B] =
-        IO(f(a))
+      override def map[A, B](a: IO.ThrowableIO[A])(f: A => B): IO.ThrowableIO[B] =
+        a.map(f)
 
-      override def foreach[A, B](a: A)(f: A => B): Unit =
-        f(a)
+      override def foreach[A](a: IO.ThrowableIO[A])(f: A => Unit): Unit =
+        a.foreach(f)
 
       override def flatMap[A, B](fa: IO.ThrowableIO[A])(f: A => IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         fa.flatMap(f)
@@ -524,8 +507,8 @@ object Tag extends LazyLogging {
       override def apply[A](a: => A): Future[A] =
         Future(a)
 
-      override def map[A, B](a: A)(f: A => B): Future[B] =
-        Future(f(a))
+      override def map[A, B](a: Future[A])(f: A => B): Future[B] =
+        a.map(f)
 
       override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] =
         fa.flatMap(f)
@@ -536,8 +519,8 @@ object Tag extends LazyLogging {
       override def failure[A](exception: Throwable): Future[A] =
         Future.failed(exception)
 
-      override def foreach[A, B](a: A)(f: A => B): Unit =
-        f(a)
+      override def foreach[A](a: Future[A])(f: A => Unit): Unit =
+        a.foreach(f)
 
       def fromPromise[A](a: Promise[A]): Future[A] =
         a.future
