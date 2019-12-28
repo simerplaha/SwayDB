@@ -22,7 +22,7 @@ package swaydb
 import swaydb.PrepareImplicits._
 import swaydb.Tag.Implicits._
 import swaydb.core.Core
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -194,7 +194,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
   override def headOption: T[Option[A]] =
     headOption(core.readStates.get())
 
-  protected def headOption(readState: ReadState): T[Option[A]] =
+  protected def headOption(readState: ThreadReadState): T[Option[A]] =
     tag.point {
       from match {
         case Some(from) =>

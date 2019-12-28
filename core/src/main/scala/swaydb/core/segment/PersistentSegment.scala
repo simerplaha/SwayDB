@@ -260,13 +260,13 @@ private[segment] case class PersistentSegment(file: DBFile,
         )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte], readState: ReadState): PersistentOptional =
+  def get(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
     SegmentCache.get(key, readState)
 
-  def lower(key: Slice[Byte], readState: ReadState): PersistentOptional =
+  def lower(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
     SegmentCache.lower(key, readState)
 
-  def higher(key: Slice[Byte], readState: ReadState): PersistentOptional =
+  def higher(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
     SegmentCache.higher(key, readState)
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =

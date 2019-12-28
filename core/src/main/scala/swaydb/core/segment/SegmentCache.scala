@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
-import swaydb.core.segment.ReadState.{SegmentState, SegmentStateOptional}
+import swaydb.core.segment.ThreadReadState.{SegmentState, SegmentStateOptional}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -100,7 +100,7 @@ private[core] object SegmentCache {
    * Finds the best key to start from fetch highest.
    *
    * @param key               The key being searched
-   * @param keyValueFromState KeyValue read from the [[ReadState]]. This keyValue could also
+   * @param keyValueFromState KeyValue read from the [[ThreadReadState]]. This keyValue could also
    *                          be higher than key itself so a check to ensure that key is <=
    *                          than the search key is required.
    * @param floorFromSkipList KeyValue read from the [[SegmentCache.skipList]]. This will always
@@ -152,10 +152,10 @@ private[core] object SegmentCache {
       )
 
   def get(key: Slice[Byte],
-          readState: ReadState)(implicit segmentCache: SegmentCache,
-                                keyOrder: KeyOrder[Slice[Byte]],
-                                partialKeyOrder: KeyOrder[Persistent.Partial],
-                                segmentSearcher: SegmentSearcher): PersistentOptional =
+          readState: ThreadReadState)(implicit segmentCache: SegmentCache,
+                                      keyOrder: KeyOrder[Slice[Byte]],
+                                      partialKeyOrder: KeyOrder[Persistent.Partial],
+                                      segmentSearcher: SegmentSearcher): PersistentOptional =
     segmentCache.maxKey match {
       case MaxKey.Fixed(maxKey) if keyOrder.gt(key, maxKey) =>
         Persistent.Null
@@ -218,7 +218,7 @@ private[core] object SegmentCache {
 
   private[segment] def updateReadStateAfterHigher(foundOptional: PersistentOptional,
                                                   segmentState: SegmentStateOptional,
-                                                  readState: ReadState)(implicit segmentCache: SegmentCache): Unit =
+                                                  readState: ThreadReadState)(implicit segmentCache: SegmentCache): Unit =
     if (foundOptional.isSomeS) {
       val found = foundOptional.getS
       segmentCache.addToSkipList(found)
@@ -238,11 +238,11 @@ private[core] object SegmentCache {
     }
 
   def higher(key: Slice[Byte],
-             readState: ReadState)(implicit segmentCache: SegmentCache,
-                                   keyOrder: KeyOrder[Slice[Byte]],
-                                   persistentKeyOrder: KeyOrder[Persistent],
-                                   partialKeyOrder: KeyOrder[Persistent.Partial],
-                                   segmentSearcher: SegmentSearcher): PersistentOptional =
+             readState: ThreadReadState)(implicit segmentCache: SegmentCache,
+                                         keyOrder: KeyOrder[Slice[Byte]],
+                                         persistentKeyOrder: KeyOrder[Persistent],
+                                         partialKeyOrder: KeyOrder[Persistent.Partial],
+                                         segmentSearcher: SegmentSearcher): PersistentOptional =
     segmentCache.maxKey match {
       case MaxKey.Fixed(maxKey) if keyOrder.gteq(key, maxKey) =>
         Persistent.Null
@@ -376,11 +376,11 @@ private[core] object SegmentCache {
 
   private def getEndLower(key: Slice[Byte],
                           segmentState: SegmentStateOptional,
-                          readState: ReadState)(implicit segmentCache: SegmentCache,
-                                                keyOrder: KeyOrder[Slice[Byte]],
-                                                persistentKeyOrder: KeyOrder[Persistent],
-                                                partialKeyOrder: KeyOrder[Persistent.Partial],
-                                                segmentSearcher: SegmentSearcher): PersistentOptional =
+                          readState: ThreadReadState)(implicit segmentCache: SegmentCache,
+                                                      keyOrder: KeyOrder[Slice[Byte]],
+                                                      persistentKeyOrder: KeyOrder[Persistent],
+                                                      partialKeyOrder: KeyOrder[Persistent.Partial],
+                                                      segmentSearcher: SegmentSearcher): PersistentOptional =
 
     SegmentCache.bestEndForLowerSearch(
       key = key,
@@ -389,11 +389,11 @@ private[core] object SegmentCache {
     )
 
   def lower(key: Slice[Byte],
-            readState: ReadState)(implicit segmentCache: SegmentCache,
-                                  keyOrder: KeyOrder[Slice[Byte]],
-                                  persistentKeyOrder: KeyOrder[Persistent],
-                                  partialKeyOrder: KeyOrder[Persistent.Partial],
-                                  segmentSearcher: SegmentSearcher): PersistentOptional =
+            readState: ThreadReadState)(implicit segmentCache: SegmentCache,
+                                        keyOrder: KeyOrder[Slice[Byte]],
+                                        persistentKeyOrder: KeyOrder[Persistent],
+                                        partialKeyOrder: KeyOrder[Persistent.Partial],
+                                        segmentSearcher: SegmentSearcher): PersistentOptional =
     if (keyOrder.lteq(key, segmentCache.minKey))
       Persistent.Null
     else

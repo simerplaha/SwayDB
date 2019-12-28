@@ -21,7 +21,7 @@ package swaydb.core.level.seek
 
 import swaydb.IO
 import swaydb.core.data.KeyValue
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.data.slice.Slice
 
 trait NextWalker extends NextGetter {
@@ -29,12 +29,12 @@ trait NextWalker extends NextGetter {
   def levelNumber: String
 
   def higher(key: Slice[Byte],
-             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+             readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def lower(key: Slice[Byte],
-            readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+            readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def get(key: Slice[Byte],
-          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+          readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
 }

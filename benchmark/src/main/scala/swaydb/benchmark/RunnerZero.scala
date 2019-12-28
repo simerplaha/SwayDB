@@ -21,7 +21,7 @@ package swaydb.benchmark
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.core.util.Benchmark
 import swaydb.serializers.Default.{LongSerializer, StringSerializer}
 
@@ -69,7 +69,7 @@ case class RunnerZero(test: Test) extends LazyLogging {
     }
     println(s"mapsCount: ${map.levelZeroMeter.mapsCount}")
     val readKeys = if (randomRead) shuffledKeys else keys
-    val readState = ReadState.limitHashMap(10, 1)
+    val readState = ThreadReadState.limitHashMap(10, 1)
     Benchmark("Read benchmark during compaction") {
       readKeys foreach {
         key =>
@@ -101,11 +101,11 @@ case class RunnerZero(test: Test) extends LazyLogging {
     areTopLevelsEmpty(1)
 
     println(s"mapsCount: ${map.levelZeroMeter.mapsCount}")
-    val readState2 = ReadState.limitHashMap(10, 1)
+    val readState2 = ThreadReadState.limitHashMap(10, 1)
     Benchmark("Read benchmark after compaction") {
       readKeys foreach {
         key =>
-          map.get(key, readState)
+          map.get(key, readState2)
       }
     }
   }

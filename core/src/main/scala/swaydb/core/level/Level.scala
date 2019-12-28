@@ -37,7 +37,7 @@ import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.{ReadState, Segment, SegmentAssigner, SegmentOptional}
+import swaydb.core.segment.{ThreadReadState, Segment, SegmentAssigner, SegmentOptional}
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
@@ -383,13 +383,13 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val currentWalker =
     new CurrentWalker {
       override def get(key: Slice[Byte],
-                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                       readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         self.get(key, readState)
 
-      override def higher(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] =
+      override def higher(key: Slice[Byte], readState: ThreadReadState): LevelSeek[KeyValue] =
         higherInThisLevel(key, readState)
 
-      override def lower(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] =
+      override def lower(key: Slice[Byte], readState: ThreadReadState): LevelSeek[KeyValue] =
         self.lowerInThisLevel(key, readState)
 
       override def levelNumber: String =
@@ -399,15 +399,15 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val nextWalker =
     new NextWalker {
       override def higher(key: Slice[Byte],
-                          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                          readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         higherInNextLevel(key, readState)
 
       override def lower(key: Slice[Byte],
-                         readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                         readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         lowerFromNextLevel(key, readState)
 
       override def get(key: Slice[Byte],
-                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                       readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
         getFromNextLevel(key, readState)
 
       override def levelNumber: String =
@@ -417,7 +417,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val currentGetter =
     new CurrentGetter {
       override def get(key: Slice[Byte],
-                       readState: ReadState): KeyValueOptional =
+                       readState: ThreadReadState): KeyValueOptional =
         getFromThisLevel(key, readState)
     }
 
@@ -1190,14 +1190,14 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def getFromThisLevel(key: Slice[Byte], readState: ReadState): KeyValueOptional =
+  def getFromThisLevel(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional =
     appendix
       .skipList
       .floor(key)
       .flatMapSomeS(Memory.Null: KeyValueOptional)(_.get(key, readState))
 
   def getFromNextLevel(key: Slice[Byte],
-                       readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                       readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.get(key, readState)
@@ -1206,7 +1206,7 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Defer.none
     }
 
-  override def get(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+  override def get(key: Slice[Byte], readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Get(key, readState)
 
   private def mightContainKeyInThisLevel(key: Slice[Byte]): Boolean =
@@ -1242,7 +1242,7 @@ private[core] case class Level(dirs: Seq[Dir],
       nextLevel.exists(_.mightContainFunction(functionId))
 
   private def lowerInThisLevel(key: Slice[Byte],
-                               readState: ReadState): LevelSeek[KeyValue] =
+                               readState: ThreadReadState): LevelSeek[KeyValue] =
     appendix
       .skipList
       .lower(key)
@@ -1255,7 +1255,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   private def lowerFromNextLevel(key: Slice[Byte],
-                                 readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                                 readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.lower(key, readState)
@@ -1265,7 +1265,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   override def floor(key: Slice[Byte],
-                     readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                     readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     get(key, readState) flatMap {
       case some @ Some(_) =>
         IO.Defer(some)
@@ -1275,7 +1275,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   override def lower(key: Slice[Byte],
-                     readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                     readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Lower(
       key = key,
       readState = readState,
@@ -1284,7 +1284,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   private def higherFromFloorSegment(key: Slice[Byte],
-                                     readState: ReadState): LevelSeek[KeyValue] =
+                                     readState: ThreadReadState): LevelSeek[KeyValue] =
     appendix.skipList.floor(key) match {
       case segment: Segment =>
         LevelSeek(
@@ -1296,7 +1296,7 @@ private[core] case class Level(dirs: Seq[Dir],
         LevelSeek.None
     }
 
-  private def higherFromHigherSegment(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] =
+  private def higherFromHigherSegment(key: Slice[Byte], readState: ThreadReadState): LevelSeek[KeyValue] =
     appendix.skipList.higher(key) match {
       case segment: Segment =>
         LevelSeek(
@@ -1308,7 +1308,7 @@ private[core] case class Level(dirs: Seq[Dir],
         LevelSeek.None
     }
 
-  private[core] def higherInThisLevel(key: Slice[Byte], readState: ReadState): LevelSeek[KeyValue] = {
+  private[core] def higherInThisLevel(key: Slice[Byte], readState: ThreadReadState): LevelSeek[KeyValue] = {
     val fromFloor = higherFromFloorSegment(key, readState)
 
     if (fromFloor.isDefined)
@@ -1318,7 +1318,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def higherInNextLevel(key: Slice[Byte],
-                                readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                                readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.higher(key, readState)
@@ -1328,7 +1328,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def ceiling(key: Slice[Byte],
-              readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+              readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     get(key, readState)
       .flatMap {
         case got @ Some(_) =>
@@ -1339,7 +1339,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   override def higher(key: Slice[Byte],
-                      readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                      readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     Higher(
       key = key,
       readState = readState,
@@ -1351,7 +1351,7 @@ private[core] case class Level(dirs: Seq[Dir],
    * Does a quick appendix lookup.
    * It does not check if the returned key is removed. Use [[Level.head]] instead.
    */
-  override def headKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
+  override def headKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel
       .map(_.headKey(readState))
       .getOrElse(IO.Defer.none)
@@ -1367,7 +1367,7 @@ private[core] case class Level(dirs: Seq[Dir],
    * Does a quick appendix lookup.
    * It does not check if the returned key is removed. Use [[Level.last]] instead.
    */
-  override def lastKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
+  override def lastKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]] =
     nextLevel
       .map(_.lastKey(readState))
       .getOrElse(IO.Defer.none)
@@ -1379,7 +1379,7 @@ private[core] case class Level(dirs: Seq[Dir],
           )(keyOrder)
       }
 
-  override def head(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+  override def head(readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
     headKey(readState)
       .flatMap {
         case Some(firstKey) =>
@@ -1389,7 +1389,7 @@ private[core] case class Level(dirs: Seq[Dir],
           IO.Defer.none
       }
 
-  override def last(readState: ReadState): IO.Defer[Error.Level, Option[KeyValue.Put]] =
+  override def last(readState: ThreadReadState): IO.Defer[Error.Level, Option[KeyValue.Put]] =
     lastKey(readState)
       .flatMap {
         case Some(lastKey) =>

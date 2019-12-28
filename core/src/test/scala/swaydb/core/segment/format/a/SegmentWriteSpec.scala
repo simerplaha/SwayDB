@@ -39,7 +39,7 @@ import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{MemorySegment, PersistentSegment, ReadState, Segment}
+import swaydb.core.segment.{MemorySegment, PersistentSegment, ThreadReadState, Segment}
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.MaxKey
@@ -603,7 +603,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           //when it's close clear all the caches so that key-values do not get read from the cache.
           eitherOne(segment1.clearAllCaches(), segment1.clearCachedKeyValues())
           //read one key value from Segment1 so that it's reopened and added to the cache. This will also remove Segment 2 from cache
-          segment1.get(keyValues.head.key, ReadState.random).getUnsafe shouldBe keyValues.head
+          segment1.get(keyValues.head.key, ThreadReadState.random).getUnsafe shouldBe keyValues.head
           segment1.isOpen shouldBe true
         }
 

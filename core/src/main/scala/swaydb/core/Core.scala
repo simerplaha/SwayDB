@@ -29,7 +29,7 @@ import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.LevelZeroMapEntryWriter
 import swaydb.core.map.timer.Timer
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
@@ -150,9 +150,9 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
   private val serial = tag.createSerial()
 
   protected[swaydb] val readStates =
-    ThreadLocal.withInitial[ReadState] {
-      new Supplier[ReadState] {
-        override def get(): ReadState = ReadState.limitHashMap(10, 2)
+    ThreadLocal.withInitial[ThreadReadState] {
+      new Supplier[ThreadReadState] {
+        override def get(): ThreadReadState = ThreadReadState.limitHashMap(10, 2)
       }
     }
 
@@ -216,30 +216,30 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
   def registerFunction(functionId: Slice[Byte], function: SwayFunction): T[Done] =
     zero.registerFunction(functionId, function).run
 
-  def head(readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def head(readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.head(readState))
 
-  def headKey(readState: ReadState): T[Option[Slice[Byte]]] =
+  def headKey(readState: ThreadReadState): T[Option[Slice[Byte]]] =
     zero.headKey(readState).run
 
-  def last(readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+  def last(readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.last(readState))
 
-  def lastKey(readState: ReadState): T[Option[Slice[Byte]]] =
+  def lastKey(readState: ThreadReadState): T[Option[Slice[Byte]]] =
     zero.lastKey(readState).run
 
   def bloomFilterKeyValueCount: T[Int] =
     IO.Defer(zero.keyValueCount).run
 
   def deadline(key: Slice[Byte],
-               readState: ReadState): T[Option[Deadline]] =
+               readState: ThreadReadState): T[Option[Deadline]] =
     zero.deadline(key, readState).run
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
   def contains(key: Slice[Byte],
-               readState: ReadState): T[Boolean] =
+               readState: ThreadReadState): T[Boolean] =
     zero.contains(key, readState).run
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
@@ -249,35 +249,35 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     IO.Defer(zero.mightContainFunction(functionId)).run
 
   def get(key: Slice[Byte],
-          readState: ReadState): T[Option[Option[Slice[Byte]]]] =
+          readState: ThreadReadState): T[Option[Option[Slice[Byte]]]] =
     zero.run(_.get(key, readState)).map(_.map(_._2))
 
   def getKey(key: Slice[Byte],
-             readState: ReadState): T[Option[Slice[Byte]]] =
+             readState: ThreadReadState): T[Option[Slice[Byte]]] =
     zero.getKey(key, readState).run
 
   def getKeyValue(key: Slice[Byte],
-                  readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+                  readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.get(key, readState))
 
   def before(key: Slice[Byte],
-             readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+             readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.lower(key, readState))
 
   def beforeKey(key: Slice[Byte],
-                readState: ReadState): T[Option[Slice[Byte]]] =
+                readState: ThreadReadState): T[Option[Slice[Byte]]] =
     zero.lower(key, readState).run.map(_.map(_.key))
 
   def after(key: Slice[Byte],
-            readState: ReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
+            readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.higher(key, readState))
 
   def afterKey(key: Slice[Byte],
-               readState: ReadState): T[Option[Slice[Byte]]] =
+               readState: ThreadReadState): T[Option[Slice[Byte]]] =
     zero.higher(key, readState).run.map(_.map(_.key))
 
   def valueSize(key: Slice[Byte],
-                readState: ReadState): T[Option[Int]] =
+                readState: ThreadReadState): T[Option[Int]] =
     zero.valueSize(key, readState).run
 
   def levelZeroMeter: LevelZeroMeter =
@@ -292,7 +292,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
   def delete(): T[Unit] =
     onClose.flatMapIO(_ => zero.delete).run
 
-  def clear(readState: ReadState): T[Done] =
+  def clear(readState: ThreadReadState): T[Done] =
     zero.clear(readState).run
 
   def toTag[X[_]](implicit tag: Tag[X]): Core[X] =

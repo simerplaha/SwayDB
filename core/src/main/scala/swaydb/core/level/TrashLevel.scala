@@ -23,7 +23,7 @@ import java.nio.file.{Path, Paths}
 
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.data.{KeyValue, Memory, MemoryOptional}
-import swaydb.core.segment.{ReadState, Segment, SegmentOptional}
+import swaydb.core.segment.{ThreadReadState, Segment, SegmentOptional}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.{Error, IO}
@@ -78,19 +78,19 @@ private[core] object TrashLevel extends NextLevel {
   override val levelSize: Long =
     0
 
-  override def head(readState: ReadState) =
+  override def head(readState: ThreadReadState) =
     IO.Defer.none
 
-  override def last(readState: ReadState) =
+  override def last(readState: ThreadReadState) =
     IO.Defer.none
 
-  override def get(key: Slice[Byte], readState: ReadState) =
+  override def get(key: Slice[Byte], readState: ThreadReadState) =
     IO.Defer.none
 
-  override def lower(key: Slice[Byte], readState: ReadState) =
+  override def lower(key: Slice[Byte], readState: ThreadReadState) =
     IO.Defer.none
 
-  override def higher(key: Slice[Byte], readState: ReadState) =
+  override def higher(key: Slice[Byte], readState: ThreadReadState) =
     IO.Defer.none
 
   override val isEmpty: Boolean =
@@ -125,16 +125,16 @@ private[core] object TrashLevel extends NextLevel {
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
+  override def ceiling(key: Slice[Byte], readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
     IO.Defer.none
 
-  override def floor(key: Slice[Byte], readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
+  override def floor(key: Slice[Byte], readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
     IO.Defer.none
 
-  override def headKey(readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  override def headKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
     IO.Defer.none
 
-  override def lastKey(readState: ReadState): IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
+  override def lastKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
     IO.Defer.none
 
   override def closeSegments(): IO[swaydb.Error.Segment, Unit] =

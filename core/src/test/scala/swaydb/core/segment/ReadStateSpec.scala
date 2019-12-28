@@ -4,14 +4,14 @@ import java.nio.file.Paths
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
-import swaydb.core.segment.ReadState.SegmentState
+import swaydb.core.segment.ThreadReadState.SegmentState
 
 class ReadStateSpec extends WordSpec with Matchers {
 
   "it" should {
     "return true for non existing keys" in {
 
-      val state = ReadState.limitHashMap(10)
+      val state = ThreadReadState.limitHashMap(10)
 
       (1 to 100) foreach {
         _ =>
@@ -20,7 +20,7 @@ class ReadStateSpec extends WordSpec with Matchers {
     }
 
     "assign" in {
-      val state = ReadState.limitHashMap(100, 100)
+      val state = ThreadReadState.limitHashMap(100, 100)
 
       val keys =
         (1 to 100) map {

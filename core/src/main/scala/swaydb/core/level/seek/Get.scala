@@ -24,7 +24,7 @@ import swaydb.IO
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -33,7 +33,7 @@ import scala.annotation.tailrec
 private[core] object Get {
 
   def seek(key: Slice[Byte],
-           readState: ReadState,
+           readState: ThreadReadState,
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
@@ -47,11 +47,11 @@ private[core] object Get {
     )
 
   def apply(key: Slice[Byte],
-            readState: ReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                  timeOrder: TimeOrder[Slice[Byte]],
-                                  currentGetter: CurrentGetter,
-                                  nextGetter: NextGetter,
-                                  functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] = {
+            readState: ThreadReadState)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                        timeOrder: TimeOrder[Slice[Byte]],
+                                        currentGetter: CurrentGetter,
+                                        nextGetter: NextGetter,
+                                        functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] = {
 
     @tailrec
     def resolve(current: KeyValue): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =

@@ -26,7 +26,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -104,7 +104,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
               level0KeyValues foreach {
                 update =>
                   val (gotValue, gotDeadline) =
-                    level.get(update.key, ReadState.random).map {
+                    level.get(update.key, ThreadReadState.random).map {
                       case Some(put) =>
                         val value = put.getOrFetchValue.runRandomIO.right.value
                         (value, put.deadline)
@@ -124,7 +124,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                       level.putKeyValuesTest(level0KeyValues).runRandomIO.right.value
 
                       //if after merging into a single Level the result is not empty then print all the failed exceptions.
-                      Try(level.get(update.key, ReadState.random).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
+                      Try(level.get(update.key, ThreadReadState.random).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
                         exception =>
                           exception.printStackTrace()
                           throw testException

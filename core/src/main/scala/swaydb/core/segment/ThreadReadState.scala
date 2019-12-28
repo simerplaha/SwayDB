@@ -28,16 +28,17 @@ import swaydb.data.util.SomeOrNone
 
 import scala.util.Random
 
-private[swaydb] sealed trait ReadState {
-  def getSegmentState(path: Path): ReadState.SegmentStateOptional
-  def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit
+private[swaydb] sealed trait ThreadReadState {
+  def getSegmentState(path: Path): ThreadReadState.SegmentStateOptional
+  def setSegmentState(path: Path, nextIndexOffset: ThreadReadState.SegmentState): Unit
 }
 
-private[swaydb] object ReadState {
+private[swaydb] object ThreadReadState {
 
   sealed trait SegmentStateOptional extends SomeOrNone[SegmentStateOptional, SegmentState] {
     override def noneS: SegmentStateOptional = SegmentState.Null
   }
+
   object SegmentState {
     final object Null extends SegmentStateOptional {
       override def isNoneS: Boolean = true
@@ -49,12 +50,12 @@ private[swaydb] object ReadState {
      */
 
     def createOnSuccessSequentialRead(path: Path,
-                                      readState: ReadState,
+                                      readState: ThreadReadState,
                                       found: Persistent): Unit = {
       found.unsliceKeys
 
       val segmentState =
-        new ReadState.SegmentState(
+        new ThreadReadState.SegmentState(
           keyValue = found,
           isSequential = true
         )
@@ -63,8 +64,8 @@ private[swaydb] object ReadState {
     }
 
     def mutateOnSuccessSequentialRead(path: Path,
-                                      readState: ReadState,
-                                      segmentState: ReadState.SegmentState,
+                                      readState: ThreadReadState,
+                                      segmentState: ThreadReadState.SegmentState,
                                       found: Persistent): Unit = {
       found.unsliceKeys
       val state = segmentState.getS
@@ -74,11 +75,11 @@ private[swaydb] object ReadState {
     }
 
     /**
-     * Sets read state after a random read WITHOUT an existing [[ReadState.SegmentState]] exists.
+     * Sets read state after a random read WITHOUT an existing [[ThreadReadState.SegmentState]] exists.
      */
     def createAfterRandomRead(path: Path,
                               start: PersistentOptional,
-                              readState: ReadState,
+                              readState: ThreadReadState,
                               found: PersistentOptional): Unit =
 
       if (found.isSomeS) {
@@ -87,7 +88,7 @@ private[swaydb] object ReadState {
         foundKeyValue.unsliceKeys
 
         val segmentState =
-          new core.segment.ReadState.SegmentState(
+          new core.segment.ThreadReadState.SegmentState(
             keyValue = foundKeyValue,
             isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
           )
@@ -96,11 +97,11 @@ private[swaydb] object ReadState {
       }
 
     /**
-     * Sets read state after a random read WITH an existing [[ReadState.SegmentState]] exists.
+     * Sets read state after a random read WITH an existing [[ThreadReadState.SegmentState]] exists.
      */
     def mutateAfterRandomRead(path: Path,
-                              readState: ReadState,
-                              segmentState: ReadState.SegmentState, //should not be null.
+                              readState: ThreadReadState,
+                              segmentState: ThreadReadState.SegmentState, //should not be null.
                               found: PersistentOptional): Unit =
       if (found.isSomeS) {
         val foundKeyValue = found.getS
@@ -119,19 +120,19 @@ private[swaydb] object ReadState {
     override def getS: SegmentState = this
   }
 
-  def hashMap(): ReadState =
-    new HashMapState(new java.util.HashMap[Path, ReadState.SegmentState]())
+  def hashMap(): ThreadReadState =
+    new HashMapState(new java.util.HashMap[Path, ThreadReadState.SegmentState]())
 
   def limitHashMap(maxSize: Int,
-                   probe: Int): ReadState =
-    new LimitHashMapState(LimitHashMap[Path, ReadState.SegmentState](maxSize, probe))
+                   probe: Int): ThreadReadState =
+    new LimitHashMapState(LimitHashMap[Path, ThreadReadState.SegmentState](maxSize, probe))
 
-  def limitHashMap(maxSize: Int): ReadState =
-    new LimitHashMapState(LimitHashMap[Path, ReadState.SegmentState](maxSize))
+  def limitHashMap(maxSize: Int): ThreadReadState =
+    new LimitHashMapState(LimitHashMap[Path, ThreadReadState.SegmentState](maxSize))
 
-  private class HashMapState(map: java.util.HashMap[Path, ReadState.SegmentState]) extends ReadState {
+  private class HashMapState(map: java.util.HashMap[Path, ThreadReadState.SegmentState]) extends ThreadReadState {
 
-    def getSegmentState(path: Path): ReadState.SegmentStateOptional = {
+    def getSegmentState(path: Path): ThreadReadState.SegmentStateOptional = {
       val state = map.get(path)
       if (state == null)
         SegmentState.Null
@@ -139,13 +140,13 @@ private[swaydb] object ReadState {
         state
     }
 
-    def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit =
+    def setSegmentState(path: Path, nextIndexOffset: ThreadReadState.SegmentState): Unit =
       map.put(path, nextIndexOffset)
   }
 
-  private class LimitHashMapState(map: LimitHashMap[Path, ReadState.SegmentState]) extends ReadState {
+  private class LimitHashMapState(map: LimitHashMap[Path, ThreadReadState.SegmentState]) extends ThreadReadState {
 
-    def getSegmentState(path: Path): ReadState.SegmentStateOptional = {
+    def getSegmentState(path: Path): ThreadReadState.SegmentStateOptional = {
       val state = map.getOrNull(path)
       if (state == null)
         SegmentState.Null
@@ -153,18 +154,18 @@ private[swaydb] object ReadState {
         state
     }
 
-    def setSegmentState(path: Path, nextIndexOffset: ReadState.SegmentState): Unit =
+    def setSegmentState(path: Path, nextIndexOffset: ThreadReadState.SegmentState): Unit =
       map.put(path, nextIndexOffset)
 
     override def toString: String =
       map.toString
   }
 
-  def random: ReadState =
+  def random: ThreadReadState =
     if (scala.util.Random.nextBoolean())
-      ReadState.hashMap()
+      ThreadReadState.hashMap()
     else if (scala.util.Random.nextBoolean())
-      ReadState.limitHashMap(10, Random.nextInt(10))
+      ThreadReadState.limitHashMap(10, Random.nextInt(10))
     else
-      ReadState.limitHashMap(20)
+      ThreadReadState.limitHashMap(20)
 }

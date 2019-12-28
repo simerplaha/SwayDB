@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.{ReadState, Segment}
+import swaydb.core.segment.{ThreadReadState, Segment}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
@@ -124,22 +124,22 @@ object TestData {
       tryReopen(path).runRandomIO.right.value
 
     def get(key: Slice[Byte]): KeyValueOptional =
-      segment.get(key, ReadState.random)
+      segment.get(key, ThreadReadState.random)
 
     def get(key: Int): KeyValueOptional =
-      segment.get(key, ReadState.random)
+      segment.get(key, ThreadReadState.random)
 
     def higher(key: Int): KeyValueOptional =
-      segment.higher(key, ReadState.random)
+      segment.higher(key, ThreadReadState.random)
 
     def higher(key: Slice[Byte]): KeyValueOptional =
-      segment.higher(key, ReadState.random)
+      segment.higher(key, ThreadReadState.random)
 
     def lower(key: Int): KeyValueOptional =
-      segment.lower(key, ReadState.random)
+      segment.lower(key, ThreadReadState.random)
 
     def lower(key: Slice[Byte]): KeyValueOptional =
-      segment.lower(key, ReadState.random)
+      segment.lower(key, ThreadReadState.random)
   }
 
   implicit class ReopenLevel(level: Level)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
@@ -1611,7 +1611,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
-      Higher(key, ReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
+      Higher(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
   implicit class LowerImplicits(higher: Lower.type) {
@@ -1620,7 +1620,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
-      Lower(key, ReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
+      Lower(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
   }
 
   def randomFalsePositiveRate() =

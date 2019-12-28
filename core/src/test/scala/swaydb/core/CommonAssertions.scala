@@ -47,7 +47,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{ReadState, Segment, SegmentOptional}
+import swaydb.core.segment.{ThreadReadState, Segment, SegmentOptional}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -542,7 +542,7 @@ object CommonAssertions {
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
       keyValues.foreach {
         keyValue =>
-          actual.get(keyValue.key, ReadState.random).runRandomIO.right.value.getUnsafe shouldBe keyValue
+          actual.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.getUnsafe shouldBe keyValue
       }
   }
 
@@ -600,7 +600,7 @@ object CommonAssertions {
   def assertHigher(keyValuesIterable: Iterable[KeyValue],
                    level: LevelRef): Unit = {
     val keyValues = keyValuesIterable.toSlice
-    assertHigher(keyValues, getHigher = key => level.higher(key, ReadState.random).runIO)
+    assertHigher(keyValues, getHigher = key => level.higher(key, ThreadReadState.random).runIO)
   }
 
   def assertLower(keyValuesIterable: Iterable[KeyValue],
@@ -612,11 +612,11 @@ object CommonAssertions {
       if (index > keyValues.size - 1) {
         //end
       } else if (index == 0) {
-        level.lower(keyValues(0).key, ReadState.random).runRandomIO.right.value shouldBe empty
+        level.lower(keyValues(0).key, ThreadReadState.random).runRandomIO.right.value shouldBe empty
         assertLowers(index + 1)
       } else {
         try {
-          val lower = level.lower(keyValues(index).key, ReadState.random).runRandomIO.right.value
+          val lower = level.lower(keyValues(index).key, ThreadReadState.random).runRandomIO.right.value
 
           val expectedLowerKeyValue =
             (0 until index).reverse collectFirst {
@@ -773,7 +773,7 @@ object CommonAssertions {
     keyValues foreach {
       keyValue =>
         try {
-          val actual = level.getFromThisLevel(keyValue.key, ReadState.random).runRandomIO.right.value.getUnsafe
+          val actual = level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.right.value.getUnsafe
           actual.getOrFetchValue shouldBe keyValue.getOrFetchValue
         } catch {
           case ex: Exception =>
@@ -788,8 +788,8 @@ object CommonAssertions {
 
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
-      () => level.head(ReadState.random).runIO.get shouldBe empty,
-      () => level.last(ReadState.random).runIO.get shouldBe empty,
+      () => level.head(ThreadReadState.random).runIO.get shouldBe empty,
+      () => level.last(ThreadReadState.random).runIO.get shouldBe empty,
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[Memory],
@@ -835,7 +835,7 @@ object CommonAssertions {
         //        if (intKey % 1000 == 0)
         //          println("Get: " + intKey)
         try
-          IO.Defer(segment.get(keyValue.key, ReadState.random)).runRandomIO.value.getUnsafe shouldBe keyValue
+          IO.Defer(segment.get(keyValue.key, ThreadReadState.random)).runRandomIO.value.getUnsafe shouldBe keyValue
         catch {
           case exception: Exception =>
             println(s"Failed to get: ${keyValue.key.readInt()}")
@@ -910,7 +910,7 @@ object CommonAssertions {
     keyValues foreach {
       keyValue =>
         try
-          level.get(keyValue.key, ReadState.random).runRandomIO.get match {
+          level.get(keyValue.key, ThreadReadState.random).runRandomIO.get match {
             case Some(got) =>
               got shouldBe keyValue
 
@@ -933,7 +933,7 @@ object CommonAssertions {
     keyValues foreach {
       keyValue =>
         try
-          level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
+          level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe empty
         catch {
           case ex: Exception =>
             println(
@@ -949,41 +949,41 @@ object CommonAssertions {
                     level: LevelZero) =
     keyValues.par foreach {
       keyValue =>
-        level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe None
+        level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe None
     }
 
   def assertGetNone(keys: Range,
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt(key), ReadState.random).runRandomIO.right.value shouldBe empty
+        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.right.value shouldBe empty
     }
 
   def assertGetNone(keys: List[Int],
                     level: LevelRef) =
     keys.par foreach {
       key =>
-        level.get(Slice.writeInt(key), ReadState.random).runRandomIO.right.value shouldBe empty
+        level.get(Slice.writeInt(key), ThreadReadState.random).runRandomIO.right.value shouldBe empty
     }
 
   def assertGetNoneButLast(keyValues: Iterable[KeyValue],
                            level: LevelRef) = {
     keyValues.dropRight(1).par foreach {
       keyValue =>
-        level.get(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
+        level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe empty
     }
 
     keyValues
       .lastOption
       .map(_.key)
-      .flatMap(level.get(_, ReadState.random).runRandomIO.right.value.map(_.toMemory)) shouldBe keyValues.lastOption
+      .flatMap(level.get(_, ThreadReadState.random).runRandomIO.right.value.map(_.toMemory)) shouldBe keyValues.lastOption
   }
 
   def assertGetNoneFromThisLevelOnly(keyValues: Iterable[KeyValue],
                                      level: Level) =
     keyValues foreach {
       keyValue =>
-        level.getFromThisLevel(keyValue.key, ReadState.random).runRandomIO.right.value.toOptional shouldBe empty
+        level.getFromThisLevel(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptional shouldBe empty
     }
 
   /**
@@ -1000,7 +1000,7 @@ object CommonAssertions {
       keyValue =>
         try {
           //          println(keyValue.key.readInt())
-          level.higher(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
+          level.higher(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe empty
           //          println
         } catch {
           case ex: Exception =>
@@ -1022,7 +1022,7 @@ object CommonAssertions {
     keyValuesToAssert foreach {
       keyValue =>
         try {
-          level.lower(keyValue.key, ReadState.random).runRandomIO.right.value shouldBe empty
+          level.lower(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe empty
         } catch {
           case ex: Exception =>
             println(
@@ -1165,7 +1165,7 @@ object CommonAssertions {
       } else if (index == 0) {
         val actualKeyValue = keyValues(index)
         //        println(s"Lower: ${actualKeyValue.key.readInt()}")
-        IO.Defer(segment.lower(actualKeyValue.key, ReadState.random)).runRandomIO.right.value.toOptional shouldBe empty
+        IO.Defer(segment.lower(actualKeyValue.key, ThreadReadState.random)).runRandomIO.right.value.toOptional shouldBe empty
         assertLowers(index + 1)
       } else {
         val expectedLower = keyValues(index - 1)
@@ -1174,7 +1174,7 @@ object CommonAssertions {
         //        if (intKey % 100 == 0)
         //          println(s"Lower: $intKey")
         try {
-          val lower = IO.Defer(segment.lower(keyValue.key, ReadState.random)).runRandomIO.right.value.getUnsafe
+          val lower = IO.Defer(segment.lower(keyValue.key, ThreadReadState.random)).runRandomIO.right.value.getUnsafe
           lower shouldBe expectedLower
         } catch {
           case x: Exception =>
@@ -1190,7 +1190,7 @@ object CommonAssertions {
 
   def assertHigher(keyValues: Slice[KeyValue],
                    segment: Segment): Unit =
-    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ReadState.random)).runRandomIO.right.value.toOptional))
+    assertHigher(keyValues, getHigher = key => IO(IO.Defer(segment.higher(key, ThreadReadState.random)).runRandomIO.right.value.toOptional))
 
   /**
    * Asserts that all key-values are returned in order when fetching higher in sequence.

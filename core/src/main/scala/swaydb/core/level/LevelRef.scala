@@ -24,7 +24,7 @@ import java.nio.file.Path
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.{ReadState, Segment, SegmentOptional}
+import swaydb.core.segment.{ThreadReadState, Segment, SegmentOptional}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 
@@ -151,30 +151,30 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+  def head(readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
-  def last(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+  def last(readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def get(key: Slice[Byte],
-          readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+          readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def ceiling(key: Slice[Byte],
-              readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+              readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def floor(key: Slice[Byte],
-            readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+            readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def mightContainKey(key: Slice[Byte]): Boolean
 
   def lower(key: Slice[Byte],
-            readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+            readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
   def higher(key: Slice[Byte],
-             readState: ReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+             readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
 
-  def headKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
+  def headKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
-  def lastKey(readState: ReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
+  def lastKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[Slice[Byte]]]
 
   def keyValueCount: Int
 

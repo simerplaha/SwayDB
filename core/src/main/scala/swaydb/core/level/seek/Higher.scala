@@ -26,7 +26,7 @@ import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.LevelSeek
 import swaydb.core.merge._
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -59,7 +59,7 @@ private[core] object Higher {
   }
 
   def seek(key: Slice[Byte],
-           readState: ReadState,
+           readState: ThreadReadState,
            currentSeek: Seek.Current,
            nextSeek: Seek.Next,
            keyOrder: KeyOrder[Slice[Byte]],
@@ -73,7 +73,7 @@ private[core] object Higher {
    * Just another function that is not tailrec for delayed Higher fetches.
    */
   private def seeker(key: Slice[Byte],
-                     readState: ReadState,
+                     readState: ThreadReadState,
                      currentSeek: Seek.Current,
                      nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
@@ -91,7 +91,7 @@ private[core] object Higher {
    */
   @tailrec
   def apply(key: Slice[Byte],
-            readState: ReadState,
+            readState: ThreadReadState,
             currentSeek: Seek.Current,
             nextSeek: Seek.Next)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                  timeOrder: TimeOrder[Slice[Byte]],

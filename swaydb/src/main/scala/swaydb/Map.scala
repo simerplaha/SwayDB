@@ -22,7 +22,7 @@ package swaydb
 import swaydb.PrepareImplicits._
 import swaydb.Tag.Implicits._
 import swaydb.core.Core
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -259,7 +259,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
   def headOption: T[Option[(K, V)]] =
     headOption(core.readStates.get())
 
-  protected def headOption(readState: ReadState): T[Option[(K, V)]] =
+  protected def headOption(readState: ThreadReadState): T[Option[(K, V)]] =
     tag.point {
       from match {
         case Some(from) =>

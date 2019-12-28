@@ -29,7 +29,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.KeyValue
 import swaydb.core.data.{SwayFunctionOutput, Value}
-import swaydb.core.segment.ReadState
+import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.Reserve
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -53,7 +53,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects(1: Slice[Byte], *) returning randomPutKeyValue(1, deadline = Some(expiredDeadline()))
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -66,7 +66,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomRemoveKeyValue(1, randomExpiredDeadlineOption())
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -80,7 +80,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO.Defer.none
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -94,7 +94,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomRemoveKeyValue(1, Some(randomDeadline(expired = false)))
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDefer
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -108,7 +108,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO.Defer.none
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -122,7 +122,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomUpdateKeyValue(1, deadline = randomDeadlineOption(false))
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDefer
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -136,7 +136,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomFunctionKeyValue(1)
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO.Defer.none
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -150,7 +150,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomFunctionKeyValue(1)
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDefer
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -164,7 +164,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomPendingApplyKeyValue(1)
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO.Defer.none
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -178,7 +178,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomPendingApplyKeyValue(1)
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDefer
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -204,7 +204,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning pendingApply
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1, deadline = Some(expiredDeadline())))).toDefer
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -224,7 +224,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomRangeKeyValue(1, 10, fromValue)
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -250,7 +250,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         //next level can return anything it will be removed.
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(randomPutKeyValue(1))).toDefer
 
-        Get(1, ReadState.random).runIO.right.value shouldBe empty
+        Get(1, ThreadReadState.random).runIO.right.value shouldBe empty
       }
     }
 
@@ -266,7 +266,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning randomPendingApplyKeyValue(1)
         getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]](Some(randomPutKeyValue(1, deadline = Some(expiredDeadline()))), busy)
 
-        val io = Get(1, ReadState.random)
+        val io = Get(1, ThreadReadState.random)
 
         val ioStillBusy = io.toIO
         ioStillBusy.isRight shouldBe false

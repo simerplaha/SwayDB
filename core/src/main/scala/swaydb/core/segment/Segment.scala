@@ -1022,11 +1022,11 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def get(key: Slice[Byte], readState: ReadState): KeyValueOptional
+  def get(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional
 
-  def lower(key: Slice[Byte], readState: ReadState): KeyValueOptional
+  def lower(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional
 
-  def higher(key: Slice[Byte], readState: ReadState): KeyValueOptional
+  def higher(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit
 

@@ -22,8 +22,8 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOptional}
-import swaydb.core.segment.ReadState
-import swaydb.core.segment.ReadState.{SegmentState, SegmentStateOptional}
+import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.ThreadReadState.{SegmentState, SegmentStateOptional}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -41,7 +41,7 @@ private[core] sealed trait SegmentSearcher {
              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
              hasRange: Boolean,
              keyValueCount: => Int,
-             readState: ReadState,
+             readState: ThreadReadState,
              segmentState: SegmentStateOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional
 
@@ -49,7 +49,7 @@ private[core] sealed trait SegmentSearcher {
                    start: PersistentOptional,
                    end: => PersistentOptional,
                    keyValueCount: => Int,
-                   readState: ReadState,
+                   readState: ThreadReadState,
                    binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -85,7 +85,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
              hasRange: Boolean,
              keyValueCount: => Int,
-             readState: ReadState,
+             readState: ThreadReadState,
              segmentState: SegmentStateOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                  partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
     segmentState match {
@@ -143,7 +143,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
           found
         }
 
-      case state: ReadState.SegmentState =>
+      case state: ThreadReadState.SegmentState =>
         val sequentialFound =
           if (state.isSequential) {
             seqSeeks += 1
@@ -199,16 +199,16 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
         }
     }
 
-  def hashIndexSearch(key: Slice[Byte],
-                      start: PersistentOptional,
-                      end: => PersistentOptional,
-                      hashIndexReaderNullable: => UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                      binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
-                      sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                      valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
-                      hasRange: Boolean,
-                      keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                             partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional = {
+  private def hashIndexSearch(key: Slice[Byte],
+                              start: PersistentOptional,
+                              end: => PersistentOptional,
+                              hashIndexReaderNullable: => UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
+                              binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                              hasRange: Boolean,
+                              keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional = {
     val hashIndex = hashIndexReaderNullable
 
     if (hashIndex == null) {
@@ -259,7 +259,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
                    start: PersistentOptional,
                    end: => PersistentOptional,
                    keyValueCount: => Int,
-                   readState: ReadState,
+                   readState: ThreadReadState,
                    binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
