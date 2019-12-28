@@ -19,29 +19,8 @@
 
 package swaydb
 
-import swaydb.Tag.Implicits._
+object Test {
 
-trait Tagged[A, T[_]] {
-  def get: T[A]
+  trait Wrapper[T]
 
-  @inline def map[B](f: A => B)(implicit tag: Tag[T]): T[B] =
-    get map f
-
-  @inline def foreach[B](f: A => B)(implicit tag: Tag[T]): Unit =
-    get map f
-
-  @inline def isSuccess[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
-    tag.isSuccess(b)
-
-  @inline def isFailure[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
-    tag.isFailure(b)
-
-  @inline def getOrElse[B >: A](b: => B)(implicit tag: Tag.Sync[T]): B =
-    tag.getOrElse[A, B](get)(b)
-
-  @inline def orElse[B >: A](b: => T[B])(implicit tag: Tag.Sync[T]): T[B] =
-    tag.orElse[A, B](get)(b)
-
-  @inline def exception(a: T[A])(implicit tag: Tag.Sync[T]): Option[Throwable] =
-    tag.exception(a)
 }

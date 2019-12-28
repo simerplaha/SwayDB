@@ -158,7 +158,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     else
       new Stream[A, T] {
         override def headOption: T[Option[A]] =
-          self.headOption flatMap {
+          tag.flatMap(self.headOption) {
             case Some(head) =>
               if (c == 1)
                 next(head)
@@ -179,7 +179,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   def dropWhile(f: A => Boolean): Stream[A, T] =
     new Stream[A, T] {
       override def headOption: T[Option[A]] =
-        self.headOption flatMap {
+        tag.flatMap(self.headOption) {
           case headOption @ Some(head) =>
             if (f(head))
               tag.collectFirst(head, self)(!f(_))
@@ -230,7 +230,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     new Stream[A, T] {
 
       override def headOption: T[Option[A]] =
-        self.headOption flatMap {
+        tag.flatMap(self.headOption) {
           case previousAOption @ Some(a) =>
             if (f(a))
               tag.success(previousAOption)
@@ -275,7 +275,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         }
 
       override def headOption: T[Option[B]] =
-        self.headOption flatMap {
+        tag.flatMap(self.headOption) {
           headOption =>
             //check if head satisfies the partial functions.
             this.previousA = headOption //also store A in the current Stream so next() invocation starts from this A.
@@ -322,7 +322,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       }
 
       override def headOption: T[Option[B]] =
-        self.headOption flatMap {
+        tag.flatMap(self.headOption) {
           case Some(nextA) =>
             streamNext(nextA)
 
@@ -331,12 +331,12 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         }
 
       override private[swaydb] def next(previous: B): T[Option[B]] =
-        innerStream.next(previous) flatMap {
+        tag.flatMap(innerStream.next(previous)) {
           case some @ Some(_) =>
             tag.success(some)
 
           case None =>
-            self.next(previousA) flatMap {
+            tag.flatMap(self.next(previousA)) {
               case Some(nextA) =>
                 streamNext(nextA)
 
@@ -361,7 +361,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
    * Materializes are executes the stream.
    */
   def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
-    tag(()) flatMap {
+    tag.flatMap(tag(())) {
       _ =>
         tag.foldLeft(initial, None, self, 0, None)(f)
     }

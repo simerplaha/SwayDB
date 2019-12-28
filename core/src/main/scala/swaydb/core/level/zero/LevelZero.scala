@@ -908,26 +908,23 @@ private[swaydb] case class LevelZero(path: Path,
 
   @tailrec
   final def run[T[_]](apply: LevelZero => IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]])(implicit tag: Tag[T]): T[Option[(Slice[Byte], Option[Slice[Byte]])]] = {
-    import Tag.Implicits._
 
     @volatile var failed: Option[Error] = None
 
     val result: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-      apply(this)
-        .run
-        .flatMap {
-          case Some(put) =>
-            try
-              tag.success(Some(put.key, put.getOrFetchValue.toOptionC)) //getOrFetchValue could also result in ReservedResource.
-            catch {
-              case throwable: Throwable =>
-                failed = Some(IO.ExceptionHandler.toError(throwable))
-                tag.failure(throwable)
-            }
+      tag.flatMap(apply(this).run) {
+        case Some(put) =>
+          try
+            tag.success(Some(put.key, put.getOrFetchValue.toOptionC)) //getOrFetchValue could also result in ReservedResource.
+          catch {
+            case throwable: Throwable =>
+              failed = Some(IO.ExceptionHandler.toError(throwable))
+              tag.failure(throwable)
+          }
 
-          case None =>
-            tag.none
-        }
+        case None =>
+          tag.none
+      }
 
     //if fetching value failed perform read again.
     failed match {

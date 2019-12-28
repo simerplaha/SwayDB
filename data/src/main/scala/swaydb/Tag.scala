@@ -69,9 +69,6 @@ object Tag extends LazyLogging {
             tag.map[A, B](a)(f)
         }
 
-      @inline def flatMap[B](f: A => T[B]): T[B] =
-        tag.flatMap(a)(f)
-
       @inline def foreach[B](f: A => B): Unit =
         tag.flatMap(a) {
           value =>

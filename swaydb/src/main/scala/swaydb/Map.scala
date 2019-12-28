@@ -54,7 +54,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(put(keyValues))
 
   def put(keyValues: Stream[(K, V), T]): T[Done] =
-    tag.point(keyValues.materialize flatMap put)
+    tag.point(tag.flatMap(keyValues.materialize)(put))
 
   def put(keyValues: Iterable[(K, V)]): T[Done] =
     put(keyValues.iterator)
@@ -79,7 +79,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(remove(keys))
 
   def remove(keys: Stream[K, T]): T[Done] =
-    tag.point(keys.materialize flatMap remove)
+    tag.point(tag.flatMap(keys.materialize)(remove))
 
   def remove(keys: Iterable[K]): T[Done] =
     remove(keys.iterator)
@@ -103,7 +103,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(expire(keys))
 
   def expire(keys: Stream[(K, Deadline), T]): T[Done] =
-    tag.point(keys.materialize flatMap expire)
+    tag.point(tag.flatMap(keys.materialize)(expire))
 
   def expire(keys: Iterable[(K, Deadline)]): T[Done] =
     expire(keys.iterator)
@@ -132,7 +132,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     tag.point(update(keyValues))
 
   def update(keyValues: Stream[(K, V), T]): T[Done] =
-    tag.point(keyValues.materialize flatMap update)
+    tag.point(tag.flatMap(keyValues.materialize)(update))
 
   def update(keyValues: Iterable[(K, V)]): T[Done] =
     update(keyValues.iterator)
@@ -173,7 +173,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], T])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
     tag.point {
-      prepare.materialize flatMap {
+      tag.flatMap(prepare.materialize) {
         prepares =>
           commit(prepares)
       }
@@ -270,19 +270,18 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
           else if (from.after)
             core.after(fromKeyBytes, readState)
           else
-            core.getKeyValue(fromKeyBytes, readState)
-              .flatMap {
-                case some @ Some(_) =>
-                  tag.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+            tag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
+              case some @ Some(_) =>
+                tag.success(some): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
 
-                case _ =>
-                  if (from.orAfter)
-                    core.after(fromKeyBytes, readState)
-                  else if (from.orBefore)
-                    core.before(fromKeyBytes, readState)
-                  else
-                    tag.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
-              }
+              case _ =>
+                if (from.orAfter)
+                  core.after(fromKeyBytes, readState)
+                else if (from.orBefore)
+                  core.before(fromKeyBytes, readState)
+                else
+                  tag.success(None): T[Option[(Slice[Byte], Option[Slice[Byte]])]]
+            }
 
         case None =>
           if (reverseIteration) core.last(readState) else core.head(readState)

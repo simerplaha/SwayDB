@@ -71,7 +71,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
     add(elems)
 
   def add(elems: Stream[A, T]): T[Done] =
-    tag.point(elems.materialize flatMap add)
+    tag.point(tag.flatMap(elems.materialize)(add))
 
   def add(elems: Iterable[A]): T[Done] =
     add(elems.iterator)
@@ -89,7 +89,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
     remove(elems)
 
   def remove(elems: Stream[A, T]): T[Done] =
-    tag.point(elems.materialize flatMap remove)
+    tag.point(tag.flatMap(elems.materialize)(remove))
 
   def remove(elems: Iterable[A]): T[Done] =
     remove(elems.iterator)
@@ -113,7 +113,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
     expire(elems)
 
   def expire(elems: Stream[(A, Deadline), T]): T[Done] =
-    tag.point(elems.materialize flatMap expire)
+    tag.point(tag.flatMap(elems.materialize)(expire))
 
   def expire(elems: Iterable[(A, Deadline)]): T[Done] =
     expire(elems.iterator)
@@ -149,7 +149,7 @@ case class Set[A, F, T[_]](private val core: Core[T],
 
   def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF], T])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): T[Done] =
     tag.point {
-      prepare.materialize flatMap {
+      tag.flatMap(prepare.materialize) {
         statements =>
           commit(statements)
       }
@@ -204,19 +204,18 @@ case class Set[A, F, T[_]](private val core: Core[T],
           else if (from.after)
             core.afterKey(fromKeyBytes, readState)
           else
-            core.getKey(fromKeyBytes, readState)
-              .flatMap {
-                case Some(key) =>
-                  tag.success(Some(key)): T[Option[Slice[Byte]]]
+            tag.flatMap(core.getKey(fromKeyBytes, readState)) {
+              case Some(key) =>
+                tag.success(Some(key)): T[Option[Slice[Byte]]]
 
-                case _ =>
-                  if (from.orAfter)
-                    core.afterKey(fromKeyBytes, readState)
-                  else if (from.orBefore)
-                    core.beforeKey(fromKeyBytes, readState)
-                  else
-                    tag.success(None): T[Option[Slice[Byte]]]
-              }
+              case _ =>
+                if (from.orAfter)
+                  core.afterKey(fromKeyBytes, readState)
+                else if (from.orBefore)
+                  core.beforeKey(fromKeyBytes, readState)
+                else
+                  tag.success(None): T[Option[Slice[Byte]]]
+            }
 
         case None =>
           if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
