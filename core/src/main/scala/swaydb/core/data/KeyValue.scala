@@ -183,8 +183,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
 private[swaydb] object Memory {
 
   final object Null extends MemoryOptional with KeyValue.Null {
-    override def isNoneS: Boolean =
-      true
+    override val isNoneS: Boolean = true
 
     override def getS: Memory =
       throw new Exception("Is Null")
@@ -612,7 +611,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 private[core] object Persistent {
 
   final object Null extends PersistentOptional with KeyValue.Null {
-    override def isNoneS: Boolean = true
+    override val isNoneS: Boolean = true
     override def getS: Persistent = throw new Exception("get on Persistent key-value that is none")
     override def getUnsafe: KeyValue = getS
   }
@@ -648,8 +647,8 @@ private[core] object Persistent {
   object Partial {
 
     final object Null extends PartialOptional {
+      override val isNoneC: Boolean = true
       override def getC: Partial = throw new Exception("Partial is of type Null")
-      override def isNoneC: Boolean = true
     }
 
     trait Fixed extends Persistent.Partial {

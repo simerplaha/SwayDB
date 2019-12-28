@@ -38,7 +38,7 @@ private[core] sealed trait SegmentSearcher {
                    start: PersistentOptional,
                    end: => PersistentOptional,
                    hashIndexReaderNullable: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                   binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                   binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                    hasRange: Boolean,
@@ -94,266 +94,18 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
         indexReader = sortedIndexReader,
         valuesReaderNullable = valuesReaderNullable
       )
-  //    segmentState match {
-  //      case SegmentState.Null =>
-  //        seqSeeks += 1
-  //
-  //        val found =
-  //          if (start.isSomeS)
-  //            SortedIndexBlock.searchSeekOne(
-  //              key = key,
-  //              start = start.getS,
-  //              indexReader = sortedIndexReader,
-  //              valuesReaderNullable = valuesReaderNullable
-  //            )
-  //          else
-  //            SortedIndexBlock.searchSeekOne(
-  //              key = key,
-  //              fromPosition = 0,
-  //              keySizeOrNull = null,
-  //              indexReader = sortedIndexReader,
-  //              valuesReaderNullable = valuesReaderNullable
-  //            )
-  //
-  //        if (found.isSomeS) { //found is sequential read.
-  //          successfulSeqSeeks += 1
-  //          SegmentState.createOnSuccessSequentialRead(
-  //            path = path,
-  //            readState = readState,
-  //            found = found.getS
-  //          )
-  //
-  //          found
-  //        } else {
-  //          failedSeqSeeks += 1
-  //          val found =
-  //            hashIndexSearch(
-  //              key = key,
-  //              start = start,
-  //              end = end,
-  //              keyValueCount = keyValueCount,
-  //              hashIndexReaderNullable = hashIndexReaderNullable,
-  //              binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
-  //              sortedIndexReader = sortedIndexReader,
-  //              valuesReaderNullable = valuesReaderNullable,
-  //              hasRange = hasRange
-  //            )
-  //
-  //          SegmentState.createAfterRandomRead(
-  //            path = path,
-  //            start = start,
-  //            readState = readState,
-  //            found = found
-  //          )
-  //
-  //          found
-  //        }
-  //
-  //      case state: ThreadReadState.SegmentState =>
-  //        val sequentialFound =
-  //          if (state.isSequential) {
-  //            seqSeeks += 1
-  //            val found =
-  //              SortedIndexBlock.searchSeekOne(
-  //                key = key,
-  //                start = state.keyValue,
-  //                indexReader = sortedIndexReader,
-  //                valuesReaderNullable = valuesReaderNullable
-  //              )
-  //
-  //            if (found.isSomeS) {
-  //              successfulSeqSeeks += 1
-  //            } else {
-  //              failedSeqSeeks += 1
-  //            }
-  //
-  //            found
-  //          } else {
-  //            Persistent.Null
-  //          }
-  //
-  //        if (sequentialFound.isSomeS) {
-  //          SegmentState.mutateOnSuccessSequentialRead(
-  //            path = path,
-  //            readState = readState,
-  //            segmentState = state,
-  //            found = sequentialFound.getS
-  //          )
-  //          sequentialFound
-  //        } else {
-  //          val found =
-  //            hashIndexSearch(
-  //              key = key,
-  //              start = start,
-  //              end = end,
-  //              keyValueCount = keyValueCount,
-  //              hashIndexReaderNullable = hashIndexReaderNullable,
-  //              binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
-  //              sortedIndexReader = sortedIndexReader,
-  //              valuesReaderNullable = valuesReaderNullable,
-  //              hasRange = hasRange
-  //            )
-  //
-  //          SegmentState.mutateAfterRandomRead(
-  //            path = path,
-  //            readState = readState,
-  //            segmentState = state,
-  //            found = found
-  //          )
-  //
-  //          found
-  //        }
-  //    }
-  ???
-
-  //  def searchRandom(key: Slice[Byte],
-  //                   start: PersistentOptional,
-  //                   end: => PersistentOptional,
-  //                   hashIndexReaderNullable: => UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-  //                   binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
-  //                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-  //                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
-  //                   hasRange: Boolean,
-  //                   keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-  //                                          partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
-  //    if (start.isSomeS)
-  //      SortedIndexBlock.searchSeekOne(
-  //        key = key,
-  //        start = start.getS,
-  //        indexReader = sortedIndexReader,
-  //        valuesReaderNullable = valuesReaderNullable
-  //      )
-  //    else
-  //      SortedIndexBlock.searchSeekOne(
-  //        key = key,
-  //        fromPosition = 0,
-  //        keySizeOrNull = null,
-  //        indexReader = sortedIndexReader,
-  //        valuesReaderNullable = valuesReaderNullable
-  //      )
-  //  //    segmentState match {
-  //  //      case SegmentState.Null =>
-  //  //        seqSeeks += 1
-  //  //
-  //  //        val found =
-  //  //          if (start.isSomeS)
-  //  //            SortedIndexBlock.searchSeekOne(
-  //  //              key = key,
-  //  //              start = start.getS,
-  //  //              indexReader = sortedIndexReader,
-  //  //              valuesReaderNullable = valuesReaderNullable
-  //  //            )
-  //  //          else
-  //  //            SortedIndexBlock.searchSeekOne(
-  //  //              key = key,
-  //  //              fromPosition = 0,
-  //  //              keySizeOrNull = null,
-  //  //              indexReader = sortedIndexReader,
-  //  //              valuesReaderNullable = valuesReaderNullable
-  //  //            )
-  //  //
-  //  //        if (found.isSomeS) { //found is sequential read.
-  //  //          successfulSeqSeeks += 1
-  //  //          SegmentState.createOnSuccessSequentialRead(
-  //  //            path = path,
-  //  //            readState = readState,
-  //  //            found = found.getS
-  //  //          )
-  //  //
-  //  //          found
-  //  //        } else {
-  //  //          failedSeqSeeks += 1
-  //  //          val found =
-  //  //            hashIndexSearch(
-  //  //              key = key,
-  //  //              start = start,
-  //  //              end = end,
-  //  //              keyValueCount = keyValueCount,
-  //  //              hashIndexReaderNullable = hashIndexReaderNullable,
-  //  //              binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
-  //  //              sortedIndexReader = sortedIndexReader,
-  //  //              valuesReaderNullable = valuesReaderNullable,
-  //  //              hasRange = hasRange
-  //  //            )
-  //  //
-  //  //          SegmentState.createAfterRandomRead(
-  //  //            path = path,
-  //  //            start = start,
-  //  //            readState = readState,
-  //  //            found = found
-  //  //          )
-  //  //
-  //  //          found
-  //  //        }
-  //  //
-  //  //      case state: ThreadReadState.SegmentState =>
-  //  //        val sequentialFound =
-  //  //          if (state.isSequential) {
-  //  //            seqSeeks += 1
-  //  //            val found =
-  //  //              SortedIndexBlock.searchSeekOne(
-  //  //                key = key,
-  //  //                start = state.keyValue,
-  //  //                indexReader = sortedIndexReader,
-  //  //                valuesReaderNullable = valuesReaderNullable
-  //  //              )
-  //  //
-  //  //            if (found.isSomeS) {
-  //  //              successfulSeqSeeks += 1
-  //  //            } else {
-  //  //              failedSeqSeeks += 1
-  //  //            }
-  //  //
-  //  //            found
-  //  //          } else {
-  //  //            Persistent.Null
-  //  //          }
-  //  //
-  //  //        if (sequentialFound.isSomeS) {
-  //  //          SegmentState.mutateOnSuccessSequentialRead(
-  //  //            path = path,
-  //  //            readState = readState,
-  //  //            segmentState = state,
-  //  //            found = sequentialFound.getS
-  //  //          )
-  //  //          sequentialFound
-  //  //        } else {
-  //  //          val found =
-  //  //            hashIndexSearch(
-  //  //              key = key,
-  //  //              start = start,
-  //  //              end = end,
-  //  //              keyValueCount = keyValueCount,
-  //  //              hashIndexReaderNullable = hashIndexReaderNullable,
-  //  //              binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
-  //  //              sortedIndexReader = sortedIndexReader,
-  //  //              valuesReaderNullable = valuesReaderNullable,
-  //  //              hasRange = hasRange
-  //  //            )
-  //  //
-  //  //          SegmentState.mutateAfterRandomRead(
-  //  //            path = path,
-  //  //            readState = readState,
-  //  //            segmentState = state,
-  //  //            found = found
-  //  //          )
-  //  //
-  //  //          found
-  //  //        }
-  //  //    }
-  //  ???
 
   def searchRandom(key: Slice[Byte],
                    start: PersistentOptional,
                    end: => PersistentOptional,
                    hashIndexReaderNullable: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
-                   binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                   binarySearchIndexReaderNullable: => UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                    hasRange: Boolean,
                    keyValueCount: => Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
-    if (hashIndexReaderNullable == null) {
+    if (hashIndexReaderNullable == null)
       BinarySearchIndexBlock.search(
         key = key,
         lowest = start,
@@ -363,10 +115,10 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
         sortedIndexReader = sortedIndexReader,
         valuesReaderNullable = valuesReaderNullable
       ).toPersistentOptional
-    } else {
-      hashIndexSeeks += 1
-      //println
-      //println(s"Search key: ${key.readInt()}")
+    else
+    //      hashIndexSeeks += 1
+    //println
+    //println(s"Search key: ${key.readInt()}")
       HashIndexBlock.search(
         key = key,
         hashIndexReader = hashIndexReaderNullable,
@@ -393,7 +145,6 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
           successfulHashIndexSeeks += 1
           keyValue.toPersistent
       }
-    }
 
   def searchHigher(key: Slice[Byte],
                    start: PersistentOptional,

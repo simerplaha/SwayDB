@@ -43,7 +43,7 @@ sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Sli
 object Slice extends SliceCompanionBase {
 
   final case object Null extends SliceOptional[Nothing] {
-    override def isNoneC: Boolean = true
+    override val isNoneC: Boolean = true
     override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
   }
 
@@ -110,7 +110,7 @@ class Slice[+T] private[slice](array: Array[T],
                                                                                                            with StrictOptimizedIterableOps[T, Slice, Slice[T]] {
 //@formatter:on
 
-  override def isNoneC: Boolean =
+  override val isNoneC: Boolean =
     false
 
   override def getC: Slice[T] =
