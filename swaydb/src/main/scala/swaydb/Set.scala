@@ -276,6 +276,9 @@ case class Set[A, F, T[_]](private val core: Core[T],
         }
     }
 
+  def streamer: Streamer[A, T] =
+    stream.streamer
+
   def sizeOfBloomFilterEntries: T[Int] =
     tag.point(core.bloomFilterKeyValueCount)
 

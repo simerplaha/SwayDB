@@ -351,6 +351,9 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
         }
     }
 
+  def streamer: Streamer[(K, V), T] =
+    stream.streamer
+
   def sizeOfBloomFilterEntries: T[Int] =
     tag.point(core.bloomFilterKeyValueCount)
 

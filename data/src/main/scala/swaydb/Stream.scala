@@ -384,6 +384,12 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         buffer += item
     }
 
+  def streamer: Streamer[A, T] =
+    new Streamer[A, T] {
+      override def head: T[Option[A]] = self.headOption
+      override def next(previous: A): T[Option[A]] = self.next(previous)
+    }
+
   /**
    * Given a [[Tag.Converter]] this function converts the current Stream to another type.
    */
