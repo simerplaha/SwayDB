@@ -22,7 +22,6 @@ package swaydb.core
 import java.util.function.Supplier
 
 import swaydb.Error.Level.ExceptionHandler
-import swaydb.core.data.KeyValue._
 import swaydb.core.data.{Memory, SwayFunction, Time, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero

@@ -25,7 +25,6 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.FileSweeper
-import swaydb.core.data.KeyValue._
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -36,7 +35,7 @@ import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
-import swaydb.core.segment.{ThreadReadState, Segment, SegmentOptional}
+import swaydb.core.segment.{Segment, SegmentOptional, ThreadReadState}
 import swaydb.core.util.MinMax
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
@@ -47,8 +46,8 @@ import swaydb.data.util.StorageUnits._
 import swaydb.{Done, Error, IO, Tag}
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters._
 import scala.concurrent.duration.{Deadline, _}
+import scala.jdk.CollectionConverters._
 
 private[core] object LevelZero extends LazyLogging {
 
