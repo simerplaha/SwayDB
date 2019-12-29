@@ -373,6 +373,8 @@ private[core] object BinarySearchIndexBlock {
 
       val mid = start + (end - start) / 2
 
+//      println(s"start: $start, mid: $mid, end: $end")
+
       context.seekAndMatch(mid * context.bytesPerValue) match {
         case matched: KeyMatcher.Result.Matched =>
           return new BinarySearchGetResult.Some(value = matched.result)
@@ -435,7 +437,7 @@ private[core] object BinarySearchIndexBlock {
     def hop(start: Int, end: Int, knownLowest: Persistent.PartialOptional, knownMatch: Persistent.PartialOptional): BinarySearchLowerResult.Some = {
       val mid = start + (end - start) / 2
 
-      //println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
+//      println(s"start: $start, mid: $mid, end: $end, fetchLeft: $fetchLeft")
 
       /**
        * if shifting left did not result in a valid lower key-value then reboot binarySearch without shift.
@@ -478,7 +480,7 @@ private[core] object BinarySearchIndexBlock {
                     matched = range
                   )
                 else
-                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseC knownLowest, knownMatch = matched.result)
+                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseC knownLowest, knownMatch = range)
             }
 
           case behind: KeyMatcher.Result.Behind =>
@@ -655,29 +657,22 @@ private[core] object BinarySearchIndexBlock {
                                            got: PersistentOptional,
                                            end: PersistentOptional,
                                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                           valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): PersistentOptional = {
-    //next can either be got or end if end is inline with lower.
-    val next =
-      if (end.existsS(end => lower.existsS(_.nextIndexOffset == end.indexOffset)))
-        end
-      else if (got.existsS(got => lower.existsS(_.nextIndexOffset == got.indexOffset)))
-        got
-      else
-        Persistent.Null
-
-    SortedIndexBlock.matchOrSeekLower(
-      key = key,
-      startFrom = lower,
-      next = next,
-      sortedIndexReader = sortedIndexReader,
-      valuesReaderNullable = valuesReaderNullable
-    )
-  }
+                                           valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): PersistentOptional =
+    if (lower.isSomeS && (got.existsS(got => lower.getS.nextIndexOffset == got.indexOffset) || end.existsS(end => lower.getS.nextIndexOffset == end.indexOffset)))
+      lower
+    else
+      SortedIndexBlock.matchOrSeekLower(
+        key = key,
+        startFrom = lower,
+        next = got orElseS end,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderNullable = valuesReaderNullable
+      )
 
   def searchLower(key: Slice[Byte],
                   start: PersistentOptional,
                   end: PersistentOptional,
-                  keyValuesCount: => Int,
+                  keyValuesCount: Int,
                   binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],

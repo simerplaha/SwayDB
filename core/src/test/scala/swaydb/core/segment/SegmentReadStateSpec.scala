@@ -178,7 +178,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
 
         val previous = previousKeyValue
 
-        threadState.setSegmentState(path, new SegmentReadState(previous, randomBoolean()))
+        threadState.setSegmentState(path, new SegmentReadState(previous, Persistent.Null, randomBoolean()))
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,
@@ -201,7 +201,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         val previous = previousKeyValue
         val next = nextKeyValue.copy(indexOffset = 1000)
 
-        threadState.setSegmentState(path, new SegmentReadState(previous, randomBoolean()))
+        threadState.setSegmentState(path, new SegmentReadState(previous, Persistent.Null, randomBoolean()))
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,
@@ -225,7 +225,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         val previous = previousKeyValue
         val next = nextKeyValue
 
-        threadState.setSegmentState(path, new SegmentReadState(previous, randomBoolean()))
+        threadState.setSegmentState(path, new SegmentReadState(previous, Persistent.Null, randomBoolean()))
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,

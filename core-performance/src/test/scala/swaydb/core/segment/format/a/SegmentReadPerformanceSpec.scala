@@ -68,13 +68,12 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   val keyValuesCount = 1000000
-
   //    override def deleteFiles = false
 
   implicit val maxOpenSegmentsCacheImplicitLimiter: FileSweeper.Enabled = TestSweeper.fileSweeper
-  //    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax
-//  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
-    implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
+  //        implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeperMax
+  //      implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.someMemorySweeper10
+  implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = None
   implicit val blockCache: Option[BlockCache.State] = TestSweeper.blockCache
 
   implicit val timer = TestTimer.Empty
@@ -91,7 +90,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
   var segment: Segment = null
 
   def initSegment() = {
-    //    PersistentReader.populateBaseEntryIds()
+    PersistentReader.populateBaseEntryIds()
 
     Benchmark(s"Creating segment. keyValues: ${keyValues.size}") {
       segment =
@@ -101,8 +100,8 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
             SortedIndexBlock.Config(
               ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
               enablePrefixCompression = true,
-              shouldPrefixCompress = _ % 2 == 0,
-              prefixCompressKeysOnly = false,
+              shouldPrefixCompress = _ % 5 == 0,
+              prefixCompressKeysOnly = true,
               enableAccessPositionIndex = true,
               normaliseIndex = false,
               compressions = _ => Seq.empty
@@ -156,7 +155,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
                 case action: IOAction.DataAction =>
                   IOStrategy.ConcurrentIO(cacheOnAccess = false)
               },
-              cacheBlocksOnCreate = false,
+              cacheBlocksOnCreate = true,
               compressions = _ => Seq.empty
             )
         )
@@ -167,7 +166,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     val readState = ThreadReadState.limitHashMap(1)
     shuffledKeyValues foreach {
       keyValue =>
-        //        if (keyValue.key.readInt() % 10000 == 0)
+        //        if (keyValue.key.readInt() % 1000 == 0)
         //          segment.get(shuffledKeyValues.head.key, readState)
         //
         //        val key = keyValue.key.readInt()
@@ -188,8 +187,15 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         //        println(s"index: $index")
         val keyValue = keyValues(index)
 
-        //        if (keyValue.key.readInt() % 100 == 0)
-        //          segment.higher(keyValues(randomIntMax(index)).key, readState)
+        //        if (keyValue.key.readInt() % 1000 == 0) {
+        //          val key = keyValues(randomIntMax(index)).key
+        //          if (randomBoolean())
+        //            segment.higher(key, readState).getUnsafe
+        //          else if (randomBoolean())
+        //            segment.lower(key, readState).getUnsafe
+        //          else
+        //            segment.get(key, readState).getUnsafe.key shouldBe key
+        //        }
 
         //        val expectedHigher = unGroupedKeyValues(index + 1)
         //        segment.higher(keyValue.key).get.get shouldBe expectedHigher
@@ -199,12 +205,25 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
   def assertLower(segment: Segment) = {
     val readState = ThreadReadState.hashMap()
-    (1 until keyValues.size) foreach {
+    (1 until keyValues.size).reverse foreach {
       index =>
         //        println(s"index: $index")
         //        segment.lowerKeyValue(keyValues(index).key)
 
         val keyValue = keyValues(index)
+
+        //        if (keyValue.key.readInt() % 1000 == 0) {
+        //          val key = keyValues(randomIntMax(index)).key
+        //          if (randomBoolean())
+        //            segment.higher(key, readState).getUnsafe
+        //          else if (randomBoolean())
+        //            segment.lower(key, readState).getUnsafe
+        //          else
+        //            segment.get(key, readState).getUnsafe.key shouldBe key
+        //        }
+
+        //        println
+        //        println(s"Key: ${keyValue.key.readInt()}")
 
         //        if (keyValue.key.readInt() % 1000 == 0)
         //          segment.higher(keyValues(randomIntMax(index)).key, readState)
@@ -367,6 +386,24 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     }
   }
 
+  "Segment higher benchmark 5" in {
+    initSegment()
+    //    if (persistent) reopenSegment()
+    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+      assertHigher(segment)
+    }
+
+    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+      assertHigher(segment)
+    }
+  }
+
+  "Segment higher benchmark 6" in {
+    Benchmark(s"higher ${keyValues.size} cached higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
+      assertHigher(segment)
+    }
+  }
+
   "Segment lower benchmark 3" in {
     initSegment()
     //    if (persistent) reopenSegment()
@@ -385,21 +422,4 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     }
   }
 
-  "Segment higher benchmark 5" in {
-    initSegment()
-    //    if (persistent) reopenSegment()
-    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-      assertHigher(segment)
-    }
-
-    Benchmark(s"higher ${keyValues.size} higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-      assertHigher(segment)
-    }
-  }
-
-  "Segment higher benchmark 6" in {
-    Benchmark(s"higher ${keyValues.size} cached higher keys when Segment memory = $memory, mmapSegmentWrites = ${levelStorage.mmapSegmentsOnWrite}, mmapSegmentReads = ${levelStorage.mmapSegmentsOnRead}") {
-      assertHigher(segment)
-    }
-  }
 }

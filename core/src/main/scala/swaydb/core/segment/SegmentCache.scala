@@ -128,27 +128,27 @@ private[core] object SegmentCache {
                             segmentState: SegmentReadStateOptional,
                             ceilingFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                      persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
-    if (segmentState.isSomeS)
+    if (segmentState.isSomeS && segmentState.getS.lowerKeyValue.isSomeS)
       SegmentCache.bestEndForLowerSearch(
         key = key,
-        keyValueFromState = segmentState.getS.keyValue,
+        lowerKeyValueFromState = segmentState.getS.lowerKeyValue.getS,
         ceilingFromSkipList = ceilingFromSkipList
       )
     else
       ceilingFromSkipList
 
   def bestEndForLowerSearch(key: Slice[Byte],
-                            keyValueFromState: Persistent,
+                            lowerKeyValueFromState: Persistent,
                             ceilingFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                      persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
     if (ceilingFromSkipList.isNoneS)
-      if (keyOrder.gteq(keyValueFromState.getS.key, key))
-        keyValueFromState
+      if (keyOrder.gteq(lowerKeyValueFromState.getS.key, key))
+        lowerKeyValueFromState
       else
         Persistent.Null
     else
       MinMax.minFavourLeft[Persistent](
-        left = keyValueFromState.getS,
+        left = lowerKeyValueFromState.getS,
         right = ceilingFromSkipList.getS
       )
 
@@ -157,7 +157,8 @@ private[core] object SegmentCache {
                                       keyOrder: KeyOrder[Slice[Byte]],
                                       partialKeyOrder: KeyOrder[Persistent.Partial],
                                       persistentKeyOrder: KeyOrder[Persistent],
-                                      segmentSearcher: SegmentSearcher): PersistentOptional =
+                                      segmentSearcher: SegmentSearcher): PersistentOptional = {
+    //    println(s"Get: ${key.readInt()}")
     segmentCache.maxKey match {
       case MaxKey.Fixed(maxKey) if keyOrder.gt(key, maxKey) =>
         Persistent.Null
@@ -264,27 +265,7 @@ private[core] object SegmentCache {
                 Persistent.Null
           }
     }
-
-  private[segment] def updateReadStateAfterHigher(foundOptional: PersistentOptional,
-                                                  segmentState: SegmentReadStateOptional,
-                                                  readState: ThreadReadState)(implicit segmentCache: SegmentCache): Unit =
-    if (foundOptional.isSomeS) {
-      val found = foundOptional.getS
-      segmentCache.addToSkipList(found)
-      if (segmentState.isSomeS)
-        SegmentReadState.mutateOnSuccessSequentialRead(
-          path = segmentCache.path,
-          readState = readState,
-          segmentState = segmentState.getS,
-          found = found
-        )
-      else
-        SegmentReadState.createOnSuccessSequentialRead(
-          path = segmentCache.path,
-          readState = readState,
-          found = found
-        )
-    }
+  }
 
   def higher(key: Slice[Byte],
              readState: ThreadReadState)(implicit segmentCache: SegmentCache,
@@ -405,55 +386,91 @@ private[core] object SegmentCache {
 
   private def lower(key: Slice[Byte],
                     start: PersistentOptional,
-                    end: => PersistentOptional,
-                    keyValueCount: => Int)(implicit segmentCache: SegmentCache,
-                                           keyOrder: KeyOrder[Slice[Byte]],
-                                           partialKeyOrder: KeyOrder[Persistent.Partial],
-                                           segmentSearcher: SegmentSearcher): PersistentOptional =
+                    end: PersistentOptional,
+                    keyValueCount: Int,
+                    path: Path,
+                    segmentStateOptional: SegmentReadStateOptional,
+                    threadState: ThreadReadState)(implicit segmentCache: SegmentCache,
+                                                  keyOrder: KeyOrder[Slice[Byte]],
+                                                  persistentKeyOrder: KeyOrder[Persistent],
+                                                  partialKeyOrder: KeyOrder[Persistent.Partial],
+                                                  segmentSearcher: SegmentSearcher): PersistentOptional = {
+    val sortedIndexReader = segmentCache.blockCache.createSortedIndexReader()
+    val endKeyValue =
+      if (end.isNoneS && sortedIndexReader.block.enableAccessPositionIndex)
+      //end is only helpful for lower if accessPositionIndex is enabled.
+      //this get is only invoked if lower seeks are performed incrementally (1 to 100) instead of 100 to 1
+      //Stream by default run in reverse so 100 to 1 so this will not be invoked unless done manually.
+        get(key, threadState)
+      else
+        end
+
     segmentSearcher.searchLower(
       key = key,
       start = start,
-      end = end,
+      end = endKeyValue,
       keyValueCount = keyValueCount,
       binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
-      sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
+      sortedIndexReader = sortedIndexReader,
       valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable()
-    ).onSomeSideEffectS(segmentCache.addToSkipList)
+    ) onSideEffectS {
+      optional =>
+        optional foreachS {
+          found =>
+            segmentStateOptional match {
+              case SegmentReadState.Null =>
+                threadState.setSegmentState(
+                  path = path,
+                  nextIndexOffset =
+                    new SegmentReadState(
+                      keyValue = found,
+                      lowerKeyValue = found,
+                      isSequential = true
+                    )
+                )
 
-  private def getEndLower(key: Slice[Byte],
-                          segmentState: SegmentReadStateOptional,
-                          readState: ThreadReadState)(implicit segmentCache: SegmentCache,
-                                                      keyOrder: KeyOrder[Slice[Byte]],
-                                                      persistentKeyOrder: KeyOrder[Persistent],
-                                                      partialKeyOrder: KeyOrder[Persistent.Partial],
-                                                      segmentSearcher: SegmentSearcher): PersistentOptional =
+              case state: SegmentReadState =>
+                state.lowerKeyValue = found
+            }
+            segmentCache addToSkipList found
+        }
+    }
+  }
+
+  private def bestEndForLowerSearch(key: Slice[Byte],
+                                    segmentState: SegmentReadStateOptional,
+                                    readState: ThreadReadState)(implicit segmentCache: SegmentCache,
+                                                                keyOrder: KeyOrder[Slice[Byte]],
+                                                                persistentKeyOrder: KeyOrder[Persistent],
+                                                                partialKeyOrder: KeyOrder[Persistent.Partial],
+                                                                segmentSearcher: SegmentSearcher): PersistentOptional =
 
     SegmentCache.bestEndForLowerSearch(
       key = key,
       segmentState = segmentState,
       ceilingFromSkipList = segmentCache.applyToSkipList(_.ceiling(key))
-    ) orElseS get(key, readState)
+    )
 
   def lower(key: Slice[Byte],
-            readState: ThreadReadState)(implicit segmentCache: SegmentCache,
-                                        keyOrder: KeyOrder[Slice[Byte]],
-                                        persistentKeyOrder: KeyOrder[Persistent],
-                                        partialKeyOrder: KeyOrder[Persistent.Partial],
-                                        segmentSearcher: SegmentSearcher): PersistentOptional =
+            threadState: ThreadReadState)(implicit segmentCache: SegmentCache,
+                                          keyOrder: KeyOrder[Slice[Byte]],
+                                          persistentKeyOrder: KeyOrder[Persistent],
+                                          partialKeyOrder: KeyOrder[Persistent.Partial],
+                                          segmentSearcher: SegmentSearcher): PersistentOptional =
     if (keyOrder.lteq(key, segmentCache.minKey))
       Persistent.Null
     else
       segmentCache.maxKey match {
         case MaxKey.Fixed(maxKey) if keyOrder.gt(key, maxKey) =>
-          get(maxKey, readState)
+          get(maxKey, threadState)
 
         case MaxKey.Range(fromKey, _) if keyOrder.gt(key, fromKey) =>
-          get(fromKey, readState)
+          get(fromKey, threadState)
 
         case _ =>
           val blockCache = segmentCache.blockCache
           val footer = blockCache.getFooter()
-          val segmentState = readState.getSegmentState(segmentCache.path)
+          val segmentState = threadState.getSegmentState(segmentCache.path)
           val lowerFromState =
             if (footer.hasRange && segmentState.isSomeS)
               segmentState.getS.keyValue match {
@@ -480,7 +497,11 @@ private[core] object SegmentCache {
                       lowerRange
 
                     case lowerKeyValue: Persistent =>
-                      getEndLower(key, segmentState, readState) match {
+                      bestEndForLowerSearch(
+                        key = key,
+                        segmentState = segmentState,
+                        readState = threadState
+                      ) match {
                         case ceilingRange: Persistent.Range =>
                           if (KeyValue.Range.containsLower(ceilingRange, key))
                             ceilingRange
@@ -491,7 +512,10 @@ private[core] object SegmentCache {
                               key = key,
                               start = lowerKeyValue,
                               end = ceilingRange,
-                              keyValueCount = footer.keyValueCount
+                              keyValueCount = footer.keyValueCount,
+                              path = segmentCache.path,
+                              segmentStateOptional = segmentState,
+                              threadState = threadState
                             )
 
                         case ceiling: Persistent.Fixed =>
@@ -502,7 +526,10 @@ private[core] object SegmentCache {
                               key = key,
                               start = lowerKeyValue,
                               end = ceiling,
-                              keyValueCount = footer.keyValueCount
+                              keyValueCount = footer.keyValueCount,
+                              path = segmentCache.path,
+                              segmentStateOptional = segmentState,
+                              threadState = threadState
                             )
 
                         case Persistent.Null =>
@@ -510,7 +537,10 @@ private[core] object SegmentCache {
                             key = key,
                             start = lowerKeyValue,
                             end = Persistent.Null,
-                            keyValueCount = footer.keyValueCount
+                            keyValueCount = footer.keyValueCount,
+                            path = segmentCache.path,
+                            segmentStateOptional = segmentState,
+                            threadState = threadState
                           )
                       }
                   }
@@ -519,8 +549,11 @@ private[core] object SegmentCache {
                 lower(
                   key = key,
                   start = Persistent.Null,
-                  end = getEndLower(key, segmentState, readState),
-                  keyValueCount = footer.keyValueCount
+                  end = bestEndForLowerSearch(key, segmentState, threadState),
+                  keyValueCount = footer.keyValueCount,
+                  path = segmentCache.path,
+                  segmentStateOptional = segmentState,
+                  threadState = threadState
                 )
             }
       }

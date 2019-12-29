@@ -65,6 +65,7 @@ object SegmentReadState {
     val segmentState =
       new SegmentReadState(
         keyValue = found,
+        lowerKeyValue = Persistent.Null,
         isSequential = true
       )
 
@@ -118,6 +119,7 @@ object SegmentReadState {
       val segmentState =
         new core.segment.SegmentReadState(
           keyValue = foundKeyValue,
+          lowerKeyValue = Persistent.Null,
           isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
         )
 
@@ -141,7 +143,14 @@ object SegmentReadState {
     }
 }
 
+/**
+ * Both Get and Higher functions mutate [[keyValue]]. But lower
+ * can only mutate [[lowerKeyValue]] as it depends on get to fetch
+ * the end key-value for faster lower search and should not mutate
+ * get's set [[keyValue]].
+ */
 class SegmentReadState(var keyValue: Persistent,
+                       var lowerKeyValue: PersistentOptional,
                        var isSequential: Boolean) extends SegmentReadStateOptional {
   override def isNoneS: Boolean = false
   override def getS: SegmentReadState = this

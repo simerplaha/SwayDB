@@ -1136,7 +1136,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
                   next: PersistentOptional,
                   matcher: KeyMatcher,
                   indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result.Complete =
+                  valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): KeyMatcher.Result.Complete = {
     matcher(
       previous = previous,
       next = next.asPartial,
@@ -1147,6 +1147,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
       case behind: KeyMatcher.Result.BehindFetchNext =>
         //        assert(previous.key.readInt() <= previousKeyValue.key.readInt())
+        //        println(s"Walking previous: ${previous.key.readInt()}, next: ${next.mapS(_.key.readInt())}")
         val readFrom: Persistent = next getOrElseS behind.previous.toPersistent
 
         val nextNextKeyValue =
@@ -1164,6 +1165,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           valuesReaderNullable = valuesReaderNullable
         )
     }
+  }
 
   def seekAndMatchOrSeek(previous: Persistent,
                          next: PersistentOptional,
