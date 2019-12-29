@@ -8,12 +8,25 @@ class ProbeLimitHashMap extends LimitHashMapSpec {
   def createMap[K, V >: Null](limit: Integer) = LimitHashMap[K, V](limit, 10)
 }
 
+class ProbeLimitConcurrentHashMap extends LimitHashMapSpec {
+  def createMap[K, V >: Null](limit: Integer) = LimitHashMap.concurrent[K, V](limit, 10)
+}
+
 class NoProbeLimitHashMap extends LimitHashMapSpec {
   def createMap[K, V >: Null](limit: Integer) =
     eitherOne(
       //create directly with noProbe or via 0 or negative probe.
       LimitHashMap[K, V](limit),
       LimitHashMap[K, V](limit, -randomIntMax(2))
+    )
+}
+
+class NoProbeLimitConcurrentHashMap extends LimitHashMapSpec {
+  def createMap[K, V >: Null](limit: Integer) =
+    eitherOne(
+      //create directly with noProbe or via 0 or negative probe.
+      LimitHashMap.concurrent[K, V](limit),
+      LimitHashMap.concurrent[K, V](limit, -randomIntMax(2))
     )
 }
 

@@ -47,11 +47,25 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else if (maxProbe <= 0)
       new NoProbe[K, V](
-        array = new Array[(K, V)](limit)
+        array = ArrayT.basic[(K, V)](limit)
       )
     else
       new Probed[K, V](
-        array = new Array[(K, V)](limit),
+        array = ArrayT.basic(limit),
+        maxProbe = maxProbe
+      )
+
+  def concurrent[K, V >: Null](limit: Int,
+                               maxProbe: Int): LimitHashMap[K, V] =
+    if (limit <= 0)
+      new Empty[K, V]
+    else if (maxProbe <= 0)
+      new NoProbe[K, V](
+        array = ArrayT.atomic[(K, V)](limit)
+      )
+    else
+      new Probed[K, V](
+        array = ArrayT.atomic[(K, V)](limit),
         maxProbe = maxProbe
       )
 
@@ -63,10 +77,18 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else
       new NoProbe[K, V](
-        array = new Array[(K, V)](limit)
+        array = ArrayT.basic[(K, V)](limit)
       )
 
-  private class Probed[K, V >: Null](array: Array[(K, V)], maxProbe: Int) extends LimitHashMap[K, V] {
+  def concurrent[K, V >: Null](limit: Int): LimitHashMap[K, V] =
+    if (limit <= 0)
+      new Empty[K, V]
+    else
+      new NoProbe[K, V](
+        array = ArrayT.atomic[(K, V)](limit)
+      )
+
+  private class Probed[K, V >: Null](array: ArrayT[(K, V)], maxProbe: Int) extends LimitHashMap[K, V] {
 
     val limit = array.length
 
@@ -78,11 +100,11 @@ private[swaydb] object LimitHashMap {
     @tailrec
     private def put(key: K, value: V, hashIndex: Int, targetIndex: Int, probe: Int): Unit =
       if (probe == maxProbe) {
-        array(hashIndex) = (key, value)
+        array.set(hashIndex, (key, value))
       } else {
-        val existing = array(targetIndex)
+        val existing = array.getOrNull(targetIndex)
         if (existing == null || existing._1 == key)
-          array(targetIndex) = (key, value)
+          array.set(targetIndex, (key, value))
         else
           put(key, value, hashIndex, if (targetIndex + 1 >= limit) 0 else targetIndex + 1, probe + 1)
       }
@@ -97,7 +119,7 @@ private[swaydb] object LimitHashMap {
       if (probe == maxProbe) {
         null
       } else {
-        val keyValue = array(index)
+        val keyValue = array.getOrNull(index)
         if (keyValue != null && keyValue._1 == key)
           keyValue._2
         else
@@ -108,15 +130,15 @@ private[swaydb] object LimitHashMap {
       array.iterator
   }
 
-  private class NoProbe[K, V >: Null](array: Array[(K, V)]) extends LimitHashMap[K, V] {
+  private class NoProbe[K, V >: Null](array: ArrayT[(K, V)]) extends LimitHashMap[K, V] {
 
     val limit = array.length
 
     def put(key: K, value: V) =
-      array(Math.abs(key.##) % limit) = (key, value)
+      array.set(Math.abs(key.##) % limit, (key, value))
 
     def getOrNull(key: K): V = {
-      val value = array(Math.abs(key.##) % limit)
+      val value = array.getOrNull(Math.abs(key.##) % limit)
       if (value != null && value._1 == key)
         value._2
       else
