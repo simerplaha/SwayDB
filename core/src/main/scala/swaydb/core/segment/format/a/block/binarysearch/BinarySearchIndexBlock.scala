@@ -623,40 +623,31 @@ private[core] object BinarySearchIndexBlock {
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                            partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
-    when(start.existsS(start => ordering.equiv(start.key, key)), Persistent.Null: PersistentOptional)(start) match {
-      case start: Persistent =>
-        SortedIndexBlock.readNextKeyValue(
-          previous = start,
+
+    search( //A check to see if key equiv start.key to perform a simple forward seek without matching is done in SegmentSearcher
+      key = key,
+      lowest = start,
+      highest = end,
+      keyValuesCount = keyValuesCount,
+      binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
+      sortedIndexReader = sortedIndexReader,
+      valuesReaderNullable = valuesReaderNullable
+    ) match {
+      case none: BinarySearchGetResult.None =>
+        SortedIndexBlock.matchOrSeekHigher(
+          key = key,
+          startFrom = none.lower.toPersistentOptional,
           sortedIndexReader = sortedIndexReader,
           valuesReaderNullable = valuesReaderNullable
         )
 
-      case Persistent.Null =>
-        search(
+      case some: BinarySearchGetResult.Some =>
+        SortedIndexBlock.matchOrSeekHigher(
           key = key,
-          lowest = start,
-          highest = end,
-          keyValuesCount = keyValuesCount,
-          binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
+          startFrom = some.value.toPersistent,
           sortedIndexReader = sortedIndexReader,
           valuesReaderNullable = valuesReaderNullable
-        ) match {
-          case none: BinarySearchGetResult.None =>
-            SortedIndexBlock.matchOrSeekHigher(
-              key = key,
-              startFrom = none.lower.toPersistentOptional,
-              sortedIndexReader = sortedIndexReader,
-              valuesReaderNullable = valuesReaderNullable
-            )
-
-          case some: BinarySearchGetResult.Some =>
-            SortedIndexBlock.matchOrSeekHigher(
-              key = key,
-              startFrom = some.value.toPersistent,
-              sortedIndexReader = sortedIndexReader,
-              valuesReaderNullable = valuesReaderNullable
-            )
-        }
+        )
     }
 
   private def resolveLowerFromBinarySearch(key: Slice[Byte],

@@ -1138,7 +1138,7 @@ object CommonAssertions {
       getHigher =
         key =>
           IO {
-            SegmentSearcher.searchHigher(
+            SegmentSearcher.searchHigherRandomly(
               key = key,
               start = Persistent.Null,
               end = Persistent.Null,

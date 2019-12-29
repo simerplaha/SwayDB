@@ -85,12 +85,12 @@ private[core] object SegmentCache {
         )
     )
 
-  def bestStartForHigherOrGetSearch(key: Slice[Byte],
+  def bestStartForGetOrHigherSearch(key: Slice[Byte],
                                     segmentState: SegmentReadStateOptional,
                                     floorFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                            persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
     if (segmentState.isSomeS)
-      SegmentCache.bestStartForHigherOrGetSearch(
+      SegmentCache.bestStartForGetOrHigherSearch(
         key = key,
         keyValueFromState = segmentState.getS.keyValue,
         floorFromSkipList = floorFromSkipList
@@ -109,7 +109,7 @@ private[core] object SegmentCache {
    *                          be <= to the key being search.
    * @return the best possible key-value to search higher search from.
    */
-  def bestStartForHigherOrGetSearch(key: Slice[Byte],
+  def bestStartForGetOrHigherSearch(key: Slice[Byte],
                                     keyValueFromState: Persistent,
                                     floorFromSkipList: PersistentOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                            persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
@@ -200,7 +200,7 @@ private[core] object SegmentCache {
             case floorValue =>
               if (footer.hasRange || segmentCache.mightContain(key)) {
                 val bestStart =
-                  SegmentCache.bestStartForHigherOrGetSearch(
+                  SegmentCache.bestStartForGetOrHigherSearch(
                     key = key,
                     segmentState = segmentStateOptional,
                     floorFromSkipList = floorValue
@@ -229,31 +229,36 @@ private[core] object SegmentCache {
                   else
                     Persistent.Null
 
-                if (sequentialRead.isSomeS)
+                if (sequentialRead.isSomeS) {
                   sequentialRead
-                else
-                  segmentSearcher.searchRandom(
-                    key = key,
-                    start = bestStart,
-                    end = segmentCache.applyToSkipList(_.higher(key)),
-                    keyValueCount = footer.keyValueCount,
-                    hashIndexReaderNullable = segmentCache.blockCache.createHashIndexReaderNullable(),
-                    binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
-                    sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
-                    valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
-                    hasRange = footer.hasRange
-                  ) onSideEffectS {
-                    found =>
-                      SegmentReadState.updateAfterRandomRead(
-                        path = segmentCache.path,
-                        start = bestStart,
-                        segmentStateOptional = segmentStateOptional,
-                        threadReadState = readState,
-                        foundOption = found
-                      )
+                } else {
+                  val higher = segmentCache.applyToSkipList(_.higher(key))
+                  if (bestStart.existsS(bestStart => higher.existsS(_.indexOffset == bestStart.nextIndexOffset)))
+                    Persistent.Null
+                  else
+                    segmentSearcher.searchRandom(
+                      key = key,
+                      start = bestStart,
+                      end = higher,
+                      keyValueCount = footer.keyValueCount,
+                      hashIndexReaderNullable = segmentCache.blockCache.createHashIndexReaderNullable(),
+                      binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
+                      sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
+                      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
+                      hasRange = footer.hasRange
+                    ) onSideEffectS {
+                      found =>
+                        SegmentReadState.updateAfterRandomRead(
+                          path = segmentCache.path,
+                          start = bestStart,
+                          segmentStateOptional = segmentStateOptional,
+                          threadReadState = readState,
+                          foundOption = found
+                        )
 
-                      found foreachS segmentCache.addToSkipList
-                  }
+                        found foreachS segmentCache.addToSkipList
+                    }
+                }
               }
               else
                 Persistent.Null
@@ -295,42 +300,86 @@ private[core] object SegmentCache {
         Persistent.Null
 
       case _ =>
-        val blockCache = segmentCache.blockCache
-        val footer = blockCache.getFooter()
-        val segmentState = readState.getSegmentState(segmentCache.path)
-        val higherFromState =
-          if (footer.hasRange && segmentState.isSomeS)
-            segmentState.getS.keyValue match {
-              case range: Persistent.Range if KeyValue.Range.contains(range, key) =>
-                range
-
-              case _ =>
-                Persistent.Null
-            }
-          else
-            Persistent.Null
-
-        if (higherFromState.isSomeS)
-          higherFromState.getS
-        else
-          segmentCache.applyToSkipList(_.floor(key)) match {
-            case floor: Persistent =>
-              floor match {
-                case floor: Persistent.Range if KeyValue.Range.contains(floor, key) =>
-                  floor
+        if (keyOrder.lt(key, segmentCache.minKey)) {
+          get(segmentCache.minKey, readState)
+        } else {
+          val blockCache = segmentCache.blockCache
+          val footer = blockCache.getFooter()
+          val segmentStateOptional = readState.getSegmentState(segmentCache.path)
+          val higherFromState =
+            if (footer.hasRange && segmentStateOptional.isSomeS)
+              segmentStateOptional.getS.keyValue match {
+                case range: Persistent.Range if KeyValue.Range.contains(range, key) =>
+                  range
 
                 case _ =>
-                  segmentCache.applyToSkipList(_.higher(key)) match {
-                    case higher: Persistent.Range if KeyValue.Range.contains(higher, key) =>
-                      higher
+                  Persistent.Null
+              }
+            else
+              Persistent.Null
 
-                    case higher: Persistent =>
-                      if (floor.nextIndexOffset == higher.indexOffset)
+          if (higherFromState.isSomeS)
+            higherFromState.getS
+          else
+            segmentCache.applyToSkipList(_.floor(key)) match {
+              case floor: Persistent.Range if KeyValue.Range.contains(floor, key) =>
+                floor
+
+              case floor =>
+                segmentCache.applyToSkipList(_.higher(key)) match {
+                  case higher: Persistent.Range if KeyValue.Range.contains(higher, key) =>
+                    higher
+
+                  case higher =>
+                    val inMemorySeek =
+                      if (floor.isSomeS && higher.isSomeS && floor.getS.nextIndexOffset == higher.getS.indexOffset) {
+                        SegmentReadState.updateOnSuccessSequentialRead(
+                          path = segmentCache.path,
+                          segmentState = segmentStateOptional,
+                          threadReadState = readState,
+                          found = higher.getS
+                        )
                         higher
-                      else
-                        segmentSearcher.searchHigher(
+                      } else {
+                        Persistent.Null
+                      }
+
+                    if (inMemorySeek.isSomeS) {
+                      inMemorySeek
+                    } else {
+                      val bestStart =
+                        SegmentCache.bestStartForGetOrHigherSearch(
                           key = key,
-                          start = SegmentCache.bestStartForHigherOrGetSearch(key, segmentState, floor),
+                          segmentState = segmentStateOptional,
+                          floorFromSkipList = floor
+                        ) // having orElseS get(key, readState) here is resulting is slower performance.
+
+                      val sequentialSeek =
+                        if (segmentStateOptional.isNoneS || segmentStateOptional.getS.isSequential)
+                          segmentSearcher.searchHigherSequentially(
+                            key = key,
+                            start = bestStart,
+                            sortedIndexReader = blockCache.createSortedIndexReader(),
+                            valuesReaderNullable = blockCache.createValuesReaderNullable()
+                          ) onSomeSideEffectS {
+                            found =>
+                              SegmentReadState.updateOnSuccessSequentialRead(
+                                path = segmentCache.path,
+                                segmentState = segmentStateOptional,
+                                threadReadState = readState,
+                                found = found
+                              )
+                              segmentCache addToSkipList found
+                          }
+                        else
+                          Persistent.Null
+
+                      if (sequentialSeek.isSomeS)
+                        sequentialSeek
+                      else
+                        segmentSearcher.searchHigherRandomly(
+                          key = key,
+                          start = bestStart,
                           end = higher,
                           keyValueCount = segmentCache.getFooter().keyValueCount,
                           binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
@@ -338,64 +387,20 @@ private[core] object SegmentCache {
                           valuesReaderNullable = blockCache.createValuesReaderNullable()
                         ) onSideEffectS {
                           optional =>
-                            updateReadStateAfterHigher(
-                              foundOptional = optional,
-                              segmentState = segmentState,
-                              readState = readState
+                            SegmentReadState.updateAfterRandomRead(
+                              path = segmentCache.path,
+                              start = bestStart,
+                              segmentStateOptional = segmentStateOptional,
+                              threadReadState = readState,
+                              foundOption = optional
                             )
+
+                            optional foreachS segmentCache.addToSkipList
                         }
-
-                    case Persistent.Null =>
-                      segmentSearcher.searchHigher(
-                        key = key,
-                        start = SegmentCache.bestStartForHigherOrGetSearch(key, segmentState, floor),
-                        end = Persistent.Null,
-                        keyValueCount = segmentCache.getFooter().keyValueCount,
-                        binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-                        sortedIndexReader = blockCache.createSortedIndexReader(),
-                        valuesReaderNullable = blockCache.createValuesReaderNullable()
-                      ) onSideEffectS {
-                        optional =>
-                          updateReadStateAfterHigher(
-                            foundOptional = optional,
-                            segmentState = segmentState,
-                            readState = readState
-                          )
-                      }
-                  }
-              }
-
-            case Persistent.Null =>
-              //floor from skipList is null so bestStartForHigherSearch check is not required here.
-              val bestStartFrom =
-                if (segmentState.isSomeS && keyOrder.lteq(segmentState.getS.keyValue.key, key))
-                  segmentState.getS.keyValue
-                else
-                  get(key, readState)
-
-              bestStartFrom match {
-                case floor: Persistent.Range if KeyValue.Range.contains(floor, key) =>
-                  floor
-
-                case startFrom =>
-                  segmentSearcher.searchHigher(
-                    key = key,
-                    start = startFrom,
-                    end = segmentCache.applyToSkipList(_.higher(key)),
-                    keyValueCount = segmentCache.getFooter().keyValueCount,
-                    binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
-                    sortedIndexReader = blockCache.createSortedIndexReader(),
-                    valuesReaderNullable = blockCache.createValuesReaderNullable()
-                  ) onSideEffectS {
-                    optional =>
-                      updateReadStateAfterHigher(
-                        foundOptional = optional,
-                        segmentState = segmentState,
-                        readState = readState
-                      )
-                  }
-              }
-          }
+                    }
+                }
+            }
+        }
     }
 
   private def lower(key: Slice[Byte],

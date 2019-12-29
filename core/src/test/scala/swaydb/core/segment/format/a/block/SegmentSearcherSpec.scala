@@ -158,7 +158,7 @@
 //      val randomBinarySearchIndex = eitherOne(None, blocks.binarySearchIndexReader)
 //
 //      val got =
-//        SegmentSearcher.searchHigher(
+//        SegmentSearcher.searchHigherRandomly(
 //          key = key,
 //          //randomly give it start and end indexes.
 //          start = randomStart,
@@ -171,7 +171,7 @@
 //        )
 //
 //      if (expectedHigher.isSomeS && got.isNoneS) {
-//        SegmentSearcher.searchHigher(
+//        SegmentSearcher.searchHigherRandomly(
 //          key = key,
 //          //randomly give it start and end indexes.
 //          start = randomStart,

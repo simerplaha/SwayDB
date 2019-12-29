@@ -83,7 +83,7 @@ private[swaydb] trait SomeOrNone[T, SOME <: T] { selfS: T =>
 
   def orElseS[B <: T](other: => B): T =
     if (isSomeS)
-      getS
+      selfS
     else
       other
 
@@ -174,7 +174,7 @@ private[swaydb] trait SomeOrNoneCovariant[+T, +SOME <: T] { selfC: T =>
 
   def orElseC[B >: T](other: => B): T =
     if (isSomeC)
-      getC
+      selfC
     else
       other.asInstanceOf[T]
 

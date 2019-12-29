@@ -853,6 +853,22 @@ private[core] object SortedIndexBlock extends LazyLogging {
       valuesReaderNullable = valuesReaderNullable
     )
 
+  def searchHigherSeekOne(key: Slice[Byte],
+                          fromPosition: Int,
+                          keySizeOrNull: Integer,
+                          sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                          valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit order: KeyOrder[Slice[Byte]]): PersistentOptional =
+  //    if (order.gt(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
+  //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
+  //    else
+    seekAndMatchOrSeekToPersistent(
+      matcher = KeyMatcher.Higher.MatchOnly(key),
+      fromOffset = fromPosition,
+      keySizeOrNull = keySizeOrNull,
+      indexReader = sortedIndexReader,
+      valuesReaderNullable = valuesReaderNullable
+    )
+
   def seekLowerAndMatch(key: Slice[Byte],
                         startFrom: PersistentOptional,
                         sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
