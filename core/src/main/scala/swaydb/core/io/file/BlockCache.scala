@@ -21,7 +21,7 @@ package swaydb.core.io.file
 
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 
 import scala.annotation.tailrec
 
@@ -56,7 +56,7 @@ private[core] object BlockCache {
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
       skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte]]()
+      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]](Slice.Null)
     )
 
   def init(memorySweeper: MemorySweeper.All) =
@@ -64,13 +64,13 @@ private[core] object BlockCache {
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
       skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte]]()
+      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]](Slice.Null)
     )
 
   class State(val blockSize: Int,
               val skipBlockCacheSeekSize: Int,
               val sweeper: MemorySweeper.Block,
-              private[file] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) {
+              private[file] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]]) {
     val blockSizeDouble: Double = blockSize
 
     def clear() =
@@ -164,9 +164,8 @@ private[core] object BlockCache {
                         state: State)(implicit blockIO: BlockIO): Slice[Byte] = {
     //TODO - create an array of size of n bytes and append to it instead of ++
     val keyPosition = seekPosition(position, state)
-
     state.map.get(Key(file.blockCacheFileId, keyPosition)) match {
-      case Some(fromCache) =>
+      case fromCache: Slice[Byte] =>
         //        println(s"Memory seek size: $size")
         //        memorySeeks += 1
         val seekedBytes = fromCache.take(position - keyPosition, size)
@@ -188,7 +187,7 @@ private[core] object BlockCache {
             state = state
           )(blockIO)
 
-      case None =>
+      case Slice.Null =>
         //        println(s"Disk seek size: $size")
         val seekedBytes =
           blockIO.seek(

@@ -26,18 +26,23 @@ import scala.collection.mutable
 
 private[swaydb] object HashedMap {
 
-  def concurrent[K, V](initialCapacity: Option[Int] = None): Concurrent[K, V] =
+  def concurrent[K, V, N >: V](nullValue: N, initialCapacity: Option[Int] = None): Concurrent[K, V, N] =
     initialCapacity match {
       case Some(capacity) =>
-        new Concurrent[K, V](new ConcurrentHashMap[K, V](capacity))
+        new Concurrent[K, V, N](new ConcurrentHashMap(capacity), nullValue)
 
       case None =>
-        new Concurrent[K, V](new ConcurrentHashMap[K, V]())
+        new Concurrent[K, V, N](new ConcurrentHashMap(), nullValue)
     }
 
-  class Concurrent[K, V](map: ConcurrentHashMap[K, V]) {
-    def get(key: K): Option[V] =
-      Option(map.get(key))
+  class Concurrent[K, V, N >: V](map: ConcurrentHashMap[K, V], nullValue: N) {
+    def get(key: K): N = {
+      val got = map.get(key)
+      if (got == null)
+        nullValue
+      else
+        got
+    }
 
     def put(key: K, value: V): Unit =
       map.put(key, value)

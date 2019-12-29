@@ -23,7 +23,7 @@ import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.util.{HashedMap, SkipList}
 import swaydb.data.config.{ActorConfig, MemoryCache}
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.ByteSizeOf
 import swaydb.{Actor, ActorRef}
 
@@ -45,7 +45,7 @@ private[core] object Command {
 
   private[actor] class BlockCache(val key: BlockCache.Key,
                                   val valueSize: Int,
-                                  val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]) extends Command
+                                  val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]]) extends Command
 
 }
 
@@ -175,7 +175,7 @@ private[core] object MemorySweeper {
 
     def add(key: BlockCache.Key,
             value: Slice[Byte],
-            map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte]]): Unit =
+            map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]]): Unit =
       actor foreach {
         actor =>
           actor send new Command.BlockCache(
