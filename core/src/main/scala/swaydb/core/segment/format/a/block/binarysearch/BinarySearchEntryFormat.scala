@@ -128,6 +128,28 @@ object BinarySearchEntryFormat {
       val keySize = entryReader.readUnsignedInt()
       val entryKey = entryReader.read(keySize)
       val keyType = entryReader.get()
+      var entryIndexOffsetPlaceholder: Int = -2
+      var readPersistentValue: Persistent = null
+
+      def parseIndexOffset = {
+        if (entryIndexOffsetPlaceholder == -2)
+          entryIndexOffsetPlaceholder = entryReader.readUnsignedInt()
+        entryIndexOffsetPlaceholder
+      }
+
+      def parsePersistent: Persistent = {
+        if (readPersistentValue == null)
+          readPersistentValue =
+            SortedIndexBlock.read(
+              fromOffset = parseIndexOffset,
+              keySize = keySize,
+              sortedIndexReader = sortedIndex,
+              valuesReaderNullable = valuesNullable
+            )
+
+        readPersistentValue
+      }
+
 
       //create a temporary partially read key-value for matcher.
       if (keyType == Memory.Range.id)
@@ -135,34 +157,24 @@ object BinarySearchEntryFormat {
           val (fromKey, toKey) = Bytes.decompressJoin(entryKey)
 
           override def indexOffset: Int =
-            entryReader.readUnsignedInt()
+            parseIndexOffset
 
           override def key: Slice[Byte] =
             fromKey
 
           override def toPersistent: Persistent =
-            SortedIndexBlock.read(
-              fromOffset = indexOffset,
-              keySize = keySize,
-              sortedIndexReader = sortedIndex,
-              valuesReaderNullable = valuesNullable
-            )
+            parsePersistent
         }
       else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
         new Partial.Fixed {
           override def indexOffset: Int =
-            entryReader.readUnsignedInt()
+            parseIndexOffset
 
           override def key: Slice[Byte] =
             entryKey
 
           override def toPersistent: Persistent =
-            SortedIndexBlock.read(
-              fromOffset = indexOffset,
-              keySize = keySize,
-              sortedIndexReader = sortedIndex,
-              valuesReaderNullable = valuesNullable
-            )
+            parsePersistent
         }
       else
         throw new Exception(s"Invalid keyType: $keyType, offset: $offset, keySize: $keySize, keyType: $keyType")

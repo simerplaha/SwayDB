@@ -588,7 +588,7 @@ private[core] object SegmentBlock extends LazyLogging {
       sortedIndex = sortedIndexState,
       values = valuesState,
       hashIndex = hashIndex.flatMap(HashIndexBlock.close),
-      binarySearchIndex = binarySearchIndex.flatMap(BinarySearchIndexBlock.close),
+      binarySearchIndex = binarySearchIndex.flatMap(state => BinarySearchIndexBlock.close(state, sortedIndexState.uncompressedPrefixCount)),
       bloomFilter = bloomFilter.flatMap(BloomFilterBlock.close),
       minMaxFunction = sortedIndexState.minMaxFunctionId,
       prepareForCachingSegmentBlocksOnCreate = prepareForCachingSegmentBlocksOnCreate

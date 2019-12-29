@@ -104,7 +104,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
       }
     }
 
-    "partially created for ranges" when {
+    "partially created" when {
       "hashIndex is not perfect" in {
         runThis(1.times) {
           val compressions = randomCompressionsOrEmpty()
@@ -128,7 +128,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               sortedIndexConfig =
                 SortedIndexBlock.Config.random.copy(
                   shouldPrefixCompress = _ => randomBoolean(),
-                  enablePrefixCompression = randomBoolean(),
+                  enablePrefixCompression = false,
                   normaliseIndex = false
                 ),
               binarySearchIndexConfig =
@@ -206,7 +206,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               sortedIndexConfig =
                 SortedIndexBlock.Config.random.copy(
                   shouldPrefixCompress = _ => randomBoolean(),
-                  enablePrefixCompression = randomBoolean(),
+                  enablePrefixCompression = false,
                   normaliseIndex = false
                 )
             ).get
@@ -488,7 +488,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               segmentConfig =
                 new SegmentBlock.Config(
                   ioStrategy = _ => randomIOAccess(cacheOnAccess = true),
-                  cacheBlocksOnCreate = randomBoolean(),
+                  cacheBlocksOnCreate = false,
                   compressions = _ => compressions(4)
                 )
             )

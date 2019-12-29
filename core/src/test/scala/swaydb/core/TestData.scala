@@ -433,10 +433,12 @@ object TestData {
     def random: SegmentBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
+    def random(hasCompression: Boolean,
+               cacheBlocksOnCreate: Boolean = randomBoolean(),
+               cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
       new SegmentBlock.Config(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
-        cacheBlocksOnCreate = randomBoolean(),
+        cacheBlocksOnCreate = cacheBlocksOnCreate,
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -1733,17 +1735,21 @@ object TestData {
         ActorConfig.TimeLoop(delay, ec)
   }
 
-  def randomBuilder(enablePrefixCompression: Boolean = randomBoolean(),
+  def randomBuilder(enablePrefixCompressionForCurrentWrite: Boolean = randomBoolean(),
                     prefixCompressKeysOnly: Boolean = randomBoolean(),
                     compressDuplicateValues: Boolean = randomBoolean(),
                     enableAccessPositionIndex: Boolean = randomBoolean(),
-                    allocateBytes: Int = 10000): EntryWriter.Builder =
-    EntryWriter.Builder(
-      prefixCompressKeysOnly = prefixCompressKeysOnly,
-      compressDuplicateValues = compressDuplicateValues,
-      enableAccessPositionIndex = enableAccessPositionIndex,
-      bytes = Slice.create[Byte](allocateBytes)
-    )
+                    allocateBytes: Int = 10000): EntryWriter.Builder = {
+    val builder =
+      EntryWriter.Builder(
+        prefixCompressKeysOnly = prefixCompressKeysOnly,
+        compressDuplicateValues = compressDuplicateValues,
+        enableAccessPositionIndex = enableAccessPositionIndex,
+        bytes = Slice.create[Byte](allocateBytes)
+      )
+    builder.enablePrefixCompressionForCurrentWrite = enablePrefixCompressionForCurrentWrite
+    builder
+  }
 
   def randomPrefixCompressionInterval(): PrefixCompression.Interval =
     eitherOne(

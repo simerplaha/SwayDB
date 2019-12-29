@@ -110,7 +110,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
 
         noCompressedDeadlineIds foreach {
           deadlineId =>
-            val builder = randomBuilder(enablePrefixCompression = false)
+            val builder = randomBuilder(enablePrefixCompressionForCurrentWrite = false)
             builder.previous = previous
 
             assertNoCompression(
@@ -130,7 +130,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
 
         noCompressedDeadlineIds foreach {
           deadlineId =>
-            val builder = randomBuilder(enablePrefixCompression = true)
+            val builder = randomBuilder(enablePrefixCompressionForCurrentWrite = true)
             builder.previous = previous
 
             assertNoCompression(
@@ -210,7 +210,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
 
         noCompressedDeadlineIds foreach {
           deadlineId =>
-            val builder = randomBuilder(enablePrefixCompression = true)
+            val builder = randomBuilder(enablePrefixCompressionForCurrentWrite = true)
             builder.previous = previous
             //if accessPositionIndex is enabled then next key-value accessPosition will be same since it's prefix compressed.
             if (builder.enableAccessPositionIndex)

@@ -89,6 +89,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
         deadlineIds foreach {
           deadlineId =>
             val builder = randomBuilder()
+            builder.enablePrefixCompressionForCurrentWrite = true
 
             assertNoCompression(
               keyValue = keyValue,
@@ -109,8 +110,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
           deadlineId =>
             val builder =
               eitherOne(
-                randomBuilder(enablePrefixCompression = false),
-                randomBuilder(enablePrefixCompression = true, prefixCompressKeysOnly = true)
+                randomBuilder(enablePrefixCompressionForCurrentWrite = false),
+                randomBuilder(enablePrefixCompressionForCurrentWrite = true, prefixCompressKeysOnly = true)
               )
             builder.previous = previous
 
@@ -123,7 +124,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
       }
     }
 
-    "previous key-value is defined by compression is enabled but there are no common bytes" in {
+    "previous key-value is defined and compression is enabled but there are no common bytes" in {
       runThis(100.times) {
         //test on a key-value
         val deadline1 = new FiniteDuration(Int.MinValue, TimeUnit.MILLISECONDS).fromNow
@@ -134,7 +135,8 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
 
         deadlineIds foreach {
           deadlineId =>
-            val builder = randomBuilder(enablePrefixCompression = true)
+            val builder = randomBuilder(enablePrefixCompressionForCurrentWrite = true)
+            builder.enablePrefixCompressionForCurrentWrite = true
             builder.previous = previous
 
             assertNoCompression(
@@ -194,7 +196,7 @@ class DeadlineReaderWriterSpec extends WordSpec with Matchers {
         deadlineIds foreach {
           deadlineId =>
             //also test when prefixCompressKeysOnly is set.
-            val builder = randomBuilder(enablePrefixCompression = true, prefixCompressKeysOnly = randomBoolean())
+            val builder = randomBuilder(enablePrefixCompressionForCurrentWrite = true, prefixCompressKeysOnly = randomBoolean())
             builder.previous = previous
 
             assertCompression(

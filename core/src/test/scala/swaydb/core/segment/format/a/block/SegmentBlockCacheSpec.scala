@@ -41,8 +41,9 @@ class SegmentBlockCacheSpec extends TestBase {
     "return distinct Readers" in {
       runThis(10.times, log = true) {
         val keyValues = Slice(Memory.put(1, 1))
-        val blockCache = getSegmentBlockCacheSingle(keyValues)
-        blockCache.isCached shouldBe false
+        val segmentConfig = SegmentBlock.Config.random
+        val blockCache = getSegmentBlockCacheSingle(keyValues, segmentConfig = segmentConfig)
+        blockCache.isCached shouldBe segmentConfig.cacheBlocksOnCreate
 
         val segmentBlockReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
         val sortedIndexReader = new ConcurrentLinkedQueue[UnblockedReader[_, _]]()
@@ -78,8 +79,9 @@ class SegmentBlockCacheSpec extends TestBase {
   "clear" should {
     "none all cached" in {
       val keyValues = Slice(Memory.put(1, 1))
-      val blockCache = getSegmentBlockCacheSingle(keyValues)
-      blockCache.isCached shouldBe false
+      val segmentConfig = SegmentBlock.Config.random
+      val blockCache = getSegmentBlockCacheSingle(keyValues, segmentConfig = segmentConfig)
+      blockCache.isCached shouldBe segmentConfig.cacheBlocksOnCreate
 
       val readers: Seq[() => Object] =
         Seq(
@@ -125,6 +127,8 @@ class SegmentBlockCacheSpec extends TestBase {
 
         //initialise block cache
         val keyValues = randomizedKeyValues(100, startId = Some(1))
+        val segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false), false, _ => randomCompressions())
+
         val blockCache =
           getSegmentBlockCacheSingle(
             keyValues = keyValues,
@@ -133,7 +137,7 @@ class SegmentBlockCacheSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
             hashIndexConfig = HashIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
             bloomFilterConfig = BloomFilterBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false)),
-            segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = false), randomBoolean(), _ => randomCompressions())
+            segmentConfig = segmentConfig
           )
 
         blockCache.isCached shouldBe false
@@ -207,7 +211,7 @@ class SegmentBlockCacheSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
             hashIndexConfig = HashIndexBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
             bloomFilterConfig = BloomFilterBlock.Config.random.copy(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true)),
-            segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), randomBoolean(), _ => randomCompressions())
+            segmentConfig = new SegmentBlock.Config(ioStrategy = _ => randomIOStrategyWithCacheOnAccess(cacheOnAccess = true), false, _ => randomCompressions())
           )
         blockCache.isCached shouldBe false
 
@@ -303,7 +307,7 @@ class SegmentBlockCacheSpec extends TestBase {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false),
             hashIndexConfig = HashIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false),
             bloomFilterConfig = BloomFilterBlock.Config.random(hasCompression = false, cacheOnAccess = false),
-            segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false)
+            segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false)
           ).asInstanceOf[PersistentSegment]
 
         val blockCache = segment.segmentCache.blockCache

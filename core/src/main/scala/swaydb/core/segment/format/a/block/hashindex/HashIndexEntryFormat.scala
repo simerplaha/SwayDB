@@ -137,6 +137,21 @@ object HashIndexEntryFormat {
         val entrySize = reader.getPosition
         val readCRC = reader.readUnsignedLong()
 
+        var readPersistentValue: Persistent = null
+
+        def parsePersistent: Persistent = {
+          if (readPersistentValue == null)
+            readPersistentValue =
+              SortedIndexBlock.read(
+                fromOffset = indexOffset_,
+                keySize = keySize,
+                sortedIndexReader = sortedIndex,
+                valuesReaderNullable = valuesNullable
+              )
+
+          readPersistentValue
+        }
+
         if (readCRC == -1 || readCRC < hashIndexReader.block.minimumCRC || readCRC != CRC32.forBytes(entry.take(entrySize))) {
           null
         } else {
@@ -152,11 +167,7 @@ object HashIndexEntryFormat {
                 fromKey
 
               override def toPersistent: Persistent =
-                SortedIndexBlock.read(
-                  fromOffset = indexOffset,
-                  sortedIndexReader = sortedIndex,
-                  valuesReaderNullable = valuesNullable
-                )
+                parsePersistent
             }
           else if (keyType == Memory.Put.id || keyType == Memory.Remove.id || keyType == Memory.Update.id || keyType == Memory.Function.id || keyType == Memory.PendingApply.id)
             new Partial.Fixed {
@@ -167,12 +178,7 @@ object HashIndexEntryFormat {
                 entryKey
 
               override def toPersistent: Persistent =
-                SortedIndexBlock.read(
-                  fromOffset = indexOffset,
-                  keySize = keySize,
-                  sortedIndexReader = sortedIndex,
-                  valuesReaderNullable = valuesNullable
-                )
+                parsePersistent
             }
           else
             null

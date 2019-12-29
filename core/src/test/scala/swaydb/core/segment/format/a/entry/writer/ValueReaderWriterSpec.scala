@@ -120,8 +120,8 @@ class ValueReaderWriterSpec extends WordSpec with Matchers {
           deadlineId =>
             val builder =
               eitherOne(
-                randomBuilder(compressDuplicateValues = true, enablePrefixCompression = false),
-                randomBuilder(compressDuplicateValues = true, enablePrefixCompression = true, prefixCompressKeysOnly = true)
+                randomBuilder(compressDuplicateValues = true, enablePrefixCompressionForCurrentWrite = false),
+                randomBuilder(compressDuplicateValues = true, enablePrefixCompressionForCurrentWrite = true, prefixCompressKeysOnly = true)
               )
 
             ValueWriter.write(
@@ -163,7 +163,7 @@ class ValueReaderWriterSpec extends WordSpec with Matchers {
 
         timeIds foreach {
           deadlineId =>
-            val builder = randomBuilder(compressDuplicateValues = true, enablePrefixCompression = true, prefixCompressKeysOnly = false)
+            val builder = randomBuilder(compressDuplicateValues = true, enablePrefixCompressionForCurrentWrite = true, prefixCompressKeysOnly = false)
 
             ValueWriter.write(
               current = previous,
