@@ -54,7 +54,9 @@ object SegmentBlockCache {
       hashIndexReaderCacheable = hashIndexReaderCacheable,
       binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
       bloomFilterReaderCacheable = bloomFilterReaderCacheable,
-      footerCacheable = footerCacheable
+      footerCacheable = footerCacheable,
+      //Value configured in [[SegmentBlock.Config.cacheBlocksOnCreate]]
+      areBlocksCacheableOnCreate = sortedIndexReaderCacheable.isDefined
     )
 }
 
@@ -69,12 +71,8 @@ class SegmentBlockCache(path: Path,
                         var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                         var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                         var bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                        var footerCacheable: Option[SegmentFooterBlock])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
-
-  /**
-   * Value configured in [[SegmentBlock.Config.cacheBlocksOnCreate]]
-   */
-  val areBlocksCacheableOnCreate = sortedIndexReaderCacheable.isDefined
+                        var footerCacheable: Option[SegmentFooterBlock],
+                        val areBlocksCacheableOnCreate: Boolean)(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
 
   //names for Unblocked reader caches.
   private val sortedIndexReaderCacheName = "sortedIndexReaderCache"

@@ -249,7 +249,7 @@ private[core] object SegmentCache {
                         start = bestStart,
                         segmentStateOptional = segmentStateOptional,
                         threadReadState = readState,
-                        found = found
+                        foundOption = found
                       )
 
                       found foreachS segmentCache.addToSkipList
@@ -426,8 +426,8 @@ private[core] object SegmentCache {
     SegmentCache.bestEndForLowerSearch(
       key = key,
       segmentState = segmentState,
-      ceilingFromSkipList = segmentCache.applyToSkipList(_.get(key)) orElseS get(key, readState)
-    )
+      ceilingFromSkipList = segmentCache.applyToSkipList(_.ceiling(key))
+    ) orElseS get(key, readState)
 
   def lower(key: Slice[Byte],
             readState: ThreadReadState)(implicit segmentCache: SegmentCache,

@@ -117,7 +117,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         SegmentReadState.createAfterRandomRead(
           path = path,
           threadState = threadState,
-          found = Persistent.Null,
+          foundOption = Persistent.Null,
           start = previousKeyValue
         )
 
@@ -136,7 +136,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         SegmentReadState.createAfterRandomRead(
           path = path,
           threadState = threadState,
-          found = next,
+          foundOption = next,
           start = previous
         )
 
@@ -158,7 +158,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         SegmentReadState.createAfterRandomRead(
           path = path,
           threadState = threadState,
-          found = next.copy(indexOffset = 500),
+          foundOption = next.copy(indexOffset = 500),
           start = previous
         )
 
@@ -183,7 +183,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         SegmentReadState.mutateAfterRandomRead(
           path = path,
           threadState = threadState,
-          found = Persistent.Null,
+          foundOption = Persistent.Null,
           segmentState = threadState.getSegmentState(path).getS
         )
 
@@ -206,7 +206,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         SegmentReadState.mutateAfterRandomRead(
           path = path,
           threadState = threadState,
-          found = next,
+          foundOption = next,
           segmentState = threadState.getSegmentState(path).getS
         )
 
@@ -230,7 +230,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         SegmentReadState.mutateAfterRandomRead(
           path = path,
           threadState = threadState,
-          found = next,
+          foundOption = next,
           segmentState = threadState.getSegmentState(path).getS
         )
 

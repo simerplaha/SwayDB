@@ -86,20 +86,20 @@ object SegmentReadState {
                             start: PersistentOptional,
                             segmentStateOptional: SegmentReadStateOptional,
                             threadReadState: ThreadReadState,
-                            found: PersistentOptional): Unit =
+                            foundOption: PersistentOptional): Unit =
     if (segmentStateOptional.isSomeS)
       SegmentReadState.mutateAfterRandomRead(
         path = path,
         threadState = threadReadState,
         segmentState = segmentStateOptional.getS,
-        found = found
+        foundOption = foundOption
       )
     else
       SegmentReadState.createAfterRandomRead(
         path = path,
         threadState = threadReadState,
         start = start,
-        found = found
+        foundOption = foundOption
       )
 
   /**
@@ -108,10 +108,10 @@ object SegmentReadState {
   def createAfterRandomRead(path: Path,
                             start: PersistentOptional,
                             threadState: ThreadReadState,
-                            found: PersistentOptional): Unit =
+                            foundOption: PersistentOptional): Unit =
 
-    if (found.isSomeS) {
-      val foundKeyValue = found.getS
+    if (foundOption.isSomeS) {
+      val foundKeyValue = foundOption.getS
 
       foundKeyValue.unsliceKeys
 
@@ -130,9 +130,9 @@ object SegmentReadState {
   def mutateAfterRandomRead(path: Path,
                             threadState: ThreadReadState,
                             segmentState: SegmentReadState, //should not be null.
-                            found: PersistentOptional): Unit =
-    if (found.isSomeS) {
-      val foundKeyValue = found.getS
+                            foundOption: PersistentOptional): Unit =
+    if (foundOption.isSomeS) {
+      val foundKeyValue = foundOption.getS
       foundKeyValue.unsliceKeys
       segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue.nextIndexOffset
       segmentState.keyValue = foundKeyValue

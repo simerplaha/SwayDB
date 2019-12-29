@@ -47,7 +47,7 @@ private[swaydb] object TestSweeper {
       .map(_.asInstanceOf[MemorySweeper.BlockSweeper])
 
   val keyValueSweeperBlock: Option[MemorySweeper.KeyValueSweeper] =
-    MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, randomIntMaxOption(10000), Some(ActorConfig.Basic(level0PushDownPool))))
+    MemorySweeper(MemoryCache.KeyValueCacheOnly(600.mb, Some(100), Some(ActorConfig.Basic(level0PushDownPool))))
       .map(_.asInstanceOf[MemorySweeper.KeyValueSweeper])
 
   val someMemorySweeperMax = memorySweeperMax

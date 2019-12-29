@@ -26,7 +26,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
-private[core] sealed trait SegmentSearcher {
+private[core] trait SegmentSearcher {
 
   def searchSequential(key: Slice[Byte],
                        start: PersistentOptional,
