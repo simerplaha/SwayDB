@@ -1708,9 +1708,7 @@ object CommonAssertions {
           case result: Result.Matched =>
             other match {
               case other: Result.Matched =>
-                other.previous == result.previous &&
-                  other.result == result.result &&
-                  other.next == result.next
+                other.result == result.result
 
               case _ =>
                 false

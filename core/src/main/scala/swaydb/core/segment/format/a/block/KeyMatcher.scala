@@ -44,9 +44,7 @@ private[core] object KeyMatcher {
     sealed trait Complete extends Result
     sealed trait InComplete extends Result
 
-    class Matched(val previous: Persistent.PartialOptional,
-                  val result: Persistent.Partial,
-                  val next: Persistent.PartialOptional) extends Complete
+    class Matched(val result: Persistent.Partial) extends Complete
 
     sealed trait Behind
     final object BehindFetchNext extends InComplete with Behind
@@ -136,7 +134,7 @@ private[core] object KeyMatcher {
         case fixed: Persistent.Partial.Fixed =>
           val matchResult = keyOrder.compare(key, fixed.key)
           if (matchResult == 0)
-            new Matched(next flatMapC (_ => previous), fixed, Persistent.Partial.Null)
+            new Matched(fixed)
           else if (matchResult > 0 && hasMore)
             if (matchOnly)
               BehindStopped
@@ -149,7 +147,7 @@ private[core] object KeyMatcher {
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
           val toKeyMatch = keyOrder.compare(key, range.toKey)
           if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
-            new Matched(next flatMapC (_ => previous), range, Persistent.Partial.Null)
+            new Matched(range)
           else if (toKeyMatch >= 0 && hasMore)
             if (matchOnly)
               BehindStopped
@@ -201,14 +199,14 @@ private[core] object KeyMatcher {
           val nextCompare = keyOrder.compare(next.key, key)
           if (nextCompare >= 0)
             if (keyOrder.compare(previous.key, key) < 0)
-              new Matched(Persistent.Partial.Null, previous, next)
+              new Matched(previous)
             else
               AheadOrNoneOrEnd
           else if (nextCompare < 0)
             if (hasMore)
               next match {
                 case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) <= 0 =>
-                  new Matched(previous, next, Persistent.Partial.Null)
+                  new Matched(next)
 
                 case _ =>
                   if (matchOnly)
@@ -217,7 +215,7 @@ private[core] object KeyMatcher {
                     BehindFetchNext
               }
             else
-              new Matched(previous, next, Persistent.Partial.Null)
+              new Matched(next)
           else
             AheadOrNoneOrEnd
 
@@ -229,13 +227,13 @@ private[core] object KeyMatcher {
             if (hasMore)
               previous match {
                 case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) <= 0 =>
-                  new Matched(Persistent.Partial.Null, previous, next)
+                  new Matched(previous)
 
                 case _ =>
                   BehindFetchNext
               }
             else
-              new Matched(Persistent.Partial.Null, previous, next)
+              new Matched(previous)
           else
             AheadOrNoneOrEnd
       }
@@ -280,11 +278,11 @@ private[core] object KeyMatcher {
       val keyValue = next getOrElseC previous
       val nextCompare = keyOrder.compare(keyValue.key, key)
       if (nextCompare > 0)
-        new Matched(next flatMapC (_ => previous), keyValue, Persistent.Partial.Null)
+        new Matched(keyValue)
       else if (nextCompare <= 0)
         keyValue match {
           case range: Persistent.Partial.Range if keyOrder.compare(key, range.toKey) < 0 =>
-            new Matched(next flatMapC (_ => previous), keyValue, Persistent.Partial.Null)
+            new Matched(keyValue)
 
           case _ =>
             if (hasMore)
