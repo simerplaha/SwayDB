@@ -605,11 +605,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
     } else if (sortedIndexReader.block.isBinarySearchable) { //if the reader has a block cache try fetching the bytes required within one seek.
       val indexSize = sortedIndexReader.block.segmentMaxIndexEntrySize
       val bytes = sortedIndexReader.read(sortedIndexReader.block.segmentMaxIndexEntrySize + ByteSizeOf.varInt)
-      val reader = Reader(bytes)
-      val headerInteger = reader.readUnsignedInt()
+      val (headerInteger, headerIntegerByteSize) = bytes.readUnsignedIntWithByteSize()
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
-      val indexEntry = reader read (indexSize + ByteSizeOf.varInt)
+      val indexEntry = bytes.take(headerIntegerByteSize, indexSize + ByteSizeOf.varInt)
 
       new IndexEntry(
         headerInteger = headerInteger,
@@ -624,15 +623,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
       val openBytes = bytes.openEnd()
 
       //check if the read bytes are enough to parse the entry.
-      val expectedSize = headerInteger + headerIntegerByteSize + EntryWriter.maxEntrySize(sortedIndexReader.block.enableAccessPositionIndex) + ByteSizeOf.varInt
+      val expectedSize = headerIntegerByteSize + headerInteger + EntryWriter.maxEntrySize(sortedIndexReader.block.enableAccessPositionIndex) + ByteSizeOf.varInt
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       //if openBytes results in enough bytes to then read the open bytes only.
+
       val indexEntry =
-      if (openBytes.size >= expectedSize)
-        openBytes.take(headerIntegerByteSize, expectedSize)
-      else
-        sortedIndexReader.moveTo(positionBeforeRead + headerIntegerByteSize) read expectedSize
+        if (openBytes.size >= expectedSize)
+          openBytes.take(headerIntegerByteSize, expectedSize)
+        else
+          sortedIndexReader.moveTo(positionBeforeRead + headerIntegerByteSize) read expectedSize
 
       new IndexEntry(
         headerInteger = headerInteger,
