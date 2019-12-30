@@ -120,6 +120,11 @@ private[swaydb] object LimitHashMap {
 
     val limit = array.length
     val limitMinusOne = limit - 1
+    val time: AtomicInteger =
+      if (overwriteOldest)
+        new AtomicInteger(0)
+      else
+        null
 
     def put(key: K, value: V): Unit = {
       val index = Math.abs(key.##) % limit
@@ -150,8 +155,6 @@ private[swaydb] object LimitHashMap {
           probe = 0
         )
     }
-
-    val time = new AtomicInteger(0)
 
     /**
      * Overwrites the oldest on conflict.

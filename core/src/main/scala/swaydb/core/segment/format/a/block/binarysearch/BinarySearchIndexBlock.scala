@@ -594,7 +594,7 @@ private[core] object BinarySearchIndexBlock {
 
                   case Persistent.Partial.Null =>
                     binarySuccessfulDirectSeeks += 1
-                    new BinarySearchGetResult.None(lower)
+                    none
                 }
 
               case Persistent.Partial.Null =>
