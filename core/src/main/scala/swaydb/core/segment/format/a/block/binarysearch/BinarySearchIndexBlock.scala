@@ -363,7 +363,6 @@ private[core] object BinarySearchIndexBlock {
   //  var greaterLower = 0
 
   private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): Persistent.PartialOptional = {
-
     var start =
       getStartPosition(
         lowestKeyValue = context.lowestKeyValue,
@@ -387,63 +386,24 @@ private[core] object BinarySearchIndexBlock {
       val mid = start + (end - start) / 2
 
       //      println(s"start: $start, mid: $mid, end: $end")
+      val partial = context.seekAndMatchMutate(mid * context.bytesPerValue)
 
-      context.seekAndMatch(mid * context.bytesPerValue) match {
-        case matched: KeyMatcher.Result.Matched =>
-          matched.result.isBinarySearchMatchedFlag = true
-          return matched.result
-
-        case behind: KeyMatcher.Result.Behind =>
-          start = mid + 1
-          knownLowest = behind.previous
-
-        case _: KeyMatcher.Result.AheadOrNoneOrEnd =>
-          end = mid - 1
+      if (partial.isBinarySearchMatched) {
+        return partial
+      } else if (partial.isBinarySearchBehind) {
+        start = mid + 1
+        knownLowest = partial
+      } else if (partial.isBinarySearchAhead) {
+        end = mid - 1
+      } else {
+        throw new Exception("Invalid binarySearch mutated state")
       }
     }
 
-    val lower =
-      MinMax.maxFavourLeftC[Persistent.PartialOptional, Persistent.Partial](
-        left = knownLowest,
-        right = context.lowestKeyValue.asPartial
-      )
-
-    lower.foreachC(_.isBinarySearchMatchedFlag = false)
-    lower
-
-    // recursive version
-    //    @tailrec
-    //    def hop(start: Int, end: Int, knownLowest: Persistent.PartialOptional): BinarySearchGetResult = {
-    //      val mid = start + (end - start) / 2
-    //
-    //      // totalHops += 1
-    //      //      currentHops += 1
-    //
-    //      if (start > end)
-    //        new BinarySearchGetResult.None(
-    //          MinMax.maxFavourLeftC[Persistent.PartialOptional, Persistent.Partial](
-    //            left = knownLowest,
-    //            right = context.lowestKeyValue.asPartial
-    //          )
-    //        )
-    //      else
-    //        context.seekAndMatch(mid * context.bytesPerValue) match {
-    //          case matched: KeyMatcher.Result.Matched =>
-    //            new BinarySearchGetResult.Some(value = matched.result)
-    //
-    //          case behind: KeyMatcher.Result.Behind =>
-    //            hop(start = mid + 1, end = end, knownLowest = behind.previous)
-    //
-    //          case _: KeyMatcher.Result.AheadOrNoneOrEnd =>
-    //            hop(start = start, end = mid - 1, knownLowest = knownLowest)
-    //        }
-    //    }
-    //
-    //    val start = getStartPosition(context)
-    //    val end = getEndPosition(context)
-    //
-    //    //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
-    //    hop(start = start, end = end, context.lowestKeyValue.asPartial)
+    MinMax.maxFavourLeftC[Persistent.PartialOptional, Persistent.Partial](
+      left = knownLowest,
+      right = context.lowestKeyValue.asPartial
+    )
   }
 
   private def binarySearchLower(fetchLeft: Boolean, context: BinarySearchContext)(implicit ordering: KeyOrder[Slice[Byte]],
@@ -465,7 +425,7 @@ private[core] object BinarySearchIndexBlock {
        *          end hint = 30
        *          shiftLeft will result in 20 which is not the lowest.
        */
-      if (start > end || mid < 0)
+      if (start > end || mid < 0) {
         if (fetchLeft && knownLowest.isNoneC) {
           //println("Restart")
           binarySearchLower(fetchLeft = false, context = context)
@@ -482,39 +442,38 @@ private[core] object BinarySearchIndexBlock {
             matched = knownMatch
           )
         }
-      else
-        context.seekAndMatch(mid * context.bytesPerValue) match {
-          case matched: KeyMatcher.Result.Matched =>
-            matched.result match {
-              case fixed: Persistent.Partial.Fixed =>
-                hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseC knownLowest, knownMatch = fixed)
+      } else {
+        val partial = context.seekAndMatchMutate(mid * context.bytesPerValue)
+        if (partial.isBinarySearchMatched)
+          partial match {
+            case fixed: Persistent.Partial.Fixed =>
+              hop(start = mid - 1, end = mid - 1, knownLowest = knownLowest, knownMatch = fixed)
 
-              case range: Persistent.Partial.Range =>
-                if (ordering.gt(context.targetKey, range.fromKey))
-                  new BinarySearchLowerResult.Some(
-                    lower = Persistent.Partial.Null,
-                    matched = range
-                  )
-                else
-                  hop(start = mid - 1, end = mid - 1, knownLowest = matched.previous orElseC knownLowest, knownMatch = range)
-            }
-
-          case behind: KeyMatcher.Result.Behind =>
-            hop(start = mid + 1, end = end, knownLowest = behind.previous, knownMatch = knownMatch)
-
-          case aheadNoneOrEnd: KeyMatcher.Result.AheadOrNoneOrEnd =>
-            aheadNoneOrEnd.ahead match {
-              case range: Persistent.Partial.Range if ordering.gt(context.targetKey, range.fromKey) =>
+            case range: Persistent.Partial.Range =>
+              if (ordering.gt(context.targetKey, range.fromKey))
                 new BinarySearchLowerResult.Some(
                   lower = Persistent.Partial.Null,
                   matched = range
                 )
+              else
+                hop(start = mid - 1, end = mid - 1, knownLowest = knownLowest, knownMatch = range)
+          }
+        else if (partial.isBinarySearchBehind)
+          hop(start = mid + 1, end = end, knownLowest = partial, knownMatch = knownMatch)
+        else if (partial.isBinarySearchAhead)
+          partial match {
+            case range: Persistent.Partial.Range if ordering.gt(context.targetKey, range.fromKey) =>
+              new BinarySearchLowerResult.Some(
+                lower = Persistent.Partial.Null,
+                matched = range
+              )
 
-              case _ =>
-                hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
-            }
-
-        }
+            case _ =>
+              hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
+          }
+        else
+          throw new Exception("Invalid mutation")
+      }
     }
 
     //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
@@ -585,7 +544,7 @@ private[core] object BinarySearchIndexBlock {
           valuesNullable = valuesReaderNullable
         )
       ) match {
-        case partial: Persistent.Partial if partial.isBinarySearchMatchedFlag =>
+        case partial: Persistent.Partial if partial.isBinarySearchMatched =>
           binarySuccessfulDirectSeeks += 1
           partial
 

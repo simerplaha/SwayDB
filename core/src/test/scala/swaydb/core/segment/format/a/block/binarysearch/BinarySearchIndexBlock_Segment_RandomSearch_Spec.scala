@@ -198,7 +198,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               //                  }
 
               case some: Persistent.Partial =>
-                if (some.isBinarySearchMatchedFlag)
+                if (some.isBinarySearchMatched)
                   fail("Didn't expect a match")
             }
         }
@@ -220,7 +220,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               //lower is always empty since the test keys are lower than the actual key-values.
 
               case some: Persistent.Partial =>
-                if (some.isBinarySearchMatchedFlag)
+                if (some.isBinarySearchMatched)
                   fail("Didn't expect a match")
             }
         }

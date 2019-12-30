@@ -90,27 +90,27 @@ private[core] object KeyMatcher {
       def matchOnly: Boolean
     }
 
-    def matchForBinarySearch(key: Slice[Byte],
-                             partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Slice[Byte]]): Result.Complete = {
+    def matchMutateForBinarySearch(key: Slice[Byte],
+                                   partialKeyValue: Persistent.Partial.Fixed)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
       val matchResult = keyOrder.compare(key, partialKeyValue.key)
       if (matchResult == 0)
-        new Matched(Persistent.Partial.Null, partialKeyValue, Persistent.Partial.Null)
+        partialKeyValue.isBinarySearchMatched = true
       else if (matchResult > 0)
-        new BehindStopped(partialKeyValue)
+        partialKeyValue.isBinarySearchBehind = true
       else
-        new AheadOrNoneOrEnd(partialKeyValue)
+        partialKeyValue.isBinarySearchAhead = true
     }
 
-    def matchForBinarySearch(key: Slice[Byte],
-                             range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Result.Complete = {
+    def matchMutateForBinarySearch(key: Slice[Byte],
+                                   range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
       val fromKeyMatch = keyOrder.compare(key, range.fromKey)
       val toKeyMatch = keyOrder.compare(key, range.toKey)
       if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
-        new Matched(Persistent.Partial.Null, range, Persistent.Partial.Null)
+        range.isBinarySearchMatched = true
       else if (toKeyMatch >= 0)
-        new BehindStopped(range)
+        range.isBinarySearchBehind = true
       else
-        new AheadOrNoneOrEnd(range)
+        range.isBinarySearchAhead = true
     }
 
     def matchForHashIndex(key: Slice[Byte],

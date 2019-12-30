@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block.binarysearch
 
-import swaydb.core.data.PersistentOptional
+import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{KeyMatcher, SortedIndexBlock, ValuesBlock}
 import swaydb.data.order.KeyOrder
@@ -33,7 +33,7 @@ private[block] trait BinarySearchContext {
   def lowestKeyValue: PersistentOptional
   def highestKeyValue: PersistentOptional
 
-  def seekAndMatch(offset: Int): KeyMatcher.Result
+  def seekAndMatchMutate(offset: Int): Persistent.Partial
 }
 
 object BinarySearchContext {
@@ -58,14 +58,14 @@ object BinarySearchContext {
 
       override def highestKeyValue: PersistentOptional = highest
 
-      override def seekAndMatch(offset: Int): KeyMatcher.Result =
+      override def seekAndMatchMutate(offset: Int): Persistent.Partial =
         binarySearchIndex.block.format.read(
           offset = offset,
           seekSize = binarySearchIndex.block.bytesPerValue,
           binarySearchIndex = binarySearchIndex,
           sortedIndex = sortedIndex,
           valuesNullable = valuesNullable
-        ).matchForBinarySearch(key)
+        ).matchMutateForBinarySearch(key)
     }
 
   def apply(key: Slice[Byte],
@@ -88,11 +88,11 @@ object BinarySearchContext {
 
       override def highestKeyValue: PersistentOptional = highest
 
-      override def seekAndMatch(offset: Int): KeyMatcher.Result =
+      override def seekAndMatchMutate(offset: Int): Persistent.Partial =
         SortedIndexBlock.readPartialKeyValue(
           fromOffset = offset,
           sortedIndexReader = sortedIndex,
           valuesReaderNullable = valuesNullable
-        ).matchForBinarySearch(key)
+        ).matchMutateForBinarySearch(key)
     }
 }

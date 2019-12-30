@@ -641,24 +641,24 @@ private[core] object Persistent {
 
   sealed trait Partial extends PartialOptional {
     /**
-     * A flag used to indicated if this key-value was a successful binary search match.
-     *
-     * If true - yes it's a match
-     * If false - no but this is a lower key-value
+     * Flags used to indicated if this key-value was a successful binary search match.
      *
      * A custom typed object or [[Option]] or [[Either]] type can be used instead of using this flag but Binary search
      * is expensive. If [[Option]] was used then search on a million key-values can create almost 20 million (18,609,105)
-     * of [[Option]] instances in-memory which is expensive. So this mutable primitive boolean flag is used instead
+     * of [[Option]] instances in-memory which is expensive. So this mutable primitive boolean flags are used instead
      * to be memory efficient.
      */
-    var isBinarySearchMatchedFlag: Boolean = false
+    var isBinarySearchMatched: Boolean = false
+    var isBinarySearchBehind: Boolean = false
+    var isBinarySearchAhead: Boolean = false
+
     def key: Slice[Byte]
     def indexOffset: Int
     def toPersistent: Persistent
     def isPartial: Boolean = true
     def get: Partial = this
 
-    def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete
+    def matchMutateForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.Partial
 
     def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean
   }
@@ -674,11 +674,13 @@ private[core] object Persistent {
       override def getC: Partial = this
       override def isNoneC: Boolean = false
 
-      def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
-        KeyMatcher.Get.matchForBinarySearch(
+      def matchMutateForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.Partial = {
+        KeyMatcher.Get.matchMutateForBinarySearch(
           key = key,
           partialKeyValue = this
         )
+        this
+      }
 
       def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
         KeyMatcher.Get.matchForHashIndex(
@@ -694,11 +696,13 @@ private[core] object Persistent {
       def fromKey: Slice[Byte]
       def toKey: Slice[Byte]
 
-      def matchForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyMatcher.Result.Complete =
-        KeyMatcher.Get.matchForBinarySearch(
+      def matchMutateForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.Partial = {
+        KeyMatcher.Get.matchMutateForBinarySearch(
           key = key,
           range = this
         )
+        this
+      }
 
       def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
         KeyMatcher.Get.matchForHashIndex(

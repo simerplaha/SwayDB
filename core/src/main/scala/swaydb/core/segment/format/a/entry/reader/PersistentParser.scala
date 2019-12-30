@@ -194,4 +194,112 @@ object PersistentParser {
     else
       throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, headerInteger: $headerInteger")
   }
+
+  def matchPartial(offset: Int,
+                   headerInteger: Int,
+                   tailBytes: Slice[Byte],
+                   sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+    val tailReader = Reader(tailBytes)
+
+    val headerKeyBytes = tailReader.read(headerInteger)
+
+    val keyValueId = tailReader.readUnsignedInt()
+
+    var persistentKeyValue: Persistent = null
+
+    def parsePersistent[T <: Persistent](reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]) = {
+      if (persistentKeyValue == null)
+        persistentKeyValue =
+          PersistentReader.read[T](
+            indexOffset = offset,
+            headerInteger = headerInteger,
+            headerKeyBytes = headerKeyBytes,
+            keyValueId = keyValueId,
+            tailReader = tailReader,
+            previous = Persistent.Null,
+            //sorted index stats
+            normalisedByteSize = sortedIndex.block.normalisedByteSize,
+            mightBeCompressed = sortedIndex.block.hasPrefixCompression,
+            keyCompressionOnly = sortedIndex.block.prefixCompressKeysOnly,
+            sortedIndexEndOffset = sortedIndex.block.sortedIndexEndOffsetForReads,
+            hasAccessPositionIndex = sortedIndex.block.enableAccessPositionIndex,
+            valuesReaderNullable = valuesReaderNullable,
+            reader = reader
+          )
+
+      persistentKeyValue
+    }
+
+    if (KeyValueId.Put hasKeyValueId keyValueId)
+      new Partial.Fixed {
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          headerKeyBytes
+
+        override def toPersistent: Persistent =
+          parsePersistent(Persistent.Put)
+      }
+    else if (KeyValueId.Remove hasKeyValueId keyValueId)
+      new Partial.Fixed {
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          headerKeyBytes
+
+        override def toPersistent: Persistent =
+          parsePersistent(Persistent.Remove)
+      }
+    else if (KeyValueId.Function hasKeyValueId keyValueId)
+      new Partial.Fixed {
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          headerKeyBytes
+
+        override def toPersistent: Persistent =
+          parsePersistent(Persistent.Function)
+      }
+    else if (KeyValueId.Update hasKeyValueId keyValueId)
+      new Partial.Fixed {
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          headerKeyBytes
+
+        override def toPersistent: Persistent =
+          parsePersistent(Persistent.Update)
+      }
+    else if (KeyValueId.PendingApply hasKeyValueId keyValueId)
+      new Partial.Fixed {
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          headerKeyBytes
+
+        override def toPersistent: Persistent =
+          parsePersistent(Persistent.PendingApply)
+      }
+    else if (KeyValueId.Range hasKeyValueId keyValueId)
+      new Partial.Range {
+        val (fromKey, toKey) = Bytes.decompressJoin(headerKeyBytes)
+
+        override def indexOffset: Int =
+          offset
+
+        override def key: Slice[Byte] =
+          fromKey
+
+        override def toPersistent: Persistent =
+          parsePersistent(Persistent.Range)
+      }
+    else
+      throw new Exception(s"Invalid keyType: $keyValueId, offset: $offset, headerInteger: $headerInteger")
+  }
 }
