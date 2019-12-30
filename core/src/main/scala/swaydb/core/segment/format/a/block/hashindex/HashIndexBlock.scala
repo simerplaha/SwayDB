@@ -166,7 +166,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     if (keyCounts < minimumNumberOfKeys) {
       0
     } else {
-      val sizePerKey =
+      val requiredSpace =
       //+1 to skip left & right 0 start-end markers if it's not copiedIndex
       //+1 to for the last 1.byte entry so that next entry does overwrite previous writes tail 0's
       //the +1 does not need to be accounted in writeAbleLargestValueSize because these markers are just an indication of start and end index entry.
@@ -175,7 +175,7 @@ private[core] object HashIndexBlock extends LazyLogging {
       try
         allocateSpace(
           RandomKeyIndex.RequiredSpace(
-            _requiredSpace = sizePerKey,
+            _requiredSpace = requiredSpace,
             _numberOfKeys = keyCounts
           )
         )
@@ -185,7 +185,7 @@ private[core] object HashIndexBlock extends LazyLogging {
             """Custom allocate space calculation for HashIndex returned failure.
               |Using the default requiredSpace instead. Please check your implementation to ensure it's not throwing exception.
             """.stripMargin, exception)
-          sizePerKey
+          requiredSpace
       }
     }
 

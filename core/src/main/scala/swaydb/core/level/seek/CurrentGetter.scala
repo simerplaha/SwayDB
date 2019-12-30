@@ -19,7 +19,7 @@
 
 package swaydb.core.level.seek
 
-import swaydb.core.data.{KeyValue, KeyValueOptional}
+import swaydb.core.data.KeyValueOptional
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.slice.Slice
 

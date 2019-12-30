@@ -124,7 +124,7 @@ private[segment] case class MemorySegment(path: Path,
       )
     }
 
-  override def getFromCache(key: Slice[Byte]): KeyValueOptional =
+  override def getFromCache(key: Slice[Byte]): MemoryOptional =
     skipList.get(key)
 
   override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOptional =

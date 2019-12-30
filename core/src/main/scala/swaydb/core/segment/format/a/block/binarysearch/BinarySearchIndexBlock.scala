@@ -394,7 +394,7 @@ private[core] object BinarySearchIndexBlock {
       } else if (partial.isBinarySearchAhead) {
         end = mid - 1
       } else {
-        throw new Exception("Invalid binarySearch mutated state")
+        throw new Exception("Invalid binarySearch mutated flags")
       }
     }
 
@@ -470,7 +470,7 @@ private[core] object BinarySearchIndexBlock {
               hop(start = start, end = mid - 1, knownLowest = knownLowest, knownMatch = knownMatch)
           }
         else
-          throw new Exception("Invalid mutation")
+          throw new Exception("Invalid binary search mutated flags")
       }
     }
 

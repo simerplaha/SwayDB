@@ -20,33 +20,32 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.IO
-import swaydb.core.data.{KeyValue, KeyValueOptional, Memory, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.entry.id.KeyValueId
 import swaydb.core.util.Bytes
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOptional}
 
 object KeyReader {
 
   private def compressed(headerKeyBytes: Slice[Byte],
-                         previous: KeyValueOptional): Slice[Byte] =
-    previous match {
-      case previous: KeyValue =>
+                         previousKey: SliceOptional[Byte]): Slice[Byte] =
+    previousKey match {
+      case previousKey: Slice[Byte] =>
         val reader = Reader(headerKeyBytes)
         val commonBytes = reader.readUnsignedInt()
         val rightBytes = reader.readRemaining()
-        Bytes.decompress(previous.key, rightBytes, commonBytes)
+        Bytes.decompress(previousKey, rightBytes, commonBytes)
 
-      case Persistent.Null | Memory.Null =>
+      case Slice.Null =>
         throw EntryReaderFailure.NoPreviousKeyValue
     }
 
   def read(keyValueIdInt: Int,
            keyBytes: Slice[Byte],
-           previous: KeyValueOptional,
+           previousKey: SliceOptional[Byte],
            keyValueId: KeyValueId): Slice[Byte] =
     if (keyValueId.isKeyValueId_CompressedKey(keyValueIdInt))
-      KeyReader.compressed(keyBytes, previous)
+      KeyReader.compressed(keyBytes, previousKey)
     else if (keyValueId.isKeyValueId_UncompressedKey(keyValueIdInt))
       keyBytes
     else

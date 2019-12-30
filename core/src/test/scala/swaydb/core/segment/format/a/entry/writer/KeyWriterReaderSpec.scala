@@ -25,6 +25,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.segment.format.a.entry.reader.{EntryReaderFailure, KeyReader}
+import swaydb.data.slice.Slice
 
 class KeyWriterReaderSpec extends WordSpec with Matchers {
 
@@ -73,7 +74,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
         KeyReader.read(
           keyValueIdInt = keyValueId,
           keyBytes = keyBytes,
-          previous = Memory.Null,
+          previousKey = Slice.Null,
           keyValueId = binder.keyValueId
         )
 
@@ -145,7 +146,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
 
   "apply compression" when {
 
-    def assertCompression(previous: Memory,
+    def assertCompression(previousKey: Slice[Byte],
                           next: Memory,
                           builder: EntryWriter.Builder,
                           deadlineId: BaseEntryId.Deadline) = {
@@ -181,7 +182,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
         KeyReader.read(
           keyValueIdInt = keyValueId,
           keyBytes = keyBytes,
-          previous = Memory.Null,
+          previousKey = Slice.Null,
           keyValueId = binder.keyValueId
         )
       }
@@ -190,7 +191,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
         KeyReader.read(
           keyValueIdInt = keyValueId,
           keyBytes = keyBytes,
-          previous = previous,
+          previousKey = previousKey,
           keyValueId = binder.keyValueId
         )
 
@@ -217,7 +218,7 @@ class KeyWriterReaderSpec extends WordSpec with Matchers {
               builder.accessPositionIndex = Int.MaxValue
 
             assertCompression(
-              previous = previous,
+              previousKey = previous.key,
               next = next,
               builder = builder,
               deadlineId = deadlineId

@@ -28,7 +28,7 @@ import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.{ReaderBase, Slice, SliceOptional}
 import swaydb.data.util.TupleOptional
 
 object PersistentReader {
@@ -149,7 +149,7 @@ object PersistentReader {
       KeyReader.read(
         keyValueIdInt = keyValueId,
         keyBytes = headerKeyBytes,
-        previous = previous,
+        previousKey = previous.flatMapSomeS(Slice.Null: SliceOptional[Byte])(_.key),
         keyValueId = binder.keyValueId
       )
 
