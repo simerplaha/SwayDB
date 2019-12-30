@@ -19,7 +19,10 @@
 
 package swaydb.core.util
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import scala.annotation.tailrec
+import scala.util.Random
 
 /**
  * A fixed size HashMap that inserts newer key-values to empty spaces or
@@ -30,6 +33,8 @@ private[swaydb] sealed trait LimitHashMap[K, V >: Null] extends Iterable[(K, V)]
   def limit: Int
   def put(key: K, value: V): Unit
   def getOrNull(key: K): V
+  def getOption(key: K): Option[V] =
+    Option(getOrNull(key))
 }
 
 private[swaydb] object LimitHashMap {
@@ -52,7 +57,9 @@ private[swaydb] object LimitHashMap {
     else
       new Probed[K, V](
         array = ArrayT.basic(limit),
-        maxProbe = maxProbe
+        maxProbe = maxProbe,
+        overwriteOldest = true,
+        overwriteRandom = false
       )
 
   def concurrent[K, V >: Null](limit: Int,
@@ -65,8 +72,26 @@ private[swaydb] object LimitHashMap {
       )
     else
       new Probed[K, V](
-        array = ArrayT.atomic[(K, V)](limit),
-        maxProbe = maxProbe
+        array = ArrayT.atomic[(K, V, Int)](limit),
+        maxProbe = maxProbe,
+        overwriteOldest = true,
+        overwriteRandom = false
+      )
+
+  def concurrentBucket[K, V >: Null](limit: Int,
+                                     maxProbe: Int): LimitHashMap[K, V] =
+    if (limit <= 0)
+      new Empty[K, V]
+    else if (maxProbe <= 0)
+      new NoProbe[K, V](
+        array = ArrayT.atomic[(K, V)](limit)
+      )
+    else
+      new Probed[K, V](
+        array = ArrayT.atomic[(K, V, Int)](limit),
+        maxProbe = maxProbe,
+        overwriteOldest = true,
+        overwriteRandom = false
       )
 
   /**
@@ -88,25 +113,103 @@ private[swaydb] object LimitHashMap {
         array = ArrayT.atomic[(K, V)](limit)
       )
 
-  private class Probed[K, V >: Null](array: ArrayT[(K, V)], maxProbe: Int) extends LimitHashMap[K, V] {
+  private class Probed[K, V >: Null](array: ArrayT[(K, V, Int)],
+                                     maxProbe: Int,
+                                     overwriteOldest: Boolean,
+                                     overwriteRandom: Boolean) extends LimitHashMap[K, V] {
 
     val limit = array.length
+    val limitMinusOne = limit - 1
 
     def put(key: K, value: V): Unit = {
       val index = Math.abs(key.##) % limit
-      put(key, value, index, index, 0)
+      if (overwriteOldest)
+        putOverwriteOldest(
+          key = key,
+          value = value,
+          hashIndex = index,
+          nextHashIndex = index,
+          oldestIndex = index,
+          oldestIndexTime = Int.MaxValue,
+          probe = 0
+        )
+      else if (overwriteRandom)
+        putOverwriteRandom(
+          key = key,
+          value = value,
+          hashIndex = index,
+          targetIndex = index,
+          probe = 0
+        )
+      else
+        putOverwriteHead(
+          key = key,
+          value = value,
+          hashIndex = index,
+          targetIndex = index,
+          probe = 0
+        )
     }
 
+    val time = new AtomicInteger(0)
+
+    /**
+     * Overwrites the oldest on conflict.
+     */
     @tailrec
-    private def put(key: K, value: V, hashIndex: Int, targetIndex: Int, probe: Int): Unit =
+    private def putOverwriteOldest(key: K, value: V, hashIndex: Int, nextHashIndex: Int, oldestIndex: Int, oldestIndexTime: Int, probe: Int): Unit =
       if (probe == maxProbe) {
-        array.set(hashIndex, (key, value))
+        //overwrite the oldest
+        array.set(oldestIndex, (key, value, time.incrementAndGet()))
+      } else {
+        val existing = array.getOrNull(nextHashIndex)
+        if (existing == null || existing._1 == key) {
+          array.set(nextHashIndex, (key, value, time.incrementAndGet()))
+        } else {
+          val (nextOldestIndex, nextOldestTime) =
+            if (oldestIndexTime > existing._3)
+              (nextHashIndex, existing._3)
+            else
+              (oldestIndex, oldestIndexTime)
+
+          val nextTargetIndex = if (nextHashIndex + 1 >= limit) 0 else nextHashIndex + 1
+
+          putOverwriteOldest(
+            key = key,
+            value = value,
+            hashIndex = hashIndex,
+            nextHashIndex = nextTargetIndex,
+            oldestIndex = nextOldestIndex,
+            oldestIndexTime = nextOldestTime,
+            probe = probe + 1
+          )
+        }
+      }
+
+    @tailrec
+    private def putOverwriteRandom(key: K, value: V, hashIndex: Int, targetIndex: Int, probe: Int): Unit =
+      if (probe == maxProbe) {
+        //random select and index to insert input.
+        val index = (hashIndex + Random.nextInt(probe)) min limitMinusOne
+        array.set(index, (key, value, 0))
       } else {
         val existing = array.getOrNull(targetIndex)
         if (existing == null || existing._1 == key)
-          array.set(targetIndex, (key, value))
+          array.set(targetIndex, (key, value, 0))
         else
-          put(key, value, hashIndex, if (targetIndex + 1 >= limit) 0 else targetIndex + 1, probe + 1)
+          putOverwriteRandom(key, value, hashIndex, if (targetIndex + 1 >= limit) 0 else targetIndex + 1, probe + 1)
+      }
+
+    @tailrec
+    private def putOverwriteHead(key: K, value: V, hashIndex: Int, targetIndex: Int, probe: Int): Unit =
+      if (probe == maxProbe) {
+        array.set(hashIndex, (key, value, 0))
+      } else {
+        val existing = array.getOrNull(targetIndex)
+        if (existing == null || existing._1 == key)
+          array.set(targetIndex, (key, value, 0))
+        else
+          putOverwriteHead(key, value, hashIndex, if (targetIndex + 1 >= limit) 0 else targetIndex + 1, probe + 1)
       }
 
     def getOrNull(key: K): V = {
@@ -127,7 +230,20 @@ private[swaydb] object LimitHashMap {
       }
 
     override def iterator: Iterator[(K, V)] =
-      array.iterator
+      new Iterator[(K, V)] {
+        val innerIterator = array.iterator
+
+        override def hasNext: Boolean =
+          innerIterator.hasNext
+
+        override def next(): (K, V) = {
+          val nextItem = innerIterator.next()
+          if (nextItem == null)
+            null
+          else
+            (nextItem._1, nextItem._2)
+        }
+      }
   }
 
   private class NoProbe[K, V >: Null](array: ArrayT[(K, V)]) extends LimitHashMap[K, V] {
@@ -156,3 +272,4 @@ private[swaydb] object LimitHashMap {
     override def iterator: Iterator[(K, V)] = Iterator.empty
   }
 }
+

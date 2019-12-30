@@ -19,25 +19,31 @@
 
 package swaydb.core.util
 
+import java.util.concurrent.ConcurrentHashMap
+
 import org.scalatest.{FlatSpec, Matchers}
 
 class LimitHashMapPerformanceSpec extends FlatSpec with Matchers {
 
   it should "perform" in {
 
-    val map = LimitHashMap.concurrent[String, Integer](1000000, 2)
+    val limit = 1000000
+
+    val map = LimitHashMap.concurrent[String, Integer](limit, 20)
     //    val map = new ConcurrentHashMap[String, Integer]()
 
     Benchmark("") {
-      (1 to 1000000) foreach {
+      (1 to limit) foreach {
         int =>
           map.put(int.toString, int)
       }
     }
 
     Benchmark("") {
-      println((1 to 1000000).count(key => map.getOrNull(key.toString) != null))
-      //      println((1 to 1000000).count(key => map.get(key.toString) != null))
+      println((1 to limit).count(key => map.getOrNull(key.toString) != null))
+      //      println("Found: " + (1 to limit).count(key => map.get(key.toString) != null))
     }
+
+    //    println("overwriteCount: " + LimitHashMap.overwriteCount)
   }
 }

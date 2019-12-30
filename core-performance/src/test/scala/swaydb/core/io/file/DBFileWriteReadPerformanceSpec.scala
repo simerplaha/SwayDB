@@ -83,7 +83,7 @@ class DBFileWriteReadPerformanceSpec extends TestBase {
               //              map.get(SomeKey(i))
 
 //              val write = Slice.writeUnsignedInt(i)
-              Bytes.readUnsignedInt(write)
+//              Bytes.readUnsignedInt(write)
 //              write.readUnsignedInt().get
 
             //              val write = Slice.writeInt(i)

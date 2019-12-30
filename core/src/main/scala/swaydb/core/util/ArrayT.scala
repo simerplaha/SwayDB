@@ -32,12 +32,12 @@ sealed trait ArrayT[T] extends Iterable[T] {
 object ArrayT {
 
   def atomic[T](limit: Int): ArrayT[T] =
-    new AtomicArray[T](new AtomicReferenceArray[T](limit))
+    new Atomic[T](new AtomicReferenceArray[T](limit))
 
   def basic[T: ClassTag](limit: Int): ArrayT[T] =
-    new BasicArray[T](new Array[T](limit))
+    new Basic[T](new Array[T](limit))
 
-  class AtomicArray[T](array: AtomicReferenceArray[T]) extends ArrayT[T] {
+  class Atomic[T](array: AtomicReferenceArray[T]) extends ArrayT[T] {
     override def getOrNull(index: Int): T =
       array.get(index)
 
@@ -59,7 +59,7 @@ object ArrayT {
       }
   }
 
-  class BasicArray[T](array: Array[T]) extends ArrayT[T] {
+  class Basic[T](array: Array[T]) extends ArrayT[T] {
     override def getOrNull(index: Int): T =
       array(index)
 
