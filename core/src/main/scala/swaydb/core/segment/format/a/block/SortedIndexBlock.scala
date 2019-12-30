@@ -623,20 +623,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //open the slice if it's a subslice,
       val openBytes = bytes.openEnd()
 
-      val maxIndexSize = headerInteger + headerIntegerByteSize + EntryWriter.maxEntrySize(sortedIndexReader.block.enableAccessPositionIndex)
-
       //check if the read bytes are enough to parse the entry.
-      val expectedSize = maxIndexSize + ByteSizeOf.varInt
-
-      //if openBytes results in enough bytes to then read the open bytes only.
-      val reader =
-        if (openBytes.size >= expectedSize)
-          Reader(openBytes, headerIntegerByteSize)
-        else
-          sortedIndexReader.moveTo(positionBeforeRead + headerIntegerByteSize)
+      val expectedSize = headerInteger + headerIntegerByteSize + EntryWriter.maxEntrySize(sortedIndexReader.block.enableAccessPositionIndex) + ByteSizeOf.varInt
 
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
-      val indexEntry = reader read (maxIndexSize + ByteSizeOf.varInt)
+      //if openBytes results in enough bytes to then read the open bytes only.
+      val indexEntry =
+      if (openBytes.size >= expectedSize)
+        openBytes.take(headerIntegerByteSize, expectedSize)
+      else
+        sortedIndexReader.moveTo(positionBeforeRead + headerIntegerByteSize) read expectedSize
 
       new IndexEntry(
         headerInteger = headerInteger,

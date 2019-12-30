@@ -171,7 +171,7 @@ private[core] object BlockCache {
         val seekedBytes = fromCache.take(position - keyPosition, size)
 
         val mergedBytes =
-          if (headBytes.isEmpty)
+          if (headBytes == null)
             seekedBytes
           else
             headBytes ++ seekedBytes
@@ -200,7 +200,7 @@ private[core] object BlockCache {
         val bytesToReturn =
           seekedBytes.take(position - keyPosition, size)
 
-        if (headBytes.isEmpty)
+        if (headBytes == null)
           bytesToReturn
         else
           headBytes ++ bytesToReturn
@@ -222,7 +222,7 @@ private[core] object BlockCache {
         position = position,
         size = size,
         file = file,
-        headBytes = Slice.emptyBytes,
+        headBytes = null,
         state = state
       )(effect)
 }

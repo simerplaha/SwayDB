@@ -88,6 +88,9 @@ private[core] object EntryWriter {
       ByteSizeOf.int + //timeLength
       ByteSizeOf.varLong //time
 
+  private val tailBytesWithAccessIndexPosition =
+    ByteSizeOf.varInt + tailBytes
+
   /**
    * Format - keySize|key|keyValueId|accessIndex?|deadline|valueOffset|valueLength|time
    *
@@ -120,10 +123,11 @@ private[core] object EntryWriter {
                    hasAccessIndexPosition: Boolean): Int =
     Bytes.sizeOfUnsignedInt(keySize) + //size of key
       keySize + //key itself
-      (if (hasAccessIndexPosition) ByteSizeOf.varInt else 0) + //accessIndexPosition
-      tailBytes
+      maxEntrySize(hasAccessIndexPosition)
 
   def maxEntrySize(hasAccessIndexPosition: Boolean): Int =
-    (if (hasAccessIndexPosition) ByteSizeOf.varInt else 0) + //accessIndexPosition
+    if (hasAccessIndexPosition)
+      tailBytesWithAccessIndexPosition
+    else
       tailBytes
 }

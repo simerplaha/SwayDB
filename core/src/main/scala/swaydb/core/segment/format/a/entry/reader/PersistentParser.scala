@@ -82,7 +82,7 @@ object PersistentParser {
     else if (KeyValueId.Function hasKeyValueId keyValueId)
       parsePersistent(Persistent.Function)
     else if (KeyValueId.PendingApply hasKeyValueId keyValueId)
-      parsePersistent(Persistent.Range)
+      parsePersistent(Persistent.PendingApply)
     else
       throw swaydb.Exception.InvalidBaseId(keyValueId)
   }
