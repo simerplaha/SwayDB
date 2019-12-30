@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.IO
 import swaydb.compression.CompressionInternal
+import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -360,7 +361,7 @@ private[core] object BinarySearchIndexBlock {
   //  var sameLower = 0
   //  var greaterLower = 0
 
-  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): Persistent.PartialOptional = {
+  private[block] def binarySearchMatchOrLower(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): Persistent.PartialOptional = {
     var start =
       getStartPosition(
         lowestKeyValue = context.lowestKeyValue,
@@ -507,7 +508,7 @@ private[core] object BinarySearchIndexBlock {
                                                                                      partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOptional =
     if (sortedIndexReader.block.isBinarySearchable) {
       binarySeeks += 1
-      binarySearch(
+      binarySearchMatchOrLower(
         BinarySearchContext(
           key = key,
           lowest = lowest,
@@ -516,7 +517,13 @@ private[core] object BinarySearchIndexBlock {
           sortedIndex = sortedIndexReader,
           valuesNullable = valuesReaderNullable
         )
-      )
+      ) match {
+        case partial: Persistent.Partial if partial.isBinarySearchMatched =>
+          partial
+
+        case _ =>
+          Persistent.Partial.Null
+      }
     } else if (binarySearchIndexReaderNullable == null) {
       SortedIndexBlock.seekAndMatch(
         key = key,
@@ -532,7 +539,7 @@ private[core] object BinarySearchIndexBlock {
       //          minHop = minHop min currentHops
       //          currentHops = 0
 
-      binarySearch(
+      binarySearchMatchOrLower(
         BinarySearchContext(
           key = key,
           lowest = lowest,

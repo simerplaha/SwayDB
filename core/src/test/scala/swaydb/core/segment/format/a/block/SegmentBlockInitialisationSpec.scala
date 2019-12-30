@@ -24,6 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
+import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.util.Benchmark
@@ -33,6 +34,8 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+
+import scala.util.Random
 
 class SegmentBlockInitialisationSpec extends TestBase {
 
@@ -525,6 +528,56 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
         cache.clear()
         cache.isCached shouldBe false
+      }
+    }
+  }
+
+  "cacheBlocksOnCreate" when {
+    "false" should {
+      "not cache bytes" in {
+        val keyValues = randomKeyValues(100)
+
+        val segmentBlockCache =
+          getSegmentBlockCacheSingle(
+            keyValues = keyValues,
+            segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = false)
+          )
+
+        segmentBlockCache.isCached shouldBe false
+      }
+    }
+
+    "true" should {
+      "cache blocks on initialisation and maintain reads on clear" in {
+        runThis(100.times) {
+          val keyValues = randomKeyValues(100)
+
+          val segment =
+            TestSegment(
+              keyValues = keyValues,
+              segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true)
+            ).asInstanceOf[PersistentSegment]
+
+          val blockCache = segment.segmentCache.blockCache
+
+          blockCache.isCached shouldBe true
+
+          assertReads(keyValues, segment)
+
+          //randomly clear caches and reads for result in the same output
+          Random.shuffle(blockCache.allCaches) foreach {
+            cache =>
+              if (randomBoolean())
+                cache.clear()
+          }
+
+          assertReads(keyValues, segment)
+
+          blockCache.clear()
+          blockCache.isCached shouldBe false
+
+          assertReads(keyValues, segment)
+        }
       }
     }
   }
