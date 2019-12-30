@@ -156,13 +156,13 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 sortedIndexReader = blocks.sortedIndexReader,
                 valuesReaderNullable = blocks.valuesReader.orNull
               ) match {
-                case _: BinarySearchGetResult.None =>
+                case Persistent.Partial.Null =>
                   //all keys are known to exist.
                   fail("Expected success")
 
-                case some: BinarySearchGetResult.Some =>
-                  some.value.key shouldBe keyValue.key
-                  some.value.toPersistent
+                case some: Persistent.Partial =>
+                  some.key shouldBe keyValue.key
+                  some.toPersistent
               }
 
             //            found.value shouldBe keyValue
@@ -189,7 +189,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderNullable = blocks.valuesReader.orNull
             ) match {
-              case none: BinarySearchGetResult.None =>
+              case Persistent.Partial.Null =>
               //lower will always be the last known uncompressed key before the last key-value.
               //                if (keyValues.size > 4)
               //                  keyValues.dropRight(1).reverse.find(!_.isPrefixCompressed) foreach {
@@ -197,8 +197,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               //                      none.lower.value.key shouldBe expectedLower.key
               //                  }
 
-              case _: BinarySearchGetResult.Some =>
-                fail("Didn't expect a match")
+              case some: Persistent.Partial =>
+                if (some.isBinarySearchMatchedFlag)
+                  fail("Didn't expect a match")
             }
         }
 
@@ -215,12 +216,12 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               sortedIndexReader = blocks.sortedIndexReader,
               valuesReaderNullable = blocks.valuesReader.orNull
             ) match {
-              case none: BinarySearchGetResult.None =>
-                //lower is always empty since the test keys are lower than the actual key-values.
-                none.lower.toOptionC shouldBe empty
+              case Persistent.Partial.Null =>
+              //lower is always empty since the test keys are lower than the actual key-values.
 
-              case _: BinarySearchGetResult.Some =>
-                fail("Didn't expect a math")
+              case some: Persistent.Partial =>
+                if (some.isBinarySearchMatchedFlag)
+                  fail("Didn't expect a match")
             }
         }
       }

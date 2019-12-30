@@ -640,6 +640,18 @@ private[core] object Persistent {
   }
 
   sealed trait Partial extends PartialOptional {
+    /**
+     * A flag used to indicated if this key-value was a successful binary search match.
+     *
+     * If true - yes it's a match
+     * If false - no but this is a lower key-value
+     *
+     * A custom typed object or [[Option]] or [[Either]] type can be used instead of using this flag but Binary search
+     * is expensive. If [[Option]] was used then search on a million key-values can create almost 20 million (18,609,105)
+     * of [[Option]] instances in-memory which is expensive. So this mutable primitive boolean flag is used instead
+     * to be memory efficient.
+     */
+    var isBinarySearchMatchedFlag: Boolean = false
     def key: Slice[Byte]
     def indexOffset: Int
     def toPersistent: Persistent

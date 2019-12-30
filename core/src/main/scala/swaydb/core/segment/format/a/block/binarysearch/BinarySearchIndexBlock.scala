@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.IO
 import swaydb.compression.CompressionInternal
+import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -361,7 +362,7 @@ private[core] object BinarySearchIndexBlock {
   //  var sameLower = 0
   //  var greaterLower = 0
 
-  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): BinarySearchGetResult = {
+  private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): Persistent.PartialOptional = {
 
     var start =
       getStartPosition(
@@ -389,7 +390,8 @@ private[core] object BinarySearchIndexBlock {
 
       context.seekAndMatch(mid * context.bytesPerValue) match {
         case matched: KeyMatcher.Result.Matched =>
-          return new BinarySearchGetResult.Some(value = matched.result)
+          matched.result.isBinarySearchMatchedFlag = true
+          return matched.result
 
         case behind: KeyMatcher.Result.Behind =>
           start = mid + 1
@@ -400,12 +402,14 @@ private[core] object BinarySearchIndexBlock {
       }
     }
 
-    new BinarySearchGetResult.None(
+    val lower =
       MinMax.maxFavourLeftC[Persistent.PartialOptional, Persistent.Partial](
         left = knownLowest,
         right = context.lowestKeyValue.asPartial
       )
-    )
+
+    lower.foreachC(_.isBinarySearchMatchedFlag = false)
+    lower
 
     // recursive version
     //    @tailrec
@@ -543,7 +547,7 @@ private[core] object BinarySearchIndexBlock {
              binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
              valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): BinarySearchGetResult =
+                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOptional =
     if (sortedIndexReader.block.isBinarySearchable) {
       binarySeeks += 1
       binarySearch(
@@ -562,13 +566,7 @@ private[core] object BinarySearchIndexBlock {
         startFrom = Persistent.Null,
         sortedIndexReader = sortedIndexReader,
         valuesReaderNullable = valuesReaderNullable
-      ) match {
-        case got: Persistent =>
-          new BinarySearchGetResult.Some(got)
-
-        case Persistent.Null =>
-          BinarySearchGetResult.none
-      }
+      ).asPartial
     } else {
       //println(s"Key: ${key.readInt()}")
       //          hops = 0
@@ -587,54 +585,21 @@ private[core] object BinarySearchIndexBlock {
           valuesNullable = valuesReaderNullable
         )
       ) match {
-        case some: BinarySearchGetResult.Some =>
+        case partial: Persistent.Partial if partial.isBinarySearchMatchedFlag =>
           binarySuccessfulDirectSeeks += 1
-          some
+          partial
 
-        case none: BinarySearchGetResult.None =>
+        case lowerOrNone =>
           if (binarySearchIndexReaderNullable.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression) {
             binaryFailedSeeks += 1
-            none
+            Persistent.Partial.Null
           } else {
-            none.lower match {
-              case lower: Persistent.Partial =>
-                //                    failedWithLower += 1
-                //                    if (lowest.exists(lowest => ordering.gt(lower.key, lowest.key)))
-                //                      greaterLower += 1
-                //                    else if (lowest.exists(lowest => ordering.equiv(lower.key, lowest.key)))
-                //                      sameLower += 1
-
-                SortedIndexBlock.matchOrSeek(
-                  key = key,
-                  startFrom = lower.toPersistent,
-                  sortedIndexReader = sortedIndexReader,
-                  valuesReaderNullable = valuesReaderNullable
-                ) match {
-                  case got: Persistent.Partial =>
-                    binarySuccessfulSeeksWithWalkForward += 1
-                    new BinarySearchGetResult.Some(got)
-
-                  case Persistent.Partial.Null =>
-                    binarySuccessfulDirectSeeks += 1
-                    none
-                }
-
-              case Persistent.Partial.Null =>
-                SortedIndexBlock.seekAndMatch(
-                  key = key,
-                  startFrom = Persistent.Null,
-                  sortedIndexReader = sortedIndexReader,
-                  valuesReaderNullable = valuesReaderNullable
-                ) match {
-                  case got: Persistent =>
-                    binarySuccessfulSeeksWithWalkForward += 1
-                    new BinarySearchGetResult.Some(got)
-
-                  case Persistent.Null =>
-                    binaryFailedSeeks += 1
-                    BinarySearchGetResult.none
-                }
-            }
+            SortedIndexBlock.seekAndMatch(
+              key = key,
+              startFrom = lowerOrNone.toPersistentOptional,
+              sortedIndexReader = sortedIndexReader,
+              valuesReaderNullable = valuesReaderNullable
+            ).asPartial
           }
       }
     }
@@ -647,33 +612,25 @@ private[core] object BinarySearchIndexBlock {
                    binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                    valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
-                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional =
+                                                                                           partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional = {
+    val startFrom =
+      search( //A check to see if key equiv start.key to perform a simple forward seek without matching is done in SegmentSearcher
+        key = key,
+        lowest = start,
+        highest = end,
+        keyValuesCount = keyValuesCount,
+        binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderNullable = valuesReaderNullable
+      )
 
-    search( //A check to see if key equiv start.key to perform a simple forward seek without matching is done in SegmentSearcher
+    SortedIndexBlock.matchOrSeekHigher(
       key = key,
-      lowest = start,
-      highest = end,
-      keyValuesCount = keyValuesCount,
-      binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
+      startFrom = startFrom.toPersistentOptional,
       sortedIndexReader = sortedIndexReader,
       valuesReaderNullable = valuesReaderNullable
-    ) match {
-      case none: BinarySearchGetResult.None =>
-        SortedIndexBlock.matchOrSeekHigher(
-          key = key,
-          startFrom = none.lower.toPersistentOptional,
-          sortedIndexReader = sortedIndexReader,
-          valuesReaderNullable = valuesReaderNullable
-        )
-
-      case some: BinarySearchGetResult.Some =>
-        SortedIndexBlock.matchOrSeekHigher(
-          key = key,
-          startFrom = some.value.toPersistent,
-          sortedIndexReader = sortedIndexReader,
-          valuesReaderNullable = valuesReaderNullable
-        )
-    }
+    )
+  }
 
   private def resolveLowerFromBinarySearch(key: Slice[Byte],
                                            lower: PersistentOptional,
