@@ -102,7 +102,16 @@ private[core] object KeyMatcher {
     def matchMutateForBinarySearch(key: Slice[Byte],
                                    range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
       val fromKeyMatch = keyOrder.compare(key, range.fromKey)
-      val toKeyMatch = keyOrder.compare(key, range.toKey)
+      var toKeyCompare: Integer = null
+
+      def toKeyMatch: Int = {
+        if (toKeyCompare == null)
+          toKeyCompare =
+            keyOrder.compare(key, range.toKey)
+
+        toKeyCompare
+      }
+
       if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
         range.isBinarySearchMatched = true
       else if (toKeyMatch >= 0)
@@ -118,8 +127,7 @@ private[core] object KeyMatcher {
     def matchForHashIndex(key: Slice[Byte],
                           range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
       val fromKeyMatch = keyOrder.compare(key, range.fromKey)
-      val toKeyMatch = keyOrder.compare(key, range.toKey)
-      fromKeyMatch >= 0 && toKeyMatch < 0
+      fromKeyMatch == 0 || (fromKeyMatch > 0 && keyOrder.lt(key, range.toKey))
     }
   }
 
