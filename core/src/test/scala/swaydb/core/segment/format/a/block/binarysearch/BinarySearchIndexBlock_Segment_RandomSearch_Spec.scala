@@ -107,7 +107,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
 
     "search key-values" in {
 
-      runThis(10.times, log = true, s"Running binary search test") {
+      runThis(100.times, log = true, s"Running binary search test") {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
 
         keyValues.zipWithIndex.foldLeft(Persistent.Null: PersistentOptional) {
@@ -173,7 +173,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
     }
 
     "search non existent key-values" in {
-      runThis(10.times, log = true) {
+      runThis(100.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
         val higherStartFrom = keyValues.last.key.readInt() + 1000000
         (higherStartFrom to higherStartFrom + 100) foreach {
@@ -228,7 +228,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
     }
 
     "search higher for existing key-values" in {
-      runThis(10.times, log = true) {
+      runThis(100.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
         //test higher in reverse order
         keyValues.zipWithIndex.foldRight(Persistent.Null: PersistentOptional) {
@@ -329,7 +329,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
     }
 
     "search lower for existing key-values" in {
-      runThis(10.times, log = true) {
+      runThis(100.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
 
         keyValues.zipWithIndex.foldLeft(Persistent.Null: PersistentOptional) {

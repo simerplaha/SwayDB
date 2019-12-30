@@ -551,12 +551,16 @@ private[core] object BinarySearchIndexBlock {
             binaryFailedSeeks += 1
             Persistent.Partial.Null
           } else {
-            SortedIndexBlock.seekAndMatch(
-              key = key,
-              startFrom = lowerOrNone.toPersistentOptional,
-              sortedIndexReader = sortedIndexReader,
-              valuesReaderNullable = valuesReaderNullable
-            ).asPartial
+            val startFrom = lowerOrNone.toPersistentOptional
+            if (startFrom.existsS(_.hasMore))
+              SortedIndexBlock.seekAndMatch(
+                key = key,
+                startFrom = startFrom,
+                sortedIndexReader = sortedIndexReader,
+                valuesReaderNullable = valuesReaderNullable
+              ).asPartial
+            else
+              Persistent.Partial.Null
           }
       }
     }
