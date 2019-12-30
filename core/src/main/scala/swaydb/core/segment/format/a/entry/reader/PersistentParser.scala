@@ -46,108 +46,43 @@ object PersistentParser {
 
     val keyValueId = reader.readUnsignedInt()
 
+    var persistentKeyValue: Persistent = null
+
+    def parsePersistent[T <: Persistent](readerType: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]) = {
+      if (persistentKeyValue == null)
+        persistentKeyValue =
+          PersistentReader.read(
+            indexOffset = indexOffset,
+            headerInteger = headerInteger,
+            headerKeyBytes = headerKeyBytes,
+            keyValueId = keyValueId,
+            tailReader = reader,
+            previous = previous,
+            //sorted index stats
+            mightBeCompressed = mightBeCompressed,
+            keyCompressionOnly = keyCompressionOnly,
+            sortedIndexEndOffset = sortedIndexEndOffset,
+            normalisedByteSize = normalisedByteSize,
+            hasAccessPositionIndex = hasAccessPositionIndex,
+            valuesReaderNullable = valuesReaderNullable,
+            reader = readerType
+          )
+
+      persistentKeyValue
+    }
+
     if (KeyValueId.Put hasKeyValueId keyValueId)
-      PersistentReader.read(
-        indexOffset = indexOffset,
-        headerInteger = headerInteger,
-        headerKeyBytes = headerKeyBytes,
-        keyValueId = keyValueId,
-        tailReader = reader,
-        previous = previous,
-        //sorted index stats
-        mightBeCompressed = mightBeCompressed,
-        keyCompressionOnly = keyCompressionOnly,
-        sortedIndexEndOffset = sortedIndexEndOffset,
-        normalisedByteSize = normalisedByteSize,
-        hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReaderNullable = valuesReaderNullable,
-        reader = Persistent.Put
-      )
+      parsePersistent(Persistent.Put)
     else if (KeyValueId.Range hasKeyValueId keyValueId)
-      PersistentReader.read(
-        indexOffset = indexOffset,
-        headerInteger = headerInteger,
-        headerKeyBytes = headerKeyBytes,
-        keyValueId = keyValueId,
-        tailReader = reader,
-        previous = previous,
-        //sorted index stats
-        mightBeCompressed = mightBeCompressed,
-        keyCompressionOnly = keyCompressionOnly,
-        sortedIndexEndOffset = sortedIndexEndOffset,
-        normalisedByteSize = normalisedByteSize,
-        hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReaderNullable = valuesReaderNullable,
-        reader = Persistent.Range
-      )
+      parsePersistent(Persistent.Range)
     else if (KeyValueId.Remove hasKeyValueId keyValueId)
-      PersistentReader.read(
-        indexOffset = indexOffset,
-        headerInteger = headerInteger,
-        headerKeyBytes = headerKeyBytes,
-        keyValueId = keyValueId,
-        tailReader = reader,
-        previous = previous,
-        //sorted index stats
-        mightBeCompressed = mightBeCompressed,
-        keyCompressionOnly = keyCompressionOnly,
-        sortedIndexEndOffset = sortedIndexEndOffset,
-        normalisedByteSize = normalisedByteSize,
-        hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReaderNullable = valuesReaderNullable,
-        reader = Persistent.Remove
-      )
+      parsePersistent(Persistent.Remove)
     else if (KeyValueId.Update hasKeyValueId keyValueId)
-      PersistentReader.read(
-        indexOffset = indexOffset,
-        headerInteger = headerInteger,
-        headerKeyBytes = headerKeyBytes,
-        keyValueId = keyValueId,
-        tailReader = reader,
-        previous = previous,
-        //sorted index stats
-        mightBeCompressed = mightBeCompressed,
-        keyCompressionOnly = keyCompressionOnly,
-        sortedIndexEndOffset = sortedIndexEndOffset,
-        normalisedByteSize = normalisedByteSize,
-        hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReaderNullable = valuesReaderNullable,
-        reader = Persistent.Update
-      )
+      parsePersistent(Persistent.Update)
     else if (KeyValueId.Function hasKeyValueId keyValueId)
-      PersistentReader.read(
-        indexOffset = indexOffset,
-        headerInteger = headerInteger,
-        headerKeyBytes = headerKeyBytes,
-        keyValueId = keyValueId,
-        tailReader = reader,
-        previous = previous,
-        //sorted index stats
-        mightBeCompressed = mightBeCompressed,
-        keyCompressionOnly = keyCompressionOnly,
-        sortedIndexEndOffset = sortedIndexEndOffset,
-        normalisedByteSize = normalisedByteSize,
-        hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReaderNullable = valuesReaderNullable,
-        reader = Persistent.Function
-      )
+      parsePersistent(Persistent.Function)
     else if (KeyValueId.PendingApply hasKeyValueId keyValueId)
-      PersistentReader.read(
-        indexOffset = indexOffset,
-        headerInteger = headerInteger,
-        headerKeyBytes = headerKeyBytes,
-        keyValueId = keyValueId,
-        tailReader = reader,
-        previous = previous,
-        //sorted index stats
-        mightBeCompressed = mightBeCompressed,
-        keyCompressionOnly = keyCompressionOnly,
-        sortedIndexEndOffset = sortedIndexEndOffset,
-        normalisedByteSize = normalisedByteSize,
-        hasAccessPositionIndex = hasAccessPositionIndex,
-        valuesReaderNullable = valuesReaderNullable,
-        reader = Persistent.PendingApply
-      )
+      parsePersistent(Persistent.Range)
     else
       throw swaydb.Exception.InvalidBaseId(keyValueId)
   }
