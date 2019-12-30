@@ -552,7 +552,7 @@ private[core] object BinarySearchIndexBlock {
             Persistent.Partial.Null
           } else {
             val startFrom = lowerOrNone.toPersistentOptional
-            if (startFrom.existsS(_.hasMore))
+            if (startFrom.isNoneS || startFrom.existsS(_.hasMore))
               SortedIndexBlock.seekAndMatch(
                 key = key,
                 startFrom = startFrom,
