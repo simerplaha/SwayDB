@@ -395,19 +395,19 @@ private[core] object HashIndexBlock extends LazyLogging {
         } else {
           val entry = possibleValueBytes.dropHead()
           //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
-          val partialKeyValueNullable =
-            block.format.readNullable(
+          val partialKeyValueOrNull =
+            block.format.readOrNull(
               entry = entry,
               hashIndexReader = hashIndexReader,
               sortedIndex = sortedIndexReader,
               valuesNullable = valuesReaderNullable
             )
 
-          if (partialKeyValueNullable == null) {
+          if (partialKeyValueOrNull == null) {
             //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1}, possibleValue: $possibleOffset, containsZero: ${entry.take(bytesRead).exists(_ == 0)} = failed")
             doFind(probe + 1)
-          } else if (partialKeyValueNullable matchForHashIndex key) {
-            partialKeyValueNullable
+          } else if (partialKeyValueOrNull matchForHashIndex key) {
+            partialKeyValueOrNull
           } else {
             doFind(probe + 1)
           }
@@ -517,18 +517,18 @@ private[core] object HashIndexBlock extends LazyLogging {
           //println(s"Key: ${key.readInt()}: read hashIndex: ${hashIndex + block.headerSize} probe: $probe = failure - invalid start offset.")
           doFind(probe + 1)
         } else {
-          val partialKeyValueNullable: Persistent.Partial =
-            block.format.readNullable(
+          val partialKeyValueOrNull: Persistent.Partial =
+            block.format.readOrNull(
               entry = entry,
               hashIndexReader = hasIndexReader,
               sortedIndex = sortedIndexReader,
               valuesNullable = valuesReaderNullable
             )
 
-          if (partialKeyValueNullable == null)
+          if (partialKeyValueOrNull == null)
             doFind(probe + 1)
-          else if (partialKeyValueNullable matchForHashIndex key)
-            partialKeyValueNullable
+          else if (partialKeyValueOrNull matchForHashIndex key)
+            partialKeyValueOrNull
           else
             doFind(probe + 1)
         }
