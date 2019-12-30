@@ -19,7 +19,6 @@
 
 package swaydb.data.util
 
-import swaydb.data.util.Maybe.Maybe
 import swaydb.data.util.Tagged.@@
 
 import scala.util.Try

@@ -325,28 +325,28 @@ private[core] object BinarySearchIndexBlock {
   //A 0 sortedIndexAccessPosition indicates that sortedIndexAccessPositionIndex was disabled.
   //A key-values sortedIndexAccessPosition can sometimes be larger than what binarySearchIndex knows for cases where binarySearchIndex is partial
   //to handle that check that sortedIndexAccessPosition is not over the number total binarySearchIndex entries.
-  def getSortedIndexAccessPosition(keyValue: Persistent, context: BinarySearchContext): Option[Int] =
-    if (keyValue.sortedIndexAccessPosition <= 0 || (!context.isFullIndex && keyValue.sortedIndexAccessPosition > context.valuesCount))
-      None
+  def getSortedIndexAccessPosition(keyValue: Persistent, isFullIndex: Boolean, valuesCount: Int, default: Int): Int =
+    if (keyValue.sortedIndexAccessPosition <= 0 || (!isFullIndex && keyValue.sortedIndexAccessPosition > valuesCount))
+      default
     else
-      Some(keyValue.sortedIndexAccessPosition - 1)
+      keyValue.sortedIndexAccessPosition - 1
 
-  def getStartPosition(context: BinarySearchContext): Int =
-    context.lowestKeyValue match {
+  def getStartPosition(lowestKeyValue: PersistentOptional, isFullIndex: Boolean, valuesCount: Int): Int =
+    lowestKeyValue match {
       case lowestKeyValue: Persistent =>
-        getSortedIndexAccessPosition(lowestKeyValue, context) getOrElse 0
+        getSortedIndexAccessPosition(lowestKeyValue, isFullIndex, valuesCount, 0)
 
       case Persistent.Null =>
         0
     }
 
-  def getEndPosition(context: BinarySearchContext): Int =
-    context.highestKeyValue match {
+  def getEndPosition(highestKeyValue: PersistentOptional, isFullIndex: Boolean, valuesCount: Int): Int =
+    highestKeyValue match {
       case highestKeyValue: Persistent =>
-        getSortedIndexAccessPosition(highestKeyValue, context) getOrElse (context.valuesCount - 1)
+        getSortedIndexAccessPosition(highestKeyValue, isFullIndex, valuesCount, valuesCount - 1)
 
       case Persistent.Null =>
-        context.valuesCount - 1
+        valuesCount - 1
     }
 
   var totalHops = 0
@@ -363,8 +363,19 @@ private[core] object BinarySearchIndexBlock {
 
   private[block] def binarySearch(context: BinarySearchContext)(implicit order: KeyOrder[Persistent.Partial]): BinarySearchGetResult = {
 
-    var start = getStartPosition(context)
-    var end = getEndPosition(context)
+    var start =
+      getStartPosition(
+        lowestKeyValue = context.lowestKeyValue,
+        isFullIndex = context.isFullIndex,
+        valuesCount = context.valuesCount
+      )
+
+    var end =
+      getEndPosition(
+        highestKeyValue = context.highestKeyValue,
+        isFullIndex = context.isFullIndex,
+        valuesCount = context.valuesCount
+      )
 
     var knownLowest: Persistent.PartialOptional = Persistent.Partial.Null
 
@@ -504,12 +515,23 @@ private[core] object BinarySearchIndexBlock {
 
     //println(s"lowestKey: ${context.lowestKeyValue.map(_.key.readInt())}, highestKey: ${context.highestKeyValue.map(_.key.readInt())}")
 
-    val end = getEndPosition(context)
+    val end =
+      getEndPosition(
+        highestKeyValue = context.highestKeyValue,
+        isFullIndex = context.isFullIndex,
+        valuesCount = context.valuesCount
+      )
 
     if (fetchLeft) {
       hop(start = end - 1, end = end - 1, knownLowest = context.lowestKeyValue.asPartial, knownMatch = Persistent.Partial.Null)
     } else {
-      val start = getStartPosition(context)
+      val start =
+        getStartPosition(
+          lowestKeyValue = context.lowestKeyValue,
+          isFullIndex = context.isFullIndex,
+          valuesCount = context.valuesCount
+        )
+
       hop(start = start, end = end, knownLowest = context.lowestKeyValue.asPartial, knownMatch = Persistent.Partial.Null)
     }
   }
