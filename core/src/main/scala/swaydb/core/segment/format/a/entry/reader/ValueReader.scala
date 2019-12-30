@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.core.data.PersistentOptional
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.data.slice.ReaderBase
+import swaydb.data.util.TupleOptional
 
 import scala.annotation.implicitNotFound
 
@@ -33,7 +34,7 @@ sealed trait ValueReader[-T] {
   def read[V](indexReader: ReaderBase,
               previous: PersistentOptional,
               valueOffsetReader: ValueOffsetReader[V],
-              valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)]
+              valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int]
 }
 
 object ValueReader {
@@ -43,8 +44,8 @@ object ValueReader {
     override def read[V](indexReader: ReaderBase,
                          previous: PersistentOptional,
                          valueOffsetReader: ValueOffsetReader[V],
-                         valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
-      None
+                         valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int] =
+      TupleOptional.None
   }
 
   implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
@@ -52,10 +53,10 @@ object ValueReader {
     override def read[V](indexReader: ReaderBase,
                          previous: PersistentOptional,
                          valueOffsetReader: ValueOffsetReader[V],
-                         valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] = {
+                         valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int] = {
       val valueOffset = valueOffsetReader.read(indexReader, previous)
       val valueLength = valueLengthReader.read(indexReader, previous)
-      Some((valueOffset, valueLength))
+      TupleOptional.Some(valueOffset, valueLength)
     }
   }
 
@@ -67,7 +68,7 @@ object ValueReader {
     override def read[V](indexReader: ReaderBase,
                          previous: PersistentOptional,
                          valueOffsetReader: ValueOffsetReader[V],
-                         valueLengthReader: ValueLengthReader[V]): Option[(Int, Int)] =
+                         valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int] =
       ValueUncompressedReader.read(
         indexReader = indexReader,
         previous = previous,
