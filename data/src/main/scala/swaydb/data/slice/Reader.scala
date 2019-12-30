@@ -19,7 +19,7 @@
 
 package swaydb.data.slice
 
-abstract class Reader extends ReaderBase {
+trait Reader extends ReaderBase {
 
   def moveTo(position: Long): Reader
 

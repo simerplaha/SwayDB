@@ -28,7 +28,7 @@ import swaydb.data.util.Maybe.Maybe
 
 import scala.annotation.tailrec
 
-private[swaydb] abstract class ReaderBase { self =>
+private[swaydb] trait ReaderBase { self =>
 
   def path: Path
 
