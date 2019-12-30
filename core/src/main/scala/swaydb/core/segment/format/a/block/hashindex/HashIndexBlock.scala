@@ -111,6 +111,9 @@ private[core] object HashIndexBlock extends LazyLogging {
 
     def hasMinimumHits =
       hit >= minimumNumberOfHits
+
+    val hashMaxOffset: Int =
+      compressibleBytes.allocatedSize - writeAbleLargestValueSize
   }
 
   def init(sortedIndexState: SortedIndexBlock.State,
@@ -273,9 +276,8 @@ private[core] object HashIndexBlock extends LazyLogging {
   }
 
   private def adjustHash(hash: Int,
-                         totalBlockSpace: Int,
-                         writeAbleLargestValueSize: Int) =
-    (hash & Int.MaxValue) % (totalBlockSpace - writeAbleLargestValueSize)
+                         hashMaxOffset: Int) =
+    Math.abs(hash) % hashMaxOffset
 
   def write(entry: SortedIndexBlock.SecondaryIndexEntry,
             state: HashIndexBlock.State): Boolean =
@@ -328,8 +330,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         val hashIndex =
           adjustHash(
             hash = hash1 + probe * hash2,
-            totalBlockSpace = state.compressibleBytes.allocatedSize,
-            writeAbleLargestValueSize = state.writeAbleLargestValueSize
+            hashMaxOffset = state.hashMaxOffset
           )
 
         val existing = state.compressibleBytes.take(hashIndex, requiredSpace + 2) //+1 to reserve left 0 byte another +1 not overwrite next 0.
@@ -379,8 +380,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         val hashIndex =
           adjustHash(
             hash = hash1 + probe * hash2,
-            totalBlockSpace = block.allocatedBytes,
-            writeAbleLargestValueSize = block.writeAbleLargestValueSize
+            hashMaxOffset = block.hashMaxOffset
           )
 
         val possibleValueBytes =
@@ -446,8 +446,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         val hashIndex =
           adjustHash(
             hash = hash1 + probe * hash2,
-            totalBlockSpace = state.compressibleBytes.allocatedSize,
-            writeAbleLargestValueSize = state.writeAbleLargestValueSize
+            hashMaxOffset = state.hashMaxOffset
           )
 
         //+1 for cases where the last byte is zero.
@@ -503,8 +502,7 @@ private[core] object HashIndexBlock extends LazyLogging {
         val hashIndex =
           adjustHash(
             hash = hash1 + probe * hash2,
-            totalBlockSpace = block.allocatedBytes,
-            writeAbleLargestValueSize = block.writeAbleLargestValueSize
+            hashMaxOffset = block.hashMaxOffset
           ) //remove headerSize since the blockReader points to the hashIndex's start offset.
 
         val entry =
@@ -582,6 +580,9 @@ private[core] case class HashIndexBlock(offset: HashIndexBlock.Offset,
   val bytesToReadPerIndex = writeAbleLargestValueSize + 1 //+1 to read header/marker 0 byte.
 
   val isCompressed = compressionInfo.isDefined
+
+  val hashMaxOffset: Int =
+    allocatedBytes - writeAbleLargestValueSize
 
   def isPerfect =
     miss == 0
