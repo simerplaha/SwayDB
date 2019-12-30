@@ -48,15 +48,15 @@ private[core] object KeyMatcher {
                   val result: Persistent.Partial,
                   val next: Persistent.PartialOptional) extends Complete
 
-    sealed trait Behind {
-      def previous: Persistent.Partial
-    }
+    sealed trait Behind
+    final object BehindFetchNext extends InComplete with Behind
 
-    class BehindFetchNext(val previous: Persistent.Partial) extends InComplete with Behind
-    class BehindStopped(val previous: Persistent.Partial) extends Complete with Behind
-
-    val aheadOrNoneOrEndNone = new AheadOrNoneOrEnd(Persistent.Partial.Null)
-    class AheadOrNoneOrEnd(val ahead: Persistent.PartialOptional) extends Complete
+    /**
+     * Used as outcome for matchOnly searches like *seekOne functions.
+     * This result indicates that seek is behind and could continue but was stopped early.
+     */
+    final object BehindStopped extends Complete with Behind
+    final object AheadOrNoneOrEnd extends Complete
   }
 
   sealed trait Bounded extends KeyMatcher
@@ -139,11 +139,11 @@ private[core] object KeyMatcher {
             new Matched(next flatMapC (_ => previous), fixed, Persistent.Partial.Null)
           else if (matchResult > 0 && hasMore)
             if (matchOnly)
-              new BehindStopped(fixed)
+              BehindStopped
             else
-              new BehindFetchNext(fixed)
+              BehindFetchNext
           else
-            new AheadOrNoneOrEnd(next orElseC previous)
+            AheadOrNoneOrEnd
 
         case range: Persistent.Partial.Range =>
           val fromKeyMatch = keyOrder.compare(key, range.fromKey)
@@ -152,11 +152,11 @@ private[core] object KeyMatcher {
             new Matched(next flatMapC (_ => previous), range, Persistent.Partial.Null)
           else if (toKeyMatch >= 0 && hasMore)
             if (matchOnly)
-              new BehindStopped(range)
+              BehindStopped
             else
-              new BehindFetchNext(range)
+              BehindFetchNext
           else
-            new AheadOrNoneOrEnd(next orElseC previous)
+            AheadOrNoneOrEnd
       }
   }
 
@@ -203,7 +203,7 @@ private[core] object KeyMatcher {
             if (keyOrder.compare(previous.key, key) < 0)
               new Matched(Persistent.Partial.Null, previous, next)
             else
-              new AheadOrNoneOrEnd(next)
+              AheadOrNoneOrEnd
           else if (nextCompare < 0)
             if (hasMore)
               next match {
@@ -212,19 +212,19 @@ private[core] object KeyMatcher {
 
                 case _ =>
                   if (matchOnly)
-                    new BehindStopped(next)
+                    BehindStopped
                   else
-                    new BehindFetchNext(next)
+                    BehindFetchNext
               }
             else
               new Matched(previous, next, Persistent.Partial.Null)
           else
-            new AheadOrNoneOrEnd(next)
+            AheadOrNoneOrEnd
 
         case Persistent.Partial.Null =>
           val previousCompare = keyOrder.compare(previous.key, key)
           if (previousCompare == 0)
-            new AheadOrNoneOrEnd(previous)
+            AheadOrNoneOrEnd
           else if (previousCompare < 0)
             if (hasMore)
               previous match {
@@ -232,12 +232,12 @@ private[core] object KeyMatcher {
                   new Matched(Persistent.Partial.Null, previous, next)
 
                 case _ =>
-                  new BehindFetchNext(previous)
+                  BehindFetchNext
               }
             else
               new Matched(Persistent.Partial.Null, previous, next)
           else
-            new AheadOrNoneOrEnd(previous)
+            AheadOrNoneOrEnd
       }
   }
 
@@ -289,14 +289,14 @@ private[core] object KeyMatcher {
           case _ =>
             if (hasMore)
               if (matchOnly)
-                new BehindStopped(keyValue)
+                BehindStopped
               else
-                new BehindFetchNext(keyValue)
+                BehindFetchNext
             else
-              new AheadOrNoneOrEnd(next orElseC previous)
+              AheadOrNoneOrEnd
         }
       else
-        new AheadOrNoneOrEnd(next orElseC previous)
+        AheadOrNoneOrEnd
     }
   }
 }

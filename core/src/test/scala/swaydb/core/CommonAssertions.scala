@@ -1716,33 +1716,14 @@ object CommonAssertions {
                 false
             }
 
-          case result: Result.BehindStopped =>
-            other match {
-              case other: Result.BehindStopped =>
-                other.previous == result.previous
+          case Result.BehindStopped =>
+            other == Result.BehindStopped
 
-              case _ =>
-                false
-            }
+          case Result.AheadOrNoneOrEnd =>
+            other == Result.AheadOrNoneOrEnd
 
-          case result: Result.AheadOrNoneOrEnd =>
-            other match {
-              case other: Result.AheadOrNoneOrEnd =>
-                other.ahead == result.ahead
-
-              case _ =>
-                false
-            }
-
-          case result: Result.BehindFetchNext =>
-            other match {
-              case other: Result.BehindFetchNext =>
-                other.previous == result.previous
-
-              case _ =>
-                false
-            }
-
+          case Result.BehindFetchNext =>
+            other == Result.BehindFetchNext
         }
     }
 }

@@ -21,12 +21,10 @@ package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.IO
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.MinMax
-import swaydb.core.util.Options._
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
