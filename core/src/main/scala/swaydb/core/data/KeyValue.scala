@@ -578,6 +578,13 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
   def nextKeySize: Int
   def sortedIndexAccessPosition: Int
 
+  /**
+   * If key-value is read from copied HashIndex then keyValue.nextKeySize can be 0 (unknown) so always
+   * use nextIndexOffset to determine is there are more key-values.
+   */
+  def hasMore: Boolean =
+    nextIndexOffset > -1
+
   override def isPartial: Boolean =
     false
 

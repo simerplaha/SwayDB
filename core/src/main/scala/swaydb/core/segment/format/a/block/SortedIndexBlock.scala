@@ -719,7 +719,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           )
 
         previousMayBe = next
-        continue = hasMore(next)
+        continue = next.hasMore
         next
       }
     }
@@ -1036,7 +1036,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     matcher(
       previous = persistent,
       next = Persistent.Partial.Null,
-      hasMore = hasMore(persistent)
+      hasMore = persistent.hasMore
     )
   }
 
@@ -1075,7 +1075,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     matcher(
       previous = persistent,
       next = next,
-      hasMore = hasMore(next)
+      hasMore = next.hasMore
     )
   }
 
@@ -1094,7 +1094,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     matcher(
       previous = previous,
       next = persistent,
-      hasMore = hasMore(persistent)
+      hasMore = persistent.hasMore
     )
   }
 
@@ -1136,7 +1136,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     matcher(
       previous = previous,
       next = next.asPartial,
-      hasMore = hasMore(next getOrElseS previous)
+      hasMore = (next getOrElseS previous).hasMore
     ) match {
       case result: KeyMatcher.Result.Complete =>
         result
@@ -1202,13 +1202,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       case _: KeyMatcher.Result.AheadOrNoneOrEnd | _: KeyMatcher.Result.BehindStopped =>
         Persistent.Null
     }
-
-  /**
-   * If key-value is read from copied HashIndex then keyValue.nextKeySize can be 0 (unknown) so always
-   * use nextIndexOffset to determine is there are more key-values.
-   */
-  private def hasMore(keyValue: Persistent) =
-    keyValue.nextIndexOffset > -1
 }
 
 private[core] case class SortedIndexBlock(offset: SortedIndexBlock.Offset,
