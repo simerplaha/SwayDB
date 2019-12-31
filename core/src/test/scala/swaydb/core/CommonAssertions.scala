@@ -124,13 +124,25 @@ object CommonAssertions {
               Some(keyValue.getOrFetchFunction.runRandomIO.right.value)
 
             case keyValue: Persistent.PendingApply =>
-              keyValue.getOrFetchValue
+              val applies = keyValue.getOrFetchApplies.runRandomIO.right.value
+
+              applies.forall(_.isUnsliced) shouldBe true
+
+              val bytes = Slice.create[Byte](ValueSerializer.bytesRequired(applies))
+              ValueSerializer.write(applies)(bytes)
+              Some(bytes)
 
             case keyValue: Persistent.Remove =>
-              keyValue.getOrFetchValue
+              None
 
-            case keyValue: Persistent.Range =>
-              keyValue.getOrFetchValue
+            case range: Persistent.Range =>
+              val (fromValue, rangeValue) = range.fetchFromAndRangeValueUnsafe.runRandomIO.right.value
+              fromValue.forallS(_.isUnsliced) shouldBe true
+              rangeValue.isUnsliced shouldBe true
+
+              val bytes = Slice.create[Byte](RangeValueSerializer.bytesRequired(fromValue, rangeValue))
+              RangeValueSerializer.write(fromValue, rangeValue)(bytes)
+              Some(bytes)
           }
       }
   }
