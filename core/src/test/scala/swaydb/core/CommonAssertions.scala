@@ -87,7 +87,7 @@ object CommonAssertions {
       val actualMemory = actual.toMemory
       val expectedMemory = expected.toMemory
 
-      actualMemory should be(expectedMemory)
+      actualMemory should be(expectedMemory.unslice())
     }
 
     def getOrFetchValue: Option[Slice[Byte]] =

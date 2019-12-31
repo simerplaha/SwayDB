@@ -34,7 +34,7 @@
 //import swaydb.core.segment.ReadState
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.data.order.{KeyOrder, TimeOrder}
-//import swaydb.data.slice.{Slice, SliceOption}
+//import swaydb.data.slice.{Slice, SliceOptional}
 //import swaydb.data.util.StorageUnits._
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -80,11 +80,11 @@
 //  "putMap on a single Level" should {
 //    import swaydb.core.map.serializer.LevelZeroMapEntryReader._
 //    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-//    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] = LevelZeroSkipListMerger
+//    implicit val merged: SkipListMerger[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] = LevelZeroSkipListMerger
 //
 //    val map =
 //      if (persistent)
-//        Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//        Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //          folder = randomIntDirectory,
 //          mmap = true,
 //          flushOnOverflow = true,
@@ -146,11 +146,11 @@
 //  "putMap on two Level" should {
 //    import swaydb.core.map.serializer.LevelZeroMapEntryReader._
 //    import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
-//    implicit val merged: SkipListMerger[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] = LevelZeroSkipListMerger
+//    implicit val merged: SkipListMerger[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] = LevelZeroSkipListMerger
 //
 //    val map =
 //      if (persistent)
-//        Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//        Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //          folder = randomIntDirectory,
 //          mmap = true,
 //          flushOnOverflow = true,
@@ -171,14 +171,14 @@
 //
 //        (nextLevel.isTrash _).expects() returning false
 //
-//        (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
-//          putMap: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] =>
+//        (nextLevel.isCopyable(_: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
+//          putMap: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] =>
 //            putMap.pathOption shouldBe map.pathOption
 //            true
 //        }
 //
-//        (nextLevel.put(_: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
-//          putMap: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] =>
+//        (nextLevel.put(_: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
+//          putMap: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] =>
 //            putMap.pathOption shouldBe map.pathOption
 //            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
 //            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
@@ -197,14 +197,14 @@
 //
 //        (nextLevel.isTrash _).expects() returning false
 //
-//        (nextLevel.isCopyable(_: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
-//          putMap: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] =>
+//        (nextLevel.isCopyable(_: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
+//          putMap: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] =>
 //            putMap.pathOption shouldBe map.pathOption
 //            true
 //        }
 //
-//        (nextLevel.put(_: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
-//          putMap: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] =>
+//        (nextLevel.put(_: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])) expects * onCall {
+//          putMap: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] =>
 //            putMap.pathOption shouldBe map.pathOption
 //            implicit val nothingExceptionHandler = IO.ExceptionHandler.Nothing
 //            IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))

@@ -38,7 +38,7 @@
 //import swaydb.core.util.{BlockCacheFileIDGenerator, Extension, SkipList}
 //import swaydb.core.{TestBase, TestSweeper, TestTimer}
 //import swaydb.data.order.{KeyOrder, TimeOrder}
-//import swaydb.data.slice.{Slice, SliceOption}
+//import swaydb.data.slice.{Slice, SliceOptional}
 //import swaydb.data.util.StorageUnits._
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
@@ -119,11 +119,11 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map.isEmpty shouldBe true
 //      map.close()
 //      //recover from an empty map
-//      val recovered = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val recovered = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      recovered.isEmpty shouldBe true
 //      recovered.close()
 //    }
@@ -132,11 +132,11 @@
 //      import AppendixMapEntryWriter._
 //      import appendixReader._
 //
-//      val map = Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map.isEmpty shouldBe true
 //      map.close()
 //      //recover from an empty map
-//      val recovered = Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val recovered = Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, map.path, mmap = true, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      recovered.isEmpty shouldBe true
 //      recovered.close()
 //    }
@@ -145,7 +145,7 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map.write(MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, Some(1)))) shouldBe true
 //      map.write(MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.put(2, Some(2)))) shouldBe true
 //      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
@@ -157,8 +157,8 @@
 //      map.skipList.get(10).value shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
 //      map.skipList.get(15).value shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 //
-//      def doRecover(path: Path): PersistentMap[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory] = {
-//        val recovered = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      def doRecover(path: Path): PersistentMap[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] = {
+//        val recovered = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //        recovered.skipList.get(1).value shouldBe Memory.put(1, Some(1))
 //        recovered.skipList.get(2).value shouldBe Memory.remove(2)
 //        recovered.skipList.get(10).value shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
@@ -183,15 +183,15 @@
 //      val segment1 = TestSegment(Slice(Memory.put(1, Some(1), None), Memory.put(2, Some(2), None)))
 //      val segment2 = TestSegment(Slice(Memory.put(3, Some(3), None), Memory.put(4, Some(4), None)))
 //
-//      val map = Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map.write(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
 //      map.write(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
 //      map.write(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
 //      map.skipList.get(1).value shouldBe segment1
 //      map.skipList.get(2) shouldBe empty
 //
-//      def doRecover(path: Path): PersistentMap[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment] = {
-//        val recovered = Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      def doRecover(path: Path): PersistentMap[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment] = {
+//        val recovered = Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, map.path, mmap = Random.nextBoolean(), flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //        recovered.skipList.get(1).value shouldBe segment1
 //        recovered.skipList.get(2) shouldBe empty
 //        recovered.close()
@@ -210,13 +210,13 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val map1 = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map1 = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map1.write(MapEntry.Put(1, Memory.put(1, Some(1)))) shouldBe true
 //      map1.write(MapEntry.Put(2, Memory.put(2, Some(2)))) shouldBe true
 //      map1.write(MapEntry.Put(3, Memory.put(3, Some(3)))) shouldBe true
 //      map1.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
 //
-//      val map2 = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map2 = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map2.write(MapEntry.Put(4, Memory.put(4, Some(4)))) shouldBe true
 //      map2.write(MapEntry.Put(5, Memory.put(5, Some(5)))) shouldBe true
 //      map2.write(MapEntry.Put(2, Memory.put(2, Some(22)))) shouldBe true //second file will override 2's value to be 22
@@ -227,7 +227,7 @@
 //      Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
 //
 //      //recover map 1 and it should contain all entries of map1 and map2
-//      val map1Recovered = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map1Recovered = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map1Recovered.skipList.get(1).value shouldBe Memory.put(1, Some(1))
 //      map1Recovered.skipList.get(2).value shouldBe Memory.put(2, Some(22)) //second file overrides 2's value to be 22
 //      map1Recovered.skipList.get(3).value shouldBe Memory.put(3, Some(3))
@@ -256,12 +256,12 @@
 //      val segment5 = TestSegment(Slice(Memory.put(5, Some(5), None), Memory.put(10, Some(10), None)))
 //      val segment2Updated = TestSegment(Slice(Memory.put(2, Some(2), None), Memory.put(12, Some(12), None)))
 //
-//      val map1 = Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map1 = Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map1.write(MapEntry.Put(1, segment1)) shouldBe true
 //      map1.write(MapEntry.Put(2, segment2)) shouldBe true
 //      map1.write(MapEntry.Put(3, segment3)) shouldBe true
 //
-//      val map2 = Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map2 = Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map2.write(MapEntry.Put(4, segment4)) shouldBe true
 //      map2.write(MapEntry.Put(5, segment5)) shouldBe true
 //      map2.write(MapEntry.Put(2, segment2Updated)) shouldBe true //second file will override 2's value to be segment2Updated
@@ -271,7 +271,7 @@
 //      Files.copy(map2sLogFile, map1.path.resolve(1.toLogFileId))
 //
 //      //recover map 1 and it should contain all entries of map1 and map2
-//      val map1Recovered = Map.persistent[SliceOption[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map1Recovered = Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null, map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map1Recovered.skipList.get(1).value shouldBe segment1
 //      map1Recovered.skipList.get(2).value shouldBe segment2Updated //second file overrides 2's value to be segment2Updated
 //      map1Recovered.skipList.get(3).value shouldBe segment3
@@ -297,7 +297,7 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //        nullKey = Slice.Null,
 //        nullValue = Memory.Null,
 //        folder = createRandomDir,
@@ -308,7 +308,7 @@
 //
 //      //fails because the file already exists.
 //      assertThrows[FileAlreadyExistsException] {
-//        Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//        Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //          nullKey = Slice.Null,
 //          nullValue = Memory.Null,
 //          folder = map.path,
@@ -319,7 +319,7 @@
 //      }
 //
 //      //recovers because the recovery is provided
-//      Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false)
+//      Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, map.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false)
 //
 //      map.close()
 //    }
@@ -330,7 +330,7 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+//      val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      val file = PersistentMap.recover[Slice[Byte], Memory](createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false)._1.item
 //
 //      file.isOpen shouldBe true
@@ -348,7 +348,7 @@
 //      import LevelZeroMapEntryWriter._
 //
 //      //create a map
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
 //      map.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
 //      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
 //      map.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
@@ -360,7 +360,7 @@
 //
 //      map.hasRange shouldBe true
 //
-//      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+//      val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      val recoveredFile = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false)._1.item
 //
 //      recoveredFile.isOpen shouldBe true
@@ -382,7 +382,7 @@
 //      import LevelZeroMapEntryWriter._
 //
 //      //create a map
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = true, flushOnOverflow = true, fileSize = 1.byte, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = true, flushOnOverflow = true, fileSize = 1.byte, dropCorruptedTailEntries = false).item
 //
 //      map.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
 //      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
@@ -398,7 +398,7 @@
 //      map.path.resolveSibling(4.toLogFileId).exists shouldBe false //4.log gets deleted
 //
 //      //reopen file
-//      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+//      val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      val recoveredFile = PersistentMap.recover(map.path, true, 1.byte, skipList, dropCorruptedTailEntries = false)._1.item
 //      recoveredFile.isOpen shouldBe true
 //      recoveredFile.isMemoryMapped shouldBe true
@@ -414,7 +414,7 @@
 //      skipList.get(15: Slice[Byte]).value shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 //
 //      //reopen the recovered file
-//      val skipList2 = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+//      val skipList2 = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      val recoveredFile2 = PersistentMap.recover(map.path, true, 1.byte, skipList2, dropCorruptedTailEntries = false)._1.item
 //      recoveredFile2.isOpen shouldBe true
 //      recoveredFile2.isMemoryMapped shouldBe true
@@ -439,11 +439,11 @@
 //      import LevelZeroMapEntryWriter._
 //
 //      //create a map
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = true, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
 //      map.currentFilePath.fileId shouldBe(0, Extension.Log)
 //      map.close()
 //
-//      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+//      val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      val file = PersistentMap.recover(map.path, false, 4.mb, skipList, dropCorruptedTailEntries = false)._1.item
 //
 //      file.isOpen shouldBe true
@@ -463,7 +463,7 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+//      val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      skipList.put(1, Memory.put(1, 1))
 //      skipList.put(2, Memory.put(2, 2))
 //      skipList.put(3, Memory.remove(3))
@@ -473,7 +473,7 @@
 //      val currentFile = PersistentMap.recover(createRandomDir, false, 4.mb, skipList, dropCorruptedTailEntries = false)._1.item
 //      val nextFile = PersistentMap.nextFile(currentFile, false, 4.mb, skipList)
 //
-//      val nextFileSkipList = SkipList.concurrent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+//      val nextFileSkipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
 //      val nextFileBytes = DBFile.channelRead(nextFile.path, randomIOStrategy(), autoClose = false, blockCacheFileId = BlockCacheFileIDGenerator.nextID).readAll
 //      val mapEntries = MapCodec.read(nextFileBytes, dropCorruptedTailEntries = false).value.item.value
 //      mapEntries applyTo nextFileSkipList
@@ -494,7 +494,7 @@
 //    import LevelZeroMapEntryWriter._
 //
 //    "fail if the WAL file is corrupted and and when dropCorruptedTailEntries = false" in {
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
 //      (1 to 100) foreach {
 //        i =>
 //          map.write(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
@@ -504,7 +504,7 @@
 //
 //      def assertRecover =
 //        assertThrows[IllegalStateException] {
-//          Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//          Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //            nullKey = Slice.Null,
 //            nullValue = Memory.Null,
 //            folder = map.currentFilePath.getParent,
@@ -525,7 +525,7 @@
 //    }
 //
 //    "successfully recover partial data if WAL file is corrupted and when dropCorruptedTailEntries = true" in {
-//      val map = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
+//      val map = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, fileSize = 4.mb, dropCorruptedTailEntries = false).item
 //      (1 to 100) foreach {
 //        i =>
 //          map.write(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
@@ -537,7 +537,7 @@
 //      Files.write(map.currentFilePath, allBytes.dropRight(1))
 //
 //      val recoveredMap =
-//        Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//        Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //          nullKey = Slice.Null,
 //          nullValue = Memory.Null,
 //          folder = map.currentFilePath.getParent,
@@ -557,7 +557,7 @@
 //      Files.write(recoveredMap.currentFilePath, allBytes.drop(1))
 //
 //      val recoveredMap2 =
-//        Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//        Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //          Slice.Null,
 //          Memory.Null,
 //          recoveredMap.currentFilePath.getParent,
@@ -576,12 +576,12 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val map1 = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map1 = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map1.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
 //      map1.write(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
 //      map1.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
 //
-//      val map2 = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map2 = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map2.write(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
 //      map2.write(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
 //      map2.write(MapEntry.Put(6, Memory.put(6, 6))) shouldBe true
@@ -601,14 +601,14 @@
 //      //corrupt 0.log bytes
 //      Files.write(log0, log0Bytes.drop(1))
 //      assertThrows[IllegalStateException] {
-//        Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false)
+//        Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false)
 //      }
 //      Files.write(log0, log0Bytes) //fix log0 bytes
 //
 //      //successfully recover Map by reading both WAL files if the first WAL file is corrupted
 //      //corrupt 0.log bytes
 //      Files.write(log0, log0Bytes.dropRight(1))
-//      val recoveredMapWith0LogCorrupted = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true)
+//      val recoveredMapWith0LogCorrupted = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true)
 //      //recovery state contains failure because the WAL file is partially recovered.
 //      recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
 //      //count instead of size because skipList's actual size can be higher.
@@ -630,12 +630,12 @@
 //      import LevelZeroMapEntryReader._
 //      import LevelZeroMapEntryWriter._
 //
-//      val map1 = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map1 = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map1.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
 //      map1.write(MapEntry.Put(2, Memory.put(2))) shouldBe true
 //      map1.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
 //
-//      val map2 = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
+//      val map2 = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, createRandomDir, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false).item
 //      map2.write(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
 //      map2.write(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
 //      map2.write(MapEntry.Put(6, Memory.put(6, 6))) shouldBe true
@@ -654,14 +654,14 @@
 //      //corrupt 1.log bytes
 //      Files.write(log1, log1Bytes.drop(1))
 //      assertThrows[IllegalStateException] {
-//        Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false)
+//        Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = false)
 //      }
 //      Files.write(log1, log1Bytes) //fix log1 bytes
 //
 //      //successfully recover Map by reading both WAL files if the second WAL file is corrupted
 //      //corrupt 1.log bytes
 //      Files.write(log1, log1Bytes.dropRight(1))
-//      val recoveredMapWith0LogCorrupted = Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true)
+//      val recoveredMapWith0LogCorrupted = Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](map1.path, mmap = false, flushOnOverflow = false, 1.mb, dropCorruptedTailEntries = true)
 //      //recovery state contains failure because the WAL file is partially recovered.
 //      recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
 //      //count instead of size because skipList's actual size can be higher.
@@ -688,7 +688,7 @@
 //        _ =>
 //          //create a Map with randomly max size so that this test also covers when multiple maps are created. Also set flushOnOverflow to true so that the same Map gets written.
 //          val map =
-//            Map.persistent[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory](
+//            Map.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
 //              folder = createRandomDir,
 //              mmap = Random.nextBoolean(),
 //              flushOnOverflow = true,
