@@ -92,7 +92,7 @@ object PersistentSegment {
       maxKey = maxKey,
       minMaxFunctionId = minMaxFunctionId,
       segmentSize = segmentSize,
-      nearestExpiryDeadline = nearestExpiryDeadline,
+      nearestPutDeadline = nearestExpiryDeadline,
       segmentCache = segmentCache
     )
   }
@@ -106,7 +106,7 @@ private[segment] case class PersistentSegment(file: DBFile,
                                               maxKey: MaxKey[Slice[Byte]],
                                               minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                               segmentSize: Int,
-                                              nearestExpiryDeadline: Option[Deadline],
+                                              nearestPutDeadline: Option[Deadline],
                                               private[segment] val segmentCache: SegmentCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                                                functionStore: FunctionStore,

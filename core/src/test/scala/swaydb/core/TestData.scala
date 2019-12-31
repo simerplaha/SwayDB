@@ -110,7 +110,7 @@ object TestData {
           maxKey = segment.maxKey,
           segmentSize = segment.segmentSize,
           minMaxFunctionId = segment.minMaxFunctionId,
-          nearestExpiryDeadline = segment.nearestExpiryDeadline
+          nearestExpiryDeadline = segment.nearestPutDeadline
         )
 
       segment.close
@@ -1492,8 +1492,33 @@ object TestData {
         }
     }
 
+  def collectUsedPutDeadlines(keyValues: Slice[Memory], usedDeadlines: List[Deadline]): Slice[Deadline] =
+    keyValues collect {
+      case put: Memory.Put if put.deadline.isDefined =>
+        put.deadline.get
+
+      case range: Memory.Range if range.fromValue.existsS(fromValue => fromValue.isPut && fromValue.deadline.isDefined) =>
+        range.fromValue.getS.deadline.get
+    }
+
   def nearestDeadline(keyValues: Slice[Memory]): Option[Deadline] = {
     val usedDeadlines = collectUsedDeadlines(keyValues.toSlice, List.empty)
+    if (usedDeadlines.isEmpty)
+      None
+    else
+      Some(
+        usedDeadlines.reduce[Deadline] {
+          case (left, right) =>
+            if (left < right)
+              left
+            else
+              right
+        }
+      )
+  }
+
+  def nearestPutDeadline(keyValues: Slice[Memory]): Option[Deadline] = {
+    val usedDeadlines = collectUsedPutDeadlines(keyValues.toSlice, List.empty)
     if (usedDeadlines.isEmpty)
       None
     else

@@ -51,10 +51,10 @@ private[segment] case class MemorySegment(path: Path,
                                           hasPut: Boolean,
                                           createdInLevel: Int,
                                           private[segment] val skipList: SkipList.Immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-                                          nearestExpiryDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                   timeOrder: TimeOrder[Slice[Byte]],
-                                                                                   functionStore: FunctionStore,
-                                                                                   fileSweeper: FileSweeper.Enabled) extends Segment with LazyLogging {
+                                          nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                                                functionStore: FunctionStore,
+                                                                                fileSweeper: FileSweeper.Enabled) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 

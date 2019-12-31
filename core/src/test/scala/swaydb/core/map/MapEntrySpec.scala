@@ -123,7 +123,7 @@
 //      skipList should have size 1
 //      skipList.get(1: Slice[Byte]).value shouldBe range1
 //
-//      val range2 = Memory.Range(2, 10, Value.FromValue.None, Value.update("range one"))
+//      val range2 = Memory.Range(2, 10, Value.FromValue.Null, Value.update("range one"))
 //      val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
 //      entry2.hasRange shouldBe true
 //
@@ -144,7 +144,7 @@
 //      skipList should have size 1
 //      skipList.get(1: Slice[Byte]).value shouldBe range1
 //
-//      val range2 = Memory.Range(2, 10, Value.FromValue.None, Value.remove(None))
+//      val range2 = Memory.Range(2, 10, Value.FromValue.Null, Value.remove(None))
 //      val entry2 = MapEntry.Put[Slice[Byte], Memory.Range](2, range2)
 //      entry2.hasRange shouldBe true
 //
@@ -164,9 +164,9 @@
 //          MapEntry.Put[Slice[Byte], Memory.Put](3, Memory.put(3, Some("three"))) ++
 //          MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2)) ++
 //          MapEntry.Put[Slice[Byte], Memory.Put](4, Memory.put(4, Some("four"))) ++
-//          MapEntry.Put[Slice[Byte], Memory.Range](5, Memory.Range(5, 10, Value.FromValue.None, Value.update(10))) ++
+//          MapEntry.Put[Slice[Byte], Memory.Range](5, Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))) ++
 //          MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20))) ++
-//          MapEntry.Put[Slice[Byte], Memory.Range](21, Memory.Range(21, 30, Value.FromValue.None, Value.remove(None))) ++
+//          MapEntry.Put[Slice[Byte], Memory.Range](21, Memory.Range(21, 30, Value.FromValue.Null, Value.remove(None))) ++
 //          MapEntry.Put[Slice[Byte], Memory.Range](31, Memory.Range(31, 40, Value.put(20), Value.remove(None)))
 //
 //      entry applyTo skipList
@@ -178,9 +178,9 @@
 //      skipList.get(2: Slice[Byte]).value shouldBe Memory.remove(2)
 //      skipList.get(3: Slice[Byte]).value shouldBe Memory.put(3, Some("three"))
 //      skipList.get(4: Slice[Byte]).value shouldBe Memory.put(4, Some("four"))
-//      skipList.get(5: Slice[Byte]).value shouldBe Memory.Range(5, 10, Value.FromValue.None, Value.update(10))
+//      skipList.get(5: Slice[Byte]).value shouldBe Memory.Range(5, 10, Value.FromValue.Null, Value.update(10))
 //      skipList.get(11: Slice[Byte]).value shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
-//      skipList.get(21: Slice[Byte]).value shouldBe Memory.Range(21, 30, Value.FromValue.None, Value.remove(None))
+//      skipList.get(21: Slice[Byte]).value shouldBe Memory.Range(21, 30, Value.FromValue.Null, Value.remove(None))
 //      skipList.get(31: Slice[Byte]).value shouldBe Memory.Range(31, 40, Value.put(20), Value.remove(None))
 //    }
 //

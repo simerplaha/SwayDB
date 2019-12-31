@@ -90,7 +90,7 @@ object AppendixMapEntryWriter {
         .addUnsignedInt(maxKeyId)
         .addUnsignedInt(maxKeyBytes.size)
         .addAll(maxKeyBytes)
-        .addUnsignedLong(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L))
+        .addUnsignedLong(entry.value.nearestPutDeadline.map(_.time.toNanos).getOrElse(0L))
 
       writeMinMax(bytes)
     }
@@ -124,7 +124,7 @@ object AppendixMapEntryWriter {
         Bytes.sizeOfUnsignedInt(maxKeyId) +
         Bytes.sizeOfUnsignedInt(maxKeyBytes.size) +
         maxKeyBytes.size +
-        Bytes.sizeOfUnsignedLong(entry.value.nearestExpiryDeadline.map(_.time.toNanos).getOrElse(0L)) +
+        Bytes.sizeOfUnsignedLong(entry.value.nearestPutDeadline.map(_.time.toNanos).getOrElse(0L)) +
         minMaxFunctionIdBytesRequires
     }
   }

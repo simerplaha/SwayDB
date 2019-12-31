@@ -119,7 +119,7 @@
 //    "initialise a new map if the current map is full" in {
 //      def test(maps: Maps[Slice[Byte], Memory]) = {
 //        maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value //entry size is 40.bytes
-//        maps.write(_ => MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, Value.FromValue.None, Value.update(2)))).runRandomIO.right.value //another 43.bytes
+//        maps.write(_ => MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, Value.FromValue.Null, Value.update(2)))).runRandomIO.right.value //another 43.bytes
 //        maps.queuedMapsCountWithCurrent shouldBe 1
 //        //another 32.bytes but map has total size of 82.bytes.
 //        //now since the Map is overflow a new should value created.

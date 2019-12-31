@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.compression.CompressionInternal
-import swaydb.core.data.{KeyValue, Memory, Persistent, PersistentOptional}
+import swaydb.core.data.{KeyValue, Memory, Persistent, PersistentOptional, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.KeyMatcher.Result
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -334,6 +334,12 @@ private[core] object SortedIndexBlock extends LazyLogging {
         )
 
       case keyValue: Memory.Range =>
+        keyValue.fromValue foreachS {
+          case put: Value.Put =>
+            state.nearestDeadline = FiniteDurations.getNearestDeadline(state.nearestDeadline, put.deadline)
+          case _: Value.RangeValue =>
+            //no need to do anything here. Just put deadline required.
+        }
         state.minMaxFunctionId = MinMax.minMaxFunction(keyValue, state.minMaxFunctionId)
         state.hasPut = state.hasPut || keyValue.fromValue.existsS(_.isPut)
         state.hasRemoveRange = state.hasRemoveRange || keyValue.rangeValue.hasRemoveMayBe

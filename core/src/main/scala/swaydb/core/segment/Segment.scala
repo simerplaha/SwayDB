@@ -119,6 +119,12 @@ private[core] object Segment extends LazyLogging {
 
           case keyValue: Memory.Range =>
             hasRange = true
+            keyValue.fromValue foreachS {
+              case put: Value.Put =>
+                nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, put.deadline)
+              case _: Value.RangeValue =>
+              //no need to do anything here. Just put deadline required.
+            }
             minMaxFunctionId = MinMax.minMaxFunction(keyValue, minMaxFunctionId)
             hasPut = hasPut || keyValue.fromValue.existsS(_.isPut)
             skipList.put(keyValue.key, keyValue)
@@ -150,7 +156,7 @@ private[core] object Segment extends LazyLogging {
             hasPut = hasPut,
             createdInLevel = createdInLevel.toInt,
             skipList = skipList,
-            nearestExpiryDeadline = nearestDeadline
+            nearestPutDeadline = nearestDeadline
           )
 
         segments += segment
@@ -329,7 +335,7 @@ private[core] object Segment extends LazyLogging {
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
               minMaxFunctionId = segment.minMaxFunctionId,
-              nearestExpiryDeadline = segment.nearestExpiryDeadline
+              nearestExpiryDeadline = segment.nearestPutDeadline
             )
           )
         catch {
@@ -915,7 +921,7 @@ private[core] object Segment extends LazyLogging {
 
   def getNearestDeadlineSegment(previous: Segment,
                                 next: Segment): SegmentOptional =
-    (previous.nearestExpiryDeadline, next.nearestExpiryDeadline) match {
+    (previous.nearestPutDeadline, next.nearestPutDeadline) match {
       case (None, None) => Segment.Null
       case (Some(_), None) => previous
       case (None, Some(_)) => next
@@ -933,7 +939,7 @@ private[core] object Segment extends LazyLogging {
           previous =>
             getNearestDeadlineSegment(previous, next)
         } getOrElse {
-          if (next.nearestExpiryDeadline.isDefined)
+          if (next.nearestPutDeadline.isDefined)
             next
           else
             Segment.Null
@@ -986,7 +992,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
   val segmentSize: Int
-  val nearestExpiryDeadline: Option[Deadline]
+  val nearestPutDeadline: Option[Deadline]
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
 
   def createdInLevel: Int

@@ -1547,7 +1547,7 @@ private[core] case class Level(dirs: Seq[Dir],
           Level.shouldCollapse(self, segment) ||
             FiniteDurations.getNearestDeadline(
               deadline = None,
-              next = segment.nearestExpiryDeadline
+              next = segment.nearestPutDeadline
             ).exists(_.isOverdue())
       }
 
