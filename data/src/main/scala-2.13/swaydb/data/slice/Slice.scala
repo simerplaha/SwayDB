@@ -33,8 +33,10 @@ import scala.reflect.ClassTag
 sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Slice[T]] {
   override def noneC: SliceOptional[Nothing] = Slice.Null
 
+  def isUnslicedOptional: Boolean
+
   def unsliceOptional(): SliceOptional[T] =
-    if (this.isNoneC)
+    if (this.isNoneC || this.getC.isEmpty)
       Slice.Null
     else
       this.getC.unslice()
@@ -45,6 +47,7 @@ object Slice extends SliceCompanionBase {
   final case object Null extends SliceOptional[Nothing] {
     override val isNoneC: Boolean = true
     override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
+    override def isUnslicedOptional: Boolean = true
   }
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
@@ -125,6 +128,4 @@ class Slice[+T] private[slice](array: Array[T],
   //Ok - why is iterableFactory required when there is ClassTagIterableFactory.
   override def iterableFactory: IterableFactory[Slice] =
     new ClassTagIterableFactory.AnyIterableDelegate[Slice](evidenceIterableFactory)
-
-
 }

@@ -97,7 +97,7 @@ private[core] object Segment extends LazyLogging {
       }
 
       def put(keyValue: Memory): Unit =
-        keyValue match {
+        keyValue.unslice() match {
           case keyValue: Memory.Put =>
             hasPut = true
             nearestDeadline = FiniteDurations.getNearestDeadline(nearestDeadline, keyValue.deadline)

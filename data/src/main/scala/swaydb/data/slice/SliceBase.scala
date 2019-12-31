@@ -57,6 +57,9 @@ abstract class SliceBase[+T](array: Array[T],
   override def nonEmpty =
     !isEmpty
 
+  def isUnslicedOptional: Boolean =
+    nonEmpty && isOriginalFullSlice
+
   /**
    * Create a new Slice for the offsets.
    *

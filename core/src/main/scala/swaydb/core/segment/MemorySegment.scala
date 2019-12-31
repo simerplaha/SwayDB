@@ -84,12 +84,15 @@ private[segment] case class MemorySegment(path: Path,
         isLastLevel = removeDeletes
       )
 
-      Segment.memory(
-        createdInLevel = createdInLevel,
-        minSegmentSize = minSegmentSize,
-        keyValues = stats.close,
-        pathsDistributor = pathsDistributor
-      )
+      if (stats.isEmpty)
+        Slice.empty
+      else
+        Segment.memory(
+          createdInLevel = createdInLevel,
+          minSegmentSize = minSegmentSize,
+          keyValues = stats.close,
+          pathsDistributor = pathsDistributor
+        )
     }
 
   override def refresh(minSegmentSize: Int,

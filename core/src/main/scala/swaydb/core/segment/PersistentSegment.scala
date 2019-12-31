@@ -205,41 +205,91 @@ private[segment] case class PersistentSegment(file: DBFile,
               pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
     val footer = getFooter()
-    val sortedIndexSize = footer.sortedIndexOffset.size
-    val valuesSize =
-      if (footer.valuesOffset.isDefined)
-        footer.valuesOffset.get.size
-      else
-        0
+    //if it's created in the same level the required spaces for sortedIndex and values
+    //will be the same as existing or less than the current sizes so there is no need to create a
+    //MergeState builder.
+    if (footer.createdInLevel == createdInLevel) {
+      val sortedIndexBlock = segmentCache.blockCache.getSortedIndex()
+      val valuesBlock = segmentCache.blockCache.getValues()
 
-    val keyValues =
-      Segment
-        .toMemoryIterator(iterator(), removeDeletes)
-        .to(Iterable)
+      val sortedIndexSize =
+        sortedIndexBlock.compressionInfo match {
+          case Some(compressionInfo) =>
+            compressionInfo.decompressedLength
 
-    val mergeStats =
-      new MergeStats.Persistent.Closed[Iterable](
-        isEmpty = false,
-        keyValuesCount = footer.keyValueCount,
-        keyValues = keyValues,
-        totalValuesSize = valuesSize,
-        maxSortedIndexSize = sortedIndexSize
+          case None =>
+            sortedIndexBlock.offset.size
+        }
+
+      val valuesSize =
+        valuesBlock match {
+          case Some(valuesBlock) =>
+            valuesBlock.compressionInfo match {
+              case Some(value) =>
+                value.decompressedLength
+
+              case None =>
+                valuesBlock.offset.size
+            }
+          case None =>
+            0
+        }
+
+      val keyValues =
+        Segment
+          .toMemoryIterator(iterator(), removeDeletes)
+          .to(Iterable)
+
+      val mergeStats =
+        new MergeStats.Persistent.Closed[Iterable](
+          isEmpty = false,
+          keyValuesCount = footer.keyValueCount,
+          keyValues = keyValues,
+          totalValuesSize = valuesSize,
+          maxSortedIndexSize = sortedIndexSize
+        )
+
+      Segment.persistent(
+        segmentSize = minSegmentSize,
+        pathsDistributor = pathsDistributor,
+        segmentConfig = segmentConfig,
+        createdInLevel = createdInLevel,
+        mmapReads = mmapReads,
+        mmapWrites = mmapWrites,
+        mergeStats = mergeStats,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig
       )
+    } else {
+      //if the
+      val keyValues =
+        Segment
+          .toMemoryIterator(iterator(), removeDeletes)
+          .to(Iterable)
 
-    Segment.persistent(
-      segmentSize = minSegmentSize,
-      pathsDistributor = pathsDistributor,
-      segmentConfig = segmentConfig,
-      createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
-      mergeStats = mergeStats,
-      bloomFilterConfig = bloomFilterConfig,
-      hashIndexConfig = hashIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      valuesConfig = valuesConfig
-    )
+      val builder =
+        MergeStats
+          .persistentBuilder(keyValues)
+          .close(sortedIndexConfig.enableAccessPositionIndex)
+
+      Segment.persistent(
+        segmentSize = minSegmentSize,
+        pathsDistributor = pathsDistributor,
+        segmentConfig = segmentConfig,
+        createdInLevel = createdInLevel,
+        mmapReads = mmapReads,
+        mmapWrites = mmapWrites,
+        mergeStats = builder,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig
+      )
+    }
   }
 
   def getSegmentBlockOffset(): SegmentBlock.Offset =

@@ -1302,7 +1302,7 @@ object CommonAssertions {
         bloomFilterConfig = BloomFilterBlock.Config.random,
         hashIndexConfig = HashIndexBlock.Config.random,
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-        sortedIndexConfig = SortedIndexBlock.Config.random,
+        sortedIndexConfig = sortedIndexBlock,
         valuesConfig = ValuesBlock.Config.random,
         segmentConfig = SegmentBlock.Config.random
       )

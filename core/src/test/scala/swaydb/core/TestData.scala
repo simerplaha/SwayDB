@@ -371,11 +371,13 @@ object TestData {
     def random: SortedIndexBlock.Config =
       random(randomBoolean())
 
-    def random(hasCompression: Boolean, cacheOnAccess: Boolean = randomBoolean()): SortedIndexBlock.Config =
+    def random(hasCompression: Boolean,
+               cacheOnAccess: Boolean = randomBoolean(),
+               shouldPrefixCompress: Boolean = randomBoolean()): SortedIndexBlock.Config =
       SortedIndexBlock.Config(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         enablePrefixCompression = randomBoolean(),
-        shouldPrefixCompress = _ => randomBoolean(),
+        shouldPrefixCompress = _ => shouldPrefixCompress,
         prefixCompressKeysOnly = randomBoolean(),
         enableAccessPositionIndex = randomBoolean(),
         normaliseIndex = randomBoolean(),

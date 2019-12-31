@@ -56,7 +56,7 @@ private[core] object MergeList {
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
   def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): MergeList[H, T] =
-    new Single[H, T](keyValues.size, null, null, keyValues)
+    new Single[H, T](size, null, null, keyValues)
 
   implicit class MergeListImplicit[H >: Null <: T, T >: Null](left: MergeList[H, T]) {
     def append(right: MergeList[H, T]): MergeList[H, T] =

@@ -173,6 +173,8 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
   def value: SliceOptional[Byte]
   def deadline: Option[Deadline]
 
+  def unslice(): Memory
+
   override def isNoneS: Boolean =
     false
 
@@ -282,6 +284,17 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
+    def unslice(): Memory.Put =
+      if (key.isOriginalFullSlice && value.isUnslicedOptional && time.time.isOriginalFullSlice)
+        this
+      else
+        Put(
+          key = key.unslice(),
+          value = value.unsliceOptional(),
+          deadline = deadline,
+          time = time.unslice()
+        )
+
     override def valueLength: Int =
       value.mapC(_.size).getOrElse(0)
 
@@ -292,7 +305,10 @@ private[swaydb] object Memory {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: SliceOptional[Byte] =
-      value
+      if (value.existsC(_.isEmpty))
+        Slice.Null
+      else
+        value
 
     override def toFromValue(): Value.Put =
       Value.Put(value, deadline, time)
@@ -333,6 +349,17 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
+    def unslice(): Memory.Update =
+      if (key.isOriginalFullSlice && value.isUnslicedOptional && time.time.isOriginalFullSlice)
+        this
+      else
+        Update(
+          key = key.unslice(),
+          value = value.unsliceOptional(),
+          deadline = deadline,
+          time = time.unslice()
+        )
+
     def hasTimeLeft(): Boolean =
       deadline.forall(_.hasTimeLeft())
 
@@ -340,7 +367,10 @@ private[swaydb] object Memory {
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
     override def getOrFetchValue: SliceOptional[Byte] =
-      value
+      if (value.existsC(_.isEmpty))
+        Slice.Null
+      else
+        value
 
     override def toFromValue(): Value.Update =
       Value.Update(value, deadline, time)
@@ -402,6 +432,16 @@ private[swaydb] object Memory {
 
     override def deadline: Option[Deadline] = None
 
+    def unslice(): Memory.Function =
+      if (key.isOriginalFullSlice && function.isOriginalFullSlice && time.time.isOriginalFullSlice)
+        this
+      else
+        Function(
+          key = key.unslice(),
+          function = function.unslice(),
+          time = time.unslice()
+        )
+
     override def getOrFetchFunction: Slice[Byte] =
       function
 
@@ -436,6 +476,15 @@ private[swaydb] object Memory {
     override def isRemoveRangeMayBe = false
 
     override lazy val value: SliceOptional[Byte] = ValueSerializer.writeBytes(applies)
+
+    def unslice(): Memory.PendingApply =
+      if (key.isOriginalFullSlice && applies.forall(_.isUnsliced))
+        this
+      else
+        PendingApply(
+          key = key.unslice(),
+          applies = applies.map(_.unslice)
+        )
 
     override val deadline =
       Segment.getNearestDeadline(None, applies)
@@ -479,6 +528,16 @@ private[swaydb] object Memory {
 
     override def value: SliceOptional[Byte] = Slice.Null
 
+    override def unslice(): Memory.Remove =
+      if (key.isOriginalFullSlice && time.time.isOriginalFullSlice)
+        this
+      else
+        Remove(
+          key = key.unslice(),
+          deadline = deadline,
+          time = time.unslice()
+        )
+
     def hasTimeLeft(): Boolean =
       deadline.exists(_.hasTimeLeft())
 
@@ -499,6 +558,7 @@ private[swaydb] object Memory {
 
     override def toMemory: Memory.Remove =
       this
+
   }
 
   object Range {
@@ -532,6 +592,17 @@ private[swaydb] object Memory {
 
     def isRange: Boolean = true
 
+    override def unslice(): Memory.Range =
+      if (fromKey.isOriginalFullSlice && toKey.isOriginalFullSlice && fromValue.forallS(_.isUnsliced) && rangeValue.isUnsliced)
+        this
+      else
+        Range(
+          fromKey = fromKey.unslice(),
+          toKey = toKey.unslice(),
+          fromValue = fromValue.flatMapS(_.unslice),
+          rangeValue = rangeValue.unslice
+        )
+
     override lazy val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
 
     override lazy val value: SliceOptional[Byte] = {
@@ -558,6 +629,7 @@ private[swaydb] object Memory {
 
     override def toMemory: Memory.Range =
       this
+
   }
 }
 

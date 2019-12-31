@@ -255,6 +255,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   object TestSegment {
     def apply(keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
+              createdInLevel: Int = 1,
               path: Path = testSegmentFile,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -276,6 +277,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       val segments =
         many(
           segmentSize = Int.MaxValue,
+          createdInLevel = createdInLevel,
           keyValues = keyValues,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig,
@@ -291,6 +293,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     }
 
     def many(segmentSize: Int = randomIntMax(30.mb),
+             createdInLevel: Int = 1,
              keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -319,14 +322,14 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         Segment.memory(
           minSegmentSize = segmentSize,
           pathsDistributor = pathsDistributor,
-          createdInLevel = 0,
+          createdInLevel = createdInLevel,
           keyValues = MergeStats.memoryBuilder(keyValues).close
         )
       else
         Segment.persistent(
           segmentSize = segmentSize,
           pathsDistributor = pathsDistributor,
-          createdInLevel = 0,
+          createdInLevel = createdInLevel,
           mmapReads = levelStorage.mmapSegmentsOnRead,
           mmapWrites = levelStorage.mmapSegmentsOnWrite,
           bloomFilterConfig = bloomFilterConfig,
@@ -779,11 +782,27 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   def assertSegment[T](keyValues: Slice[Memory],
                        assert: (Slice[Memory], Segment) => T,
                        testAgainAfterAssert: Boolean = true,
-                       closeAfterCreate: Boolean = false)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                          segmentIO: SegmentIO = SegmentIO.random) = {
+                       closeAfterCreate: Boolean = false,
+                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                       hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                                        segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
-    val segment = TestSegment(keyValues)
+    val segment =
+      TestSegment(
+        keyValues = keyValues,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
+
     if (closeAfterCreate) segment.close
 
     assert(keyValues, segment) //first

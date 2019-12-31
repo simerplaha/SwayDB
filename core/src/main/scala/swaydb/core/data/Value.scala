@@ -28,6 +28,7 @@ import scala.concurrent.duration.Deadline
 private[swaydb] sealed trait Value {
   def hasRemoveMayBe: Boolean
   def unslice: Value
+  def isUnsliced: Boolean
   def time: Time
 }
 
@@ -100,6 +101,9 @@ private[swaydb] object Value {
     def unslice(): Value.Remove =
       Remove(deadline = deadline, time = time.unslice())
 
+    override def isUnsliced: Boolean =
+      time.time.isOriginalFullSlice
+
     def hasTimeLeft(): Boolean =
       deadline.exists(_.hasTimeLeft())
 
@@ -112,6 +116,7 @@ private[swaydb] object Value {
 
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
       scala.None
+
   }
 
   case class Put(value: SliceOptional[Byte],
@@ -124,6 +129,9 @@ private[swaydb] object Value {
 
     def unslice(): Value.Put =
       Put(value = value.unsliceOptional(), deadline, time.unslice())
+
+    override def isUnsliced: Boolean =
+      value.isUnslicedOptional && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Put =
       Memory.Put(
@@ -138,6 +146,7 @@ private[swaydb] object Value {
 
     def hasTimeLeft(): Boolean =
       deadline.forall(_.hasTimeLeft())
+
   }
 
   case class Update(value: SliceOptional[Byte],
@@ -150,6 +159,9 @@ private[swaydb] object Value {
 
     def unslice(): Value.Update =
       Update(value = value.unsliceOptional(), deadline, time.unslice())
+
+    override def isUnsliced: Boolean =
+      value.isUnslicedOptional && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Update =
       Memory.Update(
@@ -164,6 +176,7 @@ private[swaydb] object Value {
 
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
       scala.None
+
   }
 
   case class Function(function: Slice[Byte],
@@ -175,6 +188,9 @@ private[swaydb] object Value {
 
     def unslice(): Function =
       Function(function.unslice(), time.unslice())
+
+    override def isUnsliced: Boolean =
+      function.isOriginalFullSlice && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Function =
       Memory.Function(
@@ -200,6 +216,9 @@ private[swaydb] object Value {
     def unslice(): Value.PendingApply =
       PendingApply(applies.map(_.unslice))
 
+    override def isUnsliced: Boolean =
+      applies.forall(_.isUnsliced)
+
     def toMemory(key: Slice[Byte]): Memory.PendingApply =
       Memory.PendingApply(
         key = key,
@@ -211,5 +230,6 @@ private[swaydb] object Value {
 
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
       scala.None
+
   }
 }

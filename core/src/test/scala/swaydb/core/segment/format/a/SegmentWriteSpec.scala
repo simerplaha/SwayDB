@@ -219,7 +219,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         )
       }
 
-      runThis(10.times) {
+      runThis(100.times) {
         //unique data to avoid compression.
         //this test asserts that key-values are not sliced unnecessarily.
         val data = ('a' to 'z').toArray
@@ -285,6 +285,15 @@ sealed trait SegmentWriteSpec extends TestBase {
           keyValues =
             Slice(Memory.put(0), Memory.put(1, 1), Memory.remove(2, randomDeadlineOption)),
 
+          bloomFilterConfig =
+            BloomFilterBlock.Config(
+              falsePositiveRate = 0.001,
+              minimumNumberOfKeys = 0,
+              optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+              ioStrategy = _ => randomIOStrategy(),
+              compressions = _ => randomCompressionsOrEmpty()
+            ),
+
           assert =
             (keyValues, segment) => {
               segment.hasBloomFilter.runRandomIO.right.value shouldBe true
@@ -296,6 +305,15 @@ sealed trait SegmentWriteSpec extends TestBase {
         assertSegment(
           keyValues =
             Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.update(10, randomDeadlineOption))),
+
+          bloomFilterConfig =
+            BloomFilterBlock.Config(
+              falsePositiveRate = 0.001,
+              minimumNumberOfKeys = 0,
+              optimalMaxProbe = optimalMaxProbe => optimalMaxProbe,
+              ioStrategy = _ => randomIOStrategy(),
+              compressions = _ => randomCompressionsOrEmpty()
+            ),
 
           assert =
             (keyValues, segment) => {
@@ -543,7 +561,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       segment.isFileDefined shouldBe false
 
       segment.existsOnDisk shouldBe false
-      IO(segment.get(keyValues.head.key)).left.right.value.exception shouldBe a[NoSuchFileException]
+      IO(segment.get(keyValues.head.key)).left.get.exception shouldBe a[NoSuchFileException]
 
       IO {
         segment.put(
@@ -558,7 +576,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           bloomFilterConfig = bloomFilterConfig,
           segmentConfig = segmentConfig
         )
-      }.left.right.value.exception shouldBe a[NoSuchFileException]
+      }.left.get.exception shouldBe a[NoSuchFileException]
 
       IO {
         segment.refresh(
@@ -572,7 +590,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           bloomFilterConfig = bloomFilterConfig,
           segmentConfig = segmentConfig
         )
-      }.left.right.value.exception shouldBe a[NoSuchFileException]
+      }.left.get.exception shouldBe a[NoSuchFileException]
 
       segment.isOpen shouldBe false
       segment.isFileDefined shouldBe false
@@ -774,26 +792,23 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       val segmentIDGenerator: IDGenerator = IDGenerator(segmentId - 1)
 
-      val newSegment =
-        IO {
-          Segment.copyToPersist(
-            segment = segment,
-            createdInLevel = 0,
-            pathsDistributor = pathDistributor,
-            mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
-            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-            minSegmentSize = Segment.segmentSizeForMerge(segment) / 10,
-            valuesConfig = valuesConfig,
-            sortedIndexConfig = sortedIndexConfig,
-            binarySearchIndexConfig = binarySearchIndexConfig,
-            hashIndexConfig = hashIndexConfig,
-            bloomFilterConfig = bloomFilterConfig,
-            segmentConfig = segmentConfig,
-            removeDeletes = true
-          )(keyOrder, timeOrder, functionStore, keyValueMemorySweeper, fileSweeper, blockCache, segmentIO, segmentIDGenerator)
-        }
-
-      newSegment.left.value.exception shouldBe a[FileAlreadyExistsException]
+      assertThrows[FileAlreadyExistsException] {
+        Segment.copyToPersist(
+          segment = segment,
+          createdInLevel = 0,
+          pathsDistributor = pathDistributor,
+          mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
+          mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
+          minSegmentSize = Segment.segmentSizeForMerge(segment) / 10,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig,
+          removeDeletes = true
+        )(keyOrder, timeOrder, functionStore, keyValueMemorySweeper, fileSweeper, blockCache, segmentIO, segmentIDGenerator)
+      }
 
       Effect.size(conflictingPath) shouldBe 0
       if (persistent) segment.existsOnDisk shouldBe true //original Segment remains untouched
@@ -1031,6 +1046,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         )
 
       val newKeyValues = Slice(Memory.put(2, 2))
+
       val newSegments =
         segment.put(
           newKeyValues = newKeyValues,
@@ -1049,7 +1065,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       val allReadKeyValues = Segment.getAllKeyValues(newSegments)
 
-      allReadKeyValues should have size 1
+      allReadKeyValues should have size 2
 
       val builder = MergeStats.random()
 
@@ -1063,453 +1079,529 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       val expectedKeyValues = builder.result
 
-      expectedKeyValues.result should have size 1
+      expectedKeyValues.result should have size 2
 
       allReadKeyValues shouldBe expectedKeyValues.result
     }
-    //
-    //      "return multiple new segments with merged key values" in {
-    //        val keyValues = randomizedKeyValues(keyValuesCount)
-    //        val segment = TestSegment(keyValues)
-    //
-    //        val newKeyValues = randomizedKeyValues(keyValuesCount)
-    //        val newSegments =
-    //          segment.put(
-    //            newKeyValues = newKeyValues.toMemory,
-    //            minSegmentSize = segment.segmentSize / 10,
-    //            valuesConfig = newKeyValues.last.valuesConfig,
-    //            sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
-    //            binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
-    //            hashIndexConfig = newKeyValues.last.hashIndexConfig,
-    //            bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-    //            segmentConfig = SegmentBlock.Config.random,
-    //            removeDeletes = false,
-    //            createdInLevel = 0
-    //          )
-    //
-    //        newSegments.size should be > 1
-    //
-    //        val allReadKeyValues = Segment.getAllKeyValues(newSegments)
-    //
-    //        //give merge a very large size so that there are no splits (test convenience)
-    //        val expectedKeyValues =
-    //          SegmentMerger.merge(
-    //            newKeyValues = newKeyValues.toMemory,
-    //            oldKeyValues = keyValues.toMemory,
-    //            minSegmentSize = 10.mb,
-    //            isLastLevel = false,
-    //            forInMemory = memory,
-    //            valuesConfig = newKeyValues.last.valuesConfig,
-    //            sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
-    //            binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
-    //            hashIndexConfig = newKeyValues.last.hashIndexConfig,
-    //            bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-    //            createdInLevel = randomIntMax()
-    //          )
-    //
-    //        expectedKeyValues should have size 1
-    //
-    //        //allReadKeyValues are read from multiple Segments so valueOffsets will be invalid so stats will be invalid
-    //        allReadKeyValues shouldBe expectedKeyValues.head
-    //      }
-    //
-    //      "fail put and delete partially written batch Segments if there was a failure in creating one of them" in {
-    //        if (memory) {
-    //          // not for in-memory Segments
-    //        } else {
-    //
-    //          val keyValues = randomizedKeyValues(keyValuesCount)
-    //          val segment = TestSegment(keyValues)
-    //          val newKeyValues = randomizedKeyValues(keyValuesCount)
-    //
-    //          val tenthSegmentId = {
-    //            val segmentId = (segment.path.fileId._1 + 10).toSegmentFileId
-    //            segment.path.getParent.resolve(segmentId)
-    //          }
-    //
-    //          //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
-    //          val segmentToFailPut = TestSegment(path = tenthSegmentId)
-    //
-    //          IO {
-    //            segment.put(
-    //              newKeyValues = newKeyValues.toMemory,
-    //              minSegmentSize = 500.bytes,
-    //              removeDeletes = false,
-    //              createdInLevel = 0,
-    //              valuesConfig = newKeyValues.last.valuesConfig,
-    //              sortedIndexConfig = newKeyValues.last.sortedIndexConfig,
-    //              binarySearchIndexConfig = newKeyValues.last.binarySearchIndexConfig,
-    //              hashIndexConfig = newKeyValues.last.hashIndexConfig,
-    //              bloomFilterConfig = newKeyValues.last.bloomFilterConfig,
-    //              segmentConfig = SegmentBlock.Config.random
-    //            )
-    //          }.left.right.value.exception shouldBe a[FileAlreadyExistsException]
-    //
-    //          //the folder should contain only the original segment and the segmentToFailPut
-    //          segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
-    //        }
-    //      }
-    //
-    //      "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
-    //        implicit def testTimer: TestTimer = TestTimer.Empty
-    //
-    //        val keyValues = Slice(
-    //          Memory.put(1),
-    //          Memory.put(2),
-    //          Memory.put(3),
-    //          Memory.put(4),
-    //          Memory.Range(5, 10, None, Value.Update(None, None, testTimer.next))
-    //        )
-    //        val segment = TestSegment(keyValues)
-    //        assertGet(keyValues, segment)
-    //
-    //        val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, None, Value.remove(None)))
-    //
-    //        val deletedSegment =
-    //          segment.put(
-    //            newKeyValues = deleteKeyValues,
-    //            minSegmentSize = 4.mb,
-    //            removeDeletes = false,
-    //            createdInLevel = 0,
-    //            valuesConfig = deleteKeyValues.last.valuesConfig,
-    //            sortedIndexConfig = deleteKeyValues.last.sortedIndexConfig,
-    //            binarySearchIndexConfig = deleteKeyValues.last.binarySearchIndexConfig,
-    //            hashIndexConfig = deleteKeyValues.last.hashIndexConfig,
-    //            bloomFilterConfig = deleteKeyValues.last.bloomFilterConfig,
-    //            segmentConfig = SegmentBlock.Config.random
-    //          )
-    //
-    //        deletedSegment should have size 1
-    //        val newDeletedSegment = deletedSegment.head
-    //        newDeletedSegment.getAll() shouldBe deleteKeyValues
-    //
-    //        assertGet(keyValues, segment)
-    //        if (persistent) assertGet(keyValues, segment.reopen)
-    //      }
-    //
-    //      "return new segment with updated KeyValues if all keys values were updated to None" in {
-    //        implicit val testTimer: TestTimer = TestTimer.Incremental()
-    //
-    //        val keyValues = randomizedKeyValues(count = keyValuesCount)
-    //        val segment = TestSegment(keyValues)
-    //
-    //        val updatedKeyValues = Slice.create[Memory](keyValues.size)
-    //        keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, None))
-    //
-    //        val updatedSegments =
-    //          segment.put(
-    //            newKeyValues = updatedKeyValues,
-    //            minSegmentSize = 4.mb,
-    //            removeDeletes = true,
-    //            createdInLevel = 0,
-    //            valuesConfig = keyValues.last.valuesConfig,
-    //            sortedIndexConfig = keyValues.last.sortedIndexConfig,
-    //            binarySearchIndexConfig = keyValues.last.binarySearchIndexConfig,
-    //            hashIndexConfig = keyValues.last.hashIndexConfig,
-    //            bloomFilterConfig = keyValues.last.bloomFilterConfig,
-    //            segmentConfig = SegmentBlock.Config.random
-    //          )
-    //
-    //        updatedSegments should have size 1
-    //
-    //        val newUpdatedSegment = updatedSegments.head
-    //        newUpdatedSegment.getAll() shouldBe updatedKeyValues
-    //
-    //        assertGet(updatedKeyValues, newUpdatedSegment)
-    //      }
-    //
-    //      "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
-    //        runThis(10.times) {
-    //          implicit val testTimer: TestTimer = TestTimer.Incremental()
-    //          //ranges value split to make sure there are no ranges.
-    //          val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRanges = false)
-    //          val segment1 = TestSegment(keyValues1)
-    //
-    //          val keyValues2Unclosed = Slice.create[Memory](keyValues1.size * 100)
-    //          keyValues1 foreach {
-    //            keyValue =>
-    //              keyValues2Unclosed add randomPutKeyValue(keyValue.key)
-    //          }
-    //
-    //          val keyValues2Closed = keyValues2Unclosed.close()
-    //
-    //          val segment2 = TestSegment(keyValues2Closed)
-    //
-    //          val mergedSegments =
-    //            segment1.put(
-    //              newKeyValues = segment2.getAll().toSlice,
-    //              minSegmentSize = 10.mb,
-    //              removeDeletes = false,
-    //              createdInLevel = 0,
-    //              valuesConfig = keyValues1.last.valuesConfig,
-    //              sortedIndexConfig = keyValues1.last.sortedIndexConfig,
-    //              binarySearchIndexConfig = keyValues1.last.binarySearchIndexConfig,
-    //              hashIndexConfig = keyValues1.last.hashIndexConfig,
-    //              bloomFilterConfig = keyValues1.last.bloomFilterConfig,
-    //              segmentConfig = SegmentBlock.Config.random
-    //            )
-    //
-    //          mergedSegments.size shouldBe 1
-    //          val mergedSegment = mergedSegments.head
-    //
-    //          //test merged segment should contain all
-    //          keyValues2Closed foreach {
-    //            keyValue =>
-    //              (mergedSegment get keyValue.key).value shouldBe keyValue
-    //          }
-    //
-    //          mergedSegment.getAll().size shouldBe keyValues2Closed.size
-    //        }
-    //      }
-    //
-    //      "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
-    //        runThis(50.times) {
-    //          val keyValues =
-    //            Slice(
-    //              randomFixedKeyValue(1),
-    //              randomFixedKeyValue(2),
-    //              randomFixedKeyValue(3),
-    //              randomFixedKeyValue(4),
-    //              randomRangeKeyValue(5, 10, Some(randomRangeValue()), randomRangeValue())
-    //            )
-    //
-    //          val segment = TestSegment(keyValues)
-    //
-    //          val deleteKeyValues = Slice.create[Memory](keyValues.size)
-    //          (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
-    //          deleteKeyValues add Memory.Range(5, 10, None, Value.remove(None))
-    //
-    //          segment.put(
-    //            newKeyValues = deleteKeyValues,
-    //            minSegmentSize = 4.mb,
-    //            removeDeletes = true,
-    //            createdInLevel = 0,
-    //            valuesConfig = ValuesBlock.Config.random,
-    //            sortedIndexConfig = SortedIndexBlock.Config.random,
-    //            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-    //            hashIndexConfig = HashIndexBlock.Config.random,
-    //            bloomFilterConfig = BloomFilterBlock.Config.random,
-    //            segmentConfig = SegmentBlock.Config.random
-    //          ) shouldBe empty
-    //        }
-    //      }
-    //
-    //      "slice Put range into slice with fromValue set to Remove" in {
-    //        implicit val testTimer: TestTimer = TestTimer.Empty
-    //
-    //        val keyValues = Slice(Memory.Range(1, 10, None, Value.update(10)))
-    //        val segment = TestSegment(keyValues)
-    //
-    //        val deleteKeyValues = Slice.create[Memory](10)
-    //        (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
-    //
-    //        val removedRanges =
-    //          segment.put(
-    //            newKeyValues = deleteKeyValues,
-    //            minSegmentSize = 4.mb,
-    //            removeDeletes = false,
-    //            createdInLevel = 0,
-    //            valuesConfig = ValuesBlock.Config.random,
-    //            sortedIndexConfig = SortedIndexBlock.Config.random,
-    //            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-    //            hashIndexConfig = HashIndexBlock.Config.random,
-    //            bloomFilterConfig = BloomFilterBlock.Config.random,
-    //            segmentConfig = SegmentBlock.Config.random
-    //          ).head.getAll()
-    //
-    //        val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Some(Value.remove(None)), Value.update(10))) :+ Memory.remove(10)
-    //
-    //        removedRanges shouldBe expected
-    //      }
-    //
-    //      "return 1 new segment with only 1 key-value if all the KeyValues in the Segment were deleted but 1" in {
-    //        implicit val testTimer: TestTimer = TestTimer.Empty
-    //
-    //        val keyValues = randomKeyValues(count = keyValuesCount)
-    //        val segment = TestSegment(keyValues)
-    //
-    //        val deleteKeyValues = Slice.create[Memory.Remove](keyValues.size - 1)
-    //        keyValues.drop(1).foreach(keyValue => deleteKeyValues add Memory.remove(keyValue.key))
-    //
-    //        val newSegments =
-    //          segment.put(
-    //            newKeyValues = deleteKeyValues.toMemory,
-    //            minSegmentSize = 4.mb,
-    //            removeDeletes = true,
-    //            createdInLevel = 0,
-    //            valuesConfig = ValuesBlock.Config.random,
-    //            sortedIndexConfig = SortedIndexBlock.Config.random,
-    //            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-    //            hashIndexConfig = HashIndexBlock.Config.random,
-    //            bloomFilterConfig = BloomFilterBlock.Config.random,
-    //            segmentConfig = SegmentBlock.Config.random
-    //          )
-    //
-    //        newSegments.size shouldBe 1
-    //        newSegments.head.getKeyValueCount() shouldBe 1
-    //
-    //        val newSegment = newSegments.head
-    //        val keyValue = keyValues.head
-    //
-    //        newSegment.get(keyValue.key).runRandomIO.value.value shouldBe keyValue
-    //
-    //        newSegment.lower(keyValue.key) shouldBe empty
-    //        newSegment.higher(keyValue.key) shouldBe empty
-    //      }
-    //
-    //      "distribute new Segments to multiple folders equally" in {
-    //        val keyValues1 = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4), Memory.put(5, 5), Memory.put(6, 6))
-    //        val segment = TestSegment(keyValues1)
-    //
-    //        val keyValues2 = Slice(Memory.put(7, 7), Memory.put(8, 8), Memory.put(9, 9), Memory.put(10, 10), Memory.put(11, 11), Memory.put(12, 12))
-    //
-    //        val dirs = (1 to 6) map (_ => Dir(createRandomIntDirectory, 1))
-    //
-    //        val distributor = PathsDistributor(dirs, () => Seq(segment))
-    //        val segments =
-    //          if (persistent)
-    //            segment.put(
-    //              newKeyValues = keyValues2,
-    //              minSegmentSize = 60.bytes,
-    //              removeDeletes = false,
-    //              createdInLevel = 0,
-    //              valuesConfig = ValuesBlock.Config.random,
-    //              sortedIndexConfig = SortedIndexBlock.Config.random,
-    //              binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-    //              hashIndexConfig = HashIndexBlock.Config.random,
-    //              bloomFilterConfig = BloomFilterBlock.Config.random,
-    //              segmentConfig = SegmentBlock.Config.random,
-    //              targetPaths = distributor
-    //            )
-    //          else
-    //            segment.put(
-    //              newKeyValues = keyValues2,
-    //              minSegmentSize = 21.bytes,
-    //              removeDeletes = false,
-    //              createdInLevel = 0,
-    //              valuesConfig = ValuesBlock.Config.random,
-    //              sortedIndexConfig = SortedIndexBlock.Config.random,
-    //              binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-    //              hashIndexConfig = HashIndexBlock.Config.random,
-    //              bloomFilterConfig = BloomFilterBlock.Config.random,
-    //              segmentConfig = SegmentBlock.Config.random,
-    //              targetPaths = distributor
-    //            )
-    //
-    //        //all returned segments contain all the KeyValues ???
-    //        //      segments should have size 6
-    //        //      segments(0).getAll().value shouldBe keyValues1.slice(0, 1).unslice()
-    //        //      segments(1).getAll().value shouldBe keyValues1.slice(2, 3).unslice()
-    //        //      segments(2).getAll().value shouldBe keyValues1.slice(4, 5).unslice()
-    //        //      segments(3).getAll().value shouldBe keyValues2.slice(0, 1).unslice()
-    //        //      segments(4).getAll().value shouldBe keyValues2.slice(2, 3).unslice()
-    //        //      segments(5).getAll().value shouldBe keyValues2.slice(4, 5).unslice()
-    //
-    //        //all the paths are used to write Segments
-    //        segments(0).path.getParent shouldBe dirs(0).path
-    //        segments(1).path.getParent shouldBe dirs(1).path
-    //        segments(2).path.getParent shouldBe dirs(2).path
-    //        segments(3).path.getParent shouldBe dirs(3).path
-    //        segments(4).path.getParent shouldBe dirs(4).path
-    //
-    //        //all paths are used ???
-    //        //      distributor.queuedPaths shouldBe empty
-    //      }
+
+    "return multiple new segments with merged key values" in {
+      val keyValues = randomizedKeyValues(keyValuesCount)
+      val segment = TestSegment(keyValues)
+
+      val newKeyValues = randomizedKeyValues(keyValuesCount)
+
+      val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+      val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+      val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+      val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+      val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+      val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+
+      val newSegments =
+        segment.put(
+          newKeyValues = newKeyValues,
+          minSegmentSize = segment.segmentSize / 10,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig,
+          removeDeletes = false,
+          createdInLevel = 0
+        )
+
+      newSegments.size should be > 1
+
+      val allReadKeyValues = Segment.getAllKeyValues(newSegments)
+
+      val builder = MergeStats.random()
+
+      //give merge a very large size so that there are no splits (test convenience)
+      SegmentMerger.merge(
+        newKeyValues = newKeyValues,
+        oldKeyValues = keyValues,
+        stats = builder,
+        isLastLevel = false
+      )
+
+      //allReadKeyValues are read from multiple Segments so valueOffsets will be invalid so stats will be invalid
+      allReadKeyValues shouldBe builder.result
+    }
+
+    "fail put and delete partially written batch Segments if there was a failure in creating one of them" in {
+      if (memory) {
+        // not for in-memory Segments
+      } else {
+
+        val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+        val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+        val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+        val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+        val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+        val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+
+        val keyValues = randomizedKeyValues(keyValuesCount)
+        val segment = TestSegment(keyValues)
+        val newKeyValues = randomizedKeyValues(keyValuesCount)
+
+        val tenthSegmentId = {
+          val segmentId = (segment.path.fileId._1 + 10).toSegmentFileId
+          segment.path.getParent.resolve(segmentId)
+        }
+
+        //create a segment with the next id in sequence which should fail put with FileAlreadyExistsException
+        val segmentToFailPut = TestSegment(path = tenthSegmentId)
+
+        assertThrows[FileAlreadyExistsException] {
+          segment.put(
+            newKeyValues = newKeyValues,
+            minSegmentSize = 500.bytes,
+            removeDeletes = false,
+            createdInLevel = 0,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
+            segmentConfig = segmentConfig
+          )
+        }
+
+        //the folder should contain only the original segment and the segmentToFailPut
+        segment.path.getParent.files(Extension.Seg) should contain only(segment.path, segmentToFailPut.path)
+      }
+    }
+
+    "return new segment with deleted KeyValues if all keys were deleted and removeDeletes is false" in {
+      implicit def testTimer: TestTimer = TestTimer.Empty
+
+      val keyValues = Slice(
+        Memory.put(1),
+        Memory.put(2),
+        Memory.put(3),
+        Memory.put(4),
+        Memory.Range(5, 10, FromValue.Null, Value.Update(Slice.Null, None, testTimer.next))
+      )
+      val segment = TestSegment(keyValues)
+      assertGet(keyValues, segment)
+
+      val deleteKeyValues = Slice(Memory.remove(1), Memory.remove(2), Memory.remove(3), Memory.remove(4), Memory.Range(5, 10, FromValue.Null, Value.remove(None)))
+
+      val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+      val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+      val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+      val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+      val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+      val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+
+      val deletedSegment =
+        segment.put(
+          newKeyValues = deleteKeyValues,
+          minSegmentSize = 4.mb,
+          removeDeletes = false,
+          createdInLevel = 0,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+
+      deletedSegment should have size 1
+      val newDeletedSegment = deletedSegment.head
+      newDeletedSegment.getAll() shouldBe deleteKeyValues
+
+      assertGet(keyValues, segment)
+      if (persistent) assertGet(keyValues, segment.reopen)
+    }
+
+    "return new segment with updated KeyValues if all keys values were updated to None" in {
+      implicit val testTimer: TestTimer = TestTimer.Incremental()
+
+      val keyValues = randomizedKeyValues(count = keyValuesCount)
+      val segment = TestSegment(keyValues)
+
+      val updatedKeyValues = Slice.create[Memory](keyValues.size)
+      keyValues.foreach(keyValue => updatedKeyValues add Memory.put(keyValue.key, Slice.Null))
+
+      val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+      val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+      val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+      val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+      val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+      val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+
+      val updatedSegments =
+        segment.put(
+          newKeyValues = updatedKeyValues,
+          minSegmentSize = 4.mb,
+          removeDeletes = true,
+          createdInLevel = 0,
+          valuesConfig = valuesConfig,
+          sortedIndexConfig = sortedIndexConfig,
+          binarySearchIndexConfig = binarySearchIndexConfig,
+          hashIndexConfig = hashIndexConfig,
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
+        )
+
+      updatedSegments should have size 1
+
+      val newUpdatedSegment = updatedSegments.head
+      newUpdatedSegment.getAll() shouldBe updatedKeyValues
+
+      assertGet(updatedKeyValues, newUpdatedSegment)
+    }
+
+    "merge existing segment file with new KeyValues returning new segment file with updated KeyValues" in {
+      runThis(10.times) {
+        implicit val testTimer: TestTimer = TestTimer.Incremental()
+        //ranges value split to make sure there are no ranges.
+        val keyValues1 = randomizedKeyValues(count = keyValuesCount, addRanges = false)
+        val segment1 = TestSegment(keyValues1)
+
+        val keyValues2Unclosed = Slice.create[Memory](keyValues1.size * 100)
+        keyValues1 foreach {
+          keyValue =>
+            keyValues2Unclosed add randomPutKeyValue(keyValue.key)
+        }
+
+        val keyValues2Closed = keyValues2Unclosed.close()
+
+        val segment2 = TestSegment(keyValues2Closed)
+
+        val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
+        val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
+        val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random
+        val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random
+        val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random
+        val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random
+
+        val mergedSegments =
+          segment1.put(
+            newKeyValues = segment2.getAll(),
+            minSegmentSize = 10.mb,
+            removeDeletes = false,
+            createdInLevel = 0,
+            valuesConfig = valuesConfig,
+            sortedIndexConfig = sortedIndexConfig,
+            binarySearchIndexConfig = binarySearchIndexConfig,
+            hashIndexConfig = hashIndexConfig,
+            bloomFilterConfig = bloomFilterConfig,
+            segmentConfig = segmentConfig
+          )
+
+        mergedSegments.size shouldBe 1
+        val mergedSegment = mergedSegments.head
+
+        //test merged segment should contain all
+        keyValues2Closed foreach {
+          keyValue =>
+            (mergedSegment get keyValue.key).getUnsafe shouldBe keyValue
+        }
+
+        mergedSegment.getAll().size shouldBe keyValues2Closed.size
+      }
+    }
+
+    "return no new segments if all the KeyValues in the Segment were deleted and if remove deletes is true" in {
+      runThis(50.times) {
+        val keyValues =
+          Slice(
+            randomFixedKeyValue(1),
+            randomFixedKeyValue(2),
+            randomFixedKeyValue(3),
+            randomFixedKeyValue(4),
+            randomRangeKeyValue(5, 10, randomRangeValue(), randomRangeValue())
+          )
+
+        val segment = TestSegment(keyValues)
+
+        val deleteKeyValues = Slice.create[Memory](keyValues.size)
+        (1 to 4).foreach(key => deleteKeyValues add Memory.remove(key))
+        deleteKeyValues add Memory.Range(5, 10, FromValue.Null, Value.remove(None))
+
+        segment.put(
+          newKeyValues = deleteKeyValues,
+          minSegmentSize = 4.mb,
+          removeDeletes = true,
+          createdInLevel = 0,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ) shouldBe empty
+      }
+    }
+
+    "slice Put range into slice with fromValue set to Remove" in {
+      implicit val testTimer: TestTimer = TestTimer.Empty
+
+      val keyValues = Slice(Memory.Range(1, 10, FromValue.Null, Value.update(10)))
+      val segment = TestSegment(keyValues)
+
+      val deleteKeyValues = Slice.create[Memory](10)
+      (1 to 10).foreach(key => deleteKeyValues add Memory.remove(key))
+
+      val removedRanges =
+        segment.put(
+          newKeyValues = deleteKeyValues,
+          minSegmentSize = 4.mb,
+          removeDeletes = false,
+          createdInLevel = 0,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ).head.getAll()
+
+      val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
+
+      removedRanges shouldBe expected
+    }
+
+    "return 1 new segment with only 1 key-value if all the KeyValues in the Segment were deleted but 1" in {
+      implicit val testTimer: TestTimer = TestTimer.Empty
+
+      val keyValues = randomKeyValues(count = keyValuesCount)
+      val segment = TestSegment(keyValues)
+
+      val deleteKeyValues = Slice.create[Memory.Remove](keyValues.size - 1)
+      keyValues.drop(1).foreach(keyValue => deleteKeyValues add Memory.remove(keyValue.key))
+
+      val newSegments =
+        segment.put(
+          newKeyValues = deleteKeyValues,
+          minSegmentSize = 4.mb,
+          removeDeletes = true,
+          createdInLevel = 0,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        )
+
+      newSegments.size shouldBe 1
+      newSegments.head.getKeyValueCount() shouldBe 1
+
+      val newSegment = newSegments.head
+      val keyValue = keyValues.head
+
+      newSegment.get(keyValue.key).getUnsafe shouldBe keyValue
+
+      newSegment.lower(keyValue.key, ThreadReadState.random).toOptional shouldBe empty
+      newSegment.higher(keyValue.key, ThreadReadState.random).toOptional shouldBe empty
+    }
+
+    "distribute new Segments to multiple folders equally" in {
+      val keyValues1 = Slice(Memory.put(1, 1), Memory.put(2, 2), Memory.put(3, 3), Memory.put(4, 4), Memory.put(5, 5), Memory.put(6, 6))
+      val segment = TestSegment(keyValues1)
+
+      val keyValues2 = Slice(Memory.put(7, 7), Memory.put(8, 8), Memory.put(9, 9), Memory.put(10, 10), Memory.put(11, 11), Memory.put(12, 12))
+
+      val dirs = (1 to 6) map (_ => Dir(createRandomIntDirectory, 1))
+
+      val pathsDistributor = PathsDistributor(dirs, () => Seq(segment))
+      val segments =
+        if (persistent)
+          segment.put(
+            newKeyValues = keyValues2,
+            minSegmentSize = 60.bytes,
+            removeDeletes = false,
+            createdInLevel = 0,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentConfig = SegmentBlock.Config.random,
+            pathsDistributor = pathsDistributor
+          )
+        else
+          segment.put(
+            newKeyValues = keyValues2,
+            minSegmentSize = 21.bytes,
+            removeDeletes = false,
+            createdInLevel = 0,
+            valuesConfig = ValuesBlock.Config.random,
+            sortedIndexConfig = SortedIndexBlock.Config.random,
+            binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+            hashIndexConfig = HashIndexBlock.Config.random,
+            bloomFilterConfig = BloomFilterBlock.Config.random,
+            segmentConfig = SegmentBlock.Config.random,
+            pathsDistributor = pathsDistributor
+          )
+
+      //all returned segments contain all the KeyValues ???
+      //      segments should have size 6
+      //      segments(0).getAll().value shouldBe keyValues1.slice(0, 1).unslice()
+      //      segments(1).getAll().value shouldBe keyValues1.slice(2, 3).unslice()
+      //      segments(2).getAll().value shouldBe keyValues1.slice(4, 5).unslice()
+      //      segments(3).getAll().value shouldBe keyValues2.slice(0, 1).unslice()
+      //      segments(4).getAll().value shouldBe keyValues2.slice(2, 3).unslice()
+      //      segments(5).getAll().value shouldBe keyValues2.slice(4, 5).unslice()
+
+      //all the paths are used to write Segments
+      segments(0).path.getParent shouldBe dirs(0).path
+      segments(1).path.getParent shouldBe dirs(1).path
+      segments(2).path.getParent shouldBe dirs(2).path
+      segments(3).path.getParent shouldBe dirs(3).path
+
+      if (persistent)
+        segments(4).path.getParent shouldBe dirs(4).path
+
+      //all paths are used ???
+      //      distributor.queuedPaths shouldBe empty
+    }
   }
 
-  //  "refresh" should {
-  //    "return new Segment with Removed key-values removed" in {
-  //      if (persistent) {
-  //        val keyValues =
-  //          (1 to 100) map {
-  //            key =>
-  //              eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, None, randomRangeValue()))
-  //          } toTransient
-  //        val segment = TestSegment(keyValues)
-  //        segment.getKeyValueCount() shouldBe keyValues.size
-  //        segment.getAll() shouldBe keyValues
-  //
-  //        val reopened = segment.reopen(segment.path)
-  //        reopened.getKeyValueCount() shouldBe keyValues.size
-  //        reopened.refresh(
-  //          minSegmentSize = 1.mb,
-  //          removeDeletes = true,
-  //          createdInLevel = 0,
-  //          valuesConfig = ValuesBlock.Config.random,
-  //          sortedIndexConfig = SortedIndexBlock.Config.random,
-  //          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-  //          hashIndexConfig = HashIndexBlock.Config.random,
-  //          bloomFilterConfig = BloomFilterBlock.Config.random,
-  //          segmentConfig = SegmentBlock.Config.random
-  //        ) shouldBe empty
-  //      }
-  //    }
-  //
-  //    "return no new Segments if all the key-values in the Segment were expired" in {
-  //      val keyValues1 = (1 to 100).map(key => randomPutKeyValue(key, deadline = Some(1.second.fromNow)))
-  //      val segment = TestSegment(keyValues1)
-  //      segment.getKeyValueCount() shouldBe keyValues1.size
-  //
-  //      sleep(2.seconds)
-  //      segment.refresh(
-  //        minSegmentSize = 1.mb,
-  //        removeDeletes = true,
-  //        createdInLevel = 0,
-  //        valuesConfig = ValuesBlock.Config.random,
-  //        sortedIndexConfig = SortedIndexBlock.Config.random,
-  //        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-  //        hashIndexConfig = HashIndexBlock.Config.random,
-  //        bloomFilterConfig = BloomFilterBlock.Config.random,
-  //        segmentConfig = SegmentBlock.Config.random
-  //      ) shouldBe empty
-  //    }
-  //
-  //    "return all key-values when removeDeletes is false" in {
-  //      val keyValues1 = (1 to 100).map(key => Memory.put(key, key, 1.second))
-  //      val segment = TestSegment(keyValues1)
-  //      segment.getKeyValueCount() shouldBe keyValues1.size
-  //
-  //      sleep(2.seconds)
-  //      val refresh =
-  //        segment.refresh(
-  //          minSegmentSize = 1.mb,
-  //          removeDeletes = false,
-  //          createdInLevel = 0,
-  //          valuesConfig = ValuesBlock.Config.random,
-  //          sortedIndexConfig = SortedIndexBlock.Config.random,
-  //          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-  //          hashIndexConfig = HashIndexBlock.Config.random,
-  //          bloomFilterConfig = BloomFilterBlock.Config.random,
-  //          segmentConfig = SegmentBlock.Config.random
-  //        )
-  //
-  //      refresh should have size 1
-  //      refresh.head shouldContainAll keyValues1
-  //    }
-  //  }
-  //
-  //  "split & then write" should {
-  //    "succeed for non group key-values" in {
-  //      val keyValues = randomizedKeyValues(keyValuesCount)
-  //
-  //      val result: Iterable[Iterable[Memory]] =
-  //        SegmentMerger.split(
-  //          keyValues = keyValues,
-  //          minSegmentSize = 100.mb,
-  //          isLastLevel = false,
-  //          forInMemory = inMemoryStorage,
-  //          valuesConfig = ValuesBlock.Config.random,
-  //          sortedIndexConfig = SortedIndexBlock.Config.random,
-  //          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
-  //          hashIndexConfig = HashIndexBlock.Config.random,
-  //          bloomFilterConfig = BloomFilterBlock.Config.random,
-  //          createdInLevel = randomIntMax()
-  //        )
-  //
-  //      result should have size 1
-  //      result.head should have size keyValues.size
-  //
-  //      writeAndRead(result.head).right.value shouldBe keyValues
-  //    }
-  //  }
+  "refresh" should {
+    "return new Segment with Removed key-values removed" in {
+      if (persistent) {
+        val keyValues =
+          (1 to 100) map {
+            key =>
+              eitherOne(randomRemoveKeyValue(key), randomRangeKeyValue(key, key + 1, FromValue.Null, randomRangeValue()))
+          } toSlice
+
+        val segment = TestSegment(keyValues)
+        segment.getKeyValueCount() shouldBe keyValues.size
+        segment.getAll() shouldBe keyValues
+
+        val reopened = segment.reopen(segment.path)
+        reopened.getKeyValueCount() shouldBe keyValues.size
+        reopened.refresh(
+          minSegmentSize = 1.mb,
+          removeDeletes = true,
+          createdInLevel = 0,
+          valuesConfig = ValuesBlock.Config.random,
+          sortedIndexConfig = SortedIndexBlock.Config.random,
+          binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+          hashIndexConfig = HashIndexBlock.Config.random,
+          bloomFilterConfig = BloomFilterBlock.Config.random,
+          segmentConfig = SegmentBlock.Config.random
+        ) shouldBe empty
+      }
+    }
+
+    "return no new Segments if all the key-values in the Segment were expired" in {
+      val keyValues1 = (1 to 100).map(key => randomPutKeyValue(key, deadline = Some(1.second.fromNow))).toSlice
+      val segment = TestSegment(keyValues1)
+      segment.getKeyValueCount() shouldBe keyValues1.size
+
+      sleep(2.seconds)
+
+      segment.refresh(
+        minSegmentSize = 1.mb,
+        removeDeletes = true,
+        createdInLevel = 0,
+        valuesConfig = ValuesBlock.Config.random,
+        sortedIndexConfig = SortedIndexBlock.Config.random,
+        binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+        hashIndexConfig = HashIndexBlock.Config.random,
+        bloomFilterConfig = BloomFilterBlock.Config.random,
+        segmentConfig = SegmentBlock.Config.random
+      ) shouldBe empty
+    }
+
+    "return all key-values when removeDeletes is false and when Segment was created in another Level" in {
+      runThis(5.times) {
+        val keyValues: Slice[Memory.Put] = (1 to 100).map(key => Memory.put(key, key, 1.second)).toSlice
+
+        val segment =
+          Benchmark(s"Created Segment: ${keyValues.size} keyValues", inlinePrint = true) {
+            TestSegment(
+              keyValues = keyValues,
+              createdInLevel = 3
+            )
+          }
+
+        segment.getKeyValueCount() shouldBe keyValues.size
+
+        sleep(2.seconds)
+
+        val refresh =
+          Benchmark(s"Refresh Segment: ${keyValues.size} keyValues", inlinePrint = true) {
+            segment.refresh(
+              minSegmentSize = 1.mb,
+              removeDeletes = false,
+              createdInLevel = 5,
+              valuesConfig = ValuesBlock.Config.random,
+              sortedIndexConfig = SortedIndexBlock.Config.random,
+              binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
+              hashIndexConfig = HashIndexBlock.Config.random,
+              bloomFilterConfig = BloomFilterBlock.Config.random,
+              segmentConfig = SegmentBlock.Config.random
+            )
+          }
+
+        refresh should have size 1
+        refresh.head shouldContainAll keyValues
+        println
+      }
+    }
+
+    "return all key-values when removeDeletes is false and when Segment was created in same Level" in {
+      runThis(5.times, log = true) {
+
+        val enableCompression = randomBoolean()
+
+        val shouldPrefixCompress = randomBoolean()
+
+        val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random(hasCompression = enableCompression)
+        val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random(hasCompression = enableCompression, shouldPrefixCompress = shouldPrefixCompress)
+        val binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random(hasCompression = enableCompression)
+        val hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random(hasCompression = enableCompression)
+        val bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random(hasCompression = enableCompression)
+        val segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(hasCompression = enableCompression)
+
+        val keyValues: Slice[Memory.Put] = (1 to (randomIntMax(100000) max 2)).map(key => Memory.put(key, key, 1.second)).toSlice
+
+        val segment =
+          Benchmark(s"Created Segment: ${keyValues.size} keyValues", inlinePrint = true) {
+            TestSegment(
+              keyValues = keyValues,
+              createdInLevel = 5,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig
+            )
+          }
+
+        segment.getKeyValueCount() shouldBe keyValues.size
+
+        sleep(2.seconds)
+
+        val refresh =
+          Benchmark(s"Refresh Segment: ${keyValues.size} keyValues", inlinePrint = true) {
+            segment.refresh(
+              minSegmentSize = Int.MaxValue,
+              removeDeletes = false,
+              createdInLevel = 5,
+              valuesConfig = valuesConfig,
+              sortedIndexConfig = sortedIndexConfig,
+              binarySearchIndexConfig = binarySearchIndexConfig,
+              hashIndexConfig = hashIndexConfig,
+              bloomFilterConfig = bloomFilterConfig,
+              segmentConfig = segmentConfig
+            )
+          }
+
+        refresh should have size 1
+        refresh.head shouldContainAll keyValues
+        println
+      }
+    }
+  }
 }
