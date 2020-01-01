@@ -25,6 +25,7 @@ import org.scalactic.Equality
 import org.scalatest.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
+import org.scalatest.words.EmptyWord
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._
@@ -47,11 +48,12 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{ThreadReadState, Segment, SegmentOptional}
+import swaydb.core.segment.{Segment, SegmentOptional, ThreadReadState}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOptional}
+import swaydb.data.util.SomeOrNone
 import swaydb.serializers.Default._
 import swaydb.serializers._
 import swaydb.{Error, IO}
@@ -541,6 +543,8 @@ object CommonAssertions {
       actual.getKeyValueCount().runRandomIO.right.value shouldBe expected.getKeyValueCount().runRandomIO.right.value
       actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
+      actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
+      actual.segmentId shouldBe expected.segmentId
       assertReads(expected.getAll().runRandomIO.right.value, actual)
     }
 
