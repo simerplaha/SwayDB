@@ -96,7 +96,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
       SortedIndexBlock.searchSeekOne(
         key = key,
         fromPosition = 0,
-        keySizeOrNull = null,
+        keySizeOrZero = 0,
         indexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull
       )
@@ -175,7 +175,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
       SortedIndexBlock.searchHigherSeekOne(
         key = key,
         fromPosition = 0,
-        keySizeOrNull = null,
+        keySizeOrZero = 0,
         sortedIndexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull
       )
