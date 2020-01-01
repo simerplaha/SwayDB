@@ -205,9 +205,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
       header.size + compressibleBytes.size
   }
 
-  class IndexEntry(val headerInteger: Int,
-                   val tailBytes: Slice[Byte])
-
   //sortedIndex's byteSize is not know at the time of creation headerSize includes hasCompression
   //  val headerSize = {
   //    val size =
@@ -338,7 +335,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
           case put: Value.Put =>
             state.nearestDeadline = FiniteDurations.getNearestDeadline(state.nearestDeadline, put.deadline)
           case _: Value.RangeValue =>
-            //no need to do anything here. Just put deadline required.
+          //no need to do anything here. Just put deadline required.
         }
         state.minMaxFunctionId = MinMax.minMaxFunction(keyValue, state.minMaxFunctionId)
         state.hasPut = state.hasPut || keyValue.fromValue.existsS(_.isPut)
@@ -512,45 +509,26 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def readPartialKeyValue(fromOffset: Int,
                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
-    val indexEntry =
-      readIndexEntry(
-        keySizeOrNull = null,
-        sortedIndexReader = sortedIndexReader moveTo fromOffset
-      )
-
-    PersistentParser.parsePartial(
-      offset = fromOffset,
-      headerInteger = indexEntry.headerInteger,
-      tailBytes = indexEntry.tailBytes,
-      sortedIndex = sortedIndexReader,
-      valuesReaderOrNull = valuesReaderOrNull
+                          valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
+    readIndexEntry(
+      keySizeOrNull = null,
+      sortedIndexReader = sortedIndexReader moveTo fromOffset,
+      previous = Persistent.Null,
+      valuesReaderOrNull = valuesReaderOrNull,
+      parser = SortedIndexEntryParser.PartialEntry
     )
-  }
 
   private def readKeyValue(previous: Persistent,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
+                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
 
-    val nextIndexEntry =
-      readIndexEntry(
-        keySizeOrNull = previous.nextKeySize,
-        sortedIndexReader = indexReader moveTo previous.nextIndexOffset
-      )
-
-    PersistentParser.parse(
-      headerInteger = nextIndexEntry.headerInteger,
-      indexOffset = previous.nextIndexOffset,
-      tailBytes = nextIndexEntry.tailBytes,
+    readIndexEntry(
+      keySizeOrNull = previous.nextKeySize,
+      sortedIndexReader = indexReader moveTo previous.nextIndexOffset,
       previous = previous,
-      normalisedByteSize = indexReader.block.normalisedByteSize,
-      mightBeCompressed = indexReader.block.hasPrefixCompression,
-      keyCompressionOnly = indexReader.block.prefixCompressKeysOnly,
-      sortedIndexEndOffset = indexReader.block.sortedIndexEndOffsetForReads,
-      hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
-      valuesReaderOrNull = valuesReaderOrNull
+      valuesReaderOrNull = valuesReaderOrNull,
+      parser = SortedIndexEntryParser.PersistentEntry
     )
-  }
 
   private def readKeyValue(fromPosition: Int,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -565,33 +543,24 @@ private[core] object SortedIndexBlock extends LazyLogging {
   private def readKeyValue(fromPosition: Int,
                            keySizeOrNull: Integer,
                            indexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
-
-    val nextIndexEntry =
-      readIndexEntry(
-        keySizeOrNull = keySizeOrNull,
-        sortedIndexReader = indexReader moveTo fromPosition
-      )
-
-    PersistentParser.parse(
-      headerInteger = nextIndexEntry.headerInteger,
-      indexOffset = fromPosition,
-      tailBytes = nextIndexEntry.tailBytes,
+                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
+    readIndexEntry(
+      keySizeOrNull = keySizeOrNull,
+      sortedIndexReader = indexReader moveTo fromPosition,
       previous = Persistent.Null,
-      normalisedByteSize = indexReader.block.normalisedByteSize,
-      mightBeCompressed = indexReader.block.hasPrefixCompression,
-      keyCompressionOnly = indexReader.block.prefixCompressKeysOnly,
-      sortedIndexEndOffset = indexReader.block.sortedIndexEndOffsetForReads,
-      hasAccessPositionIndex = indexReader.block.enableAccessPositionIndex,
-      valuesReaderOrNull = valuesReaderOrNull
+      valuesReaderOrNull = valuesReaderOrNull,
+      parser = SortedIndexEntryParser.PersistentEntry
     )
-  }
 
   /**
    * Pre-requisite: The position of the index on the reader should be set.
    */
-  private def readIndexEntry(keySizeOrNull: Integer,
-                             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]): IndexEntry =
+  private def readIndexEntry[T](keySizeOrNull: Integer,
+                                previous: PersistentOptional,
+                                sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                                parser: SortedIndexEntryParser[T]): T = {
+    val positionBeforeReader = sortedIndexReader.getPosition
     if (keySizeOrNull != null && keySizeOrNull > 0) { //try reading entry bytes within one seek.
       sortedIndexReader skip Bytes.sizeOfUnsignedInt(keySizeOrNull)
 
@@ -604,10 +573,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = sortedIndexReader read (indexSize + ByteSizeOf.varInt)
 
-      new IndexEntry(
+      parser.parse(
+        readPosition = positionBeforeReader,
         headerInteger = keySizeOrNull,
-        tailBytes = indexEntry
+        tailBytes = indexEntry,
+        previous = previous,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
       )
+
     } else if (sortedIndexReader.block.isBinarySearchable) { //if the reader has a block cache try fetching the bytes required within one seek.
       val indexSize = sortedIndexReader.block.segmentMaxIndexEntrySize
       val bytes = sortedIndexReader.read(sortedIndexReader.block.segmentMaxIndexEntrySize + ByteSizeOf.varInt)
@@ -616,9 +590,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = bytes.take(headerIntegerByteSize, indexSize + ByteSizeOf.varInt)
 
-      new IndexEntry(
+      parser.parse(
+        readPosition = positionBeforeReader,
         headerInteger = headerInteger,
-        tailBytes = indexEntry
+        tailBytes = indexEntry,
+        previous = previous,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
       )
     } else if (sortedIndexReader.hasBlockCache) {
       val positionBeforeRead = sortedIndexReader.getPosition
@@ -640,9 +618,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
         else
           sortedIndexReader.moveTo(positionBeforeRead + headerIntegerByteSize) read expectedSize
 
-      new IndexEntry(
+      parser.parse(
+        readPosition = positionBeforeReader,
         headerInteger = headerInteger,
-        tailBytes = indexEntry
+        tailBytes = indexEntry,
+        previous = previous,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
       )
     } else {
       val headerInteger = sortedIndexReader.readUnsignedInt()
@@ -651,11 +633,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
       //read all bytes for this index entry plus the next 5 bytes to fetch next index entry's size.
       val indexEntry = sortedIndexReader read (indexSize + ByteSizeOf.varInt)
 
-      new IndexEntry(
+      parser.parse(
+        readPosition = positionBeforeReader,
         headerInteger = headerInteger,
-        tailBytes = indexEntry
+        tailBytes = indexEntry,
+        previous = previous,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
       )
     }
+  }
 
   def readAll(keyValueCount: Int,
               sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
@@ -704,24 +691,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
         val indexOffset = sortedIndexReader.getPosition
 
-        val nextIndexEntry =
+        val next =
           readIndexEntry(
             keySizeOrNull = nextKeySize,
-            sortedIndexReader = sortedIndexReader
-          )
-
-        val next =
-          PersistentParser.parse(
-            headerInteger = nextIndexEntry.headerInteger,
-            indexOffset = indexOffset,
-            tailBytes = nextIndexEntry.tailBytes,
             previous = previousMayBe,
-            mightBeCompressed = sortedIndexReader.block.hasPrefixCompression,
-            keyCompressionOnly = sortedIndexReader.block.prefixCompressKeysOnly,
-            sortedIndexEndOffset = sortedIndexReader.block.sortedIndexEndOffsetForReads,
-            normalisedByteSize = sortedIndexReader.block.normalisedByteSize,
-            hasAccessPositionIndex = sortedIndexReader.block.enableAccessPositionIndex,
-            valuesReaderOrNull = valuesReaderOrNull
+            sortedIndexReader = sortedIndexReader,
+            valuesReaderOrNull = valuesReaderOrNull,
+            parser = SortedIndexEntryParser.PersistentEntry
           )
 
         previousMayBe = next
