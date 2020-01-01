@@ -25,7 +25,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Value
+import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -59,8 +59,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.higher        _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, rangeValue = randomUpdateRangeValue()))
-                next.higher           _ expects (key: Slice[Byte], *)  returning IO.Defer.none
-                current.get           _ expects (10: Slice[Byte], *)   returning IO.Defer.none
+                next.higher           _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
+                current.get           _ expects (10: Slice[Byte], *)   returning KeyValue.Put.Null
                 current.higher        _ expects (10: Slice[Byte], *)   returning LevelSeek.None
                 //@formatter:on
               }
@@ -86,9 +86,9 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.higher        _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, Value.FromValue.Null, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
-                current.get           _ expects (10: Slice[Byte], *)   returning IO.Defer.none
+                current.get           _ expects (10: Slice[Byte], *)   returning KeyValue.Put.Null
                 current.higher        _ expects (10: Slice[Byte], *)   returning LevelSeek.None
-                next.higher           _ expects (10: Slice[Byte], *)   returning IO.Defer.none
+                next.higher           _ expects (10: Slice[Byte], *)   returning KeyValue.Put.Null
                 //@formatter:on
               }
               Higher(key: Slice[Byte]).right.value shouldBe empty
@@ -113,8 +113,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           inSequence {
             //@formatter:off
             current.higher        _ expects (0: Slice[Byte], *)    returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue()))
-            next.higher           _ expects (0: Slice[Byte], *)    returning IO.Defer.none
-            current.get           _ expects (10: Slice[Byte], *)   returning IO.Defer.none
+            next.higher           _ expects (0: Slice[Byte], *)    returning KeyValue.Put.Null
+            current.get           _ expects (10: Slice[Byte], *)   returning KeyValue.Put.Null
             current.higher        _ expects (10: Slice[Byte], *)   returning LevelSeek.None
             //@formatter:on
           }
@@ -138,8 +138,8 @@ class HigherRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           inSequence {
             //@formatter:off
             current.higher        _ expects (0: Slice[Byte], *)    returning LevelSeek.Some(1, currentHigher)
-            next.higher           _ expects (0: Slice[Byte], *)    returning IO.Defer.none
-            current.get           _ expects (10: Slice[Byte], *)   returning IO.Defer.none
+            next.higher           _ expects (0: Slice[Byte], *)    returning KeyValue.Put.Null
+            current.get           _ expects (10: Slice[Byte], *)   returning KeyValue.Put.Null
             current.higher        _ expects (10: Slice[Byte], *)   returning LevelSeek.None
             //@formatter:on
           }

@@ -352,7 +352,6 @@ private[core] object Segment extends LazyLogging {
       case memory: MemorySegment =>
         copyToPersist(
           keyValues = memory.skipList.values().asScala,
-          segmentConfig = segmentConfig,
           createdInLevel = createdInLevel,
           pathsDistributor = pathsDistributor,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
@@ -363,12 +362,12 @@ private[core] object Segment extends LazyLogging {
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
-          bloomFilterConfig = bloomFilterConfig
+          bloomFilterConfig = bloomFilterConfig,
+          segmentConfig = segmentConfig
         )
     }
 
   def copyToPersist(keyValues: Iterable[Memory],
-                    segmentConfig: SegmentBlock.Config,
                     createdInLevel: Int,
                     pathsDistributor: PathsDistributor,
                     mmapSegmentsOnRead: Boolean,
@@ -379,14 +378,15 @@ private[core] object Segment extends LazyLogging {
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                     hashIndexConfig: HashIndexBlock.Config,
-                    bloomFilterConfig: BloomFilterBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                functionStore: FunctionStore,
-                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                fileSweeper: FileSweeper.Enabled,
-                                                                blockCache: Option[BlockCache.State],
-                                                                segmentIO: SegmentIO,
-                                                                idGenerator: IDGenerator): Slice[Segment] = {
+                    bloomFilterConfig: BloomFilterBlock.Config,
+                    segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                        functionStore: FunctionStore,
+                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                        fileSweeper: FileSweeper.Enabled,
+                                                        blockCache: Option[BlockCache.State],
+                                                        segmentIO: SegmentIO,
+                                                        idGenerator: IDGenerator): Slice[Segment] = {
     val builder =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)(SegmentGrouper.addLastLevel)

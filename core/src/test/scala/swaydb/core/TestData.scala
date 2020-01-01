@@ -152,72 +152,81 @@ object TestData {
 
     //This test function is doing too much. This shouldn't be the case! There needs to be an easier way to write
     //key-values in a Level without that level copying it forward to lower Levels.
-    def putKeyValuesTest(keyValues: Slice[KeyValue]): IO[swaydb.Error.Level, Unit] = {
+    def putKeyValuesTest(keyValues: Slice[Memory]): IO[swaydb.Error.Level, Unit] = {
 
-      //      implicit val idGenerator = level.segmentIDGenerator
-      //
-      //      //      def fetchNextPath = {
-      ////        val segmentId = level.segmentIDGenerator.nextID
-      ////        val path = level.pathDistributor.next.resolve(IDGenerator.segmentId(segmentId))
-      ////        (segmentId, path)
-      ////      }
-      //
-      //      implicit val segmentIO = level.segmentIO
-      //      implicit val fileSweeper = level.fileSweeper
-      //      implicit val blockCache = level.blockCache
-      //
-      //      if (keyValues.isEmpty)
-      //        IO.unit
-      //      else if (!level.isEmpty)
-      //        level.putKeyValues(keyValues, level.segmentsInLevel(), None)
-      //      else if (level.inMemory)
-      //        IO {
-      //          Segment.copyToMemory(
-      //            keyValues = keyValues,
-      ////            fetchNextPath = fetchNextPath,
-      //            pathsDistributor = level.pathDistributor,
-      //            removeDeletes = false,
-      //            minSegmentSize = 1000.mb,
-      //            createdInLevel = level.levelNumber
-      //          )
-      //        } flatMap {
-      //          segments =>
-      //            segments should have size 1
-      //            segments mapRecoverIO {
-      //              segment =>
-      //                level.putKeyValues(keyValues, Seq(segment), None)
-      //            } transform {
-      //              _ => ()
-      //            }
-      //        }
-      //      else
-      //        IO {
-      //          Segment.copyToPersist(
-      //            keyValues = ???, // keyValues
-      //            createdInLevel = level.levelNumber,
-      //            fetchNextPath = fetchNextPath,
-      //            mmapSegmentsOnRead = randomBoolean(),
-      //            mmapSegmentsOnWrite = randomBoolean(),
-      //            removeDeletes = false,
-      //            minSegmentSize = 1000.mb,
-      //            segmentConfig = level.segmentConfig,
-      //            valuesConfig = level.valuesConfig,
-      //            sortedIndexConfig = level.sortedIndexConfig,
-      //            binarySearchIndexConfig = level.binarySearchIndexConfig,
-      //            hashIndexConfig = level.hashIndexConfig,
-      //            bloomFilterConfig = level.bloomFilterConfig
-      //          )
-      //        } flatMap {
-      //          segments =>
-      //            segments should have size 1
-      //            segments mapRecoverIO {
-      //              segment =>
-      //                level.putKeyValues(keyValues, Seq(segment), None)
-      //            } transform {
-      //              _ => ()
-      //            }
-      //        }
-      ???
+      implicit val idGenerator = level.segmentIDGenerator
+
+      //      def fetchNextPath = {
+      //        val segmentId = level.segmentIDGenerator.nextID
+      //        val path = level.pathDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+      //        (segmentId, path)
+      //      }
+
+      implicit val segmentIO = level.segmentIO
+      implicit val fileSweeper = level.fileSweeper
+      implicit val blockCache = level.blockCache
+
+      if (keyValues.isEmpty)
+        IO.unit
+      else if (!level.isEmpty)
+        level.putKeyValues(keyValues.size, keyValues, level.segmentsInLevel(), None)
+      else if (level.inMemory)
+        IO {
+          Segment.copyToMemory(
+            keyValues = keyValues.iterator,
+            //            fetchNextPath = fetchNextPath,
+            pathsDistributor  = level.pathDistributor,
+            removeDeletes = false,
+            minSegmentSize = 1000.mb,
+            createdInLevel = level.levelNumber
+          )
+        } flatMap {
+          segments =>
+            segments should have size 1
+            segments mapRecoverIO {
+              segment =>
+                level.putKeyValues(
+                  keyValuesCount = keyValues.size,
+                  keyValues = keyValues,
+                  targetSegments = Seq(segment),
+                  appendEntry = None
+                )
+            } transform {
+              _ => ()
+            }
+        }
+      else
+        IO {
+          Segment.copyToPersist(
+            keyValues = keyValues,
+            createdInLevel = level.levelNumber,
+            pathsDistributor = level.pathDistributor,
+            mmapSegmentsOnRead = randomBoolean(),
+            mmapSegmentsOnWrite = randomBoolean(),
+            removeDeletes = false,
+            minSegmentSize = 1000.mb,
+            valuesConfig = level.valuesConfig,
+            sortedIndexConfig = level.sortedIndexConfig,
+            binarySearchIndexConfig = level.binarySearchIndexConfig,
+            hashIndexConfig = level.hashIndexConfig,
+            bloomFilterConfig = level.bloomFilterConfig,
+            segmentConfig = level.segmentConfig
+          )
+        } flatMap {
+          segments =>
+            segments should have size 1
+            segments mapRecoverIO {
+              segment =>
+                level.putKeyValues(
+                  keyValuesCount = keyValues.size,
+                  keyValues = keyValues,
+                  targetSegments = Seq(segment),
+                  appendEntry = None
+                )
+            } transform {
+              _ => ()
+            }
+        }
     }
 
     def reopen: Level =
@@ -1640,7 +1649,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
-      Higher(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
+      IO.Defer(Higher(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
   }
 
   implicit class LowerImplicits(higher: Lower.type) {
@@ -1649,7 +1658,7 @@ object TestData {
                                 currentReader: CurrentWalker,
                                 nextReader: NextWalker,
                                 functionStore: FunctionStore): IO[swaydb.Error.Level, Option[KeyValue.Put]] =
-      Lower(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).runIO
+      IO.Defer(Lower(key, ThreadReadState.random, Seek.Current.Read(Int.MinValue), Seek.Next.Read).toOptionPut).runIO
   }
 
   def randomFalsePositiveRate() =

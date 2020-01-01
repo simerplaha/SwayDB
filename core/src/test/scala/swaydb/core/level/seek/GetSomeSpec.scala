@@ -21,8 +21,6 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -53,7 +51,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val keyValue = randomPutKeyValue(1, deadline = randomDeadlineOption(false))
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning keyValue
 
-        Get(1, ThreadReadState.random).runRandomIO.right.value.value shouldBe keyValue
+        Get(1, ThreadReadState.random) shouldBe keyValue
       }
     }
 
@@ -69,9 +67,9 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expect = put.copy(deadline = remove.deadline.orElse(put.deadline), time = remove.time)
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning remove
-        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(put)).toDefer
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
-        Get(1, ThreadReadState.random).runRandomIO.right.value.value shouldBe expect
+        Get(1, ThreadReadState.random) shouldBe expect
       }
     }
 
@@ -87,9 +85,9 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expect = put.copy(deadline = update.deadline.orElse(put.deadline), value = update.value, time = update.time)
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning update
-        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(put)).toDefer
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
-        Get(1, ThreadReadState.random).runRandomIO.right.value.value shouldBe expect
+        Get(1, ThreadReadState.random) shouldBe expect
       }
     }
 
@@ -114,9 +112,9 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expect = FunctionMerger(function, put).runRandomIO.right.value
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning function
-        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(put)).toDefer
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
-        Get(1, ThreadReadState.random).runRandomIO.right.value.value shouldBe expect
+        Get(1, ThreadReadState.random) shouldBe expect
       }
     }
 
@@ -144,9 +142,9 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
         val expected = PendingApplyMerger(pendingApply, put).runRandomIO.right.value
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning pendingApply
-        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(put)).toDefer
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
-        Get(1, ThreadReadState.random).runRandomIO.right.value.value shouldBe expected
+        Get(1, ThreadReadState.random) shouldBe expected
       }
     }
 
@@ -163,7 +161,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning range
 
-        Get(1, ThreadReadState.random).runRandomIO.right.value.value shouldBe fromValue.toMemory(1)
+        Get(1, ThreadReadState.random) shouldBe fromValue.toMemory(1)
       }
     }
 
@@ -191,9 +189,9 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
 
         getFromCurrentLevel.get _ expects (1: Slice[Byte], *) returning range
         //next level can return anything it will be removed.
-        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning IO(Some(put)).toDefer
+        getFromNextLevel.get _ expects (1: Slice[Byte], *) returning put
 
-        Get(1, ThreadReadState.random).runRandomIO.right.value.value shouldBe expected
+        Get(1, ThreadReadState.random) shouldBe expected
       }
     }
   }

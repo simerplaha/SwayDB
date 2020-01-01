@@ -217,13 +217,15 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     zero.run(_.head(readState))
 
   def headKey(readState: ThreadReadState): T[Option[Slice[Byte]]] =
-    zero.headKey(readState).run
+//    zero.headKey(readState).run
+  ???
 
   def last(readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.last(readState))
 
   def lastKey(readState: ThreadReadState): T[Option[Slice[Byte]]] =
-    zero.lastKey(readState).run
+//    zero.lastKey(readState).run
+  ???
 
   def bloomFilterKeyValueCount: T[Int] =
     IO.Defer(zero.keyValueCount).run
@@ -263,7 +265,8 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def beforeKey(key: Slice[Byte],
                 readState: ThreadReadState): T[Option[Slice[Byte]]] =
-    tag.map(zero.lower(key, readState).run)(_.map(_.key))
+//    tag.map(zero.lower(key, readState).run)(_.map(_.key))
+  ???
 
   def after(key: Slice[Byte],
             readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
@@ -271,7 +274,8 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def afterKey(key: Slice[Byte],
                readState: ThreadReadState): T[Option[Slice[Byte]]] =
-    tag.map(zero.higher(key, readState).run)(_.map(_.key))
+//    tag.map(zero.higher(key, readState).run)(_.map(_.key))
+  ???
 
   def valueSize(key: Slice[Byte],
                 readState: ThreadReadState): T[Option[Int]] =

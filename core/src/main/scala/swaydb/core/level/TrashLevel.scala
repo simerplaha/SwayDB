@@ -79,19 +79,19 @@ private[core] object TrashLevel extends NextLevel {
     0
 
   override def head(readState: ThreadReadState) =
-    IO.Defer.none
+    KeyValue.Put.Null
 
   override def last(readState: ThreadReadState) =
-    IO.Defer.none
+    KeyValue.Put.Null
 
   override def get(key: Slice[Byte], readState: ThreadReadState) =
-    IO.Defer.none
+    KeyValue.Put.Null
 
   override def lower(key: Slice[Byte], readState: ThreadReadState) =
-    IO.Defer.none
+    KeyValue.Put.Null
 
   override def higher(key: Slice[Byte], readState: ThreadReadState) =
-    IO.Defer.none
+    KeyValue.Put.Null
 
   override val isEmpty: Boolean =
     true
@@ -125,17 +125,17 @@ private[core] object TrashLevel extends NextLevel {
 
   override val isTrash: Boolean = true
 
-  override def ceiling(key: Slice[Byte], readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
-    IO.Defer.none
+  override def ceiling(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOptional =
+    KeyValue.Put.Null
 
-  override def floor(key: Slice[Byte], readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[KeyValue.Put]] =
-    IO.Defer.none
+  override def floor(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOptional =
+    KeyValue.Put.Null
 
-  override def headKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
-    IO.Defer.none
+  override def headKey(readState: ThreadReadState): SliceOptional[Byte] =
+    Slice.Null
 
-  override def lastKey(readState: ThreadReadState): IO.Defer[swaydb.Error.Segment, Option[Slice[Byte]]] =
-    IO.Defer.none
+  override def lastKey(readState: ThreadReadState): SliceOptional[Byte] =
+    Slice.Null
 
   override def closeSegments(): IO[swaydb.Error.Segment, Unit] =
     IO.unit

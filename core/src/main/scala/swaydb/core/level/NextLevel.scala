@@ -27,7 +27,7 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.slice.{Slice, SliceOptional}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Promise}
+import scala.concurrent.Promise
 
 object NextLevel {
 

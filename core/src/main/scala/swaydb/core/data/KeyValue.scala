@@ -81,7 +81,45 @@ private[core] object KeyValue {
     def time: Time
   }
 
-  sealed trait Put extends KeyValue.Fixed {
+  sealed trait PutOptional {
+    def getPut: KeyValue.Put
+    def isNoneS: Boolean
+    def isSome: Boolean =
+      !isNoneS
+
+    def toOptionPut: Option[KeyValue.Put] =
+      if (isNoneS)
+        None
+      else
+        Some(getPut)
+
+    def flatMap(put: KeyValue.Put => PutOptional): PutOptional =
+      if (isNoneS)
+        this
+      else
+        put(getPut)
+
+    def getOrElse(f: => PutOptional): PutOptional =
+      if (isSome)
+        this
+      else
+        f
+
+    def orElse(f: => PutOptional): PutOptional =
+      if (isNoneS)
+        f
+      else
+        this
+  }
+
+  object Put {
+    final object Null extends PutOptional {
+      override def getPut: KeyValue.Put = throw new Exception("KeyValue.Put is of type Null")
+      override def isNoneS: Boolean = true
+    }
+  }
+
+  sealed trait Put extends KeyValue.Fixed with PutOptional {
     def valueLength: Int
     def deadline: Option[Deadline]
     def hasTimeLeft(): Boolean
@@ -278,6 +316,8 @@ private[swaydb] object Memory {
     override def isPut: Boolean = true
 
     override def persistentTime: Time = time
+
+    override def getPut: KeyValue.Put = this
 
     override def mergedKey = key
 
@@ -931,6 +971,9 @@ private[core] object Persistent {
 
     override def time: Time =
       _time
+
+    override def getPut: KeyValue.Put =
+      this
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 

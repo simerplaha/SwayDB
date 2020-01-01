@@ -170,12 +170,12 @@ sealed trait LevelCollapseSpec extends TestBase {
         case (keyValue, index) =>
 
           if (index % 2 == 0)
-            level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.value.deadline should contain(expiryAt + index.millisecond)
+            level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut.value.deadline should contain(expiryAt + index.millisecond)
       }
 
       sleep(20.seconds)
       level.collapse(level.segmentsInLevel()).right.right.value.right.value
-      level.segmentFilesInAppendix should be <= (segmentCountBeforeDelete / 2)
+      level.segmentFilesInAppendix should be <= ((segmentCountBeforeDelete / 2) + 1)
 
       assertReads(Slice(keyValuesNotExpired.toArray), level)
 

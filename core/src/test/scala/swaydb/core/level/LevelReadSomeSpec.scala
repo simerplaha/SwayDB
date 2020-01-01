@@ -21,6 +21,7 @@ package swaydb.core.level
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.exceptions.TestFailedException
+import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -104,7 +105,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
               level0KeyValues foreach {
                 update =>
                   val (gotValue, gotDeadline) =
-                    level.get(update.key, ThreadReadState.random).map {
+                    IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).map {
                       case Some(put) =>
                         val value = put.getOrFetchValue.runRandomIO.right.value
                         (value, put.deadline)
@@ -124,7 +125,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
                       level.putKeyValuesTest(level0KeyValues).runRandomIO.right.value
 
                       //if after merging into a single Level the result is not empty then print all the failed exceptions.
-                      Try(level.get(update.key, ThreadReadState.random).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
+                      Try(IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).runIO.runRandomIO.right.value shouldBe empty).failed foreach {
                         exception =>
                           exception.printStackTrace()
                           throw testException

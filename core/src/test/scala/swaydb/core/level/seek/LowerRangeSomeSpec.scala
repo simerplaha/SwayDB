@@ -68,7 +68,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             inSequence {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, upperLevel)
-              next.lower            _ expects (key: Slice[Byte], *)  returning IO(Some(lowerLower)).toDefer
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
             Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
@@ -100,7 +100,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
         inSequence {
           //@formatter:off
           current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.Some(1, upperLevel)
-          next.lower            _ expects (1: Slice[Byte], *)    returning IO(Some(lowerLevel)).toDefer
+          next.lower            _ expects (1: Slice[Byte], *)    returning lowerLevel
           //@formatter:on
         }
         Lower(1: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
@@ -125,7 +125,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             inSequence {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10))
-              next.lower            _ expects (key: Slice[Byte], *)  returning IO(Some(lowerLower)).toDefer
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
             Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerLower
@@ -154,7 +154,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             inSequence {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, rangeValue = currentRangeValue))
-              next.lower            _ expects (key: Slice[Byte], *)  returning IO(Some(lowerLower)).toDefer
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
 
@@ -184,7 +184,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             inSequence {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, fromValue = Value.FromValue.Null, rangeValue))
-              next.lower            _ expects (key: Slice[Byte], *)  returning IO(Some(lowerLower)).toDefer
+              next.lower            _ expects (key: Slice[Byte], *)  returning lowerLower
               //@formatter:on
             }
             Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe expected
@@ -210,7 +210,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             inSequence {
               //@formatter:off
               current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, fromValue = put))
-              next.lower            _ expects (key: Slice[Byte], *)  returning IO(Some(randomPutKeyValue(eitherOne[Int](0, 1), deadline = None))).toDefer
+              next.lower            _ expects (key: Slice[Byte], *)  returning randomPutKeyValue(eitherOne[Int](0, 1), deadline = None)
               //@formatter:on
             }
             Lower(key: Slice[Byte]).runRandomIO.right.value.value shouldBe put.toMemory(1)

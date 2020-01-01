@@ -73,7 +73,7 @@ sealed trait TrashLevelSpec extends TestBase with MockFactory with PrivateMethod
       //key values do not exist
       Segment.getAllKeyValues(segments).runRandomIO.right.value foreach {
         keyValue =>
-          level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value shouldBe empty
+          level.get(keyValue.key, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
       }
       if (persistent) level.reopen.isEmpty shouldBe true
     }

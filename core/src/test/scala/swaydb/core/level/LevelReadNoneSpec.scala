@@ -73,11 +73,11 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
         assertAllLevels =
           (_, _, _, level) =>
             Seq(
-              () => level.get(randomStringOption, ThreadReadState.random).runRandomIO.right.value shouldBe empty,
-              () => level.higher(randomStringOption, ThreadReadState.random).runRandomIO.right.value shouldBe empty,
-              () => level.lower(randomStringOption, ThreadReadState.random).runRandomIO.right.value shouldBe empty,
-              () => level.head(ThreadReadState.random).runRandomIO.right.value shouldBe empty,
-              () => level.last(ThreadReadState.random).runRandomIO.right.value shouldBe empty
+              () => level.get(randomStringOption, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
+              () => level.higher(randomStringOption, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
+              () => level.lower(randomStringOption, ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
+              () => level.head(ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty,
+              () => level.last(ThreadReadState.random).runRandomIO.right.value.toOptionPut shouldBe empty
             ).runThisRandomly
       )
     }
@@ -141,13 +141,13 @@ sealed trait LevelReadNoneSpec extends TestBase with MockFactory {
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedHigher = existing.find(put => put.hasTimeLeft() && put.key.readInt() > nonExistentKey).map(_.key.readInt())
-                      level.higher(nonExistentKey, ThreadReadState.random).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedHigher
+                      level.higher(nonExistentKey, ThreadReadState.random).runRandomIO.right.value.toOptionPut.map(_.key.readInt()) shouldBe expectedHigher
                   },
                 () =>
                   nonExistingKeys foreach {
                     nonExistentKey =>
                       val expectedLower = existing.reverse.find(put => put.hasTimeLeft() && put.key.readInt() < nonExistentKey).map(_.key.readInt())
-                      level.lower(nonExistentKey, ThreadReadState.random).runRandomIO.right.value.map(_.key.readInt()) shouldBe expectedLower
+                      level.lower(nonExistentKey, ThreadReadState.random).runRandomIO.right.value.toOptionPut.map(_.key.readInt()) shouldBe expectedLower
                   }
               ).runThisRandomlyInParallel
             }

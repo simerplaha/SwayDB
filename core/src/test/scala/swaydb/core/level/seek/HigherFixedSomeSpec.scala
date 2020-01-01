@@ -25,7 +25,7 @@ import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Memory
+import swaydb.core.data.{KeyValue, Memory}
 import swaydb.core.level.LevelSeek
 import swaydb.core.merge.FixedMerger
 import swaydb.core.{TestData, TestTimer}
@@ -58,7 +58,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, put)
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer(None)
+          next.higher           _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
         Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe put
@@ -80,7 +80,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.None
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer(Some(put))
+          next.higher           _ expects (0: Slice[Byte], *)  returning put
           //@formatter:on
         }
         Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe put
@@ -104,7 +104,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer(Some(lowerKeyValue))
+          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
           //@formatter:on
         }
         Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe expected.right.value
@@ -139,7 +139,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer(Some(lowerKeyValue))
+          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
           if(!isUpperExpected) {
             current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.None
           }
@@ -164,7 +164,7 @@ class HigherFixedSomeSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(1, upperKeyValue)
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer(Some(lowerKeyValue))
+          next.higher           _ expects (0: Slice[Byte], *)  returning lowerKeyValue
           //@formatter:on
         }
         Higher(0: Slice[Byte]).runRandomIO.right.value.value shouldBe lowerKeyValue

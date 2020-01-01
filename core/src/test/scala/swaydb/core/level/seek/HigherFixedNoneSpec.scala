@@ -21,11 +21,10 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -53,7 +52,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
       inSequence {
         //@formatter:off
         current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.None
-        next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer.none
+        next.higher           _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
         //@formatter:on
       }
       Higher(0: Slice[Byte]).right.value shouldBe empty
@@ -70,7 +69,7 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer.none
+          next.higher           _ expects (0: Slice[Byte], *)  returning KeyValue.Put.Null
           current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.None
           //@formatter:on
         }
@@ -91,9 +90,9 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO.Defer(Some(randomPutKeyValue(1)))
+          next.higher           _ expects (0: Slice[Byte], *)  returning randomPutKeyValue(1)
           current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.None
-          next.higher           _ expects (1: Slice[Byte], *)  returning IO.Defer.none
+          next.higher           _ expects (1: Slice[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
         Higher(0: Slice[Byte]).right.value shouldBe empty
@@ -115,10 +114,10 @@ class HigherFixedNoneSpec extends WordSpec with Matchers with MockFactory with O
         inSequence {
           //@formatter:off
           current.higher        _ expects (0: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(1))
-          next.higher           _ expects (0: Slice[Byte], *)  returning IO(Some(randomPutKeyValue(2))).toDefer
+          next.higher           _ expects (0: Slice[Byte], *)  returning randomPutKeyValue(2)
           current.higher        _ expects (1: Slice[Byte], *)  returning LevelSeek.Some(0, randomRemoveOrUpdateOrFunctionRemove(2))
           current.higher        _ expects (2: Slice[Byte], *)  returning LevelSeek.None
-          next.higher           _ expects (2: Slice[Byte], *)  returning IO.Defer.none
+          next.higher           _ expects (2: Slice[Byte], *)  returning KeyValue.Put.Null
           //@formatter:on
         }
         Higher(0: Slice[Byte]).right.value shouldBe empty

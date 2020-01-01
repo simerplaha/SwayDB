@@ -19,7 +19,6 @@
 
 package swaydb.core.level.seek
 
-import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.slice.Slice
@@ -27,5 +26,5 @@ import swaydb.data.slice.Slice
 trait NextGetter {
 
   def get(key: Slice[Byte],
-          readState: ThreadReadState): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]]
+          readState: ThreadReadState): KeyValue.PutOptional
 }

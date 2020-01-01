@@ -19,8 +19,6 @@
 
 package swaydb.core.level.seek
 
-import swaydb.Error.Level.ExceptionHandler
-import swaydb.IO
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FunctionMerger, PendingApplyMerger, RemoveMerger, UpdateMerger}
@@ -37,7 +35,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+                                   functionStore: FunctionStore): KeyValue.PutOptional =
     Get(key = key, readState = readState)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -51,142 +49,105 @@ private[core] object Get {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         currentGetter: CurrentGetter,
                                         nextGetter: NextGetter,
-                                        functionStore: FunctionStore): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] = {
+                                        functionStore: FunctionStore): KeyValue.PutOptional = {
 
     @tailrec
-    def resolve(current: KeyValue): IO.Defer[swaydb.Error.Level, Option[KeyValue.Put]] =
+    def resolve(current: KeyValue): KeyValue.PutOptional =
       current match {
         case current: KeyValue.Put =>
           if (current.hasTimeLeft())
-            IO.Defer(Some(current))
+            current
           else
-            IO.Defer.none
+            KeyValue.Put.Null
 
         case current: KeyValue.Remove =>
           if (current.hasTimeLeft())
             nextGetter
               .get(key, readState)
-              .map {
-                nextOption =>
-                  nextOption
-                    .flatMap {
-                      next =>
-                        if (next.hasTimeLeft())
-                          RemoveMerger(current, next) match {
-                            case put: KeyValue.Put if put.hasTimeLeft() =>
-                              Some(put)
+              .flatMap {
+                next =>
+                  if (next.hasTimeLeft())
+                    RemoveMerger(current, next) match {
+                      case put: KeyValue.Put if put.hasTimeLeft() =>
+                        put
 
-                            case _: KeyValue.Fixed =>
-                              None
-                          }
-                        else
-                          None
+                      case _: KeyValue.Fixed =>
+                        KeyValue.Put.Null
                     }
+                  else
+                    KeyValue.Put.Null
               }
           else
-            IO.Defer.none
+            KeyValue.Put.Null
 
         case current: KeyValue.Update =>
           if (current.hasTimeLeft())
             nextGetter
               .get(key, readState)
-              .map {
-                nextOption =>
-                  nextOption
-                    .flatMap {
-                      next =>
-                        if (next.hasTimeLeft())
-                          UpdateMerger(current, next) match {
-                            case put: KeyValue.Put if put.hasTimeLeft() =>
-                              Some(put)
+              .flatMap {
+                next =>
+                  if (next.hasTimeLeft())
+                    UpdateMerger(current, next) match {
+                      case put: KeyValue.Put if put.hasTimeLeft() =>
+                        put
 
-                            case _: KeyValue.Fixed =>
-                              None
-                          }
-                        else
-                          None
+                      case _: KeyValue.Fixed =>
+                        KeyValue.Put.Null
                     }
+                  else
+                    KeyValue.Put.Null
               }
           else
-            IO.Defer.none
+            KeyValue.Put.Null
 
         case current: KeyValue.Range =>
           val currentValue =
-            try
-              if (keyOrder.equiv(current.key, key))
-                current.fetchFromOrElseRangeValueUnsafe
-              else
-                current.fetchRangeValueUnsafe
-            catch {
-              case throwable: Throwable =>
-                return IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
-            }
+            if (keyOrder.equiv(current.key, key))
+              current.fetchFromOrElseRangeValueUnsafe
+            else
+              current.fetchRangeValueUnsafe
 
           if (Value.hasTimeLeft(currentValue))
             resolve(currentValue.toMemory(key))
           else
-            IO.Defer.none
+            KeyValue.Put.Null
 
         case current: KeyValue.Function =>
           nextGetter
             .get(key, readState)
             .flatMap {
-              case Some(next) =>
+              next =>
                 if (next.hasTimeLeft())
-                  try
-                    FunctionMerger(current, next) match {
-                      case put: KeyValue.Put if put.hasTimeLeft() =>
-                        IO.Defer(Some(put))
+                  FunctionMerger(current, next) match {
+                    case put: KeyValue.Put if put.hasTimeLeft() =>
+                      put
 
-                      case _: KeyValue.Fixed =>
-                        IO.Defer.none
-                    }
-                  catch {
-                    case throwable: Throwable =>
-                      IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
+                    case _: KeyValue.Fixed =>
+                      KeyValue.Put.Null
                   }
                 else
-                  IO.Defer.none
-
-              case None =>
-                IO.Defer.none
+                  KeyValue.Put.Null
             }
 
         case current: KeyValue.PendingApply =>
           nextGetter
             .get(key, readState)
             .flatMap {
-              case Some(next) =>
+              next =>
                 if (next.hasTimeLeft())
-                  try
-                    PendingApplyMerger(current, next) match {
-                      case put: KeyValue.Put if put.hasTimeLeft() =>
-                        IO.Defer(Some(put))
+                  PendingApplyMerger(current, next) match {
+                    case put: KeyValue.Put if put.hasTimeLeft() =>
+                      put
 
-                      case _: KeyValue.Fixed =>
-                        IO.Defer.none
-                    }
-                  catch {
-                    case throwable: Throwable =>
-                      IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
+                    case _: KeyValue.Fixed =>
+                      KeyValue.Put.Null
                   }
                 else
-                  IO.Defer.none
-
-              case None =>
-                IO.Defer.none
+                  KeyValue.Put.Null
             }
       }
 
-    val current =
-      try
-        currentGetter.get(key, readState)
-      catch {
-        case throwable: Throwable =>
-          return IO.Left(IO.ExceptionHandler.toError(throwable)) recoverTo Get(key, readState)
-      }
-
-    current match {
+    currentGetter.get(key, readState) match {
       case current: KeyValue =>
         resolve(current)
 

@@ -21,10 +21,10 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.IO
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
+import swaydb.core.data.KeyValue
 import swaydb.core.level.LevelSeek
 import swaydb.core.{TestData, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -58,7 +58,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, randomFromValueOption(addPut = false), rangeValue = randomUpdateRangeValue()))
-                next.lower            _ expects (key: Slice[Byte], *)  returning IO.Defer.none
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
                 current.lower         _ expects (0: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
@@ -84,7 +84,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(0, 10, randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
-                next.lower            _ expects (key: Slice[Byte], *)  returning IO.Defer.none
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
                 current.lower         _ expects (0: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
@@ -112,7 +112,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomFromValueOption(addPut = false), randomUpdateRangeValue()))
-                next.lower            _ expects (key: Slice[Byte], *)  returning IO.Defer.none
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
                 current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
@@ -136,7 +136,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
               inSequence {
                 //@formatter:off
                 current.lower         _ expects (key: Slice[Byte], *)  returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
-                next.lower            _ expects (key: Slice[Byte], *)  returning IO.Defer.none
+                next.lower            _ expects (key: Slice[Byte], *)  returning KeyValue.Put.Null
                 current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
                 //@formatter:on
               }
@@ -158,7 +158,7 @@ class LowerRangeNoneSpec extends WordSpec with Matchers with MockFactory {
           inSequence {
             //@formatter:off
             current.lower         _ expects (12: Slice[Byte], *)   returning LevelSeek.Some(1, randomRangeKeyValue(1, 10, randomRemoveOrUpdateOrFunctionRemoveValue(), randomRemoveOrUpdateOrFunctionRemoveValue(addFunctions = false)))
-            next.lower            _ expects (12: Slice[Byte], *)   returning IO.Defer.none
+            next.lower            _ expects (12: Slice[Byte], *)   returning KeyValue.Put.Null
             current.lower         _ expects (1: Slice[Byte], *)    returning LevelSeek.None
             //@formatter:on
           }

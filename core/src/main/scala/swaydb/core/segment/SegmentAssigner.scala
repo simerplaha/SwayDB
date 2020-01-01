@@ -33,12 +33,12 @@ private[core] object SegmentAssigner {
 
   def assignMinMaxOnlyUnsafe(inputSegments: Iterable[Segment],
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
+    SegmentAssigner.assignUnsafe(2 * targetSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
 
   def assignMinMaxOnlyUnsafe(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
                              targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                 segmentIO: SegmentIO): Iterable[Segment] =
-    SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(map), targetSegments).keys
+    SegmentAssigner.assignUnsafe(2 * targetSegments.size, Segment.tempMinMaxKeyValues(map), targetSegments).keys
 
   def assignUnsafe(keyValues: Slice[KeyValue],
                    segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] =
@@ -66,22 +66,7 @@ private[core] object SegmentAssigner {
                                 remainingKeyValues: Int): Unit =
       assignmentsMap.get(segment) match {
         case Some(currentAssignments) =>
-          try
-            currentAssignments add keyValue
-          catch {
-            /**
-             * ArrayIndexOutOfBoundsException can occur when the size of an unopened Group's key-value was not accounted
-             * for at the time of Slice initialisation.
-             *
-             * This failure is not expected to occur often and it will be more efficient to extend the exiting assignments Slice
-             * whenever required.
-             */
-            case _: ArrayIndexOutOfBoundsException =>
-              val initial = Slice.create[KeyValue](currentAssignments.size + remainingKeyValues + 1)
-              initial addAll currentAssignments
-              initial add keyValue
-              assignmentsMap += (segment -> initial)
-          }
+          currentAssignments add keyValue
 
         case None =>
           //+1 for cases when a Range might extend to the next Segment.

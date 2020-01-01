@@ -19,7 +19,6 @@
 
 package swaydb.core.level.seek
 
-import org.scalatest.OptionValues._
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -39,18 +38,18 @@ class HigherSpec extends WordSpec with Matchers {
 
   "higherFromValue" in {
     runThis(100.times) {
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.Null) shouldBe empty
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.Null) shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.FromValue.Null).toOptionPut shouldBe empty
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.FromValue.Null).toOptionPut shouldBe empty
 
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)).toOptionPut shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)).toOptionPut shouldBe empty
 
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))) shouldBe empty
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))).toOptionPut shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))).toOptionPut shouldBe empty
 
       val put = Value.put(randomStringSliceOptional, randomDeadlineOption(false))
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = put) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = put).value shouldBe put.toMemory(2)
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = put).toOptionPut shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = put) shouldBe put.toMemory(2)
     }
   }
 }
