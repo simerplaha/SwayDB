@@ -23,7 +23,6 @@ import java.nio.file.{Files, NoSuchFileException}
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, MemoryOptional, Value}
@@ -73,8 +72,8 @@ class MapsSpec extends TestBase {
       maps.write(_ => MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))).runRandomIO.right.value
 
-      maps.get(1).value shouldBe Memory.remove(1)
-      maps.get(2).value shouldBe Memory.put(2)
+      maps.get(1) shouldBe Memory.remove(1)
+      maps.get(2) shouldBe Memory.put(2)
       //since the size of the Map is 1.mb and entries are too small. No flushing will value executed and there should only be one folder.
       path.folders.map(_.folderId) should contain only 0
 
@@ -93,11 +92,11 @@ class MapsSpec extends TestBase {
       //adding more entries to reopened Map should contain all entries
       reopen.write(_ => MapEntry.Put(3, Memory.put(3))).runRandomIO.right.value
       reopen.write(_ => MapEntry.Put(4, Memory.put(4))).runRandomIO.right.value
-      reopen.get(3).value shouldBe Memory.put(3)
-      reopen.get(4).value shouldBe Memory.put(4)
+      reopen.get(3) shouldBe Memory.put(3)
+      reopen.get(4) shouldBe Memory.put(4)
       //old entries still exist in the reopened map
-      reopen.get(1).value shouldBe Memory.remove(1)
-      reopen.get(2).value shouldBe Memory.put(2)
+      reopen.get(1) shouldBe Memory.remove(1)
+      reopen.get(2) shouldBe Memory.put(2)
 
       //reopening will start the Map in recovery mode which will add all the existing maps in memory and initialise a new map for writing
       //so a new folder 1 is initialised.
@@ -155,8 +154,8 @@ class MapsSpec extends TestBase {
       map.write(_ => MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value
       map.write(_ => MapEntry.Put[Slice[Byte], Memory](1, Memory.remove(1))).runRandomIO.right.value
 
-      map.get(1).value shouldBe Memory.remove(1)
-      map.get(2).value shouldBe Memory.put(2)
+      map.get(1) shouldBe Memory.remove(1)
+      map.get(2) shouldBe Memory.put(2)
     }
   }
 
@@ -201,7 +200,7 @@ class MapsSpec extends TestBase {
         //adding 1.mb key-value to map, the file size is 500.bytes, since this is the first entry in the map and the map is empty,
         // the entry will value added.
         maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))).runRandomIO.right.value //large entry
-        maps.get(1).value shouldBe Memory.put(1, largeValue)
+        maps.get(1) shouldBe Memory.put(1, largeValue)
         maps.queuedMapsCount shouldBe 0
         maps.queuedMapsCountWithCurrent shouldBe 1
 
@@ -212,13 +211,13 @@ class MapsSpec extends TestBase {
 
         //a small entry of 24.bytes gets written to the same Map since the total size is 500.bytes
         maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](3, Memory.remove(3))).runRandomIO.right.value
-        maps.get(3).value shouldBe Memory.remove(3)
+        maps.get(3) shouldBe Memory.remove(3)
         maps.queuedMapsCount shouldBe 1
         maps.queuedMapsCountWithCurrent shouldBe 2
 
         //write large entry again and a new Map is created again.
         maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))).runRandomIO.right.value //large entry
-        maps.get(1).value shouldBe Memory.put(1, largeValue)
+        maps.get(1) shouldBe Memory.put(1, largeValue)
         maps.queuedMapsCount shouldBe 2
         maps.queuedMapsCountWithCurrent shouldBe 3
 
@@ -238,10 +237,10 @@ class MapsSpec extends TestBase {
       val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, fileSize = 500.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.queuedMapsCount shouldBe 4
       maps.queuedMapsCountWithCurrent shouldBe 5
-      maps.get(1).value shouldBe Memory.put(1, largeValue)
-      maps.get(2).value shouldBe Memory.put(2, 2)
-      maps.get(3).value shouldBe Memory.remove(3)
-      maps.get(4).value shouldBe Memory.remove(4)
+      maps.get(1) shouldBe Memory.put(1, largeValue)
+      maps.get(2) shouldBe Memory.put(2, 2)
+      maps.get(3) shouldBe Memory.remove(3)
+      maps.get(4) shouldBe Memory.remove(4)
     }
 
     "recover maps in newest to oldest order" in {
@@ -352,14 +351,14 @@ class MapsSpec extends TestBase {
       maps.maps.asScala.last.exists shouldBe false
 
       //oldest map contains all key-values
-      recoveredMaps.get(1).value shouldBe Memory.put(1)
-      recoveredMaps.get(2).value shouldBe Memory.put(2, 2)
+      recoveredMaps.get(1) shouldBe Memory.put(1)
+      recoveredMaps.get(2) shouldBe Memory.put(2, 2)
       //second map is partially read but it's missing 4th entry
-      recoveredMaps.get(3).value shouldBe Memory.put(3)
+      recoveredMaps.get(3) shouldBe Memory.put(3)
       //third map is completely ignored.
-      recoveredMaps.get(4) shouldBe empty
-      recoveredMaps.get(5) shouldBe empty
-      recoveredMaps.get(6) shouldBe empty
+      recoveredMaps.get(4).toOptional shouldBe empty
+      recoveredMaps.get(5).toOptional shouldBe empty
+      recoveredMaps.get(6).toOptional shouldBe empty
     }
 
     "start a new Map if writing an entry fails" in {

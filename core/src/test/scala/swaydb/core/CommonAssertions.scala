@@ -81,6 +81,9 @@ object CommonAssertions {
             case _ =>
               None
           }
+
+        case _ =>
+          None
       }
 
     def shouldBe(expected: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,

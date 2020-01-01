@@ -21,5 +21,5 @@ package swaydb
 
 final case class Done()
 object Done {
-  val instance: Done = Done()
+  final val instance: Done = Done()
 }

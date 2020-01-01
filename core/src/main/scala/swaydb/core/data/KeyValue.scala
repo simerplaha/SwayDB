@@ -110,6 +110,24 @@ private[core] object KeyValue {
         f
       else
         this
+
+    def map[T](f: KeyValue.Put => T): Option[T] =
+      if (isNoneS)
+        None
+      else
+        Some(f(getPut))
+
+    def flatMapOption[T](f: KeyValue.Put => Option[T]): Option[T] =
+      if (isNoneS)
+        None
+      else
+        f(getPut)
+
+    def mapSliceOptional(f: KeyValue.Put => SliceOptional[Byte]): SliceOptional[Byte] =
+      if (isNoneS)
+        Slice.Null
+      else
+        f(getPut)
   }
 
   object Put {

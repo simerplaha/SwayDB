@@ -105,7 +105,7 @@ sealed trait LevelReadSomeSpec extends TestBase with MockFactory {
               level0KeyValues foreach {
                 update =>
                   val (gotValue, gotDeadline) =
-                    IO.Defer(level.get(update.key, ThreadReadState.random).toOptionPut).map {
+                    level.get(update.key, ThreadReadState.random).toOptionPut.runRandomIO.map {
                       case Some(put) =>
                         val value = put.getOrFetchValue.runRandomIO.right.value
                         (value, put.deadline)

@@ -217,29 +217,31 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     zero.run(_.head(readState))
 
   def headKey(readState: ThreadReadState): T[Option[Slice[Byte]]] =
-//    zero.headKey(readState).run
-  ???
+  //    zero.headKey(readState).run
+    ???
 
   def last(readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
     zero.run(_.last(readState))
 
   def lastKey(readState: ThreadReadState): T[Option[Slice[Byte]]] =
-//    zero.lastKey(readState).run
-  ???
+  //    zero.lastKey(readState).run
+    ???
 
   def bloomFilterKeyValueCount: T[Int] =
     IO.Defer(zero.keyValueCount).run
 
   def deadline(key: Slice[Byte],
                readState: ThreadReadState): T[Option[Deadline]] =
-    zero.deadline(key, readState).run
+  //    zero.deadline(key, readState).run
+    ???
 
   def sizeOfSegments: Long =
     zero.sizeOfSegments
 
   def contains(key: Slice[Byte],
                readState: ThreadReadState): T[Boolean] =
-    zero.contains(key, readState).run
+  //    zero.contains(key, readState).run
+    ???
 
   def mightContainKey(key: Slice[Byte]): T[Boolean] =
     IO.Defer(zero.mightContainKey(key)).run
@@ -253,7 +255,8 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def getKey(key: Slice[Byte],
              readState: ThreadReadState): T[Option[Slice[Byte]]] =
-    zero.getKey(key, readState).run
+  //    zero.getKey(key, readState).run
+    ???
 
   def getKeyValue(key: Slice[Byte],
                   readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
@@ -265,8 +268,8 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def beforeKey(key: Slice[Byte],
                 readState: ThreadReadState): T[Option[Slice[Byte]]] =
-//    tag.map(zero.lower(key, readState).run)(_.map(_.key))
-  ???
+  //    tag.map(zero.lower(key, readState).run)(_.map(_.key))
+    ???
 
   def after(key: Slice[Byte],
             readState: ThreadReadState): T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
@@ -274,12 +277,13 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
 
   def afterKey(key: Slice[Byte],
                readState: ThreadReadState): T[Option[Slice[Byte]]] =
-//    tag.map(zero.higher(key, readState).run)(_.map(_.key))
-  ???
+  //    tag.map(zero.higher(key, readState).run)(_.map(_.key))
+    ???
 
   def valueSize(key: Slice[Byte],
                 readState: ThreadReadState): T[Option[Int]] =
-    zero.valueSize(key, readState).run
+  //    zero.valueSize(key, readState).run
+    ???
 
   def levelZeroMeter: LevelZeroMeter =
     zero.levelZeroMeter
@@ -294,7 +298,8 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     onClose.flatMapIO(_ => zero.delete).run
 
   def clear(readState: ThreadReadState): T[Done] =
-    zero.clear(readState).run
+  //    zero.clear(readState).run
+    ???
 
   def toTag[X[_]](implicit tag: Tag[X]): Core[X] =
     new Core[X](zero, onClose)(tag)

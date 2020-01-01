@@ -56,7 +56,7 @@ private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional,
 }
 private[core] object Segment extends LazyLogging {
 
-  final case object Null extends SegmentOptional {
+  final object Null extends SegmentOptional {
     override def isNoneS: Boolean = true
     override def getS: Segment = throw new Exception("Segment is of type Null")
   }

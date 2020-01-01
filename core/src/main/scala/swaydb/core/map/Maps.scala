@@ -313,6 +313,9 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
+  val nullValue: OV = currentMap.skipList.nullValue
+  val nullKey: OK = currentMap.skipList.nullKey
+
   @volatile private var totalMapsCount: Int = maps.size() + 1
   @volatile private var currentMapsCount: Int = maps.size() + 1
 
@@ -397,79 +400,85 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
     }
   }
 
-  private def findFirst[R](f: Map[OK, OV, K, V] => Option[R]): Option[R] = {
+  private def findFirst[R](nullResult: R, f: Map[OK, OV, K, V] => R): R = {
     val iterator = maps.iterator()
 
     def getNext() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
-    def find(next: Map[OK, OV, K, V]): Option[R] =
-      f(next) match {
-        case found @ Some(_) =>
-          found
-
-        case None =>
-          val next = getNext()
-          if (next == null)
-            None
-          else
-            find(next)
+    def find(next: Map[OK, OV, K, V]): R = {
+      val foundOrNullR = f(next)
+      if (foundOrNullR == nullResult) {
+        val next = getNext()
+        if (next == null)
+          nullResult
+        else
+          find(next)
+      } else {
+        foundOrNullR
       }
+    }
 
     val next = getNext()
     if (next == null)
-      None
+      nullResult
     else
       find(next)
   }
 
-  private def findAndReduce[R](f: Map[OK, OV, K, V] => Option[R],
-                               reduce: (Option[R], Option[R]) => Option[R]): Option[R] = {
+  private def findAndReduce[R](nullResult: R,
+                               f: Map[OK, OV, K, V] => R,
+                               reduce: (R, R) => R): R = {
     val iterator = maps.iterator()
 
-    def getNext() = if (iterator.hasNext) Option(iterator.next()) else None
+    def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
 
     @tailrec
-    def find(nextMayBe: Option[Map[OK, OV, K, V]],
-             previousResult: Option[R]): Option[R] =
-      nextMayBe match {
-        case Some(next) =>
-          f(next) match {
-            case nextResult @ Some(_) =>
-              val result = reduce(previousResult, nextResult)
-              find(getNext(), result)
-
-            case None =>
-              find(getNext(), previousResult)
-          }
-
-        case None =>
-          previousResult
+    def find(nextOrNull: Map[OK, OV, K, V],
+             previousResult: R): R =
+      if (nextOrNull == null) {
+        previousResult
+      } else {
+        val nextResult = f(nextOrNull)
+        if (nextResult == nullResult) {
+          find(getNextOrNull(), previousResult)
+        } else if (previousResult == nullResult) {
+          find(getNextOrNull(), nextResult)
+        } else {
+          val result = reduce(previousResult, nextResult)
+          find(getNextOrNull(), result)
+        }
       }
 
-    find(getNext(), None)
+    find(getNextOrNull(), nullResult)
   }
 
-  def find[R](matcher: Map[OK, OV, K, V] => Option[R]): Option[R] =
-    matcher(currentMap) orElse findFirst(matcher)
+  def find[R](nullResult: R, matcher: Map[OK, OV, K, V] => R): R = {
+    val currentMatch = matcher(currentMap)
+    if (currentMatch == nullResult)
+      findFirst(nullResult, matcher)
+    else
+      nullResult
+  }
 
   def contains(key: K): Boolean =
-    get(key).isDefined
+    get(key) == nullValue
 
-  def get(key: K): Option[V] =
-    find {
-      map =>
-        //todo remove Option
-        val got = map.skipList.get(key)
-        if (got == map.skipList.nullValue)
-          None
-        else
-          Some(got.asInstanceOf[V])
-    }
+  def get(key: K): OV =
+    find(nullValue, _.skipList.get(key))
 
-  def reduce[R](matcher: Map[OK, OV, K, V] => Option[R],
-                reduce: (Option[R], Option[R]) => Option[R]): Option[R] =
-    reduce(matcher(currentMap), findAndReduce(matcher, reduce))
+  def reduce[R](nullValue: R,
+                applier: Map[OK, OV, K, V] => R,
+                reduce: (R, R) => R): R = {
+    val currentApplied = applier(currentMap)
+    val othersReduced = findAndReduce(nullValue, applier, reduce)
+    if (currentApplied == nullValue)
+      othersReduced
+    else if (othersReduced == nullValue)
+      currentApplied
+    else
+      reduce(currentApplied, othersReduced)
+  }
 
   def lastOption(): Option[Map[OK, OV, K, V]] =
     IO.tryOrNone(maps.getLast)
@@ -493,8 +502,8 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
         }
     }
 
-  def keyValueCount: Option[Int] =
-    reduce[Int](map => Some(map.size), (one, two) => Some(one.getOrElse(0) + two.getOrElse(0)))
+  def keyValueCount: Int =
+    reduce[Int](nullValue = 0, applier = map => map.size, reduce = _ + _)
 
   def queuedMapsCount =
     maps.size()
