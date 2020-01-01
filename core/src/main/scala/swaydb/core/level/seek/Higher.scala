@@ -142,26 +142,23 @@ private[core] object Higher {
               //10->19  (input keys)
               //10 - 20 (higher range from current Level)
               case currentRange: KeyValue.Range if key >= currentRange.fromKey =>
-                currentRange.fetchRangeValueUnsafe match {
-                  case rangeValue =>
-                    //if the current range is active fetch the highest from next Level and return highest from both Levels.
-                    if (Value.hasTimeLeft(rangeValue)) //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
-                      nextWalker.higher(key, readState) match {
-                        case next: KeyValue.Put =>
-                          Higher(key, readState, currentStash, Seek.Next.Stash(next))
+                //if the current range is active fetch the highest from next Level and return highest from both Levels.
+                if (Value.hasTimeLeft(currentRange.fetchRangeValueUnsafe)) //if the higher from the current Level is a Fixed key-value, fetch from next Level and return the highest.
+                  nextWalker.higher(key, readState) match {
+                    case next: KeyValue.Put =>
+                      Higher(key, readState, currentStash, Seek.Next.Stash(next))
 
-                        case KeyValue.Put.Null =>
-                          Higher(key, readState, currentStash, Seek.Next.Stop)
-                      }
-                    else //if the rangeValue is expired then the higher is toKey or ceiling of toKey
-                      currentWalker.get(currentRange.toKey, readState) match {
-                        case ceiling: KeyValue.Put if ceiling.hasTimeLeft() =>
-                          ceiling
+                    case KeyValue.Put.Null =>
+                      Higher(key, readState, currentStash, Seek.Next.Stop)
+                  }
+                else //if the rangeValue is expired then the higher is toKey or ceiling of toKey
+                  currentWalker.get(currentRange.toKey, readState) match {
+                    case ceiling: KeyValue.Put if ceiling.hasTimeLeft() =>
+                      ceiling
 
-                        case _: KeyValue.Put | KeyValue.Put.Null =>
-                          Higher(currentRange.toKey, readState, Seek.Current.Read(segmentId), nextSeek)
-                      }
-                }
+                    case _: KeyValue.Put | KeyValue.Put.Null =>
+                      Higher(currentRange.toKey, readState, Seek.Current.Read(segmentId), nextSeek)
+                  }
 
               //if the input key is smaller than this Level's higher Range's fromKey.
               //0           (input key)

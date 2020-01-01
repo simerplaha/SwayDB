@@ -89,14 +89,16 @@ private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
       headRangeOrNull
 
   def dropHead(): MergeList[H, T] = {
-    if (headRangeOrNull != null)
+    if (headRangeOrNull != null) {
       headRangeOrNull = null
-    else if (tailHead != null)
+      size -= 1
+    } else if (tailHead != null) {
       tailHead = null
-    else
+      size -= 1
+    } else if (tailKeyValues.hasNext) {
       tailKeyValues = tailKeyValues.drop(1)
-
-    size -= 1
+      size -= 1
+    }
 
     this
   }
