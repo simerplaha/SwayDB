@@ -216,7 +216,7 @@ private[core] object SegmentCache {
                       key = key,
                       start = bestStart,
                       sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
-                      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable()
+                      valuesReaderOrNull = segmentCache.blockCache.createValuesReaderOrNull()
                     ) onSomeSideEffectS {
                       found =>
                         SegmentReadState.updateOnSuccessSequentialRead(
@@ -242,10 +242,10 @@ private[core] object SegmentCache {
                       start = bestStart,
                       end = higher,
                       keyValueCount = footer.keyValueCount,
-                      hashIndexReaderNullable = segmentCache.blockCache.createHashIndexReaderNullable(),
-                      binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
+                      hashIndexReaderOrNull = segmentCache.blockCache.createHashIndexReaderOrNull(),
+                      binarySearchIndexReaderOrNull = segmentCache.blockCache.createBinarySearchIndexReaderOrNull(),
                       sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
-                      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
+                      valuesReaderOrNull = segmentCache.blockCache.createValuesReaderOrNull(),
                       hasRange = footer.hasRange
                     ) onSideEffectS {
                       found =>
@@ -341,7 +341,7 @@ private[core] object SegmentCache {
                             key = key,
                             start = bestStart,
                             sortedIndexReader = blockCache.createSortedIndexReader(),
-                            valuesReaderNullable = blockCache.createValuesReaderNullable()
+                            valuesReaderOrNull = blockCache.createValuesReaderOrNull()
                           ) onSomeSideEffectS {
                             found =>
                               SegmentReadState.updateOnSuccessSequentialRead(
@@ -363,9 +363,9 @@ private[core] object SegmentCache {
                           start = bestStart,
                           end = higher,
                           keyValueCount = segmentCache.getFooter().keyValueCount,
-                          binarySearchIndexReaderNullable = blockCache.createBinarySearchIndexReaderNullable(),
+                          binarySearchIndexReaderOrNull = blockCache.createBinarySearchIndexReaderOrNull(),
                           sortedIndexReader = blockCache.createSortedIndexReader(),
-                          valuesReaderNullable = blockCache.createValuesReaderNullable()
+                          valuesReaderOrNull = blockCache.createValuesReaderOrNull()
                         ) onSideEffectS {
                           optional =>
                             SegmentReadState.updateAfterRandomRead(
@@ -410,9 +410,9 @@ private[core] object SegmentCache {
       start = start,
       end = endKeyValue,
       keyValueCount = keyValueCount,
-      binarySearchIndexReaderNullable = segmentCache.blockCache.createBinarySearchIndexReaderNullable(),
+      binarySearchIndexReaderOrNull = segmentCache.blockCache.createBinarySearchIndexReaderOrNull(),
       sortedIndexReader = sortedIndexReader,
-      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable()
+      valuesReaderOrNull = segmentCache.blockCache.createValuesReaderOrNull()
     ) onSideEffectS {
       optional =>
         optional foreachS {
@@ -599,7 +599,7 @@ private[core] class SegmentCache(val path: Path,
     }
 
   def mightContain(key: Slice[Byte]): Boolean = {
-    val bloomFilterReader = blockCache.createBloomFilterReaderNullable()
+    val bloomFilterReader = blockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(
         key = key,

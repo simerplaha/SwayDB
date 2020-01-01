@@ -56,10 +56,10 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             key = keyValue.key,
             start = eitherOne(Persistent.Null, previous),
             end = Persistent.Null,
-            hashIndexReaderNullable = blocks.hashIndexReader.orNull,
-            binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+            hashIndexReaderOrNull = blocks.hashIndexReader.orNull,
+            binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
             sortedIndexReader = blocks.sortedIndexReader,
-            valuesReaderNullable = blocks.valuesReader.orNull,
+            valuesReaderOrNull = blocks.valuesReader.orNull,
             hasRange = blocks.footer.hasRange,
             keyValueCount = keyValues.size
           )
@@ -69,10 +69,10 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
             key = keyValue.key,
             start = eitherOne(Persistent.Null, previous),
             end = Persistent.Null,
-            hashIndexReaderNullable = blocks.hashIndexReader.orNull,
-            binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+            hashIndexReaderOrNull = blocks.hashIndexReader.orNull,
+            binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
             sortedIndexReader = blocks.sortedIndexReader,
-            valuesReaderNullable = blocks.valuesReader.orNull,
+            valuesReaderOrNull = blocks.valuesReader.orNull,
             hasRange = blocks.footer.hasRange,
             keyValueCount = keyValues.size
           )
@@ -102,11 +102,11 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
               key = keyValue.key,
               start = randomStart,
               end = randomEnd,
-              hashIndexReaderNullable = null,
+              hashIndexReaderOrNull = null,
               //randomly use binary search index.
-              binarySearchIndexReaderNullable = binarySearchIndexOptional.orNull,
+              binarySearchIndexReaderOrNull = binarySearchIndexOptional.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull,
+              valuesReaderOrNull = blocks.valuesReader.orNull,
               hasRange = blocks.footer.hasRange,
               keyValueCount = keyValues.size
             )
@@ -124,10 +124,10 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           key = key,
           start = Persistent.Null,
           end = Persistent.Null,
-          hashIndexReaderNullable = blocks.hashIndexReader.orNull,
-          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+          hashIndexReaderOrNull = blocks.hashIndexReader.orNull,
+          binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
           sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderNullable = ValuesBlock.emptyUnblocked, //give it empty blocks since values are not read.
+          valuesReaderOrNull = ValuesBlock.emptyUnblocked, //give it empty blocks since values are not read.
           hasRange = blocks.footer.hasRange,
           keyValueCount = keyValues.size
         ).toOptionS shouldBe empty
@@ -152,9 +152,9 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReaderNullable = randomBinarySearchIndex.orNull, //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReaderOrNull = randomBinarySearchIndex.orNull, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderNullable = blocks.valuesReader.orNull,
+          valuesReaderOrNull = blocks.valuesReader.orNull,
           keyValueCount = keyValues.size
         )
 
@@ -164,9 +164,9 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReaderNullable = randomBinarySearchIndex.orNull, //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReaderOrNull = randomBinarySearchIndex.orNull, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderNullable = blocks.valuesReader.orNull,
+          valuesReaderOrNull = blocks.valuesReader.orNull,
           keyValueCount = keyValues.size
         )
 
@@ -216,9 +216,9 @@ class SegmentSearcherSpec extends TestBase with MockFactory {
           //randomly give it start and end indexes.
           start = randomStart,
           end = randomEnd,
-          binarySearchIndexReaderNullable = randomBinarySearchIndex.orNull, //set it to null. BinarySearchIndex is not accessed.
+          binarySearchIndexReaderOrNull = randomBinarySearchIndex.orNull, //set it to null. BinarySearchIndex is not accessed.
           sortedIndexReader = blocks.sortedIndexReader,
-          valuesReaderNullable = blocks.valuesReader.orNull,
+          valuesReaderOrNull = blocks.valuesReader.orNull,
           keyValueCount = keyValues.size
         )
 

@@ -63,7 +63,7 @@ object PersistentReader {
                             sortedIndexEndOffset: Int,
                             normalisedByteSize: Int,
                             hasAccessPositionIndex: Boolean,
-                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
     val tailReader = Reader(tailIndexEntry)
     val headerKeyBytes = tailReader.read(headerInteger)
@@ -82,7 +82,7 @@ object PersistentReader {
       sortedIndexEndOffset = sortedIndexEndOffset,
       normalisedByteSize = normalisedByteSize,
       hasAccessPositionIndex = hasAccessPositionIndex,
-      valuesReaderNullable = valuesReaderNullable,
+      valuesReaderOrNull = valuesReaderOrNull,
       reader = reader
     )
   }
@@ -99,7 +99,7 @@ object PersistentReader {
                             sortedIndexEndOffset: Int,
                             normalisedByteSize: Int,
                             hasAccessPositionIndex: Boolean,
-                            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
                             reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]): T = {
     val baseId = binder.keyValueId adjustKeyValueIdToBaseId keyValueId
 
@@ -173,7 +173,7 @@ object PersistentReader {
     reader(
       key = key,
       deadline = deadline,
-      valuesReaderNullable = valuesReaderNullable,
+      valuesReaderOrNull = valuesReaderOrNull,
       time = time,
       nextIndexOffset = nextIndexOffset,
       nextKeySize = nextKeySize,

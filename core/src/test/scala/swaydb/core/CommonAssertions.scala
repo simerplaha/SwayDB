@@ -672,10 +672,10 @@ object CommonAssertions {
           start = Persistent.Null,
           end = Persistent.Null,
           keyValueCount = blocks.footer.keyValueCount,
-          hashIndexReaderNullable = blocks.hashIndexReader.map(_.copy()).orNull,
-          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
+          hashIndexReaderOrNull = blocks.hashIndexReader.map(_.copy()).orNull,
+          binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.map(_.copy()).orNull,
           sortedIndexReader = blocks.sortedIndexReader.copy(),
-          valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull,
+          valuesReaderOrNull = blocks.valuesReader.map(_.copy()).orNull,
           hasRange = blocks.footer.hasRange
         ).runRandomIO.right.value.getS shouldBe keyValue
     }
@@ -1064,9 +1064,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+              binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             ).runRandomIO.right.value.toOptional shouldBe empty
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
@@ -1076,9 +1076,9 @@ object CommonAssertions {
                   start = Persistent.Null,
                   end = Persistent.Null,
                   keyValueCount = blocks.footer.keyValueCount,
-                  binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                  binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                   sortedIndexReader = blocks.sortedIndexReader,
-                  valuesReaderNullable = blocks.valuesReader.orNull
+                  valuesReaderOrNull = blocks.valuesReader.orNull
                 ).runRandomIO.right.value.getUnsafe shouldBe range
             }
 
@@ -1088,9 +1088,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+              binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             ).runRandomIO.right.value.toOptional shouldBe empty
         }
         assertLowers(index + 1)
@@ -1103,9 +1103,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+              binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             ).runRandomIO.right.value.getUnsafe shouldBe expectedLowerKeyValue
 
             (range.fromKey.readInt() + 1 to range.toKey.readInt()) foreach {
@@ -1115,9 +1115,9 @@ object CommonAssertions {
                   start = Persistent.Null,
                   end = Persistent.Null,
                   keyValueCount = blocks.footer.keyValueCount,
-                  binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                  binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                   sortedIndexReader = blocks.sortedIndexReader,
-                  valuesReaderNullable = blocks.valuesReader.orNull
+                  valuesReaderOrNull = blocks.valuesReader.orNull
                 ).runRandomIO.right.value.getUnsafe shouldBe range
             }
 
@@ -1127,9 +1127,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+              binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             ).runRandomIO.right.value.getUnsafe shouldBe expectedLowerKeyValue
         }
 
@@ -1155,9 +1155,9 @@ object CommonAssertions {
               start = Persistent.Null,
               end = Persistent.Null,
               keyValueCount = blocks.footer.keyValueCount,
-              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.map(_.copy()).orNull,
+              binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.map(_.copy()).orNull,
               sortedIndexReader = blocks.sortedIndexReader.copy(),
-              valuesReaderNullable = blocks.valuesReader.map(_.copy()).orNull
+              valuesReaderOrNull = blocks.valuesReader.map(_.copy()).orNull
             ).toOptional
           }
     )
@@ -1533,7 +1533,7 @@ object CommonAssertions {
         .readAll(
           keyValueCount = blockCache.getFooter().keyValueCount,
           sortedIndexReader = blockCache.createSortedIndexReader(),
-          valuesReaderNullable = blockCache.createValuesReaderNullable()
+          valuesReaderOrNull = blockCache.createValuesReaderOrNull()
         )
     }
 
@@ -1547,11 +1547,11 @@ object CommonAssertions {
     IO {
       SegmentBlocks(
         footer = blockCache.getFooter(),
-        valuesReader = Option(blockCache.createValuesReaderNullable()),
+        valuesReader = Option(blockCache.createValuesReaderOrNull()),
         sortedIndexReader = blockCache.createSortedIndexReader(),
-        hashIndexReader = Option(blockCache.createHashIndexReaderNullable()),
-        binarySearchIndexReader = Option(blockCache.createBinarySearchIndexReaderNullable()),
-        bloomFilterReader = Option(blockCache.createBloomFilterReaderNullable())
+        hashIndexReader = Option(blockCache.createHashIndexReaderOrNull()),
+        binarySearchIndexReader = Option(blockCache.createBinarySearchIndexReaderOrNull()),
+        bloomFilterReader = Option(blockCache.createBloomFilterReaderOrNull())
       )
     }
 

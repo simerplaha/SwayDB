@@ -44,7 +44,7 @@ sealed trait HashIndexEntryFormat {
   def readOrNull(entry: Slice[Byte],
                  hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                  sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                 valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
+                 valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
 
 object HashIndexEntryFormat {
@@ -77,7 +77,7 @@ object HashIndexEntryFormat {
     override def readOrNull(entry: Slice[Byte],
                             hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                            valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+                            valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
       val (possibleOffset, bytesRead) = Bytes.readUnsignedIntNonZeroWithByteSize(entry)
       //      //println(s"Key: ${key.readInt()}: read hashIndex: ${index + block.headerSize} probe: $probe, sortedIndex: ${possibleOffset - 1} = reading now!")
       if (possibleOffset == 0 || entry.existsFor(bytesRead, _ == Bytes.zero)) {
@@ -87,7 +87,7 @@ object HashIndexEntryFormat {
         SortedIndexBlock.readPartialKeyValue(
           fromOffset = possibleOffset - 1,
           sortedIndexReader = sortedIndex,
-          valuesReaderNullable = valuesNullable
+          valuesReaderOrNull = valuesOrNull
         )
       }
     }
@@ -127,7 +127,7 @@ object HashIndexEntryFormat {
     override def readOrNull(entry: Slice[Byte],
                             hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                            valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
+                            valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
       try {
         val reader = Reader(entry)
         val keySize = reader.readUnsignedInt()
@@ -146,7 +146,7 @@ object HashIndexEntryFormat {
                 fromOffset = indexOffset_,
                 keySize = keySize,
                 sortedIndexReader = sortedIndex,
-                valuesReaderNullable = valuesNullable
+                valuesReaderOrNull = valuesOrNull
               )
 
           readPersistentValue

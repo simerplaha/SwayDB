@@ -39,7 +39,7 @@ object PersistentParser {
             sortedIndexEndOffset: Int,
             normalisedByteSize: Int,
             hasAccessPositionIndex: Boolean,
-            valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
+            valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent = {
     val reader = Reader(tailBytes)
 
     val headerKeyBytes = reader.read(headerInteger)
@@ -64,7 +64,7 @@ object PersistentParser {
             sortedIndexEndOffset = sortedIndexEndOffset,
             normalisedByteSize = normalisedByteSize,
             hasAccessPositionIndex = hasAccessPositionIndex,
-            valuesReaderNullable = valuesReaderNullable,
+            valuesReaderOrNull = valuesReaderOrNull,
             reader = readerType
           )
 
@@ -91,7 +91,7 @@ object PersistentParser {
                    headerInteger: Int,
                    tailBytes: Slice[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
 
     val headerKeyBytes = tailReader.read(headerInteger)
@@ -116,7 +116,7 @@ object PersistentParser {
             keyCompressionOnly = sortedIndex.block.prefixCompressKeysOnly,
             sortedIndexEndOffset = sortedIndex.block.sortedIndexEndOffsetForReads,
             hasAccessPositionIndex = sortedIndex.block.enableAccessPositionIndex,
-            valuesReaderNullable = valuesReaderNullable,
+            valuesReaderOrNull = valuesReaderOrNull,
             reader = reader
           )
 
@@ -199,7 +199,7 @@ object PersistentParser {
                    headerInteger: Int,
                    tailBytes: Slice[Byte],
                    sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
+                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial = {
     val tailReader = Reader(tailBytes)
 
     val headerKeyBytes = tailReader.read(headerInteger)
@@ -224,7 +224,7 @@ object PersistentParser {
             keyCompressionOnly = sortedIndex.block.prefixCompressKeysOnly,
             sortedIndexEndOffset = sortedIndex.block.sortedIndexEndOffsetForReads,
             hasAccessPositionIndex = sortedIndex.block.enableAccessPositionIndex,
-            valuesReaderNullable = valuesReaderNullable,
+            valuesReaderOrNull = valuesReaderOrNull,
             reader = reader
           )
 

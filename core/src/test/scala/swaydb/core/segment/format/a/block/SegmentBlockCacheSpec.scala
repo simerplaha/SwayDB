@@ -58,10 +58,10 @@ class SegmentBlockCacheSpec extends TestBase {
               () => blockCache.getFooter().runRandomIO.get,
               () => segmentBlockReader add blockCache.createSegmentBlockReader().runRandomIO.right.value,
               () => sortedIndexReader add blockCache.createSortedIndexReader().runRandomIO.right.value,
-              () => Option(blockCache.createBinarySearchIndexReaderNullable().runRandomIO.right.value).foreach(reader => binarySearchIndexReader.add(reader)),
-              () => Option(blockCache.createBloomFilterReaderNullable().runRandomIO.right.value).foreach(reader => bloomFilterReader.add(reader)),
-              () => Option(blockCache.createHashIndexReaderNullable().runRandomIO.right.value).foreach(reader => hashIndexReader.add(reader)),
-              () => Option(blockCache.createValuesReaderNullable().runRandomIO.right.value).foreach(reader => valuesReader.add(reader)),
+              () => Option(blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.right.value).foreach(reader => binarySearchIndexReader.add(reader)),
+              () => Option(blockCache.createBloomFilterReaderOrNull().runRandomIO.right.value).foreach(reader => bloomFilterReader.add(reader)),
+              () => Option(blockCache.createHashIndexReaderOrNull().runRandomIO.right.value).foreach(reader => hashIndexReader.add(reader)),
+              () => Option(blockCache.createValuesReaderOrNull().runRandomIO.right.value).foreach(reader => valuesReader.add(reader)),
               () => eitherOne(blockCache.clear(), ())
             ).runThisRandomlyInParallel
         }
@@ -88,10 +88,10 @@ class SegmentBlockCacheSpec extends TestBase {
           () => blockCache.getFooter().runRandomIO.get,
           () => blockCache.createSegmentBlockReader().runRandomIO.right.value,
           () => blockCache.createSortedIndexReader().runRandomIO.right.value,
-          () => blockCache.createBinarySearchIndexReaderNullable().runRandomIO.right.value,
-          () => blockCache.createBloomFilterReaderNullable().runRandomIO.right.value,
-          () => blockCache.createHashIndexReaderNullable().runRandomIO.right.value,
-          () => blockCache.createValuesReaderNullable().runRandomIO.right.value
+          () => blockCache.createBinarySearchIndexReaderOrNull().runRandomIO.right.value,
+          () => blockCache.createBloomFilterReaderOrNull().runRandomIO.right.value,
+          () => blockCache.createHashIndexReaderOrNull().runRandomIO.right.value,
+          () => blockCache.createValuesReaderOrNull().runRandomIO.right.value
         )
 
       runThis(100.times) {
@@ -165,19 +165,19 @@ class SegmentBlockCacheSpec extends TestBase {
         assertSweeperIsEmpty()
 
         //assert fetching readers does populate the sweeper
-        blockCache.createValuesReaderNullable()
+        blockCache.createValuesReaderOrNull()
         assertSweeperIsEmpty()
 
         blockCache.createSortedIndexReader()
         assertSweeperIsEmpty()
 
-        blockCache.createBinarySearchIndexReaderNullable()
+        blockCache.createBinarySearchIndexReaderOrNull()
         assertSweeperIsEmpty()
 
-        blockCache.createHashIndexReaderNullable()
+        blockCache.createHashIndexReaderOrNull()
         assertSweeperIsEmpty()
 
-        blockCache.createBloomFilterReaderNullable()
+        blockCache.createBloomFilterReaderOrNull()
         assertSweeperIsEmpty()
 
         blockCache.createSegmentBlockReader()
@@ -261,19 +261,19 @@ class SegmentBlockCacheSpec extends TestBase {
         (1 to randomIntMax(10)) foreach (_ => blockCache.createSegmentBlockReader())
         assertSweeperActorSize(expectedMessageCount)
 
-        Option(blockCache.createHashIndexReaderNullable()) foreach { _ => expectedMessageCount += 1 }
+        Option(blockCache.createHashIndexReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
         assertSweeperActorSize(expectedMessageCount)
-        (1 to randomIntMax(10)) foreach (_ => blockCache.createHashIndexReaderNullable())
-        assertSweeperActorSize(expectedMessageCount)
-
-        Option(blockCache.createBinarySearchIndexReaderNullable()) foreach { _ => expectedMessageCount += 1 }
-        assertSweeperActorSize(expectedMessageCount)
-        (1 to randomIntMax(10)) foreach (_ => blockCache.createBinarySearchIndexReaderNullable())
+        (1 to randomIntMax(10)) foreach (_ => blockCache.createHashIndexReaderOrNull())
         assertSweeperActorSize(expectedMessageCount)
 
-        Option(blockCache.createBloomFilterReaderNullable()) foreach { _ => expectedMessageCount += 1 }
+        Option(blockCache.createBinarySearchIndexReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
         assertSweeperActorSize(expectedMessageCount)
-        (1 to randomIntMax(10)) foreach (_ => blockCache.createBloomFilterReaderNullable())
+        (1 to randomIntMax(10)) foreach (_ => blockCache.createBinarySearchIndexReaderOrNull())
+        assertSweeperActorSize(expectedMessageCount)
+
+        Option(blockCache.createBloomFilterReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
+        assertSweeperActorSize(expectedMessageCount)
+        (1 to randomIntMax(10)) foreach (_ => blockCache.createBloomFilterReaderOrNull())
         assertSweeperActorSize(expectedMessageCount)
 
         blockCache.createSortedIndexReader()
@@ -282,9 +282,9 @@ class SegmentBlockCacheSpec extends TestBase {
         (1 to randomIntMax(10)) foreach (_ => blockCache.createSortedIndexReader())
         assertSweeperActorSize(expectedMessageCount)
 
-        Option(blockCache.createValuesReaderNullable()) foreach { _ => expectedMessageCount += 1 }
+        Option(blockCache.createValuesReaderOrNull()) foreach { _ => expectedMessageCount += 1 }
         assertSweeperActorSize(expectedMessageCount)
-        (1 to randomIntMax(10)) foreach (_ => blockCache.createValuesReaderNullable())
+        (1 to randomIntMax(10)) foreach (_ => blockCache.createValuesReaderOrNull())
         assertSweeperActorSize(expectedMessageCount)
       }
     }
@@ -314,14 +314,14 @@ class SegmentBlockCacheSpec extends TestBase {
 
         def assertIsCached() = {
           blockCache.createSortedIndexReader().isFile shouldBe false
-          Option(blockCache.createValuesReaderNullable()).foreach(_.isFile shouldBe false)
-          Option(blockCache.createHashIndexReaderNullable()).foreach(_.isFile shouldBe true)
+          Option(blockCache.createValuesReaderOrNull()).foreach(_.isFile shouldBe false)
+          Option(blockCache.createHashIndexReaderOrNull()).foreach(_.isFile shouldBe true)
         }
 
         def assertIsNotCached() = {
           blockCache.createSortedIndexReader().isFile shouldBe true
-          Option(blockCache.createValuesReaderNullable()).foreach(_.isFile shouldBe true)
-          Option(blockCache.createHashIndexReaderNullable()).foreach(_.isFile shouldBe true)
+          Option(blockCache.createValuesReaderOrNull()).foreach(_.isFile shouldBe true)
+          Option(blockCache.createHashIndexReaderOrNull()).foreach(_.isFile shouldBe true)
         }
 
         //initially they are not cached

@@ -37,7 +37,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
       //create sliced key
       key = Slice.fill[Byte](10)(1.toByte).drop(9),
       deadline = None,
-      valuesReaderNullable = null,
+      valuesReaderOrNull = null,
       time = Time.empty,
       nextIndexOffset = 100,
       nextKeySize = 100,
@@ -52,7 +52,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
       //create sliced key
       key = Slice.fill[Byte](10)(1.toByte).dropRight(8),
       deadline = None,
-      valuesReaderNullable = null,
+      valuesReaderOrNull = null,
       time = Time.empty,
       nextIndexOffset = 200,
       nextKeySize = 200,

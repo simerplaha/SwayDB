@@ -70,7 +70,7 @@ class EntryReaderWriterSpec extends WordSpec with Matchers {
             sortedIndexEndOffset = bytes.slice.toOffset,
             normalisedByteSize = 0,
             hasAccessPositionIndex = builder.enableAccessPositionIndex,
-            valuesReaderNullable = keyValue.value.mapC(buildSingleValueReader).orNull
+            valuesReaderOrNull = keyValue.value.mapC(buildSingleValueReader).orNull
           )
 
         parsedKeyValue shouldBe keyValue
@@ -145,7 +145,7 @@ class EntryReaderWriterSpec extends WordSpec with Matchers {
 
         val sortedIndexReader = Reader(builder.bytes.close())
         val valueBytes: Slice[Byte] = previous.value.toOptionC ++ next.value.toOptionC
-        val valuesReaderNullable = if (valueBytes.isEmpty) null else buildSingleValueReader(valueBytes)
+        val valuesReaderOrNull = if (valueBytes.isEmpty) null else buildSingleValueReader(valueBytes)
 
         val previousParsedKeyValue =
           PersistentParser.parse(
@@ -158,7 +158,7 @@ class EntryReaderWriterSpec extends WordSpec with Matchers {
             sortedIndexEndOffset = sortedIndexReader.slice.toOffset,
             normalisedByteSize = 0,
             hasAccessPositionIndex = builder.enableAccessPositionIndex,
-            valuesReaderNullable = valuesReaderNullable
+            valuesReaderOrNull = valuesReaderOrNull
           )
 
         previousParsedKeyValue shouldBe previous
@@ -178,7 +178,7 @@ class EntryReaderWriterSpec extends WordSpec with Matchers {
             sortedIndexEndOffset = sortedIndexReader.slice.toOffset,
             normalisedByteSize = 0,
             hasAccessPositionIndex = builder.enableAccessPositionIndex,
-            valuesReaderNullable = valuesReaderNullable
+            valuesReaderOrNull = valuesReaderOrNull
           )
 
         nextParsedKeyValue shouldBe next

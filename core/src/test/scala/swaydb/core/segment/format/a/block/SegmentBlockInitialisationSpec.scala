@@ -70,10 +70,10 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             )
-          blocks.createBinarySearchIndexReaderNullable() shouldBe null
-          blocks.binarySearchIndexReaderCacheNullable.isCached shouldBe true
-          blocks.binarySearchIndexReaderCacheNullable.getIO() shouldBe Some(IO(null))
-          blocks.createBinarySearchIndexReaderNullable() shouldBe null
+          blocks.createBinarySearchIndexReaderOrNull() shouldBe null
+          blocks.binarySearchIndexReaderCacheOrNull.isCached shouldBe true
+          blocks.binarySearchIndexReaderCacheOrNull.getIO() shouldBe Some(IO(null))
+          blocks.createBinarySearchIndexReaderOrNull() shouldBe null
         }
       }
 
@@ -520,11 +520,11 @@ class SegmentBlockInitialisationSpec extends TestBase {
 
         cache.segmentReaderCache.isCached shouldBe true
 
-        cache.binarySearchIndexReaderCacheNullable.isCached shouldBe false
+        cache.binarySearchIndexReaderCacheOrNull.isCached shouldBe false
         cache.sortedIndexReaderCache.isCached shouldBe false
-        cache.bloomFilterReaderCacheNullable.isCached shouldBe false
-        cache.hashIndexReaderCacheNullable.isCached shouldBe false
-        cache.valuesReaderCacheNullable.isCached shouldBe false
+        cache.bloomFilterReaderCacheOrNull.isCached shouldBe false
+        cache.hashIndexReaderCacheOrNull.isCached shouldBe false
+        cache.valuesReaderCacheOrNull.isCached shouldBe false
 
         cache.clear()
         cache.isCached shouldBe false

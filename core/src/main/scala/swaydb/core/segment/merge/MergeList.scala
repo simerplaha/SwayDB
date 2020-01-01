@@ -70,14 +70,14 @@ private[core] object MergeList {
 }
 
 private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
-                                                      private var headRangeNullable: H,
+                                                      private var headRangeOrNull: H,
                                                       private var tailHead: T,
                                                       private var tailKeyValues: Iterator[T]) extends MergeList[H, T] {
 
   override val depth: Int = 1
 
   override def headOrNull: T =
-    if (headRangeNullable == null)
+    if (headRangeOrNull == null)
       if (tailHead == null) {
         if (tailKeyValues.hasNext)
           tailHead = tailKeyValues.next()
@@ -86,11 +86,11 @@ private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
         tailHead
       }
     else
-      headRangeNullable
+      headRangeOrNull
 
   def dropHead(): MergeList[H, T] = {
-    if (headRangeNullable != null)
-      headRangeNullable = null
+    if (headRangeOrNull != null)
+      headRangeOrNull = null
     else if (tailHead != null)
       tailHead = null
     else
@@ -102,8 +102,8 @@ private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
   }
 
   def dropPrepend(head: H): MergeList[H, T] =
-    if (headRangeNullable != null) {
-      headRangeNullable = head
+    if (headRangeOrNull != null) {
+      headRangeOrNull = head
       this
     } else if (tailHead != null) {
       tailHead = head
@@ -123,12 +123,12 @@ private[core] class Single[H >: Null <: T, T >: Null](var size: Int,
       private var placeHolderDone = false
 
       override def hasNext: Boolean =
-        (!headDone && headRangeNullable != null) || (!placeHolderDone && tailHead != null) || tailKeyValues.hasNext
+        (!headDone && headRangeOrNull != null) || (!placeHolderDone && tailHead != null) || tailKeyValues.hasNext
 
       override def next(): T =
-        if (!headDone && headRangeNullable != null) {
+        if (!headDone && headRangeOrNull != null) {
           headDone = true
-          headRangeNullable
+          headRangeOrNull
         } else if (!placeHolderDone && tailHead != null) {
           placeHolderDone = true
           tailHead

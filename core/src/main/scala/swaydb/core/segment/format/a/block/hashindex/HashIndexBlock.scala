@@ -364,7 +364,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   private[block] def searchReference(key: Slice[Byte],
                                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                      sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                     valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
+                                     valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -400,7 +400,7 @@ private[core] object HashIndexBlock extends LazyLogging {
               entry = entry,
               hashIndexReader = hashIndexReader,
               sortedIndex = sortedIndexReader,
-              valuesNullable = valuesReaderNullable
+              valuesOrNull = valuesReaderOrNull
             )
 
           if (partialKeyValueOrNull == null) {
@@ -486,7 +486,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   private[block] def searchCopy(key: Slice[Byte],
                                 hasIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                 sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
+                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -520,7 +520,7 @@ private[core] object HashIndexBlock extends LazyLogging {
               entry = entry,
               hashIndexReader = hasIndexReader,
               sortedIndex = sortedIndexReader,
-              valuesNullable = valuesReaderNullable
+              valuesOrNull = valuesReaderOrNull
             )
 
           if (partialKeyValueOrNull == null)
@@ -538,21 +538,21 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                      partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOptional =
     if (hashIndexReader.block.format.isCopy)
       searchCopy(
         key = key,
         hasIndexReader = hashIndexReader,
         sortedIndexReader = sortedIndexReader,
-        valuesReaderNullable = valuesReaderNullable
+        valuesReaderOrNull = valuesReaderOrNull
       )
     else
       searchReference(
         key = key,
         hashIndexReader = hashIndexReader,
         sortedIndexReader = sortedIndexReader,
-        valuesReaderNullable = valuesReaderNullable
+        valuesReaderOrNull = valuesReaderOrNull
       )
 
   implicit object HashIndexBlockOps extends BlockOps[HashIndexBlock.Offset, HashIndexBlock] {

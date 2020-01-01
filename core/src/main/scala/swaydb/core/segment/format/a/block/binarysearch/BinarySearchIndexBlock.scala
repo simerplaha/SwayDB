@@ -502,9 +502,9 @@ private[core] object BinarySearchIndexBlock {
              lowest: PersistentOptional,
              highest: PersistentOptional,
              keyValuesCount: => Int,
-             binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+             binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
+             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                      partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOptional =
     if (sortedIndexReader.block.isBinarySearchable) {
       binarySeeks += 1
@@ -515,7 +515,7 @@ private[core] object BinarySearchIndexBlock {
           highest = highest,
           keyValuesCount = keyValuesCount,
           sortedIndex = sortedIndexReader,
-          valuesNullable = valuesReaderNullable
+          valuesOrNull = valuesReaderOrNull
         )
       ) match {
         case partial: Persistent.Partial if partial.isBinarySearchMatched =>
@@ -524,12 +524,12 @@ private[core] object BinarySearchIndexBlock {
         case _ =>
           Persistent.Partial.Null
       }
-    } else if (binarySearchIndexReaderNullable == null) {
+    } else if (binarySearchIndexReaderOrNull == null) {
       SortedIndexBlock.seekAndMatch(
         key = key,
         startFrom = Persistent.Null,
         sortedIndexReader = sortedIndexReader,
-        valuesReaderNullable = valuesReaderNullable
+        valuesReaderOrNull = valuesReaderOrNull
       ).asPartial
     } else {
       //println(s"Key: ${key.readInt()}")
@@ -544,9 +544,9 @@ private[core] object BinarySearchIndexBlock {
           key = key,
           lowest = lowest,
           highest = highest,
-          binarySearchIndex = binarySearchIndexReaderNullable,
+          binarySearchIndex = binarySearchIndexReaderOrNull,
           sortedIndex = sortedIndexReader,
-          valuesNullable = valuesReaderNullable
+          valuesOrNull = valuesReaderOrNull
         )
       ) match {
         case partial: Persistent.Partial if partial.isBinarySearchMatched =>
@@ -554,7 +554,7 @@ private[core] object BinarySearchIndexBlock {
           partial
 
         case lowerOrNone =>
-          if (binarySearchIndexReaderNullable.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression) {
+          if (binarySearchIndexReaderOrNull.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression) {
             binaryFailedSeeks += 1
             Persistent.Partial.Null
           } else {
@@ -564,7 +564,7 @@ private[core] object BinarySearchIndexBlock {
                 key = key,
                 startFrom = startFrom,
                 sortedIndexReader = sortedIndexReader,
-                valuesReaderNullable = valuesReaderNullable
+                valuesReaderOrNull = valuesReaderOrNull
               ).asPartial
             else
               Persistent.Partial.Null
@@ -577,9 +577,9 @@ private[core] object BinarySearchIndexBlock {
                    start: PersistentOptional,
                    end: PersistentOptional,
                    keyValuesCount: => Int,
-                   binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                   binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                    sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                   valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
+                   valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                            partialKeyOrder: KeyOrder[Persistent.Partial]): PersistentOptional = {
     val startFrom =
       search( //A check to see if key equiv start.key to perform a simple forward seek without matching is done in SegmentSearcher
@@ -587,16 +587,16 @@ private[core] object BinarySearchIndexBlock {
         lowest = start,
         highest = end,
         keyValuesCount = keyValuesCount,
-        binarySearchIndexReaderNullable = binarySearchIndexReaderNullable,
+        binarySearchIndexReaderOrNull = binarySearchIndexReaderOrNull,
         sortedIndexReader = sortedIndexReader,
-        valuesReaderNullable = valuesReaderNullable
+        valuesReaderOrNull = valuesReaderOrNull
       )
 
     SortedIndexBlock.matchOrSeekHigher(
       key = key,
       startFrom = startFrom.toPersistentOptional,
       sortedIndexReader = sortedIndexReader,
-      valuesReaderNullable = valuesReaderNullable
+      valuesReaderOrNull = valuesReaderOrNull
     )
   }
 
@@ -605,7 +605,7 @@ private[core] object BinarySearchIndexBlock {
                                            got: PersistentOptional,
                                            end: PersistentOptional,
                                            sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                           valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): PersistentOptional = {
+                                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): PersistentOptional = {
     val next =
       if (end.existsS(end => lower.existsS(_.nextIndexOffset == end.indexOffset)))
         end
@@ -619,7 +619,7 @@ private[core] object BinarySearchIndexBlock {
       startFrom = lower,
       next = next,
       sortedIndexReader = sortedIndexReader,
-      valuesReaderNullable = valuesReaderNullable
+      valuesReaderOrNull = valuesReaderOrNull
     )
   }
 
@@ -627,9 +627,9 @@ private[core] object BinarySearchIndexBlock {
                   start: PersistentOptional,
                   end: PersistentOptional,
                   keyValuesCount: Int,
-                  binarySearchIndexReaderNullable: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
+                  binarySearchIndexReaderOrNull: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
                   sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                  valuesReaderNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
+                  valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                           partialOrdering: KeyOrder[Persistent.Partial]): PersistentOptional =
     if (sortedIndexReader.block.isBinarySearchable) {
       val result =
@@ -647,7 +647,7 @@ private[core] object BinarySearchIndexBlock {
               highest = end,
               keyValuesCount = keyValuesCount,
               sortedIndex = sortedIndexReader,
-              valuesNullable = valuesReaderNullable
+              valuesOrNull = valuesReaderOrNull
             )
         )
 
@@ -660,15 +660,15 @@ private[core] object BinarySearchIndexBlock {
           got = result.matched.toPersistentOptional,
           end = end,
           sortedIndexReader = sortedIndexReader,
-          valuesReaderNullable = valuesReaderNullable
+          valuesReaderOrNull = valuesReaderOrNull
         )
     }
-    else if (binarySearchIndexReaderNullable == null)
+    else if (binarySearchIndexReaderOrNull == null)
       SortedIndexBlock.seekLowerAndMatch(
         key = key,
         startFrom = start,
         sortedIndexReader = sortedIndexReader,
-        valuesReaderNullable = valuesReaderNullable
+        valuesReaderOrNull = valuesReaderOrNull
       )
     else {
       val result =
@@ -680,9 +680,9 @@ private[core] object BinarySearchIndexBlock {
               key = key,
               lowest = start,
               highest = end,
-              binarySearchIndex = binarySearchIndexReaderNullable,
+              binarySearchIndex = binarySearchIndexReaderOrNull,
               sortedIndex = sortedIndexReader,
-              valuesNullable = valuesReaderNullable
+              valuesOrNull = valuesReaderOrNull
             )
         )
 
@@ -692,7 +692,7 @@ private[core] object BinarySearchIndexBlock {
         got = result.matched.toPersistentOptional,
         end = end,
         sortedIndexReader = sortedIndexReader,
-        valuesReaderNullable = valuesReaderNullable
+        valuesReaderOrNull = valuesReaderOrNull
       )
     }
 

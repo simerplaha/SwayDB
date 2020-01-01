@@ -134,9 +134,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                         lowest = eitherOne(Persistent.Null, start),
                         highest = Persistent.Null,
                         keyValuesCount = keyValues.size,
-                        binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                        binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                         sortedIndexReader = blocks.sortedIndexReader,
-                        valuesReaderNullable = blocks.valuesReader.orNull
+                        valuesReaderOrNull = blocks.valuesReader.orNull
                       ).toPersistentOptional
                   }
             )
@@ -152,9 +152,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 lowest = start,
                 highest = end,
                 keyValuesCount = blocks.footer.keyValueCount,
-                binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                 sortedIndexReader = blocks.sortedIndexReader,
-                valuesReaderNullable = blocks.valuesReader.orNull
+                valuesReaderOrNull = blocks.valuesReader.orNull
               ) match {
                 case Persistent.Partial.Null =>
                   //all keys are known to exist.
@@ -185,9 +185,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               lowest = Persistent.Null,
               highest = Persistent.Null,
               keyValuesCount = blocks.footer.keyValueCount,
-              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+              binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             ) match {
               case Persistent.Partial.Null =>
               //lower will always be the last known uncompressed key before the last key-value.
@@ -212,9 +212,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               lowest = Persistent.Null,
               highest = Persistent.Null,
               keyValuesCount = blocks.footer.keyValueCount,
-              binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+              binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             ) match {
               case Persistent.Partial.Null =>
               //lower is always empty since the test keys are lower than the actual key-values.
@@ -251,9 +251,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                           lowest = Persistent.Null,
                           highest = Persistent.Null,
                           keyValuesCount = blocks.footer.keyValueCount,
-                          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                          binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                           sortedIndexReader = blocks.sortedIndexReader,
-                          valuesReaderNullable = blocks.valuesReader.orNull
+                          valuesReaderOrNull = blocks.valuesReader.orNull
                         ).toPersistentOptional
                     }
               )
@@ -274,9 +274,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                         lowest = eitherOne(Persistent.Null, start),
                         highest = Persistent.Null,
                         keyValuesCount = blocks.footer.keyValueCount,
-                        binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                        binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                         sortedIndexReader = blocks.sortedIndexReader,
-                        valuesReaderNullable = blocks.valuesReader.orNull
+                        valuesReaderOrNull = blocks.valuesReader.orNull
                       ).toPersistentOptional
                   }
             )
@@ -288,9 +288,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 start = start,
                 end = end,
                 keyValuesCount = blocks.footer.keyValueCount,
-                binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                 sortedIndexReader = blocks.sortedIndexReader,
-                valuesReaderNullable = blocks.valuesReader.orNull
+                valuesReaderOrNull = blocks.valuesReader.orNull
               ).toOptional
 
             keyValue match {
@@ -320,7 +320,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               key = keyValue.key,
               startFrom = eitherOne(start, Persistent.Null),
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             )
             //println("--- End next higher ---")
             nextHigher
@@ -352,9 +352,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                           lowest = Persistent.Null,
                           highest = Persistent.Null,
                           keyValuesCount = blocks.footer.keyValueCount,
-                          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                          binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                           sortedIndexReader = blocks.sortedIndexReader,
-                          valuesReaderNullable = blocks.valuesReader.orNull
+                          valuesReaderOrNull = blocks.valuesReader.orNull
                         ).toPersistentOptional
                     }
               )
@@ -383,9 +383,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                           lowest = eitherOne(start, Persistent.Null),
                           highest = Persistent.Null,
                           keyValuesCount = blocks.footer.keyValueCount,
-                          binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                          binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                           sortedIndexReader = blocks.sortedIndexReader,
-                          valuesReaderNullable = blocks.valuesReader.orNull
+                          valuesReaderOrNull = blocks.valuesReader.orNull
                         ).toPersistentOptional
                     }
               )
@@ -398,9 +398,9 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
                 start = start,
                 end = end,
                 keyValuesCount = blocks.footer.keyValueCount,
-                binarySearchIndexReaderNullable = blocks.binarySearchIndexReader.orNull,
+                binarySearchIndexReaderOrNull = blocks.binarySearchIndexReader.orNull,
                 sortedIndexReader = blocks.sortedIndexReader,
-                valuesReaderNullable = blocks.valuesReader.orNull
+                valuesReaderOrNull = blocks.valuesReader.orNull
               )
 
             //          //println(s"Lower for: ${keyValue.minKey.readInt()}")
@@ -446,7 +446,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
               key = keyValue.key,
               startFrom = Persistent.Null,
               sortedIndexReader = blocks.sortedIndexReader,
-              valuesReaderNullable = blocks.valuesReader.orNull
+              valuesReaderOrNull = blocks.valuesReader.orNull
             )
             //println(" --- lower for next ---")
 

@@ -95,7 +95,7 @@ class HashIndexBlockSpec extends TestBase {
           key = keyValue.key,
           hashIndexReader = segment.hashIndexReader.get,
           sortedIndexReader = segment.sortedIndexReader,
-          valuesReaderNullable = segment.valuesReader.orNull
+          valuesReaderOrNull = segment.valuesReader.orNull
         ) match {
           case Persistent.Partial.Null =>
             //may be it's in the next Segment.

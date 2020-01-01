@@ -570,13 +570,13 @@ private[core] object Segment extends LazyLogging {
 
     val footer = segmentBlockCache.getFooter()
     val sortedIndexReader = segmentBlockCache.createSortedIndexReader()
-    val valuesReaderNullable = segmentBlockCache.createValuesReaderNullable()
+    val valuesReaderOrNull = segmentBlockCache.createValuesReaderOrNull()
 
     val keyValues =
       SortedIndexBlock.readAll(
         keyValueCount = footer.keyValueCount,
         sortedIndexReader = sortedIndexReader,
-        valuesReaderNullable = valuesReaderNullable
+        valuesReaderOrNull = valuesReaderOrNull
       )
 
     file.close()
@@ -957,16 +957,16 @@ private[core] object Segment extends LazyLogging {
       final override def hasNext: Boolean =
         if (fullIterator.hasNext) {
           val nextKeyValue = fullIterator.next()
-          val nextKeyValueNullable =
+          val nextKeyValueOrNull =
             if (removeDeletes)
               SegmentGrouper.addLastLevel(nextKeyValue)
             else
               nextKeyValue.toMemory
 
-          if (nextKeyValueNullable == null) {
+          if (nextKeyValueOrNull == null) {
             hasNext
           } else {
-            nextOne = nextKeyValueNullable
+            nextOne = nextKeyValueOrNull
             true
           }
         } else {

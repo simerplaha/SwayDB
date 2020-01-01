@@ -43,7 +43,7 @@ object BinarySearchContext {
             highest: PersistentOptional,
             binarySearchIndex: UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock],
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-            valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
+            valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
 
       override def targetKey = key
@@ -64,7 +64,7 @@ object BinarySearchContext {
           seekSize = binarySearchIndex.block.bytesPerValue,
           binarySearchIndex = binarySearchIndex,
           sortedIndex = sortedIndex,
-          valuesNullable = valuesNullable
+          valuesOrNull = valuesOrNull
         ).matchMutateForBinarySearch(key)
     }
 
@@ -73,7 +73,7 @@ object BinarySearchContext {
             highest: PersistentOptional,
             keyValuesCount: Int,
             sortedIndex: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-            valuesNullable: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
+            valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]]): BinarySearchContext =
     new BinarySearchContext {
 
       override def targetKey = key
@@ -92,7 +92,7 @@ object BinarySearchContext {
         SortedIndexBlock.readPartialKeyValue(
           fromOffset = offset,
           sortedIndexReader = sortedIndex,
-          valuesReaderNullable = valuesNullable
+          valuesReaderOrNull = valuesOrNull
         ).matchMutateForBinarySearch(key)
     }
 }

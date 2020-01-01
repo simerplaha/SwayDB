@@ -42,7 +42,7 @@ object BaseEntryReader {
       BaseEntryReader4
     ) sortBy (_.minID)
 
-  def findReaderNullable(baseId: Int,
+  def findReaderOrNull(baseId: Int,
                          mightBeCompressed: Boolean,
                          keyCompressionOnly: Boolean): BaseEntryReader =
     if (mightBeCompressed && !keyCompressionOnly)
@@ -54,17 +54,17 @@ object BaseEntryReader {
                 mightBeCompressed: Boolean,
                 keyCompressionOnly: Boolean,
                 parser: BaseEntryApplier[T]): T = {
-    val baseEntryReaderNullable: BaseEntryReader =
-      findReaderNullable(
+    val baseEntryReaderOrNull: BaseEntryReader =
+      findReaderOrNull(
         baseId = baseId,
         mightBeCompressed = mightBeCompressed,
         keyCompressionOnly = keyCompressionOnly
       )
 
-    if (baseEntryReaderNullable == null)
+    if (baseEntryReaderOrNull == null)
       throw swaydb.Exception.InvalidBaseId(baseId)
     else
-      baseEntryReaderNullable.read(
+      baseEntryReaderOrNull.read(
         baseId = baseId,
         reader = parser
       )
