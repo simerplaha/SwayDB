@@ -45,10 +45,10 @@ class HigherSpec extends WordSpec with Matchers {
       Higher.higherFromValue(key = 2, fromKey = 1, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
       Higher.higherFromValue(key = 1, fromKey = 2, fromValue = randomFromValueOption(addPut = false)) shouldBe empty
 
-      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringOption, Some(expiredDeadline()))) shouldBe empty
-      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringOption, Some(expiredDeadline()))) shouldBe empty
+      Higher.higherFromValue(key = 2, fromKey = 1, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))) shouldBe empty
+      Higher.higherFromValue(key = 1, fromKey = 2, fromValue = Value.put(randomStringSliceOptional, Some(expiredDeadline()))) shouldBe empty
 
-      val put = Value.put(randomStringOption, randomDeadlineOption(false))
+      val put = Value.put(randomStringSliceOptional, randomDeadlineOption(false))
       Higher.higherFromValue(key = 2, fromKey = 1, fromValue = put) shouldBe empty
       Higher.higherFromValue(key = 1, fromKey = 2, fromValue = put).value shouldBe put.toMemory(2)
     }

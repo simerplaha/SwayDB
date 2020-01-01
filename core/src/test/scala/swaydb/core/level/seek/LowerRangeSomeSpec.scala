@@ -59,7 +59,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             implicit val current = mock[CurrentWalker]
             implicit val next = mock[NextWalker]
 
-            val rangeValue = randomUpdateRangeValue(value = randomStringOption, functionOutput = randomFunctionOutput(addRemoves = false, expiredDeadline = false))
+            val rangeValue = randomUpdateRangeValue(value = randomStringSliceOptional, functionOutput = randomFunctionOutput(addRemoves = false, expiredDeadline = false))
             val upperLevel = randomRangeKeyValue(0, 10, Value.FromValue.Null, rangeValue = rangeValue)
             val lowerLower = randomPutKeyValue(key - 1, deadline = None)
 
@@ -87,7 +87,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
         implicit val current = mock[CurrentWalker]
         implicit val next = mock[NextWalker]
 
-        val fromValue = eitherOne(Value.FromValue.Null, Value.put(randomStringOption, removeAfter = randomDeadlineOption(false)))
+        val fromValue = eitherOne(Value.FromValue.Null, Value.put(randomStringSliceOptional, removeAfter = randomDeadlineOption(false)))
         val upperLevel = randomRangeKeyValue(0, 10, fromValue, randomRangeValue(addRemoves = false, deadline = randomDeadlineOption(false), functionOutput = randomFunctionOutput(false, false)))
         val lowerLevel = randomPutKeyValue(0, deadline = randomDeadlineOption(false))
 
@@ -205,7 +205,7 @@ class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
             implicit val current = mock[CurrentWalker]
             implicit val next = mock[NextWalker]
 
-            val put = Value.Put(randomStringOption, None, Time.empty)
+            val put = Value.Put(randomStringSliceOptional, None, Time.empty)
 
             inSequence {
               //@formatter:off
