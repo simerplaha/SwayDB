@@ -52,7 +52,7 @@ class FunctionMerger_Remove_Spec extends WordSpec with Matchers {
           //          println(s"function: ${functionStore.get(newKeyValue.function)}")
           //          println(s"functionOutput: $functionOutput")
 
-          val expected =
+          val expected: Memory.Fixed =
             functionOutput match {
               case SwayFunctionOutput.Remove =>
                 Memory.Remove(key, None, newKeyValue.time)

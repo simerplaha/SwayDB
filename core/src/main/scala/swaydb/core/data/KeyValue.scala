@@ -208,6 +208,7 @@ private[swaydb] object Memory {
 
   sealed trait Fixed extends Memory with KeyValue.Fixed {
     def isRange: Boolean = false
+    def unslice(): Memory.Fixed
   }
 
   object Put {

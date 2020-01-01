@@ -367,10 +367,9 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
-    ???
+    FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
     //todo merge with persistent
   }
 
@@ -379,10 +378,9 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    FunctionMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
-    ???
+    FunctionMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
     //todo merge with persistent
   }
 
@@ -391,10 +389,9 @@ object CommonAssertions {
                   expected: KeyValue.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    RemoveMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
-    ???
+    RemoveMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
     //todo merge with persistent
   }
 
@@ -404,9 +401,8 @@ object CommonAssertions {
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     PutMerger(newKeyValue, oldKeyValue) shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
-    ???
+    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
 
     //todo merge with persistent
   }
@@ -416,10 +412,9 @@ object CommonAssertions {
                   expected: Memory.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
-    ???
+    UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
     //todo merge with persistent
   }
 
@@ -428,10 +423,9 @@ object CommonAssertions {
                   expected: KeyValue.Fixed,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    UpdateMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
-    ???
+    UpdateMerger(newKeyValue, oldKeyValue) shouldBe expected
+    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
 
     //todo merge with persistent
   }
@@ -441,9 +435,8 @@ object CommonAssertions {
                   expected: Memory.PendingApply,
                   lastLevel: Option[Memory.Fixed])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                    timeOrder: TimeOrder[Slice[Byte]]): Unit = {
-    FixedMerger(newKeyValue, oldKeyValue).runRandomIO.right.value shouldBe expected
-    //    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel)
-    ???
+    FixedMerger(newKeyValue, oldKeyValue) shouldBe expected
+    assertMerge(newKeyValue: KeyValue, oldKeyValue: KeyValue, expected, lastLevel.getOrElse(Memory.Null))
     //todo merge with persistent
   }
 

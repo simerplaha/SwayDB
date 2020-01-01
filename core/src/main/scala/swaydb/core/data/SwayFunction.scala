@@ -44,6 +44,7 @@ private[swaydb] object SwayFunctionOutput {
 
   case object Nothing extends SwayFunctionOutput
   case object Remove extends SwayFunctionOutput
+
   case class Expire(deadline: Deadline) extends SwayFunctionOutput
   case class Update(value: SliceOptional[Byte], deadline: Option[Deadline]) extends SwayFunctionOutput
 }

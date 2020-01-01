@@ -60,6 +60,12 @@ abstract class SliceBase[+T](array: Array[T],
   def isUnslicedOptional: Boolean =
     nonEmpty && isOriginalFullSlice
 
+  def asSliceOptional(): SliceOptional[T] =
+    if (isEmpty)
+      Slice.Null
+    else
+      selfSlice
+
   /**
    * Create a new Slice for the offsets.
    *

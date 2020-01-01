@@ -678,7 +678,7 @@ object TestData {
     if (randomBoolean())
       SwayFunctionOutput.Expire(randomDeadline(expiredDeadline))
     else
-      SwayFunctionOutput.Update(randomStringOption, randomDeadlineOption(expiredDeadline))
+      SwayFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOptional(), randomDeadlineOption(expiredDeadline))
 
   def randomRequiresKeyFunction(functionOutput: SwayFunctionOutput = randomFunctionOutput()): SwayFunction.RequiresKey =
     Random.shuffle(

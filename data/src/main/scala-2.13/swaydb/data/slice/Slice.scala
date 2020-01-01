@@ -35,6 +35,8 @@ sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Sli
 
   def isUnslicedOptional: Boolean
 
+  def asSliceOptional(): SliceOptional[T]
+
   def unsliceOptional(): SliceOptional[T] =
     if (this.isNoneC || this.getC.isEmpty)
       Slice.Null
@@ -48,6 +50,7 @@ object Slice extends SliceCompanionBase {
     override val isNoneC: Boolean = true
     override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
     override def isUnslicedOptional: Boolean = true
+    override def asSliceOptional(): SliceOptional[Nothing] = this
   }
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
