@@ -4,7 +4,6 @@ import java.nio.file.Paths
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.core.TestData._
-import swaydb.core.segment.SegmentReadState
 
 class ThreadReadStateSpec extends WordSpec with Matchers {
 

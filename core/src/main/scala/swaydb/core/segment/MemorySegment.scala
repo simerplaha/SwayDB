@@ -40,6 +40,7 @@ import swaydb.data.slice.{Slice, SliceOptional}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 private[segment] case class MemorySegment(path: Path,
                                           segmentId: Long,

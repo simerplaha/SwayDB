@@ -299,7 +299,7 @@ object CommonAssertions {
       newKeyValues = newKeyValues,
       oldKeyValues = oldKeyValues,
       stats = builder,
-      isLastLevel = isLastLevel,
+      isLastLevel = isLastLevel
     )
 
     val result = builder.keyValues
@@ -798,7 +798,7 @@ object CommonAssertions {
   def assertEmptyHeadAndLast(level: LevelRef) =
     Seq(
       () => level.head(ThreadReadState.random).runIO.get shouldBe empty,
-      () => level.last(ThreadReadState.random).runIO.get shouldBe empty,
+      () => level.last(ThreadReadState.random).runIO.get shouldBe empty
     ).runThisRandomlyInParallel
 
   def assertReads(keyValues: Slice[Memory],

@@ -264,7 +264,7 @@ class MinMaxSpec extends WordSpec with Matchers {
                 Slice(
                   Value.Function(3, Time.empty),
                   Value.Update(100, randomDeadlineOption(), Time.empty),
-                  Value.Remove(randomDeadlineOption(), Time.empty),
+                  Value.Remove(randomDeadlineOption(), Time.empty)
                 )
               )
             )

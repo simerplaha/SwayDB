@@ -46,7 +46,7 @@ private[core] object MergeStats {
   }
 
   implicit val memoryToMemory: data.Memory => data.Memory =
-    memory => memory
+    (memory: data.Memory) => memory
 
   def randomBuilder[FROM](keyValues: Iterable[FROM])(implicit converterNullable: FROM => data.Memory): MergeStats[FROM, ListBuffer] =
     if (Random.nextBoolean())
@@ -58,11 +58,11 @@ private[core] object MergeStats {
 
   def random(): MergeStats[data.Memory, ListBuffer] =
     if (Random.nextBoolean())
-      persistent(ListBuffer.newBuilder)
+      persistent(ListBuffer.newBuilder)(memoryToMemory)
     else if (Random.nextBoolean())
-      memory(ListBuffer.newBuilder)
+      memory(ListBuffer.newBuilder)(memoryToMemory)
     else
-      buffer(ListBuffer.newBuilder)
+      buffer(ListBuffer.newBuilder)(memoryToMemory)
 
   def persistentBuilder[FROM](keyValues: Iterable[FROM])(implicit convert: FROM => data.Memory): MergeStats.Persistent.Builder[FROM, ListBuffer] = {
     val stats = persistent[FROM, ListBuffer](ListBuffer.newBuilder)

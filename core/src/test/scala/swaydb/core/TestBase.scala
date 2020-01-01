@@ -425,7 +425,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         nextLevel = nextLevel,
         enableTimer = true,
         throttle = throttle,
-        acceleration = brake,
+        acceleration = brake
       ).value
   }
 
@@ -636,14 +636,14 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                 (level0KV, level0Assert),
                 (level1KV, noAssert),
                 (level2KV, noAssert),
-                (Slice.empty, noAssert),
+                (Slice.empty, noAssert)
               )
             else
               (
                 (Slice.empty, level0Assert),
                 (Slice.empty, noAssert),
                 (Slice.empty, noAssert),
-                (Slice.empty, noAssert),
+                (Slice.empty, noAssert)
               )
           )
       else
@@ -652,25 +652,25 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
             (level0KV, level0Assert),
             (level1KV, level1Assert),
             (level2KV, level2Assert),
-            (Slice.empty, noAssert),
+            (Slice.empty, noAssert)
           ),
           (
             (level0KV, level0Assert),
             (level1KV, level1Assert),
             (Slice.empty, level2Assert),
-            (level2KV, level2Assert),
+            (level2KV, level2Assert)
           ),
           (
             (level0KV, level0Assert),
             (Slice.empty, level1Assert),
             (level1KV, level1Assert),
-            (level2KV, level2Assert),
+            (level2KV, level2Assert)
           ),
           (
             (Slice.empty, level0Assert),
             (level0KV, level0Assert),
             (level1KV, level1Assert),
-            (level2KV, level2Assert),
+            (level2KV, level2Assert)
           ),
           (
             (Slice.empty, level0Assert),

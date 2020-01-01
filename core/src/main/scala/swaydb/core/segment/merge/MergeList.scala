@@ -50,7 +50,7 @@ private[core] sealed trait MergeList[H >: Null <: T, T >: Null] {
 private[core] object MergeList {
 
   def empty[H >: Null <: T, T >: Null] =
-    new Single[H, T](0, null, null, Iterator.empty[T])
+    new Single[H, T](0, null, null, Iterator.empty)
 
   def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): MergeList[H, T] =
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
@@ -157,7 +157,7 @@ private[core] class Multiple[H >: Null <: T, T >: Null](private var left: MergeL
   override def dropPrepend(head: H): MergeList[H, T] =
     (left.isEmpty, right.isEmpty) match {
       case (true, true) =>
-        new Single[H, T](1, head, null, Iterator.empty[T])
+        new Single[H, T](1, head, null, Iterator.empty)
       case (true, false) =>
         right.dropPrepend(head)
       case (false, true) =>

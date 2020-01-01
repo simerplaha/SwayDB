@@ -478,7 +478,7 @@ object TestData {
   def randomDeadUpdateOrExpiredPut(key: Slice[Byte]): Memory.Fixed =
     eitherOne(
       randomFixedKeyValue(key, includePuts = false),
-      randomPutKeyValue(key, deadline = Some(expiredDeadline())),
+      randomPutKeyValue(key, deadline = Some(expiredDeadline()))
     )
 
   def randomPutKeyValue(key: Slice[Byte],
@@ -702,7 +702,7 @@ object TestData {
     Random.shuffle(
       Seq[SwayFunction.RequiresValue](
         SwayFunction.Value(_ => functionOutput),
-        SwayFunction.ValueDeadline((_, _) => functionOutput),
+        SwayFunction.ValueDeadline((_, _) => functionOutput)
       )
     ).head
 

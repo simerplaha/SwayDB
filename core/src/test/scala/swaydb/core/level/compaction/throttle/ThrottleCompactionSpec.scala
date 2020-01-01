@@ -39,6 +39,7 @@ import swaydb.serializers._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext
+import scala.collection.compat._
 
 class CompactionSpec0 extends CompactionSpec
 

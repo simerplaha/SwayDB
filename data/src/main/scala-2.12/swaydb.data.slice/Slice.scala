@@ -19,6 +19,8 @@
 
 package swaydb.data.slice
 
+import swaydb.data.util.SomeOrNoneCovariant
+
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{IterableLike, mutable}
@@ -27,7 +29,25 @@ import scala.reflect.ClassTag
 /**
  * Documentation - http://swaydb.io/slice
  */
+sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Slice[T]] {
+  override def noneC: SliceOptional[Nothing] = Slice.Null
+
+  def isUnslicedOptional: Boolean
+
+  def unsliceOptional(): SliceOptional[T] =
+    if (this.isNoneC || this.getC.isEmpty)
+      Slice.Null
+    else
+      this.getC.unslice()
+}
+
 object Slice extends SliceCompanionBase {
+
+  final case object Null extends SliceOptional[Nothing] {
+    override val isNoneC: Boolean = true
+    override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
+    override def isUnslicedOptional: Boolean = true
+  }
 
   class SliceBuilder[T: ClassTag](sizeHint: Int) extends mutable.Builder[T, Slice[T]] {
     //max is used to in-case sizeHit == 0 which is possible for cases where (None ++ Some(Slice[T](...)))
@@ -77,10 +97,20 @@ object Slice extends SliceCompanionBase {
  * @param written    items written
  * @tparam T The type of this Slice
  */
+//@formatter:off
 class Slice[+T] private[slice](array: Array[T],
                                fromOffset: Int,
                                toOffset: Int,
-                               written: Int)(implicit classTag: ClassTag[T]) extends SliceBase[T](array, fromOffset, toOffset, written) with IterableLike[T, Slice[T]] {
+                               written: Int)(implicit classTag: ClassTag[T]) extends SliceBase[T](array, fromOffset, toOffset, written)
+                                                                             with SliceOptional[T]
+                                                                             with IterableLike[T, Slice[T]] {
+//@formatter:on
+
+  override val isNoneC: Boolean =
+    false
+
+  override def getC: Slice[T] =
+    this
 
   override def selfSlice: Slice[T] =
     this

@@ -131,7 +131,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
           )
           .expects(*, *, *, *, *, *)
           .onCall {
-            case (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
+            (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
               key shouldBe keyValue1.key
               startFrom.isNoneS shouldBe true
               keyValue1
@@ -158,7 +158,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
           )
           .expects(*, *, *, *, *, *)
           .onCall {
-            case (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
+            (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
               key shouldBe keyValue2.key
               startFrom shouldBe keyValue1
               keyValue2
@@ -185,7 +185,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
           )
           .expects(*, *, *, *, *, *)
           .onCall {
-            case (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
+            (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
               key shouldBe keyValue100.key
               startFrom shouldBe keyValue2
               Persistent.Null
@@ -271,7 +271,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
           )
           .expects(*, *, *, *, *, *)
           .onCall {
-            case (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
+            (key: Slice[Byte], startFrom: PersistentOptional, _, _, _, _) =>
               key shouldBe keyValue3.key
               //start from is None because cached keyValue10's key > keyValue3's key
               startFrom.isNoneS shouldBe true

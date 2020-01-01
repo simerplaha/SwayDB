@@ -197,7 +197,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
               eitherOne(
                 SwayFunctionOutput.Remove,
                 SwayFunctionOutput.Expire(expiredDeadline()),
-                SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline())),
+                SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
               )
           )
 
@@ -242,7 +242,7 @@ class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionVal
               eitherOne(
                 SwayFunctionOutput.Remove,
                 SwayFunctionOutput.Expire(expiredDeadline()),
-                SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline())),
+                SwayFunctionOutput.Update(randomStringOption, Some(expiredDeadline()))
               )
           ).toRangeValue()
 

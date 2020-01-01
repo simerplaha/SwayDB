@@ -48,6 +48,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional, Segment] {
   override def noneS: SegmentOptional =

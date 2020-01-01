@@ -42,6 +42,7 @@ import swaydb.{Aggregator, IO}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
+import scala.collection.compat._
 
 object PersistentSegment {
   def apply(file: DBFile,

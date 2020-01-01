@@ -115,7 +115,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val keyValues: Slice[Memory] =
             randomizedKeyValues(
               count = 1000,
-              startId = Some(1),
+              startId = Some(1)
               //              addRanges = true,
               //              addUpdates = false,
               //              addRemoves = false,
@@ -174,7 +174,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val keyValues: Slice[Memory] =
             randomizedKeyValues(
               count = 100,
-              startId = Some(1),
+              startId = Some(1)
               //              addPut = true,
               //              addRanges = true,
               //              addUpdates = false,

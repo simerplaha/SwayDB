@@ -70,7 +70,7 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
         sortedIndexConfig =
           SortedIndexBlock.Config.random.copy(
             //            normaliseIndex = true,
-            shouldPrefixCompress = eitherOne(_ => false, _ => true, _ => randomBoolean()),
+            shouldPrefixCompress = eitherOne(_ => false, _ => true, _ => randomBoolean())
             //            enablePartialRead = true,
             //            enableAccessPositionIndex = true
           ),

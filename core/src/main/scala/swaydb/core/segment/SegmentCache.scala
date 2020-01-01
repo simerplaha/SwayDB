@@ -216,7 +216,7 @@ private[core] object SegmentCache {
                       key = key,
                       start = bestStart,
                       sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
-                      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable(),
+                      valuesReaderNullable = segmentCache.blockCache.createValuesReaderNullable()
                     ) onSomeSideEffectS {
                       found =>
                         SegmentReadState.updateOnSuccessSequentialRead(

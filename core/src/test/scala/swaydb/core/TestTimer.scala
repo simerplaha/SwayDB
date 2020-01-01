@@ -99,7 +99,7 @@ object TestTimer {
     override def close: Unit = ()
   }
 
-  val all =
+  def all =
     Sealed.list[TestTimer]
 
   def random: TestTimer =

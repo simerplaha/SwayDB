@@ -31,7 +31,7 @@ import java.util.function.BiConsumer;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ActorTest implements JavaEventually {
+class ActorTest {
 
   @Test
   void createActor() throws InterruptedException {
@@ -44,7 +44,6 @@ class ActorTest implements JavaEventually {
         assertNull(actor.state());
         messages.add(message);
       };
-
 
     Actor.ActorRef<String, Void> statelessFIFO = Actor.createStatelessFIFO(execution, executorService);
 

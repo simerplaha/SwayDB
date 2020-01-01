@@ -114,7 +114,7 @@ sealed trait SegmentLowerSpec extends TestBase with ScalaFutures with PrivateMet
             randomRangeKeyValue(2, 5),
             randomFixedKeyValue(10),
             randomRangeKeyValue(11, 20),
-            randomRangeKeyValue(20, 30),
+            randomRangeKeyValue(20, 30)
           ),
 
           assert =
