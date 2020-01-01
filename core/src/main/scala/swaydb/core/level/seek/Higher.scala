@@ -276,27 +276,25 @@ private[core] object Higher {
 
                 //10  -  20
                 //  11-19
-                else if (next.key < current.toKey) //if the higher in next Level falls within the range.
-                  current.fetchFromAndRangeValueUnsafe match {
-                    //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
-                    case (fromValue, rangeValue) =>
-                      higherFromValue(key, current.fromKey, fromValue) match {
-                        case fromValuePut: KeyValue.Put =>
-                          fromValuePut
+                else if (next.key < current.toKey) { //if the higher in next Level falls within the range.
+                  val (fromValue, rangeValue) = current.fetchFromAndRangeValueUnsafe
+                  //if fromValue is set check if it qualifies as the next highest orElse return higher of fromKey
+                  higherFromValue(key, current.fromKey, fromValue) match {
+                    case fromValuePut: KeyValue.Put =>
+                      fromValuePut
 
-                        case KeyValue.Put.Null =>
-                          FixedMerger(rangeValue.toMemory(next.key), next) match {
-                            case put: KeyValue.Put if put.hasTimeLeft() =>
-                              put
+                    case KeyValue.Put.Null =>
+                      FixedMerger(rangeValue.toMemory(next.key), next) match {
+                        case put: KeyValue.Put if put.hasTimeLeft() =>
+                          put
 
-                            case _ =>
-                              //fetch the next key keeping the current stash. next.key's higher is still current range
-                              //since it's < range's toKey
-                              Higher(next.key, readState, currentStash, Seek.Next.Read)
-                          }
+                        case _ =>
+                          //fetch the next key keeping the current stash. next.key's higher is still current range
+                          //since it's < range's toKey
+                          Higher(next.key, readState, currentStash, Seek.Next.Read)
                       }
                   }
-
+                }
                 //10 - 20
                 //     20 ----to----> ∞
                 else //else if the higher in next Level does not fall within the range.
