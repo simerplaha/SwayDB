@@ -31,6 +31,7 @@ import swaydb.data.config.Dir
 
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 private[core] case class Distribution(path: Path,
                                       distributionRatio: Int,
