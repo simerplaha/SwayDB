@@ -462,7 +462,7 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   }
 
   def contains(key: K): Boolean =
-    get(key) == nullValue
+    get(key) != nullValue
 
   def get(key: K): OV =
     find(nullValue, _.skipList.get(key))
@@ -503,7 +503,11 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
     }
 
   def keyValueCount: Int =
-    reduce[Int](nullValue = 0, applier = map => map.size, reduce = _ + _)
+    reduce[Int](
+      nullValue = 0,
+      applier = map => map.size,
+      reduce = _ + _
+    )
 
   def queuedMapsCount =
     maps.size()
