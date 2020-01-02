@@ -66,7 +66,7 @@ object LevelZeroMapEntryWriter {
         .addAll(entry.value.key)
         .addInt(entry.value.time.size)
         .addAll(entry.value.time.time)
-        .addInt(entry.value.value.mapC(_.size).getOrElse(0))
+        .addInt(entry.value.value.valueOrElseC(_.size, 0))
         .addAll(entry.value.value.getOrElseC(Slice.emptyBytes))
         .addLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
 
@@ -80,7 +80,7 @@ object LevelZeroMapEntryWriter {
           ByteSizeOf.int +
           entry.value.time.time.size +
           ByteSizeOf.int +
-          entry.value.value.mapC(_.size).getOrElse(0) +
+          entry.value.value.valueOrElseC(_.size, 0) +
           ByteSizeOf.long
   }
 
@@ -97,7 +97,7 @@ object LevelZeroMapEntryWriter {
         .addAll(entry.value.key)
         .addInt(entry.value.time.size)
         .addAll(entry.value.time.time)
-        .addInt(entry.value.value.mapC(_.size).getOrElse(0))
+        .addInt(entry.value.value.valueOrElseC(_.size, 0))
         .addAll(entry.value.value.getOrElseC(Slice.emptyBytes))
         .addLong(entry.value.deadline.map(_.time.toNanos).getOrElse(0))
 
@@ -111,7 +111,7 @@ object LevelZeroMapEntryWriter {
           ByteSizeOf.int +
           entry.value.time.time.size +
           ByteSizeOf.int +
-          entry.value.value.mapC(_.size).getOrElse(0) +
+          entry.value.value.valueOrElseC(_.size, 0) +
           ByteSizeOf.long
   }
 
