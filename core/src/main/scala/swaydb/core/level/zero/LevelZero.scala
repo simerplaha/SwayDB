@@ -470,7 +470,7 @@ private[swaydb] case class LevelZero(path: Path,
       reduce = MinMax.minFavourLeft(_, _)(keyOrderSliceOptional)
     )
 
-  def lastKeyFromMaps =
+  def lastKeyFromMaps: SliceOptional[Byte] =
     maps.reduce[SliceOptional[Byte]](
       nullValue = Slice.Null,
       applier =

@@ -120,8 +120,8 @@ object LevelZeroSkipListMerger extends SkipListMerger[SliceOptional[Byte], Memor
 
       conflictingKeyValues.values() forEach {
         new Consumer[Memory] {
-          override def accept(t: Memory): Unit =
-            oldKeyValues add t
+          override def accept(keyValue: Memory): Unit =
+            oldKeyValues add keyValue
         }
       }
 
