@@ -334,6 +334,14 @@ private[core] object SegmentBlock extends LazyLogging {
           builder = sortedIndex.builder
         )
 
+      def unwrittenTailSegmentBytes() =
+        sortedIndex.compressibleBytes.unwrittenTailSize() + {
+          if (values.isDefined)
+            values.get.compressibleBytes.unwrittenTailSize()
+          else
+            0
+        }
+
       //keys to write to bloomFilter.
       val bloomFilterKeys = ListBuffer.empty[Slice[Byte]]
 
@@ -357,8 +365,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
           //check and close segment if segment size limit is reached.
           //to do - maybe check if compression is defined and increase the segmentSize.
-          if (currentSegmentSize >= minSegmentSize) {
-
+          if (currentSegmentSize >= minSegmentSize && unwrittenTailSegmentBytes() > minSegmentSize) {
             logger.debug(s"Creating segment of size: $currentSegmentSize.bytes")
 
             val (closedSegment, nextSortedIndex, nextValues) =

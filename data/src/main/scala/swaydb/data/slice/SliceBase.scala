@@ -465,6 +465,9 @@ abstract class SliceBase[+T](array: Array[T],
   def splitUnwritten(): (Slice[T], Slice[T]) =
     (this.close(), unwrittenTail())
 
+  def unwrittenTailSize() =
+    toOffset - fromOffset - size
+
   def unwrittenTail(): Slice[T] = {
     val from = fromOffset + size
     if (from > toOffset)
