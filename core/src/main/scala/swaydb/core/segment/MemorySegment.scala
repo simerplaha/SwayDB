@@ -228,7 +228,10 @@ private[segment] case class MemorySegment(path: Path,
       }
 
   override def iterator(): Iterator[KeyValue] =
-    skipList.values().iterator().asScala
+    if (deleted)
+      throw swaydb.Exception.NoSuchFile(path)
+    else
+      skipList.values().iterator().asScala
 
   override def delete: Unit = {
     //cache should not be cleared.

@@ -19,11 +19,8 @@
 
 package swaydb.core
 
-import java.util.concurrent.ConcurrentLinkedQueue
-
 import swaydb.core.CommonAssertions._
-import swaydb.core.TestData._
-import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
+import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.util.StorageUnits._
@@ -53,12 +50,6 @@ private[swaydb] object TestSweeper {
   val someMemorySweeperMax = memorySweeperMax
   val someMemorySweeper10 = memorySweeper10
 
-  val closeQueue = new ConcurrentLinkedQueue[FileSweeperItem]()
-  @volatile var closeQueueSize = closeQueue.size()
-
-  val deleteQueue = new ConcurrentLinkedQueue[FileSweeperItem]()
-  @volatile var deleteQueueSize = closeQueue.size()
-
   val blockCache: Option[BlockCache.State] =
     memorySweeperMax.map(BlockCache.init)
 
@@ -66,5 +57,5 @@ private[swaydb] object TestSweeper {
     orNone(blockCache)
 
   val fileSweeper: FileSweeper.Enabled =
-    FileSweeper(100, ActorConfig.TimeLoop(10.seconds, level0PushDownPool))
+    FileSweeper(50, ActorConfig.Basic(level0PushDownPool))
 }

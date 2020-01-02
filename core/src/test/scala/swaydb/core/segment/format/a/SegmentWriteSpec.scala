@@ -601,7 +601,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         //memory Segments do not value closed via
       } else {
         implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
-        implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(100.millisecond, ec))
+        implicit val segmentOpenLimit = FileSweeper(1, ActorConfig.TimeLoop(2.second, ec))
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment1 = TestSegment(keyValues)(keyOrder, memorySweeper, segmentOpenLimit)
 

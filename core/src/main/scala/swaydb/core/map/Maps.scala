@@ -458,7 +458,7 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
     if (currentMatch == nullResult)
       findFirst(nullResult, matcher)
     else
-      nullResult
+      currentMatch
   }
 
   def contains(key: K): Boolean =
