@@ -205,119 +205,129 @@ private[swaydb] case class LevelZero(path: Path,
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
-  def assertRun(key: Slice[Byte])(block: => Unit): OK =
+  def validateInput(key: Slice[Byte]): Unit =
     if (key.isEmpty) {
       throw new IllegalArgumentException("key cannot be empty.")
-    } else {
-      block
-      OK.instance
     }
 
-  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): OK =
+  def validateInput(fromKey: Slice[Byte], toKey: Slice[Byte]): Unit =
     if (fromKey.isEmpty)
       throw new IllegalArgumentException("fromKey cannot be empty.")
     else if (toKey.isEmpty)
       throw new IllegalArgumentException("toKey cannot be empty.")
     else if (fromKey > toKey) //fromKey cannot also be equal to toKey. The invoking this assert should also check for equality and call update on single key-value.
       throw new IllegalArgumentException("fromKey should be less than toKey.")
-    else {
-      block
-      OK.instance
-    }
 
-  def put(key: Slice[Byte]): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, Slice.Null, None, timer.next)))
-    }
+  def put(key: Slice[Byte]): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, Slice.Null, None, timer.next)))
+    OK.instance
+  }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
-    }
+  def put(key: Slice[Byte], value: Slice[Byte]): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
+    OK.instance
+  }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), Some(removeAt), timer.next)))
-    }
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), Some(removeAt), timer.next)))
+    OK.instance
+  }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), None, timer.next)))
-    }
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), None, timer.next)))
+    OK.instance
+  }
 
   def put(entry: Timer => MapEntry[Slice[Byte], Memory]): OK = {
     maps write entry
     OK.instance
   }
 
-  def remove(key: Slice[Byte]): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
-    }
+  def remove(key: Slice[Byte]): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
+    OK.instance
+  }
 
-  def remove(key: Slice[Byte], at: Deadline): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
-    }
+  def remove(key: Slice[Byte], at: Deadline): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
+    OK.instance
+  }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): OK =
-    assertRun(fromKey, toKey) {
-      if (fromKey equiv toKey)
-        remove(fromKey)
-      else
-        maps
-          .write {
-            timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
-          }
-    }
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): OK = {
+    validateInput(fromKey, toKey)
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): OK =
-    assertRun(fromKey, toKey) {
-      if (fromKey equiv toKey)
-        remove(fromKey)
-      else
-        maps
-          .write {
-            timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
-          }
-    }
+    if (fromKey equiv toKey)
+      remove(fromKey)
+    else
+      maps
+        .write {
+          timer =>
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(None, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+              MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, None, timer.next))
+        }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
-    }
+    OK.instance
+  }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): OK =
-    assertRun(key) {
-      maps.write(timer => MapEntry.Put(key, Memory.Update(key, value.getOrElse(Slice.Null), None, timer.next)))
-    }
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): OK = {
+    validateInput(fromKey, toKey)
+
+    if (fromKey equiv toKey)
+      remove(fromKey)
+    else
+      maps
+        .write {
+          timer =>
+            (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Remove(Some(at), timer.next))): MapEntry[Slice[Byte], Memory]) ++
+              MapEntry.Put[Slice[Byte], Memory.Remove](toKey, Memory.Remove(toKey, Some(at), timer.next))
+        }
+
+    OK.instance
+  }
+
+  def update(key: Slice[Byte], value: Slice[Byte]): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
+    OK.instance
+  }
+
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): OK = {
+    validateInput(key)
+    maps.write(timer => MapEntry.Put(key, Memory.Update(key, value.getOrElse(Slice.Null), None, timer.next)))
+    OK.instance
+  }
 
   def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): OK =
     update(fromKey, toKey, Some(value))
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): OK =
-    assertRun(fromKey, toKey) {
-      if (fromKey equiv toKey)
-        update(fromKey, value)
-      else
-        maps
-          .write {
-            timer =>
-              (MapEntry.Put[Slice[Byte], Memory.Range](
-                key = fromKey,
-                value = Memory.Range(
-                  fromKey = fromKey,
-                  toKey = toKey,
-                  fromValue = Value.FromValue.Null,
-                  rangeValue = Value.Update(value.getOrElse(Slice.Null), None, timer.next)
-                )
-              ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value.getOrElse(Slice.Null), None, timer.next))
-          }
-    }
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): OK = {
+    validateInput(fromKey, toKey)
+
+    if (fromKey equiv toKey)
+      update(fromKey, value)
+    else
+      maps
+        .write {
+          timer =>
+            (MapEntry.Put[Slice[Byte], Memory.Range](
+              key = fromKey,
+              value = Memory.Range(
+                fromKey = fromKey,
+                toKey = toKey,
+                fromValue = Value.FromValue.Null,
+                rangeValue = Value.Update(value.getOrElse(Slice.Null), None, timer.next)
+              )
+            ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value.getOrElse(Slice.Null), None, timer.next))
+        }
+
+    OK.instance
+  }
 
   def clear(readState: ThreadReadState): OK =
     headKey(readState) match {
@@ -338,36 +348,42 @@ private[swaydb] case class LevelZero(path: Path,
     functionStore.put(functionId, function)
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
-    if (functionStore.notExists(function))
+    if (functionStore.notExists(function)) {
       throw new IllegalArgumentException("Function does not exists in function store.")
-    else
-      assertRun(key) {
+    } else {
+      validateInput(key)
+
+      maps.write {
+        timer =>
+          if (timer.empty)
+            throw new IllegalArgumentException("Functions are disabled.")
+          else
+            MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
+      }
+
+      OK.instance
+    }
+
+  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
+    if (functionStore.notExists(function)) {
+      throw new IllegalArgumentException("Function does not exists in function store.")
+    } else {
+      validateInput(fromKey, toKey)
+
+      if (fromKey equiv toKey)
+        applyFunction(fromKey, function)
+      else
         maps.write {
           timer =>
             if (timer.empty)
               throw new IllegalArgumentException("Functions are disabled.")
             else
-              MapEntry.Put[Slice[Byte], Memory.Function](key, Memory.Function(key, function, timer.next))
+              (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
+                MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
         }
-      }
 
-  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
-    if (functionStore.notExists(function))
-      throw new IllegalArgumentException("Function does not exists in function store.")
-    else
-      assertRun(fromKey, toKey) {
-        if (fromKey equiv toKey)
-          applyFunction(fromKey, function)
-        else
-          maps.write {
-            timer =>
-              if (timer.empty)
-                throw new IllegalArgumentException("Functions are disabled.")
-              else
-                (MapEntry.Put[Slice[Byte], Memory.Range](fromKey, Memory.Range(fromKey, toKey, Value.FromValue.Null, Value.Function(function, timer.next))): MapEntry[Slice[Byte], Memory]) ++
-                  MapEntry.Put[Slice[Byte], Memory.Function](toKey, Memory.Function(toKey, function, timer.next))
-          }
-      }
+      OK.instance
+    }
 
   private def getFromMap(key: Slice[Byte],
                          currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): MemoryOptional =
