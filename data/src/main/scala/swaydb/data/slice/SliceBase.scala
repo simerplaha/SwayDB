@@ -429,6 +429,25 @@ abstract class SliceBase[+T](array: Array[T],
   def existsFor(forItems: Int, exists: T => Boolean): Boolean =
     take(forItems).exists(exists)
 
+  def binarySearch[A >: T, N <: A](target: A, nullValue: N)(implicit ordering: Ordering[A]): A = {
+    var start = 0
+    var end = size - 1
+
+    while (start <= end) {
+      val mid = start + (end - start) / 2
+      val element = get(mid)
+      val compare = ordering.compare(element, target)
+      if (compare == 0)
+        return element
+      else if (compare < 0)
+        start = mid + 1
+      else
+        end = mid - 1
+    }
+
+    nullValue
+  }
+
   def ++[B >: T : ClassTag](other: Slice[B]): Slice[B] = {
     val slice = Slice.create[B](size + other.size)
     slice addAll selfSlice
