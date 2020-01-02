@@ -427,8 +427,9 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   }
 
   private def findAndReduce[R](nullResult: R,
-                               f: Map[OK, OV, K, V] => R,
-                               reduce: (R, R) => R): R = {
+                               initial: R,
+                               applier: Map[OK, OV, K, V] => R,
+                               reducer: (R, R) => R): R = {
     val iterator = maps.iterator()
 
     def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
@@ -439,18 +440,18 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
       if (nextOrNull == null) {
         previousResult
       } else {
-        val nextResult = f(nextOrNull)
+        val nextResult = applier(nextOrNull)
         if (nextResult == nullResult) {
           find(getNextOrNull(), previousResult)
         } else if (previousResult == nullResult) {
           find(getNextOrNull(), nextResult)
         } else {
-          val result = reduce(previousResult, nextResult)
+          val result = reducer(previousResult, nextResult)
           find(getNextOrNull(), result)
         }
       }
 
-    find(getNextOrNull(), nullResult)
+    find(getNextOrNull(), initial)
   }
 
   def find[R](nullResult: R, matcher: Map[OK, OV, K, V] => R): R = {
@@ -469,16 +470,13 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
 
   def reduce[R](nullValue: R,
                 applier: Map[OK, OV, K, V] => R,
-                reduce: (R, R) => R): R = {
-    val currentApplied = applier(currentMap)
-    val othersReduced = findAndReduce(nullValue, applier, reduce)
-    if (currentApplied == nullValue)
-      othersReduced
-    else if (othersReduced == nullValue)
-      currentApplied
-    else
-      reduce(currentApplied, othersReduced)
-  }
+                reduce: (R, R) => R): R =
+    findAndReduce(
+      nullResult = nullValue,
+      initial = applier(currentMap),
+      applier = applier,
+      reducer = reduce
+    )
 
   def lastOption(): Option[Map[OK, OV, K, V]] =
     IO.tryOrNone(maps.getLast)

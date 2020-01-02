@@ -1339,8 +1339,8 @@ private[core] case class Level(dirs: Seq[Dir],
   override def headKey(readState: ThreadReadState): SliceOptional[Byte] =
     nextLevel match {
       case Some(nextLevel) =>
-        val nextLevelHeadKey = nextLevel.headKey(readState)
         val thisLevelHeadKey = appendix.skipList.headKey
+        val nextLevelHeadKey = nextLevel.headKey(readState)
 
         MinMax.minFavourLeftC[SliceOptional[Byte], Slice[Byte]](
           left = thisLevelHeadKey,
@@ -1358,16 +1358,16 @@ private[core] case class Level(dirs: Seq[Dir],
   override def lastKey(readState: ThreadReadState): SliceOptional[Byte] =
     nextLevel match {
       case Some(nextLevel) =>
-        val nextLevelLastKey = nextLevel.lastKey(readState)
         val thisLevelLastKey = appendix.skipList.last().flatMapSomeS(Slice.Null: SliceOptional[Byte])(_.maxKey.maxKey)
+        val nextLevelLastKey = nextLevel.lastKey(readState)
 
-        MinMax.minFavourLeftC[SliceOptional[Byte], Slice[Byte]](
+        MinMax.maxFavourLeftC[SliceOptional[Byte], Slice[Byte]](
           left = thisLevelLastKey,
           right = nextLevelLastKey
         )(keyOrder)
 
       case None =>
-        appendix.skipList.headKey
+        appendix.skipList.last().flatMapSomeS(Slice.Null: SliceOptional[Byte])(_.maxKey.maxKey)
     }
 
   override def head(readState: ThreadReadState): KeyValue.PutOptional =
