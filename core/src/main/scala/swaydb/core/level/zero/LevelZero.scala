@@ -64,7 +64,6 @@ private[core] object LevelZero extends LazyLogging {
 
     //LevelZero does not required FileSweeper since they are all Map files.
     implicit val fileSweeper: FileSweeper = FileSweeper.Disabled
-    implicit val keyOrderSliceOptional = KeyOrder[SliceOptional[Byte]](keyOrder.on(_.getOrElseC(Slice.emptyBytes)))
 
     implicit val skipListMerger: SkipListMerger[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =
@@ -184,7 +183,6 @@ private[swaydb] case class LevelZero(path: Path,
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
                                      private val lock: Option[FileLock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                         keyOrderSliceOptional: KeyOrder[SliceOptional[Byte]],
                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                          functionStore: FunctionStore) extends LevelRef with LazyLogging {
 
@@ -467,7 +465,7 @@ private[swaydb] case class LevelZero(path: Path,
     maps.reduce[SliceOptional[Byte]](
       nullValue = Slice.Null,
       applier = _.skipList.headKey,
-      reduce = MinMax.minFavourLeft(_, _)(keyOrderSliceOptional)
+      reduce = MinMax.minFavourLeftC[SliceOptional[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
   def lastKeyFromMaps: SliceOptional[Byte] =
@@ -485,7 +483,7 @@ private[swaydb] case class LevelZero(path: Path,
               case range: KeyValue.Range =>
                 range.toKey
             },
-      reduce = MinMax.maxFavourLeft(_, _)(keyOrderSliceOptional)
+      reduce = MinMax.maxFavourLeftC[SliceOptional[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
   def lastKey(readState: ThreadReadState): SliceOptional[Byte] =
@@ -500,7 +498,7 @@ private[swaydb] case class LevelZero(path: Path,
         nextLevel.headKey(readState) match {
           case nextLevelFirstKey: Slice[Byte] =>
             MinMax
-              .minFavourLeft(firstKeyFromMaps, nextLevelFirstKey)(keyOrderSliceOptional)
+              .minFavourLeftC[SliceOptional[Byte], Slice[Byte]](firstKeyFromMaps, nextLevelFirstKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(ceiling(_, readState))
 
           case Slice.Null =>
@@ -517,7 +515,7 @@ private[swaydb] case class LevelZero(path: Path,
         nextLevel.lastKey(readState) match {
           case nextLevelLastKey: Slice[Byte] =>
             MinMax
-              .maxFavourLeft(lastKeyFromMaps, nextLevelLastKey)(keyOrderSliceOptional)
+              .maxFavourLeftC[SliceOptional[Byte], Slice[Byte]](lastKeyFromMaps, nextLevelLastKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(floor(_, readState))
 
           case Slice.Null =>

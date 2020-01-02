@@ -101,6 +101,15 @@ private[core] object MinMax {
     else
       maximum(left.getC, right.getC)
 
+  def minFavourLeftC[T <: SomeOrNoneCovariant[T, SOME], SOME <: T](left: T,
+                                                                   right: T)(implicit ordering: Ordering[SOME]): T =
+    if (left.isNoneC)
+      right
+    else if (right.isNoneC)
+      left
+    else
+      minimum(left.getC, right.getC)
+
   def maxFavourLeftS[T <: SomeOrNone[T, SOME], SOME <: T](left: T,
                                                           right: T)(implicit ordering: Ordering[SOME]): T =
     if (left.isNoneS)
@@ -109,6 +118,15 @@ private[core] object MinMax {
       left
     else
       maximum(left.getS, right.getS)
+
+  def minFavourLeftS[T <: SomeOrNone[T, SOME], SOME <: T](left: T,
+                                                          right: T)(implicit ordering: Ordering[SOME]): T =
+    if (left.isNoneS)
+      right
+    else if (right.isNoneS)
+      left
+    else
+      minimum(left.getS, right.getS)
 
   def maxFavourLeft[T](left: Option[T],
                        right: T)(implicit ordering: Ordering[T]): T =

@@ -371,8 +371,6 @@ private[core] case class Level(dirs: Seq[Dir],
 
   logger.info(s"{}: Level started.", pathDistributor)
 
-  implicit val keyOrderSliceOptional: KeyOrder[SliceOptional[Byte]] = KeyOrder[SliceOptional[Byte]](keyOrder.on(_.getOrElseC(Slice.emptyBytes)))
-
   override val levelNumber: Int =
     pathDistributor
       .head
@@ -1342,10 +1340,12 @@ private[core] case class Level(dirs: Seq[Dir],
     nextLevel match {
       case Some(nextLevel) =>
         val nextLevelHeadKey = nextLevel.headKey(readState)
-        MinMax.minFavourLeft(
-          left = appendix.skipList.headKey,
+        val thisLevelHeadKey = appendix.skipList.headKey
+
+        MinMax.minFavourLeftC[SliceOptional[Byte], Slice[Byte]](
+          left = thisLevelHeadKey,
           right = nextLevelHeadKey
-        )(keyOrderSliceOptional)
+        )(keyOrder)
 
       case None =>
         appendix.skipList.headKey
@@ -1361,10 +1361,10 @@ private[core] case class Level(dirs: Seq[Dir],
         val nextLevelLastKey = nextLevel.lastKey(readState)
         val thisLevelLastKey = appendix.skipList.last().flatMapSomeS(Slice.Null: SliceOptional[Byte])(_.maxKey.maxKey)
 
-        MinMax.minFavourLeft(
+        MinMax.minFavourLeftC[SliceOptional[Byte], Slice[Byte]](
           left = thisLevelLastKey,
           right = nextLevelLastKey
-        )(keyOrderSliceOptional)
+        )(keyOrder)
 
       case None =>
         appendix.skipList.headKey
