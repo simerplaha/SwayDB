@@ -28,7 +28,7 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 
 ## Overview
 
-- [Java](http://swaydb.io/quick-start/?language=java/) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin) APIs.
+- [Java API](http://swaydb.io/quick-start/?language=java/) & [Kotlin examples](https://github.com/simerplaha/SwayDB.kotlin).
 - Single or multiple disks persistent, in-memory or periodically persistent.
 - Simple data types - `Map[K, V]` & `Set[T]`.
 - Simple Stream based iteration following collections APIs.
