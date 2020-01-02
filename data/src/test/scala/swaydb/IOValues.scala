@@ -53,7 +53,7 @@ trait IOValues {
       io.runIO
 
     def runFutureIO: IO[L, R] =
-      IO(Await.result(io.run[R, Future], 5.minutes))
+      IO(Await.result(io.run[R, Future](0), 5.minutes))
 
     def runRandomIO: IO[L, R] =
       if (Random.nextBoolean())

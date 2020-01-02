@@ -19,7 +19,7 @@
 
 package swaydb.core.util
 
-import swaydb.Done
+import swaydb.OK
 import swaydb.core.data.KeyValue
 import swaydb.core.io.reader.Reader
 import swaydb.data.slice.Slice
@@ -68,7 +68,7 @@ private[swaydb] object Bytes extends Bytez {
   }
 
   def compressFull(previous: Option[Slice[Byte]],
-                   next: Slice[Byte]): Option[Done] =
+                   next: Slice[Byte]): Option[OK] =
     previous flatMap {
       previous =>
         compressFull(
@@ -78,17 +78,17 @@ private[swaydb] object Bytes extends Bytez {
     }
 
   def compressFull(previous: Slice[Byte],
-                   next: Slice[Byte]): Option[Done] =
+                   next: Slice[Byte]): Option[OK] =
     if (previous.size < next.size)
       None
     else
       compress(previous, next, next.size) map {
         _ =>
-          Done.instance
+          OK.instance
       }
 
   def compressExact(previous: Slice[Byte],
-                    next: Slice[Byte]): Option[Done] =
+                    next: Slice[Byte]): Option[OK] =
     if (previous.size != next.size)
       None
     else

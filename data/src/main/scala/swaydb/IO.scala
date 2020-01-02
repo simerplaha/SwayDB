@@ -134,8 +134,6 @@ object IO {
    */
   type BootIO[T] = IO[Error.Boot, T]
 
-  val done: Done = Done.instance
-
   val unit: IO.Right[Nothing, Unit] = IO.Right()(IO.ExceptionHandler.Nothing)
   val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right()(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
   val none: IO.Right[Nothing, Option[Nothing]] = IO.Right(None)(IO.ExceptionHandler.Nothing)
@@ -147,7 +145,7 @@ object IO {
   val zeroZero: IO[Nothing, IO.Right[Nothing, Int]] = IO.Right(IO.Right(0)(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
   val emptyBytes: IO.Right[Nothing, Slice[Byte]] = IO.Right(Slice.emptyBytes)(IO.ExceptionHandler.Nothing)
   val emptySeqBytes: IO.Right[Nothing, Seq[Slice[Byte]]] = IO.Right(Seq.empty[Slice[Byte]])(IO.ExceptionHandler.Nothing)
-  val doneIO: IO.Right[Nothing, Done] = IO.Right(done)(IO.ExceptionHandler.Nothing)
+  val okIO: IO.Right[Nothing, OK] = IO.Right(OK.instance)(IO.ExceptionHandler.Nothing)
 
   implicit class IterableIOImplicit[E: IO.ExceptionHandler, A: ClassTag](iterable: Iterable[A]) {
 
@@ -796,7 +794,7 @@ object IO {
     val maxRecoveriesBeforeWarn = 5
 
     val none: IO.Defer[Nothing, None.type] = new IO.Defer[Nothing, None.type](() => None, None)(swaydb.IO.ExceptionHandler.Nothing)
-    val done: IO.Defer[Nothing, Done] = new IO.Defer[Nothing, Done](() => IO.done, None)(swaydb.IO.ExceptionHandler.Nothing)
+    val ok: IO.Defer[Nothing, OK] = new IO.Defer[Nothing, OK](() => OK.instance, None)(swaydb.IO.ExceptionHandler.Nothing)
     val unit: IO.Defer[Nothing, Unit] = new IO.Defer[Nothing, Unit](() => (), None)(swaydb.IO.ExceptionHandler.Nothing)
     val zero: IO.Defer[Nothing, Int] = new IO.Defer[Nothing, Int](() => 0, None)(swaydb.IO.ExceptionHandler.Nothing)
 
@@ -870,19 +868,19 @@ object IO {
     def toIO: IO[E, A] =
       IO(getUnsafe)
 
-    def run[B >: A, T[_]](implicit tag: Tag[T]): T[B] =
+    def run[B >: A, T[_]](tried: Int)(implicit tag: Tag[T]): T[B] =
       tag match {
         case sync: Tag.Sync[T] =>
-          runSync(sync)
+          runSync[B, T](tried)(sync)
 
         //if a tag is provided that implements isComplete then execute it directly
         case async: Tag.Async.Retryable[T] =>
-          runAsync(async)
+          runAsync[B, T](tried)(async)
 
         case async: Tag.Async[T] =>
           //else run the Tag as Future and return it's result.
           implicit val ec = async.executionContext
-          async.fromFuture(runAsync[B, Future])
+          async.fromFuture(runAsync[B, Future](tried))
       }
 
     /**
@@ -934,7 +932,7 @@ object IO {
      * TODO -  Similar to [[runIO]]. [[runIO]] should be calling this function
      * to build it's execution process.
      */
-    private def runSync[B >: A, T[_]](implicit tag: Tag.Sync[T]): T[B] = {
+    private def runSync[B >: A, T[_]](tried: Int)(implicit tag: Tag.Sync[T]): T[B] = {
 
       def blockIfNeeded(deferred: IO.Defer[E, B]): Unit =
         deferred.error foreach {
@@ -973,10 +971,10 @@ object IO {
         }
       }
 
-      doRun(this, 0)
+      doRun(this, tried)
     }
 
-    private def runAsync[B >: A, T[_]](implicit tag: Tag.Async.Retryable[T]): T[B] = {
+    private def runAsync[B >: A, T[_]](tried: Int)(implicit tag: Tag.Async.Retryable[T]): T[B] = {
 
       /**
        * If the value is already fetched [[isPending]] run in current thread
@@ -1040,7 +1038,7 @@ object IO {
             }
         }
 
-      runNow(this, 0)
+      runNow(this, tried)
     }
 
     //blocking

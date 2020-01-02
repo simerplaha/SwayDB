@@ -44,9 +44,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
-import swaydb.{Done, Error, IO, Tag}
+import swaydb.{OK, IO, Tag}
 
-import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, _}
 import scala.jdk.CollectionConverters._
 
@@ -206,15 +205,15 @@ private[swaydb] case class LevelZero(path: Path,
         nextLevel.map(_.releaseLocks) getOrElse IO.unit
     }
 
-  def assertRun(key: Slice[Byte])(block: => Unit): Done =
+  def assertRun(key: Slice[Byte])(block: => Unit): OK =
     if (key.isEmpty) {
       throw new IllegalArgumentException("key cannot be empty.")
     } else {
       block
-      IO.done
+      OK.instance
     }
 
-  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): Done =
+  def assertRun(fromKey: Slice[Byte], toKey: Slice[Byte])(block: => Unit): OK =
     if (fromKey.isEmpty)
       throw new IllegalArgumentException("fromKey cannot be empty.")
     else if (toKey.isEmpty)
@@ -223,45 +222,45 @@ private[swaydb] case class LevelZero(path: Path,
       throw new IllegalArgumentException("fromKey should be less than toKey.")
     else {
       block
-      IO.done
+      OK.instance
     }
 
-  def put(key: Slice[Byte]): Done =
+  def put(key: Slice[Byte]): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, Slice.Null, None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Slice[Byte]): Done =
+  def put(key: Slice[Byte], value: Slice[Byte]): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): Done =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), Some(removeAt), timer.next)))
     }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): Done =
+  def put(key: Slice[Byte], value: Option[Slice[Byte]]): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), None, timer.next)))
     }
 
-  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): Done = {
+  def put(entry: Timer => MapEntry[Slice[Byte], Memory]): OK = {
     maps write entry
-    IO.done
+    OK.instance
   }
 
-  def remove(key: Slice[Byte]): Done =
+  def remove(key: Slice[Byte]): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, None, timer.next)))
     }
 
-  def remove(key: Slice[Byte], at: Deadline): Done =
+  def remove(key: Slice[Byte], at: Deadline): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Remove](key, Memory.Remove(key, Some(at), timer.next)))
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): Done =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte]): OK =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         remove(fromKey)
@@ -274,7 +273,7 @@ private[swaydb] case class LevelZero(path: Path,
           }
     }
 
-  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): Done =
+  def remove(fromKey: Slice[Byte], toKey: Slice[Byte], at: Deadline): OK =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         remove(fromKey)
@@ -287,20 +286,20 @@ private[swaydb] case class LevelZero(path: Path,
           }
     }
 
-  def update(key: Slice[Byte], value: Slice[Byte]): Done =
+  def update(key: Slice[Byte], value: Slice[Byte]): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): Done =
+  def update(key: Slice[Byte], value: Option[Slice[Byte]]): OK =
     assertRun(key) {
       maps.write(timer => MapEntry.Put(key, Memory.Update(key, value.getOrElse(Slice.Null), None, timer.next)))
     }
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): Done =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): OK =
     update(fromKey, toKey, Some(value))
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): Done =
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): OK =
     assertRun(fromKey, toKey) {
       if (fromKey equiv toKey)
         update(fromKey, value)
@@ -320,7 +319,7 @@ private[swaydb] case class LevelZero(path: Path,
           }
     }
 
-  def clear(readState: ThreadReadState): Done =
+  def clear(readState: ThreadReadState): OK =
     headKey(readState) match {
       case headKey: Slice[Byte] =>
         lastKey(readState) match {
@@ -328,17 +327,17 @@ private[swaydb] case class LevelZero(path: Path,
             remove(headKey, lastKey)
 
           case Slice.Null =>
-            Done.instance //might have been removed by another thread?
+            OK.instance //might have been removed by another thread?
         }
 
       case Slice.Null =>
-        Done.instance
+        OK.instance
     }
 
-  def registerFunction(functionId: Slice[Byte], function: SwayFunction): IO.Defer[Error.Level, Done] =
-    IO.Defer(functionStore.put(functionId, function))
+  def registerFunction(functionId: Slice[Byte], function: SwayFunction): OK =
+    functionStore.put(functionId, function)
 
-  def applyFunction(key: Slice[Byte], function: Slice[Byte]): Done =
+  def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notExists(function))
       throw new IllegalArgumentException("Function does not exists in function store.")
     else
@@ -352,7 +351,7 @@ private[swaydb] case class LevelZero(path: Path,
         }
       }
 
-  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): Done =
+  def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notExists(function))
       throw new IllegalArgumentException("Function does not exists in function store.")
     else
@@ -922,41 +921,14 @@ private[swaydb] case class LevelZero(path: Path,
   override def delete: IO[swaydb.Error.Delete, Unit] =
     LevelZero.delete(this)
 
-  @tailrec
-  final def run[T[_]](apply: LevelZero => KeyValue.PutOptional)(implicit tag: Tag[T]): T[Option[(Slice[Byte], Option[Slice[Byte]])]] = {
-
-    @volatile var failed: Option[Error] = None
-
-    //    val result: T[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    //      tag.flatMap(apply(this).run) {
-    //        case Some(put) =>
-    //          try
-    //            tag.success(Some(put.key, put.getOrFetchValue.toOptionC)) //getOrFetchValue could also result in ReservedResource.
-    //          catch {
-    //            case throwable: Throwable =>
-    //              failed = Some(IO.ExceptionHandler.toError(throwable))
-    //              tag.failure(throwable)
-    //          }
-    //
-    //        case None =>
-    //          tag.none
-    //      }
-    //
-    //    //if fetching value failed perform read again.
-    //    failed match {
-    //      case Some(error) =>
-    //        error match {
-    //          case _: Error.NoSuchFile | _: Error.FileNotFound | _: Error.NullMappedByteBuffer | _: Error.ClosedChannel | _: Error.AsynchronousClose =>
-    //            run(apply)
-    //
-    //          case _: Error =>
-    //            result
-    //        }
-    //
-    //      case None =>
-    //        result
-    //    }
-
-    run(???)
-  }
+  final def run[R, T[_]](apply: LevelZero => R)(implicit tag: Tag[T]): T[R] =
+    tag.point {
+      try
+        tag.success(apply(this))
+      catch {
+        case throwable: Throwable =>
+          val error = IO.ExceptionHandler.toError(throwable)
+          IO.Defer(apply(this), error).run(1)
+      }
+    }
 }

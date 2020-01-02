@@ -45,43 +45,43 @@ case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](priva
   val asScala: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], ThrowableIO] =
     _asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], swaydb.IO.ThrowableIO]]
 
-  def put(key: K, value: V): IO[scala.Throwable, swaydb.Done] =
+  def put(key: K, value: V): IO[scala.Throwable, swaydb.OK] =
     asScala.put(key, value)
 
-  def put(key: K, value: V, expireAfter: java.time.Duration): IO[scala.Throwable, swaydb.Done] =
+  def put(key: K, value: V, expireAfter: java.time.Duration): IO[scala.Throwable, swaydb.OK] =
     asScala.put(key, value, expireAfter.toScala)
 
-  def put(keyValues: java.util.List[KeyVal[K, V]]): IO[scala.Throwable, swaydb.Done] =
+  def put(keyValues: java.util.List[KeyVal[K, V]]): IO[scala.Throwable, swaydb.OK] =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def put(keyValues: StreamIO[KeyVal[K, V]]): IO[scala.Throwable, swaydb.Done] =
+  def put(keyValues: StreamIO[KeyVal[K, V]]): IO[scala.Throwable, swaydb.OK] =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
-  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.Done] =
+  def put(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.OK] =
     asScala.put(keyValues.asScala.map(_.toTuple).toIterable)
 
-  def remove(key: K): IO[scala.Throwable, swaydb.Done] =
+  def remove(key: K): IO[scala.Throwable, swaydb.OK] =
     asScala.remove(key)
 
-  def remove(from: K, to: K): IO[scala.Throwable, swaydb.Done] =
+  def remove(from: K, to: K): IO[scala.Throwable, swaydb.OK] =
     asScala.remove(from, to)
 
-  def remove(keys: java.util.List[K]): IO[scala.Throwable, swaydb.Done] =
+  def remove(keys: java.util.List[K]): IO[scala.Throwable, swaydb.OK] =
     asScala.remove(keys.asScala)
 
-  def remove(keys: StreamIO[K]): IO[scala.Throwable, swaydb.Done] =
+  def remove(keys: StreamIO[K]): IO[scala.Throwable, swaydb.OK] =
     asScala.remove(keys.asScala)
 
-  def remove(keys: java.util.Iterator[K]): IO[scala.Throwable, swaydb.Done] =
+  def remove(keys: java.util.Iterator[K]): IO[scala.Throwable, swaydb.OK] =
     asScala.remove(keys.asScala.toIterable)
 
-  def expire(key: K, after: java.time.Duration): IO[scala.Throwable, swaydb.Done] =
+  def expire(key: K, after: java.time.Duration): IO[scala.Throwable, swaydb.OK] =
     asScala.expire(key, after.toScala)
 
-  def expire(from: K, to: K, after: java.time.Duration): IO[scala.Throwable, swaydb.Done] =
+  def expire(from: K, to: K, after: java.time.Duration): IO[scala.Throwable, swaydb.OK] =
     asScala.expire(from, to, after.toScala)
 
-  def expire(keys: java.util.List[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.Done] =
+  def expire(keys: java.util.List[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.OK] =
     asScala.expire(
       keys.asScala map {
         keyValue =>
@@ -89,46 +89,46 @@ case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](priva
       }
     )
 
-  def expire(keys: StreamIO[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.Done] =
+  def expire(keys: StreamIO[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.OK] =
     asScala.expire(keys.asScala.map(_.toScala))
 
-  def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.Done] =
+  def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): IO[scala.Throwable, swaydb.OK] =
     asScala.expire(keys.asScala.map(_.asScalaDeadline).toIterable)
 
   def expiration(key: K): IO[Throwable, Optional[Deadline]] =
     asScala.expiration(key).transform(_.asJavaMap(_.asJava))
 
-  def update(key: K, value: V): IO[scala.Throwable, swaydb.Done] =
+  def update(key: K, value: V): IO[scala.Throwable, swaydb.OK] =
     asScala.update(key, value)
 
-  def update(from: K, to: K, value: V): IO[scala.Throwable, swaydb.Done] =
+  def update(from: K, to: K, value: V): IO[scala.Throwable, swaydb.OK] =
     asScala.update(from, to, value)
 
-  def update(keyValues: java.util.List[KeyVal[K, V]]): IO[scala.Throwable, swaydb.Done] =
+  def update(keyValues: java.util.List[KeyVal[K, V]]): IO[scala.Throwable, swaydb.OK] =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
-  def update(keyValues: StreamIO[KeyVal[K, V]]): IO[scala.Throwable, swaydb.Done] =
+  def update(keyValues: StreamIO[KeyVal[K, V]]): IO[scala.Throwable, swaydb.OK] =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
-  def update(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.Done] =
+  def update(keyValues: java.util.Iterator[KeyVal[K, V]]): IO[scala.Throwable, swaydb.OK] =
     asScala.update(keyValues.asScala.map(_.toTuple).toIterable)
 
-  def clear(): IO[scala.Throwable, swaydb.Done] =
+  def clear(): IO[scala.Throwable, swaydb.OK] =
     asScala.clear()
 
-  def registerFunction(function: F): IO[scala.Throwable, swaydb.Done] =
+  def registerFunction(function: F): IO[scala.Throwable, swaydb.OK] =
     asScala.registerFunction(PureFunction.asScala(function))
 
-  def applyFunction(key: K, function: F): IO[scala.Throwable, swaydb.Done] =
+  def applyFunction(key: K, function: F): IO[scala.Throwable, swaydb.OK] =
     asScala.applyFunction(key, PureFunction.asScala(function))
 
-  def applyFunction(from: K, to: K, function: F): IO[scala.Throwable, swaydb.Done] =
+  def applyFunction(from: K, to: K, function: F): IO[scala.Throwable, swaydb.OK] =
     asScala.applyFunction(from, to, PureFunction.asScala(function))
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.Done] =
+  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.List[P]): IO[scala.Throwable, swaydb.OK] =
     commit[P](prepare.iterator())
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.Done] =
+  def commit[P <: Prepare.Map[K, V, F]](prepare: StreamIO[P]): IO[scala.Throwable, swaydb.OK] =
     prepare
       .asScala
       .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
@@ -137,7 +137,7 @@ case class MapIO[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](priva
           asScala commit statements
       }
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.Done] = {
+  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.Iterator[P]): IO[scala.Throwable, swaydb.OK] = {
     val prepareStatements =
       prepare
         .asScala

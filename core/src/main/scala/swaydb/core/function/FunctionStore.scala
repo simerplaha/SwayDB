@@ -21,7 +21,7 @@ package swaydb.core.function
 
 import java.util.concurrent.ConcurrentHashMap
 
-import swaydb.{Done, IO}
+import swaydb.OK
 import swaydb.core.data.{SwayFunction, Value}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -30,7 +30,7 @@ import scala.annotation.tailrec
 
 trait FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
-  def put(functionId: Slice[Byte], function: SwayFunction): Done
+  def put(functionId: Slice[Byte], function: SwayFunction): OK
   def exists(functionId: Slice[Byte]): Boolean
   def notExists(functionId: Slice[Byte]): Boolean =
     !exists(functionId)
@@ -84,9 +84,9 @@ class MemoryStore extends FunctionStore {
   override def get(functionId: Slice[Byte]): Option[SwayFunction] =
     Option(functions.get(functionId))
 
-  override def put(functionId: Slice[Byte], function: SwayFunction): Done = {
+  override def put(functionId: Slice[Byte], function: SwayFunction): OK = {
     if (functions.putIfAbsent(functionId, function) == null)
-      IO.done
+      OK.instance
     else
       throw new Exception("Another with the same functionId exists.")
   }

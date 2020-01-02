@@ -87,6 +87,28 @@ private[core] object KeyValue {
     def isSome: Boolean =
       !isNoneS
 
+    def toTuple: Option[(Slice[Byte], Option[Slice[Byte]])] =
+      if (isNoneS) {
+        None
+      } else {
+        val put = this.getPut
+        val value = put.getOrFetchValue
+        val key = put.key
+        Some(key, value.toOptionC)
+      }
+
+    def getValue: Option[Option[Slice[Byte]]] =
+      if (isNoneS)
+        None
+      else
+        Some(this.getPut.getOrFetchValue.toOptionC)
+
+    def getKey: Option[Slice[Byte]] =
+      if (isNoneS)
+        None
+      else
+        Some(this.getPut.key)
+
     def toOptionPut: Option[KeyValue.Put] =
       if (isNoneS)
         None

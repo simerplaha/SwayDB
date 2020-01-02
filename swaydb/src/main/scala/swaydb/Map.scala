@@ -40,25 +40,25 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
                                                                                      valueSerializer: Serializer[V],
                                                                                      tag: Tag[T]) extends Streamable[(K, V), T] { self =>
 
-  def put(key: K, value: V): T[Done] =
+  def put(key: K, value: V): T[OK] =
     tag.point(core.put(key = key, value = Some(value)))
 
-  def put(key: K, value: V, expireAfter: FiniteDuration): T[Done] =
+  def put(key: K, value: V, expireAfter: FiniteDuration): T[OK] =
     tag.point(core.put(key, Some(value), expireAfter.fromNow))
 
-  def put(key: K, value: V, expireAt: Deadline): T[Done] =
+  def put(key: K, value: V, expireAt: Deadline): T[OK] =
     tag.point(core.put(key, Some(value), expireAt))
 
-  def put(keyValues: (K, V)*): T[Done] =
+  def put(keyValues: (K, V)*): T[OK] =
     tag.point(put(keyValues))
 
-  def put(keyValues: Stream[(K, V), T]): T[Done] =
+  def put(keyValues: Stream[(K, V), T]): T[OK] =
     tag.flatMap(keyValues.materialize)(put)
 
-  def put(keyValues: Iterable[(K, V)]): T[Done] =
+  def put(keyValues: Iterable[(K, V)]): T[OK] =
     put(keyValues.iterator)
 
-  def put(keyValues: Iterator[(K, V)]): T[Done] =
+  def put(keyValues: Iterator[(K, V)]): T[OK] =
     tag.point {
       core.put {
         keyValues map {
@@ -68,46 +68,46 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
       }
     }
 
-  def remove(key: K): T[Done] =
+  def remove(key: K): T[OK] =
     tag.point(core.remove(key))
 
-  def remove(from: K, to: K): T[Done] =
+  def remove(from: K, to: K): T[OK] =
     tag.point(core.remove(from, to))
 
-  def remove(keys: K*): T[Done] =
+  def remove(keys: K*): T[OK] =
     tag.point(remove(keys))
 
-  def remove(keys: Stream[K, T]): T[Done] =
+  def remove(keys: Stream[K, T]): T[OK] =
     tag.flatMap(keys.materialize)(remove)
 
-  def remove(keys: Iterable[K]): T[Done] =
+  def remove(keys: Iterable[K]): T[OK] =
     remove(keys.iterator)
 
-  def remove(keys: Iterator[K]): T[Done] =
+  def remove(keys: Iterator[K]): T[OK] =
     tag.point(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
-  def expire(key: K, after: FiniteDuration): T[Done] =
+  def expire(key: K, after: FiniteDuration): T[OK] =
     tag.point(core.remove(key, after.fromNow))
 
-  def expire(key: K, at: Deadline): T[Done] =
+  def expire(key: K, at: Deadline): T[OK] =
     tag.point(core.remove(key, at))
 
-  def expire(from: K, to: K, after: FiniteDuration): T[Done] =
+  def expire(from: K, to: K, after: FiniteDuration): T[OK] =
     tag.point(core.remove(from, to, after.fromNow))
 
-  def expire(from: K, to: K, at: Deadline): T[Done] =
+  def expire(from: K, to: K, at: Deadline): T[OK] =
     tag.point(core.remove(from, to, at))
 
-  def expire(keys: (K, Deadline)*): T[Done] =
+  def expire(keys: (K, Deadline)*): T[OK] =
     tag.point(expire(keys))
 
-  def expire(keys: Stream[(K, Deadline), T]): T[Done] =
+  def expire(keys: Stream[(K, Deadline), T]): T[OK] =
     tag.flatMap(keys.materialize)(expire)
 
-  def expire(keys: Iterable[(K, Deadline)]): T[Done] =
+  def expire(keys: Iterable[(K, Deadline)]): T[OK] =
     expire(keys.iterator)
 
-  def expire(keys: Iterator[(K, Deadline)]): T[Done] =
+  def expire(keys: Iterator[(K, Deadline)]): T[OK] =
     tag.point {
       core.put {
         keys map {
@@ -121,22 +121,22 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
       }
     }
 
-  def update(key: K, value: V): T[Done] =
+  def update(key: K, value: V): T[OK] =
     tag.point(core.update(key, Some(value)))
 
-  def update(from: K, to: K, value: V): T[Done] =
+  def update(from: K, to: K, value: V): T[OK] =
     tag.point(core.update(from, to, Some(value)))
 
-  def update(keyValues: (K, V)*): T[Done] =
+  def update(keyValues: (K, V)*): T[OK] =
     tag.point(update(keyValues))
 
-  def update(keyValues: Stream[(K, V), T]): T[Done] =
+  def update(keyValues: Stream[(K, V), T]): T[OK] =
     tag.flatMap(keyValues.materialize)(update)
 
-  def update(keyValues: Iterable[(K, V)]): T[Done] =
+  def update(keyValues: Iterable[(K, V)]): T[OK] =
     update(keyValues.iterator)
 
-  def update(keyValues: Iterator[(K, V)]): T[Done] =
+  def update(keyValues: Iterator[(K, V)]): T[OK] =
     tag.point {
       core.put {
         keyValues map {
@@ -146,10 +146,10 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
       }
     }
 
-  def clear(): T[Done] =
+  def clear(): T[OK] =
     tag.point(core.clear(core.readStates.get()))
 
-  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
+  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[OK] =
     (function: swaydb.PureFunction[K, V, Apply.Map[V]]) match {
       case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
@@ -161,22 +161,22 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
         core.registerFunction(function.id, SwayDB.toCoreFunction(function))
     }
 
-  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
+  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[OK] =
     tag.point(core.function(key, function.id))
 
-  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
+  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[OK] =
     tag.point(core.function(from, to, function.id))
 
-  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
+  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[OK] =
     tag.point(core.put(preparesToUntyped(prepare).iterator))
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], T])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], T])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[OK] =
     tag.flatMap(prepare.materialize) {
       prepares =>
         commit(prepares)
     }
 
-  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[Done] =
+  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): T[OK] =
     tag.point(core.put(preparesToUntyped(prepare).iterator))
 
   /**

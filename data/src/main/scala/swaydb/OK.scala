@@ -19,7 +19,7 @@
 
 package swaydb
 
-final case class Done()
-object Done {
-  final val instance: Done = Done()
+sealed trait OK
+object OK {
+  final val instance: OK = new OK {}
 }
