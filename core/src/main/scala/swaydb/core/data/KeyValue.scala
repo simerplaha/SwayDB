@@ -153,7 +153,7 @@ private[core] object KeyValue {
   }
 
   object Put {
-    final object Null extends PutOptional {
+    final case object Null extends PutOptional {
       override def getPut: KeyValue.Put = throw new Exception("KeyValue.Put is of type Null")
       override def isNoneS: Boolean = true
     }
@@ -262,7 +262,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
 
 private[swaydb] object Memory {
 
-  final object Null extends MemoryOptional with KeyValue.Null {
+  final case object Null extends MemoryOptional with KeyValue.Null {
     override val isNoneS: Boolean = true
 
     override def getS: Memory =
@@ -770,7 +770,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
 private[core] object Persistent {
 
-  final object Null extends PersistentOptional with KeyValue.Null {
+  final case object Null extends PersistentOptional with KeyValue.Null {
     override val isNoneS: Boolean = true
     override def getS: Persistent = throw new Exception("get on Persistent key-value that is none")
     override def getUnsafe: KeyValue = getS
@@ -818,7 +818,7 @@ private[core] object Persistent {
 
   object Partial {
 
-    final object Null extends PartialOptional {
+    final case object Null extends PartialOptional {
       override val isNoneC: Boolean = true
       override def getC: Partial = throw new Exception("Partial is of type Null")
     }

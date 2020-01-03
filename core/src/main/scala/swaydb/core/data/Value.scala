@@ -64,7 +64,7 @@ private[swaydb] object Value {
   }
 
   object FromValue {
-    final object Null extends FromValueOption {
+    final case object Null extends FromValueOption {
       override def isNoneS: Boolean =
         true
 

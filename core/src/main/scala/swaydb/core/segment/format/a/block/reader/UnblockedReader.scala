@@ -34,7 +34,7 @@ sealed trait UnblockedReaderOptional[+O <: BlockOffset, +B <: Block[O]] {
 
 private[core] object UnblockedReader {
 
-  final object Null extends UnblockedReaderOptional[Nothing, Nothing] {
+  final case object Null extends UnblockedReaderOptional[Nothing, Nothing] {
     override def isNone: Boolean = true
   }
 

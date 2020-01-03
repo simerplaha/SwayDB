@@ -30,7 +30,7 @@ sealed trait SkipListSpec extends WordSpec with Matchers {
 
   sealed trait OptionalValue
   object Value {
-    final object Null extends OptionalValue
+    final case object Null extends OptionalValue
     case class Some(value: Int) extends OptionalValue
   }
 
