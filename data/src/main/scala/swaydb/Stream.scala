@@ -359,12 +359,11 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
 
   /**
    * Materializes are executes the stream.
+   *
+   * TODO - tag.foldLeft should run point.
    */
   def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
-    tag.flatMap(tag(())) {
-      _ =>
-        tag.foldLeft(initial, None, self, 0, None)(f)
-    }
+    tag.point(tag.foldLeft(initial, None, self, 0, None)(f))
 
   /**
    * Folds over all elements in the Stream to calculate it's total size.

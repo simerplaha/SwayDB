@@ -708,15 +708,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
-    if (startFrom.existsS(_.nextIndexOffset == -1))
-      Persistent.Null
-    else
+    if (startFrom.forallS(_.hasMore))
       seekAndMatchToPersistent(
         matcher = KeyMatcher.Get(key),
         startFrom = startFrom,
         indexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull
       )
+    else
+      Persistent.Null
 
   def matchOrSeek(key: Slice[Byte],
                   startFrom: Persistent,
@@ -725,9 +725,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    if (ordering.gteq(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
-    if (startFrom.existsS(_.nextIndexOffset == -1))
-      Persistent.Partial.Null
-    else
+    if (startFrom.forallS(_.hasMore))
       SortedIndexBlock.matchOrSeek(
         matcher = KeyMatcher.Get(key),
         previous = startFrom,
@@ -741,6 +739,8 @@ private[core] object SortedIndexBlock extends LazyLogging {
         case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
           Persistent.Partial.Null
       }
+    else
+      Persistent.Partial.Null
 
   def searchSeekOne(key: Slice[Byte],
                     start: Persistent,
@@ -749,15 +749,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
-    if (start.nextIndexOffset == -1)
-      Persistent.Null
-    else
+    if (start.hasMore)
       seekAndMatchToPersistent(
         matcher = KeyMatcher.Get.MatchOnly(key),
         startFrom = start,
         indexReader = indexReader,
         valuesReaderOrNull = valuesReaderOrNull
       )
+    else
+      Persistent.Null
 
   def searchSeekOne(key: Slice[Byte],
                     fromPosition: Int,
