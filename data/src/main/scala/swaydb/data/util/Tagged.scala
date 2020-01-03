@@ -24,5 +24,5 @@ sealed trait Tagged[+T] extends Any {
 }
 
 object Tagged {
-  type @@[+V, +T] = V with Tagged[T]
+  type @@[+V, +T] = V
 }

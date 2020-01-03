@@ -564,4 +564,50 @@ object Tag extends LazyLogging {
   implicit val tryTag: Tag.Sync[Try] = throwableIO.toTag[Try]
 
   implicit val option: Tag.Sync[Option] = throwableIO.toTag[Option]
+
+  type Out[A] = A
+
+  val outTag =
+    new Tag.Sync[Out] {
+      override def isSuccess[A](a: Out[A]): Boolean = true
+
+      override def isFailure[A](a: Out[A]): Boolean = false
+
+      override def exception[A](a: Out[A]): Option[Throwable] = None
+
+      override def getOrElse[A, B >: A](a: Out[A])(b: => B): B = a
+
+      override def orElse[A, B >: A](a: Out[A])(b: Out[B]): Out[B] = a
+
+      override def unit: Out[Unit] = ()
+
+      override def none[A]: Out[Option[A]] = Option.empty[A]
+
+      override def apply[A](a: => A): Out[A] = a
+
+      override def createSerial(): Serial[Out] =
+        new Serial[Out] {
+          override def execute[F](f: => F): Out[F] = f
+        }
+
+      override def foreach[A](a: Out[A])(f: A => Unit): Unit = f(a)
+
+      override def map[A, B](a: Out[A])(f: A => B): Out[B] = f(a)
+
+      override def flatMap[A, B](fa: Out[A])(f: A => Out[B]): Out[B] = f(fa)
+
+      override def success[A](value: A): Out[A] = value
+
+      override def failure[A](exception: Throwable): Out[A] = throw exception
+
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Out[A] = a.get
+
+      //todo
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Out], drop: Int, take: Option[Int])(operation: (U, A) => U): Out[U] =
+        ???
+
+      //todo
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Out])(condition: A => Boolean): Out[Option[A]] =
+        ???
+    }
 }
