@@ -132,7 +132,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
             functionOutput =
               eitherOne(
                 SwayFunctionOutput.Expire(randomDeadline(false)),
-                SwayFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false)),
+                SwayFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 
@@ -178,7 +178,7 @@ class GetSomeSpec extends WordSpec with Matchers with MockFactory with OptionVal
             output =
               eitherOne(
                 SwayFunctionOutput.Expire(randomDeadline(false)),
-                SwayFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false)),
+                SwayFunctionOutput.Update(randomStringSliceOptional, randomDeadlineOption(false))
               )
           )
 

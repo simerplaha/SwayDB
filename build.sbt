@@ -40,14 +40,30 @@ val commonScalaOptions =
     "-Xlint"
   )
 
-val publishScalaOptions =
-  Seq(
-    "-opt:l:inline",
-    "-opt-warnings",
-    "-opt-inline-from:swaydb.**",
-    //    "-Yopt-log-inline",
-    //    "_"
-  ) ++ commonScalaOptions
+def publishScalaOptions(scalaVersion: String): Seq[String] = {
+  val publishOptions: Seq[String] =
+    CrossVersion.partialVersion(scalaVersion) match {
+      case Some((2, major)) if major >= 13 =>
+        Seq(
+          "-opt:l:inline",
+          "-opt-warnings",
+          "-opt-inline-from:swaydb.**",
+          "-Yopt-log-inline",
+          "_"
+        )
+
+      case Some((2, 12)) =>
+        //todo
+        Seq.empty
+
+      case Some((2, 11)) =>
+        //todo
+        Seq.empty
+    }
+
+  publishOptions ++ commonScalaOptions
+}
+
 
 val commonSettings = Seq(
   organization := "io.swaydb",
@@ -78,7 +94,7 @@ val publishSettings = Seq[Setting[_]](
   developers := List(
     Developer(id = "simerplaha", name = "Simer Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
   ),
-  scalacOptions ++= publishScalaOptions,
+  scalacOptions ++= publishScalaOptions(scalaVersion.value),
   publishTo := sonatypePublishTo.value,
   releaseCrossBuild := true,
   releaseVersionBump := sbtrelease.Version.Bump.Next,

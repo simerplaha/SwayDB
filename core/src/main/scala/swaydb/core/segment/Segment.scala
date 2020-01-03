@@ -46,6 +46,7 @@ import swaydb.{Aggregator, IO}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+import scala.collection.compat._
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
