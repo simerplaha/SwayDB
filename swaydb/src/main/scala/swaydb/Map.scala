@@ -353,7 +353,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     if (reverseIteration)
       tag.map(core.head(core.readStates.get())) {
         case Some((key, value)) =>
-          Some(key.read[K], value.read[V])
+          Some((key.read[K], value.read[V]))
 
         case _ =>
           None
@@ -361,7 +361,7 @@ case class Map[K, V, F, T[_]](private[swaydb] val core: Core[T],
     else
       tag.map(core.last(core.readStates.get())) {
         case Some((key, value)) =>
-          Some(key.read[K], value.read[V])
+          Some((key.read[K], value.read[V]))
         case _ =>
           None
       }

@@ -21,7 +21,6 @@ package swaydb.core.map
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
-import swaydb.core.map.serializer.MapEntryWriter
 import swaydb.core.util.SkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -31,8 +30,7 @@ private[map] class MemoryMap[OK, OV, K <: OK, V <: OV](val skipList: SkipList.Co
                                                        val fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                                            functionStore: FunctionStore,
-                                                                           skipListMerger: SkipListMerger[OK, OV, K, V],
-                                                                           writer: MapEntryWriter[MapEntry.Put[K, V]]) extends Map[OK, OV, K, V] with LazyLogging {
+                                                                           skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
 
   private var currentBytesWritten: Long = 0
   var skipListKeyValuesMaxCount: Int = 0

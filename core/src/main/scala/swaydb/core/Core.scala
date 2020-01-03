@@ -21,7 +21,7 @@ package swaydb.core
 
 import java.util.function.Supplier
 
-import swaydb.core.data.{Memory, SwayFunction, Time, Value}
+import swaydb.core.data.{Memory, SwayFunction, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.map.MapEntry
@@ -165,7 +165,7 @@ private[swaydb] class Core[T[_]](val zero: LevelZero,
     serial.execute(zero.put(key, value, removeAt))
 
   /**
-   * Each [[Prepare]] requires a new next [[Time]] for cases where a batch contains overriding keys.
+   * Each [[Prepare]] requires a new next [[swaydb.core.data.Time]] for cases where a batch contains overriding keys.
    *
    * Same time indicates that the later Prepare in this batch with the same time as newer Prepare has already applied
    * to the newer prepare therefore ignoring the newer prepare.

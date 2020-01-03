@@ -127,7 +127,7 @@ private[core] object BufferCleaner extends LazyLogging {
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
     cleaner match {
       case Some(cleaner) =>
-        cleaner.actor send(buffer, path, false)
+        cleaner.actor.send((buffer, path, false))
 
       case None =>
         logger.error("Cleaner not initialised! ByteBuffer not cleaned.")
@@ -152,5 +152,5 @@ private[core] class BufferCleaner(implicit scheduler: Scheduler) extends LazyLog
     }
 
   def clean(buffer: MappedByteBuffer, path: Path): Unit =
-    actor send(buffer, path, false)
+    actor.send((buffer, path, false))
 }

@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a
 
 import java.nio.file.{FileAlreadyExistsException, NoSuchFileException}
 
-import org.scalatest.OptionValues._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
@@ -29,19 +28,18 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.Value.{FromValue, RangeValue}
+import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
-import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.io.file.Effect._
+import swaydb.core.io.file.{BlockCache, Effect}
 import swaydb.core.level.PathsDistributor
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{MemorySegment, PersistentSegment, ThreadReadState, Segment}
+import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment, ThreadReadState}
 import swaydb.core.util._
-import swaydb.core.{TestBase, TestSweeper, TestTimer}
+import swaydb.core.{TestBase, TestExecutionContext, TestSweeper, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.config.{ActorConfig, Dir}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -503,7 +501,9 @@ sealed trait SegmentWriteSpec extends TestBase {
   "Segment" should {
     "open a closed Segment on read and clear footer" in {
       runThis(10.times) {
-        implicit val fileSweeper = FileSweeper.Disabled
+        //        implicit val fileSweeper = FileSweeper.Disabled
+        implicit val blockCache: Option[BlockCache.State] = None
+        implicit val fileSweeper = FileSweeper(50, ActorConfig.TimeLoop(10.seconds, TestExecutionContext.executionContext))
 
         val keyValues = randomizedKeyValues(keyValuesCount)
         val segment = TestSegment(keyValues)
@@ -520,7 +520,7 @@ sealed trait SegmentWriteSpec extends TestBase {
         }
 
         def open(keyValue: KeyValue): Unit = {
-          segment.get(keyValue.key).getUnsafe shouldBe keyValue
+          segment.get(keyValue.key).runRandomIO.value.getUnsafe shouldBe keyValue
           segment.isFileDefined shouldBe true
           segment.isOpen shouldBe true
         }
@@ -532,6 +532,8 @@ sealed trait SegmentWriteSpec extends TestBase {
         }
         //finally also close the segment to close the file.
         close
+
+        fileSweeper.terminate()
       }
     }
 

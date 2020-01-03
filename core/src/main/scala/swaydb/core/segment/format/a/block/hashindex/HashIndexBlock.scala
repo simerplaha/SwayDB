@@ -538,8 +538,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                     partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOptional =
+             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional =
     if (hashIndexReader.block.format.isCopy)
       searchCopy(
         key = key,

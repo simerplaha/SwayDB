@@ -65,7 +65,7 @@ private[core] object UnblockedReader {
       readAllIfUncompressed = readAllIfUncompressed
     )
 
-  def fromUncompressed[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
+  def fromUncompressed[O <: BlockOffset, B <: Block[O]](blockedReader: BlockedReader[O, B]): UnblockedReader[O, B] =
     new UnblockedReader[O, B](
       block = blockedReader.block,
       reader = blockedReader.reader

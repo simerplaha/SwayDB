@@ -142,10 +142,10 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.getIO() shouldBe empty //still not cached
         mock.expects() returning IO(123)
 
-        cache.value() shouldBe IO.Right(123)
+        cache.value(()) shouldBe IO.Right(123)
         cache.isCached shouldBe true
         cache.getIO() shouldBe Some(IO.Right(123))
-        cache.value() shouldBe IO.Right(123) //value again mock function is not invoked again
+        cache.value(()) shouldBe IO.Right(123) //value again mock function is not invoked again
         cache.getOrElse(fail()) shouldBe IO.Right(123)
 
         val mapNotStoredCache = cache.map(int => IO(int + 1))
@@ -161,7 +161,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         //        mapStoredCache.isCached shouldBe cache.isCached
 
         val flatMapStoredCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), stored = true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 2)))
-        flatMapStoredCache.value() shouldBe IO.Right(125)
+        flatMapStoredCache.value(()) shouldBe IO.Right(125)
         flatMapStoredCache.value(fail()) shouldBe IO.Right(125)
         flatMapStoredCache.getIO() shouldBe Some(IO.Right(125))
 
@@ -175,7 +175,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
                 IO(int + 3)
             }
           }
-        flatMapNotStoredCache.value() shouldBe IO.Right(126)
+        flatMapNotStoredCache.value(()) shouldBe IO.Right(126)
         flatMapNotStoredCache.value(fail()) shouldBe IO.Right(126)
         //stored is false but get() will apply the value function fetching the value from parent cache.
         flatMapNotStoredCache.getIO() shouldBe Some(IO.Right(126))
@@ -216,22 +216,22 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.isCached shouldBe false
 
         //failure
-        cache.value().left.get shouldBe swaydb.Error.Fatal(kaboom)
+        cache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
         cache.isCached shouldBe false
 
         val mapCache = cache.map(int => IO(int))
-        mapCache.value().left.get shouldBe swaydb.Error.Fatal(kaboom)
-        mapCache.value().left.get shouldBe swaydb.Error.Fatal(kaboom)
+        mapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
+        mapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
 
         val flatMapCache = cache.flatMap(Cache.concurrentIO(randomBoolean(), randomBoolean(), None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO(int + 1)))
-        flatMapCache.value().left.get shouldBe swaydb.Error.Fatal(kaboom)
-        flatMapCache.value().left.get shouldBe swaydb.Error.Fatal(kaboom)
+        flatMapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
+        flatMapCache.value(()).left.get shouldBe swaydb.Error.Fatal(kaboom)
 
         //success
         mock.expects() returning IO(123)
-        cache.value() shouldBe IO.Right(123) //value again mock function is not invoked again
-        mapCache.value() shouldBe IO.Right(123)
-        flatMapCache.value() shouldBe IO.Right(124)
+        cache.value(()) shouldBe IO.Right(123) //value again mock function is not invoked again
+        mapCache.value(()) shouldBe IO.Right(123)
+        flatMapCache.value(()) shouldBe IO.Right(124)
         cache.isCached shouldBe true
         cache.isCached shouldBe true
         cache.clear()
@@ -340,18 +340,18 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         val exception = IO.failed("Kaboom!").exception
 
         mock.expects() returning IO.failed(exception) repeat 2.times
-        cache.map(IO(_)).value().left.get shouldBe swaydb.Error.Fatal(exception)
+        cache.map(IO(_)).value(()).left.get shouldBe swaydb.Error.Fatal(exception)
         cache.isCached shouldBe false
         cache.flatMap {
           Cache.reservedIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Int, Int](true, swaydb.Error.ReservedResource(Reserve.free(name = "test")), None) {
             (int, _: Cache[swaydb.Error.Segment, Int, Int]) =>
               IO.Right(int + 1)
           }
-        }.value().left.get shouldBe swaydb.Error.Fatal(exception)
+        }.value(()).left.get shouldBe swaydb.Error.Fatal(exception)
         cache.isCached shouldBe false
 
         mock.expects() returning IO(222)
-        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO.Right(int + 1))).value() shouldBe IO.Right(223)
+        cache.flatMap(Cache.concurrentIO(randomBoolean(), true, None)((int: Int, _: Cache[swaydb.Error.Segment, Int, Int]) => IO.Right(int + 1))).value(()) shouldBe IO.Right(223)
         cache.isCached shouldBe true
       }
 
@@ -360,18 +360,18 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
     "clear all flatMapped caches" in {
       val cache = Cache.concurrentIO[swaydb.Error.Segment, Unit, Int](randomBoolean(), true, None)((_, self) => IO(1))
-      cache.value() shouldBe IO.Right(1)
+      cache.value(()) shouldBe IO.Right(1)
       cache.isCached shouldBe true
 
       val nestedCache = Cache.concurrentIO[swaydb.Error.Segment, Int, Int](randomBoolean(), true, None)((int, self) => IO(int + 1))
 
       val flatMapCache = cache.flatMap(nestedCache)
-      flatMapCache.value() shouldBe IO.Right(2)
+      flatMapCache.value(()) shouldBe IO.Right(2)
       flatMapCache.isCached shouldBe true
       nestedCache.isCached shouldBe true
 
       val mapCache = flatMapCache.map(int => IO(int + 1))
-      mapCache.value() shouldBe IO.Right(3)
+      mapCache.value(()) shouldBe IO.Right(3)
       mapCache.isCached shouldBe true
 
       mapCache.clear()
@@ -391,9 +391,9 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     //        mock.expects() returning IO(2)
     //
     //        rootCache.isCached shouldBe false
-    //        rootCache.value() shouldBe IO(1)
+    //        rootCache.value(()) shouldBe IO(1)
     //        rootCache.isCached shouldBe false
-    //        rootCache.value() shouldBe IO(2)
+    //        rootCache.value(()) shouldBe IO(2)
     //        rootCache.isCached shouldBe false
     //
     //        mock.expects() returning IO(3)
@@ -403,7 +403,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     //            previous shouldBe 3
     //            IO(100)
     //        }
-    //        storedCache.value() shouldBe IO(100)
+    //        storedCache.value(()) shouldBe IO(100)
     //        storedCache.isCached shouldBe true
     //        //rootCache not value is not read
     //        storedCache.value(fail()) shouldBe IO(100)
@@ -417,7 +417,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
     //            previous shouldBe 100
     //            IO(200)
     //        }
-    //        storedCache2.value() shouldBe IO(200)
+    //        storedCache2.value(()) shouldBe IO(200)
     //        storedCache2.isCached shouldBe true
     //        //rootCache not value is not read
     //        storedCache2.value(fail()) shouldBe IO(200)
@@ -470,7 +470,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
               simpleCache
 
           if (blockIO) {
-            cache.value()
+            cache.value(())
             cache.clear()
           }
 
@@ -479,7 +479,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
             Future.sequence {
               (1 to 100) map {
                 _ =>
-                  Future().flatMap(_ => cache.value().toFuture)
+                  Future().flatMap(_ => cache.value(()).toFuture)
               }
             }
 
@@ -521,11 +521,11 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
 
         cache.isCached shouldBe false
 
-        cache.value() shouldBe 1
+        cache.value(()) shouldBe 1
 
         (1 to 1000).par foreach {
           _ =>
-            cache.value() shouldBe 1
+            cache.value(()) shouldBe 1
         }
 
         cache.isCached shouldBe true
@@ -533,7 +533,7 @@ class CacheSpec extends WordSpec with Matchers with MockFactory {
         cache.clear()
         cache.isCached shouldBe false
 
-        cache.value() should not be 1
+        cache.value(()) should not be 1
         cache.isCached shouldBe true
       }
 

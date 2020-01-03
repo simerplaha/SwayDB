@@ -94,7 +94,7 @@ private[file] class MMAPFile(val path: Path,
    * FIXME - Switch to using Option.
    */
 
-  def watchNullPointer[T](f: => T): T =
+  @inline private final def watchNullPointer[T](f: => T): T =
     try
       f
     catch {

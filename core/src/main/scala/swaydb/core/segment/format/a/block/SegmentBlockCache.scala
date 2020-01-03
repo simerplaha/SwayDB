@@ -204,8 +204,8 @@ class SegmentBlockCache(path: Path,
    * TODO switch out null with [[swaydb.core.segment.format.a.block.reader.UnblockedReaderOptional]] for type-safety.
    */
   def buildBlockReaderCacheOrNull[O <: BlockOffset, B <: Block[O]](initial: Option[UnblockedReader[O, B]],
-                                                                     blockIO: IOAction => IOStrategy,
-                                                                     resourceName: String)(implicit blockOps: BlockOps[O, B]) =
+                                                                   blockIO: IOAction => IOStrategy,
+                                                                   resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], UnblockedReader[O, B]](
       initial = if (areBlocksCacheableOnCreate && initial.isEmpty) Some(null) else initial,
       strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
@@ -280,7 +280,7 @@ class SegmentBlockCache(path: Path,
       .get
 
   def createReaderOptional[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, Option[BlockedReader[O, B]], UnblockedReader[O, B]],
-                                                            getBlock: => Option[B])(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] = {
+                                                            getBlock: => Option[B]): UnblockedReader[O, B] = {
 
     val reader =
       cache
@@ -301,7 +301,7 @@ class SegmentBlockCache(path: Path,
   }
 
   def createReader[O <: BlockOffset, B <: Block[O]](cache: Cache[swaydb.Error.Segment, BlockedReader[O, B], UnblockedReader[O, B]],
-                                                    getBlock: => B)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] = {
+                                                    getBlock: => B): UnblockedReader[O, B] = {
     cache
       .getOrElse {
         cache.value(

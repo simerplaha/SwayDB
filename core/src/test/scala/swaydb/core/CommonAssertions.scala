@@ -620,7 +620,7 @@ object CommonAssertions {
     val keyValues = keyValuesIterable.toSlice
 
     @tailrec
-    def assertLowers(index: Int) {
+    def assertLowers(index: Int): Unit = {
       if (index > keyValues.size - 1) {
         //end
       } else if (index == 0) {
@@ -1052,7 +1052,7 @@ object CommonAssertions {
     val blocks = readBlocksFromReader(reader.copy()).get
 
     @tailrec
-    def assertLowers(index: Int) {
+    def assertLowers(index: Int): Unit = {
       //      println(s"assertLowers : ${index}")
       if (index > keyValues.size - 1) {
         //end
@@ -1167,7 +1167,7 @@ object CommonAssertions {
                   segment: Segment) = {
 
     @tailrec
-    def assertLowers(index: Int) {
+    def assertLowers(index: Int): Unit = {
       if (index > keyValues.size - 1) {
         //end
       } else if (index == 0) {

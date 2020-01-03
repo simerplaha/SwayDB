@@ -441,9 +441,7 @@ private[core] object SegmentCache {
                                     segmentState: SegmentReadStateOptional,
                                     readState: ThreadReadState)(implicit segmentCache: SegmentCache,
                                                                 keyOrder: KeyOrder[Slice[Byte]],
-                                                                persistentKeyOrder: KeyOrder[Persistent],
-                                                                partialKeyOrder: KeyOrder[Persistent.Partial],
-                                                                segmentSearcher: SegmentSearcher): PersistentOptional =
+                                                                persistentKeyOrder: KeyOrder[Persistent]): PersistentOptional =
 
     SegmentCache.bestEndForLowerSearch(
       key = key,

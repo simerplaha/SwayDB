@@ -27,24 +27,24 @@ private[swaydb] object Options {
   val zero: Option[Int] = Option(0)
   val one: Option[Int] = Option(1)
 
-  def when[T](condition: Boolean)(success: => Option[T]): Option[T] =
+  @inline final def when[T](condition: Boolean)(success: => Option[T]): Option[T] =
     if (condition)
       success
     else
       None
 
-  def when[T](condition: Boolean, none: T)(success: => T): T =
+  @inline final def when[T](condition: Boolean, none: T)(success: => T): T =
     if (condition)
       success
     else
       none
 
   implicit class OptionsImplicits[A](option: Option[A]) {
-    @inline def valueOrElse[B](value: A => B, orElse: => B): B =
+    @inline final def valueOrElse[B](value: A => B, orElse: => B): B =
       Options.valueOrElse[A, B](option, value, orElse)
   }
 
-  @inline def valueOrElse[A, B](option: Option[A], value: A => B, orElse: => B): B =
+  @inline final def valueOrElse[A, B](option: Option[A], value: A => B, orElse: => B): B =
     if (option.isDefined)
       value(option.get)
     else

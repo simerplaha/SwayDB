@@ -24,22 +24,22 @@ import scala.compat.java8.DurationConverters._
 object Pair {
 
   implicit class PairImplicit[K](keyVal: Pair[K, java.time.Duration]) {
-    def toScala: (K, scala.concurrent.duration.Deadline) =
+    @inline final def toScala: (K, scala.concurrent.duration.Deadline) =
       (keyVal.left, keyVal.right.toScala.fromNow)
   }
 
   implicit class TupleImplicits[L, R](tuple: (L, R)) {
-    def toPair: Pair[L, R] =
+    @inline final def toPair: Pair[L, R] =
       Pair(tuple._1, tuple._2)
   }
 
-  def apply[L, R](left: L, right: R): Pair[L, R] =
+  @inline final def apply[L, R](left: L, right: R): Pair[L, R] =
     new Pair(left, right)
 
-  def create[L, R](left: L, right: R): Pair[L, R] =
+  @inline final def create[L, R](left: L, right: R): Pair[L, R] =
     new Pair(left, right)
 
-  def create[I](leftAndRight: I): Pair[I, I] =
+  @inline final def create[I](leftAndRight: I): Pair[I, I] =
     new Pair(leftAndRight, leftAndRight)
 }
 

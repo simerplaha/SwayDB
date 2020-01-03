@@ -40,7 +40,7 @@ object LevelZeroMapEntryReader {
         val timeLength = reader.readInt()
         val time = reader.read(timeLength).unslice()
         val deadlineLong = reader.readLong()
-        val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
+        val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
         Some(MapEntry.Put(key, Memory.Remove(key, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0RemoveWriter))
       }
   }
@@ -57,7 +57,7 @@ object LevelZeroMapEntryReader {
         val value = if (valueLength == 0) Slice.Null else reader.read(valueLength)
         val deadlineLong = reader.readLong()
 
-        val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
+        val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
         Some(MapEntry.Put(key, Memory.Put(key, value, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0PutWriter))
       }
   }
@@ -74,7 +74,7 @@ object LevelZeroMapEntryReader {
         val value = if (valueLength == 0) Slice.Null else reader.read(valueLength)
         val deadlineLong = reader.readLong()
 
-        val deadline = if (deadlineLong == 0) None else Some(Deadline(deadlineLong, TimeUnit.NANOSECONDS))
+        val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
         Some(MapEntry.Put(key, Memory.Update(key, value, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0UpdateWriter))
       }
   }

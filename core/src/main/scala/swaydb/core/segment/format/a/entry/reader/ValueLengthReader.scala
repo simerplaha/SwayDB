@@ -19,7 +19,6 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.IO
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes

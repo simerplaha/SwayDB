@@ -33,7 +33,7 @@ import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
@@ -48,7 +48,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
-import scala.collection.compat._
 
 private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional, Segment] {
   override def noneS: SegmentOptional =
@@ -422,8 +421,6 @@ private[core] object Segment extends LazyLogging {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
                                         fileSweeper: FileSweeper.Enabled,
-                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                        segmentIO: SegmentIO,
                                         idGenerator: IDGenerator): Slice[Segment] =
     copyToMemory(
       keyValues = segment.iterator(),
@@ -441,8 +438,6 @@ private[core] object Segment extends LazyLogging {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
                                         fileSweeper: FileSweeper.Enabled,
-                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                        segmentIO: SegmentIO,
                                         idGenerator: IDGenerator): Slice[Segment] = {
     val builder =
       new MergeStats.Memory.Closed[Iterable](
@@ -798,8 +793,7 @@ private[core] object Segment extends LazyLogging {
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
                                busySegments: Iterable[Segment],
-                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                    segmentIO: SegmentIO): Boolean =
+                               appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     if (busySegments.isEmpty)
       false
     else {

@@ -50,7 +50,7 @@ private[block] trait BlockReaderBase extends ReaderBase with LazyLogging {
   override def getPosition: Int =
     state.position
 
-  override def get(): Int =
+  override def get(): Byte =
     BlockReader get state
 
   override def read(size: Int): Slice[Byte] =

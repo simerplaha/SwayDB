@@ -52,7 +52,6 @@ private[core] object Maps extends LazyLogging {
                                                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                                                     fileSweeper: FileSweeper,
                                                                                     functionStore: FunctionStore,
-                                                                                    mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                     writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                     skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                                     timer: Timer): Maps[OK, OV, K, V] =
@@ -271,7 +270,6 @@ private[core] object Maps extends LazyLogging {
                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                              fileSweeper: FileSweeper,
                                                                              functionStore: FunctionStore,
-                                                                             mapReader: MapEntryReader[MapEntry[K, V]],
                                                                              writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                              skipListMerger: SkipListMerger[OK, OV, K, V]): Map[OK, OV, K, V] =
     currentMap match {
@@ -303,7 +301,6 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
                                                                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                                                                         fileSweeper: FileSweeper,
                                                                                                         functionStore: FunctionStore,
-                                                                                                        mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                                         writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
                                                                                                         timer: Timer) extends LazyLogging { self =>

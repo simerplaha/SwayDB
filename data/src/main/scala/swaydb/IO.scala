@@ -134,8 +134,8 @@ object IO {
    */
   type BootIO[T] = IO[Error.Boot, T]
 
-  val unit: IO.Right[Nothing, Unit] = IO.Right()(IO.ExceptionHandler.Nothing)
-  val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right()(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
+  val unit: IO.Right[Nothing, Unit] = IO.Right(())(IO.ExceptionHandler.Nothing)
+  val unitUnit: IO.Right[Nothing, IO.Right[Nothing, Unit]] = IO.Right(IO.Right(())(IO.ExceptionHandler.Nothing))(IO.ExceptionHandler.Nothing)
   val none: IO.Right[Nothing, Option[Nothing]] = IO.Right(None)(IO.ExceptionHandler.Nothing)
   val `false`: IO.Right[Nothing, Boolean] = IO.Right(false)(IO.ExceptionHandler.Nothing)
   val `true`: IO.Right[Nothing, Boolean] = IO.Right(true)(IO.ExceptionHandler.Nothing)
@@ -168,7 +168,7 @@ object IO {
           f(item) match {
             case IO.Right(Some(value)) =>
               //Not a good idea to break out with return. Needs improvement.
-              return IO.Right[E, Option[(R, A)]](Some(value, item))
+              return IO.Right[E, Option[(R, A)]](Some((value, item)))
 
             case IO.Right(None) =>
             //continue reading
@@ -364,13 +364,13 @@ object IO {
         None
     }
 
-  @inline def when[E: IO.ExceptionHandler, T, F](condition: => Boolean, onTrue: => IO[E, T], onFalse: => T)(f: T => IO[E, F]): IO[E, F] =
+  @inline final def when[E: IO.ExceptionHandler, T, F](condition: => Boolean, onTrue: => IO[E, T], onFalse: => T)(f: T => IO[E, F]): IO[E, F] =
     if (condition)
       onTrue flatMap f
     else
       f(onFalse)
 
-  @inline def when[E: IO.ExceptionHandler, T](condition: => Boolean, onTrue: => IO[E, T], onFalse: => IO[E, T]): IO[E, T] =
+  @inline final def when[E: IO.ExceptionHandler, T](condition: => Boolean, onTrue: => IO[E, T], onFalse: => IO[E, T]): IO[E, T] =
     if (condition)
       onTrue
     else

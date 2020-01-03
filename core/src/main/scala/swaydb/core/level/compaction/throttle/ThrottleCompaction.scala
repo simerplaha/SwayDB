@@ -59,7 +59,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
                                  forwardCopyOnAllLevels: Boolean): Unit = {
     logger.debug(s"${state.name}: Running compaction now! forwardCopyOnAllLevels = $forwardCopyOnAllLevels!")
     if (forwardCopyOnAllLevels) {
-      val totalCopies = copyForwardForEach(state.levelsReversed)(state.executionContext)
+      val totalCopies = copyForwardForEach(state.levelsReversed)
       logger.debug(s"${state.name}: Copies $totalCopies compacted. Continuing compaction.")
     }
 
@@ -142,7 +142,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         )
     }
 
-  private[compaction] def pushForward(zero: LevelZero, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
+  private[compaction] def pushForward(zero: LevelZero, stateId: Long): ThrottleLevelState =
     zero.nextLevel match {
       case Some(nextLevel) =>
         pushForward(
@@ -161,7 +161,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
-                                      stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
+                                      stateId: Long): ThrottleLevelState =
     zero.maps.lastOption() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
@@ -183,7 +183,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[compaction] def pushForward(zero: LevelZero,
                                       nextLevel: NextLevel,
                                       stateId: Long,
-                                      map: swaydb.core.map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])(implicit ec: ExecutionContext): ThrottleLevelState =
+                                      map: swaydb.core.map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
@@ -381,7 +381,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
    * Runs lazy error checks. Ignores all errors and continues copying
    * each Level starting from the lowest level first.
    */
-  private[compaction] def copyForwardForEach(levels: Slice[LevelRef])(implicit ec: ExecutionContext): Int =
+  private[compaction] def copyForwardForEach(levels: Slice[LevelRef]): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
         val copied = copyForward(level)
@@ -392,7 +392,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         copies
     }
 
-  private def copyForward(level: NextLevel)(implicit ec: ExecutionContext): Int =
+  private def copyForward(level: NextLevel): Int =
     level.nextLevel match {
       case Some(nextLevel) =>
         val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
@@ -421,7 +421,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
 
   private[compaction] def putForward(segments: Iterable[Segment],
                                      thisLevel: NextLevel,
-                                     nextLevel: NextLevel)(implicit ec: ExecutionContext): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+                                     nextLevel: NextLevel): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
     if (segments.isEmpty)
       IO.zeroZero
     else

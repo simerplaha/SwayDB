@@ -36,7 +36,7 @@ case class RunnerZero(test: Test) extends LazyLogging {
   private val randomRead: Boolean = test.randomRead
   private val keyValueCount: Long = test.keyValueCount
 
-  def run = {
+  def run(): Unit = {
     println(s"\nCreating $keyValueCount test key-values.\n")
 
     val stringValue = "Test value of 60 bytes for benchmarking SwayDB's performance"

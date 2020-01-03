@@ -184,7 +184,7 @@ private[core] trait LevelRef {
 
   def segmentFilesOnDisk: Seq[Path]
 
-  def foreachSegment[T](f: (Slice[Byte], Segment) => T)
+  def foreachSegment[T](f: (Slice[Byte], Segment) => T): Unit
 
   def foreachLevel[T](f: LevelRef => T): Unit =
     LevelRef.foreach(this, f)

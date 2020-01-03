@@ -94,7 +94,7 @@ private[core] object KeyValue {
         val put = this.getPut
         val value = put.getOrFetchValue
         val key = put.key
-        Some(key, value.toOptionC)
+        Some((key, value.toOptionC))
       }
 
     def getValue: Option[Option[Slice[Byte]]] =
@@ -271,7 +271,7 @@ private[swaydb] object Memory {
   }
 
   implicit class MemoryIterableImplicits(keyValues: Slice[Memory]) {
-    @inline def maxKey(): MaxKey[Slice[Byte]] =
+    @inline final def maxKey(): MaxKey[Slice[Byte]] =
       keyValues.last match {
         case range: Memory.Range =>
           MaxKey.Range(range.fromKey, range.toKey)
@@ -280,7 +280,7 @@ private[swaydb] object Memory {
           MaxKey.Fixed(fixed.key)
       }
 
-    @inline def minKey: Slice[Byte] =
+    @inline final def minKey: Slice[Byte] =
       keyValues.head.key
   }
 

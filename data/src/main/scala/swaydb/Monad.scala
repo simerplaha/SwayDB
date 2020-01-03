@@ -30,12 +30,12 @@ trait Monad[T[_]] {
 
 object Monad {
   implicit class Map[A](value: A) {
-    @inline def map[B, T[_]](f: A => B)(implicit monad: Monad[T]): T[B] =
+    @inline final def map[B, T[_]](f: A => B)(implicit monad: Monad[T]): T[B] =
       monad.map(value, f)
   }
 
   implicit class FlatMap[A, T[_]](value: T[A])(implicit monad: Monad[T]) {
-    @inline def flatMap[B](f: A => T[B]): T[B] =
+    @inline final def flatMap[B](f: A => T[B]): T[B] =
       monad.flatMap(value, f)
   }
 

@@ -39,104 +39,104 @@ class ByteSlice(slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.
   def innerSlice: Slice[lang.Byte] =
     this.slice.asInstanceOf[Slice[java.lang.Byte]]
 
-  @inline def addByte(value: Byte): ByteSlice = {
+  @inline final def addByte(value: Byte): ByteSlice = {
     slice.asScala add value
     this
   }
 
-  @inline def addBytes(anotherSlice: Slice[Byte]): ByteSlice = {
+  @inline final def addBytes(anotherSlice: Slice[Byte]): ByteSlice = {
     slice.asScala.addAll(anotherSlice.asScala)
     this
   }
 
-  @inline def addBoolean(boolean: Boolean): ByteSlice = {
+  @inline final def addBoolean(boolean: Boolean): ByteSlice = {
     slice.asScala addBoolean boolean
     this
   }
 
-  @inline def readBoolean(): Boolean =
+  @inline final def readBoolean(): Boolean =
     slice.asScala.readBoolean()
 
-  @inline def addInt(integer: java.lang.Integer): ByteSlice = {
+  @inline final def addInt(integer: java.lang.Integer): ByteSlice = {
     slice.asScala.addInt(integer)
     this
   }
 
-  @inline def readInt(): java.lang.Integer =
+  @inline final def readInt(): java.lang.Integer =
     slice.asScala.readInt()
 
-  @inline def dropUnsignedInt(): ByteSlice =
+  @inline final def dropUnsignedInt(): ByteSlice =
     ByteSlice(Slice(slice.asScala.dropUnsignedInt()))
 
-  @inline def addSignedInt(integer: java.lang.Integer): ByteSlice = {
+  @inline final def addSignedInt(integer: java.lang.Integer): ByteSlice = {
     slice.asScala.addSignedInt(integer)
     this
   }
 
-  @inline def readSignedInt(): java.lang.Integer =
+  @inline final def readSignedInt(): java.lang.Integer =
     slice.asScala.readSignedInt()
 
-  @inline def addUnsignedInt(integer: java.lang.Integer): ByteSlice = {
+  @inline final def addUnsignedInt(integer: java.lang.Integer): ByteSlice = {
     slice.asScala.addUnsignedInt(integer)
     this
   }
 
-  @inline def readUnsignedInt(): java.lang.Integer =
+  @inline final def readUnsignedInt(): java.lang.Integer =
     slice.asScala.readUnsignedInt()
 
-  @inline def readUnsignedIntWithByteSize(): Pair[java.lang.Integer, java.lang.Integer] =
+  @inline final def readUnsignedIntWithByteSize(): Pair[java.lang.Integer, java.lang.Integer] =
     slice.asScala.readUnsignedIntWithByteSize().toPair.asInstanceOf[Pair[java.lang.Integer, java.lang.Integer]]
 
-  @inline def addLong(value: Long): ByteSlice = {
+  @inline final def addLong(value: Long): ByteSlice = {
     slice.asScala.addLong(value)
     this
   }
 
-  @inline def readLong(): Long =
+  @inline final def readLong(): Long =
     slice.asScala.readLong()
 
-  @inline def addUnsignedLong(value: Long): ByteSlice = {
+  @inline final def addUnsignedLong(value: Long): ByteSlice = {
     slice.asScala.addUnsignedLong(value)
     this
   }
 
-  @inline def readUnsignedLong(): Long =
+  @inline final def readUnsignedLong(): Long =
     slice.asScala.readUnsignedLong()
 
-  @inline def readUnsignedLongWithByteSize(): Pair[java.lang.Long, java.lang.Integer] =
+  @inline final def readUnsignedLongWithByteSize(): Pair[java.lang.Long, java.lang.Integer] =
     slice.asScala.readUnsignedLongWithByteSize().toPair.asInstanceOf[Pair[java.lang.Long, java.lang.Integer]]
 
-  @inline def addSignedLong(value: Long): ByteSlice = {
+  @inline final def addSignedLong(value: Long): ByteSlice = {
     slice.asScala.addSignedLong(value)
     this
   }
 
-  @inline def readSignedLong(): Long =
+  @inline final def readSignedLong(): Long =
     slice.asScala.readSignedLong()
 
-  @inline def addString(string: String, charsets: Charset): ByteSlice = {
+  @inline final def addString(string: String, charsets: Charset): ByteSlice = {
     slice.asScala.addString(string, charsets)
     this
   }
 
-  @inline def addString(string: String): ByteSlice = {
+  @inline final def addString(string: String): ByteSlice = {
     addString(string, charsets = StandardCharsets.UTF_8)
     this
   }
 
-  @inline def readString(): String =
+  @inline final def readString(): String =
     slice.asScala.readString(StandardCharsets.UTF_8)
 
-  @inline def readString(charset: Charset): String =
+  @inline final def readString(charset: Charset): String =
     slice.asScala.readString(charset)
 
-  @inline def toByteBufferWrap: ByteBuffer =
+  @inline final def toByteBufferWrap: ByteBuffer =
     slice.asScala.toByteBufferWrap
 
-  @inline def toByteBufferDirect: ByteBuffer =
+  @inline final def toByteBufferDirect: ByteBuffer =
     slice.asScala.toByteBufferDirect
 
-  @inline def createReader() =
+  @inline final def createReader() =
     SliceReader(slice.asScala.createReader())
 
   override def equals(obj: Any): Boolean =

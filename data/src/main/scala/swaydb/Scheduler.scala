@@ -48,7 +48,7 @@ class Scheduler(timer: Timer)(implicit val ec: ExecutionContext) {
     val promise = Promise[T]()
     val task =
       new TimerTask {
-        def run() {
+        def run(): Unit = {
           ec.execute(
             new Runnable {
               override def run(): Unit =

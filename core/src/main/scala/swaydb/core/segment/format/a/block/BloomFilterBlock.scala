@@ -21,7 +21,6 @@ package swaydb.core.segment.format.a.block
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.compression.CompressionInternal
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.util.MurmurHash3Generic
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}

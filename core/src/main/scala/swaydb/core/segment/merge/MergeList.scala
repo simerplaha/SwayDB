@@ -49,17 +49,17 @@ private[core] sealed trait MergeList[H >: Null <: T, T >: Null] {
 
 private[core] object MergeList {
 
-  def empty[H >: Null <: T, T >: Null] =
+  @inline final def empty[H >: Null <: T, T >: Null] =
     new Single[H, T](0, null, null, Iterator.empty)
 
-  def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): MergeList[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): MergeList[H, T] =
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
-  def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): MergeList[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): MergeList[H, T] =
     new Single[H, T](size, null, null, keyValues)
 
   implicit class MergeListImplicit[H >: Null <: T, T >: Null](left: MergeList[H, T]) {
-    def append(right: MergeList[H, T]): MergeList[H, T] =
+    @inline final def append(right: MergeList[H, T]): MergeList[H, T] =
       if (left.isEmpty)
         right
       else if (right.isEmpty)

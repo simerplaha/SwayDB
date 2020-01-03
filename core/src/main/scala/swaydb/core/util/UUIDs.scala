@@ -21,7 +21,7 @@ package swaydb.core.util
 
 import swaydb.data.slice.Slice
 
-private[swaydb] object UUIDs {
+object UUIDs {
 
   def randomId(): String =
     java.util.UUID.randomUUID.toString

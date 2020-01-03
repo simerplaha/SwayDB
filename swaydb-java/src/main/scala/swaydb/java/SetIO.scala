@@ -33,6 +33,7 @@ import swaydb.java.data.util.Java._
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._
+import scala.collection.compat._
 
 /**
  * Set database API.
@@ -71,7 +72,7 @@ case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void
     asScala.add(elems.asScala)
 
   def add(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.OK] =
-    asScala.add(elems.asScala.toIterable)
+    asScala.add(elems.asScala.to(Iterable))
 
   def remove(elem: A): IO[scala.Throwable, swaydb.OK] =
     asScala.remove(elem)
@@ -86,7 +87,7 @@ case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void
     asScala.remove(elems.asScala)
 
   def remove(elems: java.util.Iterator[A]): IO[scala.Throwable, swaydb.OK] =
-    asScala.remove(elems.asScala.toIterable)
+    asScala.remove(elems.asScala.to(Iterable))
 
   def expire(elem: A, after: java.time.Duration): IO[scala.Throwable, swaydb.OK] =
     asScala.expire(elem, after.toScala)
@@ -115,7 +116,7 @@ case class SetIO[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void
       elems.asScala map {
         pair =>
           (pair.left, pair.right.toScala.fromNow)
-      } toIterable
+      } to Iterable
     }
 
   def clear(): IO[scala.Throwable, swaydb.OK] =

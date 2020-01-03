@@ -21,7 +21,6 @@ package swaydb.core.segment
 
 import swaydb.core.data.{KeyValue, Memory, MemoryOptional, Value}
 import swaydb.core.map.Map
-import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.segment.merge.MergeList
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOptional}
@@ -36,8 +35,7 @@ private[core] object SegmentAssigner {
     SegmentAssigner.assignUnsafe(2 * inputSegments.size, Segment.tempMinMaxKeyValues(inputSegments), targetSegments).keys
 
   def assignMinMaxOnlyUnsafe(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                segmentIO: SegmentIO): Iterable[Segment] =
+                             targetSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Iterable[Segment] =
     SegmentAssigner.assignUnsafe(2, Segment.tempMinMaxKeyValues(map), targetSegments).keys
 
   def assignUnsafe(keyValues: Slice[KeyValue],

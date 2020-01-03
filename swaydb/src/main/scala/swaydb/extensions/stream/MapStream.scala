@@ -143,7 +143,7 @@ object MapStream {
             IO.none
 
           case Step.Next =>
-            stream.next(key, value) match {
+            stream.next((key, value)) match {
               case IO.Right(Some(keyValue)) =>
                 step(
                   stream = stream,

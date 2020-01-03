@@ -55,7 +55,7 @@ sealed trait Tag[T[_]] {
    *          will have a performance cost. [[point]] is used to cover these cases and [[IO]]
    *          types that are complete are directly converted to Future in current thread.
    */
-  @inline def point[B](f: => T[B]): T[B] =
+  @inline final def point[B](f: => T[B]): T[B] =
     flatMap[Unit, B](unit)(_ => f)
 }
 
@@ -299,7 +299,7 @@ object Tag extends LazyLogging {
           stream
             .next(previous)
             .flatMap {
-              case Some(next: A) =>
+              case Some(next) =>
                 if (drop >= 1) {
                   fold(next, drop - 1, currentSize, previousResult)
                 } else {

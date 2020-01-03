@@ -100,7 +100,7 @@ object PersistentParser {
 
     var persistentKeyValue: Persistent = null
 
-    def parsePersistent[T <: Persistent](reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]) = {
+    @inline def parsePersistent[T <: Persistent](reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]) = {
       if (persistentKeyValue == null)
         persistentKeyValue =
           PersistentReader.read[T](
@@ -208,7 +208,7 @@ object PersistentParser {
 
     var persistentKeyValue: Persistent = null
 
-    def parsePersistent[T <: Persistent](reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]) = {
+    @inline def parsePersistent[T <: Persistent](reader: Persistent.Reader[T])(implicit binder: PersistentToKeyValueIdBinder[T]) = {
       if (persistentKeyValue == null)
         persistentKeyValue =
           PersistentReader.read[T](

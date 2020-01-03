@@ -54,9 +54,6 @@ abstract class SliceBase[+T](array: Array[T],
   def isFull =
     size == allocatedSize
 
-  override def nonEmpty =
-    !isEmpty
-
   def isUnslicedOptional: Boolean =
     nonEmpty && isOriginalFullSlice
 

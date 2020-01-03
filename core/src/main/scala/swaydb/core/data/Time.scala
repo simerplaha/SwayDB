@@ -45,7 +45,7 @@ private[core] object Time {
   }
 
   implicit class TimeOptionImplicits(time: Time) {
-    @inline def >(otherTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean =
+    @inline final def >(otherTime: Time)(implicit timeOrder: TimeOrder[Slice[Byte]]): Boolean =
       Time > (time, otherTime)
   }
 

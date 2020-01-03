@@ -27,17 +27,17 @@ import scala.concurrent.duration._
 private[swaydb] object FiniteDurations {
 
   implicit class FiniteDurationImplicits(duration: Duration) {
-    def asString: String = {
+    @inline final def asString: String = {
       val seconds: Double = duration.toMillis / 1000D
       s"$seconds seconds"
     }
   }
 
   implicit class TimerTaskToDuration(task: TimerTask) {
-    def deadline() =
+    @inline final def deadline() =
       timeLeft().fromNow
 
-    def timeLeft(): FiniteDuration =
+    @inline final def timeLeft(): FiniteDuration =
       FiniteDuration(task.scheduledExecutionTime() - System.currentTimeMillis(), TimeUnit.MILLISECONDS)
   }
 

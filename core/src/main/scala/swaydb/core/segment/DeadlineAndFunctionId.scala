@@ -19,12 +19,9 @@
 
 package swaydb.core.segment
 
-import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{KeyValue, Value}
 import swaydb.core.segment.Segment.getNearestDeadline
-import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.util.{FiniteDurations, MinMax}
-import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
@@ -40,9 +37,7 @@ private[core] object DeadlineAndFunctionId {
       minMaxFunctionId = minMaxFunctionId
     )
 
-  def apply(keyValues: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                    segmentIO: SegmentIO): DeadlineAndFunctionId =
+  def apply(keyValues: Iterable[KeyValue]): DeadlineAndFunctionId =
     keyValues.foldLeft(DeadlineAndFunctionId.empty) {
       case (minMax, keyValue) =>
         apply(
@@ -54,9 +49,7 @@ private[core] object DeadlineAndFunctionId {
 
   def apply(deadline: Option[Deadline],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-            next: KeyValue)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                     segmentIO: SegmentIO): DeadlineAndFunctionId =
+            next: KeyValue): DeadlineAndFunctionId =
     next match {
       case readOnly: KeyValue.Put =>
         DeadlineAndFunctionId(

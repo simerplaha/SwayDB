@@ -102,15 +102,17 @@ private[core] object KeyMatcher {
     def matchMutateForBinarySearch(key: Slice[Byte],
                                    range: Persistent.Partial.Range)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
       val fromKeyMatch = keyOrder.compare(key, range.fromKey)
-      var toKeyCompare: Integer = null
+      var compared: Boolean = false
+      var toKeyCompare: Int = 0
 
-      def toKeyMatch: Int = {
-        if (toKeyCompare == null)
-          toKeyCompare =
-            keyOrder.compare(key, range.toKey)
-
-        toKeyCompare
-      }
+      def toKeyMatch: Int =
+        if (compared) {
+          toKeyCompare
+        } else {
+          toKeyCompare = keyOrder.compare(key, range.toKey)
+          compared = true
+          toKeyCompare
+        }
 
       if (fromKeyMatch >= 0 && toKeyMatch < 0) //is within the range
         range.isBinarySearchMatched = true

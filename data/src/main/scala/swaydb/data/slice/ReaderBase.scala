@@ -32,7 +32,7 @@ private[swaydb] trait ReaderBase { self =>
 
   def path: Path
 
-  def get(): Int
+  def get(): Byte
 
   def read(size: Long): Slice[Byte] =
     read(size.toInt)

@@ -30,7 +30,7 @@ sealed trait MaxKey[T] {
 object MaxKey {
 
   implicit class MaxKeyImplicits(maxKey: MaxKey[Slice[Byte]]) {
-    @inline def unslice() =
+    @inline final def unslice() =
       maxKey match {
         case Fixed(maxKey) =>
           Fixed(maxKey.unslice())
@@ -39,7 +39,7 @@ object MaxKey {
           Range(fromKey.unslice(), maxKey.unslice())
       }
 
-    @inline def lessThan(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
+    @inline final def lessThan(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean = {
       import keyOrder._
       (maxKey.inclusive && maxKey.maxKey < key) || (!maxKey.inclusive && maxKey.maxKey <= key)
     }

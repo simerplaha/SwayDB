@@ -53,7 +53,7 @@ private[reader] object BlockReader {
       (offset.size - fromPosition) >= atLeastSize
   }
 
-  def get(state: State): Int =
+  def get(state: State): Byte =
     if (state.hasMore) {
       val byte =
         state.

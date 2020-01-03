@@ -21,7 +21,7 @@ package swaydb.data.util
 
 import java.nio.charset.Charset
 
-import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceReader}
+import swaydb.data.slice.{ReaderBase, Slice, SliceReader}
 import swaydb.data.util.Maybe.Maybe
 
 private[swaydb] trait Bytez {
@@ -149,7 +149,7 @@ private[swaydb] trait Bytez {
     var index = 0
     var i = 0
     var int = 0
-    var read = 0
+    var read: Byte = 0
     do {
       read = slice.get(index)
       int |= (read & 0x7F) << i
@@ -167,7 +167,7 @@ private[swaydb] trait Bytez {
     var index = 0
     var i = 0
     var int = 0
-    var read = 0
+    var read: Byte = 0
     do {
       read = slice.get(index)
       int |= (read & 0x7F) << i
@@ -186,7 +186,7 @@ private[swaydb] trait Bytez {
     var index = 0
     var i = 0
     var int = 0
-    var read = 0
+    var read: Byte = 0
     do {
       read = slice.get(index)
       //strict
@@ -205,7 +205,7 @@ private[swaydb] trait Bytez {
     var index = 0
     var i = 0
     var int = 0
-    var read = 0
+    var read: Byte = 0
     do {
       read = slice.get(index)
       int |= (read & 0x7F) << i
@@ -223,7 +223,7 @@ private[swaydb] trait Bytez {
     var index = 0
     var i = 0
     var int = 0
-    var read = 0
+    var read: Byte = 0
     do {
       read = slice.get(index)
       int |= (read & 0x7F) << i

@@ -31,7 +31,7 @@ package object serializers {
     data.map(serializer.write)
 
   implicit class Decode(slice: Slice[Byte]) {
-    @inline def read[T](implicit serializer: Serializer[T]): T =
+    @inline final def read[T](implicit serializer: Serializer[T]): T =
       serializer.read(slice)
   }
 
@@ -42,11 +42,11 @@ package object serializers {
         None
 
       case TupleOptional.Some(left, right) =>
-        Some(keySerialiser.read(left), valueSerialiser.read(right.getOrElseC(Slice.emptyBytes)))
+        Some((keySerialiser.read(left), valueSerialiser.read(right.getOrElseC(Slice.emptyBytes))))
     }
 
   implicit class DecodeOption(slice: Option[Slice[Byte]]) {
-    @inline def read[T](implicit serializer: Serializer[T]): T =
+    @inline final def read[T](implicit serializer: Serializer[T]): T =
       slice match {
         case Some(slice) =>
           serializer.read(slice)
@@ -57,7 +57,7 @@ package object serializers {
   }
 
   implicit class DecodeOptionSliceOptional(slice: SliceOptional[Byte]) {
-    @inline def read[T](implicit serializer: Serializer[T]): T =
+    @inline final def read[T](implicit serializer: Serializer[T]): T =
 
       slice.valueOrElseC(serializer.read, serializer.read(Slice.emptyBytes))
   }

@@ -51,9 +51,6 @@ protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, IO.ApiIO]) exten
   override def isEmpty: Boolean =
     db.isEmpty.get
 
-  override def nonEmpty: Boolean =
-    !isEmpty
-
   override def headOption: Option[(K, V)] =
     db.headOption.get
 

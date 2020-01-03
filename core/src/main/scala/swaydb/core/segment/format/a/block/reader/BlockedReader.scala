@@ -41,7 +41,7 @@ private[core] object BlockedReader {
     )
   }
 
-  def apply[O <: BlockOffset, B <: Block[O]](block: B, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock])(implicit blockOps: BlockOps[O, B]): BlockedReader[O, B] =
+  def apply[O <: BlockOffset, B <: Block[O]](block: B, reader: UnblockedReader[SegmentBlock.Offset, SegmentBlock]): BlockedReader[O, B] =
     new BlockedReader[O, B](
       reader = reader.reader,
       block = block

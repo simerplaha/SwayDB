@@ -20,15 +20,14 @@
 package swaydb.core.segment.format.a.block.hashindex
 
 import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{Persistent, Memory}
+import swaydb.core.data.{Memory, Persistent}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.IndexFormat
 import swaydb.data.slice.Slice
-import swaydb.data.util.Maybe.{Maybe, _}
-import swaydb.data.util.{ByteSizeOf, Maybe}
+import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
 
 sealed trait HashIndexEntryFormat {

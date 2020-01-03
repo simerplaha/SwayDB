@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
-import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.actor.FileSweeper
 import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
@@ -60,7 +60,6 @@ private[core] object PersistentTimer extends LazyLogging {
                                        writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]],
                                        reader: MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]]): IO[swaydb.Error.Map, PersistentTimer] = {
     implicit val limiter = FileSweeper.Disabled
-    implicit val memorySweeper = MemorySweeper.Disabled
 
     IO {
       Map.persistent[SliceOptional[Byte], SliceOptional[Byte], Slice[Byte], Slice[Byte]](

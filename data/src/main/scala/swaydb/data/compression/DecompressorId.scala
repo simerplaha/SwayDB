@@ -19,7 +19,6 @@
 
 package swaydb.data.compression
 
-import swaydb.Compression
 import swaydb.macros.Sealed
 
 import scala.util.Random

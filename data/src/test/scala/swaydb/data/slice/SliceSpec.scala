@@ -460,8 +460,6 @@ class SliceSpec extends WordSpec with Matchers {
   "within" when {
     implicit def toSlice(int: Int): Slice[Byte] = Slice.writeInt(int)
 
-    implicit val order = Ordering.by[Slice[Byte], Int](_.readInt())(Ordering.Int)
-
     "max key is Fixed" in {
       //0
       //  1 - 10

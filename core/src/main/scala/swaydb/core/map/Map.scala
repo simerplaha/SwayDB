@@ -31,8 +31,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
-import scala.reflect.ClassTag
-
 private[core] object Map extends LazyLogging {
 
   def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
@@ -67,7 +65,6 @@ private[core] object Map extends LazyLogging {
                                                            timeOrder: TimeOrder[Slice[Byte]],
                                                            functionStore: FunctionStore,
                                                            fileSweeper: FileSweeper,
-                                                           reader: MapEntryReader[MapEntry[K, V]],
                                                            writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                            skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] =
     PersistentMap(
@@ -85,8 +82,7 @@ private[core] object Map extends LazyLogging {
                                        flushOnOverflow: Boolean = true)(implicit keyOrder: KeyOrder[K],
                                                                         timeOrder: TimeOrder[Slice[Byte]],
                                                                         functionStore: FunctionStore,
-                                                                        skipListMerge: SkipListMerger[OK, OV, K, V],
-                                                                        writer: MapEntryWriter[MapEntry.Put[K, V]]): MemoryMap[OK, OV, K, V] =
+                                                                        skipListMerge: SkipListMerger[OK, OV, K, V]): MemoryMap[OK, OV, K, V] =
     new MemoryMap[OK, OV, K, V](
       skipList = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder),
       flushOnOverflow = flushOnOverflow,

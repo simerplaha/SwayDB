@@ -35,58 +35,58 @@ object Java {
   type ScalaSlice[T] = swaydb.data.slice.Slice[T]
 
   implicit class ExecutorServiceImplicit(service: ExecutorService) {
-    @inline def asScala: ExecutionContext =
+    @inline final def asScala: ExecutionContext =
       ExecutionContext.fromExecutorService(service)
   }
 
   implicit class ComparatorImplicit[T](comparator: Comparator[T]) {
-    @inline def asScala: Ordering[T] =
+    @inline final def asScala: Ordering[T] =
       Ordering.comparatorToOrdering(comparator)
   }
 
   implicit class ComparatorByteSliceImplicit(comparator: Comparator[ByteSlice]) {
-    @inline def asScala: Ordering[ByteSlice] =
+    @inline final def asScala: Ordering[ByteSlice] =
       Ordering.comparatorToOrdering(comparator)
   }
 
   implicit class TupleImplicits[K, V](tuple: (K, V)) {
-    @inline def asKeyVal: KeyVal[K, V] =
+    @inline final def asKeyVal: KeyVal[K, V] =
       KeyVal(tuple._1, tuple._2)
 
-    @inline def asPair: Pair[K, V] =
+    @inline final def asPair: Pair[K, V] =
       Pair(tuple._1, tuple._2)
   }
 
   implicit class TupleDurationImplicits[K](tuple: (K, java.time.Duration)) {
-    @inline def asScala: (K, FiniteDuration) =
+    @inline final def asScala: (K, FiniteDuration) =
       (tuple._1, tuple._2.toScala)
 
-    @inline def asScalaDeadline: (K, Deadline) =
+    @inline final def asScalaDeadline: (K, Deadline) =
       (tuple._1, tuple._2.toScala.fromNow)
   }
 
   implicit class PairDurationImplicits[K](pair: Pair[K, java.time.Duration]) {
-    @inline def asScala: (K, FiniteDuration) =
+    @inline final def asScala: (K, FiniteDuration) =
       (pair.left, pair.right.toScala)
 
-    @inline def asScalaDeadline: (K, Deadline) =
+    @inline final def asScalaDeadline: (K, Deadline) =
       (pair.left, pair.right.toScala.fromNow)
   }
 
   implicit class DeadlineConverter(deadline: scala.concurrent.duration.Deadline) {
-    def asJava: swaydb.java.Deadline =
+    @inline final def asJava: swaydb.java.Deadline =
       new swaydb.java.Deadline(deadline)
   }
 
   implicit class OptionalConverter[T](optional: Optional[T]) {
-    @inline def asScala: Option[T] =
+    @inline final def asScala: Option[T] =
       if (optional.isPresent)
         Some(optional.get())
 
       else
         None
 
-    @inline def asScalaMap[B](map: T => B): Option[B] =
+    @inline final def asScalaMap[B](map: T => B): Option[B] =
       if (optional.isPresent)
         Some(map(optional.get()))
       else
@@ -94,7 +94,7 @@ object Java {
   }
 
   implicit class OptionConverter[T](option: Option[T]) {
-    @inline def asJava: Optional[T] =
+    @inline final def asJava: Optional[T] =
       option match {
         case Some(value) =>
           Optional.of(value)
@@ -103,7 +103,7 @@ object Java {
           Optional.empty()
       }
 
-    @inline def asJavaMap[B](map: T => B): Optional[B] =
+    @inline final def asJavaMap[B](map: T => B): Optional[B] =
       option match {
         case Some(value) =>
           Optional.of(map(value))

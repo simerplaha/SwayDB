@@ -24,13 +24,13 @@ import java.util.Optional
 object Optionals {
 
   implicit class OptionalImplicits[T](optional: Optional[T]) {
-    @inline def isDefined =
+    @inline final def isDefined =
       optional.isPresent
 
     /**
      * Seems like Java8 does not have optional.isEmpty. So custom functions.
      */
-    @inline def isEmpty =
+    @inline final def isEmpty =
       !isDefined
   }
 }

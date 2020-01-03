@@ -114,9 +114,7 @@ object SwayDB extends LazyLogging {
                      memoryCache: MemoryCache)(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                functionClassTag: ClassTag[F],
-                                               keyOrder: KeyOrder[Slice[Byte]],
-                                               fileSweeperEC: ExecutionContext,
-                                               memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
+                                               keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
@@ -131,9 +129,7 @@ object SwayDB extends LazyLogging {
                   fileCache: FileCache.Enable,
                   memoryCache: MemoryCache)(implicit serializer: Serializer[T],
                                             functionClassTag: ClassTag[F],
-                                            keyOrder: KeyOrder[Slice[Byte]],
-                                            fileSweeperEC: ExecutionContext,
-                                            memorySweeperEC: ExecutionContext): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
+                                            keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
@@ -145,7 +141,6 @@ object SwayDB extends LazyLogging {
     }
 
   def apply[T, F](config: LevelZeroPersistentConfig)(implicit serializer: Serializer[T],
-                                                     functionClassTag: ClassTag[F],
                                                      keyOrder: KeyOrder[Slice[Byte]],
                                                      mmapCleanerEC: Option[ExecutionContext]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
@@ -157,7 +152,6 @@ object SwayDB extends LazyLogging {
     }
 
   def apply[T, F](config: LevelZeroMemoryConfig)(implicit serializer: Serializer[T],
-                                                 functionClassTag: ClassTag[F],
                                                  keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
       config = config,
@@ -218,8 +212,7 @@ object SwayDB extends LazyLogging {
   def repairAppendix[K](levelPath: Path,
                         repairStrategy: AppendixRepairStrategy)(implicit serializer: Serializer[K],
                                                                 fileSweeper: FileSweeper.Enabled,
-                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                ec: ExecutionContext = sweeperExecutionContext): IO[swaydb.Error.Level, RepairResult[K]] =
+                                                                keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default): IO[swaydb.Error.Level, RepairResult[K]] =
   //convert to typed result.
     AppendixRepairer(levelPath, repairStrategy) match {
       case IO.Left(swaydb.Error.Fatal(OverlappingSegmentsException(segmentInfo, overlappingSegmentInfo))) =>

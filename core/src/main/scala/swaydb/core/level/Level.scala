@@ -489,7 +489,7 @@ private[core] case class Level(dirs: Seq[Dir],
             )
 
           case None =>
-            IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
+            IO.Left(Promise.successful(()))(IO.ExceptionHandler.PromiseUnit)
         }
     }
 
@@ -514,7 +514,7 @@ private[core] case class Level(dirs: Seq[Dir],
             )
 
           case None =>
-            IO.Left(Promise.successful())(IO.ExceptionHandler.PromiseUnit)
+            IO.Left(Promise.successful(()))(IO.ExceptionHandler.PromiseUnit)
         }
     }
 
@@ -1464,7 +1464,7 @@ private[core] case class Level(dirs: Seq[Dir],
   def segmentCountAndLevelSize: (Int, Long) =
     appendix
       .skipList
-      .foldLeft(0: Int, 0L: Long) {
+      .foldLeft((0: Int, 0L: Long)) {
         case ((segments, size), (_, segment)) =>
           (segments + 1, size + segment.segmentSize)
       }

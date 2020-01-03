@@ -51,9 +51,6 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, IO.ApiIO]) extends mut
   override def isEmpty: Boolean =
     db.isEmpty.get
 
-  override def nonEmpty: Boolean =
-    !isEmpty
-
   override def headOption: Option[A] =
     db.headOption.get
 

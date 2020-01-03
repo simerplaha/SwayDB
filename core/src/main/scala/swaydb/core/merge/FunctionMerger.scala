@@ -234,8 +234,7 @@ private[core] object FunctionMerger {
   }
 
   def apply(newKeyValue: KeyValue.Function,
-            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       Memory.PendingApply(
         key = newKeyValue.key,

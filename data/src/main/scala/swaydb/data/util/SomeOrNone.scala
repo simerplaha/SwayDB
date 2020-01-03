@@ -22,7 +22,7 @@ package swaydb.data.util
 object SomeOrNone {
 
   implicit class OptionalImplicitsForSomeOrNone[A](option: Option[A]) {
-    @inline def flatMapOption[B](none: B)(f: A => B): B =
+    @inline final def flatMapOption[B](none: B)(f: A => B): B =
       if (option.isDefined)
         f(option.get)
       else

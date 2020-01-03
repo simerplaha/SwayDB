@@ -28,7 +28,7 @@ object TimerMapEntryReader {
   implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
     override def read(reader: ReaderBase): IO[swaydb.Error.Map, Some[MapEntry.Put[Slice[Byte], Slice[Byte]]]] =
       IO[swaydb.Error.Map, Some[MapEntry.Put[Slice[Byte], Slice[Byte]]]] {
-        val id = reader.readUnsignedInt()
+        val _ = reader.readUnsignedInt()
         val keySize = reader.readUnsignedInt()
 
         val key =

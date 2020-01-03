@@ -85,8 +85,7 @@ private[core] object UpdateMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Update,
-            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time) {
       val oldValue = oldKeyValue.toFromValue()
       val newValue = newKeyValue.toFromValue()
@@ -96,8 +95,7 @@ private[core] object UpdateMerger {
       oldKeyValue
 
   def apply(newKeyValue: KeyValue.Update,
-            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): KeyValue.Fixed =
+            oldKeyValue: Value.Apply)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       oldKeyValue match {
         case oldKeyValue: Value.Remove =>

@@ -57,7 +57,7 @@ private[swaydb] case class SliceReader(slice: Slice[Byte],
     this
   }
 
-  def get() = {
+  def get(): Byte = {
     val byte = slice get position
     position += 1
     byte

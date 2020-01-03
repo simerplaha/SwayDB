@@ -25,7 +25,7 @@ private[swaydb] object Collections {
 
   implicit class IterableImplicit[T](items: Iterable[T]) {
 
-    def foreachBreak(f: T => Boolean): Unit = {
+    @inline final def foreachBreak(f: T => Boolean): Unit = {
       val iterator = items.iterator
       var break: Boolean = false
       while (iterator.hasNext && !break)
@@ -35,7 +35,7 @@ private[swaydb] object Collections {
     /**
      * Used for cases when multiple iterators over a list eg: collect & then fold is costly.
      */
-    def foldLeftWhile[B](initial: B, condition: T => Boolean)(op: (B, T) => B): B = {
+    @inline final def foldLeftWhile[B](initial: B, condition: T => Boolean)(op: (B, T) => B): B = {
       var result = initial
       items foreachBreak {
         item =>
@@ -46,7 +46,7 @@ private[swaydb] object Collections {
       result
     }
 
-    def untilSome[R](f: T => Option[R]): Option[(R, T)] = {
+    @inline final def untilSome[R](f: T => Option[R]): Option[(R, T)] = {
       items foreach {
         item =>
           f(item) match {

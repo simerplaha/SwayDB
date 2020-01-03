@@ -23,17 +23,17 @@ object StorageUnits {
 
   implicit class StorageIntImplicits(measure: Int) {
 
-    def bytes = measure
+    @inline final def bytes: Int = measure
 
-    def byte = measure
+    @inline final def byte: Int = measure
   }
 
   implicit class StorageDoubleImplicits(measure: Double) {
 
-    def mb: Int = (measure * 1000000).toInt
+    @inline final def mb: Int = (measure * 1000000).toInt
 
-    def gb: Int = measure.mb * 1000
+    @inline final def gb: Int = measure.mb * 1000
 
-    def kb: Int = (measure * 1000).toInt
+    @inline final def kb: Int = (measure * 1000).toInt
   }
 }

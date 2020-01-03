@@ -19,10 +19,10 @@
 
 package swaydb
 
+import java.util.TimerTask
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.concurrent.{ExecutorService, TimeUnit}
-import java.util.function.{BiConsumer, IntUnaryOperator}
-import java.util.{Comparator, TimerTask}
+import java.util.function.IntUnaryOperator
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO.ExceptionHandler
@@ -401,7 +401,7 @@ class Actor[-T, S](val state: S,
     } else {
       //message weight cannot be <= 0 as that could lead to messages in queue with empty weight.
       val messageWeight = weigher(message) max 1
-      queue.add(message, messageWeight)
+      queue.add((message, messageWeight))
 
       val currentStashed =
         weight updateAndGet {
@@ -445,7 +445,7 @@ class Actor[-T, S](val state: S,
     else
       timerWakeUp(currentStashed, this.stashCapacity)
 
-  @inline private def basicWakeUp(currentStashed: Int) = {
+  @inline private def basicWakeUp(currentStashed: Int): Unit = {
     val overflow = currentStashed - fixedStashSize
     val isOverflown = overflow > 0
     //do not check for terminated actor here for receive to apply recovery.

@@ -34,10 +34,10 @@ object Dir {
 
   implicit class DirsImplicits(dirs: Iterable[Dir]) {
 
-    def pathsSet: Set[Path] =
+    @inline final def pathsSet: Set[Path] =
       dirs.map(_.path).to(Set)
 
-    def pathsList: Seq[Path] =
+    @inline final def pathsList: Seq[Path] =
       dirs.flatMap {
         dir =>
           Seq.fill(dir.distributionRatio)(dir.path)

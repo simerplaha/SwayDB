@@ -180,19 +180,19 @@ private[core] object Effect extends LazyLogging {
     lock foreach release
 
   implicit class FileIdImplicits(id: Long) {
-    def toLogFileId =
+    @inline final def toLogFileId =
       s"$id.${Extension.Log}"
 
-    def toFolderId =
+    @inline final def toFolderId =
       s"$id"
 
-    def toSegmentFileId =
+    @inline final def toSegmentFileId =
       s"$id.${Extension.Seg}"
   }
 
   def incrementFileId(path: Path): Path = {
     val (id, ext) = fileId(path)
-    path.getParent.resolve((id + 1) + "." + ext.toString)
+    path.getParent.resolve(s"${id + 1}.${ext.toString}")
   }
 
   def incrementFolderId(path: Path): Path =

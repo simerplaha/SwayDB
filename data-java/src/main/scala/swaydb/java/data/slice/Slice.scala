@@ -29,7 +29,6 @@ import swaydb.java.Pair
 import swaydb.java.data.util.Java._
 
 import scala.jdk.CollectionConverters._
-import scala.reflect.ClassTag
 
 object Slice {
   val emptyBytes: Slice[lang.Byte] = Slice.create[lang.Byte](0)

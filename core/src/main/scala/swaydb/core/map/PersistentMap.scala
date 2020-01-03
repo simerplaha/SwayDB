@@ -26,7 +26,6 @@ import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.FileSweeper
-import swaydb.core.data.Memory
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{DBFile, Effect}
@@ -80,7 +79,6 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   timeOrder: TimeOrder[Slice[Byte]],
                                                                   fileSweeper: FileSweeper,
                                                                   functionStore: FunctionStore,
-                                                                  reader: MapEntryReader[MapEntry[K, V]],
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] = {
     Effect.createDirectoryIfAbsent(folder)
@@ -183,8 +181,7 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def nextFile[OK, OV, K <: OK, V <: OV](oldFiles: Iterable[DBFile],
                                                       mmap: Boolean,
                                                       fileSize: Long,
-                                                      skipList: SkipList.Concurrent[OK, OV, K, V])(implicit reader: MapEntryReader[MapEntry[K, V]],
-                                                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                      skipList: SkipList.Concurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                    fileSweeper: FileSweeper): Option[DBFile] =
     oldFiles.lastOption map {
       lastFile =>
@@ -209,7 +206,6 @@ private[map] object PersistentMap extends LazyLogging {
                                                       mmap: Boolean,
                                                       size: Long,
                                                       skipList: SkipList.Concurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                   mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                                    fileSweeper: FileSweeper): DBFile = {
 
     val nextPath = currentFile.path.incrementFileId
@@ -236,7 +232,6 @@ private[map] case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
                                                                                                       timeOrder: TimeOrder[Slice[Byte]],
                                                                                                       fileSweeper: FileSweeper,
                                                                                                       functionStore: FunctionStore,
-                                                                                                      reader: MapEntryReader[MapEntry[K, V]],
                                                                                                       writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                                       skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
 
@@ -264,9 +259,9 @@ private[map] case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
    * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.
    *
    * Merge write should be used when
-   * - The entry contains a [[Memory.Range]] key-value.
-   * - The entry contains a [[Memory.Update]] Update key-value.
-   * - The entry contains a [[Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
+   * - The entry contains a [[swaydb.core.data.Memory.Range]] key-value.
+   * - The entry contains a [[swaydb.core.data.Memory.Update]] Update key-value.
+   * - The entry contains a [[swaydb.core.data.Memory.Remove]] with deadline key-value. Removes without deadlines do not require merging.
    *
    * Note: These check are not required for Appendix writes because Appendix entries current do not use
    * Range, Update or key-values with deadline.

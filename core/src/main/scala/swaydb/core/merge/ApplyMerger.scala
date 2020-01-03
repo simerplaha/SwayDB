@@ -96,8 +96,7 @@ private[core] object ApplyMerger {
       oldKeyValue
 
   def apply(newKeyValue: Value.Apply,
-            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]],
-                                            functionStore: FunctionStore): KeyValue.Fixed =
+            oldKeyValue: KeyValue.Function)(implicit timeOrder: TimeOrder[Slice[Byte]]): KeyValue.Fixed =
     if (newKeyValue.time > oldKeyValue.time)
       newKeyValue match {
         case newValue: Value.Remove =>

@@ -97,7 +97,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
           if (deadlineNanos == 0)
             None
           else
-            Some(Deadline(deadlineNanos, TimeUnit.NANOSECONDS))
+            Some(Deadline((deadlineNanos, TimeUnit.NANOSECONDS)))
         }
 
         val minMaxFunctionId = {
@@ -154,17 +154,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                   }
 
                 case IO.Left(error) =>
-                  error match {
-                    case Error.Fatal(exception) =>
-                      IO.Left(Error.Fatal(exception))
-
-                    case io: Error.IO =>
-                      IO.Left(io)
-
-                    case other: swaydb.Error.Segment =>
-                      //convert Segment error to fatal.
-                      IO.Left(Error.Fatal(other.exception))
-                  }
+                  IO.Left(Error.Fatal(error.exception))
               }
 
             case (segmentId, Extension.Log) =>

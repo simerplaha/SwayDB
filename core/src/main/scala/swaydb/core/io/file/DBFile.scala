@@ -256,7 +256,7 @@ class DBFile(val path: Path,
     blockCache.map(_.blockSize)
 
   def file: DBFileType =
-    fileCache.value().get
+    fileCache.value(()).get
 
   def delete(): Unit = {
     //close the file
@@ -284,10 +284,10 @@ class DBFile(val path: Path,
   }
 
   def append(slice: Slice[Byte]) =
-    fileCache.value().get.append(slice)
+    fileCache.value(()).get.append(slice)
 
   def append(slice: Iterable[Slice[Byte]]) =
-    fileCache.value().get.append(slice)
+    fileCache.value(()).get.append(slice)
 
   def readBlock(position: Int): Option[Slice[Byte]] =
     blockCache map {
@@ -312,7 +312,7 @@ class DBFile(val path: Path,
           )
 
         case None =>
-          fileCache.value().get.read(position, size)
+          fileCache.value(()).get.read(position, size)
       }
 
   def read(position: Int,
@@ -324,7 +324,7 @@ class DBFile(val path: Path,
       BlockCache.getOrSeek(
         position = position,
         size = size,
-        file = fileCache.value().get,
+        file = fileCache.value(()).get,
         state = blockCache
       )
 
@@ -332,13 +332,13 @@ class DBFile(val path: Path,
     if (blockCache.isDefined)
       read(position, 1).head
     else
-      fileCache.value().get.get(position)
+      fileCache.value(()).get.get(position)
 
   def readAll: Slice[Byte] =
-    fileCache.value().get.readAll
+    fileCache.value(()).get.readAll
 
   def fileSize: Long =
-    fileCache.value().get.fileSize
+    fileCache.value(()).get.fileSize
 
   //memory files are never closed, if it's memory file return true.
   def isOpen: Boolean =
@@ -348,16 +348,16 @@ class DBFile(val path: Path,
     fileCache.getIO().isDefined
 
   def isMemoryMapped: Boolean =
-    fileCache.value().get.isMemoryMapped
+    fileCache.value(()).get.isMemoryMapped
 
   def isLoaded: Boolean =
-    fileCache.value().get.isLoaded
+    fileCache.value(()).get.isLoaded
 
   def isFull: Boolean =
-    fileCache.value().get.isFull
+    fileCache.value(()).get.isFull
 
   def forceSave(): Unit =
-    fileCache.value().get.forceSave()
+    fileCache.value(()).get.forceSave()
 
   override def equals(that: Any): Boolean =
     that match {

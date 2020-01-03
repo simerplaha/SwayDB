@@ -28,7 +28,7 @@ import scala.concurrent.duration.Deadline
 private[swaydb] object Times {
 
   implicit class OptionDeadlineImplicits(deadline: Option[Deadline]) {
-    @inline def toNanos: Long =
+    @inline final def toNanos: Long =
       deadline match {
         case Some(deadline) =>
           deadline.time.toNanos
@@ -39,19 +39,19 @@ private[swaydb] object Times {
   }
 
   implicit class DeadlineImplicits(deadline: Deadline) {
-    @inline def toNanos: Long =
+    @inline final def toNanos: Long =
       deadline.time.toNanos
 
-    @inline def toUnsignedBytes: Slice[Byte] =
+    @inline final def toUnsignedBytes: Slice[Byte] =
       Slice.writeUnsignedLong(toNanos)
 
-    @inline def toBytes: Slice[Byte] =
+    @inline final def toBytes: Slice[Byte] =
       Slice.writeLong(toNanos)
   }
 
   implicit class LongImplicits(deadline: Long) {
 
-    @inline def toDeadlineOption: Option[Deadline] =
+    @inline final def toDeadlineOption: Option[Deadline] =
       if (deadline <= 0L)
         None
       else

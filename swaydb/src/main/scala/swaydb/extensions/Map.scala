@@ -139,10 +139,7 @@ private[extensions] object Map {
     }
 
   def updateMapValue[K, V](mapKey: Seq[K],
-                           value: V)(implicit keySerializer: Serializer[K],
-                                     mapKeySerializer: Serializer[Key[K]],
-                                     valueSerializer: Serializer[V],
-                                     keyOrder: KeyOrder[Slice[Byte]]): Seq[Prepare.Put[Key[K], Option[V]]] =
+                           value: V): Seq[Prepare.Put[Key[K], Option[V]]] =
 
     mapKey.lastOption map {
       last =>

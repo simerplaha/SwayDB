@@ -72,7 +72,7 @@ trait SliceCompanionBase {
       written = length
     )
 
-  def create[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
+  @inline final def create[T: ClassTag](length: Int, isFull: Boolean = false): Slice[T] =
     new Slice(
       array = new Array[T](length),
       fromOffset = 0,
@@ -119,29 +119,29 @@ trait SliceCompanionBase {
       written = to - from + 1
     )
 
-  def apply[T: ClassTag](data: T*): Slice[T] =
+  @inline final def apply[T: ClassTag](data: T*): Slice[T] =
     Slice(data.toArray)
 
-  def writeInt(int: Int): Slice[Byte] =
+  @inline final def writeInt(int: Int): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.int).addInt(int)
 
-  def writeBoolean(boolean: Boolean): Slice[Byte] =
+  @inline final def writeBoolean(boolean: Boolean): Slice[Byte] =
     Slice.create[Byte](1).addBoolean(boolean)
 
-  def writeUnsignedInt(int: Int): Slice[Byte] =
+  @inline final def writeUnsignedInt(int: Int): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.varInt).addUnsignedInt(int).close()
 
-  def writeLong(long: Long): Slice[Byte] =
+  @inline final def writeLong(long: Long): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.long).addLong(long)
 
-  def writeUnsignedLong(long: Long): Slice[Byte] =
+  @inline final def writeUnsignedLong(long: Long): Slice[Byte] =
     Slice.create[Byte](ByteSizeOf.varLong).addUnsignedLong(long).close()
 
-  def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
+  @inline final def writeString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] =
     Slice(string.getBytes(charsets))
 
-  def intersects[T](range1: (Slice[T], Slice[T]),
-                    range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
+  @inline final def intersects[T](range1: (Slice[T], Slice[T]),
+                                  range2: (Slice[T], Slice[T]))(implicit ordering: Ordering[Slice[T]]): Boolean =
     intersects((range1._1, range1._2, true), (range2._1, range2._2, true))
 
   def within(key: Slice[Byte],
@@ -208,7 +208,7 @@ trait SliceCompanionBase {
      * Closes this Slice and children Slices which disables
      * more data to be written to any of the Slices.
      */
-    def closeAll(): Slice[Slice[T]] = {
+    @inline final def closeAll(): Slice[Slice[T]] = {
       val newSlices = Slice.create[Slice[T]](slices.close().size)
       slices foreach {
         slice =>
@@ -220,7 +220,7 @@ trait SliceCompanionBase {
 
   implicit class OptionByteSliceImplicits(slice: Option[Slice[Byte]]) {
 
-    @inline def unslice(): Option[Slice[Byte]] =
+    @inline final def unslice(): Option[Slice[Byte]] =
       slice flatMap {
         slice =>
           if (slice.isEmpty)
@@ -232,7 +232,7 @@ trait SliceCompanionBase {
 
   implicit class SeqByteSliceImplicits(slice: Seq[Slice[Byte]]) {
 
-    def unslice(): Seq[Slice[Byte]] =
+    @inline final def unslice(): Seq[Slice[Byte]] =
       if (slice.isEmpty)
         slice
       else
@@ -244,138 +244,138 @@ trait SliceCompanionBase {
    */
   implicit class ByteSliceImplicits(slice: Slice[Byte]) {
 
-    @inline def addByte(value: Byte): Slice[Byte] = {
+    @inline final def addByte(value: Byte): Slice[Byte] = {
       slice insert value
       slice
     }
 
-    @inline def addBytes(anotherSlice: Slice[Byte]): Slice[Byte] = {
+    @inline final def addBytes(anotherSlice: Slice[Byte]): Slice[Byte] = {
       slice.addAll(anotherSlice)
       slice
     }
 
-    @inline def addBoolean(boolean: Boolean): Slice[Byte] = {
+    @inline final def addBoolean(boolean: Boolean): Slice[Byte] = {
       slice insert (if (boolean) 1.toByte else 0.toByte)
       slice
     }
 
-    @inline def readBoolean(): Boolean =
+    @inline final def readBoolean(): Boolean =
       slice.get(0) == 1
 
-    @inline def addInt(int: Int): Slice[Byte] = {
+    @inline final def addInt(int: Int): Slice[Byte] = {
       Bytez.writeInt(int, slice)
       slice
     }
 
-    @inline def readInt(): Int =
+    @inline final def readInt(): Int =
       Bytez.readInt(slice)
 
-    @inline def dropUnsignedInt(): Slice[Byte] = {
+    @inline final def dropUnsignedInt(): Slice[Byte] = {
       val (_, byteSize) = readUnsignedIntWithByteSize()
       slice drop byteSize
     }
 
-    @inline def addSignedInt(int: Int): Slice[Byte] = {
+    @inline final def addSignedInt(int: Int): Slice[Byte] = {
       Bytez.writeSignedInt(int, slice)
       slice
     }
 
-    @inline def readSignedInt(): Int =
+    @inline final def readSignedInt(): Int =
       Bytez.readSignedInt(slice)
 
-    @inline def addUnsignedInt(int: Int): Slice[Byte] = {
+    @inline final def addUnsignedInt(int: Int): Slice[Byte] = {
       Bytez.writeUnsignedInt(int, slice)
       slice
     }
 
-    @inline def addNonZeroUnsignedInt(int: Int): Slice[Byte] = {
+    @inline final def addNonZeroUnsignedInt(int: Int): Slice[Byte] = {
       Bytez.writeUnsignedIntNonZero(int, slice)
       slice
     }
 
-    @inline def readUnsignedInt(): Int =
+    @inline final def readUnsignedInt(): Int =
       Bytez.readUnsignedInt(slice)
 
-    @inline def readUnsignedIntWithByteSize(): (Int, Int) =
+    @inline final def readUnsignedIntWithByteSize(): (Int, Int) =
       Bytez.readUnsignedIntWithByteSize(slice)
 
-    @inline def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
+    @inline final def readNonZeroUnsignedIntWithByteSize(): (Int, Int) =
       Bytez.readUnsignedIntNonZeroWithByteSize(slice)
 
-    @inline def addLong(long: Long): Slice[Byte] = {
+    @inline final def addLong(long: Long): Slice[Byte] = {
       Bytez.writeLong(long, slice)
       slice
     }
 
-    @inline def readLong(): Long =
+    @inline final def readLong(): Long =
       Bytez.readLong(slice)
 
-    @inline def addUnsignedLong(long: Long): Slice[Byte] = {
+    @inline final def addUnsignedLong(long: Long): Slice[Byte] = {
       Bytez.writeUnsignedLong(long, slice)
       slice
     }
 
-    @inline def readUnsignedLong(): Long =
+    @inline final def readUnsignedLong(): Long =
       Bytez.readUnsignedLong(slice)
 
-    @inline def readUnsignedLongWithByteSize(): (Long, Int) =
+    @inline final def readUnsignedLongWithByteSize(): (Long, Int) =
       Bytez.readUnsignedLongWithByteSize(slice)
 
-    @inline def addSignedLong(long: Long): Slice[Byte] = {
+    @inline final def addSignedLong(long: Long): Slice[Byte] = {
       Bytez.writeSignedLong(long, slice)
       slice
     }
 
-    @inline def readSignedLong(): Long =
+    @inline final def readSignedLong(): Long =
       Bytez.readSignedLong(slice)
 
-    @inline def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
+    @inline final def addString(string: String, charsets: Charset = StandardCharsets.UTF_8): Slice[Byte] = {
       string.getBytes(charsets) foreach slice.add
       slice
     }
 
-    @inline def readString(charset: Charset = StandardCharsets.UTF_8): String =
+    @inline final def readString(charset: Charset = StandardCharsets.UTF_8): String =
       Bytez.readString(slice, charset)
 
-    @inline def toByteBufferWrap: ByteBuffer =
+    @inline final def toByteBufferWrap: ByteBuffer =
       slice.toByteBufferWrap
 
-    @inline def toByteBufferDirect: ByteBuffer =
+    @inline final def toByteBufferDirect: ByteBuffer =
       slice.toByteBufferDirect
 
-    @inline def toByteArrayOutputStream =
+    @inline final def toByteArrayOutputStream =
       slice.toByteArrayInputStream
 
-    @inline def createReader() =
+    @inline final def createReader() =
       SliceReader(slice)
   }
 
   implicit class SliceImplicit[T](slice: Slice[T]) {
-    @inline def add(value: T): Slice[T] = {
+    @inline final def add(value: T): Slice[T] = {
       slice.insert(value)
       slice
     }
 
-    @inline def addAll(values: Slice[T]): Slice[T] = {
+    @inline final def addAll(values: Slice[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
 
-    @inline def addAll(values: Array[T]): Slice[T] = {
+    @inline final def addAll(values: Array[T]): Slice[T] = {
       if (values.nonEmpty) slice.insertAll(values)
       slice
     }
   }
 
   implicit class SliceImplicitClassTag[T: ClassTag](slice: Slice[T]) {
-    def append(other: Slice[T]): Slice[T] = {
+    @inline final def append(other: Slice[T]): Slice[T] = {
       val merged = Slice.create[T](slice.size + other.size)
       merged addAll slice
       merged addAll other
       merged
     }
 
-    def append(other: T): Slice[T] = {
+    @inline final def append(other: T): Slice[T] = {
       val merged = Slice.create[T](slice.size + 1)
       merged addAll slice
       merged add other
@@ -383,7 +383,7 @@ trait SliceCompanionBase {
     }
   }
 
-  def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
+  @inline final def newBuilder[T: ClassTag](sizeHint: Int): Slice.SliceBuilder[T] =
     new slice.Slice.SliceBuilder[T](sizeHint)
 
   private[swaydb] def newAggregator[T: ClassTag](sizeHint: Int): Aggregator[T, Slice[T]] =

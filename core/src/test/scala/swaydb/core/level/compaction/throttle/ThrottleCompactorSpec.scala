@@ -317,7 +317,7 @@ sealed trait ThrottleCompactorSpec extends TestBase with MockFactory {
         awaitingPull.listenerInitialised shouldBe true
 
         //free the reserve and compaction should expect a message.
-        scheduler.future(1.second)(promise.success())
+        scheduler.future(1.second)(promise.success(()))
 
         eventual(3.seconds) {
           //eventually is set to be ready.

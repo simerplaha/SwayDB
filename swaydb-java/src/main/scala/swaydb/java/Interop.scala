@@ -34,7 +34,7 @@ object Interop {
    * dependant on Scala implementation and not the other way around (One way - Java -> Scala).
    */
   private class InteropImplicit[K, V, F, T[_]](map: swaydb.Map[K, V, F, T]) {
-    def asJava(implicit tag: ClassTag[F]): MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] = {
+    @inline final def asJava(implicit tag: ClassTag[F]): MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] = {
       val scalaMap: swaydb.Map[K, V, F, ThrowableIO] = map.toTag[swaydb.IO.ThrowableIO]
       if (tag == ClassTag.Nothing)
         MapIO[K, V, swaydb.java.PureFunction.VoidM[K, V]](scalaMap).asInstanceOf[MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
@@ -47,7 +47,7 @@ object Interop {
    * Converts a java Map function to Scala.
    */
   implicit class MapInterop[K, V, R <: Return.Map[V]](function: PureFunction[K, V, R]) {
-    def asScala: swaydb.PureFunction[K, V, Apply.Map[V]] =
+    @inline final def asScala: swaydb.PureFunction[K, V, Apply.Map[V]] =
       PureFunction asScala function
   }
 
@@ -55,7 +55,7 @@ object Interop {
    * Converts java Set function to Scala.
    */
   implicit class SetInterop[K, R <: Return.Set[Void]](function: PureFunction.OnKey[K, Void, R]) {
-    def asScala: swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]] =
+    @inline final def asScala: swaydb.PureFunction.OnKey[K, Nothing, Apply.Set[Nothing]] =
       PureFunction asScala function
   }
 }

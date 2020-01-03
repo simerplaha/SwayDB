@@ -686,8 +686,6 @@ private[core] object SortedIndexBlock extends LazyLogging {
             previous.nextKeySize
           }
 
-        val indexOffset = sortedIndexReader.getPosition
-
         val next =
           readIndexEntry(
             keySizeOrZero = nextKeySize,

@@ -158,7 +158,7 @@ private[core] class PathsDistributor(var dirs: Seq[Dir],
     val distributionResult = distribute(totalSize, distributions)
     val paths: Seq[Path] =
       distributionResult flatMap {
-        case dist: Distribution =>
+        dist: Distribution =>
           Seq.fill(dist.missing)(dist.path)
       }
 

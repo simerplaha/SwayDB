@@ -23,18 +23,18 @@ package swaydb
 trait Tagged[A, T[_]] {
   def get: T[A]
 
-  @inline def isSuccess[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
+  @inline final def isSuccess[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
     tag.isSuccess(b)
 
-  @inline def isFailure[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
+  @inline final def isFailure[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
     tag.isFailure(b)
 
-  @inline def getOrElse[B >: A](b: => B)(implicit tag: Tag.Sync[T]): B =
+  @inline final def getOrElse[B >: A](b: => B)(implicit tag: Tag.Sync[T]): B =
     tag.getOrElse[A, B](get)(b)
 
-  @inline def orElse[B >: A](b: => T[B])(implicit tag: Tag.Sync[T]): T[B] =
+  @inline final def orElse[B >: A](b: => T[B])(implicit tag: Tag.Sync[T]): T[B] =
     tag.orElse[A, B](get)(b)
 
-  @inline def exception(a: T[A])(implicit tag: Tag.Sync[T]): Option[Throwable] =
+  @inline final def exception(a: T[A])(implicit tag: Tag.Sync[T]): Option[Throwable] =
     tag.exception(a)
 }

@@ -68,8 +68,7 @@ private[core] object CoreInitializer extends LazyLogging {
    * Closes all the open files and releases the locks on database folders.
    */
   private def addShutdownHook(zero: LevelZero,
-                              compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit compactionStrategy: Compactor[ThrottleState],
-                                                                                             executionContext: ExecutionContext): Unit =
+                              compactor: ActorWire[Compactor[ThrottleState], ThrottleState])(implicit executionContext: ExecutionContext): Unit =
     sys.addShutdownHook {
       logger.info("Shutting down compaction.")
 
@@ -97,7 +96,7 @@ private[core] object CoreInitializer extends LazyLogging {
   /**
    * Closes all the open files and releases the locks on database folders.
    */
-  private def addShutdownHookNoCompaction(zero: LevelZero)(implicit compactionStrategy: Compactor[ThrottleState]): Unit =
+  private def addShutdownHookNoCompaction(zero: LevelZero): Unit =
     sys.addShutdownHook {
       closeLevels(zero)
     }
@@ -106,9 +105,7 @@ private[core] object CoreInitializer extends LazyLogging {
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
-                                  bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
-
-    implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
+                                  bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
     if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
       IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]]("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
     else
@@ -128,15 +125,11 @@ private[core] object CoreInitializer extends LazyLogging {
         case IO.Left(error) =>
           IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
       }
-  }
 
   def apply(config: LevelZeroMemoryConfig,
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
-
-    implicit val compactionStrategy: Compactor[ThrottleState] = ThrottleCompactor
-
+                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
     LevelZero(
       mapSize = config.mapSize,
       storage = config.storage,
@@ -152,7 +145,6 @@ private[core] object CoreInitializer extends LazyLogging {
       case IO.Left(error) =>
         IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
     }
-  }
 
   def executionContext(levelConfig: LevelConfig): Option[CompactionExecutionContext] =
     levelConfig match {
@@ -204,9 +196,6 @@ private[core] object CoreInitializer extends LazyLogging {
 
     implicit val blockCache: Option[BlockCache.State] =
       memorySweeper flatMap BlockCache.init
-
-    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] =
-      blockCache.map(_.sweeper)
 
     implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] =
       memorySweeper flatMap {

@@ -23,12 +23,38 @@ val scala211 = "2.11.12"
 val scala212 = "2.12.10"
 val scala213 = "2.13.1"
 
+val commonScalaOptions =
+  Seq(
+    "-language:postfixOps",
+    "-deprecation",
+    "-encoding", "UTF-8",
+    "-feature",
+    "-unchecked",
+    "-language:higherKinds",
+    "-language:implicitConversions",
+    //    "-Ywarn-dead-code",
+    //    "-Ywarn-numeric-widen",
+    //    "-Ywarn-value-discard",
+    //    "-Ywarn-unused",
+    //    "-Xfatal-warnings",
+    "-Xlint"
+  )
+
+val publishScalaOptions =
+  Seq(
+    "-opt:l:inline",
+    "-opt-warnings",
+    "-opt-inline-from:swaydb.**",
+    //    "-Yopt-log-inline",
+    //    "_"
+  ) ++ commonScalaOptions
+
 val commonSettings = Seq(
   organization := "io.swaydb",
   scalaVersion := scalaVersion.value,
   scalaVersion in ThisBuild := scala213,
   parallelExecution in ThisBuild := false,
-  scalacOptions ++= Seq("-language:postfixOps"),
+  scalacOptions ++= commonScalaOptions,
   unmanagedSourceDirectories in Compile += {
     val sourceDir = (sourceDirectory in Compile).value
     CrossVersion.partialVersion(scalaVersion.value) match {
@@ -52,6 +78,7 @@ val publishSettings = Seq[Setting[_]](
   developers := List(
     Developer(id = "simerplaha", name = "Simer Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
   ),
+  scalacOptions ++= publishScalaOptions,
   publishTo := sonatypePublishTo.value,
   releaseCrossBuild := true,
   releaseVersionBump := sbtrelease.Version.Bump.Next,

@@ -24,6 +24,7 @@ import swaydb.java.data.util.Java._
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.collection.compat._
 
 object Stream {
   def fromScala[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): StreamIO[A] =
@@ -33,7 +34,7 @@ object Stream {
     new StreamFuture(stream)
 
   def create[A](iterator: java.util.Iterator[A]): StreamIO[A] =
-    new StreamIO[A](swaydb.Stream(iterator.asScala.toIterable))
+    new StreamIO[A](swaydb.Stream(iterator.asScala.to(Iterable)))
 
   def create[A](iterator: java.util.List[A]): StreamIO[A] =
     new StreamIO[A](swaydb.Stream(iterator.asScala))

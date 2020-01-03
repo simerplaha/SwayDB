@@ -23,10 +23,10 @@ import java.util.concurrent.atomic.AtomicLong
 
 private[core] object IDGenerator {
 
-  def apply(initial: Long = 0) = new IDGenerator(initial)
+  @inline final def apply(initial: Long = 0) = new IDGenerator(initial)
 
-  def segmentId(id: Long): String =
-    id + s".${Extension.Seg}"
+  @inline final def segmentId(id: Long): String =
+    s"$id.${Extension.Seg.toString}"
 }
 
 private[core] class IDGenerator(initial: Long) {
@@ -39,7 +39,7 @@ private[core] class IDGenerator(initial: Long) {
     atomicID.get()
 
   def nextSegmentID: String =
-    nextID + s".${Extension.Seg}"
+    s"$nextID.${Extension.Seg.toString}"
 }
 
 private[core] object BlockCacheFileIDGenerator {
