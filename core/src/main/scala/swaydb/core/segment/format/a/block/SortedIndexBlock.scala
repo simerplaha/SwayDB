@@ -710,12 +710,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    if (startFrom.exists(from => order.gteq(from.key, key))) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
-    seekAndMatchToPersistent(
-      matcher = KeyMatcher.Get(key),
-      startFrom = startFrom,
-      indexReader = sortedIndexReader,
-      valuesReaderOrNull = valuesReaderOrNull
-    )
+    if (startFrom.existsS(_.nextIndexOffset == -1))
+      Persistent.Null
+    else
+      seekAndMatchToPersistent(
+        matcher = KeyMatcher.Get(key),
+        startFrom = startFrom,
+        indexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
+      )
 
   def matchOrSeek(key: Slice[Byte],
                   startFrom: Persistent,
@@ -724,19 +727,22 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    if (ordering.gteq(startFrom.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
-    SortedIndexBlock.matchOrSeek(
-      matcher = KeyMatcher.Get(key),
-      previous = startFrom,
-      next = Persistent.Null,
-      indexReader = sortedIndexReader,
-      valuesReaderOrNull = valuesReaderOrNull
-    ) match {
-      case matched: KeyMatcher.Result.Matched =>
-        matched.result
+    if (startFrom.existsS(_.nextIndexOffset == -1))
+      Persistent.Partial.Null
+    else
+      SortedIndexBlock.matchOrSeek(
+        matcher = KeyMatcher.Get(key),
+        previous = startFrom,
+        next = Persistent.Null,
+        indexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
+      ) match {
+        case matched: KeyMatcher.Result.Matched =>
+          matched.result
 
-      case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
-        Persistent.Partial.Null
-    }
+        case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
+          Persistent.Partial.Null
+      }
 
   def searchSeekOne(key: Slice[Byte],
                     start: Persistent,
@@ -745,12 +751,15 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
-    seekAndMatchToPersistent(
-      matcher = KeyMatcher.Get.MatchOnly(key),
-      startFrom = start,
-      indexReader = indexReader,
-      valuesReaderOrNull = valuesReaderOrNull
-    )
+    if (start.nextIndexOffset == -1)
+      Persistent.Null
+    else
+      seekAndMatchToPersistent(
+        matcher = KeyMatcher.Get.MatchOnly(key),
+        startFrom = start,
+        indexReader = indexReader,
+        valuesReaderOrNull = valuesReaderOrNull
+      )
 
   def searchSeekOne(key: Slice[Byte],
                     fromPosition: Int,
@@ -760,13 +769,16 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    if (order.gteq(start.key, key)) //TODO - to be removed via macros. this is for internal use only. Detects that a higher startFrom key does not get passed to this.
   //      IO.Left(swaydb.Error.Fatal("startFrom key is greater than target key."))
   //    else
-    seekAndMatchOrSeekToPersistent(
-      matcher = KeyMatcher.Get.MatchOnly(key),
-      fromOffset = fromPosition,
-      keySizeOrZero = keySizeOrZero,
-      indexReader = indexReader,
-      valuesReaderOrNull = valuesReaderOrNull
-    )
+    if (fromPosition == -1)
+      Persistent.Null
+    else
+      seekAndMatchOrSeekToPersistent(
+        matcher = KeyMatcher.Get.MatchOnly(key),
+        fromOffset = fromPosition,
+        keySizeOrZero = keySizeOrZero,
+        indexReader = indexReader,
+        valuesReaderOrNull = valuesReaderOrNull
+      )
 
   def searchHigher(key: Slice[Byte],
                    startFrom: PersistentOptional,
@@ -791,22 +803,19 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    else
     startFrom match {
       case startFrom: Persistent =>
-        if (startFrom.nextIndexOffset == -1)
-          Persistent.Null
-        else
-          SortedIndexBlock.matchOrSeek(
-            matcher = KeyMatcher.Higher(key),
-            previous = startFrom,
-            next = Persistent.Null,
-            indexReader = sortedIndexReader,
-            valuesReaderOrNull = valuesReaderOrNull
-          ) match {
-            case matched: KeyMatcher.Result.Matched =>
-              matched.result.toPersistent
+        SortedIndexBlock.matchOrSeek(
+          matcher = KeyMatcher.Higher(key),
+          previous = startFrom,
+          next = Persistent.Null,
+          indexReader = sortedIndexReader,
+          valuesReaderOrNull = valuesReaderOrNull
+        ) match {
+          case matched: KeyMatcher.Result.Matched =>
+            matched.result.toPersistent
 
-            case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
-              Persistent.Null
-          }
+          case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
+            Persistent.Null
+        }
 
       case Persistent.Null =>
         seekAndMatchToPersistent(
@@ -877,22 +886,19 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //    else
     startFrom match {
       case startFrom: Persistent =>
-        if (startFrom.nextIndexOffset == -1)
-          Persistent.Null
-        else
-          SortedIndexBlock.matchOrSeek(
-            matcher = KeyMatcher.Lower(key),
-            previous = startFrom,
-            next = next,
-            indexReader = sortedIndexReader,
-            valuesReaderOrNull = valuesReaderOrNull
-          ) match {
-            case matched: KeyMatcher.Result.Matched =>
-              matched.result.toPersistent
+        SortedIndexBlock.matchOrSeek(
+          matcher = KeyMatcher.Lower(key),
+          previous = startFrom,
+          next = next,
+          indexReader = sortedIndexReader,
+          valuesReaderOrNull = valuesReaderOrNull
+        ) match {
+          case matched: KeyMatcher.Result.Matched =>
+            matched.result.toPersistent
 
-            case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
-              Persistent.Null
-          }
+          case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
+            Persistent.Null
+        }
 
       case Persistent.Null =>
         next match {
@@ -927,22 +933,19 @@ private[core] object SortedIndexBlock extends LazyLogging {
                                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): PersistentOptional =
     startFrom match {
       case startFrom: Persistent =>
-        if (startFrom.nextIndexOffset == -1)
-          Persistent.Null
-        else
-          seekAndMatchOrSeek(
-            previous = startFrom,
-            next = Persistent.Null,
-            matcher = matcher,
-            indexReader = indexReader,
-            valuesReaderOrNull = valuesReaderOrNull
-          ) match {
-            case matched: KeyMatcher.Result.Matched =>
-              matched.result.toPersistent
+        seekAndMatchOrSeek(
+          previous = startFrom,
+          next = Persistent.Null,
+          matcher = matcher,
+          indexReader = indexReader,
+          valuesReaderOrNull = valuesReaderOrNull
+        ) match {
+          case matched: KeyMatcher.Result.Matched =>
+            matched.result.toPersistent
 
-            case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
-              Persistent.Null
-          }
+          case KeyMatcher.Result.AheadOrNoneOrEnd | KeyMatcher.Result.BehindStopped =>
+            Persistent.Null
+        }
 
       //No start from. Get the first index entry from the File and start from there.
       case Persistent.Null =>
