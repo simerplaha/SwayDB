@@ -102,30 +102,39 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                          self: ActorWire[Compactor[ThrottleState], ThrottleState]): Unit = {
     logger.debug(s"${state.name}: scheduling next wakeup for updated state: ${state.levels.size}. Current scheduled: ${state.sleepTask.map(_._2.timeLeft.asString)}")
 
-    state
-      .compactionStates
-      .collect {
-        case (level, levelState) if levelState.stateId != level.stateId || state.sleepTask.isEmpty =>
-          (level, levelState)
-      }
-      .foldLeft(Option.empty[Deadline]) {
+    val levelsToCompact =
+      state
+        .compactionStates
+        .collect {
+          case (level, levelState) if levelState.stateId != level.stateId || state.sleepTask.isEmpty =>
+            (level, levelState)
+        }
+
+    logger.debug(s"${state.name}: Levels to compact: \t\n${levelsToCompact.map { case (level, state) => (level.levelNumber, state) }.mkString("\t\n")}")
+
+    val nextDeadline =
+      levelsToCompact.foldLeft(Option.empty[Deadline]) {
         case (nearestDeadline, (_, waiting @ ThrottleLevelState.AwaitingPull(promise, timeout, _))) =>
           //do not create another hook if a future was already initialised to invoke wakeUp.
           if (!waiting.listenerInitialised) {
+            waiting.listenerInitialised = true
             promise.future.foreach {
               _ =>
                 logger.debug(s"${state.name}: received pull request. Sending wakeUp now.")
                 waiting.listenerInvoked = true
                 self send {
-                  (impl, state, self) =>
+                  (impl, state, self) => {
+                    logger.debug(s"${state.name}: Wake up executed.")
                     impl.wakeUp(
                       state = state,
                       forwardCopyOnAllLevels = false,
                       self = self
                     )
+                  }
                 }
             }(self.ec) //use the execution context of the same Actor.
-            waiting.listenerInitialised = true
+          } else {
+            logger.debug(s"${state.name}: listener already initialised.")
           }
 
           FiniteDurations.getNearestDeadline(
@@ -139,6 +148,10 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
             next = Some(sleepDeadline)
           )
       }
+
+    logger.debug(s"${state.name}: Time left for new deadline ${nextDeadline.map(_.timeLeft.asString)}")
+
+    nextDeadline
       .foreach {
         newWakeUpDeadline =>
           //if the wakeUp deadlines are the same do not trigger another wakeUp.
@@ -148,6 +161,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
             val newTask =
               self.send(newWakeUpDeadline.timeLeft) {
                 (impl, state) =>
+                  state.sleepTask = None
                   impl.wakeUp(
                     state = state,
                     forwardCopyOnAllLevels = false,
@@ -158,7 +172,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
             state.sleepTask = Some((newTask, newWakeUpDeadline))
             logger.debug(s"${state.name}: Next wakeup scheduled!. Current scheduled: ${newWakeUpDeadline.timeLeft.asString}")
           } else {
-            logger.debug(s"${state.name}: Same deadline. Ignoring re-scheduling.")
+            logger.debug(s"${state.name}: Some or later deadline. Ignoring re-scheduling. Keeping currently scheduled.")
           }
       }
   }

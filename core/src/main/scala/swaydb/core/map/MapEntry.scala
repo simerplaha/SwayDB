@@ -122,23 +122,17 @@ private[swaydb] object MapEntry {
     def ++(right: MapEntry[K, V]): MapEntry[K, V] =
       new MapEntry[K, V] {
 
-        private var calculatedEntriesByteSize: Int = -1
-
         override protected val _entries =
           left._entries ++= right._entries
+
+        override val entryBytesSize: Int =
+          left.entryBytesSize + right.entryBytesSize
 
         override def writeTo(slice: Slice[Byte]): Unit =
           _entries foreach (_.writeTo(slice))
 
         override def asString(keyParser: K => String, valueParser: V => String): String =
           s"""${left.asString(keyParser, valueParser)}${right.asString(keyParser, valueParser)}"""
-
-        override def entryBytesSize: Int = {
-          if (calculatedEntriesByteSize == -1)
-            calculatedEntriesByteSize = left.entryBytesSize + right.entryBytesSize
-
-          calculatedEntriesByteSize
-        }
 
         //        override def applyTo[T >: V](skipList: SkipList.Concurrent[K, T]): Unit =
         //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))

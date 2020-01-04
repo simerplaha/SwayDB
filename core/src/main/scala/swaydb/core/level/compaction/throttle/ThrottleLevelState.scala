@@ -31,7 +31,9 @@ private[level] sealed trait ThrottleLevelState {
 private[level] object ThrottleLevelState {
   val failureSleepDuration = 5.second
 
-  def longSleep = 365.days.fromNow
+  def longSleep = longSleepFiniteDuration.fromNow
+
+  val longSleepFiniteDuration: FiniteDuration = 1.hour
 
   case class AwaitingPull(promise: Promise[Unit],
                           timeout: Deadline,
