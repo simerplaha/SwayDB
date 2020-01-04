@@ -43,7 +43,7 @@ import scala.reflect.ClassTag
 object Set {
 
   class Config[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], SF](@BeanProperty var mapSize: Int = 4.mb,
-                                                                                      @BeanProperty var segmentSize: Int = 2.mb,
+                                                                                      @BeanProperty var minUncompressedSegmentSize: Int = 2.mb,
                                                                                       @BeanProperty var maxOpenSegments: Int = 100,
                                                                                       @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
                                                                                       @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
@@ -65,7 +65,7 @@ object Set {
           val scalaMap =
             swaydb.memory.Set[A, SF, swaydb.IO.ThrowableIO](
               mapSize = mapSize,
-              segmentSize = segmentSize,
+              minUncompressedSegmentSize = minUncompressedSegmentSize,
               maxOpenSegments = maxOpenSegments,
               maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
               fileSweeperPollInterval = fileSweeperPollInterval.toScala,

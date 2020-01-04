@@ -50,8 +50,8 @@ object DefaultEventuallyPersistentConfig {
             mapSize: Int,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
-            memoryLevelSegmentSize: Int,
-            persistentLevelSegmentSize: Int,
+            memoryLevelMinUncompressedSegmentSize: Int,
+            persistentLevelMinUncompressedSegmentSize: Int,
             persistentLevelAppendixFlushCheckpointSize: Int,
             mmapPersistentSegments: MMAP,
             mmapPersistentAppendix: Boolean,
@@ -67,7 +67,7 @@ object DefaultEventuallyPersistentConfig {
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
       .addMemoryLevel1(
-        segmentSize = memoryLevelSegmentSize,
+        minUncompressedSegmentSize = memoryLevelMinUncompressedSegmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
         mightContainIndex =
@@ -90,7 +90,7 @@ object DefaultEventuallyPersistentConfig {
       .addPersistentLevel(
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = persistentLevelSegmentSize,
+        minUncompressedSegmentSize = persistentLevelMinUncompressedSegmentSize,
         mmapSegment = mmapPersistentSegments,
         mmapAppendix = mmapPersistentAppendix,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,

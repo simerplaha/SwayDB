@@ -45,7 +45,7 @@ object DefaultMemoryConfig {
    * Default configuration for 2 leveled Memory database.
    */
   def apply(mapSize: Int,
-            segmentSize: Int,
+            minUncompressedSegmentSize: Int,
             mightContainFalsePositiveRate: Double,
             deleteSegmentsEventually: Boolean,
             acceleration: LevelZeroMeter => Accelerator): SwayDBMemoryConfig =
@@ -57,7 +57,7 @@ object DefaultMemoryConfig {
         throttle = _ => Duration.Zero
       )
       .addMemoryLevel1(
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
         mightContainIndex = MightContainIndex.Disable,

@@ -44,7 +44,7 @@ object Set extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
   def apply[A, F, T[_]](mapSize: Int = 4.mb,
-                        segmentSize: Int = 2.mb,
+                        minUncompressedSegmentSize: Int = 2.mb,
                         maxOpenSegments: Int = 100,
                         maxCachedKeyValuesPerSegment: Int = 10,
                         fileSweeperPollInterval: FiniteDuration = 10.seconds,
@@ -61,7 +61,7 @@ object Set extends LazyLogging {
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryConfig(
         mapSize = mapSize,
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         deleteSegmentsEventually = deleteSegmentsEventually,
         acceleration = acceleration

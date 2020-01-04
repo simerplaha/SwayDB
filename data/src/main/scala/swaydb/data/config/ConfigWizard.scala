@@ -78,7 +78,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
                                      throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
-                          segmentSize: Int,
+                          minUncompressedSegmentSize: Int,
                           mmapSegment: MMAP,
                           mmapAppendix: Boolean,
                           appendixFlushCheckpointSize: Long,
@@ -100,7 +100,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
         PersistentLevelConfig(
           dir = dir,
           otherDirs = otherDirs,
-          segmentSize = segmentSize,
+          segmentSize = minUncompressedSegmentSize,
           mmapSegment = mmapSegment,
           mmapAppendix = mmapAppendix,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -120,7 +120,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
       otherLevels = List.empty
     )
 
-  def addMemoryLevel1(segmentSize: Int,
+  def addMemoryLevel1(minUncompressedSegmentSize: Int,
                       copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
                       mightContainKey: MightContainIndex,
@@ -129,7 +129,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
     SwayDBPersistentConfig(
       level0 = this,
       level1 = MemoryLevelConfig(
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         copyForward = copyForward,
         mightContainKey = mightContainKey,
         deleteSegmentsEventually = deleteSegmentsEventually,
@@ -148,7 +148,7 @@ case class LevelZeroMemoryConfig(mapSize: Long,
 
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
-                          segmentSize: Int,
+                          minUncompressedSegmentSize: Int,
                           mmapSegment: MMAP,
                           mmapAppendix: Boolean,
                           appendixFlushCheckpointSize: Long,
@@ -170,7 +170,7 @@ case class LevelZeroMemoryConfig(mapSize: Long,
         PersistentLevelConfig(
           dir = dir,
           otherDirs = otherDirs,
-          segmentSize = segmentSize,
+          segmentSize = minUncompressedSegmentSize,
           mmapSegment = mmapSegment,
           mmapAppendix = mmapAppendix,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -190,7 +190,7 @@ case class LevelZeroMemoryConfig(mapSize: Long,
       otherLevels = List.empty
     )
 
-  def addMemoryLevel1(segmentSize: Int,
+  def addMemoryLevel1(minUncompressedSegmentSize: Int,
                       copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
                       mightContainIndex: MightContainIndex,
@@ -199,7 +199,7 @@ case class LevelZeroMemoryConfig(mapSize: Long,
     SwayDBMemoryConfig(
       level0 = this,
       level1 = MemoryLevelConfig(
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         copyForward = copyForward,
         mightContainKey = mightContainIndex,
         deleteSegmentsEventually = deleteSegmentsEventually,
@@ -214,7 +214,7 @@ sealed trait LevelConfig
 
 case object TrashLevelConfig extends LevelConfig
 
-case class MemoryLevelConfig(segmentSize: Int,
+case class MemoryLevelConfig(minUncompressedSegmentSize: Int,
                              copyForward: Boolean,
                              deleteSegmentsEventually: Boolean,
                              mightContainKey: MightContainIndex,
@@ -276,7 +276,7 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
 
   def addPersistentLevel(dir: Path,
                          otherDirs: Seq[Dir],
-                         segmentSize: Int,
+                         minUncompressedSegmentSize: Int,
                          mmapSegment: MMAP,
                          mmapAppendix: Boolean,
                          appendixFlushCheckpointSize: Long,
@@ -296,7 +296,7 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
       PersistentLevelConfig(
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = segmentSize,
+        segmentSize = minUncompressedSegmentSize,
         mmapSegment = mmapSegment,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -328,7 +328,7 @@ case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
 
     addMemoryLevel(
       MemoryLevelConfig(
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = segmentSize,
         copyForward = copyForward,
         deleteSegmentsEventually = deleteSegmentsEventually,
         mightContainKey = mightContainKey,
@@ -352,7 +352,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
 
   def addPersistentLevel(dir: Path,
                          otherDirs: Seq[Dir],
-                         segmentSize: Int,
+                         minUncompressedSegmentSize: Int,
                          mmapSegment: MMAP,
                          mmapAppendix: Boolean,
                          appendixFlushCheckpointSize: Long,
@@ -373,7 +373,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
         PersistentLevelConfig(
           dir = dir,
           otherDirs = otherDirs,
-          segmentSize = segmentSize,
+          segmentSize = minUncompressedSegmentSize,
           mmapSegment = mmapSegment,
           mmapAppendix = mmapAppendix,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -405,7 +405,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
     copy(
       otherLevels = otherLevels :+
         MemoryLevelConfig(
-          segmentSize = segmentSize,
+          minUncompressedSegmentSize = segmentSize,
           copyForward = copyForward,
           deleteSegmentsEventually = deleteSegmentsEventually,
           mightContainKey = mightContainKey,

@@ -50,7 +50,7 @@ case class MemoryTest(keyValueCount: Long,
                       useMap: Boolean,
                       mapSize: Int,
                       segmentSize: Int) extends Test {
-  override val map = memory.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](mapSize = mapSize, segmentSize = segmentSize).get
+  override val map = memory.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](mapSize = mapSize, minUncompressedSegmentSize = segmentSize).get
 }
 
 case class PersistentTest(dir: Path,
@@ -68,7 +68,7 @@ case class PersistentTest(dir: Path,
       persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](
         dir = dir,
         mapSize = mapSize,
-        segmentSize = segmentSize
+        minUncompressedSegmentSize = segmentSize
       ).get
     else
       persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, IO.ApiIO](
@@ -77,6 +77,6 @@ case class PersistentTest(dir: Path,
         mmapAppendix = false,
         mmapSegments = MMAP.Disabled,
         mapSize = mapSize,
-        segmentSize = segmentSize
+        minUncompressedSegmentSize = segmentSize
       ).get
 }

@@ -22,8 +22,11 @@ package swaydb.configs.level
 import java.nio.file.Path
 import java.util.concurrent.Executors
 
+import swaydb.Compression
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
+import swaydb.data.compression.DecompressorId.LZ4FastestInstance
+import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 import swaydb.data.config._
 
 import scala.concurrent.ExecutionContext
@@ -52,7 +55,7 @@ object DefaultPersistentConfig {
             recoveryMode: RecoveryMode,
             mmapSegments: MMAP,
             mmapAppendix: Boolean,
-            segmentSize: Int,
+            minUncompressedSegmentSize: Int,
             appendixFlushCheckpointSize: Int,
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
@@ -80,7 +83,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel1( //level1
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -144,7 +147,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level2
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -208,7 +211,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level3
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -272,7 +275,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level4
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -336,7 +339,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level5
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -400,7 +403,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level6
         dir = dir,
         otherDirs = otherDirs,
-        segmentSize = segmentSize,
+        minUncompressedSegmentSize = minUncompressedSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -411,7 +414,7 @@ object DefaultPersistentConfig {
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compressions = _ => Seq.empty
+            compressions = _ => Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(10)), (LZ4Instance.Fastest, LZ4Decompressor.Fast)))
           ),
         randomKeyIndex =
           RandomKeyIndex.Enable(
@@ -444,7 +447,7 @@ object DefaultPersistentConfig {
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
             ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
+            compression = _ => Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(10)), (LZ4Instance.Fastest, LZ4Decompressor.Fast)))
           ),
         segmentIO = {
           case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
