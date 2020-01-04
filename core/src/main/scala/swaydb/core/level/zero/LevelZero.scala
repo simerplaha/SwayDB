@@ -387,10 +387,10 @@ private[swaydb] case class LevelZero(path: Path,
                          currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): MemoryOptional =
     if (currentMap.hasRange)
       currentMap.skipList.floor(key) match {
-        case floor: Memory.Range if key < floor.toKey =>
+        case floor: Memory.Fixed if floor.key equiv key =>
           floor
 
-        case floor: Memory if floor.key equiv key =>
+        case floor: Memory.Range if key < floor.toKey =>
           floor
 
         case _ =>

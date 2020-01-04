@@ -78,31 +78,31 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
   def asScala: mutable.Map[SomeKey, SomeValue]
   def isConcurrent: Boolean
 
-  def toOptionValue(entry: java.util.Map.Entry[SomeKey, SomeValue]): OptionalValue =
+  @inline final def toOptionValue(entry: java.util.Map.Entry[SomeKey, SomeValue]): OptionalValue =
     if (entry == null)
       nullValue
     else
       entry.getValue
 
-  def toOptionValue(value: SomeValue): OptionalValue =
+  @inline final def toOptionValue(value: SomeValue): OptionalValue =
     if (value == null)
       nullValue
     else
       value
 
-  def toOptionKey(key: SomeKey): OptionalKey =
+  @inline final def toOptionKey(key: SomeKey): OptionalKey =
     if (key == null)
       nullKey
     else
       key
 
-  def toOptionKeyValue(entry: java.util.Map.Entry[SomeKey, SomeValue]): Option[(SomeKey, SomeValue)] =
+  @inline final def toOptionKeyValue(entry: java.util.Map.Entry[SomeKey, SomeValue]): Option[(SomeKey, SomeValue)] =
     if (entry == null)
       None
     else
       Option((entry.getKey, entry.getValue))
 
-  final def tryOptionValue(block: => java.util.Map.Entry[SomeKey, SomeValue]): OptionalValue =
+  @inline final def tryOptionValue(block: => java.util.Map.Entry[SomeKey, SomeValue]): OptionalValue =
     try
       toOptionValue(block)
     catch {
@@ -110,7 +110,7 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
         nullValue
     }
 
-  final def tryOptionKey(block: => SomeKey): OptionalKey =
+  @inline final def tryOptionKey(block: => SomeKey): OptionalKey =
     try
       toOptionKey(block)
     catch {
@@ -118,7 +118,7 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
         nullKey
     }
 
-  final def tryOptionKeyValue(block: => java.util.Map.Entry[SomeKey, SomeValue]): Option[(SomeKey, SomeValue)] =
+  @inline final def tryOptionKeyValue(block: => java.util.Map.Entry[SomeKey, SomeValue]): Option[(SomeKey, SomeValue)] =
     try
       toOptionKeyValue(block)
     catch {
