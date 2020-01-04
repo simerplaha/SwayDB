@@ -70,15 +70,15 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
     )
   }
 
-  def shouldRun(levelNumber: Long, newStateId: Long, state: ThrottleLevelState): Boolean =
+  def shouldRun(level: LevelRef, newStateId: Long, state: ThrottleLevelState): Boolean =
     state match {
       case awaitingPull @ ThrottleLevelState.AwaitingPull(_, timeout, stateId) =>
-        logger.debug(s"Level($levelNumber): $state")
-        awaitingPull.listenerInvoked || timeout.isOverdue() || newStateId != stateId
+        logger.debug(s"Level(${level.levelNumber}): $state")
+        awaitingPull.listenerInvoked || timeout.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
 
       case ThrottleLevelState.Sleeping(sleepDeadline, stateId) =>
-        logger.debug(s"Level($levelNumber): $state")
-        sleepDeadline.isOverdue() || newStateId != stateId
+        logger.debug(s"Level(${level.levelNumber}): $state")
+        sleepDeadline.isOverdue() || (newStateId != stateId && level.nextCompactionDelay.fromNow.isOverdue())
     }
 
   @tailrec
@@ -98,7 +98,7 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
         val currentState = state.compactionStates.get(level)
         //Level's stateId should only be accessed here before compaction starts for the level.
         val stateId = level.stateId
-        if (currentState.forall(state => shouldRun(level.levelNumber, stateId, state))) {
+        if (currentState.forall(state => shouldRun(level, stateId, state))) {
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: ${if (currentState.isEmpty) "Initial run" else "shouldRun = true"}.")
           val nextState = runJob(level, stateId)(state.executionContext)
           logger.debug(s"Level(${level.levelNumber}): ${state.name}: next state $nextState.")
