@@ -84,6 +84,7 @@ object AppendixMapEntryWriter {
         .addUnsignedInt(id)
         .addUnsignedInt(segmentPath.size)
         .addBytes(segmentPath)
+        .addUnsignedInt(entry.value.createdInLevel)
         .addUnsignedInt(entry.value.segmentSize)
         .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
@@ -118,6 +119,7 @@ object AppendixMapEntryWriter {
       Bytes.sizeOfUnsignedInt(id) +
         Bytes.sizeOfUnsignedInt(segmentPath.length) +
         segmentPath.length +
+        Bytes.sizeOfUnsignedInt(entry.value.createdInLevel) +
         Bytes.sizeOfUnsignedInt(entry.value.segmentSize) +
         Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size +

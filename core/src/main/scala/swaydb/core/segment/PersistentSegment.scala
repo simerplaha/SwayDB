@@ -47,6 +47,7 @@ import scala.collection.compat._
 object PersistentSegment {
   def apply(file: DBFile,
             segmentId: Long,
+            createdInLevel: Int,
             mmapReads: Boolean,
             mmapWrites: Boolean,
             minKey: Slice[Byte],
@@ -87,6 +88,7 @@ object PersistentSegment {
     new PersistentSegment(
       file = file,
       segmentId = segmentId,
+      createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
       minKey = minKey,
@@ -101,6 +103,7 @@ object PersistentSegment {
 
 private[segment] case class PersistentSegment(file: DBFile,
                                               segmentId: Long,
+                                              createdInLevel: Int,
                                               mmapReads: Boolean,
                                               mmapWrites: Boolean,
                                               minKey: Slice[Byte],
@@ -355,9 +358,6 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def notExistsOnDisk: Boolean =
     !file.existsOnDisk
-
-  override def createdInLevel: Int =
-    segmentCache.createdInLevel
 
   def hasBloomFilter: Boolean =
     segmentCache.hasBloomFilter

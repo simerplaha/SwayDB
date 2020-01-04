@@ -77,6 +77,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
         val segmentPathLength = reader.readUnsignedInt()
         val segmentPathBytes = reader.read(segmentPathLength).unslice()
         val segmentPath = Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8))
+        val createdInLevel = reader.readUnsignedInt()
         val segmentSize = reader.readUnsignedInt()
         val minKeyLength = reader.readUnsignedInt()
         val minKey = reader.read(minKeyLength).unslice()
@@ -132,9 +133,10 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                 Segment(
                   path = segmentPath,
                   segmentId = segmentId,
+                  createdInLevel = createdInLevel,
+                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                   mmapReads = mmapSegmentsOnRead,
                   mmapWrites = mmapSegmentsOnWrite,
-                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                   minKey = minKey,
                   maxKey = maxKey,
                   segmentSize = segmentSize,

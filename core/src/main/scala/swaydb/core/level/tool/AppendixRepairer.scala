@@ -66,8 +66,10 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
               IO(Effect.fileId(segmentPath)) flatMap {
                 case (segmentId, Extension.Seg) =>
                   IO {
+                    val levelNumber = levelPath.getFileName.toString.toInt
                     Segment(
                       path = segmentPath,
+                      createdInLevel = levelNumber,
                       segmentId = segmentId,
                       mmapReads = false,
                       mmapWrites = false,

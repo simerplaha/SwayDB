@@ -36,6 +36,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Random
 
 /**
  * Compactor = Compaction Actor.
@@ -43,6 +44,11 @@ import scala.concurrent.{ExecutionContext, Future}
  * Implements Actor functions.
  */
 private[core] object ThrottleCompactor extends Compactor[ThrottleState] with LazyLogging {
+
+  private val random = new Random()
+
+  def forwardCopyOnAllLevelsRandomly(): Boolean =
+    random.nextDouble() <= 0.1
 
   /**
    * Split levels into compaction groups with dedicated or shared ExecutionContexts based on
@@ -127,7 +133,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                     logger.debug(s"${state.name}: Wake up executed.")
                     impl.wakeUp(
                       state = state,
-                      forwardCopyOnAllLevels = false,
+                      forwardCopyOnAllLevels = forwardCopyOnAllLevelsRandomly(),
                       self = self
                     )
                   }
@@ -164,7 +170,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
                   state.sleepTask = None
                   impl.wakeUp(
                     state = state,
-                    forwardCopyOnAllLevels = false,
+                    forwardCopyOnAllLevels = forwardCopyOnAllLevelsRandomly(),
                     self = self
                   )
               }
@@ -184,7 +190,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
       .foreach {
         child =>
           sendWakeUp(
-            forwardCopyOnAllLevels = false,
+            forwardCopyOnAllLevels = forwardCopyOnAllLevelsRandomly(),
             compactor = child
           )
       }

@@ -450,6 +450,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                   Segment(
                     path = segment.path,
                     segmentId = segment.segmentId,
+                    createdInLevel = segment.createdInLevel,
                     mmapReads = randomBoolean(),
                     mmapWrites = randomBoolean(),
                     checkExists = false

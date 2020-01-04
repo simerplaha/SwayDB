@@ -272,12 +272,13 @@ private[core] object Segment extends LazyLogging {
             PersistentSegment(
               file = file,
               segmentId = segmentId,
+              createdInLevel = createdInLevel,
               mmapReads = mmapReads,
               mmapWrites = mmapWrites,
               minKey = segment.minKey,
               maxKey = segment.maxKey,
-              segmentSize = segment.segmentSize,
               minMaxFunctionId = segment.minMaxFunctionId,
+              segmentSize = segment.segmentSize,
               nearestExpiryDeadline = segment.nearestDeadline,
               valuesReaderCacheable = segment.valuesUnblockedReader,
               sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
@@ -329,6 +330,7 @@ private[core] object Segment extends LazyLogging {
             Segment(
               path = nextPath,
               segmentId = segmentId,
+              createdInLevel = segment.createdInLevel,
               blockCacheFileId = segment.file.blockCacheFileId,
               mmapReads = mmapSegmentsOnRead,
               mmapWrites = mmapSegmentsOnWrite,
@@ -456,6 +458,7 @@ private[core] object Segment extends LazyLogging {
 
   def apply(path: Path,
             segmentId: Long,
+            createdInLevel: Int,
             blockCacheFileId: Long,
             mmapReads: Boolean,
             mmapWrites: Boolean,
@@ -493,6 +496,7 @@ private[core] object Segment extends LazyLogging {
     PersistentSegment(
       file = file,
       segmentId = segmentId,
+      createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
       minKey = minKey,
@@ -519,6 +523,7 @@ private[core] object Segment extends LazyLogging {
    */
   def apply(path: Path,
             segmentId: Long,
+            createdInLevel: Int,
             mmapReads: Boolean,
             mmapWrites: Boolean,
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -582,6 +587,7 @@ private[core] object Segment extends LazyLogging {
     PersistentSegment(
       file = file,
       segmentId = segmentId,
+      createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
       minKey = keyValues.head.key.unslice(),

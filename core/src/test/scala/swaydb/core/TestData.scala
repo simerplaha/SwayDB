@@ -103,6 +103,7 @@ object TestData {
         Segment(
           path = path,
           segmentId = Effect.fileId(path)._1,
+          createdInLevel = segment.createdInLevel,
           mmapReads = randomBoolean(),
           mmapWrites = randomBoolean(),
           blockCacheFileId = BlockCacheFileIDGenerator.nextID,
