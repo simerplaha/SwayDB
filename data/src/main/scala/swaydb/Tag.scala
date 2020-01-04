@@ -565,49 +565,49 @@ object Tag extends LazyLogging {
 
   implicit val option: Tag.Sync[Option] = throwableIO.toTag[Option]
 
-  type Out[A] = A
+  type Id[A] = A
 
-  val outTag =
-    new Tag.Sync[Out] {
-      override def isSuccess[A](a: Out[A]): Boolean = true
+  val idTag =
+    new Tag.Sync[Id] {
+      override def isSuccess[A](a: Id[A]): Boolean = true
 
-      override def isFailure[A](a: Out[A]): Boolean = false
+      override def isFailure[A](a: Id[A]): Boolean = false
 
-      override def exception[A](a: Out[A]): Option[Throwable] = None
+      override def exception[A](a: Id[A]): Option[Throwable] = None
 
-      override def getOrElse[A, B >: A](a: Out[A])(b: => B): B = a
+      override def getOrElse[A, B >: A](a: Id[A])(b: => B): B = a
 
-      override def orElse[A, B >: A](a: Out[A])(b: Out[B]): Out[B] = a
+      override def orElse[A, B >: A](a: Id[A])(b: Id[B]): Id[B] = a
 
-      override def unit: Out[Unit] = ()
+      override def unit: Id[Unit] = ()
 
-      override def none[A]: Out[Option[A]] = Option.empty[A]
+      override def none[A]: Id[Option[A]] = Option.empty[A]
 
-      override def apply[A](a: => A): Out[A] = a
+      override def apply[A](a: => A): Id[A] = a
 
-      override def createSerial(): Serial[Out] =
-        new Serial[Out] {
-          override def execute[F](f: => F): Out[F] = f
+      override def createSerial(): Serial[Id] =
+        new Serial[Id] {
+          override def execute[F](f: => F): Id[F] = f
         }
 
-      override def foreach[A](a: Out[A])(f: A => Unit): Unit = f(a)
+      override def foreach[A](a: Id[A])(f: A => Unit): Unit = f(a)
 
-      override def map[A, B](a: Out[A])(f: A => B): Out[B] = f(a)
+      override def map[A, B](a: Id[A])(f: A => B): Id[B] = f(a)
 
-      override def flatMap[A, B](fa: Out[A])(f: A => Out[B]): Out[B] = f(fa)
+      override def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = f(fa)
 
-      override def success[A](value: A): Out[A] = value
+      override def success[A](value: A): Id[A] = value
 
-      override def failure[A](exception: Throwable): Out[A] = throw exception
+      override def failure[A](exception: Throwable): Id[A] = throw exception
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Out[A] = a.get
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Id[A] = a.get
 
       //todo
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Out], drop: Int, take: Option[Int])(operation: (U, A) => U): Out[U] =
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Id], drop: Int, take: Option[Int])(operation: (U, A) => U): Id[U] =
         ???
 
       //todo
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Out])(condition: A => Boolean): Out[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Id])(condition: A => Boolean): Id[Option[A]] =
         ???
     }
 }

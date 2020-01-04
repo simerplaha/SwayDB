@@ -88,7 +88,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
           maxKey = MaxKey.Fixed[Slice[Byte]](Int.MaxValue),
           minKey = 0,
           skipList = None,
-          blockCache = segmentBlockCache.head
+          segmentBlockCache = segmentBlockCache.head
         )
 
       val threadState = ThreadReadState.random

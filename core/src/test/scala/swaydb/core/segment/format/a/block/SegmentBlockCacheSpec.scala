@@ -310,7 +310,7 @@ class SegmentBlockCacheSpec extends TestBase {
             segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false)
           ).asInstanceOf[PersistentSegment]
 
-        val blockCache = segment.segmentCache.blockCache
+        val blockCache = segment.segmentCache.segmentBlockCache
 
         def assertIsCached() = {
           blockCache.createSortedIndexReader().isFile shouldBe false

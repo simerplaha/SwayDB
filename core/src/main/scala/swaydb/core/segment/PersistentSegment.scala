@@ -208,13 +208,13 @@ private[segment] case class PersistentSegment(file: DBFile,
               segmentConfig: SegmentBlock.Config,
               pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val footer = getFooter()
+    val footer = segmentCache.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
     //will be the same as existing or less than the current sizes so there is no need to create a
     //MergeState builder.
     if (footer.createdInLevel == createdInLevel) {
-      val sortedIndexBlock = segmentCache.blockCache.getSortedIndex()
-      val valuesBlock = segmentCache.blockCache.getValues()
+      val sortedIndexBlock = segmentCache.segmentBlockCache.getSortedIndex()
+      val valuesBlock = segmentCache.segmentBlockCache.getValues()
 
       val sortedIndexSize =
         sortedIndexBlock.compressionInfo match {
@@ -340,9 +340,6 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def getKeyValueCount(): Int =
     segmentCache.getKeyValueCount()
-
-  def getFooter(): SegmentFooterBlock =
-    segmentCache.getFooter()
 
   override def isFooterDefined: Boolean =
     segmentCache.isFooterDefined

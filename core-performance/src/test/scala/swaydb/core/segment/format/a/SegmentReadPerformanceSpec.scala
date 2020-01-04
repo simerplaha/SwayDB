@@ -262,7 +262,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     //    println(s"not PrefixedCompressed count: ${keyValues.count(!_.isPrefixCompressed)}")
     //    println
 
-    segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getHashIndex() foreach {
+    segment.asInstanceOf[PersistentSegment].segmentCache.segmentBlockCache.getHashIndex() foreach {
       hashIndex =>
         println(s"hashIndex.hit: ${hashIndex.hit}")
         println(s"hashIndex.miss: ${hashIndex.miss}")
@@ -270,7 +270,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         println
     }
 
-    segment.asInstanceOf[PersistentSegment].segmentCache.blockCache.getBinarySearchIndex() foreach {
+    segment.asInstanceOf[PersistentSegment].segmentCache.segmentBlockCache.getBinarySearchIndex() foreach {
       binarySearch =>
         println(s"binarySearch.valuesCount: ${binarySearch.valuesCount}")
         println(s"binarySearch.bytesPerValue: ${binarySearch.bytesPerValue}")

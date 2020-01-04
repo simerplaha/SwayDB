@@ -71,7 +71,7 @@ private[core] object SegmentCache {
                 )
             }
         },
-      blockCache =
+      segmentBlockCache =
         SegmentBlockCache(
           path = path,
           segmentIO = segmentIO,
@@ -171,7 +171,7 @@ private[core] object SegmentCache {
       //        None
 
       case _ =>
-        val footer = segmentCache.blockCache.getFooter()
+        val footer = segmentCache.segmentBlockCache.getFooter()
         val segmentStateOptional = readState.getSegmentState(segmentCache.path)
         val getFromState =
           if (footer.hasRange && segmentStateOptional.isSomeS)
@@ -215,8 +215,8 @@ private[core] object SegmentCache {
                     segmentSearcher.searchSequential(
                       key = key,
                       start = bestStart,
-                      sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
-                      valuesReaderOrNull = segmentCache.blockCache.createValuesReaderOrNull()
+                      sortedIndexReader = segmentCache.segmentBlockCache.createSortedIndexReader(),
+                      valuesReaderOrNull = segmentCache.segmentBlockCache.createValuesReaderOrNull()
                     ) onSomeSideEffectS {
                       found =>
                         SegmentReadState.updateOnSuccessSequentialRead(
@@ -242,10 +242,10 @@ private[core] object SegmentCache {
                       start = bestStart,
                       end = higher,
                       keyValueCount = footer.keyValueCount,
-                      hashIndexReaderOrNull = segmentCache.blockCache.createHashIndexReaderOrNull(),
-                      binarySearchIndexReaderOrNull = segmentCache.blockCache.createBinarySearchIndexReaderOrNull(),
-                      sortedIndexReader = segmentCache.blockCache.createSortedIndexReader(),
-                      valuesReaderOrNull = segmentCache.blockCache.createValuesReaderOrNull(),
+                      hashIndexReaderOrNull = segmentCache.segmentBlockCache.createHashIndexReaderOrNull(),
+                      binarySearchIndexReaderOrNull = segmentCache.segmentBlockCache.createBinarySearchIndexReaderOrNull(),
+                      sortedIndexReader = segmentCache.segmentBlockCache.createSortedIndexReader(),
+                      valuesReaderOrNull = segmentCache.segmentBlockCache.createValuesReaderOrNull(),
                       hasRange = footer.hasRange
                     ) onSideEffectS {
                       found =>
@@ -284,7 +284,7 @@ private[core] object SegmentCache {
         if (keyOrder.lt(key, segmentCache.minKey)) {
           get(segmentCache.minKey, readState)
         } else {
-          val blockCache = segmentCache.blockCache
+          val blockCache = segmentCache.segmentBlockCache
           val footer = blockCache.getFooter()
           val segmentStateOptional = readState.getSegmentState(segmentCache.path)
           val higherFromState =
@@ -395,7 +395,7 @@ private[core] object SegmentCache {
                                                   persistentKeyOrder: KeyOrder[Persistent],
                                                   partialKeyOrder: KeyOrder[Persistent.Partial],
                                                   segmentSearcher: SegmentSearcher): PersistentOptional = {
-    val sortedIndexReader = segmentCache.blockCache.createSortedIndexReader()
+    val sortedIndexReader = segmentCache.segmentBlockCache.createSortedIndexReader()
     val endKeyValue =
       if (end.isNoneS && sortedIndexReader.block.enableAccessPositionIndex)
       //end is only helpful for lower if accessPositionIndex is enabled.
@@ -410,9 +410,9 @@ private[core] object SegmentCache {
       start = start,
       end = endKeyValue,
       keyValueCount = keyValueCount,
-      binarySearchIndexReaderOrNull = segmentCache.blockCache.createBinarySearchIndexReaderOrNull(),
+      binarySearchIndexReaderOrNull = segmentCache.segmentBlockCache.createBinarySearchIndexReaderOrNull(),
       sortedIndexReader = sortedIndexReader,
-      valuesReaderOrNull = segmentCache.blockCache.createValuesReaderOrNull()
+      valuesReaderOrNull = segmentCache.segmentBlockCache.createValuesReaderOrNull()
     ) onSideEffectS {
       optional =>
         optional foreachS {
@@ -466,7 +466,7 @@ private[core] object SegmentCache {
           get(fromKey, threadState)
 
         case _ =>
-          val blockCache = segmentCache.blockCache
+          val blockCache = segmentCache.segmentBlockCache
           val footer = blockCache.getFooter()
           val segmentState = threadState.getSegmentState(segmentCache.path)
           val lowerFromState =
@@ -562,7 +562,7 @@ private[core] class SegmentCache(val path: Path,
                                  val maxKey: MaxKey[Slice[Byte]],
                                  val minKey: Slice[Byte],
                                  val skipList: Option[SkipList[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent]],
-                                 val blockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
+                                 val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
@@ -597,7 +597,7 @@ private[core] class SegmentCache(val path: Path,
     }
 
   def mightContain(key: Slice[Byte]): Boolean = {
-    val bloomFilterReader = blockCache.createBloomFilterReaderOrNull()
+    val bloomFilterReader = segmentBlockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(
         key = key,
@@ -606,43 +606,43 @@ private[core] class SegmentCache(val path: Path,
   }
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
-    blockCache readAll aggregator
+    segmentBlockCache readAll aggregator
 
   def getAll(): Slice[KeyValue] =
-    blockCache.readAll()
+    segmentBlockCache.readAll()
 
   def getAll(keyValueCount: Int): Slice[KeyValue] =
-    blockCache readAll keyValueCount
+    segmentBlockCache readAll keyValueCount
 
   def iterator(): Iterator[Persistent] =
-    blockCache.iterator()
+    segmentBlockCache.iterator()
 
   def getKeyValueCount(): Int =
-    blockCache.getFooter().keyValueCount
+    segmentBlockCache.getFooter().keyValueCount
 
   def getFooter(): SegmentFooterBlock =
-    blockCache.getFooter()
+    segmentBlockCache.getFooter()
 
   def hasRange: Boolean =
-    blockCache.getFooter().hasRange
+    segmentBlockCache.getFooter().hasRange
 
   def hasPut: Boolean =
-    blockCache.getFooter().hasPut
+    segmentBlockCache.getFooter().hasPut
 
   def isKeyValueCacheEmpty =
     skipList.forall(_.isEmpty)
 
   def isBlockCacheEmpty =
-    !blockCache.isCached
+    !segmentBlockCache.isCached
 
   def isFooterDefined: Boolean =
-    blockCache.isFooterDefined
+    segmentBlockCache.isFooterDefined
 
   def hasBloomFilter: Boolean =
-    blockCache.getFooter().bloomFilterOffset.isDefined
+    segmentBlockCache.getFooter().bloomFilterOffset.isDefined
 
   def createdInLevel: Int =
-    blockCache.getFooter().createdInLevel
+    segmentBlockCache.getFooter().createdInLevel
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
     skipList.exists(_.contains(key))
@@ -654,14 +654,14 @@ private[core] class SegmentCache(val path: Path,
     skipList.foreach(_.clear())
 
   def clearBlockCache() =
-    blockCache.clear()
+    segmentBlockCache.clear()
 
   def areAllCachesEmpty =
-    isKeyValueCacheEmpty && !blockCache.isCached
+    isKeyValueCacheEmpty && !segmentBlockCache.isCached
 
   def readAllBytes(): Slice[Byte] =
-    blockCache.readAllBytes()
+    segmentBlockCache.readAllBytes()
 
   def isInitialised() =
-    blockCache.isCached
+    segmentBlockCache.isCached
 }
