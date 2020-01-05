@@ -16,20 +16,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.OptionValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOptional}
+import swaydb.core.segment.{SegmentIO, SegmentSearcher}
 import swaydb.core.util.Benchmark
 import swaydb.core.{SegmentBlocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
+import org.scalatest.OptionValues._
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 
 import scala.util.Try
 

@@ -31,7 +31,12 @@ import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.{SegmentBlock, _}
+import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey

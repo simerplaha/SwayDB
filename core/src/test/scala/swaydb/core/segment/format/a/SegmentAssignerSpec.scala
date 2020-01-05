@@ -26,8 +26,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.io.file.Effect._
-import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.segment.{Segment, SegmentAssigner}
+import swaydb.core.segment.{Segment, SegmentAssigner, SegmentIO}
 import swaydb.core.util.PipeOps._
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.order.KeyOrder

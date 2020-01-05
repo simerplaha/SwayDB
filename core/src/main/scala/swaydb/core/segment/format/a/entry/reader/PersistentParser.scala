@@ -23,7 +23,8 @@ import swaydb.core.data.Persistent.Partial
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.block.{SortedIndexBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.{KeyValueId, PersistentToKeyValueIdBinder}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice

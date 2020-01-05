@@ -25,7 +25,6 @@ import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.SegmentIO
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice

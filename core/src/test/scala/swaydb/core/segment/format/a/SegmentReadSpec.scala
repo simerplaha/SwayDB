@@ -31,8 +31,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
-import swaydb.core.segment.Segment
-import swaydb.core.segment.format.a.block.SegmentIO
+import swaydb.core.segment.{Segment, SegmentIO}
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder

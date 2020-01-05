@@ -27,8 +27,7 @@ import swaydb.core.data.{Memory, MemoryOptional, Value}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
-import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.segment.{Segment, SegmentOptional}
+import swaydb.core.segment.{Segment, SegmentIO, SegmentOptional}
 import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}

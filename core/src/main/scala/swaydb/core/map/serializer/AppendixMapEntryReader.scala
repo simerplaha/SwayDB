@@ -25,8 +25,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.{Segment, SegmentSerialiser}
-import swaydb.core.segment.format.a.block.SegmentIO
+import swaydb.core.segment.{Segment, SegmentIO, SegmentSerialiser}
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}

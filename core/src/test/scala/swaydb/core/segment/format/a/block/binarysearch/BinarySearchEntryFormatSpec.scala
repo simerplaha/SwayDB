@@ -17,11 +17,10 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.binarysearch.BinarySearchEntryFormat
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf

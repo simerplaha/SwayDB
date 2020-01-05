@@ -20,7 +20,8 @@
 package swaydb.core.segment.format.a.block.reader
 
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps, SegmentBlock}
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] object BlockedReader {

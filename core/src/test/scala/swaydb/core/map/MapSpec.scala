@@ -33,8 +33,7 @@ import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._
-import swaydb.core.segment.{Segment, SegmentOptional}
-import swaydb.core.segment.format.a.block.SegmentIO
+import swaydb.core.segment.{Segment, SegmentIO, SegmentOptional}
 import swaydb.core.util.{BlockCacheFileIDGenerator, Extension, SkipList}
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}

@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.sortedindex
 
 import org.scalatest.PrivateMethodTester
 import swaydb.Compression
@@ -25,7 +25,10 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.Persistent
+import swaydb.core.segment.SegmentIO
+import swaydb.core.segment.format.a.block.Block
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestSweeper}

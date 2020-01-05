@@ -12,8 +12,12 @@ import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.config.{ActorConfig, IOAction, MemoryCache}
 import swaydb.data.order.KeyOrder

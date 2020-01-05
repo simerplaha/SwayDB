@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block.reader
 import swaydb.core.io.file.DBFile
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.data.slice.{Reader, Slice}
 
 private[core] object BlockRefReader {

@@ -23,8 +23,8 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.{TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.segment.{TransientSegment, TransientSegmentBlock}
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -147,7 +147,7 @@ private[core] object Block extends LazyLogging {
         )
     }
 
-  def block(ref: TransientSegmentRef,
+  def block(ref: TransientSegmentBlock,
             compressions: Seq[CompressionInternal],
             blockName: String): TransientSegment =
     if (compressions.isEmpty) {

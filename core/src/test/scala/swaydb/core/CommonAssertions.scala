@@ -41,14 +41,18 @@ import swaydb.core.level.{Level, LevelRef, NextLevel}
 import swaydb.core.map.MapEntry
 import swaydb.core.map.serializer.{MapEntryWriter, RangeValueSerializer, ValueSerializer}
 import swaydb.core.merge._
-import swaydb.core.segment.format.a.block.KeyMatcher.Result
-import swaydb.core.segment.format.a.block.SegmentBlock.SegmentBlockOps
+import swaydb.core.segment.KeyMatcher.Result
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.segment.SegmentBlock.SegmentBlockOps
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache, TransientSegment}
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{Segment, SegmentOptional, ThreadReadState, TransientSegment}
+import swaydb.core.segment.{KeyMatcher, Segment, SegmentIO, SegmentOptional, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}

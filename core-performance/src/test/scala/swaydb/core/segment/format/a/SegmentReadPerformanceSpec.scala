@@ -25,10 +25,14 @@ import swaydb.core.data.Memory
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat, BinarySearchIndexBlock}
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
-import swaydb.core.segment.{PersistentSegment, ThreadReadState, Segment}
+import swaydb.core.segment.{PersistentSegment, Segment, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.{IOAction, IOStrategy}

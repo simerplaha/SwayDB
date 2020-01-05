@@ -23,8 +23,8 @@ import java.util
 
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.ValuesBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes

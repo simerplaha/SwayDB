@@ -17,16 +17,21 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.footer
 
 import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
-import swaydb.core.segment.format.a.block.SegmentBlock.ClosedBlocks
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.SegmentBlock.ClosedBlocks
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.core.util.{Bytes, CRC32}
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
@@ -294,7 +299,7 @@ case class SegmentFooterBlock(offset: SegmentFooterBlock.Offset,
                               keyValueCount: Int,
                               createdInLevel: Int,
                               numberOfRanges: Int,
-                              hasPut: Boolean) extends Block[block.SegmentFooterBlock.Offset] {
+                              hasPut: Boolean) extends Block[SegmentFooterBlock.Offset] {
   def hasRange =
     numberOfRanges > 0
 }

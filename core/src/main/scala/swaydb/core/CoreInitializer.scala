@@ -32,6 +32,10 @@ import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, NextLevel, TrashLevel}
 import swaydb.core.segment.format.a.block
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -225,12 +229,12 @@ private[core] object CoreInitializer extends LazyLogging {
         case config: MemoryLevelConfig =>
           Level(
             segmentSize = config.minUncompressedSegmentSize,
-            bloomFilterConfig = block.BloomFilterBlock.Config.disabled,
+            bloomFilterConfig = BloomFilterBlock.Config.disabled,
             hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
             binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config.disabled,
-            sortedIndexConfig = block.SortedIndexBlock.Config.disabled,
-            valuesConfig = block.ValuesBlock.Config.disabled,
-            segmentConfig = block.SegmentBlock.Config.default,
+            sortedIndexConfig = SortedIndexBlock.Config.disabled,
+            valuesConfig = ValuesBlock.Config.disabled,
+            segmentConfig = SegmentBlock.Config.default,
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
@@ -242,13 +246,13 @@ private[core] object CoreInitializer extends LazyLogging {
         case config: PersistentLevelConfig =>
           Level(
             segmentSize = config.segmentSize,
-            bloomFilterConfig = block.BloomFilterBlock.Config(config = config.mightContainKey),
+            bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKey),
             hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.hashIndex),
             binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
-            sortedIndexConfig = block.SortedIndexBlock.Config(config.sortedIndex),
-            valuesConfig = block.ValuesBlock.Config(config.values),
+            sortedIndexConfig = SortedIndexBlock.Config(config.sortedIndex),
+            valuesConfig = ValuesBlock.Config(config.values),
             segmentConfig =
-              block.SegmentBlock.Config(
+              SegmentBlock.Config(
                 ioStrategy = config.segmentIO,
                 cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
                 compressions = config.segmentCompressions

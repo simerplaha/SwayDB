@@ -4,9 +4,10 @@ import org.scalatest.OptionValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.TransientSegmentRef
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, TransientSegmentBlock}
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.config.IOAction
 import swaydb.data.slice.Slice
 
@@ -70,34 +71,34 @@ class BlockSpec extends TestBase {
         runThis(100.times) {
           val headerSize = Block.minimumHeaderSize(false)
           val segment =
-            new TransientSegmentRef(
+            new TransientSegmentBlock(
               minKey = null,
               maxKey = null,
 
+              functionMinMax = None,
+              nearestDeadline = randomDeadlineOption(),
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               valuesBlock = randomBytesSliceOption(2),
               valuesUnblockedReader = None,
-
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
+
               sortedIndexBlock = randomBytesSlice(2),
               sortedIndexUnblockedReader = None,
-
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               hashIndexBlock = randomBytesSliceOption(2),
               hashIndexUnblockedReader = None,
-
               binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               binarySearchIndexBlock = randomBytesSliceOption(2),
               binarySearchUnblockedReader = None,
-
               bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               bloomFilterBlock = randomBytesSliceOption(2),
+
               bloomFilterUnblockedReader = None,
-
-              footerBlock = randomBytesSlice(),
-
-              functionMinMax = None,
-              nearestDeadline = randomDeadlineOption()
+              footerBlock = randomBytesSlice()
             )
 
           val blockedSegment = Block.block(segment, Seq.empty, "test-segment-block")
@@ -161,34 +162,34 @@ class BlockSpec extends TestBase {
         runThis(100.times) {
           val headerSize = Block.minimumHeaderSize(true) //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
           val uncompressedSegment =
-            new TransientSegmentRef(
+            new TransientSegmentBlock(
               minKey = null,
               maxKey = null,
 
+              functionMinMax = None,
+              nearestDeadline = randomDeadlineOption(),
               valuesBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               valuesBlock = randomBytesSliceOption(randomIntMax(100) + 1),
               valuesUnblockedReader = None,
-
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
+
               sortedIndexBlock = randomBytesSlice(randomIntMax(100) + 1),
               sortedIndexUnblockedReader = None,
-
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               hashIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
               hashIndexUnblockedReader = None,
-
               binarySearchIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               binarySearchIndexBlock = randomBytesSliceOption(randomIntMax(100) + 1),
               binarySearchUnblockedReader = None,
-
               bloomFilterBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
+
               bloomFilterBlock = randomBytesSliceOption(randomIntMax(100) + 1),
+
               bloomFilterUnblockedReader = None,
-
-              footerBlock = randomBytesSlice(randomIntMax(100) + 1),
-
-              functionMinMax = None,
-              nearestDeadline = randomDeadlineOption()
+              footerBlock = randomBytesSlice(randomIntMax(100) + 1)
             )
 
           val compression = randomCompressions().head

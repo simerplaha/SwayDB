@@ -24,8 +24,10 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
-import swaydb.core.segment.format.a.block.{Block, SegmentBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.Block
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock.ValuesBlockOps
 import swaydb.data.slice.{Reader, Slice}
 
 class BlockRefReaderSpec extends TestBase with MockFactory {

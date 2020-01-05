@@ -17,12 +17,15 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment
+package swaydb.core.segment.format.a.block.segment
 
-import swaydb.core.segment.format.a.block.{BloomFilterBlock, SegmentFooterBlock, SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
@@ -31,7 +34,7 @@ import scala.concurrent.duration.Deadline
 
 object TransientSegment {
 
-  def apply(ref: TransientSegmentRef): TransientSegment =
+  def apply(ref: TransientSegmentBlock): TransientSegment =
     new TransientSegment(
       minKey = ref.minKey,
       maxKey = ref.maxKey,

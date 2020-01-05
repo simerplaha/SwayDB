@@ -17,10 +17,11 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.sortedindex
 
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.reader.PersistentParser
 import swaydb.data.slice.Slice
 

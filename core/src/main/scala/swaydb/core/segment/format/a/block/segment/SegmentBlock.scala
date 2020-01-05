@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
@@ -25,8 +25,12 @@ import swaydb.compression.CompressionInternal
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
+import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.{TransientSegment, TransientSegmentRef}
 import swaydb.core.util.MinMax
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -149,7 +153,7 @@ private[core] object SegmentBlock extends LazyLogging {
     if (mergeStats.isEmpty)
       Seq.empty
     else
-      writeSegmentRef(
+      writeSegmentBlock(
         keyValues = mergeStats,
         createdInLevel = createdInLevel,
         minSegmentSize = segmentSize,
@@ -168,22 +172,22 @@ private[core] object SegmentBlock extends LazyLogging {
           )
       }
 
-  def writeSegmentRef(keyValues: MergeStats.Persistent.Closed[Iterable],
-                      createdInLevel: Int,
-                      minSegmentSize: Int,
-                      bloomFilterConfig: BloomFilterBlock.Config,
-                      hashIndexConfig: HashIndexBlock.Config,
-                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                      sortedIndexConfig: SortedIndexBlock.Config,
-                      valuesConfig: ValuesBlock.Config,
-                      segmentConfig: SegmentBlock.Config): Iterable[TransientSegmentRef] =
+  def writeSegmentBlock(keyValues: MergeStats.Persistent.Closed[Iterable],
+                        createdInLevel: Int,
+                        minSegmentSize: Int,
+                        bloomFilterConfig: BloomFilterBlock.Config,
+                        hashIndexConfig: HashIndexBlock.Config,
+                        binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                        sortedIndexConfig: SortedIndexBlock.Config,
+                        valuesConfig: ValuesBlock.Config,
+                        segmentConfig: SegmentBlock.Config): Iterable[TransientSegmentBlock] =
     if (keyValues.isEmpty) {
       Seq.empty
     } else {
       //IMPORTANT! - The following is critical for compaction performance!
 
       val keyValuesCount = keyValues.keyValuesCount
-      val segments = ListBuffer.empty[TransientSegmentRef]
+      val segments = ListBuffer.empty[TransientSegmentBlock]
 
       //start sortedIndex for a new Segment.
       var sortedIndex =
@@ -236,7 +240,7 @@ private[core] object SegmentBlock extends LazyLogging {
             logger.debug(s"Creating segment of size: $currentSegmentSize.bytes")
 
             val (closedSegment, nextSortedIndex, nextValues) =
-              writeSegmentRef(
+              writeSegmentBlock(
                 createdInLevel = createdInLevel,
                 hasMoreKeyValues = processedCount < keyValuesCount,
                 bloomFilterKeys = bloomFilterKeys,
@@ -270,7 +274,7 @@ private[core] object SegmentBlock extends LazyLogging {
         segments
       } else {
         val (closedSegment, nextSortedIndex, nextValuesBlock) =
-          writeSegmentRef(
+          writeSegmentBlock(
             createdInLevel = createdInLevel,
             hasMoreKeyValues = false,
             bloomFilterKeys = bloomFilterKeys,
@@ -291,17 +295,17 @@ private[core] object SegmentBlock extends LazyLogging {
       }
     }
 
-  private def writeSegmentRef(createdInLevel: Int,
-                              hasMoreKeyValues: Boolean,
-                              bloomFilterKeys: ListBuffer[Slice[Byte]],
-                              sortedIndex: SortedIndexBlock.State,
-                              values: Option[ValuesBlock.State],
-                              bloomFilterConfig: BloomFilterBlock.Config,
-                              hashIndexConfig: HashIndexBlock.Config,
-                              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                              sortedIndexConfig: SortedIndexBlock.Config,
-                              valuesConfig: ValuesBlock.Config,
-                              prepareForCachingSegmentBlocksOnCreate: Boolean): (TransientSegmentRef, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
+  private def writeSegmentBlock(createdInLevel: Int,
+                                hasMoreKeyValues: Boolean,
+                                bloomFilterKeys: ListBuffer[Slice[Byte]],
+                                sortedIndex: SortedIndexBlock.State,
+                                values: Option[ValuesBlock.State],
+                                bloomFilterConfig: BloomFilterBlock.Config,
+                                hashIndexConfig: HashIndexBlock.Config,
+                                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                                sortedIndexConfig: SortedIndexBlock.Config,
+                                valuesConfig: ValuesBlock.Config,
+                                prepareForCachingSegmentBlocksOnCreate: Boolean): (TransientSegmentBlock, Option[SortedIndexBlock.State], Option[ValuesBlock.State]) = {
     //tail bytes before closing and compression is applied.
     val unwrittenTailSortedIndexBytes = sortedIndex.compressibleBytes.unwrittenTail()
     val unwrittenTailValueBytes = values.map(_.compressibleBytes.unwrittenTail())
@@ -332,34 +336,34 @@ private[core] object SegmentBlock extends LazyLogging {
       )
 
     val ref =
-      new TransientSegmentRef(
+      new TransientSegmentBlock(
         minKey = closedBlocks.sortedIndex.minKey,
         maxKey = closedBlocks.sortedIndex.maxKey,
 
-        footerBlock = closedFooter.bytes.close(),
+        functionMinMax = closedBlocks.minMaxFunction,
 
+        nearestDeadline = closedBlocks.nearestDeadline,
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
         valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
-        valuesUnblockedReader = closedBlocks.valuesUnblockedReader,
 
+        valuesUnblockedReader = closedBlocks.valuesUnblockedReader,
         sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
         sortedIndexBlock = closedBlocks.sortedIndex.compressibleBytes.close(),
-        sortedIndexUnblockedReader = closedBlocks.sortedIndexUnblockedReader,
 
+        sortedIndexUnblockedReader = closedBlocks.sortedIndexUnblockedReader,
         hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
         hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
-        hashIndexUnblockedReader = closedBlocks.hashIndexUnblockedReader,
 
+        hashIndexUnblockedReader = closedBlocks.hashIndexUnblockedReader,
         binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
         binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
-        binarySearchUnblockedReader = closedBlocks.binarySearchUnblockedReader,
 
+        binarySearchUnblockedReader = closedBlocks.binarySearchUnblockedReader,
         bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
         bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
-        bloomFilterUnblockedReader = closedBlocks.bloomFilterUnblockedReader,
 
-        functionMinMax = closedBlocks.minMaxFunction,
-        nearestDeadline = closedBlocks.nearestDeadline
+        bloomFilterUnblockedReader = closedBlocks.bloomFilterUnblockedReader,
+        footerBlock = closedFooter.bytes.close()
       )
 
     //start new sortedIndex block only if there are more key-values to process

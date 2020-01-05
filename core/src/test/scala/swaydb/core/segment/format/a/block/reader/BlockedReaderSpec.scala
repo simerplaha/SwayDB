@@ -22,8 +22,9 @@ package swaydb.core.segment.format.a.block.reader
 import org.scalamock.scalatest.MockFactory
 import swaydb.core.TestBase
 import swaydb.core.TestData._
-import swaydb.core.segment.format.a.block.ValuesBlock.ValuesBlockOps
-import swaydb.core.segment.format.a.block.{Block, SegmentBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.Block
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.slice.Slice
 
 class BlockedReaderSpec extends TestBase with MockFactory {
@@ -39,6 +40,8 @@ class BlockedReaderSpec extends TestBase with MockFactory {
     }
 
     "unblocked Segment" in {
+      implicit val ops = SegmentBlock.SegmentBlockOps
+
       val childHeader = Slice(1.toByte, 0.toByte)
       val childBody = Slice.fill(20)(9.toByte)
       val childBytes = childHeader ++ childBody

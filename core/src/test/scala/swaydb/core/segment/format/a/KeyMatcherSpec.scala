@@ -24,8 +24,9 @@ import swaydb.core.cache.Cache
 import swaydb.core.data.Persistent._
 import swaydb.core.data.Value.FromValueOption
 import swaydb.core.data.{Persistent, Time, Value}
-import swaydb.core.segment.format.a.block.KeyMatcher.Result._
-import swaydb.core.segment.format.a.block.{KeyMatcher, ValuesBlock}
+import swaydb.core.segment.KeyMatcher
+import swaydb.core.segment.KeyMatcher.Result.{AheadOrNoneOrEnd, BehindFetchNext, BehindStopped, Matched}
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._

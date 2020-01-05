@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment.format.a.block.bloomfilter
 
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock

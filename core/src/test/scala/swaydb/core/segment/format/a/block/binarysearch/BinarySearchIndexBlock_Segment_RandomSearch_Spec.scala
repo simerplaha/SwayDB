@@ -25,7 +25,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Persistent, PersistentOptional}
-import swaydb.core.segment.format.a.block.SortedIndexBlock
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.{SegmentBlocks, TestBase, TestSweeper}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

@@ -16,13 +16,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
-package swaydb.core.segment.format.a.block
+package swaydb.core.segment
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 

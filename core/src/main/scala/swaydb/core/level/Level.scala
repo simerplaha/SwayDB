@@ -35,8 +35,12 @@ import swaydb.core.map.serializer._
 import swaydb.core.map.{Map, MapEntry}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.{Segment, SegmentAssigner, SegmentOptional, ThreadReadState}
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.{Segment, SegmentAssigner, SegmentIO, SegmentOptional, ThreadReadState}
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}

@@ -29,9 +29,11 @@ import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, PersistentOptional, Time}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
-import swaydb.core.segment.format.a.block.{BloomFilterBlock, SegmentSearcher, SortedIndexBlock, ValuesBlock}
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice

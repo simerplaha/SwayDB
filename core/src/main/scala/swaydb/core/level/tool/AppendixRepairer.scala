@@ -31,8 +31,7 @@ import swaydb.core.io.file.Effect
 import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
-import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.segment.{Segment, SegmentOptional}
+import swaydb.core.segment.{Segment, SegmentIO, SegmentOptional}
 import swaydb.core.util.Extension
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.AppendixRepairStrategy._

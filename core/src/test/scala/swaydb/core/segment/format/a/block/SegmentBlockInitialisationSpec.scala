@@ -26,7 +26,11 @@ import swaydb.core.TestData._
 import swaydb.core.data._
 import swaydb.core.segment.PersistentSegment
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
+import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
+import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.IOStrategy
