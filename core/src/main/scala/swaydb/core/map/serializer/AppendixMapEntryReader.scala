@@ -115,7 +115,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
 
         val segmentResult =
           IO(Effect.fileId(segmentPath)) flatMap {
-            case (segmentId, Extension.Seg) =>
+            case (_, Extension.Seg) =>
 
               /**
                * Not a very nice way of converting [[Segment]] initialisation errors into [[swaydb.Error.Segment]]
@@ -132,7 +132,6 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
               IO {
                 Segment(
                   path = segmentPath,
-                  segmentId = segmentId,
                   createdInLevel = createdInLevel,
                   blockCacheFileId = BlockCacheFileIDGenerator.nextID,
                   mmapReads = mmapSegmentsOnRead,
@@ -159,7 +158,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                   IO.Left(Error.Fatal(error.exception))
               }
 
-            case (segmentId, Extension.Log) =>
+            case (_, Extension.Log) =>
               IO.failed(s"Invalid segment extension: $segmentPath")
           }
 

@@ -46,7 +46,6 @@ import scala.collection.compat._
 
 object PersistentSegment {
   def apply(file: DBFile,
-            segmentId: Long,
             createdInLevel: Int,
             mmapReads: Boolean,
             mmapWrites: Boolean,
@@ -87,7 +86,6 @@ object PersistentSegment {
 
     new PersistentSegment(
       file = file,
-      segmentId = segmentId,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
@@ -102,7 +100,6 @@ object PersistentSegment {
 }
 
 private[segment] case class PersistentSegment(file: DBFile,
-                                              segmentId: Long,
                                               createdInLevel: Int,
                                               mmapReads: Boolean,
                                               mmapWrites: Boolean,

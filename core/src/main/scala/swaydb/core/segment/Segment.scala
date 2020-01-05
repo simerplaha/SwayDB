@@ -132,8 +132,7 @@ private[core] object Segment extends LazyLogging {
         }
 
       def createSegment() = {
-        val segmentId = idGenerator.nextID
-        val path = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+        val path = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
 
         //Note: Memory key-values can be received from Persistent Segments in which case it's important that
         //all byte arrays are unsliced before writing them to Memory Segment.
@@ -141,7 +140,6 @@ private[core] object Segment extends LazyLogging {
         val segment =
           MemorySegment(
             path = path,
-            segmentId = segmentId,
             minKey = minKey.unslice(),
             maxKey =
               lastKeyValue match {
@@ -220,8 +218,7 @@ private[core] object Segment extends LazyLogging {
             //not be allowed so that whatever is creating this Segment (eg: compaction) does not progress with a success response.
             throw IO.throwable("Empty key-values submitted to persistent Segment.")
           } else {
-            val segmentId = idGenerator.nextID
-            val path = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+            val path = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
 
             val file =
             //if both read and writes are mmaped. Keep the file open.
@@ -271,7 +268,6 @@ private[core] object Segment extends LazyLogging {
 
             PersistentSegment(
               file = file,
-              segmentId = segmentId,
               createdInLevel = createdInLevel,
               mmapReads = mmapReads,
               mmapWrites = mmapWrites,
@@ -321,15 +317,13 @@ private[core] object Segment extends LazyLogging {
                                                         idGenerator: IDGenerator): Slice[Segment] =
     segment match {
       case segment: PersistentSegment =>
-        val segmentId = idGenerator.nextID
-        val nextPath = pathsDistributor.next.resolve(IDGenerator.segmentId(segmentId))
+        val nextPath = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
 
         segment.copyTo(nextPath)
         try
           Slice(
             Segment(
               path = nextPath,
-              segmentId = segmentId,
               createdInLevel = segment.createdInLevel,
               blockCacheFileId = segment.file.blockCacheFileId,
               mmapReads = mmapSegmentsOnRead,
@@ -457,7 +451,6 @@ private[core] object Segment extends LazyLogging {
   }
 
   def apply(path: Path,
-            segmentId: Long,
             createdInLevel: Int,
             blockCacheFileId: Long,
             mmapReads: Boolean,
@@ -495,7 +488,6 @@ private[core] object Segment extends LazyLogging {
 
     PersistentSegment(
       file = file,
-      segmentId = segmentId,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
@@ -522,7 +514,6 @@ private[core] object Segment extends LazyLogging {
    * This function is only used for Appendix file recovery initialization.
    */
   def apply(path: Path,
-            segmentId: Long,
             createdInLevel: Int,
             mmapReads: Boolean,
             mmapWrites: Boolean,
@@ -586,7 +577,6 @@ private[core] object Segment extends LazyLogging {
 
     PersistentSegment(
       file = file,
-      segmentId = segmentId,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
@@ -990,7 +980,7 @@ private[core] object Segment extends LazyLogging {
 }
 
 private[core] trait Segment extends FileSweeperItem with SegmentOptional { self =>
-  val segmentId: Long
+
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
   val segmentSize: Int
@@ -1000,6 +990,9 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
   def createdInLevel: Int
 
   def path: Path
+
+  def segmentId: Long =
+    Effect.fileId(path)._1
 
   def put(newKeyValues: Slice[KeyValue],
           minSegmentSize: Int,

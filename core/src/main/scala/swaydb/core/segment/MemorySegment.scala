@@ -43,7 +43,6 @@ import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
 private[segment] case class MemorySegment(path: Path,
-                                          segmentId: Long,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],

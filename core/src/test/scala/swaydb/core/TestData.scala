@@ -102,7 +102,6 @@ object TestData {
       val reopenedSegment =
         Segment(
           path = path,
-          segmentId = Effect.fileId(path)._1,
           createdInLevel = segment.createdInLevel,
           mmapReads = randomBoolean(),
           mmapWrites = randomBoolean(),

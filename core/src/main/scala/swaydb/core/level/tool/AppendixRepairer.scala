@@ -63,22 +63,15 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         files
           .mapRecoverIO {
             segmentPath =>
-              IO(Effect.fileId(segmentPath)) flatMap {
-                case (segmentId, Extension.Seg) =>
-                  IO {
-                    val levelNumber = levelPath.getFileName.toString.toInt
-                    Segment(
-                      path = segmentPath,
-                      createdInLevel = levelNumber,
-                      segmentId = segmentId,
-                      mmapReads = false,
-                      mmapWrites = false,
-                      checkExists = true
-                    )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
-                  }
-
-                case (_, Extension.Log) =>
-                  IO.failed(s"Invalid segment file extension: $segmentPath")
+              IO {
+                val levelNumber = levelPath.getFileName.toString.toInt
+                Segment(
+                  path = segmentPath,
+                  createdInLevel = levelNumber,
+                  mmapReads = false,
+                  mmapWrites = false,
+                  checkExists = true
+                )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
               }
           }
           .flatMap {
