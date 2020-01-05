@@ -26,6 +26,7 @@ import swaydb.core.segment.Segment
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
+import swaydb.core.util.Options._
 
 object AppendixMapEntryWriter {
 
@@ -65,19 +66,21 @@ object AppendixMapEntryWriter {
         }
 
       def writeMinMax(bytes: Slice[Byte]) =
-        entry.value.minMaxFunctionId map {
-          minMaxFunctionId =>
+        entry.value.minMaxFunctionId match {
+          case Some(minMaxFunctionId) =>
             bytes addUnsignedInt minMaxFunctionId.min.size
             bytes addAll minMaxFunctionId.min
-            minMaxFunctionId.max map {
-              max =>
+            minMaxFunctionId.max match {
+              case Some(max) =>
                 bytes addUnsignedInt max.size
                 bytes addAll max
-            } getOrElse {
-              bytes addUnsignedInt 0
+
+              case None =>
+                bytes addUnsignedInt 0
             }
-        } getOrElse {
-          bytes addUnsignedInt 0
+
+          case None =>
+            bytes addUnsignedInt 0
         }
 
       bytes
@@ -91,7 +94,7 @@ object AppendixMapEntryWriter {
         .addUnsignedInt(maxKeyId)
         .addUnsignedInt(maxKeyBytes.size)
         .addAll(maxKeyBytes)
-        .addUnsignedLong(entry.value.nearestPutDeadline.map(_.time.toNanos).getOrElse(0L))
+        .addUnsignedLong(entry.value.nearestPutDeadline.valueOrElse(_.time.toNanos, 0L))
 
       writeMinMax(bytes)
     }
@@ -108,13 +111,16 @@ object AppendixMapEntryWriter {
         }
 
       val minMaxFunctionIdBytesRequires =
-        entry.value.minMaxFunctionId map {
-          minMax =>
+        entry.value.minMaxFunctionId match {
+          case Some(minMax) =>
             Bytes.sizeOfUnsignedInt(minMax.min.size) +
               minMax.min.size +
-              Bytes.sizeOfUnsignedInt(minMax.max.map(_.size).getOrElse(0)) +
-              minMax.max.map(_.size).getOrElse(0)
-        } getOrElse 1
+              Bytes.sizeOfUnsignedInt(minMax.max.valueOrElse(_.size, 0)) +
+              minMax.max.valueOrElse(_.size, 0)
+
+          case None =>
+            1
+        }
 
       Bytes.sizeOfUnsignedInt(id) +
         Bytes.sizeOfUnsignedInt(segmentPath.length) +
@@ -126,7 +132,7 @@ object AppendixMapEntryWriter {
         Bytes.sizeOfUnsignedInt(maxKeyId) +
         Bytes.sizeOfUnsignedInt(maxKeyBytes.size) +
         maxKeyBytes.size +
-        Bytes.sizeOfUnsignedLong(entry.value.nearestPutDeadline.map(_.time.toNanos).getOrElse(0L)) +
+        Bytes.sizeOfUnsignedLong(entry.value.nearestPutDeadline.valueOrElse(_.time.toNanos, 0L)) +
         minMaxFunctionIdBytesRequires
     }
   }
