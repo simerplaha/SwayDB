@@ -26,6 +26,7 @@ import swaydb.IO
 import swaydb.core.data.{Memory, Time, Value}
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.core.util.PipeOps._
 
 import scala.concurrent.duration.Deadline
 
@@ -33,7 +34,7 @@ object LevelZeroMapEntryReader {
 
   implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Remove]] {
 
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Remove]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Memory.Remove]] =
       IO {
         val keyLength = reader.readInt()
         val key = reader.read(keyLength).unslice()
@@ -41,13 +42,13 @@ object LevelZeroMapEntryReader {
         val time = reader.read(timeLength).unslice()
         val deadlineLong = reader.readLong()
         val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
-        Some(MapEntry.Put(key, Memory.Remove(key, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0RemoveWriter))
+        MapEntry.Put(key, Memory.Remove(key, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0RemoveWriter)
       }
   }
 
   implicit object Level0PutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Put]] {
 
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Put]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Memory.Put]] =
       IO {
         val keyLength = reader.readInt()
         val key = reader.read(keyLength).unslice()
@@ -58,13 +59,13 @@ object LevelZeroMapEntryReader {
         val deadlineLong = reader.readLong()
 
         val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
-        Some(MapEntry.Put(key, Memory.Put(key, value, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0PutWriter))
+        MapEntry.Put(key, Memory.Put(key, value, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0PutWriter)
       }
   }
 
   implicit object Level0UpdateReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Update]] {
 
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Update]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Memory.Update]] =
       IO {
         val keyLength = reader.readInt()
         val key = reader.read(keyLength).unslice()
@@ -75,13 +76,13 @@ object LevelZeroMapEntryReader {
         val deadlineLong = reader.readLong()
 
         val deadline = if (deadlineLong == 0) None else Some(Deadline((deadlineLong, TimeUnit.NANOSECONDS)))
-        Some(MapEntry.Put(key, Memory.Update(key, value, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0UpdateWriter))
+        MapEntry.Put(key, Memory.Update(key, value, deadline, Time(time)))(LevelZeroMapEntryWriter.Level0UpdateWriter)
       }
   }
 
   implicit object Level0FunctionReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Function]] {
 
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Function]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Memory.Function]] =
       IO {
         val keyLength = reader.readInt()
         val key = reader.read(keyLength).unslice()
@@ -90,13 +91,13 @@ object LevelZeroMapEntryReader {
         val functionLength = reader.readInt()
         val value = reader.read(functionLength)
 
-        Some(MapEntry.Put(key, Memory.Function(key, value, Time(time)))(LevelZeroMapEntryWriter.Level0FunctionWriter))
+        MapEntry.Put(key, Memory.Function(key, value, Time(time)))(LevelZeroMapEntryWriter.Level0FunctionWriter)
       }
   }
 
   implicit object Level0RangeReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Range]] {
 
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.Range]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Memory.Range]] =
       IO {
         val fromKeyLength = reader.readInt()
         val fromKey = reader.read(fromKeyLength).unslice()
@@ -106,13 +107,13 @@ object LevelZeroMapEntryReader {
         val valueBytes = if (valueLength == 0) Slice.emptyBytes else reader.read(valueLength)
         val (fromValue, rangeValue) = RangeValueSerializer.read(valueBytes)
 
-        Some(MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0RangeWriter))
+        MapEntry.Put(fromKey, Memory.Range(fromKey, toKey, fromValue, rangeValue))(LevelZeroMapEntryWriter.Level0RangeWriter)
       }
   }
 
   implicit object Level0PendingApplyReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.PendingApply]] {
 
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Memory.PendingApply]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Memory.PendingApply]] =
       IO {
         val keyLength = reader.readInt()
         val key = reader.read(keyLength).unslice()
@@ -120,44 +121,45 @@ object LevelZeroMapEntryReader {
         val valueBytes = reader.read(valueLength)
         val applies = ValueSerializer.read[Slice[Value.Apply]](valueBytes)
 
-        Some(MapEntry.Put(key, Memory.PendingApply(key, applies))(LevelZeroMapEntryWriter.Level0PendingApplyWriter))
+        MapEntry.Put(key, Memory.PendingApply(key, applies))(LevelZeroMapEntryWriter.Level0PendingApplyWriter)
       }
   }
 
   implicit object Level0Reader extends MapEntryReader[MapEntry[Slice[Byte], Memory]] {
-    private def merge(nextEntry: Option[MapEntry[Slice[Byte], Memory]],
-                      previousEntry: Option[MapEntry[Slice[Byte], Memory]]) =
-      nextEntry flatMap {
-        nextEntry =>
-          previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-      }
+    private def merge(nextEntry: MapEntry[Slice[Byte], Memory],
+                      previousEntryOrNull: MapEntry[Slice[Byte], Memory]) =
+      if (previousEntryOrNull == null)
+        nextEntry
+      else
+        previousEntryOrNull ++ nextEntry
 
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Memory]]] =
-      reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Memory]]) {
-        case (previousEntry, reader) =>
-          IO(reader.readInt()) flatMap {
-            entryId =>
-              if (entryId == LevelZeroMapEntryWriter.Level0PutWriter.id)
-                Level0PutReader.read(reader) map (merge(_, previousEntry))
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry[Slice[Byte], Memory]] =
+      IO {
+        reader.foldLeft(null: MapEntry[Slice[Byte], Memory]) {
+          case (previousEntry, reader) => {
+            val entryId = reader.readInt()
+            if (entryId == LevelZeroMapEntryWriter.Level0PutWriter.id)
+              Level0PutReader.read(reader).get ==> (merge(_, previousEntry))
 
-              else if (entryId == LevelZeroMapEntryWriter.Level0RemoveWriter.id)
-                Level0RemoveReader.read(reader) map (merge(_, previousEntry))
+            else if (entryId == LevelZeroMapEntryWriter.Level0RemoveWriter.id)
+              Level0RemoveReader.read(reader).get ==> (merge(_, previousEntry))
 
-              else if (entryId == LevelZeroMapEntryWriter.Level0FunctionWriter.id)
-                Level0FunctionReader.read(reader) map (merge(_, previousEntry))
+            else if (entryId == LevelZeroMapEntryWriter.Level0FunctionWriter.id)
+              Level0FunctionReader.read(reader).get ==> (merge(_, previousEntry))
 
-              else if (entryId == LevelZeroMapEntryWriter.Level0PendingApplyWriter.id)
-                Level0PendingApplyReader.read(reader) map (merge(_, previousEntry))
+            else if (entryId == LevelZeroMapEntryWriter.Level0PendingApplyWriter.id)
+              Level0PendingApplyReader.read(reader).get ==> (merge(_, previousEntry))
 
-              else if (entryId == LevelZeroMapEntryWriter.Level0UpdateWriter.id)
-                Level0UpdateReader.read(reader) map (merge(_, previousEntry))
+            else if (entryId == LevelZeroMapEntryWriter.Level0UpdateWriter.id)
+              Level0UpdateReader.read(reader).get ==> (merge(_, previousEntry))
 
-              else if (entryId == LevelZeroMapEntryWriter.Level0RangeWriter.id)
-                Level0RangeReader.read(reader) map (merge(_, previousEntry))
+            else if (entryId == LevelZeroMapEntryWriter.Level0RangeWriter.id)
+              Level0RangeReader.read(reader).get ==> (merge(_, previousEntry))
 
-              else
-                IO.failed(new IllegalArgumentException(s"Invalid entry type $entryId."))
+            else
+              throw new IllegalArgumentException(s"Invalid entry type $entryId.")
           }
+        }
       }
   }
 }

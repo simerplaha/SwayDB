@@ -26,8 +26,8 @@ import swaydb.data.slice.{ReaderBase, Slice}
 object TimerMapEntryReader {
 
   implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Some[MapEntry.Put[Slice[Byte], Slice[Byte]]]] =
-      IO[swaydb.Error.Map, Some[MapEntry.Put[Slice[Byte], Slice[Byte]]]] {
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Slice[Byte]]] =
+      IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Slice[Byte]]] {
         val _ = reader.readUnsignedInt()
         val keySize = reader.readUnsignedInt()
 
@@ -45,7 +45,7 @@ object TimerMapEntryReader {
           else
             reader.read(valueSize)
 
-        Some(MapEntry.Put(key, value)(TimerMapEntryWriter.TimerPutMapEntryWriter))
+        MapEntry.Put(key, value)(TimerMapEntryWriter.TimerPutMapEntryWriter)
       }
   }
 }

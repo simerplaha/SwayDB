@@ -141,7 +141,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            segmentIO: SegmentIO) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Put[Slice[Byte], Segment]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Segment]] =
       try {
         val segment =
           AppendixMapEntryReader.readSegment(
@@ -152,12 +152,10 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
           )
 
         IO.Right(
-          Some(
-            MapEntry.Put(
-              key = segment.minKey,
-              value = segment
-            )(AppendixMapEntryWriter.AppendixPutWriter)
-          )
+          MapEntry.Put(
+            key = segment.minKey,
+            value = segment
+          )(AppendixMapEntryWriter.AppendixPutWriter)
         )
       } catch {
         case exception: Exception =>
@@ -166,16 +164,16 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry.Remove[Slice[Byte]]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Remove[Slice[Byte]]] =
       IO {
         val minKeyLength = reader.readUnsignedInt()
         val minKey = reader.read(minKeyLength).unslice()
-        Some(MapEntry.Remove(minKey)(AppendixMapEntryWriter.AppendixRemoveWriter))
+        MapEntry.Remove(minKey)(AppendixMapEntryWriter.AppendixRemoveWriter)
       }
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, Option[MapEntry[Slice[Byte], Segment]]] =
+    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry[Slice[Byte], Segment]] =
       reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
         case (previousEntry, reader) =>
           IO(reader.readUnsignedInt()) flatMap {
@@ -183,22 +181,16 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
               if (entryId == AppendixMapEntryWriter.AppendixPutWriter.id)
                 AppendixPutReader.read(reader) map {
                   nextEntry =>
-                    nextEntry flatMap {
-                      nextEntry =>
-                        previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-                    }
+                    previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
                 }
               else if (entryId == AppendixMapEntryWriter.AppendixRemoveWriter.id)
                 AppendixRemoveReader.read(reader) map {
                   nextEntry =>
-                    nextEntry flatMap {
-                      nextEntry =>
-                        previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-                    }
+                    previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
                 }
               else
                 IO.failed(new IllegalArgumentException(s"Invalid entry type $entryId."))
           }
-      }
+      }.transform(_.get)
   }
 }

@@ -41,7 +41,7 @@ import scala.concurrent.{ExecutionContext, Promise}
  *
  * State mutation is necessary to avoid unnecessary garbage during compaction. Functions returning Unit mutate the state.
  */
-protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
+private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] with LazyLogging {
 
   val awaitPullTimeout = 6.seconds
 
@@ -55,8 +55,8 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
         forwardCopyOnAllLevels = forwardCopyOnAllLevels
       )
 
-  protected def runNow(state: ThrottleState,
-                       forwardCopyOnAllLevels: Boolean): Unit = {
+  private[throttle] def runNow(state: ThrottleState,
+                               forwardCopyOnAllLevels: Boolean): Unit = {
     logger.debug(s"\n\n\n\n\n\n${state.name}: Running compaction now! forwardCopyOnAllLevels = $forwardCopyOnAllLevels!")
     if (forwardCopyOnAllLevels) {
       val totalCopies = copyForwardForEach(state.levelsReversed)
@@ -82,8 +82,8 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
     }
 
   @tailrec
-  protected def runJobs(state: ThrottleState,
-                        currentJobs: Slice[LevelRef]): Unit =
+  private[throttle] def runJobs(state: ThrottleState,
+                                currentJobs: Slice[LevelRef]): Unit =
     if (state.terminate) {
       logger.warn(s"${state.name}: Cannot run jobs. Compaction is terminated.")
     } else {
@@ -119,7 +119,7 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
    *
    * It should be be re-fetched for the same compaction.
    */
-  protected def runJob(level: LevelRef, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
+  private[throttle] def runJob(level: LevelRef, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
     level match {
       case zero: LevelZero =>
         pushForward(
@@ -142,7 +142,7 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
         )
     }
 
-  protected def pushForward(zero: LevelZero, stateId: Long): ThrottleLevelState =
+  private[throttle] def pushForward(zero: LevelZero, stateId: Long): ThrottleLevelState =
     zero.nextLevel match {
       case Some(nextLevel) =>
         pushForward(
@@ -159,9 +159,9 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
         )
     }
 
-  protected def pushForward(zero: LevelZero,
-                            nextLevel: NextLevel,
-                            stateId: Long): ThrottleLevelState =
+  private[throttle] def pushForward(zero: LevelZero,
+                                    nextLevel: NextLevel,
+                                    stateId: Long): ThrottleLevelState =
     zero.maps.lastOption() match {
       case Some(map) =>
         logger.debug(s"Level(${zero.levelNumber}): Pushing LevelZero map :${map.pathOption} ")
@@ -180,10 +180,10 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
         )
     }
 
-  protected def pushForward(zero: LevelZero,
-                            nextLevel: NextLevel,
-                            stateId: Long,
-                            map: swaydb.core.map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): ThrottleLevelState =
+  private[throttle] def pushForward(zero: LevelZero,
+                                    nextLevel: NextLevel,
+                                    stateId: Long,
+                                    map: swaydb.core.map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")
@@ -240,7 +240,7 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
         )
     }
 
-  protected def pushForward(level: NextLevel, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
+  private[throttle] def pushForward(level: NextLevel, stateId: Long)(implicit ec: ExecutionContext): ThrottleLevelState =
     pushForward(level, level.nextThrottlePushCount max 1) match {
       case IO.Right(IO.Right(pushed)) =>
         logger.debug(s"Level(${level.levelNumber}): pushed $pushed Segments.")
@@ -389,7 +389,7 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
    * Runs lazy error checks. Ignores all errors and continues copying
    * each Level starting from the lowest level first.
    */
-  protected def copyForwardForEach(levels: Slice[LevelRef]): Int =
+  private[throttle] def copyForwardForEach(levels: Slice[LevelRef]): Int =
     levels.foldLeft(0) {
       case (totalCopies, level: NextLevel) =>
         val copied = copyForward(level)
@@ -427,9 +427,9 @@ protected object ThrottleCompaction extends Compaction[ThrottleState] with LazyL
         0
     }
 
-  protected def putForward(segments: Iterable[Segment],
-                           thisLevel: NextLevel,
-                           nextLevel: NextLevel): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
+  private[throttle] def putForward(segments: Iterable[Segment],
+                                   thisLevel: NextLevel,
+                                   nextLevel: NextLevel): IO[Promise[Unit], IO[swaydb.Error.Level, Int]] =
     if (segments.isEmpty)
       IO.zeroZero
     else
