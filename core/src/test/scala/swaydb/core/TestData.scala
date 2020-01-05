@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.{ThreadReadState, Segment}
+import swaydb.core.segment.{Segment, ThreadReadState, TransientSegment}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
@@ -1725,9 +1725,9 @@ object TestData {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): SegmentBlock.Closed = {
+                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): TransientSegment = {
       val segments =
-        SegmentBlock.writeClosed(
+        SegmentBlock.writeTransient(
           mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
           createdInLevel = createdInLevel,
           segmentSize = Int.MaxValue,

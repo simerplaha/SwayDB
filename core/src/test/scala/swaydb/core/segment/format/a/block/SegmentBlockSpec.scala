@@ -51,7 +51,7 @@ class SegmentBlockSpec extends TestBase {
       val sortedIndexConfig = SortedIndexBlock.Config.random
 
       val closedSegment =
-        SegmentBlock.writeClosed(
+        SegmentBlock.writeTransient(
           mergeStats = MergeStats.persistentBuilder[Memory](ListBuffer.empty).close(sortedIndexConfig.enableAccessPositionIndex),
           segmentSize = randomIntMax(Int.MaxValue),
           createdInLevel = randomIntMax(Int.MaxValue),

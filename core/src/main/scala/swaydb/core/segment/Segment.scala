@@ -200,7 +200,7 @@ private[core] object Segment extends LazyLogging {
                                                                      blockCache: Option[BlockCache.State],
                                                                      segmentIO: SegmentIO,
                                                                      idGenerator: IDGenerator): Slice[Segment] =
-    SegmentBlock.writeClosed(
+    SegmentBlock.writeTransient(
       mergeStats = mergeStats,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,

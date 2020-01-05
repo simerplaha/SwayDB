@@ -48,7 +48,7 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{Segment, SegmentOptional, ThreadReadState}
+import swaydb.core.segment.{Segment, SegmentOptional, ThreadReadState, TransientSegment}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -1300,14 +1300,14 @@ object CommonAssertions {
     else
       Some(expiredDeadline())
 
-  def readAll(closedSegment: SegmentBlock.Closed)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
-    readAll(closedSegment.flattenSegmentBytes)
+  def readAll(segment: TransientSegment)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] =
+    readAll(segment.flattenSegmentBytes)
 
   def writeAndRead(keyValues: Iterable[Memory])(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, Slice[KeyValue]] = {
     val sortedIndexBlock = SortedIndexBlock.Config.random
 
     val segment =
-      SegmentBlock.writeClosed(
+      SegmentBlock.writeTransient(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexBlock.enableAccessPositionIndex),
         createdInLevel = 0,
         segmentSize = Int.MaxValue,
@@ -1324,7 +1324,7 @@ object CommonAssertions {
     readAll(segment.head.flattenSegmentBytes)
   }
 
-  def readBlocksFromSegment(closedSegment: SegmentBlock.Closed,
+  def readBlocksFromSegment(closedSegment: TransientSegment,
                             segmentIO: SegmentIO = SegmentIO.random,
                             useCacheableReaders: Boolean = randomBoolean())(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[swaydb.Error.Segment, SegmentBlocks] =
     if (useCacheableReaders && closedSegment.sortedIndexUnblockedReader.isDefined && randomBoolean()) //randomly also use cacheable readers
@@ -1332,7 +1332,7 @@ object CommonAssertions {
     else
       readBlocks(closedSegment.flattenSegmentBytes, segmentIO)
 
-  def readCachedBlocksFromSegment(closedSegment: SegmentBlock.Closed): Option[SegmentBlocks] =
+  def readCachedBlocksFromSegment(closedSegment: TransientSegment): Option[SegmentBlocks] =
     if (closedSegment.sortedIndexUnblockedReader.isDefined)
       Some(
         SegmentBlocks(
@@ -1357,7 +1357,7 @@ object CommonAssertions {
                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
-      SegmentBlock.writeClosed(
+      SegmentBlock.writeTransient(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
         createdInLevel = 0,
         segmentSize = segmentSize,
@@ -1429,7 +1429,7 @@ object CommonAssertions {
                            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] =
-    SegmentBlock.writeClosed(
+    SegmentBlock.writeTransient(
       mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
       createdInLevel = Int.MaxValue,
       segmentSize = segmentSize,
@@ -1497,7 +1497,7 @@ object CommonAssertions {
     else
       IOStrategy.ConcurrentIO(cacheOnAccess)
 
-  def getSegmentBlockCacheFromSegmentClosed(segment: SegmentBlock.Closed,
+  def getSegmentBlockCacheFromSegmentClosed(segment: TransientSegment,
                                             segmentIO: SegmentIO = SegmentIO.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): SegmentBlockCache =
     SegmentBlockCache(
       path = Paths.get("test"),

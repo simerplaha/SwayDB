@@ -22,6 +22,7 @@ package swaydb.core.segment.format.a.block
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
+import swaydb.core.segment.TransientSegment
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -89,57 +90,6 @@ private[core] object SegmentBlock extends LazyLogging {
   }
 
   case class Offset(start: Int, size: Int) extends BlockOffset
-
-  object Closed {
-
-    def apply(openSegment: Open): Closed =
-      new Closed(
-        minKey = openSegment.minKey,
-        maxKey = openSegment.maxKey,
-        segmentBytes = openSegment.segmentBytes,
-        minMaxFunctionId = openSegment.functionMinMax,
-        nearestDeadline = openSegment.nearestDeadline,
-        valuesUnblockedReader = openSegment.valuesUnblockedReader,
-        sortedIndexUnblockedReader = openSegment.sortedIndexUnblockedReader,
-        hashIndexUnblockedReader = openSegment.hashIndexUnblockedReader,
-        binarySearchUnblockedReader = openSegment.binarySearchUnblockedReader,
-        bloomFilterUnblockedReader = openSegment.bloomFilterUnblockedReader,
-        footerUnblocked = openSegment.footerUnblocked
-      )
-  }
-
-  class Closed(val minKey: Slice[Byte],
-               val maxKey: MaxKey[Slice[Byte]],
-               val segmentBytes: Slice[Slice[Byte]],
-               val minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-               val nearestDeadline: Option[Deadline],
-               val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-               val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-               val hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-               val binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
-               val bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-               val footerUnblocked: Option[SegmentFooterBlock]) {
-
-    def isEmpty: Boolean =
-      segmentBytes.exists(_.isEmpty)
-
-    def segmentSize =
-      segmentBytes.foldLeft(0)(_ + _.size)
-
-    def flattenSegmentBytes: Slice[Byte] = {
-      val size = segmentBytes.foldLeft(0)(_ + _.size)
-      val slice = Slice.create[Byte](size)
-      segmentBytes foreach (slice addAll _)
-      assert(slice.isFull)
-      slice
-    }
-
-    def flattenSegment: (Slice[Byte], Option[Deadline]) =
-      (flattenSegmentBytes, nearestDeadline)
-
-    override def toString: String =
-      s"Closed Segment. Size: ${segmentSize}"
-  }
 
   class Open(val minKey: Slice[Byte],
              val maxKey: MaxKey[Slice[Byte]],
@@ -270,15 +220,15 @@ private[core] object SegmentBlock extends LazyLogging {
       compressionInfo = header.compressionInfo
     )
 
-  def writeClosed(mergeStats: MergeStats.Persistent.Closed[Iterable],
-                  createdInLevel: Int,
-                  segmentSize: Int,
-                  bloomFilterConfig: BloomFilterBlock.Config,
-                  hashIndexConfig: HashIndexBlock.Config,
-                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-                  sortedIndexConfig: SortedIndexBlock.Config,
-                  valuesConfig: ValuesBlock.Config,
-                  segmentConfig: SegmentBlock.Config): Iterable[SegmentBlock.Closed] =
+  def writeTransient(mergeStats: MergeStats.Persistent.Closed[Iterable],
+                     createdInLevel: Int,
+                     segmentSize: Int,
+                     bloomFilterConfig: BloomFilterBlock.Config,
+                     hashIndexConfig: HashIndexBlock.Config,
+                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                     sortedIndexConfig: SortedIndexBlock.Config,
+                     valuesConfig: ValuesBlock.Config,
+                     segmentConfig: SegmentBlock.Config): Iterable[TransientSegment] =
     if (mergeStats.isEmpty)
       Seq.empty
     else

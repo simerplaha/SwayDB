@@ -23,6 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
+import swaydb.core.segment.TransientSegment
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
@@ -148,7 +149,7 @@ private[core] object Block extends LazyLogging {
 
   def block(openSegment: SegmentBlock.Open,
             compressions: Seq[CompressionInternal],
-            blockName: String): SegmentBlock.Closed =
+            blockName: String): TransientSegment =
     if (compressions.isEmpty) {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
       //      openSegment.segmentHeader moveWritePosition 0
@@ -160,7 +161,7 @@ private[core] object Block extends LazyLogging {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 
-      new SegmentBlock.Closed(
+      new TransientSegment(
         minKey = openSegment.minKey,
         maxKey = openSegment.maxKey,
         segmentBytes = segmentBytes,
@@ -189,7 +190,7 @@ private[core] object Block extends LazyLogging {
 
       compressionResult.fixHeaderSize()
 
-      new SegmentBlock.Closed(
+      new TransientSegment(
         minKey = openSegment.minKey,
         maxKey = openSegment.maxKey,
         segmentBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),
