@@ -173,7 +173,7 @@ sealed trait SegmentWriteSpec extends TestBase {
               segment.skipList
 
             case segment: PersistentSegment =>
-              segment.segmentCache.skipList.get
+              segment.ref.skipList.get
           }
 
         skipList.asScala foreach {

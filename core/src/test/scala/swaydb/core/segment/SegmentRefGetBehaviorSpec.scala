@@ -38,7 +38,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
+class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
@@ -53,8 +53,8 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
     "key is > MaxKey.Fixed" should {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
-        implicit val segmentCache = new SegmentCache(Paths.get("1"), MaxKey.Fixed[Slice[Byte]](100), minKey = 0, None, null)
-        SegmentCache.get(key = 101, readState = null) shouldBe Persistent.Null
+        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Fixed[Slice[Byte]](100), minKey = 0, None, null)
+        SegmentRef.get(key = 101, readState = null) shouldBe Persistent.Null
 
       }
     }
@@ -62,9 +62,9 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
     "key is > MaxKey.Range" should {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
-        implicit val segmentCache = new SegmentCache(Paths.get("1"), MaxKey.Range[Slice[Byte]](90, 100), minKey = 0, None, null)
-        SegmentCache.get(key = 100, readState = null) shouldBe Persistent.Null
-        SegmentCache.get(key = 101, readState = null) shouldBe Persistent.Null
+        implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Range[Slice[Byte]](90, 100), minKey = 0, None, null)
+        SegmentRef.get(key = 100, readState = null) shouldBe Persistent.Null
+        SegmentRef.get(key = 101, readState = null) shouldBe Persistent.Null
 
       }
     }
@@ -82,8 +82,8 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
 
       implicit val segmentSearcher = mock[SegmentSearcher]
 
-      implicit val segmentCache =
-        new SegmentCache(
+      implicit val segmentRef: SegmentRef =
+        new SegmentRef(
           path = path,
           maxKey = MaxKey.Fixed[Slice[Byte]](Int.MaxValue),
           minKey = 0,
@@ -137,7 +137,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
               keyValue1
           }
 
-        SegmentCache.get(key = keyValue1.key, readState = threadState) shouldBe keyValue1
+        SegmentRef.get(key = keyValue1.key, readState = threadState) shouldBe keyValue1
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue1
@@ -164,7 +164,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
               keyValue2
           }
 
-        SegmentCache.get(key = keyValue2.key, readState = threadState) shouldBe keyValue2
+        SegmentRef.get(key = keyValue2.key, readState = threadState) shouldBe keyValue2
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue2
@@ -215,7 +215,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
               }
           }
 
-        SegmentCache.get(key = keyValue100.key, readState = threadState) shouldBe keyValue100
+        SegmentRef.get(key = keyValue100.key, readState = threadState) shouldBe keyValue100
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue100
@@ -251,7 +251,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
               }
           }
 
-        SegmentCache.get(key = keyValue101.key, readState = threadState) shouldBe keyValue101
+        SegmentRef.get(key = keyValue101.key, readState = threadState) shouldBe keyValue101
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue101
@@ -303,7 +303,7 @@ class SegmentCacheGetBehaviorSpec extends TestBase with MockFactory {
               }
           }
 
-        SegmentCache.get(key = keyValue3.key, readState = threadState) shouldBe keyValue3
+        SegmentRef.get(key = keyValue3.key, readState = threadState) shouldBe keyValue3
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue3

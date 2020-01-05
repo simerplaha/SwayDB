@@ -607,7 +607,7 @@ private[core] object Segment extends LazyLogging {
         segment.segmentSize
 
       case segment: PersistentSegment =>
-        val footer = segment.segmentCache.getFooter()
+        val footer = segment.ref.getFooter()
         footer.sortedIndexOffset.size +
           footer.valuesOffset.map(_.size).getOrElse(0) +
           SegmentFooterBlock.optimalBytesRequired

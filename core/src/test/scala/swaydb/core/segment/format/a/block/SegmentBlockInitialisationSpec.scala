@@ -558,7 +558,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
               segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true)
             ).asInstanceOf[PersistentSegment]
 
-          val blockCache = segment.segmentCache.segmentBlockCache
+          val blockCache = segment.ref.segmentBlockCache
 
           blockCache.isCached shouldBe true
 

@@ -38,7 +38,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class SegmentCacheSpec extends TestBase with MockFactory {
+class SegmentRefSpec extends TestBase with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
