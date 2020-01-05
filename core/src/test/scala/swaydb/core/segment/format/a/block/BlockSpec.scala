@@ -4,6 +4,7 @@ import org.scalatest.OptionValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.core.segment.TransientSegmentRef
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.data.config.IOAction
@@ -69,7 +70,7 @@ class BlockSpec extends TestBase {
         runThis(100.times) {
           val headerSize = Block.minimumHeaderSize(false)
           val segment =
-            new SegmentBlock.Open(
+            new TransientSegmentRef(
               minKey = null,
               maxKey = null,
 
@@ -160,7 +161,7 @@ class BlockSpec extends TestBase {
         runThis(100.times) {
           val headerSize = Block.minimumHeaderSize(true) //+1 for Bytes.sizeOf(headerSize) that is calculated by the block itself.
           val uncompressedSegment =
-            new SegmentBlock.Open(
+            new TransientSegmentRef(
               minKey = null,
               maxKey = null,
 

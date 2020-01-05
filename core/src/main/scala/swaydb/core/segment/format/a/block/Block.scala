@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.TransientSegment
+import swaydb.core.segment.{TransientSegment, TransientSegmentRef}
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
@@ -147,36 +147,36 @@ private[core] object Block extends LazyLogging {
         )
     }
 
-  def block(openSegment: SegmentBlock.Open,
+  def block(ref: TransientSegmentRef,
             compressions: Seq[CompressionInternal],
             blockName: String): TransientSegment =
     if (compressions.isEmpty) {
-      logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${openSegment.segmentSize}.bytes uncompressed.")
+      logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${ref.segmentSize}.bytes uncompressed.")
       //      openSegment.segmentHeader moveWritePosition 0
-      openSegment.segmentHeader addUnsignedInt 1
-      openSegment.segmentHeader add uncompressedBlockId
+      ref.segmentHeader addUnsignedInt 1
+      ref.segmentHeader add uncompressedBlockId
 
       val segmentBytes =
-        openSegment.segmentBytes.collect {
+        ref.segmentBytes.collect {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 
       new TransientSegment(
-        minKey = openSegment.minKey,
-        maxKey = openSegment.maxKey,
+        minKey = ref.minKey,
+        maxKey = ref.maxKey,
         segmentBytes = segmentBytes,
-        minMaxFunctionId = openSegment.functionMinMax,
-        nearestDeadline = openSegment.nearestDeadline,
-        valuesUnblockedReader = openSegment.valuesUnblockedReader,
-        sortedIndexUnblockedReader = openSegment.sortedIndexUnblockedReader,
-        hashIndexUnblockedReader = openSegment.hashIndexUnblockedReader,
-        binarySearchUnblockedReader = openSegment.binarySearchUnblockedReader,
-        bloomFilterUnblockedReader = openSegment.bloomFilterUnblockedReader,
-        footerUnblocked = openSegment.footerUnblocked
+        minMaxFunctionId = ref.functionMinMax,
+        nearestDeadline = ref.nearestDeadline,
+        valuesUnblockedReader = ref.valuesUnblockedReader,
+        sortedIndexUnblockedReader = ref.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = ref.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = ref.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = ref.bloomFilterUnblockedReader,
+        footerUnblocked = ref.footerUnblocked
       )
     } else {
       //header is empty so no header bytes are included.
-      val uncompressedSegmentBytes = openSegment.flattenSegmentBytes
+      val uncompressedSegmentBytes = ref.flattenSegmentBytes
 
       val compressionResult =
         Block.compress(
@@ -191,17 +191,17 @@ private[core] object Block extends LazyLogging {
       compressionResult.fixHeaderSize()
 
       new TransientSegment(
-        minKey = openSegment.minKey,
-        maxKey = openSegment.maxKey,
+        minKey = ref.minKey,
+        maxKey = ref.maxKey,
         segmentBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),
-        minMaxFunctionId = openSegment.functionMinMax,
-        nearestDeadline = openSegment.nearestDeadline,
-        valuesUnblockedReader = openSegment.valuesUnblockedReader,
-        sortedIndexUnblockedReader = openSegment.sortedIndexUnblockedReader,
-        hashIndexUnblockedReader = openSegment.hashIndexUnblockedReader,
-        binarySearchUnblockedReader = openSegment.binarySearchUnblockedReader,
-        bloomFilterUnblockedReader = openSegment.bloomFilterUnblockedReader,
-        footerUnblocked = openSegment.footerUnblocked
+        minMaxFunctionId = ref.functionMinMax,
+        nearestDeadline = ref.nearestDeadline,
+        valuesUnblockedReader = ref.valuesUnblockedReader,
+        sortedIndexUnblockedReader = ref.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = ref.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = ref.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = ref.bloomFilterUnblockedReader,
+        footerUnblocked = ref.footerUnblocked
       )
     }
 

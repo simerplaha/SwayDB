@@ -19,7 +19,6 @@
 
 package swaydb.core.segment
 
-import swaydb.core.segment.format.a.block.SegmentBlock.Open
 import swaydb.core.segment.format.a.block.{BloomFilterBlock, SegmentFooterBlock, SortedIndexBlock, ValuesBlock}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -32,19 +31,19 @@ import scala.concurrent.duration.Deadline
 
 object TransientSegment {
 
-  def apply(openSegment: Open): TransientSegment =
+  def apply(ref: TransientSegmentRef): TransientSegment =
     new TransientSegment(
-      minKey = openSegment.minKey,
-      maxKey = openSegment.maxKey,
-      segmentBytes = openSegment.segmentBytes,
-      minMaxFunctionId = openSegment.functionMinMax,
-      nearestDeadline = openSegment.nearestDeadline,
-      valuesUnblockedReader = openSegment.valuesUnblockedReader,
-      sortedIndexUnblockedReader = openSegment.sortedIndexUnblockedReader,
-      hashIndexUnblockedReader = openSegment.hashIndexUnblockedReader,
-      binarySearchUnblockedReader = openSegment.binarySearchUnblockedReader,
-      bloomFilterUnblockedReader = openSegment.bloomFilterUnblockedReader,
-      footerUnblocked = openSegment.footerUnblocked
+      minKey = ref.minKey,
+      maxKey = ref.maxKey,
+      segmentBytes = ref.segmentBytes,
+      minMaxFunctionId = ref.functionMinMax,
+      nearestDeadline = ref.nearestDeadline,
+      valuesUnblockedReader = ref.valuesUnblockedReader,
+      sortedIndexUnblockedReader = ref.sortedIndexUnblockedReader,
+      hashIndexUnblockedReader = ref.hashIndexUnblockedReader,
+      binarySearchUnblockedReader = ref.binarySearchUnblockedReader,
+      bloomFilterUnblockedReader = ref.bloomFilterUnblockedReader,
+      footerUnblocked = ref.footerUnblocked
     )
 }
 
