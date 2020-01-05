@@ -13,7 +13,7 @@
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
 Embeddable persistent and in-memory database. Resource efficiency, performance 
-and easy data management with simple functional APIs.
+and easy data management with simple collection APIs.
 
 [See documentation - SwayDB.io](http://swaydb.io) (currently being updated for latest version).
 
