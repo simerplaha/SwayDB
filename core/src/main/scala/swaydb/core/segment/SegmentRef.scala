@@ -51,8 +51,8 @@ private[core] object SegmentRef {
   }
 
   def apply(path: Path,
-            maxKey: MaxKey[Slice[Byte]],
             minKey: Slice[Byte],
+            maxKey: MaxKey[Slice[Byte]],
             blockRef: BlockRefReader[SegmentBlock.Offset],
             segmentIO: SegmentIO,
             valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],

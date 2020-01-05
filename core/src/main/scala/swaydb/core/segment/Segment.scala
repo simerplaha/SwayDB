@@ -30,7 +30,6 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile, Effect}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.map.Map
-import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
@@ -198,13 +197,13 @@ private[core] object Segment extends LazyLogging {
                  valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlock.Config,
                  mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                     timeOrder: TimeOrder[Slice[Byte]],
-                                                                     functionStore: FunctionStore,
-                                                                     fileSweeper: FileSweeper.Enabled,
-                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                     blockCache: Option[BlockCache.State],
-                                                                     segmentIO: SegmentIO,
-                                                                     idGenerator: IDGenerator): Slice[Segment] =
+                                                                           timeOrder: TimeOrder[Slice[Byte]],
+                                                                           functionStore: FunctionStore,
+                                                                           fileSweeper: FileSweeper.Enabled,
+                                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                           blockCache: Option[BlockCache.State],
+                                                                           segmentIO: SegmentIO,
+                                                                           idGenerator: IDGenerator): Slice[Segment] =
     SegmentBlock.writeTransient(
       mergeStats = mergeStats,
       createdInLevel = createdInLevel,
@@ -226,8 +225,7 @@ private[core] object Segment extends LazyLogging {
             val path = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
 
             val file =
-            //if both read and writes are mmaped. Keep the file open.
-              if (mmapWrites && mmapReads)
+              if (mmapWrites && mmapReads) //if both read and writes are mmaped. Keep the file open.
                 DBFile.mmapWriteAndRead(
                   path = path,
                   autoClose = true,
@@ -247,7 +245,7 @@ private[core] object Segment extends LazyLogging {
                   )
 
                 //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
-                //is probably not the most efficient and should be advised not to used.
+                //is probably not the most efficient and should not be used.
                 file.close()
                 DBFile.channelRead(
                   path = file.path,

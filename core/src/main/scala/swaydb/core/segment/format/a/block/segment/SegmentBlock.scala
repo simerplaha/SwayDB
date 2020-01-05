@@ -344,25 +344,27 @@ private[core] object SegmentBlock extends LazyLogging {
 
         nearestDeadline = closedBlocks.nearestDeadline,
         valuesBlockHeader = closedBlocks.values.map(_.header.close()),
-        valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
 
+        valuesBlock = closedBlocks.values.map(_.compressibleBytes.close()),
         valuesUnblockedReader = closedBlocks.valuesUnblockedReader,
+
         sortedIndexBlockHeader = closedBlocks.sortedIndex.header.close(),
         sortedIndexBlock = closedBlocks.sortedIndex.compressibleBytes.close(),
-
         sortedIndexUnblockedReader = closedBlocks.sortedIndexUnblockedReader,
+        sortedIndexClosedState = closedBlocks.sortedIndex,
+
         hashIndexBlockHeader = closedBlocks.hashIndex map (_.header.close()),
         hashIndexBlock = closedBlocks.hashIndex map (_.compressibleBytes.close()),
-
         hashIndexUnblockedReader = closedBlocks.hashIndexUnblockedReader,
+
         binarySearchIndexBlockHeader = closedBlocks.binarySearchIndex map (_.header.close()),
         binarySearchIndexBlock = closedBlocks.binarySearchIndex map (_.compressibleBytes.close()),
-
         binarySearchUnblockedReader = closedBlocks.binarySearchUnblockedReader,
+
         bloomFilterBlockHeader = closedBlocks.bloomFilter map (_.header.close()),
         bloomFilterBlock = closedBlocks.bloomFilter map (_.compressibleBytes.close()),
-
         bloomFilterUnblockedReader = closedBlocks.bloomFilterUnblockedReader,
+
         footerBlock = closedFooter.bytes.close()
       )
 

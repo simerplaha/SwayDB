@@ -41,6 +41,7 @@ class TransientSegmentBlock(val minKey: Slice[Byte],
                             val valuesBlock: Option[Slice[Byte]],
                             val valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                             //sortedIndex
+                            val sortedIndexClosedState: SortedIndexBlock.State,
                             val sortedIndexBlockHeader: Slice[Byte],
                             val sortedIndexBlock: Slice[Byte],
                             val sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],

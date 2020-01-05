@@ -33,10 +33,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.data.util.ByteSizeOf
 
-import scala.annotation.implicitNotFound
 import scala.concurrent.duration.Deadline
 
-@implicitNotFound("Type class implementation not found for SegmentSerialiser of type ${T}")
 sealed trait SegmentSerialiser {
 
   def write(value: Segment, bytes: Slice[Byte]): Unit

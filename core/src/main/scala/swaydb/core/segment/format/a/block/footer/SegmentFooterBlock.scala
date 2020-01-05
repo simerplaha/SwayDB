@@ -276,6 +276,7 @@ object SegmentFooterBlock {
       )
     }
   }
+
   implicit object SegmentFooterBlockOps extends BlockOps[SegmentFooterBlock.Offset, SegmentFooterBlock] {
     override def updateBlockOffset(block: SegmentFooterBlock, start: Int, size: Int): SegmentFooterBlock =
       block.copy(offset = createOffset(start, size))

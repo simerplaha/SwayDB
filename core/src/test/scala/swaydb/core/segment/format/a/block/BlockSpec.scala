@@ -83,6 +83,7 @@ class BlockSpec extends TestBase {
               valuesUnblockedReader = None,
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
 
+              sortedIndexClosedState = null,
               sortedIndexBlock = randomBytesSlice(2),
               sortedIndexUnblockedReader = None,
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),
@@ -174,6 +175,7 @@ class BlockSpec extends TestBase {
               valuesUnblockedReader = None,
               sortedIndexBlockHeader = Slice.fill(headerSize)(0.toByte),
 
+              sortedIndexClosedState = null,
               sortedIndexBlock = randomBytesSlice(randomIntMax(100) + 1),
               sortedIndexUnblockedReader = None,
               hashIndexBlockHeader = Some(Slice.fill(headerSize)(0.toByte)),

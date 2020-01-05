@@ -39,6 +39,12 @@ private[core] object BlockRefReader {
       reader = Reader(file)
     )
 
+  def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset], start: Int)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
+    new BlockRefReader[O](
+      offset = blockOps.createOffset(ref.offset.start + start, ref.size.toInt),
+      reader = ref.reader
+    )
+
   def apply[O <: BlockOffset](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(
       offset = blockOps.createOffset(0, bytes.size),
