@@ -26,26 +26,25 @@ import swaydb.data.slice.{ReaderBase, Slice}
 object TimerMapEntryReader {
 
   implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Slice[Byte]]] =
-      IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Slice[Byte]]] {
-        val _ = reader.readUnsignedInt()
-        val keySize = reader.readUnsignedInt()
+    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Slice[Byte]] = {
+      val _ = reader.readUnsignedInt()
+      val keySize = reader.readUnsignedInt()
 
-        val key =
-          if (keySize == 0)
-            Slice.emptyBytes
-          else
-            reader.read(keySize)
+      val key =
+        if (keySize == 0)
+          Slice.emptyBytes
+        else
+          reader.read(keySize)
 
-        val valueSize = reader.readUnsignedInt()
+      val valueSize = reader.readUnsignedInt()
 
-        val value =
-          if (valueSize == 0)
-            Slice.emptyBytes
-          else
-            reader.read(valueSize)
+      val value =
+        if (valueSize == 0)
+          Slice.emptyBytes
+        else
+          reader.read(valueSize)
 
-        MapEntry.Put(key, value)(TimerMapEntryWriter.TimerPutMapEntryWriter)
-      }
+      MapEntry.Put(key, value)(TimerMapEntryWriter.TimerPutMapEntryWriter)
+    }
   }
 }

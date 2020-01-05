@@ -82,10 +82,10 @@ private[core] object MapCodec extends LazyLogging {
                         val checkCRC = CRC32 forBytes payload
                         //crc check.
                         if (crc == checkCRC) {
-                          mapReader.read(Reader(payload)) map {
-                            readMapEntry =>
-                              val nextEntry = recovery.item.map(_ ++ readMapEntry) orElse Some(readMapEntry)
-                              RecoveryResult(nextEntry, recovery.result)
+                          IO {
+                            val readMapEntry = mapReader.read(Reader(payload))
+                            val nextEntry = recovery.item.map(_ ++ readMapEntry) orElse Some(readMapEntry)
+                            RecoveryResult(nextEntry, recovery.result)
                           }
                         } else {
                           val failureMessage =

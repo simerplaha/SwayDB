@@ -19,7 +19,6 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -28,13 +27,13 @@ import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for MapEntryReader of type ${T}")
 trait MapEntryReader[T <: MapEntry[_, _]] {
-  def read(reader: ReaderBase): IO[swaydb.Error.Map, T]
+  def read(reader: ReaderBase): T
 }
 
 object MapEntryReader {
-  def read[T <: MapEntry[_, _]](bytes: Slice[Byte])(implicit serializer: MapEntryReader[T]): IO[swaydb.Error.Map, T] =
+  def read[T <: MapEntry[_, _]](bytes: Slice[Byte])(implicit serializer: MapEntryReader[T]): T =
     serializer.read(Reader(bytes))
 
-  def read[T <: MapEntry[_, _]](reader: ReaderBase)(implicit serializer: MapEntryReader[T]): IO[swaydb.Error.Map, T] =
+  def read[T <: MapEntry[_, _]](reader: ReaderBase)(implicit serializer: MapEntryReader[T]): T =
     serializer.read(reader)
 }

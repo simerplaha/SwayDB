@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Path, Paths}
 import java.util.concurrent.TimeUnit
 
-import swaydb.Error.Map.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, Effect}
@@ -34,7 +33,6 @@ import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
-import swaydb.{Error, IO}
 
 import scala.concurrent.duration.Deadline
 
@@ -141,56 +139,50 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
                                                            segmentIO: SegmentIO) {
 
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Put[Slice[Byte], Segment]] =
-      try {
-        val segment =
-          AppendixMapEntryReader.readSegment(
-            reader = reader,
-            mmapSegmentsOnRead = mmapSegmentsOnRead,
-            mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-            checkExists = true
-          )
-
-        IO.Right(
-          MapEntry.Put(
-            key = segment.minKey,
-            value = segment
-          )(AppendixMapEntryWriter.AppendixPutWriter)
+    override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Segment] = {
+      val segment =
+        AppendixMapEntryReader.readSegment(
+          reader = reader,
+          mmapSegmentsOnRead = mmapSegmentsOnRead,
+          mmapSegmentsOnWrite = mmapSegmentsOnWrite,
+          checkExists = true
         )
-      } catch {
-        case exception: Exception =>
-          IO.Left(Error.Fatal(exception))
-      }
+
+      MapEntry.Put(
+        key = segment.minKey,
+        value = segment
+      )(AppendixMapEntryWriter.AppendixPutWriter)
+    }
   }
 
   implicit object AppendixRemoveReader extends MapEntryReader[MapEntry.Remove[Slice[Byte]]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry.Remove[Slice[Byte]]] =
-      IO {
-        val minKeyLength = reader.readUnsignedInt()
-        val minKey = reader.read(minKeyLength).unslice()
-        MapEntry.Remove(minKey)(AppendixMapEntryWriter.AppendixRemoveWriter)
-      }
+    override def read(reader: ReaderBase): MapEntry.Remove[Slice[Byte]] = {
+      val minKeyLength = reader.readUnsignedInt()
+      val minKey = reader.read(minKeyLength).unslice()
+      MapEntry.Remove(minKey)(AppendixMapEntryWriter.AppendixRemoveWriter)
+    }
   }
 
   implicit object AppendixReader extends MapEntryReader[MapEntry[Slice[Byte], Segment]] {
-    override def read(reader: ReaderBase): IO[swaydb.Error.Map, MapEntry[Slice[Byte], Segment]] =
-      reader.foldLeftIO(Option.empty[MapEntry[Slice[Byte], Segment]]) {
-        case (previousEntry, reader) =>
-          IO(reader.readUnsignedInt()) flatMap {
-            entryId =>
-              if (entryId == AppendixMapEntryWriter.AppendixPutWriter.id)
-                AppendixPutReader.read(reader) map {
-                  nextEntry =>
-                    previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-                }
-              else if (entryId == AppendixMapEntryWriter.AppendixRemoveWriter.id)
-                AppendixRemoveReader.read(reader) map {
-                  nextEntry =>
-                    previousEntry.map(_ ++ nextEntry) orElse Some(nextEntry)
-                }
-              else
-                IO.failed(new IllegalArgumentException(s"Invalid entry type $entryId."))
+    override def read(reader: ReaderBase): MapEntry[Slice[Byte], Segment] =
+      reader.foldLeft(null: MapEntry[Slice[Byte], Segment]) {
+        case (previousEntryOrNull, reader) =>
+          val entryId = reader.readUnsignedInt()
+          if (entryId == AppendixMapEntryWriter.AppendixPutWriter.id) {
+            val nextEntry = AppendixPutReader.read(reader)
+            if (previousEntryOrNull == null)
+              nextEntry
+            else
+              previousEntryOrNull ++ nextEntry
+          } else if (entryId == AppendixMapEntryWriter.AppendixRemoveWriter.id) {
+            val nextEntry = AppendixRemoveReader.read(reader)
+            if (previousEntryOrNull == null)
+              nextEntry
+            else
+              previousEntryOrNull ++ nextEntry
+          } else {
+            throw new IllegalArgumentException(s"Invalid entry type $entryId.")
           }
-      }.transform(_.get)
+      }
   }
 }

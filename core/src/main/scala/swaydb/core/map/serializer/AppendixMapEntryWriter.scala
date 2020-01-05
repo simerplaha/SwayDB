@@ -56,6 +56,7 @@ object AppendixMapEntryWriter {
 
     override def write(entry: MapEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit = {
       val segmentPath = Slice(entry.value.path.toString.getBytes(StandardCharsets.UTF_8))
+
       val (maxKeyId, maxKeyBytes) =
         entry.value.maxKey match {
           case MaxKey.Fixed(maxKey) =>
@@ -63,24 +64,6 @@ object AppendixMapEntryWriter {
 
           case MaxKey.Range(fromKey, maxToKey) =>
             (2, Bytes.compressJoin(fromKey, maxToKey))
-        }
-
-      def writeMinMax(bytes: Slice[Byte]) =
-        entry.value.minMaxFunctionId match {
-          case Some(minMaxFunctionId) =>
-            bytes addUnsignedInt minMaxFunctionId.min.size
-            bytes addAll minMaxFunctionId.min
-            minMaxFunctionId.max match {
-              case Some(max) =>
-                bytes addUnsignedInt max.size
-                bytes addAll max
-
-              case None =>
-                bytes addUnsignedInt 0
-            }
-
-          case None =>
-            bytes addUnsignedInt 0
         }
 
       bytes
@@ -96,7 +79,22 @@ object AppendixMapEntryWriter {
         .addAll(maxKeyBytes)
         .addUnsignedLong(entry.value.nearestPutDeadline.valueOrElse(_.time.toNanos, 0L))
 
-      writeMinMax(bytes)
+      entry.value.minMaxFunctionId match {
+        case Some(minMaxFunctionId) =>
+          bytes addUnsignedInt minMaxFunctionId.min.size
+          bytes addAll minMaxFunctionId.min
+          minMaxFunctionId.max match {
+            case Some(max) =>
+              bytes addUnsignedInt max.size
+              bytes addAll max
+
+            case None =>
+              bytes addUnsignedInt 0
+          }
+
+        case None =>
+          bytes addUnsignedInt 0
+      }
     }
 
     override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int = {
