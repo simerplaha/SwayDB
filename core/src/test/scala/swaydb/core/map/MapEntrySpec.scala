@@ -19,9 +19,6 @@
 
 package swaydb.core.map
 
-
-import org.scalatest.OptionValues._
-import swaydb.Error.Map.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
@@ -30,8 +27,8 @@ import swaydb.core.data.{Memory, MemoryOptional, Value}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
-import swaydb.core.segment.{Segment, SegmentOptional}
 import swaydb.core.segment.format.a.block.SegmentIO
+import swaydb.core.segment.{Segment, SegmentOptional}
 import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -40,8 +37,8 @@ import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 
 class MapEntrySpec extends TestBase {
 
@@ -350,7 +347,6 @@ class MapEntrySpec extends TestBase {
     "be written and read for Level0" in {
       import LevelZeroMapEntryReader._
       import LevelZeroMapEntryWriter._
-      import swaydb.Error.Map.ExceptionHandler
 
       val initialEntry: MapEntry[Slice[Byte], Memory] = MapEntry.Put(0, Memory.put(0, 0))
       var entry =
@@ -384,20 +380,35 @@ class MapEntrySpec extends TestBase {
     "be written and read for Appendix" in {
       import AppendixMapEntryWriter._
       import appendixReader._
-      import swaydb.Error.Map.ExceptionHandler
 
-      val segment = TestSegment(keyValues)
+      val keyValues = randomKeyValues(100, startId = Some(0))
 
-      val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segment)
-      var entry =
-        Range.inclusive(1, 10000).foldLeft(initialEntry) {
-          case (previousEntry, i) =>
-            previousEntry ++ MapEntry.Put[Slice[Byte], Segment](i, segment)
+      val segments: Slice[Segment] =
+        keyValues.groupedSlice(keyValues.size) map {
+          keyValues =>
+            TestSegment(keyValues)
         }
-      entry =
-        Range.inclusive(5000, 10000).foldLeft(entry) {
+
+      segments.zipWithIndex foreach {
+        case (segment, index) =>
+          segment.minKey.readInt() shouldBe index
+          segment.getKeyValueCount() shouldBe 1
+      }
+
+      val initialEntry: MapEntry[Slice[Byte], Segment] = MapEntry.Put[Slice[Byte], Segment](0, segments.head)
+
+      var entry =
+        (1 until 100).foldLeft(initialEntry) {
           case (previousEntry, i) =>
-            previousEntry ++ MapEntry.Remove[Slice[Byte]](i)
+            val segment = segments(i)
+            previousEntry ++ MapEntry.Put[Slice[Byte], Segment](segment.minKey, segment)
+        }
+
+      entry =
+        (50 until 100).foldLeft(entry) {
+          case (previousEntry, i) =>
+            val segment = segments(i)
+            previousEntry ++ MapEntry.Remove[Slice[Byte]](segment.minKey)
         }
 
       entry.hasRange shouldBe false
@@ -406,15 +417,15 @@ class MapEntrySpec extends TestBase {
       entry writeTo bytes
       bytes.isFull shouldBe true //fully written! No gaps!
 
-      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes)).runRandomIO.right.value
+      val readMapEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(bytes))
 
       val skipList = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
       readMapEntry applyTo skipList
-      skipList should have size 5000
+      skipList should have size 50
       skipList.headKey.getC shouldBe (0: Slice[Byte])
-      skipList.lastKey.getC shouldBe (4999: Slice[Byte])
+      skipList.lastKey.getC shouldBe (49: Slice[Byte])
 
-      segment.close.runRandomIO.right.value
+      segments foreach (_.close)
     }
   }
 

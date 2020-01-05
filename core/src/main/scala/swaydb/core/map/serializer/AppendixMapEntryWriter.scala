@@ -19,14 +19,10 @@
 
 package swaydb.core.map.serializer
 
-import java.nio.charset.StandardCharsets
-
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
-import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
-import swaydb.core.util.Options._
 
 object AppendixMapEntryWriter {
 
@@ -38,12 +34,12 @@ object AppendixMapEntryWriter {
 
     override def write(entry: MapEntry.Remove[Slice[Byte]], bytes: Slice[Byte]): Unit =
       bytes
-        .addUnsignedInt(id)
+        .addUnsignedInt(this.id)
         .addUnsignedInt(entry.key.size)
         .addAll(entry.key)
 
     override def bytesRequired(entry: MapEntry.Remove[Slice[Byte]]): Int =
-      Bytes.sizeOfUnsignedInt(id) +
+      Bytes.sizeOfUnsignedInt(this.id) +
         Bytes.sizeOfUnsignedInt(entry.key.size) +
         entry.key.size
   }
@@ -54,85 +50,14 @@ object AppendixMapEntryWriter {
     override val isRange: Boolean = false
     override val isUpdate: Boolean = false
 
-    override def write(entry: MapEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit = {
-      val segmentPath = Slice(entry.value.path.toString.getBytes(StandardCharsets.UTF_8))
+    override def write(entry: MapEntry.Put[Slice[Byte], Segment], bytes: Slice[Byte]): Unit =
+      SegmentSerialiser.FormatA.write(
+        segment = entry.value,
+        bytes = bytes.addUnsignedInt(this.id)
+      )
 
-      val (maxKeyId, maxKeyBytes) =
-        entry.value.maxKey match {
-          case MaxKey.Fixed(maxKey) =>
-            (1, maxKey)
-
-          case MaxKey.Range(fromKey, maxToKey) =>
-            (2, Bytes.compressJoin(fromKey, maxToKey))
-        }
-
-      bytes
-        .addUnsignedInt(id)
-        .addUnsignedInt(segmentPath.size)
-        .addBytes(segmentPath)
-        .addUnsignedInt(entry.value.createdInLevel)
-        .addUnsignedInt(entry.value.segmentSize)
-        .addUnsignedInt(entry.key.size)
-        .addAll(entry.key)
-        .addUnsignedInt(maxKeyId)
-        .addUnsignedInt(maxKeyBytes.size)
-        .addAll(maxKeyBytes)
-        .addUnsignedLong(entry.value.nearestPutDeadline.valueOrElse(_.time.toNanos, 0L))
-
-      entry.value.minMaxFunctionId match {
-        case Some(minMaxFunctionId) =>
-          bytes addUnsignedInt minMaxFunctionId.min.size
-          bytes addAll minMaxFunctionId.min
-          minMaxFunctionId.max match {
-            case Some(max) =>
-              bytes addUnsignedInt max.size
-              bytes addAll max
-
-            case None =>
-              bytes addUnsignedInt 0
-          }
-
-        case None =>
-          bytes addUnsignedInt 0
-      }
-    }
-
-    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int = {
-      val segmentPath = entry.value.path.toString.getBytes(StandardCharsets.UTF_8)
-
-      val (maxKeyId, maxKeyBytes) =
-        entry.value.maxKey match {
-          case MaxKey.Fixed(maxKey) =>
-            (1, maxKey)
-          case MaxKey.Range(fromKey, maxToKey) =>
-            (2, Bytes.compressJoin(fromKey, maxToKey))
-        }
-
-      val minMaxFunctionIdBytesRequires =
-        entry.value.minMaxFunctionId match {
-          case Some(minMax) =>
-            Bytes.sizeOfUnsignedInt(minMax.min.size) +
-              minMax.min.size +
-              Bytes.sizeOfUnsignedInt(minMax.max.valueOrElse(_.size, 0)) +
-              minMax.max.valueOrElse(_.size, 0)
-
-          case None =>
-            1
-        }
-
-      Bytes.sizeOfUnsignedInt(id) +
-        Bytes.sizeOfUnsignedInt(segmentPath.length) +
-        segmentPath.length +
-        Bytes.sizeOfUnsignedInt(entry.value.createdInLevel) +
-        Bytes.sizeOfUnsignedInt(entry.value.segmentSize) +
-        Bytes.sizeOfUnsignedInt(entry.key.size) +
-        entry.key.size +
-        Bytes.sizeOfUnsignedInt(maxKeyId) +
-        Bytes.sizeOfUnsignedInt(maxKeyBytes.size) +
-        maxKeyBytes.size +
-        Bytes.sizeOfUnsignedLong(entry.value.nearestPutDeadline.valueOrElse(_.time.toNanos, 0L)) +
-        minMaxFunctionIdBytesRequires
-    }
+    override def bytesRequired(entry: MapEntry.Put[Slice[Byte], Segment]): Int =
+      Bytes.sizeOfUnsignedInt(this.id) +
+        SegmentSerialiser.FormatA.bytesRequired(entry.value)
   }
-
 }

@@ -19,17 +19,15 @@
 
 package swaydb.core.map.serializer
 
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Path, Paths}
-import java.util.concurrent.TimeUnit
+import java.nio.file.Path
 
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
-import swaydb.core.io.file.{BlockCache, Effect}
+import swaydb.core.io.file.BlockCache
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.Segment
+import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.segment.format.a.block.SegmentIO
-import swaydb.core.util.{BlockCacheFileIDGenerator, Bytes, Extension, MinMax}
+import swaydb.core.util.MinMax
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -50,74 +48,6 @@ object AppendixMapEntryReader {
       mmapSegmentsOnWrite = mmapSegmentsOnWrite
     )
 
-  def readSegment(reader: ReaderBase,
-                  mmapSegmentsOnRead: Boolean,
-                  mmapSegmentsOnWrite: Boolean,
-                  checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore,
-                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                        fileSweeper: FileSweeper.Enabled,
-                                        blockCache: Option[BlockCache.State],
-                                        segmentIO: SegmentIO) = {
-    val segmentPathLength = reader.readUnsignedInt()
-    val segmentPathBytes = reader.read(segmentPathLength).unslice()
-    val segmentPath = Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8))
-    val createdInLevel = reader.readUnsignedInt()
-    val segmentSize = reader.readUnsignedInt()
-    val minKeyLength = reader.readUnsignedInt()
-    val minKey = reader.read(minKeyLength).unslice()
-    val maxKeyId = reader.readUnsignedInt()
-    val maxKeyLength = reader.readUnsignedInt()
-    val maxKeyBytes = reader.read(maxKeyLength).unslice()
-
-    val maxKey =
-      if (maxKeyId == 1) {
-        MaxKey.Fixed(maxKeyBytes)
-      } else {
-        val (fromKey, toKey) = Bytes.decompressJoin(maxKeyBytes)
-        MaxKey.Range(fromKey, toKey)
-      }
-
-    val nearestExpiryDeadline = {
-      val deadlineNanos = reader.readUnsignedLong()
-      if (deadlineNanos == 0)
-        None
-      else
-        Some(Deadline((deadlineNanos, TimeUnit.NANOSECONDS)))
-    }
-
-    val minMaxFunctionId = {
-      val minIdSize = reader.readUnsignedInt()
-      if (minIdSize == 0)
-        None
-      else {
-        val minId = reader.read(minIdSize)
-        val maxIdSize = reader.readUnsignedInt()
-        val maxId = if (maxIdSize == 0) None else Some(reader.read(maxIdSize))
-        Some(MinMax(minId, maxId))
-      }
-    }
-
-    val fileType = Effect.fileId(segmentPath)._2
-
-    if (fileType != Extension.Seg)
-      throw new Exception(s"File is not a Segment. Path: $segmentPath")
-
-    Segment(
-      path = segmentPath,
-      createdInLevel = createdInLevel,
-      blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-      mmapReads = mmapSegmentsOnRead,
-      mmapWrites = mmapSegmentsOnWrite,
-      minKey = minKey,
-      maxKey = maxKey,
-      segmentSize = segmentSize,
-      minMaxFunctionId = minMaxFunctionId,
-      nearestExpiryDeadline = nearestExpiryDeadline,
-      checkExists = checkExists
-    )
-  }
 }
 
 case class AppendixSegment(path: Path,
@@ -141,7 +71,7 @@ class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
   implicit object AppendixPutReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Segment]] {
     override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Segment] = {
       val segment =
-        AppendixMapEntryReader.readSegment(
+        SegmentSerialiser.FormatA.read(
           reader = reader,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
           mmapSegmentsOnWrite = mmapSegmentsOnWrite,
