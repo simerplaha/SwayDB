@@ -33,8 +33,17 @@ import swaydb.core.util.{MinMax, SkipList}
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.util.SomeOrNone
 
+private[core] sealed trait SegmentRefOptional extends SomeOrNone[SegmentRefOptional, SegmentRef] {
+  override def noneS: SegmentRefOptional = SegmentRef.Null
+}
 private[core] object SegmentRef {
+
+  final case object Null extends SegmentRefOptional {
+    override def isNoneS: Boolean = true
+    override def getS: SegmentRef = throw new Exception("SegmentRef is of type Null")
+  }
 
   def apply(path: Path,
             maxKey: MaxKey[Slice[Byte]],
@@ -562,7 +571,13 @@ private[core] class SegmentRef(val path: Path,
                                val maxKey: MaxKey[Slice[Byte]],
                                val minKey: Slice[Byte],
                                val skipList: Option[SkipList[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent]],
-                               val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends LazyLogging {
+                               val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends SegmentRefOptional with LazyLogging {
+
+  override def isNoneS: Boolean =
+    false
+
+  override def getS: SegmentRef =
+    this
 
   /**
    * Notes for why use putIfAbsent before adding to cache:
