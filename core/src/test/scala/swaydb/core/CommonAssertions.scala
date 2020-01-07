@@ -1314,7 +1314,7 @@ object CommonAssertions {
       SegmentBlock.writeTransient(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexBlock.enableAccessPositionIndex),
         createdInLevel = 0,
-        segmentSize = Int.MaxValue,
+        minSegmentSize = Int.MaxValue,
         bloomFilterConfig = BloomFilterBlock.Config.random,
         hashIndexConfig = HashIndexBlock.Config.random,
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
@@ -1364,7 +1364,7 @@ object CommonAssertions {
       SegmentBlock.writeTransient(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
         createdInLevel = 0,
-        segmentSize = segmentSize,
+        minSegmentSize = segmentSize,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1436,7 +1436,7 @@ object CommonAssertions {
     SegmentBlock.writeTransient(
       mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
       createdInLevel = Int.MaxValue,
-      segmentSize = segmentSize,
+      minSegmentSize = segmentSize,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,

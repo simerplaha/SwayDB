@@ -24,19 +24,18 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{KeyValue, Memory, Persistent, PersistentOptional}
+import swaydb.core.data.{KeyValue, Persistent, PersistentOptional}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
-import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
+import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, TransientSegment}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.Dir
@@ -44,9 +43,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.{Aggregator, IO}
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
-import scala.collection.compat._
 
 object PersistentSegment {
   def apply(file: DBFile,
@@ -170,31 +167,27 @@ private[segment] case class PersistentSegment(file: DBFile,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
-
-    SegmentMerger.merge(
-      newKeyValues = newKeyValues,
-      oldKeyValuesCount = getKeyValueCount(),
-      oldKeyValues = iterator(),
-      stats = builder,
-      isLastLevel = removeDeletes
-    )
-
-    val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
+    val transient: Iterable[TransientSegment] =
+      SegmentRef.put(
+        ref = ref,
+        newKeyValues = newKeyValues,
+        minSegmentSize = minSegmentSize,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
 
     Segment.persistent(
-      segmentSize = minSegmentSize,
       pathsDistributor = pathsDistributor,
-      segmentConfig = segmentConfig,
-      createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
-      mergeStats = closed,
-      bloomFilterConfig = bloomFilterConfig,
-      hashIndexConfig = hashIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      valuesConfig = valuesConfig
+      createdInLevel = createdInLevel,
+      segments = transient
     )
   }
 
@@ -209,92 +202,27 @@ private[segment] case class PersistentSegment(file: DBFile,
               segmentConfig: SegmentBlock.Config,
               pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val footer = ref.getFooter()
-    //if it's created in the same level the required spaces for sortedIndex and values
-    //will be the same as existing or less than the current sizes so there is no need to create a
-    //MergeState builder.
-    if (footer.createdInLevel == createdInLevel) {
-      val sortedIndexBlock = ref.segmentBlockCache.getSortedIndex()
-      val valuesBlock = ref.segmentBlockCache.getValues()
-
-      val sortedIndexSize =
-        sortedIndexBlock.compressionInfo match {
-          case Some(compressionInfo) =>
-            compressionInfo.decompressedLength
-
-          case None =>
-            sortedIndexBlock.offset.size
-        }
-
-      val valuesSize =
-        valuesBlock match {
-          case Some(valuesBlock) =>
-            valuesBlock.compressionInfo match {
-              case Some(value) =>
-                value.decompressedLength
-
-              case None =>
-                valuesBlock.offset.size
-            }
-          case None =>
-            0
-        }
-
-      val keyValues =
-        Segment
-          .toMemoryIterator(iterator(), removeDeletes)
-          .to(Iterable)
-
-      val mergeStats =
-        new MergeStats.Persistent.Closed[Iterable](
-          isEmpty = false,
-          keyValuesCount = footer.keyValueCount,
-          keyValues = keyValues,
-          totalValuesSize = valuesSize,
-          maxSortedIndexSize = sortedIndexSize
-        )
-
-      Segment.persistent(
-        segmentSize = minSegmentSize,
-        pathsDistributor = pathsDistributor,
-        segmentConfig = segmentConfig,
+    val transient: Iterable[TransientSegment] =
+      SegmentRef.refresh(
+        ref = ref,
+        minSegmentSize = minSegmentSize,
+        removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
-        mmapReads = mmapReads,
-        mmapWrites = mmapWrites,
-        mergeStats = mergeStats,
-        bloomFilterConfig = bloomFilterConfig,
-        hashIndexConfig = hashIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
+        valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
-        valuesConfig = valuesConfig
-      )
-    } else {
-      //if the
-      val keyValues =
-        Segment
-          .toMemoryIterator(iterator(), removeDeletes)
-          .to(Iterable)
-
-      val builder =
-        MergeStats
-          .persistentBuilder(keyValues)
-          .close(sortedIndexConfig.enableAccessPositionIndex)
-
-      Segment.persistent(
-        segmentSize = minSegmentSize,
-        pathsDistributor = pathsDistributor,
-        segmentConfig = segmentConfig,
-        createdInLevel = createdInLevel,
-        mmapReads = mmapReads,
-        mmapWrites = mmapWrites,
-        mergeStats = builder,
-        bloomFilterConfig = bloomFilterConfig,
-        hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        valuesConfig = valuesConfig
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
       )
-    }
+
+    Segment.persistent(
+      pathsDistributor = pathsDistributor,
+      mmapReads = mmapReads,
+      mmapWrites = mmapWrites,
+      createdInLevel = createdInLevel,
+      segments = transient
+    )
   }
 
   def getSegmentBlockOffset(): SegmentBlock.Offset =
@@ -307,7 +235,7 @@ private[segment] case class PersistentSegment(file: DBFile,
     ref mightContain key
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =
-    minMaxFunctionId.exists {
+    minMaxFunctionId exists {
       minMaxFunctionId =>
         MinMax.contains(
           key = key,

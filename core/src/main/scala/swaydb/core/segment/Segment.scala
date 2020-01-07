@@ -203,18 +203,42 @@ private[core] object Segment extends LazyLogging {
                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                      blockCache: Option[BlockCache.State],
                                                                      segmentIO: SegmentIO,
-                                                                     idGenerator: IDGenerator): Slice[Segment] =
-    SegmentBlock.writeTransient(
-      mergeStats = mergeStats,
+                                                                     idGenerator: IDGenerator): Slice[Segment] = {
+    val transient =
+      SegmentBlock.writeTransient(
+        mergeStats = mergeStats,
+        createdInLevel = createdInLevel,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig,
+        minSegmentSize = segmentSize
+      )
+
+    persistent(
+      pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      bloomFilterConfig = bloomFilterConfig,
-      hashIndexConfig = hashIndexConfig,
-      binarySearchIndexConfig = binarySearchIndexConfig,
-      sortedIndexConfig = sortedIndexConfig,
-      valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig,
-      segmentSize = segmentSize
-    ).mapRecover(
+      mmapReads = mmapReads,
+      mmapWrites = mmapWrites,
+      segments = transient
+    )
+  }
+
+  def persistent(pathsDistributor: PathsDistributor,
+                 createdInLevel: Int,
+                 mmapReads: Boolean,
+                 mmapWrites: Boolean,
+                 segments: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                       functionStore: FunctionStore,
+                                                       fileSweeper: FileSweeper.Enabled,
+                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                       blockCache: Option[BlockCache.State],
+                                                       segmentIO: SegmentIO,
+                                                       idGenerator: IDGenerator): Slice[Segment] =
+    segments.mapRecover(
       block =
         segment =>
           if (segment.isEmpty) {

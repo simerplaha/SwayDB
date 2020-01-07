@@ -143,7 +143,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
   def writeTransient(mergeStats: MergeStats.Persistent.Closed[Iterable],
                      createdInLevel: Int,
-                     segmentSize: Int,
+                     minSegmentSize: Int,
                      bloomFilterConfig: BloomFilterBlock.Config,
                      hashIndexConfig: HashIndexBlock.Config,
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -156,7 +156,7 @@ private[core] object SegmentBlock extends LazyLogging {
       writeSegmentBlock(
         keyValues = mergeStats,
         createdInLevel = createdInLevel,
-        minSegmentSize = segmentSize,
+        minSegmentSize = minSegmentSize,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,

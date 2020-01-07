@@ -1734,7 +1734,7 @@ object TestData {
         SegmentBlock.writeTransient(
           mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
           createdInLevel = createdInLevel,
-          segmentSize = Int.MaxValue,
+          minSegmentSize = Int.MaxValue,
           bloomFilterConfig = bloomFilterConfig,
           hashIndexConfig = hashIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,

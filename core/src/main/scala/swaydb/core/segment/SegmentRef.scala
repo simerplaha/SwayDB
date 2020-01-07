@@ -25,20 +25,24 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Aggregator
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
-import swaydb.core.segment.format.a.block._
+import swaydb.core.function.FunctionStore
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache, TransientSegment}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
+import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util.{MinMax, SkipList}
 import swaydb.data.MaxKey
-import swaydb.data.order.KeyOrder
+import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone
+
+import scala.collection.compat._
+import scala.collection.mutable.ListBuffer
 
 private[core] sealed trait SegmentRefOptional extends SomeOrNone[SegmentRefOptional, SegmentRef] {
   override def noneS: SegmentRefOptional = SegmentRef.Null
@@ -569,6 +573,138 @@ private[core] object SegmentRef {
                 )
             }
       }
+
+  def put(ref: SegmentRef,
+          newKeyValues: Slice[KeyValue],
+          minSegmentSize: Int,
+          removeDeletes: Boolean,
+          createdInLevel: Int,
+          valuesConfig: ValuesBlock.Config,
+          sortedIndexConfig: SortedIndexBlock.Config,
+          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+          hashIndexConfig: HashIndexBlock.Config,
+          bloomFilterConfig: BloomFilterBlock.Config,
+          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore): Iterable[TransientSegment] = {
+
+    val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
+
+    SegmentMerger.merge(
+      newKeyValues = newKeyValues,
+      oldKeyValuesCount = ref.getKeyValueCount(),
+      oldKeyValues = ref.iterator(),
+      stats = builder,
+      isLastLevel = removeDeletes
+    )
+
+    val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
+
+    SegmentBlock.writeTransient(
+      mergeStats = closed,
+      createdInLevel = createdInLevel,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig,
+      minSegmentSize = minSegmentSize
+    )
+  }
+
+  def refresh(ref: SegmentRef,
+              minSegmentSize: Int,
+              removeDeletes: Boolean,
+              createdInLevel: Int,
+              valuesConfig: ValuesBlock.Config,
+              sortedIndexConfig: SortedIndexBlock.Config,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+              hashIndexConfig: HashIndexBlock.Config,
+              bloomFilterConfig: BloomFilterBlock.Config,
+              segmentConfig: SegmentBlock.Config): Iterable[TransientSegment] = {
+
+    val footer = ref.getFooter()
+    //if it's created in the same level the required spaces for sortedIndex and values
+    //will be the same as existing or less than the current sizes so there is no need to create a
+    //MergeState builder.
+    if (footer.createdInLevel == createdInLevel) {
+      val sortedIndexBlock = ref.segmentBlockCache.getSortedIndex()
+      val valuesBlock = ref.segmentBlockCache.getValues()
+
+      val sortedIndexSize =
+        sortedIndexBlock.compressionInfo match {
+          case Some(compressionInfo) =>
+            compressionInfo.decompressedLength
+
+          case None =>
+            sortedIndexBlock.offset.size
+        }
+
+      val valuesSize =
+        valuesBlock match {
+          case Some(valuesBlock) =>
+            valuesBlock.compressionInfo match {
+              case Some(value) =>
+                value.decompressedLength
+
+              case None =>
+                valuesBlock.offset.size
+            }
+          case None =>
+            0
+        }
+
+      val keyValues =
+        Segment
+          .toMemoryIterator(ref.iterator(), removeDeletes)
+          .to(Iterable)
+
+      val mergeStats =
+        new MergeStats.Persistent.Closed[Iterable](
+          isEmpty = false,
+          keyValuesCount = footer.keyValueCount,
+          keyValues = keyValues,
+          totalValuesSize = valuesSize,
+          maxSortedIndexSize = sortedIndexSize
+        )
+
+      SegmentBlock.writeTransient(
+        mergeStats = mergeStats,
+        createdInLevel = createdInLevel,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig,
+        minSegmentSize = minSegmentSize
+      )
+    } else {
+      //if the
+      val keyValues =
+        Segment
+          .toMemoryIterator(ref.iterator(), removeDeletes)
+          .to(Iterable)
+
+      val builder =
+        MergeStats
+          .persistentBuilder(keyValues)
+          .close(sortedIndexConfig.enableAccessPositionIndex)
+
+      SegmentBlock.writeTransient(
+        mergeStats = builder,
+        createdInLevel = createdInLevel,
+        bloomFilterConfig = bloomFilterConfig,
+        hashIndexConfig = hashIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig,
+        minSegmentSize = minSegmentSize
+      )
+    }
+  }
 
 }
 
