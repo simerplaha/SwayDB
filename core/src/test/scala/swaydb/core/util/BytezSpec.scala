@@ -242,5 +242,4 @@ class BytezSpec extends WordSpec with Matchers {
 
     }
   }
-
 }

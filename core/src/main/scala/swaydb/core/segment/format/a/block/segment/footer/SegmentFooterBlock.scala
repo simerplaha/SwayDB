@@ -27,7 +27,7 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.format.a.block.segment.SegmentBlock.ClosedBlocks
+import swaydb.core.segment.format.a.block.segment.data.ClosedBlocks
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}

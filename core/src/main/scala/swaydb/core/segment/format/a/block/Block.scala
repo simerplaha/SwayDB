@@ -24,7 +24,7 @@ import swaydb.IO
 import swaydb.compression.{CompressionInternal, DecompressorInternal}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, BlockedReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.{TransientSegment, TransientSegmentBlock}
+import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, ClosedBlocksWithFooter}
 import swaydb.core.util.Collections._
 import swaydb.data.config.IOAction
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -147,9 +147,9 @@ private[core] object Block extends LazyLogging {
         )
     }
 
-  def block(ref: TransientSegmentBlock,
+  def block(ref: ClosedBlocksWithFooter,
             compressions: Seq[CompressionInternal],
-            blockName: String): TransientSegment =
+            blockName: String): TransientSegment.Single =
     if (compressions.isEmpty) {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${ref.segmentSize}.bytes uncompressed.")
       //      openSegment.segmentHeader moveWritePosition 0
@@ -161,7 +161,7 @@ private[core] object Block extends LazyLogging {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 
-      new TransientSegment(
+      new TransientSegment.Single(
         minKey = ref.minKey,
         maxKey = ref.maxKey,
         segmentBytes = segmentBytes,
@@ -191,7 +191,7 @@ private[core] object Block extends LazyLogging {
 
       compressionResult.fixHeaderSize()
 
-      new TransientSegment(
+      new TransientSegment.Single(
         minKey = ref.minKey,
         maxKey = ref.maxKey,
         segmentBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),

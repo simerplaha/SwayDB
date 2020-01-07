@@ -30,8 +30,9 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache, TransientSegment}
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
@@ -586,7 +587,7 @@ private[core] object SegmentRef {
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): Iterable[TransientSegment] = {
+                                              functionStore: FunctionStore): Slice[TransientSegment.Single] = {
 
     val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
 
@@ -600,7 +601,7 @@ private[core] object SegmentRef {
 
     val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
 
-    SegmentBlock.writeTransient(
+    SegmentBlock.write(
       mergeStats = closed,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
@@ -622,7 +623,7 @@ private[core] object SegmentRef {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config): Iterable[TransientSegment] = {
+              segmentConfig: SegmentBlock.Config): Slice[TransientSegment.Single] = {
 
     val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
@@ -669,7 +670,7 @@ private[core] object SegmentRef {
           maxSortedIndexSize = sortedIndexSize
         )
 
-      SegmentBlock.writeTransient(
+      SegmentBlock.write(
         mergeStats = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -692,7 +693,7 @@ private[core] object SegmentRef {
           .persistentBuilder(keyValues)
           .close(sortedIndexConfig.enableAccessPositionIndex)
 
-      SegmentBlock.writeTransient(
+      SegmentBlock.write(
         mergeStats = builder,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,

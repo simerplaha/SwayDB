@@ -24,6 +24,7 @@ import java.nio.file.Path
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
+import swaydb.core.cache.Cache
 import swaydb.core.data.{KeyValue, Persistent, PersistentOptional}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile}
@@ -33,7 +34,8 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, TransientSegment}
+import swaydb.core.segment.format.a.block.segment.list.SegmentListBlock
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
@@ -109,24 +111,25 @@ private[segment] case class PersistentSegmentList(file: DBFile,
                                                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                                   segmentSize: Int,
                                                   nearestPutDeadline: Option[Deadline],
-                                                  private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                                        functionStore: FunctionStore,
-                                                                                        blockCache: Option[BlockCache.State],
-                                                                                        fileSweeper: FileSweeper.Enabled,
-                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                        segmentIO: SegmentIO) extends Segment with LazyLogging {
+                                                  private[segment] val segments: Cache[Throwable, BlockRefReader[SegmentListBlock.Offset], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                                        functionStore: FunctionStore,
+                                                                                                                                                        blockCache: Option[BlockCache.State],
+                                                                                                                                                        fileSweeper: FileSweeper.Enabled,
+                                                                                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                                                        segmentIO: SegmentIO) extends Segment with LazyLogging {
 
-  implicit val segmentCacheImplicit: SegmentRef = ref
-  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
-  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
-  implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
+  //  implicit val segmentCacheImplicit: SegmentRef = ref
+  //  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
+  //  implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
+  //  implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
 
   def path = file.path
 
   override def close: Unit = {
     file.close()
-    ref.clearBlockCache()
+    //    ref.clearBlockCache()
+    ???
   }
 
   def isOpen: Boolean =
@@ -145,7 +148,8 @@ private[segment] case class PersistentSegmentList(file: DBFile,
         logger.error(s"{}: Failed to delete Segment file.", path, failure)
     } map {
       _ =>
-        ref.clearBlockCache()
+        ???
+      //        ref.clearBlockCache()
     }
   }
 
@@ -167,28 +171,29 @@ private[segment] case class PersistentSegmentList(file: DBFile,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val transient: Iterable[TransientSegment] =
-      SegmentRef.put(
-        ref = ref,
-        newKeyValues = newKeyValues,
-        minSegmentSize = minSegmentSize,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    Segment.persistent(
-      pathsDistributor = pathsDistributor,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
-      createdInLevel = createdInLevel,
-      segments = transient
-    )
+    //    val transient: Iterable[TransientSegment] =
+    //      SegmentRef.put(
+    //        ref = ref,
+    //        newKeyValues = newKeyValues,
+    //        minSegmentSize = minSegmentSize,
+    //        removeDeletes = removeDeletes,
+    //        createdInLevel = createdInLevel,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig,
+    //        segmentConfig = segmentConfig
+    //      )
+    //
+    //    Segment.persistent(
+    //      pathsDistributor = pathsDistributor,
+    //      mmapReads = mmapReads,
+    //      mmapWrites = mmapWrites,
+    //      createdInLevel = createdInLevel,
+    //      segments = transient
+    //    )
+    ???
   }
 
   def refresh(minSegmentSize: Int,
@@ -202,37 +207,40 @@ private[segment] case class PersistentSegmentList(file: DBFile,
               segmentConfig: SegmentBlock.Config,
               pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val transient: Iterable[TransientSegment] =
-      SegmentRef.refresh(
-        ref = ref,
-        minSegmentSize = minSegmentSize,
-        removeDeletes = removeDeletes,
-        createdInLevel = createdInLevel,
-        valuesConfig = valuesConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        hashIndexConfig = hashIndexConfig,
-        bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
-      )
-
-    Segment.persistent(
-      pathsDistributor = pathsDistributor,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
-      createdInLevel = createdInLevel,
-      segments = transient
-    )
+    //    val transient: Iterable[TransientSegment] =
+    //      SegmentRef.refresh(
+    //        ref = ref,
+    //        minSegmentSize = minSegmentSize,
+    //        removeDeletes = removeDeletes,
+    //        createdInLevel = createdInLevel,
+    //        valuesConfig = valuesConfig,
+    //        sortedIndexConfig = sortedIndexConfig,
+    //        binarySearchIndexConfig = binarySearchIndexConfig,
+    //        hashIndexConfig = hashIndexConfig,
+    //        bloomFilterConfig = bloomFilterConfig,
+    //        segmentConfig = segmentConfig
+    //      )
+    //
+    //    Segment.persistent(
+    //      pathsDistributor = pathsDistributor,
+    //      mmapReads = mmapReads,
+    //      mmapWrites = mmapWrites,
+    //      createdInLevel = createdInLevel,
+    //      segments = transient
+    //    )
+    ???
   }
 
   def getSegmentBlockOffset(): SegmentBlock.Offset =
     SegmentBlock.Offset(0, file.fileSize.toInt)
 
   def getFromCache(key: Slice[Byte]): PersistentOptional =
-    ref getFromCache key
+  //    ref getFromCache key
+    ???
 
   def mightContainKey(key: Slice[Byte]): Boolean =
-    ref mightContain key
+  //    ref mightContain key
+    ???
 
   override def mightContainFunction(key: Slice[Byte]): Boolean =
     minMaxFunctionId exists {
@@ -244,34 +252,44 @@ private[segment] case class PersistentSegmentList(file: DBFile,
     }
 
   def get(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
-    SegmentRef.get(key, readState)
+  //    SegmentRef.get(key, readState)
+    ???
 
   def lower(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
-    SegmentRef.lower(key, readState)
+  //    SegmentRef.lower(key, readState)
+    ???
 
   def higher(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
-    SegmentRef.higher(key, readState)
+  //    SegmentRef.higher(key, readState)
+    ???
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
-    ref getAll aggregator
+  //    ref getAll aggregator
+    ???
 
   override def getAll(): Slice[KeyValue] =
-    ref.getAll()
+  //    ref.getAll()
+    ???
 
   override def iterator(): Iterator[KeyValue] =
-    ref.iterator()
+  //    ref.iterator()
+    ???
 
   override def hasRange: Boolean =
-    ref.hasRange
+  //    ref.hasRange
+    ???
 
   override def hasPut: Boolean =
-    ref.hasPut
+  //    ref.hasPut
+    ???
 
   def getKeyValueCount(): Int =
-    ref.getKeyValueCount()
+  //    ref.getKeyValueCount()
+    ???
 
   override def isFooterDefined: Boolean =
-    ref.isFooterDefined
+  //    ref.isFooterDefined
+    ???
 
   def existsOnDisk: Boolean =
     file.existsOnDisk
@@ -286,25 +304,32 @@ private[segment] case class PersistentSegmentList(file: DBFile,
     !file.existsOnDisk
 
   def hasBloomFilter: Boolean =
-    ref.hasBloomFilter
+  //    ref.hasBloomFilter
+    ???
 
   def clearCachedKeyValues(): Unit =
-    ref.clearCachedKeyValues()
+  //    ref.clearCachedKeyValues()
+    ???
 
   def clearAllCaches(): Unit = {
     clearCachedKeyValues()
-    ref.clearBlockCache()
+    //    ref.clearBlockCache()
+    ???
   }
 
   def isInKeyValueCache(key: Slice[Byte]): Boolean =
-    ref isInKeyValueCache key
+  //    ref isInKeyValueCache key
+    ???
 
   def isKeyValueCacheEmpty: Boolean =
-    ref.isKeyValueCacheEmpty
+  //    ref.isKeyValueCacheEmpty
+    ???
 
   def areAllCachesEmpty: Boolean =
-    ref.areAllCachesEmpty
+  //    ref.areAllCachesEmpty
+    ???
 
   def cachedKeyValueSize: Int =
-    ref.cacheSize
+  //    ref.cacheSize
+    ???
 }

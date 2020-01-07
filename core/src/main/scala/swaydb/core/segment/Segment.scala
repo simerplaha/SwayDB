@@ -34,8 +34,9 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache, TransientSegment}
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
@@ -66,7 +67,6 @@ private[core] object Segment extends LazyLogging {
   }
 
   val emptyIterable = Iterable.empty[Segment]
-  val emptyIterableIO = IO.Right[Nothing, Iterable[Segment]](emptyIterable)(swaydb.IO.ExceptionHandler.Nothing)
 
   def memory(minSegmentSize: Int,
              pathsDistributor: PathsDistributor,
@@ -185,7 +185,7 @@ private[core] object Segment extends LazyLogging {
       Slice.from(segments, segments.size)
     }
 
-  def persistent(segmentSize: Int,
+  def persistent(minSegmentSize: Int,
                  pathsDistributor: PathsDistributor,
                  createdInLevel: Int,
                  mmapReads: Boolean,
@@ -205,7 +205,7 @@ private[core] object Segment extends LazyLogging {
                                                                      segmentIO: SegmentIO,
                                                                      idGenerator: IDGenerator): Slice[Segment] = {
     val transient =
-      SegmentBlock.writeTransient(
+      SegmentBlock.write(
         mergeStats = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -214,7 +214,7 @@ private[core] object Segment extends LazyLogging {
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
         segmentConfig = segmentConfig,
-        minSegmentSize = segmentSize
+        minSegmentSize = minSegmentSize
       )
 
     persistent(
@@ -230,15 +230,15 @@ private[core] object Segment extends LazyLogging {
                  createdInLevel: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
-                 segments: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                       functionStore: FunctionStore,
-                                                       fileSweeper: FileSweeper.Enabled,
-                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                       blockCache: Option[BlockCache.State],
-                                                       segmentIO: SegmentIO,
-                                                       idGenerator: IDGenerator): Slice[Segment] =
-    segments.mapRecover(
+                 segments: Iterable[TransientSegment.Single])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                              timeOrder: TimeOrder[Slice[Byte]],
+                                                              functionStore: FunctionStore,
+                                                              fileSweeper: FileSweeper.Enabled,
+                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                              blockCache: Option[BlockCache.State],
+                                                              segmentIO: SegmentIO,
+                                                              idGenerator: IDGenerator): Slice[Segment] =
+    segments.mapRecover[PersistentSegment](
       block =
         segment =>
           if (segment.isEmpty) {
@@ -275,22 +275,24 @@ private[core] object Segment extends LazyLogging {
             )
           },
       recover =
-        (segments: Slice[Segment], _: Throwable) =>
+        (segments: Slice[PersistentSegment], _: Throwable) =>
           segments foreach {
             segmentToDelete =>
-              IO(segmentToDelete.delete) onLeftSideEffect {
-                exception =>
-                  logger.error(s"Failed to delete Segment '{}' in recover due to failed put", segmentToDelete.path, exception)
+              try
+                segmentToDelete.delete
+              catch {
+                case exception: Exception =>
+                  logger.error(s"Failed to delete Segment '${segmentToDelete.path}' in recover due to failed put", exception)
               }
           }
     )
 
-  private def segmentFile(mmapReads: Boolean,
+  private def segmentFile(path: Path,
+                          mmapReads: Boolean,
                           mmapWrites: Boolean,
-                          segmentBytes: Slice[Slice[Byte]],
-                          path: Path)(implicit segmentIO: SegmentIO,
-                                      fileSweeper: FileSweeper.Enabled,
-                                      blockCache: Option[BlockCache.State]): DBFile =
+                          segmentBytes: Slice[Slice[Byte]])(implicit segmentIO: SegmentIO,
+                                                            fileSweeper: FileSweeper.Enabled,
+                                                            blockCache: Option[BlockCache.State]): DBFile =
     if (mmapWrites && mmapReads) //if both read and writes are mmaped. Keep the file open.
       DBFile.mmapWriteAndRead(
         path = path,
@@ -378,9 +380,11 @@ private[core] object Segment extends LazyLogging {
         catch {
           case exception: Exception =>
             logger.error("Failed to copyToPersist Segment {}", segment.path, exception)
-            IO(Effect.deleteIfExists(nextPath)) onLeftSideEffect {
-              exception =>
-                logger.error("Failed to delete copied persistent Segment {}", segment.path, exception)
+            try
+              Effect.deleteIfExists(nextPath)
+            catch {
+              case exception: Exception =>
+                logger.error(s"Failed to delete copied persistent Segment ${segment.path}", exception)
             }
             throw exception
         }
@@ -435,7 +439,7 @@ private[core] object Segment extends LazyLogging {
       builder close sortedIndexConfig.enableAccessPositionIndex
 
     Segment.persistent(
-      segmentSize = minSegmentSize,
+      minSegmentSize = minSegmentSize,
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
       mmapReads = mmapSegmentsOnRead,

@@ -19,6 +19,10 @@
 
 package swaydb.core.util
 
+import swaydb.data.slice.Slice
+
+import scala.reflect.ClassTag
+
 private[swaydb] object Collections {
 
   val emptyStringSeq = Seq.empty[String]
@@ -90,4 +94,39 @@ private[swaydb] object Collections {
     groupedMergeSingles(groupSize, itemsToGroupHead) ++
       groupedMergeSingles(groupSize, itemsToGroupLast)
   }
+
+  def groupedBySize[T: ClassTag](minGroupSize: Int,
+                                 itemSize: T => Int,
+                                 items: Slice[T]): Slice[Slice[T]] =
+    if (minGroupSize <= 0) {
+      Slice(items)
+    } else {
+      val allGroups =
+        Slice
+          .create[Slice[T]](items.size)
+          .add(Slice.create[T](items.size))
+
+      var currentGroupSize = 0
+
+      var i = 0
+      while (i < items.size) {
+        if (currentGroupSize < minGroupSize) {
+          val currentItem = items(i)
+          allGroups.last add currentItem
+          currentGroupSize += itemSize(currentItem)
+          i += 1
+        } else {
+          val tailItemsSize = items.drop(i).foldLeft(0)(_ + itemSize(_))
+          if (tailItemsSize >= minGroupSize) {
+            val newGroup = Slice.create[T](items.size - i + 1)
+            allGroups add newGroup
+            currentGroupSize = 0
+          } else {
+            currentGroupSize = minGroupSize - 1
+          }
+        }
+      }
+
+      allGroups
+    }
 }

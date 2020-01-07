@@ -33,7 +33,7 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, TransientSegment}
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
@@ -171,7 +171,7 @@ private[segment] case class PersistentSegment(file: DBFile,
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val transient: Iterable[TransientSegment] =
+    val segments =
       SegmentRef.put(
         ref = ref,
         newKeyValues = newKeyValues,
@@ -188,10 +188,10 @@ private[segment] case class PersistentSegment(file: DBFile,
 
     Segment.persistent(
       pathsDistributor = pathsDistributor,
+      createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
-      createdInLevel = createdInLevel,
-      segments = transient
+      segments = segments
     )
   }
 
@@ -206,7 +206,7 @@ private[segment] case class PersistentSegment(file: DBFile,
               segmentConfig: SegmentBlock.Config,
               pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
 
-    val transient: Iterable[TransientSegment] =
+    val segments =
       SegmentRef.refresh(
         ref = ref,
         minSegmentSize = minSegmentSize,
@@ -222,10 +222,10 @@ private[segment] case class PersistentSegment(file: DBFile,
 
     Segment.persistent(
       pathsDistributor = pathsDistributor,
+      createdInLevel = createdInLevel,
       mmapReads = mmapReads,
       mmapWrites = mmapWrites,
-      createdInLevel = createdInLevel,
-      segments = transient
+      segments = segments
     )
   }
 

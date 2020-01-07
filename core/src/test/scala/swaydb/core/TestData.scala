@@ -46,7 +46,8 @@ import swaydb.core.segment.format.a.block.binarysearch.{BinarySearchEntryFormat,
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.{HashIndexBlock, HashIndexEntryFormat}
 import swaydb.core.segment.format.a.block.reader.{BlockedReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, TransientSegment}
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
@@ -1729,9 +1730,9 @@ object TestData {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): TransientSegment = {
+                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): TransientSegment.Single = {
       val segments =
-        SegmentBlock.writeTransient(
+        SegmentBlock.write(
           mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
           createdInLevel = createdInLevel,
           minSegmentSize = Int.MaxValue,

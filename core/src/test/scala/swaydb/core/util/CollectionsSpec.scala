@@ -145,5 +145,62 @@ class CollectionsSpec extends WordSpec with Matchers {
     Collections.groupedMergeSingles(2, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
     Collections.groupedMergeSingles(3, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
     Collections.groupedMergeSingles(4, List(1, 2, 3)) shouldBe List(List(1, 2, 3))
+
+    Collections.groupedMergeSingles(1, List(1, 2, 3, 4)) shouldBe List(List(1), List(2), List(3), List(4))
+    Collections.groupedMergeSingles(2, List(1, 2, 3, 4)) shouldBe List(List(1, 2), List(3, 4))
+  }
+
+  "groupedBySize" when {
+    sealed trait Item {
+      val size: Int = 1
+    }
+    object Item extends Item
+
+
+
+    "1 item" in {
+      val items = Slice(Item)
+
+      (0 to 10) foreach {
+        i =>
+          groupedBySize[Item](i, _.size, items) shouldBe Slice(items)
+      }
+    }
+
+    "2 items" in {
+      val items = Slice(Item, Item)
+
+      groupedBySize[Item](1, _.size, items) shouldBe Slice(Slice(Item), Slice(Item))
+      groupedBySize[Item](2, _.size, items) shouldBe Slice(Slice(Item, Item))
+      groupedBySize[Item](3, _.size, items) shouldBe Slice(Slice(Item, Item))
+      groupedBySize[Item](4, _.size, items) shouldBe Slice(Slice(Item, Item))
+    }
+
+    "3 items" in {
+      val items = Slice(Item, Item, Item)
+
+      groupedBySize[Item](1, _.size, items) shouldBe Slice(Slice(Item), Slice(Item), Slice(Item))
+      groupedBySize[Item](2, _.size, items) shouldBe Slice(Slice(Item, Item, Item))
+      groupedBySize[Item](3, _.size, items) shouldBe Slice(Slice(Item, Item, Item))
+      groupedBySize[Item](4, _.size, items) shouldBe Slice(Slice(Item, Item, Item))
+    }
+
+    "4 items" in {
+      val items = Slice(Item, Item, Item, Item)
+
+      groupedBySize[Item](1, _.size, items) shouldBe Slice(Slice(Item), Slice(Item), Slice(Item), Slice(Item))
+      groupedBySize[Item](2, _.size, items) shouldBe Slice(Slice(Item, Item), Slice(Item, Item))
+      groupedBySize[Item](3, _.size, items) shouldBe Slice(Slice(Item, Item, Item, Item))
+      groupedBySize[Item](4, _.size, items) shouldBe Slice(Slice(Item, Item, Item, Item))
+    }
+
+    "5 items" in {
+      val items = Slice(Item, Item, Item, Item, Item)
+
+      groupedBySize[Item](1, _.size, items) shouldBe Slice(Slice(Item), Slice(Item), Slice(Item), Slice(Item), Slice(Item))
+      groupedBySize[Item](2, _.size, items) shouldBe Slice(Slice(Item, Item), Slice(Item, Item, Item))
+      groupedBySize[Item](3, _.size, items) shouldBe Slice(Slice(Item, Item, Item, Item, Item))
+      groupedBySize[Item](4, _.size, items) shouldBe Slice(Slice(Item, Item, Item, Item, Item))
+    }
   }
 }

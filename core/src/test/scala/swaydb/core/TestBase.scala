@@ -331,7 +331,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         )
       else
         Segment.persistent(
-          segmentSize = segmentSize,
+          minSegmentSize = segmentSize,
           pathsDistributor = pathsDistributor,
           createdInLevel = createdInLevel,
           mmapReads = levelStorage.mmapSegmentsOnRead,

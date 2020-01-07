@@ -27,7 +27,8 @@ import swaydb.core.function.FunctionStore
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.BlockOffset
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, TransientSegment}
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.{SegmentIO, SegmentRef, SegmentRefOptional}
 import swaydb.core.util.Options._
 import swaydb.core.util.{Bytes, FiniteDurations, MinMax, SkipList}
@@ -64,7 +65,7 @@ object SegmentListBlock {
               val nearestDeadline: Option[Deadline])
 
   def writeAndClose(createdInLevel: Int,
-                    segments: Iterable[TransientSegment]): State = {
+                    segments: Iterable[TransientSegment.Single]): State = {
     var minKey: Slice[Byte] = null
     var maxKey: MaxKey[Slice[Byte]] = null
     var segmentSize: Int = 0
