@@ -35,7 +35,7 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache, TransientSegment}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
@@ -197,13 +197,13 @@ private[core] object Segment extends LazyLogging {
                  valuesConfig: ValuesBlock.Config,
                  segmentConfig: SegmentBlock.Config,
                  mergeStats: MergeStats.Persistent.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                           timeOrder: TimeOrder[Slice[Byte]],
-                                                                           functionStore: FunctionStore,
-                                                                           fileSweeper: FileSweeper.Enabled,
-                                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                           blockCache: Option[BlockCache.State],
-                                                                           segmentIO: SegmentIO,
-                                                                           idGenerator: IDGenerator): Slice[Segment] =
+                                                                     timeOrder: TimeOrder[Slice[Byte]],
+                                                                     functionStore: FunctionStore,
+                                                                     fileSweeper: FileSweeper.Enabled,
+                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                     blockCache: Option[BlockCache.State],
+                                                                     segmentIO: SegmentIO,
+                                                                     idGenerator: IDGenerator): Slice[Segment] =
     SegmentBlock.writeTransient(
       mergeStats = mergeStats,
       createdInLevel = createdInLevel,
@@ -224,50 +224,13 @@ private[core] object Segment extends LazyLogging {
           } else {
             val path = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
 
-            val file =
-              if (mmapWrites && mmapReads) //if both read and writes are mmaped. Keep the file open.
-                DBFile.mmapWriteAndRead(
-                  path = path,
-                  autoClose = true,
-                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                  bytes = segment.segmentBytes
-                )
-              //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
-              else if (mmapWrites && !mmapReads) {
-                val file =
-                  DBFile.mmapWriteAndRead(
-                    path = path,
-                    autoClose = true,
-                    ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                    blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                    bytes = segment.segmentBytes
-                  )
-
-                //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
-                //is probably not the most efficient and should not be used.
-                file.close()
-                DBFile.channelRead(
-                  path = file.path,
-                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                  autoClose = true
-                )
-              }
-              else if (!mmapWrites && mmapReads)
-                DBFile.mmapRead(
-                  path = Effect.write(path, segment.segmentBytes),
-                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                  autoClose = true
-                )
-              else
-                DBFile.channelRead(
-                  path = Effect.write(path, segment.segmentBytes),
-                  ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
-                  blockCacheFileId = BlockCacheFileIDGenerator.nextID,
-                  autoClose = true
-                )
+            val file: DBFile =
+              segmentFile(
+                mmapReads = mmapReads,
+                mmapWrites = mmapWrites,
+                segmentBytes = segment.segmentBytes,
+                path = path
+              )
 
             PersistentSegment(
               file = file,
@@ -297,6 +260,56 @@ private[core] object Segment extends LazyLogging {
               }
           }
     )
+
+  private def segmentFile(mmapReads: Boolean,
+                          mmapWrites: Boolean,
+                          segmentBytes: Slice[Slice[Byte]],
+                          path: Path)(implicit segmentIO: SegmentIO,
+                                      fileSweeper: FileSweeper.Enabled,
+                                      blockCache: Option[BlockCache.State]): DBFile =
+    if (mmapWrites && mmapReads) //if both read and writes are mmaped. Keep the file open.
+      DBFile.mmapWriteAndRead(
+        path = path,
+        autoClose = true,
+        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        bytes = segmentBytes
+      )
+    //if mmapReads is false, write bytes in mmaped mode and then close and re-open for read.
+    else if (mmapWrites && !mmapReads) {
+      val file =
+        DBFile.mmapWriteAndRead(
+          path = path,
+          autoClose = true,
+          ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+          bytes = segmentBytes
+        )
+
+      //close immediately to force flush the bytes to disk. Having mmapWrites == true and mmapReads == false,
+      //is probably not the most efficient and should not be used.
+      file.close()
+      DBFile.channelRead(
+        path = file.path,
+        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        autoClose = true
+      )
+    }
+    else if (!mmapWrites && mmapReads)
+      DBFile.mmapRead(
+        path = Effect.write(path, segmentBytes),
+        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        autoClose = true
+      )
+    else
+      DBFile.channelRead(
+        path = Effect.write(path, segmentBytes),
+        ioStrategy = segmentIO.segmentBlockIO(IOAction.OpenResource),
+        blockCacheFileId = BlockCacheFileIDGenerator.nextID,
+        autoClose = true
+      )
 
   def copyToPersist(segment: Segment,
                     createdInLevel: Int,
