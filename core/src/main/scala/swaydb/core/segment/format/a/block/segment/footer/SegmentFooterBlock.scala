@@ -17,11 +17,10 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.core.segment.format.a.block.footer
+package swaydb.core.segment.format.a.block.segment.footer
 
 import swaydb.IO
 import swaydb.core.io.reader.Reader
-import swaydb.core.segment.format.a.block
 import swaydb.core.segment.format.a.block.Block.CompressionInfo
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock

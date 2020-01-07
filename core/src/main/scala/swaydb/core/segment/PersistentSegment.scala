@@ -30,9 +30,9 @@ import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
-import swaydb.core.segment.format.a.block.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
+import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.{SegmentBlock, TransientSegment}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
@@ -46,6 +46,10 @@ import swaydb.{Aggregator, IO}
 import scala.concurrent.duration.Deadline
 
 object PersistentSegment {
+
+  val formatId = 0.toByte
+  val formatIdSliceSlice = Slice(Slice(0.toByte))
+
   def apply(file: DBFile,
             createdInLevel: Int,
             mmapReads: Boolean,
