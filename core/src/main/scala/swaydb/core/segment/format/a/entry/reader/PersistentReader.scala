@@ -29,7 +29,7 @@ import swaydb.core.segment.format.a.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice, SliceOptional}
-import swaydb.data.util.TupleOptional
+import swaydb.data.util.TupleOrNone
 
 object PersistentReader {
 
@@ -156,7 +156,7 @@ object PersistentReader {
     var (valueOffset, valueLength) = zeroValueOffsetAndLength
 
     valueOffsetAndLength foreachC {
-      case TupleOptional.Some(left, right) =>
+      case TupleOrNone.Some(left, right) =>
         valueOffset = left
         valueLength = right
     }

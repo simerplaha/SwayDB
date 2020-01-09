@@ -28,14 +28,14 @@ import swaydb.data.slice.{ReaderBase, Slice}
 import scala.annotation.implicitNotFound
 
 @implicitNotFound("Type class implementation not found for RangeValueSerializer of type [${F}, ${R}]")
-sealed trait RangeValueSerializer[F, R] {
+private[core] sealed trait RangeValueSerializer[F, R] {
 
   def write(fromValue: F, rangeValue: R, bytes: Slice[Byte]): Unit
 
   def bytesRequired(fromValue: F, rangeValue: R): Int
 }
 
-object RangeValueSerializer {
+private[core] object RangeValueSerializer {
 
   /**
    * Single

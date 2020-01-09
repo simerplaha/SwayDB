@@ -21,11 +21,11 @@ package swaydb.core.segment.format.a.block.binarysearch
 
 import swaydb.core.data.Persistent
 
-private[block] sealed trait BinarySearchLowerResult {
+protected sealed trait BinarySearchLowerResult {
   def lower: Persistent.PartialOptional
 }
 
-private[block] object BinarySearchLowerResult {
+protected object BinarySearchLowerResult {
   class Some(val lower: Persistent.PartialOptional,
              val matched: Persistent.PartialOptional) extends BinarySearchLowerResult
 }

@@ -27,7 +27,11 @@ import swaydb.data.Reserve
 import swaydb.data.config.IOStrategy
 import swaydb.data.util.Functions
 
+sealed trait CacheOrNull[+E, -I, +O]
+
 private[core] object Cache {
+
+  final case class Null[-I]() extends CacheOrNull[Nothing, I, Nothing]
 
   def valueIO[E: IO.ExceptionHandler, I, B](output: B): Cache[E, I, B] =
     new Cache[E, I, B] {
@@ -158,7 +162,7 @@ private[core] object Cache {
  * Caches a value on read. Used for IO operations where the output does not change.
  * For example: A file's size.
  */
-private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] extends LazyLogging { self =>
+private[core] sealed abstract class Cache[+E: IO.ExceptionHandler, -I, +O] extends CacheOrNull[E, I, O] with LazyLogging { self =>
   def value(input: => I): IO[E, O]
   def isCached: Boolean
   def isStored: Boolean

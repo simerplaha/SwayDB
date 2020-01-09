@@ -24,7 +24,7 @@ import swaydb.core.segment.{Segment, SegmentSerialiser}
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 
-object AppendixMapEntryWriter {
+private[core] object AppendixMapEntryWriter {
 
   implicit object AppendixRemoveWriter extends MapEntryWriter[MapEntry.Remove[Slice[Byte]]] {
     val id: Int = 0

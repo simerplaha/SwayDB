@@ -59,6 +59,7 @@ private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional,
   override def noneS: SegmentOptional =
     Segment.Null
 }
+
 private[core] object Segment extends LazyLogging {
 
   final case object Null extends SegmentOptional {
@@ -205,7 +206,7 @@ private[core] object Segment extends LazyLogging {
                                                                      segmentIO: SegmentIO,
                                                                      idGenerator: IDGenerator): Slice[Segment] = {
     val transient =
-      SegmentBlock.write(
+      SegmentBlock.writeOneOrMany(
         mergeStats = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -230,15 +231,15 @@ private[core] object Segment extends LazyLogging {
                  createdInLevel: Int,
                  mmapReads: Boolean,
                  mmapWrites: Boolean,
-                 segments: Iterable[TransientSegment.Single])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                              timeOrder: TimeOrder[Slice[Byte]],
-                                                              functionStore: FunctionStore,
-                                                              fileSweeper: FileSweeper.Enabled,
-                                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                              blockCache: Option[BlockCache.State],
-                                                              segmentIO: SegmentIO,
-                                                              idGenerator: IDGenerator): Slice[Segment] =
-    segments.mapRecover[PersistentSegment](
+                 segments: Iterable[TransientSegment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                       timeOrder: TimeOrder[Slice[Byte]],
+                                                       functionStore: FunctionStore,
+                                                       fileSweeper: FileSweeper.Enabled,
+                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                       blockCache: Option[BlockCache.State],
+                                                       segmentIO: SegmentIO,
+                                                       idGenerator: IDGenerator): Slice[Segment] =
+    segments.mapRecover(
       block =
         segment =>
           if (segment.isEmpty) {
@@ -256,26 +257,45 @@ private[core] object Segment extends LazyLogging {
                 path = path
               )
 
-            PersistentSegment(
-              file = file,
-              createdInLevel = createdInLevel,
-              mmapReads = mmapReads,
-              mmapWrites = mmapWrites,
-              minKey = segment.minKey,
-              maxKey = segment.maxKey,
-              minMaxFunctionId = segment.minMaxFunctionId,
-              segmentSize = segment.segmentSize,
-              nearestExpiryDeadline = segment.nearestDeadline,
-              valuesReaderCacheable = segment.valuesUnblockedReader,
-              sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
-              hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
-              binarySearchIndexReaderCacheable = segment.binarySearchUnblockedReader,
-              bloomFilterReaderCacheable = segment.bloomFilterUnblockedReader,
-              footerCacheable = segment.footerUnblocked
-            )
+            segment match {
+              case segment: TransientSegment.One =>
+                PersistentSegment(
+                  file = file,
+                  createdInLevel = createdInLevel,
+                  mmapReads = mmapReads,
+                  mmapWrites = mmapWrites,
+                  minKey = segment.minKey,
+                  maxKey = segment.maxKey,
+                  minMaxFunctionId = segment.minMaxFunctionId,
+                  segmentSize = segment.segmentSize,
+                  nearestExpiryDeadline = segment.nearestDeadline,
+                  valuesReaderCacheable = segment.valuesUnblockedReader,
+                  sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
+                  hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
+                  binarySearchIndexReaderCacheable = segment.binarySearchUnblockedReader,
+                  bloomFilterReaderCacheable = segment.bloomFilterUnblockedReader,
+                  footerCacheable = segment.footerUnblocked
+                )
+
+              case segment: TransientSegment.Many =>
+                PersistentSegmentList(
+                  file = file,
+                  createdInLevel = createdInLevel,
+                  mmapReads = mmapReads,
+                  mmapWrites = mmapWrites,
+                  minKey = segment.minKey,
+                  maxKey = segment.maxKey,
+                  minMaxFunctionId = segment.minMaxFunctionId,
+                  segmentSize = segment.segmentSize,
+                  nearestExpiryDeadline = segment.nearestDeadline,
+                  segments = segment.segments,
+                  initial = ???
+                )
+            }
+
           },
       recover =
-        (segments: Slice[PersistentSegment], _: Throwable) =>
+        (segments: Slice[Segment], _: Throwable) =>
           segments foreach {
             segmentToDelete =>
               try

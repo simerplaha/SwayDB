@@ -32,8 +32,8 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
@@ -45,7 +45,7 @@ import swaydb.{Aggregator, IO}
 
 import scala.concurrent.duration.Deadline
 
-object PersistentSegment {
+protected object PersistentSegment {
 
   val formatId = 0.toByte
   val formatIdSliceSlice = Slice(Slice(0.toByte))
@@ -104,22 +104,22 @@ object PersistentSegment {
   }
 }
 
-private[segment] case class PersistentSegment(file: DBFile,
-                                              createdInLevel: Int,
-                                              mmapReads: Boolean,
-                                              mmapWrites: Boolean,
-                                              minKey: Slice[Byte],
-                                              maxKey: MaxKey[Slice[Byte]],
-                                              minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                              segmentSize: Int,
-                                              nearestPutDeadline: Option[Deadline],
-                                              private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                    timeOrder: TimeOrder[Slice[Byte]],
-                                                                                    functionStore: FunctionStore,
-                                                                                    blockCache: Option[BlockCache.State],
-                                                                                    fileSweeper: FileSweeper.Enabled,
-                                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                    segmentIO: SegmentIO) extends Segment with LazyLogging {
+protected case class PersistentSegment(file: DBFile,
+                                       createdInLevel: Int,
+                                       mmapReads: Boolean,
+                                       mmapWrites: Boolean,
+                                       minKey: Slice[Byte],
+                                       maxKey: MaxKey[Slice[Byte]],
+                                       minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                       segmentSize: Int,
+                                       nearestPutDeadline: Option[Deadline],
+                                       private[segment] val ref: SegmentRef)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                             timeOrder: TimeOrder[Slice[Byte]],
+                                                                             functionStore: FunctionStore,
+                                                                             blockCache: Option[BlockCache.State],
+                                                                             fileSweeper: FileSweeper.Enabled,
+                                                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                             segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   implicit val segmentCacheImplicit: SegmentRef = ref
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
@@ -259,10 +259,10 @@ private[segment] case class PersistentSegment(file: DBFile,
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     ref getAll aggregator
 
-  override def getAll(): Slice[KeyValue] =
+  def getAll(): Slice[Persistent] =
     ref.getAll()
 
-  override def iterator(): Iterator[KeyValue] =
+  def iterator(): Iterator[Persistent] =
     ref.iterator()
 
   override def hasRange: Boolean =
@@ -311,4 +311,5 @@ private[segment] case class PersistentSegment(file: DBFile,
 
   def cachedKeyValueSize: Int =
     ref.cacheSize
+
 }

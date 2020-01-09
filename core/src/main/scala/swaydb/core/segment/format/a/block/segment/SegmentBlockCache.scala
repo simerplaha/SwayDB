@@ -24,7 +24,7 @@ import java.nio.file.Path
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.cache.{Cache, Lazy}
-import swaydb.core.data.{KeyValue, Persistent}
+import swaydb.core.data.Persistent
 import swaydb.core.segment.SegmentIO
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -39,7 +39,9 @@ import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
 import swaydb.{Aggregator, Error, IO}
 
-object SegmentBlockCache {
+import scala.reflect.ClassTag
+
+private[core] object SegmentBlockCache {
 
   def apply(path: Path,
             segmentIO: SegmentIO,
@@ -68,16 +70,16 @@ object SegmentBlockCache {
 /**
  * Implements configured caching & IO strategies for all blocks within a Segment.
  */
-class SegmentBlockCache(path: Path,
-                        val segmentIO: SegmentIO,
-                        segmentBlockRef: BlockRefReader[SegmentBlock.Offset],
-                        var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                        var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-                        var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-                        var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
-                        var bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                        var footerCacheable: Option[SegmentFooterBlock],
-                        val areBlocksCacheableOnCreate: Boolean)(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
+private[core] class SegmentBlockCache(path: Path,
+                                      val segmentIO: SegmentIO,
+                                      segmentBlockRef: BlockRefReader[SegmentBlock.Offset],
+                                      var valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                                      var sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                                      var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                                      var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                                      var bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                                      var footerCacheable: Option[SegmentFooterBlock],
+                                      val areBlocksCacheableOnCreate: Boolean)(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
 
   //names for Unblocked reader caches.
   private val sortedIndexReaderCacheName = "sortedIndexReaderCache"
@@ -452,9 +454,9 @@ class SegmentBlockCache(path: Path,
   def createSortedIndexReader(): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
     createReader(sortedIndexReaderCache, getSortedIndex())
 
-  def readAll(): Slice[KeyValue] = {
+  def readAll[KV >: Persistent : ClassTag](): Slice[KV] = {
     val keyValueCount = getFooter().keyValueCount
-    val aggregator = Slice.newAggregator[KeyValue](keyValueCount)
+    val aggregator = Slice.newAggregator[KV](keyValueCount)
     readAll(
       keyValueCount = keyValueCount,
       aggregator = aggregator
@@ -462,14 +464,14 @@ class SegmentBlockCache(path: Path,
     aggregator.result
   }
 
-  def readAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
+  def readAll[KV >: Persistent, T](aggregator: Aggregator[KV, T]): Unit =
     readAll(
       keyValueCount = getFooter().keyValueCount,
       aggregator = aggregator
     )
 
-  def readAll[T](keyValueCount: Int): Slice[KeyValue] = {
-    val aggregator = Slice.newAggregator[KeyValue](keyValueCount)
+  def readAll[KV >: Persistent : ClassTag](keyValueCount: Int): Slice[KV] = {
+    val aggregator = Slice.newAggregator[KV](keyValueCount)
     readAll(
       keyValueCount = keyValueCount,
       aggregator = aggregator
@@ -480,8 +482,8 @@ class SegmentBlockCache(path: Path,
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
-  def readAll[T](keyValueCount: Int,
-                 aggregator: Aggregator[KeyValue, T]): Unit =
+  def readAll[KV >: Persistent, T](keyValueCount: Int,
+                                   aggregator: Aggregator[KV, T]): Unit =
     try {
       var sortedIndexReader = createSortedIndexReader()
       if (sortedIndexReader.isFile) {
@@ -544,6 +546,9 @@ class SegmentBlockCache(path: Path,
 
   def isBloomFilterDefined =
     bloomFilterBlockCache.isCached
+
+  def segmentSize: Int =
+    segmentBlockRef.offset.size
 
   invalidateCachedReaders()
 }

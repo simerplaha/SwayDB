@@ -19,17 +19,17 @@
 
 package swaydb.data.util
 
-sealed trait TupleOptional[+L, +R] extends SomeOrNoneCovariant[TupleOptional[L, R], TupleOptional.Some[L, R]] {
-  override def noneC: TupleOptional[Nothing, Nothing] = TupleOptional.None
+sealed trait TupleOrNone[+L, +R] extends SomeOrNoneCovariant[TupleOrNone[L, R], TupleOrNone.Some[L, R]] {
+  override def noneC: TupleOrNone[Nothing, Nothing] = TupleOrNone.None
 }
 
-object TupleOptional {
-  final object None extends TupleOptional[Nothing, Nothing] {
+object TupleOrNone {
+  final object None extends TupleOrNone[Nothing, Nothing] {
     override def isNoneC: Boolean = true
     override def getC: Some[Nothing, Nothing] = throw new Exception("KeyValue is of type Null")
   }
 
-  case class Some[+L, +R](left: L, right: R) extends TupleOptional[L, R] {
+  case class Some[+L, +R](left: L, right: R) extends TupleOrNone[L, R] {
     override def isNoneC: Boolean = false
     override def getC: Some[L, R] = this
   }

@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.data.slice.{Slice, SliceOptional}
-import swaydb.data.util.TupleOptional
+import swaydb.data.util.TupleOrNone
 
 package object serializers {
 
@@ -35,13 +35,13 @@ package object serializers {
       serializer.read(slice)
   }
 
-  def read[K, V](tupleOptional: TupleOptional[Slice[Byte], SliceOptional[Byte]])(implicit keySerialiser: Serializer[K],
-                                                                                 valueSerialiser: Serializer[V]): Option[(K, V)] =
+  def read[K, V](tupleOptional: TupleOrNone[Slice[Byte], SliceOptional[Byte]])(implicit keySerialiser: Serializer[K],
+                                                                               valueSerialiser: Serializer[V]): Option[(K, V)] =
     tupleOptional match {
-      case TupleOptional.None =>
+      case TupleOrNone.None =>
         None
 
-      case TupleOptional.Some(left, right) =>
+      case TupleOrNone.Some(left, right) =>
         Some((keySerialiser.read(left), valueSerialiser.read(right.getOrElseC(Slice.emptyBytes))))
     }
 

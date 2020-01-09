@@ -28,7 +28,6 @@ import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore
 import swaydb.core.level.PathsDistributor
-import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -46,19 +45,19 @@ import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
-private[segment] case class MemorySegment(path: Path,
-                                          minKey: Slice[Byte],
-                                          maxKey: MaxKey[Slice[Byte]],
-                                          minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                          segmentSize: Int,
-                                          hasRange: Boolean,
-                                          hasPut: Boolean,
-                                          createdInLevel: Int,
-                                          private[segment] val skipList: SkipList.Immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-                                          nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                timeOrder: TimeOrder[Slice[Byte]],
-                                                                                functionStore: FunctionStore,
-                                                                                fileSweeper: FileSweeper.Enabled) extends Segment with LazyLogging {
+protected case class MemorySegment(path: Path,
+                                   minKey: Slice[Byte],
+                                   maxKey: MaxKey[Slice[Byte]],
+                                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                   segmentSize: Int,
+                                   hasRange: Boolean,
+                                   hasPut: Boolean,
+                                   createdInLevel: Int,
+                                   private[segment] val skipList: SkipList.Immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
+                                   nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                         timeOrder: TimeOrder[Slice[Byte]],
+                                                                         functionStore: FunctionStore,
+                                                                         fileSweeper: FileSweeper.Enabled) extends Segment with LazyLogging {
 
   @volatile private var deleted = false
 
@@ -213,11 +212,19 @@ private[segment] case class MemorySegment(path: Path,
     else
       skipList.higher(key)
 
-  override def getAll(): Slice[KeyValue] = {
-    val slice = Slice.newAggregator[KeyValue](skipList.size)
-    getAll(slice)
-    slice.result
-  }
+  override def getAll(): Slice[Memory] =
+    if (deleted) {
+      throw swaydb.Exception.NoSuchFile(path)
+    } else {
+      val slice = Slice.newAggregator[Memory](skipList.size)
+      skipList.values() forEach {
+        new Consumer[Memory] {
+          override def accept(value: Memory): Unit =
+            slice add value
+        }
+      }
+      slice.result
+    }
 
   override def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     if (deleted)
@@ -230,7 +237,7 @@ private[segment] case class MemorySegment(path: Path,
         }
       }
 
-  override def iterator(): Iterator[KeyValue] =
+  override def iterator(): Iterator[Memory] =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else

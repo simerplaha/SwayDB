@@ -27,7 +27,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.data.config.{IOAction, IOStrategy}
 
-object SegmentIO {
+private[core] object SegmentIO {
 
   def defaultSynchronisedStoredIfCompressed =
     new SegmentIO(

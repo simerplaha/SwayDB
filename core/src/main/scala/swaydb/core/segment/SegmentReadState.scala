@@ -25,11 +25,11 @@ import swaydb.core
 import swaydb.core.data.{Persistent, PersistentOptional}
 import swaydb.data.util.SomeOrNone
 
-sealed trait SegmentReadStateOptional extends SomeOrNone[SegmentReadStateOptional, SegmentReadState] {
+protected sealed trait SegmentReadStateOptional extends SomeOrNone[SegmentReadStateOptional, SegmentReadState] {
   override def noneS: SegmentReadStateOptional = SegmentReadState.Null
 }
 
-object SegmentReadState {
+protected object SegmentReadState {
   final case object Null extends SegmentReadStateOptional {
     override def isNoneS: Boolean = true
     override def getS: SegmentReadState = throw new Exception("SegmentState is of type Null")
@@ -149,9 +149,9 @@ object SegmentReadState {
  * the end key-value for faster lower search and should not mutate
  * get's set [[keyValue]].
  */
-class SegmentReadState(var keyValue: Persistent,
-                       var lowerKeyValue: PersistentOptional,
-                       var isSequential: Boolean) extends SegmentReadStateOptional {
+protected class SegmentReadState(var keyValue: Persistent,
+                                 var lowerKeyValue: PersistentOptional,
+                                 var isSequential: Boolean) extends SegmentReadStateOptional {
   override def isNoneS: Boolean = false
   override def getS: SegmentReadState = this
 }

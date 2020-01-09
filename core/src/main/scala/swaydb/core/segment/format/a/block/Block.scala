@@ -147,37 +147,37 @@ private[core] object Block extends LazyLogging {
         )
     }
 
-  def block(ref: ClosedBlocksWithFooter,
+  def block(blocks: ClosedBlocksWithFooter,
             compressions: Seq[CompressionInternal],
-            blockName: String): TransientSegment.Single =
+            blockName: String): TransientSegment.One =
     if (compressions.isEmpty) {
-      logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${ref.segmentSize}.bytes uncompressed.")
+      logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${blocks.segmentSize}.bytes uncompressed.")
       //      openSegment.segmentHeader moveWritePosition 0
-      ref.segmentHeader addUnsignedInt 1
-      ref.segmentHeader add uncompressedBlockId
+      blocks.segmentHeader addUnsignedInt 1
+      blocks.segmentHeader add uncompressedBlockId
 
       val segmentBytes =
-        ref.segmentBytes.collect {
+        blocks.segmentBytes.collect {
           case bytes if bytes.nonEmpty => bytes.close()
         }
 
-      new TransientSegment.Single(
-        minKey = ref.minKey,
-        maxKey = ref.maxKey,
+      TransientSegment.One(
+        minKey = blocks.minKey,
+        maxKey = blocks.maxKey,
         segmentBytes = segmentBytes,
-        minMaxFunctionId = ref.functionMinMax,
-        nearestDeadline = ref.nearestDeadline,
-        valuesUnblockedReader = ref.valuesUnblockedReader,
-        sortedIndexClosedState = ref.sortedIndexClosedState,
-        sortedIndexUnblockedReader = ref.sortedIndexUnblockedReader,
-        hashIndexUnblockedReader = ref.hashIndexUnblockedReader,
-        binarySearchUnblockedReader = ref.binarySearchUnblockedReader,
-        bloomFilterUnblockedReader = ref.bloomFilterUnblockedReader,
-        footerUnblocked = ref.footerUnblocked
+        minMaxFunctionId = blocks.functionMinMax,
+        nearestDeadline = blocks.nearestDeadline,
+        valuesUnblockedReader = blocks.valuesUnblockedReader,
+        sortedIndexClosedState = blocks.sortedIndexClosedState,
+        sortedIndexUnblockedReader = blocks.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = blocks.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = blocks.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = blocks.bloomFilterUnblockedReader,
+        footerUnblocked = blocks.footerUnblocked
       )
     } else {
       //header is empty so no header bytes are included.
-      val uncompressedSegmentBytes = ref.flattenSegmentBytes
+      val uncompressedSegmentBytes = blocks.flattenSegmentBytes
 
       val compressionResult =
         Block.compress(
@@ -191,19 +191,19 @@ private[core] object Block extends LazyLogging {
 
       compressionResult.fixHeaderSize()
 
-      new TransientSegment.Single(
-        minKey = ref.minKey,
-        maxKey = ref.maxKey,
+      TransientSegment.One(
+        minKey = blocks.minKey,
+        maxKey = blocks.maxKey,
         segmentBytes = Slice(compressionResult.headerBytes.close(), compressedOrUncompressedSegmentBytes),
-        minMaxFunctionId = ref.functionMinMax,
-        nearestDeadline = ref.nearestDeadline,
-        valuesUnblockedReader = ref.valuesUnblockedReader,
-        sortedIndexClosedState = ref.sortedIndexClosedState,
-        sortedIndexUnblockedReader = ref.sortedIndexUnblockedReader,
-        hashIndexUnblockedReader = ref.hashIndexUnblockedReader,
-        binarySearchUnblockedReader = ref.binarySearchUnblockedReader,
-        bloomFilterUnblockedReader = ref.bloomFilterUnblockedReader,
-        footerUnblocked = ref.footerUnblocked
+        minMaxFunctionId = blocks.functionMinMax,
+        nearestDeadline = blocks.nearestDeadline,
+        valuesUnblockedReader = blocks.valuesUnblockedReader,
+        sortedIndexClosedState = blocks.sortedIndexClosedState,
+        sortedIndexUnblockedReader = blocks.sortedIndexUnblockedReader,
+        hashIndexUnblockedReader = blocks.hashIndexUnblockedReader,
+        binarySearchUnblockedReader = blocks.binarySearchUnblockedReader,
+        bloomFilterUnblockedReader = blocks.bloomFilterUnblockedReader,
+        footerUnblocked = blocks.footerUnblocked
       )
     }
 

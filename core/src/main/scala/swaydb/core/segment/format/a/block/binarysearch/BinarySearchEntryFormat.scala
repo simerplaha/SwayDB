@@ -31,7 +31,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
 
-sealed trait BinarySearchEntryFormat {
+private[core] sealed trait BinarySearchEntryFormat {
   def id: Byte
 
   def isCopy: Boolean
@@ -53,7 +53,7 @@ sealed trait BinarySearchEntryFormat {
            valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
 
-object BinarySearchEntryFormat {
+private[core] object BinarySearchEntryFormat {
 
   def apply(indexFormat: IndexFormat): BinarySearchEntryFormat =
     indexFormat match {

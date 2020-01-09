@@ -35,7 +35,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.concurrent.duration.Deadline
 
-sealed trait SegmentSerialiser {
+private[core] sealed trait SegmentSerialiser {
 
   def write(value: Segment, bytes: Slice[Byte]): Unit
 
@@ -54,7 +54,7 @@ sealed trait SegmentSerialiser {
 
 }
 
-object SegmentSerialiser {
+private[core] object SegmentSerialiser {
 
   object FormatA extends SegmentSerialiser {
     val formatId: Byte = 0.toByte

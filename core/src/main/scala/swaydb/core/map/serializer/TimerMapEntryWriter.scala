@@ -23,7 +23,7 @@ import swaydb.core.map.MapEntry
 import swaydb.core.util.Bytes
 import swaydb.data.slice.Slice
 
-object TimerMapEntryWriter {
+private[core] object TimerMapEntryWriter {
 
   implicit object TimerPutMapEntryWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Slice[Byte]]] {
     val id: Int = 0

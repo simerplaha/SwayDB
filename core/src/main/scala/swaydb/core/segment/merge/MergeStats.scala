@@ -33,6 +33,9 @@ private[core] sealed trait MergeStats[FROM, +T[_]] extends Aggregator[FROM, T[da
 
   def add(keyValue: FROM): Unit
 
+  def addAll(from: Iterable[FROM]): Unit =
+    from foreach add
+
   def keyValues: T[data.Memory]
 
   override def result: T[data.Memory] =
@@ -193,7 +196,7 @@ private[core] object MergeStats {
         }
       }
 
-      def add(from: FROM) = {
+      def add(from: FROM): Unit = {
         val keyValueOrNull = converterOrNull(from)
         if (keyValueOrNull != null) {
           totalKeyValueCount += 1

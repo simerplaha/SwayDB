@@ -587,7 +587,7 @@ private[core] object SegmentRef {
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): Slice[TransientSegment.Single] = {
+                                              functionStore: FunctionStore): Slice[TransientSegment.One] = {
 
     val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
 
@@ -601,7 +601,7 @@ private[core] object SegmentRef {
 
     val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
 
-    SegmentBlock.write(
+    SegmentBlock.writeOne(
       mergeStats = closed,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
@@ -623,7 +623,7 @@ private[core] object SegmentRef {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config): Slice[TransientSegment.Single] = {
+              segmentConfig: SegmentBlock.Config): Slice[TransientSegment.One] = {
 
     val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
@@ -670,7 +670,7 @@ private[core] object SegmentRef {
           maxSortedIndexSize = sortedIndexSize
         )
 
-      SegmentBlock.write(
+      SegmentBlock.writeOne(
         mergeStats = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -693,7 +693,7 @@ private[core] object SegmentRef {
           .persistentBuilder(keyValues)
           .close(sortedIndexConfig.enableAccessPositionIndex)
 
-      SegmentBlock.write(
+      SegmentBlock.writeOne(
         mergeStats = builder,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -762,13 +762,13 @@ private[core] class SegmentRef(val path: Path,
       )
   }
 
-  def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
+  def getAll[KV >: Persistent, T](aggregator: Aggregator[KV, T]): Unit =
     segmentBlockCache readAll aggregator
 
-  def getAll(): Slice[KeyValue] =
+  def getAll[KV >: Persistent](): Slice[KV] =
     segmentBlockCache.readAll()
 
-  def getAll(keyValueCount: Int): Slice[KeyValue] =
+  def getAll[KV >: Persistent](keyValueCount: Int): Slice[KV] =
     segmentBlockCache readAll keyValueCount
 
   def iterator(): Iterator[Persistent] =
@@ -818,6 +818,9 @@ private[core] class SegmentRef(val path: Path,
 
   def readAllBytes(): Slice[Byte] =
     segmentBlockCache.readAllBytes()
+
+  def segmentSize: Int =
+    segmentBlockCache.segmentSize
 
   def isInitialised() =
     segmentBlockCache.isCached

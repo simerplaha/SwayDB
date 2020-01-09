@@ -26,7 +26,7 @@ private[core] trait BlockOffset {
     start + size - 1
 }
 
-object BlockOffset {
+private[core] object BlockOffset {
   def apply(_start: Int, _size: Int): BlockOffset =
     new BlockOffset() {
       override def start: Int = _start

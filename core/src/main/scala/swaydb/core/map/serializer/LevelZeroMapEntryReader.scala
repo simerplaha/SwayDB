@@ -27,7 +27,7 @@ import swaydb.data.slice.{ReaderBase, Slice}
 
 import scala.concurrent.duration.Deadline
 
-object LevelZeroMapEntryReader {
+private[core] object LevelZeroMapEntryReader {
 
   implicit object Level0RemoveReader extends MapEntryReader[MapEntry.Put[Slice[Byte], Memory.Remove]] {
 

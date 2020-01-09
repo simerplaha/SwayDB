@@ -22,7 +22,7 @@ package swaydb.core.segment.format.a.entry.reader
 import swaydb.core.data.PersistentOptional
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.data.slice.ReaderBase
-import swaydb.data.util.TupleOptional
+import swaydb.data.util.TupleOrNone
 
 import scala.annotation.implicitNotFound
 
@@ -34,7 +34,7 @@ sealed trait ValueReader[-T] {
   def read[V](indexReader: ReaderBase,
               previous: PersistentOptional,
               valueOffsetReader: ValueOffsetReader[V],
-              valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int]
+              valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int]
 }
 
 object ValueReader {
@@ -44,8 +44,8 @@ object ValueReader {
     override def read[V](indexReader: ReaderBase,
                          previous: PersistentOptional,
                          valueOffsetReader: ValueOffsetReader[V],
-                         valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int] =
-      TupleOptional.None
+                         valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] =
+      TupleOrNone.None
   }
 
   implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
@@ -53,10 +53,10 @@ object ValueReader {
     override def read[V](indexReader: ReaderBase,
                          previous: PersistentOptional,
                          valueOffsetReader: ValueOffsetReader[V],
-                         valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int] = {
+                         valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] = {
       val valueOffset = valueOffsetReader.read(indexReader, previous)
       val valueLength = valueLengthReader.read(indexReader, previous)
-      TupleOptional.Some(valueOffset, valueLength)
+      TupleOrNone.Some(valueOffset, valueLength)
     }
   }
 
@@ -68,7 +68,7 @@ object ValueReader {
     override def read[V](indexReader: ReaderBase,
                          previous: PersistentOptional,
                          valueOffsetReader: ValueOffsetReader[V],
-                         valueLengthReader: ValueLengthReader[V]): TupleOptional[Int, Int] =
+                         valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] =
       ValueUncompressedReader.read(
         indexReader = indexReader,
         previous = previous,

@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a.block.segment.data
 
+import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -46,34 +47,18 @@ sealed trait TransientSegment {
 
 object TransientSegment {
 
-  def apply(uncompressed: ClosedBlocksWithFooter): TransientSegment.Single =
-    TransientSegment.Single(
-      minKey = uncompressed.minKey,
-      maxKey = uncompressed.maxKey,
-      sortedIndexClosedState = uncompressed.sortedIndexClosedState,
-      segmentBytes = uncompressed.segmentBytes,
-      minMaxFunctionId = uncompressed.functionMinMax,
-      nearestDeadline = uncompressed.nearestDeadline,
-      valuesUnblockedReader = uncompressed.valuesUnblockedReader,
-      sortedIndexUnblockedReader = uncompressed.sortedIndexUnblockedReader,
-      hashIndexUnblockedReader = uncompressed.hashIndexUnblockedReader,
-      binarySearchUnblockedReader = uncompressed.binarySearchUnblockedReader,
-      bloomFilterUnblockedReader = uncompressed.bloomFilterUnblockedReader,
-      footerUnblocked = uncompressed.footerUnblocked
-    )
-
-  case class Single(minKey: Slice[Byte],
-                    maxKey: MaxKey[Slice[Byte]],
-                    segmentBytes: Slice[Slice[Byte]],
-                    minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                    nearestDeadline: Option[Deadline],
-                    valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-                    sortedIndexClosedState: SortedIndexBlock.State,
-                    sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-                    hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-                    binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
-                    bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                    footerUnblocked: Option[SegmentFooterBlock]) extends TransientSegment {
+  case class One(minKey: Slice[Byte],
+                 maxKey: MaxKey[Slice[Byte]],
+                 segmentBytes: Slice[Slice[Byte]],
+                 minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                 nearestDeadline: Option[Deadline],
+                 valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                 sortedIndexClosedState: SortedIndexBlock.State,
+                 sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                 hashIndexUnblockedReader: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                 binarySearchUnblockedReader: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                 bloomFilterUnblockedReader: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                 footerUnblocked: Option[SegmentFooterBlock]) extends TransientSegment {
 
     override def isEmpty: Boolean =
       segmentBytes.exists(_.isEmpty)
@@ -94,13 +79,20 @@ object TransientSegment {
 
     override def toString: String =
       s"TransientSegment Segment. Size: ${segmentSize}"
+
+    def toKeyValue(offset: Int, size: Int): Slice[Memory] =
+      TransientSegmentConverter.toKeyValue(
+        one = this,
+        offset = offset,
+        size = size
+      )
   }
 
-  case class List(minKey: Slice[Byte],
+  case class Many(minKey: Slice[Byte],
                   maxKey: MaxKey[Slice[Byte]],
                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                   nearestDeadline: Option[Deadline],
-                  blockedSegments: Slice[TransientSegment.Single],
+                  segments: Slice[TransientSegment.One],
                   segmentBytes: Slice[Slice[Byte]]) extends TransientSegment {
 
     override def isEmpty: Boolean =

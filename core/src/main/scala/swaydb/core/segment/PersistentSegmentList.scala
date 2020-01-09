@@ -25,69 +25,135 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.cache.Cache
-import swaydb.core.data.{KeyValue, Persistent, PersistentOptional}
+import swaydb.core.data._
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.format.a.block.segment.list.SegmentListBlock
+import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, TransientSegmentConverter}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
-import swaydb.data.MaxKey
-import swaydb.data.config.Dir
+import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
-import swaydb.{Aggregator, IO}
+import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.{MaxKey, Reserve}
+import swaydb.{Aggregator, Error, IO}
 
 import scala.concurrent.duration.Deadline
 
-object PersistentSegmentList {
+protected object PersistentSegmentList {
+
+  val formatId: Byte = 127
+
   def apply(file: DBFile,
+            segmentSize: Int,
             createdInLevel: Int,
             mmapReads: Boolean,
             mmapWrites: Boolean,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-            segmentSize: Int,
             nearestExpiryDeadline: Option[Deadline],
-            valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
-            sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
-            hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
-            binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
-            bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-            footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                         timeOrder: TimeOrder[Slice[Byte]],
-                                                         functionStore: FunctionStore,
-                                                         keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                         blockCache: Option[BlockCache.State],
-                                                         fileSweeper: FileSweeper.Enabled,
-                                                         segmentIO: SegmentIO): PersistentSegment = {
+            segments: Slice[TransientSegment.One],
+            initial: Option[SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                   functionStore: FunctionStore,
+                                                                                                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                   blockCache: Option[BlockCache.State],
+                                                                                                                   fileSweeper: FileSweeper.Enabled,
+                                                                                                                   segmentIO: SegmentIO): PersistentSegmentList = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
-    val ref =
-      SegmentRef(
-        path = file.path,
-        minKey = minKey,
-        maxKey = maxKey,
-        blockRef = BlockRefReader(file, segmentSize),
-        segmentIO = segmentIO,
-        valuesReaderCacheable = valuesReaderCacheable,
-        sortedIndexReaderCacheable = sortedIndexReaderCacheable,
-        hashIndexReaderCacheable = hashIndexReaderCacheable,
-        binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
-        bloomFilterReaderCacheable = bloomFilterReaderCacheable,
-        footerCacheable = footerCacheable
+    val fileBlockRef: BlockRefReader[SegmentBlock.Offset] =
+      BlockRefReader(
+        file = file,
+        start = 1,
+        fileSize = segmentSize
       )
 
-    new PersistentSegment(
+    val segmentsListCache =
+      Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef]](
+        initial = initial,
+        strategy = _ => segmentIO.segmentBlockIO(IOAction.ReadDataOverview).forceCacheOnAccess,
+        reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"${file.path}: ${this.getClass.getSimpleName}"))
+      ) {
+        (initial, self) => //initial set clean up.
+          keyValueMemorySweeper foreach {
+            cacheMemorySweeper =>
+              //            cacheMemorySweeper.add(initial.foldLeft(0), self)
+              ???
+          }
+      } {
+        (_, _) =>
+          IO {
+
+            val blockedReader: BlockRefReader[SegmentBlock.Offset] = fileBlockRef.copy()
+            val segmentSize = blockedReader.readUnsignedInt()
+            val segment = fileBlockRef.read(segmentSize)
+            val segmentBlockRef = BlockRefReader[SegmentBlock.Offset](segment)
+
+            val segmentRef =
+              SegmentRef(
+                path = file.path,
+                minKey = minKey,
+                maxKey = maxKey,
+                blockRef = segmentBlockRef,
+                segmentIO = segmentIO,
+                valuesReaderCacheable = None,
+                sortedIndexReaderCacheable = None,
+                hashIndexReaderCacheable = None,
+                binarySearchIndexReaderCacheable = None,
+                bloomFilterReaderCacheable = None,
+                footerCacheable = None
+              )
+
+            val skipList = SkipList.immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+
+            val aggregator =
+              new Aggregator[Persistent, SkipList.Immutable[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent]] {
+                override def add(item: Persistent): Unit =
+                  item match {
+                    case range: Persistent.Range =>
+                      val segmentRef =
+                        TransientSegmentConverter.toSegmentRef(
+                          path = file.path,
+                          reader = blockedReader,
+                          range = range,
+                          valuesReaderCacheable = None,
+                          sortedIndexReaderCacheable = None,
+                          hashIndexReaderCacheable = None,
+                          binarySearchIndexReaderCacheable = None,
+                          bloomFilterReaderCacheable = None,
+                          footerCacheable = None
+                        )
+
+                      skipList.put(minKey, segmentRef)
+
+                    case _: Persistent.Put =>
+                    //ignore. Put is stored so that it's possible to perform binary search but currently binary search is not required.
+
+                    case _: Persistent.Fixed =>
+                      throw new Exception("Non put key-value written to List segment")
+
+                  }
+
+                override def result: SkipList.Immutable[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent] =
+                  null
+              }
+
+            segmentRef getAll aggregator
+
+            skipList
+          }
+      }
+
+    new PersistentSegmentList(
       file = file,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
@@ -97,27 +163,27 @@ object PersistentSegmentList {
       minMaxFunctionId = minMaxFunctionId,
       segmentSize = segmentSize,
       nearestPutDeadline = nearestExpiryDeadline,
-      ref = ref
+      segmentList = segmentsListCache
     )
   }
 }
 
-private[segment] case class PersistentSegmentList(file: DBFile,
-                                                  createdInLevel: Int,
-                                                  mmapReads: Boolean,
-                                                  mmapWrites: Boolean,
-                                                  minKey: Slice[Byte],
-                                                  maxKey: MaxKey[Slice[Byte]],
-                                                  minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                                                  segmentSize: Int,
-                                                  nearestPutDeadline: Option[Deadline],
-                                                  private[segment] val segments: Cache[Throwable, BlockRefReader[SegmentListBlock.Offset], SegmentRef])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                                                        timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                                        functionStore: FunctionStore,
-                                                                                                                                                        blockCache: Option[BlockCache.State],
-                                                                                                                                                        fileSweeper: FileSweeper.Enabled,
-                                                                                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                                                        segmentIO: SegmentIO) extends Segment with LazyLogging {
+protected case class PersistentSegmentList(file: DBFile,
+                                           createdInLevel: Int,
+                                           mmapReads: Boolean,
+                                           mmapWrites: Boolean,
+                                           minKey: Slice[Byte],
+                                           maxKey: MaxKey[Slice[Byte]],
+                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],
+                                           segmentSize: Int,
+                                           nearestPutDeadline: Option[Deadline],
+                                           private[segment] val segmentList: Cache[Error.Segment, Unit, SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                                                                                               timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                                                                               functionStore: FunctionStore,
+                                                                                                                                                                                               blockCache: Option[BlockCache.State],
+                                                                                                                                                                                               fileSweeper: FileSweeper.Enabled,
+                                                                                                                                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                                                                                               segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   //  implicit val segmentCacheImplicit: SegmentRef = ref
   //  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))

@@ -19,11 +19,10 @@
 
 package swaydb.core.map.serializer
 
-import swaydb.IO
 import swaydb.core.map.MapEntry
 import swaydb.data.slice.{ReaderBase, Slice}
 
-object TimerMapEntryReader {
+private[core] object TimerMapEntryReader {
 
   implicit object TimerPutMapEntryReader extends MapEntryReader[MapEntry[Slice[Byte], Slice[Byte]]] {
     override def read(reader: ReaderBase): MapEntry.Put[Slice[Byte], Slice[Byte]] = {

@@ -33,7 +33,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 
 @implicitNotFound("Type class implementation not found for ValueSerializer of type ${T}")
-sealed trait ValueSerializer[T] {
+private[core] sealed trait ValueSerializer[T] {
 
   def write(value: T, bytes: Slice[Byte]): Unit
 
@@ -45,7 +45,7 @@ sealed trait ValueSerializer[T] {
   def bytesRequired(value: T): Int
 }
 
-object ValueSerializer {
+private[core] object ValueSerializer {
 
   def readDeadline(reader: ReaderBase): Option[Deadline] = {
     val deadline = reader.readUnsignedLong()

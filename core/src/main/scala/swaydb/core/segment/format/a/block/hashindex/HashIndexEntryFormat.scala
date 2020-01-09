@@ -31,7 +31,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.macros.Sealed
 
-sealed trait HashIndexEntryFormat {
+private[core] sealed trait HashIndexEntryFormat {
   def id: Byte
 
   def isCopy: Boolean
@@ -47,7 +47,7 @@ sealed trait HashIndexEntryFormat {
                  valuesOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial
 }
 
-object HashIndexEntryFormat {
+private[core] object HashIndexEntryFormat {
 
   def apply(indexFormat: IndexFormat): HashIndexEntryFormat =
     indexFormat match {

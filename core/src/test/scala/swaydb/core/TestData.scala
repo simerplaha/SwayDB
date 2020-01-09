@@ -1730,9 +1730,9 @@ object TestData {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                           sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                           valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): TransientSegment.Single = {
+                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): TransientSegment.One = {
       val segments =
-        SegmentBlock.write(
+        SegmentBlock.writeOne(
           mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
           createdInLevel = createdInLevel,
           minSegmentSize = Int.MaxValue,

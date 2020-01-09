@@ -27,7 +27,7 @@ import swaydb.data.util.ByteSizeOf
 /**
  * TODO move to using varints and see if that makes a difference in performance.
  */
-object LevelZeroMapEntryWriter {
+private[core] object LevelZeroMapEntryWriter {
 
   implicit object Level0RemoveWriter extends MapEntryWriter[MapEntry.Put[Slice[Byte], Memory.Remove]] {
     val id: Int = 0

@@ -26,7 +26,7 @@ import swaydb.data.slice.Slice
 
 import scala.concurrent.duration.Deadline
 
-private[core] object DeadlineAndFunctionId {
+protected object DeadlineAndFunctionId {
   val empty: DeadlineAndFunctionId =
     apply(None, None)
 
@@ -100,5 +100,5 @@ private[core] object DeadlineAndFunctionId {
     }
 }
 
-private[core] class DeadlineAndFunctionId(val nearestDeadline: Option[Deadline],
-                                          val minMaxFunctionId: Option[MinMax[Slice[Byte]]])
+protected class DeadlineAndFunctionId(val nearestDeadline: Option[Deadline],
+                                      val minMaxFunctionId: Option[MinMax[Slice[Byte]]])

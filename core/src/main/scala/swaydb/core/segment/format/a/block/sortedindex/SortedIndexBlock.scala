@@ -40,6 +40,7 @@ import swaydb.data.util.{ByteSizeOf, Functions}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
+import scala.reflect.ClassTag
 
 private[core] object SortedIndexBlock extends LazyLogging {
 
@@ -644,10 +645,10 @@ private[core] object SortedIndexBlock extends LazyLogging {
     }
   }
 
-  def readAll(keyValueCount: Int,
-              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Slice[KeyValue] = {
-    val aggregator = Slice.newAggregator[KeyValue](keyValueCount)
+  def readAll[KV >: Persistent : ClassTag](keyValueCount: Int,
+                                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Slice[KV] = {
+    val aggregator = Slice.newAggregator[KV](keyValueCount)
 
     readAll(
       sortedIndexReader = sortedIndexReader,
@@ -658,9 +659,9 @@ private[core] object SortedIndexBlock extends LazyLogging {
     aggregator.result
   }
 
-  def readAll(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
-              aggregator: Aggregator[KeyValue, _]): Unit =
+  def readAll[KV >: Persistent](sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+                                aggregator: Aggregator[KV, _]): Unit =
     iterator(
       sortedIndexReader = sortedIndexReader moveTo 0,
       valuesReaderOrNull = valuesReaderOrNull
