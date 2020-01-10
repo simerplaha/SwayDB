@@ -1312,7 +1312,7 @@ object CommonAssertions {
     val sortedIndexBlock = SortedIndexBlock.Config.random
 
     val segment =
-      SegmentBlock.writeOne(
+      SegmentBlock.writeOnes(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexBlock.enableAccessPositionIndex),
         createdInLevel = 0,
         minSegmentSize = Int.MaxValue,
@@ -1362,7 +1362,7 @@ object CommonAssertions {
                 bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                 segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, Slice[SegmentBlocks]] = {
     val closedSegments =
-      SegmentBlock.writeOne(
+      SegmentBlock.writeOnes(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
         createdInLevel = 0,
         minSegmentSize = segmentSize,
@@ -1434,7 +1434,7 @@ object CommonAssertions {
                            hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
                            bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
                            segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): Iterable[SegmentBlockCache] =
-    SegmentBlock.writeOne(
+    SegmentBlock.writeOnes(
       mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
       createdInLevel = Int.MaxValue,
       minSegmentSize = segmentSize,

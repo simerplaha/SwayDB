@@ -600,7 +600,7 @@ private[core] object SegmentRef {
 
     val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
 
-    SegmentBlock.writeOne(
+    SegmentBlock.writeOnes(
       mergeStats = closed,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
@@ -669,7 +669,7 @@ private[core] object SegmentRef {
           maxSortedIndexSize = sortedIndexSize
         )
 
-      SegmentBlock.writeOne(
+      SegmentBlock.writeOnes(
         mergeStats = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -692,7 +692,7 @@ private[core] object SegmentRef {
           .persistentBuilder(keyValues)
           .close(sortedIndexConfig.enableAccessPositionIndex)
 
-      SegmentBlock.writeOne(
+      SegmentBlock.writeOnes(
         mergeStats = builder,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,

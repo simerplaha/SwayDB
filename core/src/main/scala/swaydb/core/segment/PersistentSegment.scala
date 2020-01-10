@@ -47,8 +47,9 @@ import scala.concurrent.duration.Deadline
 
 protected object PersistentSegment {
 
-  val formatId = 0.toByte
-  val formatIdSliceSlice = Slice(Slice(0.toByte))
+  val formatId = 126.toByte
+  val formatIdSlice = Slice(formatId)
+  val formatIdSliceSlice = Slice(formatIdSlice)
 
   def apply(file: DBFile,
             createdInLevel: Int,
@@ -79,7 +80,12 @@ protected object PersistentSegment {
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,
-        blockRef = BlockRefReader(file, segmentSize),
+        blockRef =
+          BlockRefReader(
+            file = file,
+            start = 1,
+            fileSize = segmentSize
+          ),
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,

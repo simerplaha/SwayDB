@@ -49,6 +49,7 @@ import scala.concurrent.duration.Deadline
 protected object PersistentSegmentList {
 
   val formatId: Byte = 127
+  val formatIdSlice: Slice[Byte] = Slice(formatId)
 
   def apply(file: DBFile,
             segmentSize: Int,
@@ -77,7 +78,7 @@ protected object PersistentSegmentList {
         fileSize = segmentSize
       )
 
-    val segmentsListCache =
+    val segments =
       Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef]](
         initial = initial,
         strategy = _ => segmentIO.segmentBlockIO(IOAction.ReadDataOverview).forceCacheOnAccess,
@@ -155,7 +156,7 @@ protected object PersistentSegmentList {
       minMaxFunctionId = minMaxFunctionId,
       segmentSize = segmentSize,
       nearestPutDeadline = nearestExpiryDeadline,
-      segmentList = segmentsListCache
+      segments = segments
     )
   }
 }
@@ -169,13 +170,13 @@ protected case class PersistentSegmentList(file: DBFile,
                                            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                            segmentSize: Int,
                                            nearestPutDeadline: Option[Deadline],
-                                           private[segment] val segmentList: Cache[Error.Segment, Unit, SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                                                                                               timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                                                                                               functionStore: FunctionStore,
-                                                                                                                                                                                               blockCache: Option[BlockCache.State],
-                                                                                                                                                                                               fileSweeper: FileSweeper.Enabled,
-                                                                                                                                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                                                                                               segmentIO: SegmentIO) extends Segment with LazyLogging {
+                                           private[segment] val segments: Cache[Error.Segment, Unit, SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                                                                                            timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                                                                                            functionStore: FunctionStore,
+                                                                                                                                                                                            blockCache: Option[BlockCache.State],
+                                                                                                                                                                                            fileSweeper: FileSweeper.Enabled,
+                                                                                                                                                                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                                                                                                                            segmentIO: SegmentIO) extends Segment with LazyLogging {
 
   //  implicit val segmentCacheImplicit: SegmentRef = ref
   //  implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
@@ -326,6 +327,7 @@ protected case class PersistentSegmentList(file: DBFile,
     ???
 
   override def getAll(): Slice[KeyValue] =
+
   //    ref.getAll()
     ???
 

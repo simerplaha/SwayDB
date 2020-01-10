@@ -23,6 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
+import swaydb.core.segment.{PersistentSegment, PersistentSegmentList}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -33,7 +34,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.merge.MergeStats.Persistent
-import swaydb.core.util.Collections
+import swaydb.core.util.{Bytes, Collections}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 
@@ -115,7 +116,7 @@ private[core] object SegmentBlock extends LazyLogging {
       Slice.empty
     } else {
       val singles: Slice[TransientSegment.One] =
-        writeOne(
+        writeOnes(
           mergeStats = mergeStats,
           createdInLevel = createdInLevel,
           minSegmentSize = minSegmentSize,
@@ -127,65 +128,99 @@ private[core] object SegmentBlock extends LazyLogging {
           segmentConfig = segmentConfig
         )
 
-      val groups =
-        Collections.groupedBySize[TransientSegment.One](
-          minGroupSize = minSegmentSize,
-          itemSize = _.segmentSize,
-          items = singles
-        )
-
-      groups map {
-        segments =>
-          if (segments.size == 1) {
-            segments.head
-          } else {
-            val segmentKeyValues: Persistent.Builder[Memory, Slice] =
-              MergeStats.persistent(Slice.newBuilder(segments.size * 2))
-
-            segments.foldLeft(0) {
-              case (offset, segment) =>
-                val segmentSize = segment.segmentSize
-                segmentKeyValues addAll segment.toKeyValue(offset, segmentSize)
-                offset + segmentSize
-            }
-
-            val one =
-              writeOne(
-                mergeStats = segmentKeyValues.close(hasAccessPositionIndex = true),
-                createdInLevel = createdInLevel,
-                minSegmentSize = Int.MaxValue,
-                bloomFilterConfig = bloomFilterConfig,
-                hashIndexConfig = hashIndexConfig,
-                binarySearchIndexConfig = binarySearchIndexConfig,
-                sortedIndexConfig = sortedIndexConfig,
-                valuesConfig = valuesConfig,
-                segmentConfig = segmentConfig
-              )
-
-            assert(one.size == 1, "")
-
-            //            TransientSegment.Many(
-            //              minKey = state.minKey,
-            //              maxKey = state.maxKey,
-            //              minMaxFunctionId = state.minMaxFunctionId,
-            //              nearestDeadline = state.nearestDeadline,
-            //              segments = segments,
-            //              segmentBytes = Slice(state.bytes) ++ segments.flatMap(_.segmentBytes)
-            //            )
-            ???
-          }
-      }
+      writeOneOrMany(
+        createdInLevel = createdInLevel,
+        minSegmentSize = minSegmentSize,
+        singles = singles
+      )
     }
 
-  def writeOne(mergeStats: MergeStats.Persistent.Closed[Iterable],
-               createdInLevel: Int,
-               minSegmentSize: Int,
-               bloomFilterConfig: BloomFilterBlock.Config,
-               hashIndexConfig: HashIndexBlock.Config,
-               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-               sortedIndexConfig: SortedIndexBlock.Config,
-               valuesConfig: ValuesBlock.Config,
-               segmentConfig: SegmentBlock.Config): Slice[TransientSegment.One] =
+  private def writeOneOrMany(createdInLevel: Int,
+                             minSegmentSize: Int,
+                             singles: Slice[TransientSegment.One]): Slice[TransientSegment] = {
+    val groups: Slice[Slice[TransientSegment.One]] =
+      Collections.groupedBySize[TransientSegment.One](
+        minGroupSize = minSegmentSize,
+        itemSize = _.segmentSize,
+        items = singles
+      )
+
+    groups map {
+      segments =>
+        if (segments.size == 1) {
+          val segment = segments.head
+          segment.copy(segmentBytes = PersistentSegment.formatIdSliceSlice ++ segment.segmentBytes)
+        } else {
+          val listKeyValue: Persistent.Builder[Memory, Slice] =
+            MergeStats.persistent(Slice.newBuilder(segments.size * 2))
+
+          segments.foldLeft(0) {
+            case (offset, segment) =>
+              val segmentSize = segment.segmentSize
+              listKeyValue addAll segment.toKeyValue(offset, segmentSize)
+              offset + segmentSize
+          }
+
+          val closedListKeyValues = listKeyValue.close(hasAccessPositionIndex = false)
+
+          val listSegments =
+            writeOnes(
+              mergeStats = closedListKeyValues,
+              createdInLevel = createdInLevel,
+              minSegmentSize = Int.MaxValue,
+              bloomFilterConfig = BloomFilterBlock.Config.disabled,
+              hashIndexConfig = HashIndexBlock.Config.disabled,
+              binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
+              sortedIndexConfig = SortedIndexBlock.Config.disabled,
+              valuesConfig = ValuesBlock.Config.disabled,
+              segmentConfig = SegmentBlock.Config.default
+            )
+
+          assert(listSegments.size == 1, "")
+
+          val listSegment = listSegments.head
+          val listSegmentSize = listSegment.segmentSize
+
+          val sizeOfSegment =
+            1 +
+              Bytes.sizeOfUnsignedInt(listSegmentSize) +
+              listSegment.segmentBytes.size +
+              segments.foldLeft(0)(_ + _.segmentBytes.size)
+
+          val segmentBytes = Slice.create[Slice[Byte]](sizeOfSegment)
+
+          val headerBytes = Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(listSegmentSize))
+          headerBytes add PersistentSegmentList.formatId
+          headerBytes addUnsignedInt listSegmentSize
+
+          segmentBytes add headerBytes
+          segmentBytes addAll listSegment.segmentBytes
+          segments foreach {
+            segment =>
+              segmentBytes addAll segment.segmentBytes
+          }
+
+          TransientSegment.Many(
+            minKey = listSegment.minKey,
+            maxKey = listSegment.maxKey,
+            minMaxFunctionId = listSegment.minMaxFunctionId,
+            nearestDeadline = listSegment.nearestDeadline,
+            segments = Slice(listSegment) ++ segments,
+            segmentBytes = segmentBytes
+          )
+        }
+    }
+  }
+
+  def writeOnes(mergeStats: MergeStats.Persistent.Closed[Iterable],
+                createdInLevel: Int,
+                minSegmentSize: Int,
+                bloomFilterConfig: BloomFilterBlock.Config,
+                hashIndexConfig: HashIndexBlock.Config,
+                binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                sortedIndexConfig: SortedIndexBlock.Config,
+                valuesConfig: ValuesBlock.Config,
+                segmentConfig: SegmentBlock.Config): Slice[TransientSegment.One] =
     if (mergeStats.isEmpty)
       Slice.empty
     else
