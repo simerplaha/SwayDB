@@ -56,7 +56,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
         implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Fixed[Slice[Byte]](100), minKey = 0, None, null)
-        SegmentRef.get(key = 101, readState = null) shouldBe Persistent.Null
+        SegmentRef.get(key = 101, threadState = null) shouldBe Persistent.Null
 
       }
     }
@@ -65,8 +65,8 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
       "return none" in {
         implicit val segmentSearcher = mock[SegmentSearcher]
         implicit val segmentRef = new SegmentRef(Paths.get("1"), MaxKey.Range[Slice[Byte]](90, 100), minKey = 0, None, null)
-        SegmentRef.get(key = 100, readState = null) shouldBe Persistent.Null
-        SegmentRef.get(key = 101, readState = null) shouldBe Persistent.Null
+        SegmentRef.get(key = 100, threadState = null) shouldBe Persistent.Null
+        SegmentRef.get(key = 101, threadState = null) shouldBe Persistent.Null
 
       }
     }
@@ -139,7 +139,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               keyValue1
           }
 
-        SegmentRef.get(key = keyValue1.key, readState = threadState) shouldBe keyValue1
+        SegmentRef.get(key = keyValue1.key, threadState = threadState) shouldBe keyValue1
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue1
@@ -166,7 +166,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               keyValue2
           }
 
-        SegmentRef.get(key = keyValue2.key, readState = threadState) shouldBe keyValue2
+        SegmentRef.get(key = keyValue2.key, threadState = threadState) shouldBe keyValue2
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue2
@@ -217,7 +217,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               }
           }
 
-        SegmentRef.get(key = keyValue100.key, readState = threadState) shouldBe keyValue100
+        SegmentRef.get(key = keyValue100.key, threadState = threadState) shouldBe keyValue100
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue100
@@ -253,7 +253,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               }
           }
 
-        SegmentRef.get(key = keyValue101.key, readState = threadState) shouldBe keyValue101
+        SegmentRef.get(key = keyValue101.key, threadState = threadState) shouldBe keyValue101
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue101
@@ -305,7 +305,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
               }
           }
 
-        SegmentRef.get(key = keyValue3.key, readState = threadState) shouldBe keyValue3
+        SegmentRef.get(key = keyValue3.key, threadState = threadState) shouldBe keyValue3
 
         val segmentState = threadState.getSegmentState(path).getS
         segmentState.keyValue shouldBe keyValue3

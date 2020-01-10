@@ -278,6 +278,46 @@ private[core] object Segment extends LazyLogging {
                 )
 
               case segment: TransientSegment.Many =>
+                val initial =
+                  if (segment.segments.isEmpty) {
+                    None
+                  } else {
+                    val skipList = SkipList.immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+                    implicit val blockMemorySweeper = blockCache.map(_.sweeper)
+
+                    //drop head ignoring the list block.
+                    segment.segments.dropHead().foldLeft(segment.segments.head.segmentSize) {
+                      case (offset, one) =>
+                        val thisSegmentSize = one.segmentSize
+
+                        val ref =
+                          SegmentRef(
+                            path = file.path.resolve(s".ref.$offset"),
+                            minKey = one.minKey,
+                            maxKey = one.maxKey,
+                            blockRef =
+                              BlockRefReader(
+                                file = file,
+                                start = offset,
+                                fileSize = thisSegmentSize
+                              ),
+                            segmentIO = segmentIO,
+                            valuesReaderCacheable = one.valuesUnblockedReader,
+                            sortedIndexReaderCacheable = one.sortedIndexUnblockedReader,
+                            hashIndexReaderCacheable = one.hashIndexUnblockedReader,
+                            binarySearchIndexReaderCacheable = one.binarySearchUnblockedReader,
+                            bloomFilterReaderCacheable = one.bloomFilterUnblockedReader,
+                            footerCacheable = one.footerUnblocked
+                          )
+
+                        skipList.put(one.minKey, ref)
+
+                        offset + thisSegmentSize
+                    }
+
+                    Some(skipList)
+                  }
+
                 PersistentSegmentList(
                   file = file,
                   createdInLevel = createdInLevel,
@@ -289,10 +329,9 @@ private[core] object Segment extends LazyLogging {
                   segmentSize = segment.segmentSize,
                   nearestExpiryDeadline = segment.nearestDeadline,
                   segments = segment.segments,
-                  initial = ???
+                  initial = initial
                 )
             }
-
           },
       recover =
         (segments: Slice[Segment], _: Throwable) =>
@@ -784,6 +823,28 @@ private[core] object Segment extends LazyLogging {
       aggregator.result
     }
 
+  def getAllKeyValuesRef(segments: Iterable[SegmentRef]): Slice[Persistent] =
+    if (segments.isEmpty) {
+      Slice.empty
+    } else if (segments.size == 1) {
+      segments.head.getAll()
+    } else {
+      val totalKeyValues =
+        segments.foldLeftRecover(0) {
+          case (total, segment) =>
+            segment.getKeyValueCount() + total
+        }
+
+      val aggregator = Slice.newAggregator[Persistent](totalKeyValues)
+
+      segments foreach {
+        segment =>
+          segment getAll aggregator
+      }
+
+      aggregator.result
+    }
+
   def deleteSegments(segments: Iterable[Segment]): Int =
     segments.foldLeftRecover(0, failFast = false) {
       case (deleteCount, segment) =>
@@ -1087,11 +1148,11 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def get(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional
+  def get(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
 
-  def lower(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional
+  def lower(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
 
-  def higher(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional
+  def higher(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit
 

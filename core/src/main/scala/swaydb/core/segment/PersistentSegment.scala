@@ -253,14 +253,14 @@ protected case class PersistentSegment(file: DBFile,
         )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
-    SegmentRef.get(key, readState)
+  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOptional =
+    SegmentRef.get(key, threadState)
 
-  def lower(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
-    SegmentRef.lower(key, readState)
+  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOptional =
+    SegmentRef.lower(key, threadState)
 
-  def higher(key: Slice[Byte], readState: ThreadReadState): PersistentOptional =
-    SegmentRef.higher(key, readState)
+  def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOptional =
+    SegmentRef.higher(key, threadState)
 
   def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
     ref getAll aggregator

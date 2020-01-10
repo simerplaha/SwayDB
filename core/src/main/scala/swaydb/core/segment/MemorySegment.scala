@@ -133,7 +133,7 @@ protected case class MemorySegment(path: Path,
   override def getFromCache(key: Slice[Byte]): MemoryOptional =
     skipList.get(key)
 
-  override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOptional =
+  override def get(key: Slice[Byte], threadState: ThreadReadState): MemoryOptional =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
@@ -191,14 +191,14 @@ protected case class MemorySegment(path: Path,
     }
 
   override def lower(key: Slice[Byte],
-                     readState: ThreadReadState): MemoryOptional =
+                     threadState: ThreadReadState): MemoryOptional =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
       skipList.lower(key)
 
   override def higher(key: Slice[Byte],
-                      readState: ThreadReadState): MemoryOptional =
+                      threadState: ThreadReadState): MemoryOptional =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else if (hasRange)

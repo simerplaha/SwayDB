@@ -171,11 +171,11 @@ private[core] object SegmentRef {
       )
 
   def get(key: Slice[Byte],
-          readState: ThreadReadState)(implicit segmentRef: SegmentRef,
-                                      keyOrder: KeyOrder[Slice[Byte]],
-                                      partialKeyOrder: KeyOrder[Persistent.Partial],
-                                      persistentKeyOrder: KeyOrder[Persistent],
-                                      segmentSearcher: SegmentSearcher): PersistentOptional = {
+          threadState: ThreadReadState)(implicit segmentRef: SegmentRef,
+                                        keyOrder: KeyOrder[Slice[Byte]],
+                                        partialKeyOrder: KeyOrder[Persistent.Partial],
+                                        persistentKeyOrder: KeyOrder[Persistent],
+                                        segmentSearcher: SegmentSearcher): PersistentOptional = {
     //    println(s"Get: ${key.readInt()}")
     segmentRef.maxKey match {
       case MaxKey.Fixed(maxKey) if keyOrder.gt(key, maxKey) =>
@@ -190,7 +190,7 @@ private[core] object SegmentRef {
 
       case _ =>
         val footer = segmentRef.segmentBlockCache.getFooter()
-        val segmentStateOptional = readState.getSegmentState(segmentRef.path)
+        val segmentStateOptional = threadState.getSegmentState(segmentRef.path)
         val getFromState =
           if (footer.hasRange && segmentStateOptional.isSomeS)
             segmentStateOptional.getS.keyValue match {
@@ -240,7 +240,7 @@ private[core] object SegmentRef {
                         SegmentReadState.updateOnSuccessSequentialRead(
                           path = segmentRef.path,
                           segmentState = segmentStateOptional,
-                          threadReadState = readState,
+                          threadReadState = threadState,
                           found = found
                         )
                         segmentRef addToSkipList found
@@ -271,7 +271,7 @@ private[core] object SegmentRef {
                           path = segmentRef.path,
                           start = bestStart,
                           segmentStateOptional = segmentStateOptional,
-                          threadReadState = readState,
+                          threadReadState = threadState,
                           foundOption = found
                         )
 
@@ -286,11 +286,11 @@ private[core] object SegmentRef {
   }
 
   def higher(key: Slice[Byte],
-             readState: ThreadReadState)(implicit segmentRef: SegmentRef,
-                                         keyOrder: KeyOrder[Slice[Byte]],
-                                         persistentKeyOrder: KeyOrder[Persistent],
-                                         partialKeyOrder: KeyOrder[Persistent.Partial],
-                                         segmentSearcher: SegmentSearcher): PersistentOptional =
+             threadState: ThreadReadState)(implicit segmentRef: SegmentRef,
+                                           keyOrder: KeyOrder[Slice[Byte]],
+                                           persistentKeyOrder: KeyOrder[Persistent],
+                                           partialKeyOrder: KeyOrder[Persistent.Partial],
+                                           segmentSearcher: SegmentSearcher): PersistentOptional =
     segmentRef.maxKey match {
       case MaxKey.Fixed(maxKey) if keyOrder.gteq(key, maxKey) =>
         Persistent.Null
@@ -300,11 +300,11 @@ private[core] object SegmentRef {
 
       case _ =>
         if (keyOrder.lt(key, segmentRef.minKey)) {
-          get(segmentRef.minKey, readState)
+          get(segmentRef.minKey, threadState)
         } else {
           val blockCache = segmentRef.segmentBlockCache
           val footer = blockCache.getFooter()
-          val segmentStateOptional = readState.getSegmentState(segmentRef.path)
+          val segmentStateOptional = threadState.getSegmentState(segmentRef.path)
           val higherFromState =
             if (footer.hasRange && segmentStateOptional.isSomeS)
               segmentStateOptional.getS.keyValue match {
@@ -335,7 +335,7 @@ private[core] object SegmentRef {
                         SegmentReadState.updateOnSuccessSequentialRead(
                           path = segmentRef.path,
                           segmentState = segmentStateOptional,
-                          threadReadState = readState,
+                          threadReadState = threadState,
                           found = higher.getS
                         )
                         higher
@@ -365,7 +365,7 @@ private[core] object SegmentRef {
                               SegmentReadState.updateOnSuccessSequentialRead(
                                 path = segmentRef.path,
                                 segmentState = segmentStateOptional,
-                                threadReadState = readState,
+                                threadReadState = threadState,
                                 found = found
                               )
                               segmentRef addToSkipList found
@@ -390,7 +390,7 @@ private[core] object SegmentRef {
                               path = segmentRef.path,
                               start = bestStart,
                               segmentStateOptional = segmentStateOptional,
-                              threadReadState = readState,
+                              threadReadState = threadState,
                               foundOption = optional
                             )
 
@@ -586,21 +586,50 @@ private[core] object SegmentRef {
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                               timeOrder: TimeOrder[Slice[Byte]],
-                                              functionStore: FunctionStore): Slice[TransientSegment.One] = {
+                                              functionStore: FunctionStore): Slice[TransientSegment] =
+    put(
+      oldKeyValuesCount = ref.getKeyValueCount(),
+      oldKeyValues = ref.iterator(),
+      newKeyValues = newKeyValues,
+      minSegmentSize = minSegmentSize,
+      removeDeletes = removeDeletes,
+      createdInLevel = createdInLevel,
+      valuesConfig = valuesConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      hashIndexConfig = hashIndexConfig,
+      bloomFilterConfig = bloomFilterConfig,
+      segmentConfig = segmentConfig
+    )
+
+  def put(oldKeyValuesCount: Int,
+          oldKeyValues: Iterator[Persistent],
+          newKeyValues: Slice[KeyValue],
+          minSegmentSize: Int,
+          removeDeletes: Boolean,
+          createdInLevel: Int,
+          valuesConfig: ValuesBlock.Config,
+          sortedIndexConfig: SortedIndexBlock.Config,
+          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+          hashIndexConfig: HashIndexBlock.Config,
+          bloomFilterConfig: BloomFilterBlock.Config,
+          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore): Slice[TransientSegment] = {
 
     val builder = MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)
 
     SegmentMerger.merge(
       newKeyValues = newKeyValues,
-      oldKeyValuesCount = ref.getKeyValueCount(),
-      oldKeyValues = ref.iterator(),
+      oldKeyValuesCount = oldKeyValuesCount,
+      oldKeyValues = oldKeyValues,
       stats = builder,
       isLastLevel = removeDeletes
     )
 
     val closed = builder.close(sortedIndexConfig.enableAccessPositionIndex)
 
-    SegmentBlock.writeOnes(
+    SegmentBlock.writeOneOrMany(
       mergeStats = closed,
       createdInLevel = createdInLevel,
       bloomFilterConfig = bloomFilterConfig,
@@ -622,7 +651,7 @@ private[core] object SegmentRef {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config): Slice[TransientSegment.One] = {
+              segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
 
     val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
@@ -669,7 +698,7 @@ private[core] object SegmentRef {
           maxSortedIndexSize = sortedIndexSize
         )
 
-      SegmentBlock.writeOnes(
+      SegmentBlock.writeOneOrMany(
         mergeStats = mergeStats,
         createdInLevel = createdInLevel,
         bloomFilterConfig = bloomFilterConfig,
@@ -681,31 +710,53 @@ private[core] object SegmentRef {
         minSegmentSize = minSegmentSize
       )
     } else {
-      //if the
-      val keyValues =
-        Segment
-          .toMemoryIterator(ref.iterator(), removeDeletes)
-          .to(Iterable)
-
-      val builder =
-        MergeStats
-          .persistentBuilder(keyValues)
-          .close(sortedIndexConfig.enableAccessPositionIndex)
-
-      SegmentBlock.writeOnes(
-        mergeStats = builder,
+      refresh(
+        keyValues = ref.iterator(),
+        minSegmentSize = minSegmentSize,
+        removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
-        bloomFilterConfig = bloomFilterConfig,
-        hashIndexConfig = hashIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig,
-        minSegmentSize = minSegmentSize
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
       )
     }
   }
 
+  def refresh(keyValues: Iterator[Persistent],
+              minSegmentSize: Int,
+              removeDeletes: Boolean,
+              createdInLevel: Int,
+              valuesConfig: ValuesBlock.Config,
+              sortedIndexConfig: SortedIndexBlock.Config,
+              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+              hashIndexConfig: HashIndexBlock.Config,
+              bloomFilterConfig: BloomFilterBlock.Config,
+              segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
+    val memoryKeyValues =
+      Segment
+        .toMemoryIterator(keyValues, removeDeletes)
+        .to(Iterable)
+
+    val builder =
+      MergeStats
+        .persistentBuilder(memoryKeyValues)
+        .close(sortedIndexConfig.enableAccessPositionIndex)
+
+    SegmentBlock.writeOneOrMany(
+      mergeStats = builder,
+      createdInLevel = createdInLevel,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig,
+      minSegmentSize = minSegmentSize
+    )
+  }
 }
 
 private[core] class SegmentRef(val path: Path,
@@ -823,4 +874,5 @@ private[core] class SegmentRef(val path: Path,
 
   def isInitialised() =
     segmentBlockCache.isCached
+
 }
