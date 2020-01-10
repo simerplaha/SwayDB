@@ -42,7 +42,7 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.{MaxKey, Reserve}
-import swaydb.{Aggregator, Error, IO}
+import swaydb.{Aggregator, ForEach, Error, IO}
 
 import scala.concurrent.duration.Deadline
 
@@ -115,39 +115,31 @@ protected object PersistentSegmentList {
 
             val skipList = SkipList.immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
 
-            val aggregator =
-              new Aggregator[Persistent, SkipList.Immutable[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent]] {
-                override def add(item: Persistent): Unit =
-                  item match {
-                    case range: Persistent.Range =>
-                      val segmentRef =
-                        TransientSegmentConverter.toSegmentRef(
-                          path = file.path,
-                          reader = blockedReader,
-                          range = range,
-                          valuesReaderCacheable = None,
-                          sortedIndexReaderCacheable = None,
-                          hashIndexReaderCacheable = None,
-                          binarySearchIndexReaderCacheable = None,
-                          bloomFilterReaderCacheable = None,
-                          footerCacheable = None
-                        )
+            val foreach: ForEach[Persistent] = {
+              case range: Persistent.Range =>
+                val segmentRef =
+                  TransientSegmentConverter.toSegmentRef(
+                    path = file.path,
+                    reader = blockedReader,
+                    range = range,
+                    valuesReaderCacheable = None,
+                    sortedIndexReaderCacheable = None,
+                    hashIndexReaderCacheable = None,
+                    binarySearchIndexReaderCacheable = None,
+                    bloomFilterReaderCacheable = None,
+                    footerCacheable = None
+                  )
 
-                      skipList.put(minKey, segmentRef)
+                skipList.put(minKey, segmentRef)
 
-                    case _: Persistent.Put =>
-                    //ignore. Put is stored so that it's possible to perform binary search but currently binary search is not required.
+              case _: Persistent.Put =>
+              //ignore. Put is stored so that it's possible to perform binary search but currently binary search is not required.
 
-                    case _: Persistent.Fixed =>
-                      throw new Exception("Non put key-value written to List segment")
+              case _: Persistent.Fixed =>
+                throw new Exception("Non put key-value written to List segment")
+            }
 
-                  }
-
-                override def result: SkipList.Immutable[SliceOptional[Byte], PersistentOptional, Slice[Byte], Persistent] =
-                  null
-              }
-
-            segmentRef getAll aggregator
+            segmentRef getAll foreach
 
             skipList
           }

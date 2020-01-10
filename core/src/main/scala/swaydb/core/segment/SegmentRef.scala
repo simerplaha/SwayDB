@@ -22,7 +22,7 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Aggregator
+import swaydb.ForEach
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
@@ -42,7 +42,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone
 
-import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 
 private[core] sealed trait SegmentRefOptional extends SomeOrNone[SegmentRefOptional, SegmentRef] {
@@ -762,8 +761,8 @@ private[core] class SegmentRef(val path: Path,
       )
   }
 
-  def getAll[KV >: Persistent, T](aggregator: Aggregator[KV, T]): Unit =
-    segmentBlockCache readAll aggregator
+  def getAll[KV >: Persistent](foreach: ForEach[KV]): Unit =
+    segmentBlockCache readAll foreach
 
   def getAll[KV >: Persistent](): Slice[KV] =
     segmentBlockCache.readAll()

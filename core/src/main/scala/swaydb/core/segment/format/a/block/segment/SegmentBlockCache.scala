@@ -37,7 +37,7 @@ import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.{Aggregator, Error, IO}
+import swaydb.{ForEach, Error, IO}
 
 import scala.reflect.ClassTag
 
@@ -459,22 +459,22 @@ private[core] class SegmentBlockCache(path: Path,
     val aggregator = Slice.newAggregator[KV](keyValueCount)
     readAll(
       keyValueCount = keyValueCount,
-      aggregator = aggregator
+      foreach = aggregator
     )
     aggregator.result
   }
 
-  def readAll[KV >: Persistent, T](aggregator: Aggregator[KV, T]): Unit =
+  def readAll[KV >: Persistent](foreach: ForEach[KV]): Unit =
     readAll(
       keyValueCount = getFooter().keyValueCount,
-      aggregator = aggregator
+      foreach = foreach
     )
 
   def readAll[KV >: Persistent : ClassTag](keyValueCount: Int): Slice[KV] = {
     val aggregator = Slice.newAggregator[KV](keyValueCount)
     readAll(
       keyValueCount = keyValueCount,
-      aggregator = aggregator
+      foreach = aggregator
     )
     aggregator.result
   }
@@ -482,8 +482,8 @@ private[core] class SegmentBlockCache(path: Path,
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
-  def readAll[KV >: Persistent, T](keyValueCount: Int,
-                                   aggregator: Aggregator[KV, T]): Unit =
+  def readAll[KV >: Persistent](keyValueCount: Int,
+                                foreach: ForEach[KV]): Unit =
     try {
       var sortedIndexReader = createSortedIndexReader()
       if (sortedIndexReader.isFile) {
@@ -502,7 +502,7 @@ private[core] class SegmentBlockCache(path: Path,
       SortedIndexBlock.readAll(
         sortedIndexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull,
-        aggregator = aggregator
+        foreach = foreach
       )
     } finally {
       forceCacheSortedIndexAndValueReaders = false

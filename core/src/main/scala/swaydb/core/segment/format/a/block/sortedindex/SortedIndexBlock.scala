@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.block.sortedindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.Aggregator
+import swaydb.{Aggregator, ForEach}
 import swaydb.compression.CompressionInternal
 import swaydb.core.data._
 import swaydb.core.segment.KeyMatcher
@@ -653,7 +653,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     readAll(
       sortedIndexReader = sortedIndexReader,
       valuesReaderOrNull = valuesReaderOrNull,
-      aggregator = aggregator
+      foreach = aggregator
     )
 
     aggregator.result
@@ -661,11 +661,11 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
   def readAll[KV >: Persistent](sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                                 valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
-                                aggregator: Aggregator[KV, _]): Unit =
+                                foreach: ForEach[KV]): Unit =
     iterator(
       sortedIndexReader = sortedIndexReader moveTo 0,
       valuesReaderOrNull = valuesReaderOrNull
-    ) foreach aggregator.add
+    ) foreach foreach.add
 
   def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Iterator[Persistent] =
