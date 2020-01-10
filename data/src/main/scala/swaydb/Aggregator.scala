@@ -31,6 +31,9 @@ protected trait Aggregator[-A, +T] extends ForEach[A] {
   def add(item: A): Unit
 
   def result: T
+
+  final override def apply(item: A): Unit =
+    add(item)
 }
 
 protected object Aggregator {

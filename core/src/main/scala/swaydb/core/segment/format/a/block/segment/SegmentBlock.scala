@@ -37,6 +37,7 @@ import swaydb.core.segment.merge.MergeStats.Persistent
 import swaydb.core.util.{Bytes, Collections}
 import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
+import swaydb.data.util.ByteSizeOf
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
@@ -131,13 +132,19 @@ private[core] object SegmentBlock extends LazyLogging {
       writeOneOrMany(
         createdInLevel = createdInLevel,
         minSegmentSize = minSegmentSize,
-        singles = singles
+        singles = singles,
+        sortedIndexConfig = sortedIndexConfig,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig
       )
     }
 
-  private def writeOneOrMany(createdInLevel: Int,
-                             minSegmentSize: Int,
-                             singles: Slice[TransientSegment.One]): Slice[TransientSegment] = {
+  protected def writeOneOrMany(createdInLevel: Int,
+                               minSegmentSize: Int,
+                               singles: Slice[TransientSegment.One],
+                               sortedIndexConfig: SortedIndexBlock.Config,
+                               valuesConfig: ValuesBlock.Config,
+                               segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
     val groups: Slice[Slice[TransientSegment.One]] =
       Collections.groupedBySize[TransientSegment.One](
         minGroupSize = minSegmentSize,
@@ -171,25 +178,25 @@ private[core] object SegmentBlock extends LazyLogging {
               bloomFilterConfig = BloomFilterBlock.Config.disabled,
               hashIndexConfig = HashIndexBlock.Config.disabled,
               binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
-              sortedIndexConfig = SortedIndexBlock.Config.disabled,
-              valuesConfig = ValuesBlock.Config.disabled,
-              segmentConfig = SegmentBlock.Config.default
+              sortedIndexConfig = sortedIndexConfig,
+              valuesConfig = valuesConfig,
+              segmentConfig = segmentConfig
             )
 
-          assert(listSegments.size == 1, "")
+          assert(listSegments.size == 1, s"${listSegments.size} != 1")
 
           val listSegment = listSegments.head
           val listSegmentSize = listSegment.segmentSize
 
-          val sizeOfSegment =
-            1 +
-              Bytes.sizeOfUnsignedInt(listSegmentSize) +
-              listSegment.segmentBytes.size +
-              segments.foldLeft(0)(_ + _.segmentBytes.size)
+          val headerSize =
+            ByteSizeOf.byte +
+              Bytes.sizeOfUnsignedInt(listSegmentSize)
 
-          val segmentBytes = Slice.create[Slice[Byte]](sizeOfSegment)
+          val segmentBytesRequired = segments.foldLeft(headerSize + listSegment.segmentBytes.size)(_ + _.segmentBytes.size)
 
-          val headerBytes = Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(listSegmentSize))
+          val segmentBytes = Slice.create[Slice[Byte]](segmentBytesRequired)
+
+          val headerBytes = Slice.create[Byte](headerSize)
           headerBytes add PersistentSegmentList.formatId
           headerBytes addUnsignedInt listSegmentSize
 

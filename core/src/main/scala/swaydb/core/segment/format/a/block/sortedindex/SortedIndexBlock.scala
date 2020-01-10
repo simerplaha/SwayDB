@@ -665,7 +665,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
     iterator(
       sortedIndexReader = sortedIndexReader moveTo 0,
       valuesReaderOrNull = valuesReaderOrNull
-    ) foreach foreach.add
+    ) foreach foreach.apply
 
   def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Iterator[Persistent] =

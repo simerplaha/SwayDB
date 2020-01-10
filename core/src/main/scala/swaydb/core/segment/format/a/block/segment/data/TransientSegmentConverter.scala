@@ -52,6 +52,8 @@ object TransientSegmentConverter {
 
         Slice(
           Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)),
+          //this put currently not used but is stored to be backward compatible if onDisk binary search
+          //is required in the future.
           Memory.Put(maxKey, value, None, Time.empty)
         )
 

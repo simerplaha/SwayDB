@@ -22,13 +22,13 @@ package swaydb
 import scala.collection.mutable
 
 protected trait ForEach[-A] {
-  def add(item: A): Unit
+  def apply(item: A): Unit
 }
 
 protected object ForEach {
   def fromBuilder[A](builder: mutable.Builder[A, _]): ForEach[A] =
     new ForEach[A] {
-      override def add(item: A): Unit =
+      override def apply(item: A): Unit =
         builder += item
     }
 }
