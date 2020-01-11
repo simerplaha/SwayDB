@@ -81,7 +81,7 @@ object TransientSegment {
       s"TransientSegment Segment. Size: ${segmentSize}"
 
     def toKeyValue(offset: Int, size: Int): Slice[Memory] =
-      TransientSegmentConverter.toKeyValue(
+      TransientSegmentSerialiser.toKeyValue(
         one = this,
         offset = offset,
         size = size

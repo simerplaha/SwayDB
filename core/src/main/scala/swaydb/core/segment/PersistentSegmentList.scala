@@ -34,7 +34,7 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.BlockRefReader
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
-import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, TransientSegmentConverter}
+import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, TransientSegmentSerialiser}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
@@ -71,34 +71,39 @@ protected object PersistentSegmentList {
         implicit val blockMemorySweeper = blockCache.map(_.sweeper)
 
         //drop head ignoring the list block.
-        segment.segments.dropHead().foldLeft(segment.segments.head.segmentSize) {
-          case (offset, one) =>
-            val thisSegmentSize = one.segmentSize
+        segment
+          .segments
+          .dropHead()
+          .foldLeft(segment.segments.head.segmentSize) {
+            case (offset, one) =>
+              val thisSegmentSize = one.segmentSize
 
-            val ref =
-              SegmentRef(
-                path = file.path.resolve(s".ref.$offset"),
-                minKey = one.minKey,
-                maxKey = one.maxKey,
-                blockRef =
-                  BlockRefReader(
-                    file = file,
-                    start = offset,
-                    fileSize = thisSegmentSize
-                  ),
-                segmentIO = segmentIO,
-                valuesReaderCacheable = one.valuesUnblockedReader,
-                sortedIndexReaderCacheable = one.sortedIndexUnblockedReader,
-                hashIndexReaderCacheable = one.hashIndexUnblockedReader,
-                binarySearchIndexReaderCacheable = one.binarySearchUnblockedReader,
-                bloomFilterReaderCacheable = one.bloomFilterUnblockedReader,
-                footerCacheable = one.footerUnblocked
-              )
+              val blockRef =
+                BlockRefReader(
+                  file = file,
+                  start = offset,
+                  fileSize = thisSegmentSize
+                )
 
-            skipList.put(one.minKey, ref)
+              val ref =
+                SegmentRef(
+                  path = file.path.resolve(s".ref.$offset"),
+                  minKey = one.minKey,
+                  maxKey = one.maxKey,
+                  blockRef = blockRef,
+                  segmentIO = segmentIO,
+                  valuesReaderCacheable = one.valuesUnblockedReader,
+                  sortedIndexReaderCacheable = one.sortedIndexUnblockedReader,
+                  hashIndexReaderCacheable = one.hashIndexUnblockedReader,
+                  binarySearchIndexReaderCacheable = one.binarySearchUnblockedReader,
+                  bloomFilterReaderCacheable = one.bloomFilterUnblockedReader,
+                  footerCacheable = one.footerUnblocked
+                )
 
-            offset + thisSegmentSize
-        }
+              skipList.put(one.minKey, ref)
+
+              offset + thisSegmentSize
+          }
 
         Some(skipList)
       }
@@ -154,28 +159,23 @@ protected object PersistentSegmentList {
         (initial, self) => //initial set clean up.
           blockCacheMemorySweeper foreach {
             cacheMemorySweeper =>
-              val size =
-                initial.foldLeft(0) {
-                  case (_, (_, ref)) =>
-                    ref.segmentSize
-                }
-              cacheMemorySweeper.add(size, self)
+              cacheMemorySweeper.add(initial.size * 500, self)
           }
       } {
-        (_, _) =>
+        (_, self) =>
           IO {
 
             val blockedReader: BlockRefReader[SegmentBlock.Offset] = fileBlockRef.copy()
-            val segmentSize = blockedReader.readUnsignedInt()
-            val segment = fileBlockRef.read(segmentSize)
-            val segmentBlockRef = BlockRefReader[SegmentBlock.Offset](segment)
+            val listSegmentSize = blockedReader.readUnsignedInt()
+            val listSegment = fileBlockRef.read(listSegmentSize)
+            val listSegmentRef = BlockRefReader[SegmentBlock.Offset](listSegment)
 
             val segmentRef =
               SegmentRef(
                 path = file.path,
                 minKey = minKey,
                 maxKey = maxKey,
-                blockRef = segmentBlockRef,
+                blockRef = listSegmentRef,
                 segmentIO = segmentIO,
                 valuesReaderCacheable = None,
                 sortedIndexReaderCacheable = None,
@@ -190,7 +190,7 @@ protected object PersistentSegmentList {
             val foreach: ForEach[Persistent] = {
               case range: Persistent.Range =>
                 val segmentRef =
-                  TransientSegmentConverter.toSegmentRef(
+                  TransientSegmentSerialiser.toSegmentRef(
                     path = file.path,
                     reader = blockedReader,
                     range = range,
@@ -210,6 +210,12 @@ protected object PersistentSegmentList {
               case _: Persistent.Fixed =>
                 throw new Exception("Non put key-value written to List segment")
             }
+
+            //this will also clear all the SegmentRef's
+            //            blockCacheMemorySweeper foreach {
+            //              cacheMemorySweeper =>
+            //                cacheMemorySweeper.add(listSegmentSize, self)
+            //            }
 
             segmentRef getAll foreach
 

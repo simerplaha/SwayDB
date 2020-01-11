@@ -38,7 +38,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 
-object TransientSegmentConverter {
+object TransientSegmentSerialiser {
 
   def toKeyValue(one: TransientSegment.One,
                  offset: Int,
@@ -53,7 +53,7 @@ object TransientSegmentConverter {
         Slice(
           Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)),
           //this put currently not used but is stored to be backward compatible if onDisk binary search
-          //is required in the future.
+          //is refered
           Memory.Put(maxKey, value, None, Time.empty)
         )
 
