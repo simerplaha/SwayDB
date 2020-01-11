@@ -32,7 +32,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.reader.PersistentReader
-import swaydb.core.segment.{PersistentSegment, Segment, SegmentSearcher, ThreadReadState}
+import swaydb.core.segment.{PersistentSegmentOne, Segment, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.{Benchmark, BlockCacheFileIDGenerator}
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.config.{IOAction, IOStrategy}
@@ -266,7 +266,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
     //    println(s"not PrefixedCompressed count: ${keyValues.count(!_.isPrefixCompressed)}")
     //    println
 
-    segment.asInstanceOf[PersistentSegment].ref.segmentBlockCache.getHashIndex() foreach {
+    segment.asInstanceOf[PersistentSegmentOne].ref.segmentBlockCache.getHashIndex() foreach {
       hashIndex =>
         println(s"hashIndex.hit: ${hashIndex.hit}")
         println(s"hashIndex.miss: ${hashIndex.miss}")
@@ -274,7 +274,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
         println
     }
 
-    segment.asInstanceOf[PersistentSegment].ref.segmentBlockCache.getBinarySearchIndex() foreach {
+    segment.asInstanceOf[PersistentSegmentOne].ref.segmentBlockCache.getBinarySearchIndex() foreach {
       binarySearch =>
         println(s"binarySearch.valuesCount: ${binarySearch.valuesCount}")
         println(s"binarySearch.bytesPerValue: ${binarySearch.bytesPerValue}")

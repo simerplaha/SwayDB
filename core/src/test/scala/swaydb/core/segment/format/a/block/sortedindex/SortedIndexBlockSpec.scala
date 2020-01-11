@@ -220,7 +220,7 @@ class SortedIndexBlockSpec extends TestBase with PrivateMethodTester {
           /**
            * TEST - READ ALL
            */
-          val readAllKeyValues = SortedIndexBlock.readAll(keyValues.size, sortedIndexReader, valuesBlockReader)
+          val readAllKeyValues = SortedIndexBlock.toSlice(keyValues.size, sortedIndexReader, valuesBlockReader)
           keyValues shouldBe readAllKeyValues
 
           /**

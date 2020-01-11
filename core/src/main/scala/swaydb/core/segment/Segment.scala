@@ -47,7 +47,7 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone
-import swaydb.{Aggregator, IO}
+import swaydb.{Aggregator, ForEach, IO}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -259,7 +259,7 @@ private[core] object Segment extends LazyLogging {
 
             segment match {
               case segment: TransientSegment.One =>
-                PersistentSegment(
+                PersistentSegmentOne(
                   file = file,
                   createdInLevel = createdInLevel,
                   mmapReads = mmapReads,
@@ -268,7 +268,7 @@ private[core] object Segment extends LazyLogging {
                 )
 
               case segment: TransientSegment.Many =>
-                PersistentSegmentList(
+                PersistentSegmentMany(
                   file = file,
                   createdInLevel = createdInLevel,
                   mmapReads = mmapReads,
@@ -361,7 +361,7 @@ private[core] object Segment extends LazyLogging {
                                                         segmentIO: SegmentIO,
                                                         idGenerator: IDGenerator): Slice[Segment] =
     segment match {
-      case segment: PersistentSegment =>
+      case segment: PersistentSegmentOne =>
         val nextPath = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
 
         segment.copyTo(nextPath)
@@ -533,7 +533,7 @@ private[core] object Segment extends LazyLogging {
           checkExists = checkExists
         )
 
-    PersistentSegment(
+    PersistentSegmentOne(
       file = file,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
@@ -553,7 +553,7 @@ private[core] object Segment extends LazyLogging {
   }
 
   /**
-   * Reads the [[PersistentSegment]] when the min, max keys & fileSize is not known.
+   * Reads the [[PersistentSegmentOne]] when the min, max keys & fileSize is not known.
    *
    * This function requires the Segment to be opened and read. After the Segment is successfully
    * read the file is closed.
@@ -612,7 +612,7 @@ private[core] object Segment extends LazyLogging {
     val valuesReaderOrNull = segmentBlockCache.createValuesReaderOrNull()
 
     val keyValues =
-      SortedIndexBlock.readAll(
+      SortedIndexBlock.toSlice(
         keyValueCount = footer.keyValueCount,
         sortedIndexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull
@@ -622,7 +622,7 @@ private[core] object Segment extends LazyLogging {
 
     val deadlineMinMaxFunctionId = DeadlineAndFunctionId(keyValues)
 
-    PersistentSegment(
+    PersistentSegmentOne(
       file = file,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
@@ -653,7 +653,7 @@ private[core] object Segment extends LazyLogging {
       case segment: MemorySegment =>
         segment.segmentSize
 
-      case segment: PersistentSegment =>
+      case segment: PersistentSegmentOne =>
         val footer = segment.ref.getFooter()
         footer.sortedIndexOffset.size +
           footer.valuesOffset.map(_.size).getOrElse(0) +
@@ -749,7 +749,7 @@ private[core] object Segment extends LazyLogging {
     if (segments.isEmpty) {
       Slice.empty
     } else if (segments.size == 1) {
-      segments.head.getAll()
+      segments.head.toSlice()
     } else {
       val totalKeyValues =
         segments.foldLeftRecover(0) {
@@ -761,7 +761,7 @@ private[core] object Segment extends LazyLogging {
 
       segments foreach {
         segment =>
-          segment getAll aggregator
+          segment foreach aggregator
       }
 
       aggregator.result
@@ -771,7 +771,7 @@ private[core] object Segment extends LazyLogging {
     if (segments.isEmpty) {
       Slice.empty
     } else if (segments.size == 1) {
-      segments.head.getAll()
+      segments.head.toSlice()
     } else {
       val totalKeyValues =
         segments.foldLeftRecover(0) {
@@ -783,7 +783,7 @@ private[core] object Segment extends LazyLogging {
 
       segments foreach {
         segment =>
-          segment getAll aggregator
+          segment foreach aggregator
       }
 
       aggregator.result
@@ -1098,9 +1098,9 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
 
-  def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit
+  def foreach(each: ForEach[KeyValue]): Unit
 
-  def getAll(): Slice[KeyValue]
+  def toSlice(): Slice[KeyValue]
 
   def iterator(): Iterator[KeyValue]
 

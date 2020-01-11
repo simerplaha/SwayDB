@@ -553,7 +553,7 @@ object CommonAssertions {
       actual.existsOnDisk shouldBe expected.existsOnDisk
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
       actual.segmentId shouldBe expected.segmentId
-      assertReads(expected.getAll().runRandomIO.right.value, actual)
+      assertReads(expected.toSlice().runRandomIO.right.value, actual)
     }
 
     def shouldContainAll(keyValues: Slice[KeyValue]): Unit =
@@ -863,7 +863,7 @@ object CommonAssertions {
       segments map {
         segment =>
           val stringInfos =
-            segment.getAll() map {
+            segment.toSlice() map {
               keyValue =>
                 keyValue.toMemory match {
                   case response: Memory =>
@@ -1535,7 +1535,7 @@ object CommonAssertions {
       val blockCache = getSegmentBlockCacheFromReader(reader)
 
       SortedIndexBlock
-        .readAll(
+        .toSlice(
           keyValueCount = blockCache.getFooter().keyValueCount,
           sortedIndexReader = blockCache.createSortedIndexReader(),
           valuesReaderOrNull = blockCache.createValuesReaderOrNull()

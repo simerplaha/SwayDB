@@ -24,7 +24,7 @@ import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data._
-import swaydb.core.segment.PersistentSegment
+import swaydb.core.segment.PersistentSegmentOne
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -560,7 +560,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
             TestSegment(
               keyValues = keyValues,
               segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true)
-            ).asInstanceOf[PersistentSegment]
+            ).asInstanceOf[PersistentSegmentOne]
 
           val blockCache = segment.ref.segmentBlockCache
 

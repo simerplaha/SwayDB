@@ -645,27 +645,27 @@ private[core] object SortedIndexBlock extends LazyLogging {
     }
   }
 
-  def readAll[KV >: Persistent : ClassTag](keyValueCount: Int,
-                                           sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                           valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Slice[KV] = {
-    val aggregator = Slice.newAggregator[KV](keyValueCount)
+  def toSlice(keyValueCount: Int,
+              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Slice[Persistent] = {
+    val aggregator = Slice.newAggregator[Persistent](keyValueCount)
 
-    readAll(
+    foreach(
       sortedIndexReader = sortedIndexReader,
       valuesReaderOrNull = valuesReaderOrNull,
-      foreach = aggregator
+      each = aggregator
     )
 
     aggregator.result
   }
 
-  def readAll[KV >: Persistent](sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
-                                foreach: ForEach[KV]): Unit =
+  def foreach(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
+              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
+              each: ForEach[Persistent]): Unit =
     iterator(
       sortedIndexReader = sortedIndexReader moveTo 0,
       valuesReaderOrNull = valuesReaderOrNull
-    ) foreach foreach.apply
+    ) foreach each.apply
 
   def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Iterator[Persistent] =

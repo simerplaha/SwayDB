@@ -10,7 +10,7 @@ import swaydb.core.TestData._
 import swaydb.core.TestSweeper.level0PushDownPool
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.Memory
-import swaydb.core.segment.PersistentSegment
+import swaydb.core.segment.PersistentSegmentOne
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
@@ -312,7 +312,7 @@ class SegmentBlockCacheSpec extends TestBase {
             hashIndexConfig = HashIndexBlock.Config.random(hasCompression = false, cacheOnAccess = false),
             bloomFilterConfig = BloomFilterBlock.Config.random(hasCompression = false, cacheOnAccess = false),
             segmentConfig = SegmentBlock.Config.random(hasCompression = false, cacheOnAccess = false, cacheBlocksOnCreate = false)
-          ).asInstanceOf[PersistentSegment]
+          ).asInstanceOf[PersistentSegmentOne]
 
         val blockCache = segment.ref.segmentBlockCache
 
@@ -332,7 +332,7 @@ class SegmentBlockCacheSpec extends TestBase {
         assertIsNotCached()
 
         //read all an expect sortedIndex and value bytes to get cached but not hashIndex
-        blockCache.readAll()
+        blockCache.toSlice()
 
         assertIsCached()
 
@@ -343,7 +343,7 @@ class SegmentBlockCacheSpec extends TestBase {
         assertIsNotCached()
 
         //read all
-        blockCache.readAll()
+        blockCache.toSlice()
 
         //caches all again
         assertIsCached()

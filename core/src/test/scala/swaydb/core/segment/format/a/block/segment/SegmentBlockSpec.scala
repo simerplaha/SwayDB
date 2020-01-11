@@ -391,7 +391,7 @@ class SegmentBlockSpec extends TestBase {
         //drop the first value bytes that are value bytes and the next value bytes (value of the next key-value) should not be value bytes.
         bytes.drop(value.size).take(value.size) should not be value
 
-        val readKeyValues = SortedIndexBlock.readAll(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader.orNull)
+        val readKeyValues = SortedIndexBlock.toSlice(blocks.footer.keyValueCount, blocks.sortedIndexReader, blocks.valuesReader.orNull)
         readKeyValues should have size keyValues.size
 
         //assert that all valueOffsets of all key-values are the same

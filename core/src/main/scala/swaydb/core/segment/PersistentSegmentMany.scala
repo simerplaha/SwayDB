@@ -47,7 +47,7 @@ import swaydb.{Aggregator, Error, ForEach, IO}
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
-protected object PersistentSegmentList {
+protected object PersistentSegmentMany {
 
   val formatId: Byte = 127
   val formatIdSlice: Slice[Byte] = Slice(formatId)
@@ -62,7 +62,7 @@ protected object PersistentSegmentList {
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                             blockCache: Option[BlockCache.State],
                                             fileSweeper: FileSweeper.Enabled,
-                                            segmentIO: SegmentIO): PersistentSegmentList = {
+                                            segmentIO: SegmentIO): PersistentSegmentMany = {
     val initial =
       if (segment.segments.isEmpty) {
         None
@@ -112,7 +112,7 @@ protected object PersistentSegmentList {
         Some(skipList)
       }
 
-    PersistentSegmentList(
+    PersistentSegmentMany(
       file = file,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
@@ -143,7 +143,7 @@ protected object PersistentSegmentList {
                                                                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                                                    blockCache: Option[BlockCache.State],
                                                                                                                    fileSweeper: FileSweeper.Enabled,
-                                                                                                                   segmentIO: SegmentIO): PersistentSegmentList = {
+                                                                                                                   segmentIO: SegmentIO): PersistentSegmentMany = {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
@@ -221,13 +221,13 @@ protected object PersistentSegmentList {
             //                cacheMemorySweeper.add(listSegmentSize, self)
             //            }
 
-            segmentRef getAll foreach
+            segmentRef foreach foreach
 
             skipList
           }
       }
 
-    new PersistentSegmentList(
+    new PersistentSegmentMany(
       file = file,
       createdInLevel = createdInLevel,
       mmapReads = mmapReads,
@@ -242,7 +242,7 @@ protected object PersistentSegmentList {
   }
 }
 
-protected case class PersistentSegmentList(file: DBFile,
+protected case class PersistentSegmentMany(file: DBFile,
                                            createdInLevel: Int,
                                            mmapReads: Boolean,
                                            mmapWrites: Boolean,
@@ -304,7 +304,7 @@ protected case class PersistentSegmentList(file: DBFile,
     file copyTo toPath
 
   /**
-   * Default targetPath is set to this [[PersistentSegment]]'s parent directory.
+   * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
   def put(newKeyValues: Slice[KeyValue],
           minSegmentSize: Int,
@@ -432,10 +432,10 @@ protected case class PersistentSegmentList(file: DBFile,
           )
       }
 
-  def getAll[T](aggregator: Aggregator[KeyValue, T]): Unit =
-    segmentRefs foreach (_.getAll(aggregator))
+  def foreach(each: ForEach[KeyValue]): Unit =
+    segmentRefs foreach (_.foreach(each))
 
-  override def getAll(): Slice[Persistent] =
+  override def toSlice(): Slice[Persistent] =
     Segment.getAllKeyValuesRef(segmentRefs)
 
   override def iterator(): Iterator[Persistent] =

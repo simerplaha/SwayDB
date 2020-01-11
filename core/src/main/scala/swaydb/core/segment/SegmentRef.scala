@@ -812,14 +812,14 @@ private[core] class SegmentRef(val path: Path,
       )
   }
 
-  def getAll[KV >: Persistent](foreach: ForEach[KV]): Unit =
-    segmentBlockCache readAll foreach
+  def foreach(each: ForEach[Persistent]): Unit =
+    segmentBlockCache foreach each
 
-  def getAll[KV >: Persistent](): Slice[KV] =
-    segmentBlockCache.readAll()
+  def toSlice(): Slice[Persistent] =
+    segmentBlockCache.toSlice()
 
-  def getAll[KV >: Persistent](keyValueCount: Int): Slice[KV] =
-    segmentBlockCache readAll keyValueCount
+  def toSlice(keyValueCount: Int): Slice[Persistent] =
+    segmentBlockCache toSlice keyValueCount
 
   def iterator(): Iterator[Persistent] =
     segmentBlockCache.iterator()

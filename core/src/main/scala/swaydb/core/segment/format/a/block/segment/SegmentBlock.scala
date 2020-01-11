@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
-import swaydb.core.segment.{PersistentSegment, PersistentSegmentList}
+import swaydb.core.segment.{PersistentSegmentOne, PersistentSegmentMany}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -156,7 +156,7 @@ private[core] object SegmentBlock extends LazyLogging {
       segments =>
         if (segments.size == 1) {
           val segment = segments.head
-          segment.copy(segmentBytes = PersistentSegment.formatIdSliceSlice ++ segment.segmentBytes)
+          segment.copy(segmentBytes = PersistentSegmentOne.formatIdSliceSlice ++ segment.segmentBytes)
         } else {
           val listKeyValue: Persistent.Builder[Memory, Slice] =
             MergeStats.persistent(Slice.newBuilder(segments.size * 2))
@@ -197,7 +197,7 @@ private[core] object SegmentBlock extends LazyLogging {
           val segmentBytes = Slice.create[Slice[Byte]](segmentBytesRequired)
 
           val headerBytes = Slice.create[Byte](headerSize)
-          headerBytes add PersistentSegmentList.formatId
+          headerBytes add PersistentSegmentMany.formatId
           headerBytes addUnsignedInt listSegmentSize
 
           segmentBytes add headerBytes

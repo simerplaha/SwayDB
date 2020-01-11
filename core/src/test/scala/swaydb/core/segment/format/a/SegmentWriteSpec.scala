@@ -41,7 +41,7 @@ import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{MemorySegment, PersistentSegment, Segment, SegmentIO, ThreadReadState}
+import swaydb.core.segment.{MemorySegment, PersistentSegmentOne, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util._
 import swaydb.core.{TestBase, TestExecutionContext, TestSweeper, TestTimer}
 import swaydb.data.MaxKey
@@ -176,7 +176,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             case segment: MemorySegment =>
               segment.skipList
 
-            case segment: PersistentSegment =>
+            case segment: PersistentSegmentOne =>
               segment.ref.skipList.get
           }
 
@@ -663,18 +663,18 @@ sealed trait SegmentWriteSpec extends TestBase {
         val keyValues = randomizedKeyValues(keyValuesCount)
         val keyValuesReadOnly = keyValues
 
-        val segment = TestSegment(keyValues).asInstanceOf[PersistentSegment]
+        val segment = TestSegment(keyValues).asInstanceOf[PersistentSegmentOne]
         val targetPath = createRandomIntDirectory.resolve(nextId + s".${Extension.Seg}")
 
         segment.copyTo(targetPath)
         segment.existsOnDisk shouldBe true
 
         val copiedSegment = segment.reopen(targetPath)
-        copiedSegment.getAll() shouldBe keyValuesReadOnly
+        copiedSegment.toSlice() shouldBe keyValuesReadOnly
         copiedSegment.path shouldBe targetPath
 
         //original segment should still exist
-        segment.getAll() shouldBe keyValuesReadOnly
+        segment.toSlice() shouldBe keyValuesReadOnly
       }
     }
   }
@@ -983,7 +983,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             //nothing to assert
           }
 
-        segment.getAll() foreach {
+        segment.toSlice() foreach {
           case keyValue: KeyValue.Put =>
             keyValue.getOrFetchValue shouldBe Slice.Null
 
@@ -1217,7 +1217,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       deletedSegment should have size 1
       val newDeletedSegment = deletedSegment.head
-      newDeletedSegment.getAll() shouldBe deleteKeyValues
+      newDeletedSegment.toSlice() shouldBe deleteKeyValues
 
       assertGet(keyValues, segment)
       if (persistent) assertGet(keyValues, segment.reopen)
@@ -1256,7 +1256,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       updatedSegments should have size 1
 
       val newUpdatedSegment = updatedSegments.head
-      newUpdatedSegment.getAll() shouldBe updatedKeyValues
+      newUpdatedSegment.toSlice() shouldBe updatedKeyValues
 
       assertGet(updatedKeyValues, newUpdatedSegment)
     }
@@ -1287,7 +1287,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
         val mergedSegments =
           segment1.put(
-            newKeyValues = segment2.getAll(),
+            newKeyValues = segment2.toSlice(),
             minSegmentSize = 10.mb,
             removeDeletes = false,
             createdInLevel = 0,
@@ -1308,7 +1308,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             (mergedSegment get keyValue.key).getUnsafe shouldBe keyValue
         }
 
-        mergedSegment.getAll().size shouldBe keyValues2Closed.size
+        mergedSegment.toSlice().size shouldBe keyValues2Closed.size
       }
     }
 
@@ -1365,7 +1365,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           hashIndexConfig = HashIndexBlock.Config.random,
           bloomFilterConfig = BloomFilterBlock.Config.random,
           segmentConfig = SegmentBlock.Config.random
-        ).head.getAll()
+        ).head.toSlice()
 
       val expected: Seq[Memory] = (1 to 9).map(key => Memory.Range(key, key + 1, Value.remove(None), Value.update(10))) :+ Memory.remove(10)
 
@@ -1480,7 +1480,7 @@ sealed trait SegmentWriteSpec extends TestBase {
 
         val segment = TestSegment(keyValues)
         segment.getKeyValueCount() shouldBe keyValues.size
-        segment.getAll() shouldBe keyValues
+        segment.toSlice() shouldBe keyValues
 
         val reopened = segment.reopen(segment.path)
         reopened.getKeyValueCount() shouldBe keyValues.size

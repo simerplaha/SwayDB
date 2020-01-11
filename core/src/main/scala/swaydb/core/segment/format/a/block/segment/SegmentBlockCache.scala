@@ -454,36 +454,38 @@ private[core] class SegmentBlockCache(path: Path,
   def createSortedIndexReader(): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
     createReader(sortedIndexReaderCache, getSortedIndex())
 
-  def readAll[KV >: Persistent : ClassTag](): Slice[KV] = {
+  def toSlice(): Slice[Persistent] = {
     val keyValueCount = getFooter().keyValueCount
-    val aggregator = Slice.newAggregator[KV](keyValueCount)
-    readAll(
+    val aggregator = Slice.newAggregator[Persistent](keyValueCount)
+    foreach(
       keyValueCount = keyValueCount,
-      foreach = aggregator
+      each = aggregator
     )
     aggregator.result
   }
 
-  def readAll[KV >: Persistent](foreach: ForEach[KV]): Unit =
-    readAll(
+  def foreach(each: ForEach[Persistent]): Unit =
+    foreach(
       keyValueCount = getFooter().keyValueCount,
-      foreach = foreach
+      each = each
     )
 
-  def readAll[KV >: Persistent : ClassTag](keyValueCount: Int): Slice[KV] = {
-    val aggregator = Slice.newAggregator[KV](keyValueCount)
-    readAll(
+  def toSlice(keyValueCount: Int): Slice[Persistent] = {
+    val aggregator = Slice.newAggregator[Persistent](keyValueCount)
+
+    foreach(
       keyValueCount = keyValueCount,
-      foreach = aggregator
+      each = aggregator
     )
+
     aggregator.result
   }
 
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
-  def readAll[KV >: Persistent](keyValueCount: Int,
-                                foreach: ForEach[KV]): Unit =
+  def foreach(keyValueCount: Int,
+              each: ForEach[Persistent]): Unit =
     try {
       var sortedIndexReader = createSortedIndexReader()
       if (sortedIndexReader.isFile) {
@@ -499,10 +501,10 @@ private[core] class SegmentBlockCache(path: Path,
         valuesReaderOrNull = createValuesReaderOrNull()
       }
 
-      SortedIndexBlock.readAll(
+      SortedIndexBlock.foreach(
         sortedIndexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull,
-        foreach = foreach
+        each = each
       )
     } finally {
       forceCacheSortedIndexAndValueReaders = false
