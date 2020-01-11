@@ -22,7 +22,6 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.ForEach
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.data.{Persistent, _}
 import swaydb.core.function.FunctionStore
@@ -47,6 +46,7 @@ import scala.collection.mutable.ListBuffer
 private[core] sealed trait SegmentRefOptional extends SomeOrNone[SegmentRefOptional, SegmentRef] {
   override def noneS: SegmentRefOptional = SegmentRef.Null
 }
+
 private[core] object SegmentRef {
 
   final case object Null extends SegmentRefOptional {
@@ -811,9 +811,6 @@ private[core] class SegmentRef(val path: Path,
         reader = bloomFilterReader
       )
   }
-
-  def foreach(each: ForEach[Persistent]): Unit =
-    segmentBlockCache foreach each
 
   def toSlice(): Slice[Persistent] =
     segmentBlockCache.toSlice()

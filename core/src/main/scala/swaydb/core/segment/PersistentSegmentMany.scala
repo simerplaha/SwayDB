@@ -42,7 +42,7 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.{MaxKey, Reserve}
-import swaydb.{Aggregator, Error, ForEach, IO}
+import swaydb.{Error, IO}
 
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
@@ -191,7 +191,14 @@ protected object PersistentSegmentMany {
 
             val skipList = SkipList.immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
 
-            val foreach: ForEach[Persistent] = {
+
+            //this will also clear all the SegmentRef's
+            //            blockCacheMemorySweeper foreach {
+            //              cacheMemorySweeper =>
+            //                cacheMemorySweeper.add(listSegmentSize, self)
+            //            }
+
+            segmentRef.iterator() foreach {
               case range: Persistent.Range =>
                 val segmentRef =
                   TransientSegmentSerialiser.toSegmentRef(
@@ -214,14 +221,6 @@ protected object PersistentSegmentMany {
               case _: Persistent.Fixed =>
                 throw new Exception("Non put key-value written to List segment")
             }
-
-            //this will also clear all the SegmentRef's
-            //            blockCacheMemorySweeper foreach {
-            //              cacheMemorySweeper =>
-            //                cacheMemorySweeper.add(listSegmentSize, self)
-            //            }
-
-            segmentRef foreach foreach
 
             skipList
           }
@@ -431,9 +430,6 @@ protected case class PersistentSegmentMany(file: DBFile,
             threadState = threadState
           )
       }
-
-  def foreach(each: ForEach[KeyValue]): Unit =
-    segmentRefs foreach (_.foreach(each))
 
   override def toSlice(): Slice[Persistent] =
     Segment.getAllKeyValuesRef(segmentRefs)

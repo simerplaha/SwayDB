@@ -226,17 +226,6 @@ protected case class MemorySegment(path: Path,
       slice.result
     }
 
-  def foreach(each: ForEach[KeyValue]): Unit =
-    if (deleted)
-      throw swaydb.Exception.NoSuchFile(path)
-    else
-      skipList.values() forEach {
-        new Consumer[Memory] {
-          override def accept(value: Memory): Unit =
-            each(value)
-        }
-      }
-
   override def iterator(): Iterator[Memory] =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)

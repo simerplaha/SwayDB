@@ -761,7 +761,7 @@ private[core] object Segment extends LazyLogging {
 
       segments foreach {
         segment =>
-          segment foreach aggregator
+          segment.iterator() foreach aggregator.add
       }
 
       aggregator.result
@@ -783,7 +783,7 @@ private[core] object Segment extends LazyLogging {
 
       segments foreach {
         segment =>
-          segment foreach aggregator
+          segment.iterator() foreach aggregator.add
       }
 
       aggregator.result
@@ -1097,8 +1097,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
   def lower(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
 
   def higher(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
-
-  def foreach(each: ForEach[KeyValue]): Unit
 
   def toSlice(): Slice[KeyValue]
 

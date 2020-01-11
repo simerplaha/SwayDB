@@ -457,26 +457,16 @@ private[core] class SegmentBlockCache(path: Path,
   def toSlice(): Slice[Persistent] = {
     val keyValueCount = getFooter().keyValueCount
     val aggregator = Slice.newAggregator[Persistent](keyValueCount)
-    foreach(
-      keyValueCount = keyValueCount,
-      each = aggregator
-    )
+
+    iterator() foreach aggregator.add
+
     aggregator.result
   }
-
-  def foreach(each: ForEach[Persistent]): Unit =
-    foreach(
-      keyValueCount = getFooter().keyValueCount,
-      each = each
-    )
 
   def toSlice(keyValueCount: Int): Slice[Persistent] = {
     val aggregator = Slice.newAggregator[Persistent](keyValueCount)
 
-    foreach(
-      keyValueCount = keyValueCount,
-      each = aggregator
-    )
+    iterator() foreach aggregator.add
 
     aggregator.result
   }
@@ -484,31 +474,6 @@ private[core] class SegmentBlockCache(path: Path,
   /**
    * Read all but also cache sortedIndex and valueBytes if they are not already cached.
    */
-  def foreach(keyValueCount: Int,
-              each: ForEach[Persistent]): Unit =
-    try {
-      var sortedIndexReader = createSortedIndexReader()
-      if (sortedIndexReader.isFile) {
-        forceCacheSortedIndexAndValueReaders = true
-        sortedIndexReaderCache.clear()
-        sortedIndexReader = createSortedIndexReader()
-      }
-
-      var valuesReaderOrNull = createValuesReaderOrNull()
-      if (valuesReaderOrNull != null && valuesReaderOrNull.isFile) {
-        forceCacheSortedIndexAndValueReaders = true
-        valuesReaderCacheOrNull.clear()
-        valuesReaderOrNull = createValuesReaderOrNull()
-      }
-
-      SortedIndexBlock.foreach(
-        sortedIndexReader = sortedIndexReader,
-        valuesReaderOrNull = valuesReaderOrNull,
-        each = each
-      )
-    } finally {
-      forceCacheSortedIndexAndValueReaders = false
-    }
 
   def iterator(): Iterator[Persistent] =
     try {

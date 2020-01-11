@@ -292,9 +292,6 @@ protected case class PersistentSegmentOne(file: DBFile,
   def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOptional =
     SegmentRef.higher(key, threadState)
 
-  def foreach(each: ForEach[KeyValue]): Unit =
-    ref foreach each
-
   def toSlice(): Slice[Persistent] =
     ref.toSlice()
 

@@ -650,22 +650,13 @@ private[core] object SortedIndexBlock extends LazyLogging {
               valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Slice[Persistent] = {
     val aggregator = Slice.newAggregator[Persistent](keyValueCount)
 
-    foreach(
+    iterator(
       sortedIndexReader = sortedIndexReader,
-      valuesReaderOrNull = valuesReaderOrNull,
-      each = aggregator
-    )
+      valuesReaderOrNull = valuesReaderOrNull
+    ) foreach aggregator.apply
 
     aggregator.result
   }
-
-  def foreach(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock],
-              each: ForEach[Persistent]): Unit =
-    iterator(
-      sortedIndexReader = sortedIndexReader moveTo 0,
-      valuesReaderOrNull = valuesReaderOrNull
-    ) foreach each.apply
 
   def iterator(sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Iterator[Persistent] =
