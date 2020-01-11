@@ -47,7 +47,7 @@ object Map extends LazyLogging {
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    *
    * @param mapSize         size of Level0 maps before they are converted into Segments
-   * @param minUncompressedSegmentSize     size of Level1 Segments
+   * @param minSegmentSize     size of Level1 Segments
    * @param acceleration    Controls the write speed.
    * @param keySerializer   Converts keys to Bytes
    * @param valueSerializer Converts values to Bytes
@@ -59,7 +59,7 @@ object Map extends LazyLogging {
    */
 
   def apply[K, V, F](mapSize: Int = 4.mb,
-                     minUncompressedSegmentSize: Int = 2.mb,
+                     minSegmentSize: Int = 2.mb,
                      memoryCacheSize: Int = 500.mb,
                      maxOpenSegments: Int = 100,
                      maxCachedKeyValuesPerSegment: Int = 10,
@@ -77,7 +77,7 @@ object Map extends LazyLogging {
       enableTimer = functionClassTag != ClassTag.Nothing,
       config = DefaultMemoryConfig(
         mapSize = mapSize,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         deleteSegmentsEventually = deleteSegmentsEventually,
         acceleration = acceleration

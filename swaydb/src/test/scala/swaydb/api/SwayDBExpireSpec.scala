@@ -40,7 +40,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, minUncompressedSegmentSize = 10.bytes).right.value
+    swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, minSegmentSize = 10.bytes).right.value
 }
 
 class SwayDBExpireSpec2 extends SwayDBExpireSpec {

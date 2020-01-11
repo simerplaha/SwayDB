@@ -101,7 +101,8 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(100.times, log = true) {
         assertSegment(
           keyValues =
-            randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),
+            //            randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),
+            randomizedKeyValues(10, startId = Some(1)),
           //            Slice(randomPutKeyValue(1, None, None)(previous = None, sortedIndexConfig = SortedIndexBlock.Config.random.copy(disableKeyPrefixCompression = true, prefixCompressionResetCount = 0))),
 
           assert =

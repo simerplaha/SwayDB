@@ -228,7 +228,7 @@ private[core] object CoreInitializer extends LazyLogging {
       config match {
         case config: MemoryLevelConfig =>
           Level(
-            segmentSize = config.minUncompressedSegmentSize,
+            segmentSize = config.minSegmentSize,
             bloomFilterConfig = BloomFilterBlock.Config.disabled,
             hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
             binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config.disabled,

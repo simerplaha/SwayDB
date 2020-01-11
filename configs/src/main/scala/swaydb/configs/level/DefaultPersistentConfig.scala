@@ -55,7 +55,7 @@ object DefaultPersistentConfig {
             recoveryMode: RecoveryMode,
             mmapSegments: MMAP,
             mmapAppendix: Boolean,
-            minUncompressedSegmentSize: Int,
+            minSegmentSize: Int,
             appendixFlushCheckpointSize: Int,
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
@@ -83,7 +83,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel1( //level1
         dir = dir,
         otherDirs = otherDirs,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -147,7 +147,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level2
         dir = dir,
         otherDirs = otherDirs,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -211,7 +211,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level3
         dir = dir,
         otherDirs = otherDirs,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -275,7 +275,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level4
         dir = dir,
         otherDirs = otherDirs,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -339,7 +339,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level5
         dir = dir,
         otherDirs = otherDirs,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
@@ -403,7 +403,7 @@ object DefaultPersistentConfig {
       .addPersistentLevel( //level6
         dir = dir,
         otherDirs = otherDirs,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         mmapSegment = mmapSegments,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,

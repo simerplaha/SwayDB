@@ -56,7 +56,7 @@ object Map extends LazyLogging {
    * @param mmapMaps                    Memory-maps LevelZero maps files if set to true else reverts java.nio.FileChannel
    * @param mmapAppendix                Memory-maps Levels appendix files if set to true else reverts java.nio.FileChannel
    * @param mmapSegments                Memory-maps Levels Segment files if set to true else reverts java.nio.FileChannel
-   * @param minUncompressedSegmentSize                 Minimum size of Segment files in each Level
+   * @param minSegmentSize                 Minimum size of Segment files in each Level
    * @param appendixFlushCheckpointSize Size of the appendix file before it's flushed. Appendix files are append only log files.
    *                                    Flushing removes deleted entries in the file hence reducing the size of the file.
    * @param memorySweeperPollInterval   Sets the max interval at which key-values value dropped from the cache. The delays
@@ -83,7 +83,7 @@ object Map extends LazyLogging {
                            recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                            mmapAppendix: Boolean = true,
                            mmapSegments: MMAP = MMAP.WriteAndRead,
-                           minUncompressedSegmentSize: Int = 2.mb,
+                           minSegmentSize: Int = 2.mb,
                            appendixFlushCheckpointSize: Int = 2.mb,
                            otherDirs: Seq[Dir] = Seq.empty,
                            memorySweeperPollInterval: FiniteDuration = 10.seconds,
@@ -109,7 +109,7 @@ object Map extends LazyLogging {
         mmapSegments = mmapSegments,
         recoveryMode = recoveryMode,
         mmapAppendix = mmapAppendix,
-        minUncompressedSegmentSize = minUncompressedSegmentSize,
+        minSegmentSize = minSegmentSize,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         mightContainFalsePositiveRate = mightContainFalsePositiveRate,
         compressDuplicateValues = compressDuplicateValues,

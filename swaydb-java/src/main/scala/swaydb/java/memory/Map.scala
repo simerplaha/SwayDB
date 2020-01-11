@@ -43,7 +43,7 @@ import scala.reflect.ClassTag
 object Map {
 
   class Config[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]], SF](@BeanProperty var mapSize: Int = 4.mb,
-                                                                             @BeanProperty var minUncompressedSegmentSize: Int = 2.mb,
+                                                                             @BeanProperty var minSegmentSize: Int = 2.mb,
                                                                              @BeanProperty var memoryCacheSize: Int = 500.mb,
                                                                              @BeanProperty var maxOpenSegments: Int = 100,
                                                                              @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
@@ -67,7 +67,7 @@ object Map {
           val scalaMap =
             swaydb.memory.Map[K, V, SF, swaydb.IO.ThrowableIO](
               mapSize = mapSize,
-              minUncompressedSegmentSize = minUncompressedSegmentSize,
+              minSegmentSize = minSegmentSize,
               memoryCacheSize = memoryCacheSize,
               maxOpenSegments = maxOpenSegments,
               maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
