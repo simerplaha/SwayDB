@@ -264,72 +264,16 @@ private[core] object Segment extends LazyLogging {
                   createdInLevel = createdInLevel,
                   mmapReads = mmapReads,
                   mmapWrites = mmapWrites,
-                  minKey = segment.minKey,
-                  maxKey = segment.maxKey,
-                  minMaxFunctionId = segment.minMaxFunctionId,
-                  segmentSize = segment.segmentSize,
-                  nearestExpiryDeadline = segment.nearestDeadline,
-                  valuesReaderCacheable = segment.valuesUnblockedReader,
-                  sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
-                  hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
-                  binarySearchIndexReaderCacheable = segment.binarySearchUnblockedReader,
-                  bloomFilterReaderCacheable = segment.bloomFilterUnblockedReader,
-                  footerCacheable = segment.footerUnblocked
+                  segment = segment
                 )
 
               case segment: TransientSegment.Many =>
-                val initial =
-                  if (segment.segments.isEmpty) {
-                    None
-                  } else {
-                    val skipList = SkipList.immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
-                    implicit val blockMemorySweeper = blockCache.map(_.sweeper)
-
-                    //drop head ignoring the list block.
-                    segment.segments.dropHead().foldLeft(segment.segments.head.segmentSize) {
-                      case (offset, one) =>
-                        val thisSegmentSize = one.segmentSize
-
-                        val ref =
-                          SegmentRef(
-                            path = file.path.resolve(s".ref.$offset"),
-                            minKey = one.minKey,
-                            maxKey = one.maxKey,
-                            blockRef =
-                              BlockRefReader(
-                                file = file,
-                                start = offset,
-                                fileSize = thisSegmentSize
-                              ),
-                            segmentIO = segmentIO,
-                            valuesReaderCacheable = one.valuesUnblockedReader,
-                            sortedIndexReaderCacheable = one.sortedIndexUnblockedReader,
-                            hashIndexReaderCacheable = one.hashIndexUnblockedReader,
-                            binarySearchIndexReaderCacheable = one.binarySearchUnblockedReader,
-                            bloomFilterReaderCacheable = one.bloomFilterUnblockedReader,
-                            footerCacheable = one.footerUnblocked
-                          )
-
-                        skipList.put(one.minKey, ref)
-
-                        offset + thisSegmentSize
-                    }
-
-                    Some(skipList)
-                  }
-
                 PersistentSegmentList(
                   file = file,
                   createdInLevel = createdInLevel,
                   mmapReads = mmapReads,
                   mmapWrites = mmapWrites,
-                  minKey = segment.minKey,
-                  maxKey = segment.maxKey,
-                  minMaxFunctionId = segment.minMaxFunctionId,
-                  segmentSize = segment.segmentSize,
-                  nearestExpiryDeadline = segment.nearestDeadline,
-                  segments = segment.segments,
-                  initial = initial
+                  segment = segment
                 )
             }
           },

@@ -53,6 +53,72 @@ protected object PersistentSegmentList {
   val formatIdSlice: Slice[Byte] = Slice(formatId)
 
   def apply(file: DBFile,
+            createdInLevel: Int,
+            mmapReads: Boolean,
+            mmapWrites: Boolean,
+            segment: TransientSegment.Many)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                            timeOrder: TimeOrder[Slice[Byte]],
+                                            functionStore: FunctionStore,
+                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                            blockCache: Option[BlockCache.State],
+                                            fileSweeper: FileSweeper.Enabled,
+                                            segmentIO: SegmentIO) = {
+    val initial =
+      if (segment.segments.isEmpty) {
+        None
+      } else {
+        val skipList = SkipList.immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
+        implicit val blockMemorySweeper = blockCache.map(_.sweeper)
+
+        //drop head ignoring the list block.
+        segment.segments.dropHead().foldLeft(segment.segments.head.segmentSize) {
+          case (offset, one) =>
+            val thisSegmentSize = one.segmentSize
+
+            val ref =
+              SegmentRef(
+                path = file.path.resolve(s".ref.$offset"),
+                minKey = one.minKey,
+                maxKey = one.maxKey,
+                blockRef =
+                  BlockRefReader(
+                    file = file,
+                    start = offset,
+                    fileSize = thisSegmentSize
+                  ),
+                segmentIO = segmentIO,
+                valuesReaderCacheable = one.valuesUnblockedReader,
+                sortedIndexReaderCacheable = one.sortedIndexUnblockedReader,
+                hashIndexReaderCacheable = one.hashIndexUnblockedReader,
+                binarySearchIndexReaderCacheable = one.binarySearchUnblockedReader,
+                bloomFilterReaderCacheable = one.bloomFilterUnblockedReader,
+                footerCacheable = one.footerUnblocked
+              )
+
+            skipList.put(one.minKey, ref)
+
+            offset + thisSegmentSize
+        }
+
+        Some(skipList)
+      }
+
+    PersistentSegmentList(
+      file = file,
+      createdInLevel = createdInLevel,
+      mmapReads = mmapReads,
+      mmapWrites = mmapWrites,
+      minKey = segment.minKey,
+      maxKey = segment.maxKey,
+      minMaxFunctionId = segment.minMaxFunctionId,
+      segmentSize = segment.segmentSize,
+      nearestExpiryDeadline = segment.nearestDeadline,
+      segments = segment.segments,
+      initial = initial
+    )
+  }
+
+  def apply(file: DBFile,
             segmentSize: Int,
             createdInLevel: Int,
             mmapReads: Boolean,
@@ -86,16 +152,15 @@ protected object PersistentSegmentList {
         reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"${file.path}: ${this.getClass.getSimpleName}"))
       ) {
         (initial, self) => //initial set clean up.
-        //          blockCacheMemorySweeper foreach {
-        //            cacheMemorySweeper =>
-        //              val size =
-        //                initial.foldLeft(0) {
-        //                  case (_, (_, ref)) =>
-        //                    ref.segmentSize
-        //                }
-        //              cacheMemorySweeper.add(size, self)
-        //          }
-        //todo
+          blockCacheMemorySweeper foreach {
+            cacheMemorySweeper =>
+              val size =
+                initial.foldLeft(0) {
+                  case (_, (_, ref)) =>
+                    ref.segmentSize
+                }
+              cacheMemorySweeper.add(size, self)
+          }
       } {
         (_, _) =>
           IO {

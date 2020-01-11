@@ -33,6 +33,7 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
+import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
@@ -50,6 +51,35 @@ protected object PersistentSegment {
   val formatId = 126.toByte
   val formatIdSlice = Slice(formatId)
   val formatIdSliceSlice = Slice(formatIdSlice)
+
+  def apply(file: DBFile,
+            createdInLevel: Int,
+            mmapReads: Boolean,
+            mmapWrites: Boolean,
+            segment: TransientSegment.One)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           timeOrder: TimeOrder[Slice[Byte]],
+                                           functionStore: FunctionStore,
+                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                           blockCache: Option[BlockCache.State],
+                                           fileSweeper: FileSweeper.Enabled,
+                                           segmentIO: SegmentIO) =
+    PersistentSegment(
+      file = file,
+      createdInLevel = createdInLevel,
+      mmapReads = mmapReads,
+      mmapWrites = mmapWrites,
+      minKey = segment.minKey,
+      maxKey = segment.maxKey,
+      minMaxFunctionId = segment.minMaxFunctionId,
+      segmentSize = segment.segmentSize,
+      nearestExpiryDeadline = segment.nearestDeadline,
+      valuesReaderCacheable = segment.valuesUnblockedReader,
+      sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
+      hashIndexReaderCacheable = segment.hashIndexUnblockedReader,
+      binarySearchIndexReaderCacheable = segment.binarySearchUnblockedReader,
+      bloomFilterReaderCacheable = segment.bloomFilterUnblockedReader,
+      footerCacheable = segment.footerUnblocked
+    )
 
   def apply(file: DBFile,
             createdInLevel: Int,
