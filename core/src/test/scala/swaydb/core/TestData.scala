@@ -58,7 +58,7 @@ import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.compaction.{LevelMeter, Throttle}
-import swaydb.data.config.{ActorConfig, Dir, IOStrategy, PrefixCompression, RecoveryMode}
+import swaydb.data.config.{ActorConfig, Dir, IOAction, IOStrategy, PrefixCompression, RecoveryMode, UncompressedBlockInfo}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.storage.{AppendixStorage, Level0Storage, LevelStorage}
@@ -180,7 +180,7 @@ object TestData {
           Segment.copyToMemory(
             keyValues = keyValues.iterator,
             //            fetchNextPath = fetchNextPath,
-            pathsDistributor  = level.pathDistributor,
+            pathsDistributor = level.pathDistributor,
             removeDeletes = false,
             minSegmentSize = 1000.mb,
             createdInLevel = level.levelNumber
@@ -206,16 +206,13 @@ object TestData {
             keyValues = keyValues,
             createdInLevel = level.levelNumber,
             pathsDistributor = level.pathDistributor,
-            mmapSegmentsOnRead = randomBoolean(),
-            mmapSegmentsOnWrite = randomBoolean(),
             removeDeletes = false,
-            minSegmentSize = 1000.mb,
             valuesConfig = level.valuesConfig,
             sortedIndexConfig = level.sortedIndexConfig,
             binarySearchIndexConfig = level.binarySearchIndexConfig,
             hashIndexConfig = level.hashIndexConfig,
             bloomFilterConfig = level.bloomFilterConfig,
-            segmentConfig = level.segmentConfig
+            segmentConfig = level.segmentConfig.copyWithMinSize(Int.MaxValue)
           )
         } flatMap {
           segments =>
@@ -240,7 +237,7 @@ object TestData {
     def tryReopen: IO[swaydb.Error.Level, Level] =
       tryReopen()
 
-    def reopen(segmentSize: Int = level.segmentSize,
+    def reopen(segmentSize: Int = level.minSegmentSize,
                throttle: LevelMeter => Throttle = level.throttle,
                nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                fileSweeper: FileSweeper = fileSweeper): Level =
@@ -250,7 +247,7 @@ object TestData {
         nextLevel = nextLevel
       ).right.value
 
-    def tryReopen(segmentSize: Int = level.segmentSize,
+    def tryReopen(segmentSize: Int = level.minSegmentSize,
                   throttle: LevelMeter => Throttle = level.throttle,
                   nextLevel: Option[NextLevel] = level.nextLevel)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                   fileSweeper: FileSweeper.Enabled = fileSweeper,
@@ -260,24 +257,20 @@ object TestData {
           level.closeSegments flatMap {
             _ =>
               Level(
-                segmentSize = segmentSize,
-                levelStorage = LevelStorage.Persistent(
-                  mmapSegmentsOnWrite = level.mmapSegmentsOnWrite,
-                  mmapSegmentsOnRead = level.mmapSegmentsOnRead,
-                  dir = level.pathDistributor.headPath,
-                  otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
-                ),
+                bloomFilterConfig = level.bloomFilterConfig,
+                hashIndexConfig = level.hashIndexConfig,
+                binarySearchIndexConfig = level.binarySearchIndexConfig,
+                sortedIndexConfig = level.sortedIndexConfig,
+                valuesConfig = level.valuesConfig,
+                segmentConfig = level.segmentConfig.copyWithMinSize(segmentSize),
+                levelStorage =
+                  LevelStorage.Persistent(
+                    dir = level.pathDistributor.headPath,
+                    otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
+                  ),
                 appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
                 nextLevel = nextLevel,
-                pushForward = level.pushForward,
-                throttle = throttle,
-                segmentConfig = level.segmentConfig,
-                deleteSegmentsEventually = level.deleteSegmentsEventually,
-                valuesConfig = level.valuesConfig,
-                sortedIndexConfig = level.sortedIndexConfig,
-                binarySearchIndexConfig = level.binarySearchIndexConfig,
-                hashIndexConfig = level.hashIndexConfig,
-                bloomFilterConfig = level.bloomFilterConfig
+                throttle = throttle
               )
           }
       }
@@ -447,14 +440,26 @@ object TestData {
 
   implicit class SegmentConfig(values: SegmentBlock.Config.type) {
     def random: SegmentBlock.Config =
-      random(randomBoolean())
+      random()
 
-    def random(hasCompression: Boolean,
+    def random(hasCompression: Boolean = randomBoolean(),
+               minSegmentSize: Int = randomIntMax(30.mb),
+               maxKeyValuesPerSegment: Int = randomIntMax(1000000),
+               deleteEventually: Boolean = randomBoolean(),
+               mmapWrites: Boolean = randomBoolean(),
+               mmapReads: Boolean = randomBoolean(),
+               pushForward: Boolean = randomBoolean(),
                cacheBlocksOnCreate: Boolean = randomBoolean(),
                cacheOnAccess: Boolean = randomBoolean()): SegmentBlock.Config =
-      new SegmentBlock.Config(
+      SegmentBlock.Config.applyInternal(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         cacheBlocksOnCreate = cacheBlocksOnCreate,
+        maxCount = maxKeyValuesPerSegment,
+        minSize = minSegmentSize,
+        pushForward = pushForward,
+        mmapWrites = mmapWrites,
+        mmapReads = mmapReads,
+        deleteEventually = deleteEventually,
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
       )
   }
@@ -1735,13 +1740,12 @@ object TestData {
         SegmentBlock.writeOnes(
           mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
           createdInLevel = createdInLevel,
-          minSegmentSize = Int.MaxValue,
           bloomFilterConfig = bloomFilterConfig,
           hashIndexConfig = hashIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
           sortedIndexConfig = sortedIndexConfig,
           valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig
+          segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
         )
 
       segments should have size 1

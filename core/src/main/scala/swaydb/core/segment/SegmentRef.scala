@@ -576,7 +576,6 @@ private[core] object SegmentRef {
 
   def put(ref: SegmentRef,
           newKeyValues: Slice[KeyValue],
-          minSegmentSize: Int,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -591,7 +590,6 @@ private[core] object SegmentRef {
       oldKeyValuesCount = ref.getKeyValueCount(),
       oldKeyValues = ref.iterator(),
       newKeyValues = newKeyValues,
-      minSegmentSize = minSegmentSize,
       removeDeletes = removeDeletes,
       createdInLevel = createdInLevel,
       valuesConfig = valuesConfig,
@@ -605,7 +603,6 @@ private[core] object SegmentRef {
   def put(oldKeyValuesCount: Int,
           oldKeyValues: Iterator[Persistent],
           newKeyValues: Slice[KeyValue],
-          minSegmentSize: Int,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -637,13 +634,11 @@ private[core] object SegmentRef {
       binarySearchIndexConfig = binarySearchIndexConfig,
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig,
-      minSegmentSize = minSegmentSize
+      segmentConfig = segmentConfig
     )
   }
 
   def refresh(ref: SegmentRef,
-              minSegmentSize: Int,
               removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
@@ -664,7 +659,6 @@ private[core] object SegmentRef {
         valuesBlock = ref.segmentBlockCache.getValues(),
         iterator = iterator,
         keyValuesCount = footer.keyValueCount,
-        minSegmentSize = minSegmentSize,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,
@@ -678,7 +672,6 @@ private[core] object SegmentRef {
     else
       refreshForNewLevel(
         keyValues = ref.iterator(),
-        minSegmentSize = minSegmentSize,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,
@@ -698,7 +691,6 @@ private[core] object SegmentRef {
                           valuesBlock: Option[ValuesBlock],
                           iterator: Iterator[Persistent],
                           keyValuesCount: Int,
-                          minSegmentSize: Int,
                           removeDeletes: Boolean,
                           createdInLevel: Int,
                           valuesConfig: ValuesBlock.Config,
@@ -753,13 +745,11 @@ private[core] object SegmentRef {
       binarySearchIndexConfig = binarySearchIndexConfig,
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig,
-      minSegmentSize = minSegmentSize
+      segmentConfig = segmentConfig
     )
   }
 
   def refreshForNewLevel(keyValues: Iterator[Persistent],
-                         minSegmentSize: Int,
                          removeDeletes: Boolean,
                          createdInLevel: Int,
                          valuesConfig: ValuesBlock.Config,
@@ -786,8 +776,7 @@ private[core] object SegmentRef {
       binarySearchIndexConfig = binarySearchIndexConfig,
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig,
-      minSegmentSize = minSegmentSize
+      segmentConfig = segmentConfig
     )
   }
 }

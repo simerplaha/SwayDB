@@ -46,6 +46,7 @@ object DefaultMemoryConfig {
    */
   def apply(mapSize: Int,
             minSegmentSize: Int,
+            maxKeyValuesPerSegment: Int,
             mightContainFalsePositiveRate: Double,
             deleteSegmentsEventually: Boolean,
             acceleration: LevelZeroMeter => Accelerator): SwayDBMemoryConfig =
@@ -58,9 +59,9 @@ object DefaultMemoryConfig {
       )
       .addMemoryLevel1(
         minSegmentSize = minSegmentSize,
+        maxKeyValuesPerSegment = maxKeyValuesPerSegment,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        mightContainIndex = MightContainIndex.Disable,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           _ =>

@@ -188,7 +188,7 @@ private[core] object TrashLevel extends NextLevel {
 
   override def nextThrottlePushCount: Int =
     0
-  override def segmentSize: Int = 0
+  override def minSegmentSize: Int = 0
 
   override def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment]) =
     Level.emptySegmentsToPush

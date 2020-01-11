@@ -47,7 +47,7 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone
-import swaydb.{Aggregator, ForEach, IO}
+import swaydb.IO
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -186,11 +186,8 @@ private[core] object Segment extends LazyLogging {
       Slice.from(segments, segments.size)
     }
 
-  def persistent(minSegmentSize: Int,
-                 pathsDistributor: PathsDistributor,
+  def persistent(pathsDistributor: PathsDistributor,
                  createdInLevel: Int,
-                 mmapReads: Boolean,
-                 mmapWrites: Boolean,
                  bloomFilterConfig: BloomFilterBlock.Config,
                  hashIndexConfig: HashIndexBlock.Config,
                  binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -214,15 +211,14 @@ private[core] object Segment extends LazyLogging {
         binarySearchIndexConfig = binarySearchIndexConfig,
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig,
-        minSegmentSize = minSegmentSize
+        segmentConfig = segmentConfig
       )
 
     persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
+      mmapReads = segmentConfig.mmapReads,
+      mmapWrites = segmentConfig.mmapWrites,
       segments = transient
     )
   }
@@ -343,10 +339,7 @@ private[core] object Segment extends LazyLogging {
   def copyToPersist(segment: Segment,
                     createdInLevel: Int,
                     pathsDistributor: PathsDistributor,
-                    mmapSegmentsOnRead: Boolean,
-                    mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
-                    minSegmentSize: Int,
                     valuesConfig: ValuesBlock.Config,
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -371,8 +364,8 @@ private[core] object Segment extends LazyLogging {
               path = nextPath,
               createdInLevel = segment.createdInLevel,
               blockCacheFileId = segment.file.blockCacheFileId,
-              mmapReads = mmapSegmentsOnRead,
-              mmapWrites = mmapSegmentsOnWrite,
+              mmapReads = segmentConfig.mmapReads,
+              mmapWrites = segmentConfig.mmapWrites,
               minKey = segment.minKey,
               maxKey = segment.maxKey,
               segmentSize = segment.segmentSize,
@@ -397,10 +390,7 @@ private[core] object Segment extends LazyLogging {
           keyValues = memory.skipList.values().asScala,
           createdInLevel = createdInLevel,
           pathsDistributor = pathsDistributor,
-          mmapSegmentsOnRead = mmapSegmentsOnRead,
-          mmapSegmentsOnWrite = mmapSegmentsOnWrite,
           removeDeletes = removeDeletes,
-          minSegmentSize = minSegmentSize,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
@@ -413,10 +403,7 @@ private[core] object Segment extends LazyLogging {
   def copyToPersist(keyValues: Iterable[Memory],
                     createdInLevel: Int,
                     pathsDistributor: PathsDistributor,
-                    mmapSegmentsOnRead: Boolean,
-                    mmapSegmentsOnWrite: Boolean,
                     removeDeletes: Boolean,
-                    minSegmentSize: Int,
                     valuesConfig: ValuesBlock.Config,
                     sortedIndexConfig: SortedIndexBlock.Config,
                     binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -442,11 +429,8 @@ private[core] object Segment extends LazyLogging {
       builder close sortedIndexConfig.enableAccessPositionIndex
 
     Segment.persistent(
-      minSegmentSize = minSegmentSize,
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      mmapReads = mmapSegmentsOnRead,
-      mmapWrites = mmapSegmentsOnWrite,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1064,7 +1048,6 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
     Effect.fileId(path)._1
 
   def put(newKeyValues: Slice[KeyValue],
-          minSegmentSize: Int,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -1075,8 +1058,7 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
-  def refresh(minSegmentSize: Int,
-              removeDeletes: Boolean,
+  def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
               sortedIndexConfig: SortedIndexBlock.Config,

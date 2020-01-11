@@ -33,7 +33,6 @@ import swaydb.data.slice.Slice
 
 trait PersistentSegment extends Segment {
   def put(newKeyValues: Slice[KeyValue],
-          minSegmentSize: Int,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -44,8 +43,7 @@ trait PersistentSegment extends Segment {
           segmentConfig: SegmentBlock.Config,
           pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment]
 
-  def refresh(minSegmentSize: Int,
-              removeDeletes: Boolean,
+  def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
               sortedIndexConfig: SortedIndexBlock.Config,

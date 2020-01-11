@@ -56,7 +56,7 @@ object Map extends LazyLogging {
    * @param mmapMaps                    Memory-maps LevelZero maps files if set to true else reverts java.nio.FileChannel
    * @param mmapAppendix                Memory-maps Levels appendix files if set to true else reverts java.nio.FileChannel
    * @param mmapSegments                Memory-maps Levels Segment files if set to true else reverts java.nio.FileChannel
-   * @param minSegmentSize                 Minimum size of Segment files in each Level
+   * @param minSegmentSize              Minimum size of Segment files in each Level
    * @param appendixFlushCheckpointSize Size of the appendix file before it's flushed. Appendix files are append only log files.
    *                                    Flushing removes deleted entries in the file hence reducing the size of the file.
    * @param memorySweeperPollInterval   Sets the max interval at which key-values value dropped from the cache. The delays
@@ -84,6 +84,7 @@ object Map extends LazyLogging {
                            mmapAppendix: Boolean = true,
                            mmapSegments: MMAP = MMAP.WriteAndRead,
                            minSegmentSize: Int = 2.mb,
+                           maxKeyValuesPerSegment: Int = 100000,
                            appendixFlushCheckpointSize: Int = 2.mb,
                            otherDirs: Seq[Dir] = Seq.empty,
                            memorySweeperPollInterval: FiniteDuration = 10.seconds,
@@ -105,7 +106,9 @@ object Map extends LazyLogging {
       config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,
-        mapSize = mapSize, mmapMaps = mmapMaps,
+        mapSize = mapSize,
+        mmapMaps = mmapMaps,
+        maxKeyValuesPerSegment = maxKeyValuesPerSegment,
         mmapSegments = mmapSegments,
         recoveryMode = recoveryMode,
         mmapAppendix = mmapAppendix,

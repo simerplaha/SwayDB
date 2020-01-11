@@ -228,47 +228,45 @@ private[core] object CoreInitializer extends LazyLogging {
       config match {
         case config: MemoryLevelConfig =>
           Level(
-            segmentSize = config.minSegmentSize,
             bloomFilterConfig = BloomFilterBlock.Config.disabled,
             hashIndexConfig = block.hashindex.HashIndexBlock.Config.disabled,
             binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config.disabled,
             sortedIndexConfig = SortedIndexBlock.Config.disabled,
             valuesConfig = ValuesBlock.Config.disabled,
-            segmentConfig = SegmentBlock.Config.default,
+            segmentConfig =
+              SegmentBlock.Config(
+                ioStrategy = _ => IOStrategy.ConcurrentIO(false),
+                cacheBlocksOnCreate = false,
+                minSize = config.minSegmentSize,
+                maxCount = config.maxKeyValuesPerSegment,
+                pushForward = config.copyForward,
+                mmapWrites = false,
+                mmapReads = false,
+                deleteEventually = config.deleteSegmentsEventually,
+                compressions = _ => Seq.empty
+              ),
             levelStorage = LevelStorage.Memory(dir = Paths.get("MEMORY_LEVEL").resolve(id.toString)),
             appendixStorage = AppendixStorage.Memory,
             nextLevel = nextLevel,
-            pushForward = config.copyForward,
-            throttle = config.throttle,
-            deleteSegmentsEventually = config.deleteSegmentsEventually
+            throttle = config.throttle
           )
 
         case config: PersistentLevelConfig =>
           Level(
-            segmentSize = config.segmentSize,
-            bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKey),
-            hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.hashIndex),
+            bloomFilterConfig = BloomFilterBlock.Config(config = config.mightContainKeyIndex),
+            hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.randomKeyIndex),
             binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
             sortedIndexConfig = SortedIndexBlock.Config(config.sortedIndex),
             valuesConfig = ValuesBlock.Config(config.values),
-            segmentConfig =
-              SegmentBlock.Config(
-                ioStrategy = config.segmentIO,
-                cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
-                compressions = config.segmentCompressions
-              ),
+            segmentConfig = SegmentBlock.Config(config.segment),
             levelStorage =
               LevelStorage.Persistent(
-                mmapSegmentsOnWrite = config.mmapSegment.mmapWrite,
-                mmapSegmentsOnRead = config.mmapSegment.mmapRead,
                 dir = config.dir.resolve(id.toString),
                 otherDirs = config.otherDirs.map(dir => dir.copy(path = dir.path.resolve(id.toString)))
               ),
             appendixStorage = AppendixStorage.Persistent(config.mmapAppendix, config.appendixFlushCheckpointSize),
             nextLevel = nextLevel,
-            pushForward = config.copyForward,
-            throttle = config.throttle,
-            deleteSegmentsEventually = config.deleteSegmentsEventually
+            throttle = config.throttle
           )
 
         case TrashLevelConfig =>

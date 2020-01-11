@@ -53,6 +53,7 @@ object Map extends LazyLogging {
                      mmapAppendix: Boolean = true,
                      mmapSegments: MMAP = MMAP.WriteAndRead,
                      minSegmentSize: Int = 2.mb,
+                     maxKeyValuesPerSegment: Int = 100000,
                      appendixFlushCheckpointSize: Int = 2.mb,
                      otherDirs: Seq[Dir] = Seq.empty,
                      memorySweeperPollInterval: FiniteDuration = 10.seconds,
@@ -70,20 +71,22 @@ object Map extends LazyLogging {
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
-      config = DefaultPersistentConfig(
-        dir = dir,
-        otherDirs = otherDirs,
-        mapSize = mapSize, mmapMaps = mmapMaps,
-        mmapSegments = mmapSegments,
-        recoveryMode = recoveryMode,
-        mmapAppendix = mmapAppendix,
-        minSegmentSize = minSegmentSize,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-        compressDuplicateValues = compressDuplicateValues,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        acceleration = acceleration
-      ),
+      config =
+        DefaultPersistentConfig(
+          dir = dir,
+          otherDirs = otherDirs,
+          mapSize = mapSize, mmapMaps = mmapMaps,
+          recoveryMode = recoveryMode,
+          mmapSegments = mmapSegments,
+          mmapAppendix = mmapAppendix,
+          minSegmentSize = minSegmentSize,
+          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+          appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+          compressDuplicateValues = compressDuplicateValues,
+          deleteSegmentsEventually = deleteSegmentsEventually,
+          acceleration = acceleration
+        ),
       fileCache =
         FileCache.Enable.default(
           maxOpen = maxOpenSegments,

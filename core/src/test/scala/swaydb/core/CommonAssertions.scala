@@ -1315,13 +1315,12 @@ object CommonAssertions {
       SegmentBlock.writeOnes(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexBlock.enableAccessPositionIndex),
         createdInLevel = 0,
-        minSegmentSize = Int.MaxValue,
         bloomFilterConfig = BloomFilterBlock.Config.random,
         hashIndexConfig = HashIndexBlock.Config.random,
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
         sortedIndexConfig = sortedIndexBlock,
         valuesConfig = ValuesBlock.Config.random,
-        segmentConfig = SegmentBlock.Config.random
+        segmentConfig = SegmentBlock.Config.random.copyWithMinSize(Int.MaxValue)
       )
 
     segment should have size 1
@@ -1353,7 +1352,6 @@ object CommonAssertions {
       None
 
   def getBlocks(keyValues: Iterable[Memory],
-                segmentSize: Int = Int.MaxValue,
                 useCacheableReaders: Boolean = randomBoolean(),
                 valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                 sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -1365,7 +1363,6 @@ object CommonAssertions {
       SegmentBlock.writeOnes(
         mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
         createdInLevel = 0,
-        minSegmentSize = segmentSize,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1406,13 +1403,12 @@ object CommonAssertions {
                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit blockCacheMemorySweeper: Option[MemorySweeper.Block]): IO[Error.Segment, SegmentBlocks] =
     getBlocks(
       keyValues = keyValues,
-      segmentSize = Int.MaxValue,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig
+      segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
     ) map {
       segments =>
         segments should have size 1
@@ -1427,7 +1423,6 @@ object CommonAssertions {
     readBlocksFromReader(Reader(bytes), segmentIO)
 
   def getSegmentBlockCache(keyValues: Slice[Memory],
-                           segmentSize: Int = Int.MaxValue,
                            valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                            sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                            binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
@@ -1437,7 +1432,6 @@ object CommonAssertions {
     SegmentBlock.writeOnes(
       mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
       createdInLevel = Int.MaxValue,
-      minSegmentSize = segmentSize,
       bloomFilterConfig = bloomFilterConfig,
       hashIndexConfig = hashIndexConfig,
       binarySearchIndexConfig = binarySearchIndexConfig,
@@ -1469,13 +1463,12 @@ object CommonAssertions {
     val blockCaches =
       getSegmentBlockCache(
         keyValues = keyValues,
-        segmentSize = Int.MaxValue,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig
+        segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
       )
 
     blockCaches should have size 1

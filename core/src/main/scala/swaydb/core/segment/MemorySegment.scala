@@ -64,7 +64,6 @@ protected case class MemorySegment(path: Path,
   import keyOrder._
 
   override def put(newKeyValues: Slice[KeyValue],
-                   minSegmentSize: Int,
                    removeDeletes: Boolean,
                    createdInLevel: Int,
                    valuesConfig: ValuesBlock.Config,
@@ -92,14 +91,13 @@ protected case class MemorySegment(path: Path,
       else
         Segment.memory(
           createdInLevel = createdInLevel,
-          minSegmentSize = minSegmentSize,
+          minSegmentSize = segmentConfig.minSize,
           keyValues = stats.close,
           pathsDistributor = pathsDistributor
         )
     }
 
-  override def refresh(minSegmentSize: Int,
-                       removeDeletes: Boolean,
+  override def refresh(removeDeletes: Boolean,
                        createdInLevel: Int,
                        valuesConfig: ValuesBlock.Config,
                        sortedIndexConfig: SortedIndexBlock.Config,
@@ -123,7 +121,7 @@ protected case class MemorySegment(path: Path,
         )
 
       Segment.memory(
-        minSegmentSize = minSegmentSize,
+        minSegmentSize = segmentConfig.minSize,
         pathsDistributor = pathsDistributor,
         createdInLevel = createdInLevel,
         keyValues = mergeStats

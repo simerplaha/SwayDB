@@ -31,6 +31,7 @@ import swaydb.core.data._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.ThreadReadState
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
@@ -191,7 +192,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
-        val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
+        val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true))
         level.put(map).right.right.value.right.value should contain only Int.MaxValue
         assertGetNoneFromThisLevelOnly(keyValues, level) //because nextLevel is a mock.
       }
@@ -217,7 +218,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
             IO.Right[Nothing, IO[Nothing, Set[Int]]](IO.Right[Nothing, Set[Int]](Set(Int.MaxValue)))
         }
 
-        val level = TestLevel(nextLevel = Some(nextLevel), pushForward = true)
+        val level = TestLevel(nextLevel = Some(nextLevel), segmentConfig = SegmentBlock.Config.random(pushForward = true))
         val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false, startId = Some(lastLevelKeyValues.last.key.readInt() + 1000))
         level.putKeyValues(keyValues.size, keyValues, Seq(TestSegment(keyValues)), None).runRandomIO.right.value
 

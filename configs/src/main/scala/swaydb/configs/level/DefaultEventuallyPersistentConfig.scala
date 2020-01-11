@@ -50,8 +50,10 @@ object DefaultEventuallyPersistentConfig {
             mapSize: Int,
             maxMemoryLevelSize: Int,
             maxSegmentsToPush: Int,
-            memoryLevelMinUncompressedSegmentSize: Int,
-            persistentLevelMinUncompressedSegmentSize: Int,
+            memoryLevelMinSegmentSize: Int,
+            memoryLevelMaxKeyValuesCountPerSegment: Int,
+            persistentLevelMinSegmentSize: Int,
+            persistentLevelMaxKeyValuesPerSegment: Int,
             persistentLevelAppendixFlushCheckpointSize: Int,
             mmapPersistentSegments: MMAP,
             mmapPersistentAppendix: Boolean,
@@ -67,17 +69,10 @@ object DefaultEventuallyPersistentConfig {
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
       .addMemoryLevel1(
-        minSegmentSize = memoryLevelMinUncompressedSegmentSize,
+        minSegmentSize = memoryLevelMinSegmentSize,
+        maxKeyValuesPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
         copyForward = false,
         deleteSegmentsEventually = deleteSegmentsEventually,
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -90,12 +85,8 @@ object DefaultEventuallyPersistentConfig {
       .addPersistentLevel(
         dir = dir,
         otherDirs = otherDirs,
-        minSegmentSize = persistentLevelMinUncompressedSegmentSize,
-        mmapSegment = mmapPersistentSegments,
         mmapAppendix = mmapPersistentAppendix,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-        copyForward = false,
-        deleteSegmentsEventually = deleteSegmentsEventually,
         sortedIndex =
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
@@ -136,13 +127,21 @@ object DefaultEventuallyPersistentConfig {
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
-        segmentIO = {
-          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-        },
-        cacheSegmentBlocksOnCreate = true,
-        segmentCompressions = _ => Seq.empty,
+        segment =
+          SegmentConfig(
+            cacheSegmentBlocksOnCreate = true,
+            deleteSegmentsEventually = deleteSegmentsEventually,
+            pushForward = false,
+            mmap = mmapPersistentSegments,
+            minSegmentSize = persistentLevelMinSegmentSize,
+            maxKeyValuesPerSegment = persistentLevelMaxKeyValuesPerSegment,
+            ioStrategy = {
+              case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+              case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+              case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+            },
+            compression = _ => Seq.empty
+          ),
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
           (_: LevelMeter) =>

@@ -113,8 +113,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       LevelStorage.Memory(dir = memoryTestDir.resolve(nextLevelId.toString))
     else
       LevelStorage.Persistent(
-        mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-        mmapSegmentsOnRead = mmapSegmentsOnRead,
         dir = testDir.resolve(nextLevelId.toString),
         otherDirs =
           (0 until levelFoldersCount) map {
@@ -280,7 +278,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
       val segments =
         many(
-          segmentSize = Int.MaxValue,
           createdInLevel = createdInLevel,
           keyValues = keyValues,
           valuesConfig = valuesConfig,
@@ -288,7 +285,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig
+          segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
         )
 
       segments should have size 1
@@ -296,8 +293,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
       segments.head
     }
 
-    def many(segmentSize: Int = randomIntMax(30.mb),
-             createdInLevel: Int = 1,
+    def many(createdInLevel: Int = 1,
              keyValues: Slice[Memory] = randomizedKeyValues()(TestTimer.Incremental(), KeyOrder.default, memorySweeperMax),
              valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
              sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
@@ -331,11 +327,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         )
       else
         Segment.persistent(
-          minSegmentSize = segmentSize,
           pathsDistributor = pathsDistributor,
           createdInLevel = createdInLevel,
-          mmapReads = levelStorage.mmapSegmentsOnRead,
-          mmapWrites = levelStorage.mmapSegmentsOnWrite,
           bloomFilterConfig = bloomFilterConfig,
           hashIndexConfig = hashIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
@@ -375,35 +368,29 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
     def apply(levelStorage: LevelStorage = levelStorage,
               appendixStorage: AppendixStorage = appendixStorage,
-              segmentSize: Int = segmentSize,
               nextLevel: Option[NextLevel] = None,
-              pushForward: Boolean = false,
               throttle: LevelMeter => Throttle = testDefaultThrottle,
-              deleteSegmentsEventually: Boolean = false,
               valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
               sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(minSegmentSize = segmentSize, pushForward = false, deleteEventually = false),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                       fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
                                                       blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
                                                       timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): Level =
       Level(
-        segmentSize = segmentSize,
         levelStorage = levelStorage,
         appendixStorage = appendixStorage,
         nextLevel = nextLevel,
-        pushForward = pushForward,
         throttle = throttle,
         valuesConfig = valuesConfig,
         sortedIndexConfig = sortedIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig,
-        deleteSegmentsEventually = deleteSegmentsEventually,
         segmentConfig = segmentConfig
       ).flatMap {
         level =>

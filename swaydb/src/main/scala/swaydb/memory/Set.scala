@@ -45,6 +45,7 @@ object Set extends LazyLogging {
    */
   def apply[A, F, T[_]](mapSize: Int = 4.mb,
                         minSegmentSize: Int = 2.mb,
+                        maxKeyValuesPerSegment: Int = 200000,
                         maxOpenSegments: Int = 100,
                         maxCachedKeyValuesPerSegment: Int = 10,
                         fileSweeperPollInterval: FiniteDuration = 10.seconds,
@@ -59,13 +60,15 @@ object Set extends LazyLogging {
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
-      config = DefaultMemoryConfig(
-        mapSize = mapSize,
-        minSegmentSize = minSegmentSize,
-        mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        acceleration = acceleration
-      ),
+      config =
+        DefaultMemoryConfig(
+          mapSize = mapSize,
+          minSegmentSize = minSegmentSize,
+          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+          deleteSegmentsEventually = deleteSegmentsEventually,
+          acceleration = acceleration
+        ),
       fileCache =
         FileCache.Enable.default(
           maxOpen = maxOpenSegments,

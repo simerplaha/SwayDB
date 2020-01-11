@@ -56,11 +56,92 @@ object DefaultPersistentConfig {
             mmapSegments: MMAP,
             mmapAppendix: Boolean,
             minSegmentSize: Int,
+            maxKeyValuesPerSegment: Int,
             appendixFlushCheckpointSize: Int,
             mightContainFalsePositiveRate: Double,
             compressDuplicateValues: Boolean,
             deleteSegmentsEventually: Boolean,
-            acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
+            acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig = {
+
+    /**
+     * Default config for each level. Only throttle is adjusted for each level.
+     */
+    val level1Config =
+      PersistentLevelConfig(
+        dir = dir,
+        otherDirs = otherDirs,
+        mmapAppendix = mmapAppendix,
+        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+        sortedIndex =
+          SortedKeyIndex.Enable(
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
+            enablePositionIndex = true,
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+            compressions = _ => Seq.empty
+          ),
+        randomKeyIndex =
+          RandomKeyIndex.Enable(
+            maxProbe = 1,
+            minimumNumberOfKeys = 5,
+            minimumNumberOfHits = 2,
+            indexFormat = IndexFormat.Reference,
+            allocateSpace = _.requiredSpace,
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            compression = _ => Seq.empty
+          ),
+        binarySearchIndex =
+          BinarySearchIndex.FullIndex(
+            minimumNumberOfKeys = 10,
+            searchSortedIndexDirectly = true,
+            indexFormat = IndexFormat.CopyKey,
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            compression = _ => Seq.empty
+          ),
+        mightContainKeyIndex =
+          MightContainIndex.Enable(
+            falsePositiveRate = mightContainFalsePositiveRate,
+            minimumNumberOfKeys = 10,
+            updateMaxProbe = optimalMaxProbe => 1,
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            compression = _ => Seq.empty
+          ),
+        values =
+          ValuesConfig(
+            compressDuplicateValues = compressDuplicateValues,
+            compressDuplicateRangeValues = true,
+            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+            compression = _ => Seq.empty
+          ),
+        segment =
+          SegmentConfig(
+            cacheSegmentBlocksOnCreate = true,
+            deleteSegmentsEventually = deleteSegmentsEventually,
+            pushForward = true,
+            mmap = mmapSegments,
+            minSegmentSize = minSegmentSize,
+            maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+            ioStrategy = {
+              case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+              case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+              case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+            },
+            compression = _ => Seq.empty
+          ),
+        compactionExecutionContext = CompactionExecutionContext.Shared,
+        throttle =
+          levelMeter => {
+            val delay = (5 - levelMeter.segmentsCount).seconds
+            val batch = levelMeter.segmentsCount min 5
+            Throttle(delay, batch)
+          }
+      )
+
+    /**
+     * Use the [[ConfigWizard]] to build Level hierarchy using the
+     * above default [[level1Config]].
+     *
+     * Each level is simply copying [[level1Config]] and adjusting the throttle.
+     */
     ConfigWizard
       .addPersistentLevel0( //level0
         dir = dir,
@@ -80,388 +161,56 @@ object DefaultPersistentConfig {
               30.seconds
           }
       )
-      .addPersistentLevel1( //level1
-        dir = dir,
-        otherDirs = otherDirs,
-        minSegmentSize = minSegmentSize,
-        mmapSegment = mmapSegments,
-        mmapAppendix = mmapAppendix,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        copyForward = true,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compressions = _ => Seq.empty
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 5,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 10,
-            searchSortedIndexDirectly = true,
-            indexFormat = IndexFormat.CopyKey,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        valuesConfig =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        segmentIO = {
-          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-        },
-        cacheSegmentBlocksOnCreate = true,
-        segmentCompressions = _ => Seq.empty,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter => {
-            val delay = (5 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
-      )
+      .addPersistentLevel1(level1Config)
       .addPersistentLevel( //level2
-        dir = dir,
-        otherDirs = otherDirs,
-        minSegmentSize = minSegmentSize,
-        mmapSegment = mmapSegments,
-        mmapAppendix = mmapAppendix,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        copyForward = true,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compressions = _ => Seq.empty
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 5,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 10,
-            indexFormat = IndexFormat.CopyKey,
-            searchSortedIndexDirectly = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        valuesConfig =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        segmentIO = {
-          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-        },
-        cacheSegmentBlocksOnCreate = true,
-        segmentCompressions = _ => Seq.empty,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter => {
-            val delay = (10 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
+        level1Config.copy(
+          throttle =
+            levelMeter => {
+              val delay = (10 - levelMeter.segmentsCount).seconds
+              val batch = levelMeter.segmentsCount min 5
+              Throttle(delay, batch)
+            }
+        )
       )
       .addPersistentLevel( //level3
-        dir = dir,
-        otherDirs = otherDirs,
-        minSegmentSize = minSegmentSize,
-        mmapSegment = mmapSegments,
-        mmapAppendix = mmapAppendix,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        copyForward = true,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compressions = _ => Seq.empty
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 5,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 10,
-            indexFormat = IndexFormat.CopyKey,
-            searchSortedIndexDirectly = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        valuesConfig =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        segmentIO = {
-          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-        },
-        cacheSegmentBlocksOnCreate = true,
-        segmentCompressions = _ => Seq.empty,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter => {
-            val delay = (30 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
+        level1Config.copy(
+          throttle =
+            levelMeter => {
+              val delay = (30 - levelMeter.segmentsCount).seconds
+              val batch = levelMeter.segmentsCount min 5
+              Throttle(delay, batch)
+            }
+        )
       )
       .addPersistentLevel( //level4
-        dir = dir,
-        otherDirs = otherDirs,
-        minSegmentSize = minSegmentSize,
-        mmapSegment = mmapSegments,
-        mmapAppendix = mmapAppendix,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        copyForward = true,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compressions = _ => Seq.empty
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 5,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 10,
-            indexFormat = IndexFormat.CopyKey,
-            searchSortedIndexDirectly = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        valuesConfig =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        segmentIO = {
-          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-        },
-        cacheSegmentBlocksOnCreate = true,
-        segmentCompressions = _ => Seq.empty,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter => {
-            val delay = (40 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
+        level1Config.copy(
+          throttle =
+            levelMeter => {
+              val delay = (40 - levelMeter.segmentsCount).seconds
+              val batch = levelMeter.segmentsCount min 5
+              Throttle(delay, batch)
+            }
+        )
       )
       .addPersistentLevel( //level5
-        dir = dir,
-        otherDirs = otherDirs,
-        minSegmentSize = minSegmentSize,
-        mmapSegment = mmapSegments,
-        mmapAppendix = mmapAppendix,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        copyForward = true,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compressions = _ => Seq.empty
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 5,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 10,
-            indexFormat = IndexFormat.CopyKey,
-            searchSortedIndexDirectly = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        valuesConfig =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        segmentIO = {
-          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-        },
-        cacheSegmentBlocksOnCreate = true,
-        segmentCompressions = _ => Seq.empty,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter => {
-            val delay = (50 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
+        level1Config.copy(
+          throttle =
+            levelMeter => {
+              val delay = (50 - levelMeter.segmentsCount).seconds
+              val batch = levelMeter.segmentsCount min 5
+              Throttle(delay, batch)
+            }
+        )
       )
       .addPersistentLevel( //level6
-        dir = dir,
-        otherDirs = otherDirs,
-        minSegmentSize = minSegmentSize,
-        mmapSegment = mmapSegments,
-        mmapAppendix = mmapAppendix,
-        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        copyForward = true,
-        deleteSegmentsEventually = deleteSegmentsEventually,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compressions = _ => Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(10)), (LZ4Instance.Fastest, LZ4Decompressor.Fast)))
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 5,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 10,
-            indexFormat = IndexFormat.CopyKey,
-            searchSortedIndexDirectly = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        mightContainIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        valuesConfig =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-            compression = _ => Seq(Compression.LZ4((LZ4Instance.Fastest, LZ4Compressor.Fast(10)), (LZ4Instance.Fastest, LZ4Decompressor.Fast)))
-          ),
-        segmentIO = {
-          case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-          case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-        },
-        cacheSegmentBlocksOnCreate = true,
-        segmentCompressions = _ => Seq.empty,
-        compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter =>
-            if (levelMeter.requiresCleanUp)
-              Throttle(10.seconds, 2)
-            else
-              Throttle(1.hour, 5)
+        level1Config.copy(
+          throttle =
+            levelMeter =>
+              if (levelMeter.requiresCleanUp)
+                Throttle(10.seconds, 2)
+              else
+                Throttle(1.hour, 5)
+        )
       )
+  }
 }

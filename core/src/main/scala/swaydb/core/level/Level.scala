@@ -85,8 +85,7 @@ private[core] object Level extends LazyLogging {
         IO.none
     }
 
-  def apply(segmentSize: Int,
-            bloomFilterConfig: BloomFilterBlock.Config,
+  def apply(bloomFilterConfig: BloomFilterBlock.Config,
             hashIndexConfig: HashIndexBlock.Config,
             binarySearchIndexConfig: BinarySearchIndexBlock.Config,
             sortedIndexConfig: SortedIndexBlock.Config,
@@ -95,14 +94,12 @@ private[core] object Level extends LazyLogging {
             levelStorage: LevelStorage,
             appendixStorage: AppendixStorage,
             nextLevel: Option[NextLevel],
-            pushForward: Boolean = false,
-            throttle: LevelMeter => Throttle,
-            deleteSegmentsEventually: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                               timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore,
-                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                               blockCache: Option[BlockCache.State],
-                                               fileSweeper: FileSweeper.Enabled): IO[swaydb.Error.Level, Level] = {
+            throttle: LevelMeter => Throttle)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                              timeOrder: TimeOrder[Slice[Byte]],
+                                              functionStore: FunctionStore,
+                                              keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                              blockCache: Option[BlockCache.State],
+                                              fileSweeper: FileSweeper.Enabled): IO[swaydb.Error.Level, Level] = {
     //acquire lock on folder
     acquireLock(levelStorage) flatMap {
       lock =>
@@ -123,8 +120,8 @@ private[core] object Level extends LazyLogging {
 
         val appendixReader =
           new AppendixMapEntryReader(
-            mmapSegmentsOnRead = levelStorage.mmapSegmentsOnWrite,
-            mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnRead
+            mmapSegmentsOnRead = segmentConfig.mmapWrites,
+            mmapSegmentsOnWrite = segmentConfig.mmapReads
           )
 
         import appendixReader._
@@ -207,16 +204,11 @@ private[core] object Level extends LazyLogging {
                         sortedIndexConfig = sortedIndexConfig,
                         valuesConfig = valuesConfig,
                         segmentConfig = segmentConfig,
-                        mmapSegmentsOnWrite = levelStorage.mmapSegmentsOnWrite,
-                        mmapSegmentsOnRead = levelStorage.mmapSegmentsOnRead,
                         inMemory = levelStorage.memory,
-                        segmentSize = segmentSize,
-                        pushForward = pushForward,
                         throttle = throttle,
                         nextLevel = nextLevel,
                         appendix = appendix,
                         lock = lock,
-                        deleteSegmentsEventually = deleteSegmentsEventually,
                         pathDistributor = paths,
                         removeDeletedRecords = Level.removeDeletes(nextLevel)
                       )
@@ -240,7 +232,7 @@ private[core] object Level extends LazyLogging {
     }
 
   /**
-   * A Segment is considered small if it's size is less than 40% of the default [[Level.segmentSize]]
+   * A Segment is considered small if it's size is less than 40% of the default [[Level.minSegmentSize]]
    */
   def isSmallSegment(segment: Segment, levelSegmentSize: Long): Boolean =
     segment.segmentSize < levelSegmentSize * 0.40
@@ -294,7 +286,7 @@ private[core] object Level extends LazyLogging {
                      segment: Segment)(implicit reserve: ReserveRange.State[Unit],
                                        keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     ReserveRange.isUnreserved(segment) && {
-      isSmallSegment(segment, level.segmentSize) ||
+      isSmallSegment(segment, level.minSegmentSize) ||
         //if the Segment was not created in this level.
         segment.createdInLevel != level.levelNumber
     }
@@ -350,16 +342,11 @@ private[core] case class Level(dirs: Seq[Dir],
                                sortedIndexConfig: SortedIndexBlock.Config,
                                valuesConfig: ValuesBlock.Config,
                                segmentConfig: SegmentBlock.Config,
-                               mmapSegmentsOnWrite: Boolean,
-                               mmapSegmentsOnRead: Boolean,
                                inMemory: Boolean,
-                               segmentSize: Int,
-                               pushForward: Boolean,
                                throttle: LevelMeter => Throttle,
                                nextLevel: Option[NextLevel],
                                appendix: Map[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment],
                                lock: Option[FileLock],
-                               deleteSegmentsEventually: Boolean,
                                pathDistributor: PathsDistributor,
                                removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                               timeOrder: TimeOrder[Slice[Byte]],
@@ -612,7 +599,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def deleteCopiedSegments(copiedSegments: Iterable[Segment]) =
-    if (deleteSegmentsEventually)
+    if (segmentConfig.deleteEventually)
       copiedSegments foreach (_.deleteSegmentsEventually)
     else
       copiedSegments
@@ -735,8 +722,8 @@ private[core] case class Level(dirs: Seq[Dir],
    * Returns segments that were not forwarded.
    */
   private def forward(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): CompactionResult[Boolean] = {
-    logger.trace(s"{}: forwarding {} Map. pushForward = $pushForward", pathDistributor.head, map.pathOption)
-    if (pushForward)
+    logger.trace(s"{}: forwarding {} Map. pushForward = ${segmentConfig.pushForward}", pathDistributor.head, map.pathOption)
+    if (segmentConfig.pushForward)
       nextLevel match {
         case Some(nextLevel) if nextLevel.isCopyable(map) =>
           nextLevel.put(map) match {
@@ -775,7 +762,7 @@ private[core] case class Level(dirs: Seq[Dir],
           keyValues = map.skipList.values().iterator().asScala,
           pathsDistributor = pathDistributor,
           removeDeletes = removeDeletedRecords,
-          minSegmentSize = segmentSize,
+          minSegmentSize = minSegmentSize,
           createdInLevel = levelNumber
         )
       else
@@ -784,10 +771,7 @@ private[core] case class Level(dirs: Seq[Dir],
           segmentConfig = segmentConfig,
           createdInLevel = levelNumber,
           pathsDistributor = pathDistributor,
-          mmapSegmentsOnRead = mmapSegmentsOnRead,
-          mmapSegmentsOnWrite = mmapSegmentsOnWrite,
           removeDeletes = removeDeletedRecords,
-          minSegmentSize = segmentSize,
           valuesConfig = valuesConfig,
           sortedIndexConfig = sortedIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
@@ -817,8 +801,8 @@ private[core] case class Level(dirs: Seq[Dir],
    * @return segments that were not forwarded.
    */
   private def forward(segments: Iterable[Segment]): CompactionResult[Iterable[Segment]] = {
-    logger.trace(s"{}: Copying forward {} Segments. pushForward = $pushForward", pathDistributor.head, segments.map(_.path.toString))
-    if (pushForward)
+    logger.trace(s"{}: Copying forward {} Segments. pushForward = ${segmentConfig.pushForward}", pathDistributor.head, segments.map(_.path.toString))
+    if (segmentConfig.pushForward)
       nextLevel match {
         case Some(nextLevel) =>
           val (copyable, nonCopyable) = nextLevel partitionUnreservedCopyable segments
@@ -861,7 +845,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 createdInLevel = levelNumber,
                 pathsDistributor = pathDistributor,
                 removeDeletes = removeDeletedRecords,
-                minSegmentSize = segmentSize
+                minSegmentSize = segmentConfig.minSize
               )
             else
               Segment.copyToPersist(
@@ -869,10 +853,7 @@ private[core] case class Level(dirs: Seq[Dir],
                 segmentConfig = segmentConfig,
                 createdInLevel = levelNumber,
                 pathsDistributor = pathDistributor,
-                mmapSegmentsOnRead = mmapSegmentsOnRead,
-                mmapSegmentsOnWrite = mmapSegmentsOnWrite,
                 removeDeletes = removeDeletedRecords,
-                minSegmentSize = segmentSize,
                 valuesConfig = valuesConfig,
                 sortedIndexConfig = sortedIndexConfig,
                 binarySearchIndexConfig = binarySearchIndexConfig,
@@ -899,7 +880,6 @@ private[core] case class Level(dirs: Seq[Dir],
     reserveAndRelease(Seq(segment)) {
       IO {
         segment.refresh(
-          minSegmentSize = segmentSize,
           removeDeletes = removeDeletedRecords,
           createdInLevel = levelNumber,
           valuesConfig = valuesConfig,
@@ -917,7 +897,7 @@ private[core] case class Level(dirs: Seq[Dir],
             entry =>
               appendix.writeSafe(entry).transform(_ => ()) onRightSideEffect {
                 _ =>
-                  if (deleteSegmentsEventually)
+                  if (segmentConfig.deleteEventually)
                     segment.deleteSegmentsEventually
                   else
                     IO(segment.delete) onLeftSideEffect {
@@ -965,7 +945,7 @@ private[core] case class Level(dirs: Seq[Dir],
             // But it's OK if it fails as long as appendix is updated with new segments. An error message will be logged
             // asking to delete the uncommitted segments manually or do a database restart which will delete the uncommitted
             // Segments on reboot.
-            if (deleteSegmentsEventually) {
+            if (segmentConfig.deleteEventually) {
               segmentsToRemove foreach (_.deleteSegmentsEventually)
               IO.zero
             } else {
@@ -1021,7 +1001,7 @@ private[core] case class Level(dirs: Seq[Dir],
         ) transform {
           _ =>
             //delete the segments merged with self.
-            if (deleteSegmentsEventually)
+            if (segmentConfig.deleteEventually)
               segmentsToMerge foreach (_.deleteSegmentsEventually)
             else
               segmentsToMerge foreach {
@@ -1084,7 +1064,7 @@ private[core] case class Level(dirs: Seq[Dir],
                     _ =>
                       logger.debug(s"{}: putKeyValues successful. Deleting assigned Segments. {}.", pathDistributor.head, assignments.map(_._1.path.toString))
                       //delete assigned segments as they are replaced with new segments.
-                      if (deleteSegmentsEventually)
+                      if (segmentConfig.deleteEventually)
                         assignments foreach (_._1.deleteSegmentsEventually)
                       else
                         assignments foreach {
@@ -1125,7 +1105,6 @@ private[core] case class Level(dirs: Seq[Dir],
             val newSegments =
               targetSegment.put(
                 newKeyValues = assignedKeyValues,
-                minSegmentSize = segmentSize,
                 removeDeletes = removeDeletedRecords,
                 createdInLevel = levelNumber,
                 valuesConfig = valuesConfig,
@@ -1492,7 +1471,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .skipList
       .values()
       .asScala
-      .filter(_.segmentSize > segmentSize)
+      .filter(_.segmentSize > minSegmentSize)
       .take(size)
 
   override def takeSmallSegments(size: Int): Iterable[Segment] =
@@ -1500,7 +1479,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .skipList
       .values()
       .asScala
-      .filter(Level.isSmallSegment(_, segmentSize))
+      .filter(Level.isSmallSegment(_, minSegmentSize))
       .take(size)
 
   override def optimalSegmentsPushForward(take: Int): (Iterable[Segment], Iterable[Segment]) =
@@ -1527,7 +1506,7 @@ private[core] case class Level(dirs: Seq[Dir],
       .skipList
       .values()
       .asScala
-      .exists(Level.isSmallSegment(_, segmentSize))
+      .exists(Level.isSmallSegment(_, minSegmentSize))
 
   def shouldSelfCompactOrExpire: Boolean =
     segmentsInLevel()
@@ -1610,4 +1589,7 @@ private[core] case class Level(dirs: Seq[Dir],
 
   override def delete: IO[swaydb.Error.Delete, Unit] =
     Level.delete(self)
+
+  override def minSegmentSize: Int =
+    segmentConfig.minSize
 }

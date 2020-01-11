@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
-import swaydb.core.segment.{PersistentSegmentOne, PersistentSegmentMany}
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -35,9 +35,10 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.merge.MergeStats.Persistent
 import swaydb.core.util.{Bytes, Collections}
-import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo}
+import swaydb.data.config.{IOAction, IOStrategy, SegmentConfig, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
+import swaydb.data.util.StorageUnits._
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
@@ -68,15 +69,46 @@ private[core] object SegmentBlock extends LazyLogging {
             IOStrategy.ConcurrentIO(cacheOnAccess = data.isCompressed)
         },
         cacheBlocksOnCreate = true,
+        minSize = 2.mb,
+        maxCount = 200000,
+        pushForward = true,
+        mmapWrites = false,
+        mmapReads = false,
+        deleteEventually = true,
         compressions = _ => Seq.empty
+      )
+
+    def apply(config: SegmentConfig): SegmentBlock.Config =
+      apply(
+        ioStrategy = config.ioStrategy,
+        cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
+        minSize = config.minSegmentSize,
+        maxCount = config.maxKeyValuesPerSegment,
+        pushForward = config.pushForward,
+        mmapWrites = config.mmap.mmapWrite,
+        mmapReads = config.mmap.mmapRead,
+        deleteEventually = config.deleteSegmentsEventually,
+        compressions = config.compression
       )
 
     def apply(ioStrategy: IOAction => IOStrategy,
               cacheBlocksOnCreate: Boolean,
+              minSize: Int,
+              maxCount: Int,
+              pushForward: Boolean,
+              mmapWrites: Boolean,
+              mmapReads: Boolean,
+              deleteEventually: Boolean,
               compressions: UncompressedBlockInfo => Iterable[Compression]): Config =
-      new Config(
+      applyInternal(
         ioStrategy = ioStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
+        minSize = minSize,
+        maxCount = maxCount,
+        pushForward = pushForward,
+        mmapWrites = mmapWrites,
+        mmapReads = mmapReads,
+        deleteEventually = deleteEventually,
         compressions =
           uncompressedBlockInfo =>
             Try(compressions(uncompressedBlockInfo))
@@ -84,11 +116,52 @@ private[core] object SegmentBlock extends LazyLogging {
               .map(CompressionInternal.apply)
               .toSeq
       )
+
+    private[core] def applyInternal(ioStrategy: IOAction => IOStrategy,
+                                    cacheBlocksOnCreate: Boolean,
+                                    minSize: Int,
+                                    maxCount: Int,
+                                    pushForward: Boolean,
+                                    mmapWrites: Boolean,
+                                    mmapReads: Boolean,
+                                    deleteEventually: Boolean,
+                                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
+      new Config(
+        ioStrategy = ioStrategy,
+        cacheBlocksOnCreate = cacheBlocksOnCreate,
+        minSize = minSize max 1,
+        maxCount = maxCount max 1,
+        pushForward = pushForward,
+        mmapWrites = mmapWrites,
+        mmapReads = mmapReads,
+        deleteEventually = deleteEventually,
+        compressions = compressions
+      )
   }
 
-  class Config(val ioStrategy: IOAction => IOStrategy,
-               val cacheBlocksOnCreate: Boolean,
-               val compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+  class Config private(val ioStrategy: IOAction => IOStrategy,
+                       val cacheBlocksOnCreate: Boolean,
+                       val minSize: Int,
+                       val maxCount: Int,
+                       val pushForward: Boolean,
+                       val mmapWrites: Boolean,
+                       val mmapReads: Boolean,
+                       val deleteEventually: Boolean,
+                       val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+
+    def copyWithMinSize(size: Int): SegmentBlock.Config =
+      new SegmentBlock.Config(
+        ioStrategy = ioStrategy,
+        cacheBlocksOnCreate = cacheBlocksOnCreate,
+        minSize = size max 1,
+        maxCount = maxCount,
+        pushForward = pushForward,
+        mmapWrites = mmapWrites,
+        mmapReads = mmapReads,
+        deleteEventually = deleteEventually,
+        compressions = compressions
+      )
+  }
 
   object Offset {
     def empty =
@@ -106,7 +179,6 @@ private[core] object SegmentBlock extends LazyLogging {
 
   def writeOneOrMany(mergeStats: MergeStats.Persistent.Closed[Iterable],
                      createdInLevel: Int,
-                     minSegmentSize: Int,
                      bloomFilterConfig: BloomFilterBlock.Config,
                      hashIndexConfig: HashIndexBlock.Config,
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -120,7 +192,6 @@ private[core] object SegmentBlock extends LazyLogging {
         writeOnes(
           mergeStats = mergeStats,
           createdInLevel = createdInLevel,
-          minSegmentSize = minSegmentSize,
           bloomFilterConfig = bloomFilterConfig,
           hashIndexConfig = hashIndexConfig,
           binarySearchIndexConfig = binarySearchIndexConfig,
@@ -131,7 +202,6 @@ private[core] object SegmentBlock extends LazyLogging {
 
       writeOneOrMany(
         createdInLevel = createdInLevel,
-        minSegmentSize = minSegmentSize,
         singles = singles,
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
@@ -140,14 +210,13 @@ private[core] object SegmentBlock extends LazyLogging {
     }
 
   protected def writeOneOrMany(createdInLevel: Int,
-                               minSegmentSize: Int,
                                singles: Slice[TransientSegment.One],
                                sortedIndexConfig: SortedIndexBlock.Config,
                                valuesConfig: ValuesBlock.Config,
                                segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
     val groups: Slice[Slice[TransientSegment.One]] =
       Collections.groupedBySize[TransientSegment.One](
-        minGroupSize = minSegmentSize,
+        minGroupSize = segmentConfig.minSize,
         itemSize = _.segmentSize,
         items = singles
       )
@@ -174,13 +243,12 @@ private[core] object SegmentBlock extends LazyLogging {
             writeOnes(
               mergeStats = closedListKeyValues,
               createdInLevel = createdInLevel,
-              minSegmentSize = Int.MaxValue,
               bloomFilterConfig = BloomFilterBlock.Config.disabled,
               hashIndexConfig = HashIndexBlock.Config.disabled,
               binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
               sortedIndexConfig = sortedIndexConfig,
               valuesConfig = valuesConfig,
-              segmentConfig = segmentConfig
+              segmentConfig = segmentConfig.copyWithMinSize(size = Int.MaxValue)
             )
 
           assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")
@@ -222,7 +290,6 @@ private[core] object SegmentBlock extends LazyLogging {
 
   def writeOnes(mergeStats: MergeStats.Persistent.Closed[Iterable],
                 createdInLevel: Int,
-                minSegmentSize: Int,
                 bloomFilterConfig: BloomFilterBlock.Config,
                 hashIndexConfig: HashIndexBlock.Config,
                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -235,7 +302,6 @@ private[core] object SegmentBlock extends LazyLogging {
       writeClosed(
         keyValues = mergeStats,
         createdInLevel = createdInLevel,
-        minSegmentSize = minSegmentSize,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -253,7 +319,6 @@ private[core] object SegmentBlock extends LazyLogging {
 
   def writeClosed(keyValues: MergeStats.Persistent.Closed[Iterable],
                   createdInLevel: Int,
-                  minSegmentSize: Int,
                   bloomFilterConfig: BloomFilterBlock.Config,
                   hashIndexConfig: HashIndexBlock.Config,
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -282,7 +347,7 @@ private[core] object SegmentBlock extends LazyLogging {
         )
 
       val keyValuesCount = keyValues.keyValuesCount
-      val maxSegmentsCount = (sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)) / minSegmentSize
+      val maxSegmentsCount = (sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)) / segmentConfig.minSize
       val segments = Slice.create[ClosedBlocksWithFooter](maxSegmentsCount + 5)
 
       def unwrittenTailSegmentBytes() =
@@ -296,7 +361,8 @@ private[core] object SegmentBlock extends LazyLogging {
       //keys to write to bloomFilter.
       val bloomFilterKeys = ListBuffer.empty[Slice[Byte]]
 
-      var processedCount = 0 //numbers of key-values written
+      var totalProcessedCount = 0 //numbers of key-values written
+      var processedInThisSegment = 0 //numbers of key-values written
       //start off with true for cases with keyValues are empty.
       //true if the following iteration exited after closing the Segment.
       var closed = true
@@ -305,7 +371,8 @@ private[core] object SegmentBlock extends LazyLogging {
       keyValues.keyValues foreach {
         keyValue =>
           closed = false
-          processedCount += 1
+          totalProcessedCount += 1
+          processedInThisSegment += 1
           bloomFilterKeys += keyValue.key
 
           SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
@@ -316,13 +383,13 @@ private[core] object SegmentBlock extends LazyLogging {
 
           //check and close segment if segment size limit is reached.
           //to do - maybe check if compression is defined and increase the segmentSize.
-          if (currentSegmentSize >= minSegmentSize && unwrittenTailSegmentBytes() > minSegmentSize) {
+          if ((currentSegmentSize >= segmentConfig.minSize || processedInThisSegment >= segmentConfig.maxCount) && unwrittenTailSegmentBytes() > segmentConfig.minSize) {
             logger.debug(s"Creating segment of size: $currentSegmentSize.bytes")
 
             val (closedSegment, nextSortedIndex, nextValues) =
               writeSegmentBlock(
                 createdInLevel = createdInLevel,
-                hasMoreKeyValues = processedCount < keyValuesCount,
+                hasMoreKeyValues = totalProcessedCount < keyValuesCount,
                 bloomFilterKeys = bloomFilterKeys,
                 sortedIndex = sortedIndex,
                 values = values,
@@ -345,6 +412,7 @@ private[core] object SegmentBlock extends LazyLogging {
             }
 
             values = nextValues
+            processedInThisSegment = 0
             closed = true
           }
       }

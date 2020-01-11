@@ -198,7 +198,6 @@ protected case class PersistentSegmentOne(file: DBFile,
    * Default targetPath is set to this [[PersistentSegmentOne]]'s parent directory.
    */
   def put(newKeyValues: Slice[KeyValue],
-          minSegmentSize: Int,
           removeDeletes: Boolean,
           createdInLevel: Int,
           valuesConfig: ValuesBlock.Config,
@@ -213,7 +212,6 @@ protected case class PersistentSegmentOne(file: DBFile,
       SegmentRef.put(
         ref = ref,
         newKeyValues = newKeyValues,
-        minSegmentSize = minSegmentSize,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,
@@ -233,8 +231,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     )
   }
 
-  def refresh(minSegmentSize: Int,
-              removeDeletes: Boolean,
+  def refresh(removeDeletes: Boolean,
               createdInLevel: Int,
               valuesConfig: ValuesBlock.Config,
               sortedIndexConfig: SortedIndexBlock.Config,
@@ -247,7 +244,6 @@ protected case class PersistentSegmentOne(file: DBFile,
     val segments =
       SegmentRef.refresh(
         ref = ref,
-        minSegmentSize = minSegmentSize,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
         valuesConfig = valuesConfig,

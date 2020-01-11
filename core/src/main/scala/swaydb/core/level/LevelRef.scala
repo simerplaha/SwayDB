@@ -52,7 +52,7 @@ object LevelRef {
   def hasMMAP(level: Option[LevelRef]): Boolean =
     firstPersistentLevel(level) exists {
       case level: Level =>
-        level.mmapSegmentsOnRead || level.mmapSegmentsOnWrite
+        level.segmentConfig.mmapReads || level.segmentConfig.mmapWrites
 
       case _: LevelZero =>
         //not true. LevelZero can also be mmap.

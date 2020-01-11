@@ -17,37 +17,15 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.data.storage
+package swaydb.data.config
 
-import java.nio.file.Path
+import swaydb.Compression
 
-import swaydb.data.config.Dir
-
-sealed trait LevelStorage {
-  val dir: Path
-  val memory: Boolean
-
-  def persistent = !memory
-
-  def dirs: Seq[Dir]
-}
-
-object LevelStorage {
-
-  case class Memory(dir: Path) extends LevelStorage {
-    override val memory: Boolean = true
-
-    override def dirs: Seq[Dir] = Seq(Dir(dir, 1))
-  }
-
-  case class Persistent(dir: Path,
-                        otherDirs: Seq[Dir]) extends LevelStorage {
-    override val memory: Boolean = false
-
-    override def dirs: Seq[Dir] =
-      if (otherDirs.exists(_.path == dir))
-        otherDirs
-      else
-        Dir(dir, 1) +: otherDirs
-  }
-}
+case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
+                         deleteSegmentsEventually: Boolean,
+                         pushForward: Boolean,
+                         mmap: MMAP,
+                         minSegmentSize: Int,
+                         maxKeyValuesPerSegment: Int,
+                         ioStrategy: IOAction => IOStrategy,
+                         compression: UncompressedBlockInfo => Seq[Compression])
