@@ -204,7 +204,7 @@ private[core] object Segment extends LazyLogging {
                                                                      keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                      blockCache: Option[BlockCache.State],
                                                                      segmentIO: SegmentIO,
-                                                                     idGenerator: IDGenerator): Slice[Segment] = {
+                                                                     idGenerator: IDGenerator): Slice[PersistentSegment] = {
     val transient =
       SegmentBlock.writeOneOrMany(
         mergeStats = mergeStats,
@@ -238,7 +238,7 @@ private[core] object Segment extends LazyLogging {
                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                        blockCache: Option[BlockCache.State],
                                                        segmentIO: SegmentIO,
-                                                       idGenerator: IDGenerator): Slice[Segment] =
+                                                       idGenerator: IDGenerator): Slice[PersistentSegment] =
     segments.mapRecover(
       block =
         segment =>
@@ -278,7 +278,7 @@ private[core] object Segment extends LazyLogging {
             }
           },
       recover =
-        (segments: Slice[Segment], _: Throwable) =>
+        (segments: Slice[PersistentSegment], _: Throwable) =>
           segments foreach {
             segmentToDelete =>
               try

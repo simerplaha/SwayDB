@@ -200,6 +200,8 @@ protected object PersistentSegmentMany {
 
             segmentRef.iterator() foreach {
               case range: Persistent.Range =>
+                range.unsliceKeys
+
                 val segmentRef =
                   TransientSegmentSerialiser.toSegmentRef(
                     path = file.path,
@@ -256,7 +258,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                                                                                                                                                                             blockCache: Option[BlockCache.State],
                                                                                                                                                                                             fileSweeper: FileSweeper.Enabled,
                                                                                                                                                                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                                                                                                                            segmentIO: SegmentIO) extends Segment with LazyLogging {
+                                                                                                                                                                                            segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
 
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
   implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
@@ -315,7 +317,7 @@ protected case class PersistentSegmentMany(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
 
     val transient: Iterable[TransientSegment] =
       SegmentRef.put(
@@ -351,7 +353,7 @@ protected case class PersistentSegmentMany(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
 
     val transient: Iterable[TransientSegment] =
       SegmentRef.refreshForNewLevel(
@@ -375,9 +377,6 @@ protected case class PersistentSegmentMany(file: DBFile,
       segments = transient
     )
   }
-
-  def getSegmentBlockOffset(): SegmentBlock.Offset =
-    SegmentBlock.Offset(0, file.fileSize.toInt)
 
   def getFromCache(key: Slice[Byte]): PersistentOptional =
     skipList

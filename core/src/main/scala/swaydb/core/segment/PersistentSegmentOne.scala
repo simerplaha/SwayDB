@@ -23,6 +23,7 @@ import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.{KeyValue, Persistent, PersistentOptional}
 import swaydb.core.function.FunctionStore
@@ -42,7 +43,6 @@ import swaydb.data.MaxKey
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
-import swaydb.{ForEach, IO}
 
 import scala.concurrent.duration.Deadline
 
@@ -157,7 +157,7 @@ protected case class PersistentSegmentOne(file: DBFile,
                                                                                 blockCache: Option[BlockCache.State],
                                                                                 fileSweeper: FileSweeper.Enabled,
                                                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                segmentIO: SegmentIO) extends Segment with LazyLogging {
+                                                                                segmentIO: SegmentIO) extends PersistentSegment with LazyLogging {
 
   implicit val segmentCacheImplicit: SegmentRef = ref
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
@@ -207,7 +207,7 @@ protected case class PersistentSegmentOne(file: DBFile,
           hashIndexConfig: HashIndexBlock.Config,
           bloomFilterConfig: BloomFilterBlock.Config,
           segmentConfig: SegmentBlock.Config,
-          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+          pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
 
     val segments =
       SegmentRef.put(
@@ -242,7 +242,7 @@ protected case class PersistentSegmentOne(file: DBFile,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
               segmentConfig: SegmentBlock.Config,
-              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment] = {
+              pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[PersistentSegment] = {
 
     val segments =
       SegmentRef.refresh(
@@ -266,9 +266,6 @@ protected case class PersistentSegmentOne(file: DBFile,
       segments = segments
     )
   }
-
-  def getSegmentBlockOffset(): SegmentBlock.Offset =
-    SegmentBlock.Offset(0, file.fileSize.toInt)
 
   def getFromCache(key: Slice[Byte]): PersistentOptional =
     ref getFromCache key
