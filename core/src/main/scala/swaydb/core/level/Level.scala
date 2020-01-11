@@ -763,6 +763,7 @@ private[core] case class Level(dirs: Seq[Dir],
           pathsDistributor = pathDistributor,
           removeDeletes = removeDeletedRecords,
           minSegmentSize = minSegmentSize,
+          maxKeyValueCountPerSegment = segmentConfig.maxCount,
           createdInLevel = levelNumber
         )
       else
@@ -845,7 +846,8 @@ private[core] case class Level(dirs: Seq[Dir],
                 createdInLevel = levelNumber,
                 pathsDistributor = pathDistributor,
                 removeDeletes = removeDeletedRecords,
-                minSegmentSize = segmentConfig.minSize
+                minSegmentSize = segmentConfig.minSize,
+                maxKeyValueCountPerSegment = segmentConfig.maxCount
               )
             else
               Segment.copyToPersist(

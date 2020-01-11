@@ -182,7 +182,8 @@ object TestData {
             //            fetchNextPath = fetchNextPath,
             pathsDistributor = level.pathDistributor,
             removeDeletes = false,
-            minSegmentSize = 1000.mb,
+            minSegmentSize = Int.MaxValue,
+            maxKeyValueCountPerSegment = Int.MaxValue,
             createdInLevel = level.levelNumber
           )
         } flatMap {

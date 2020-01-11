@@ -90,10 +90,11 @@ protected case class MemorySegment(path: Path,
         Slice.empty
       else
         Segment.memory(
-          createdInLevel = createdInLevel,
           minSegmentSize = segmentConfig.minSize,
-          keyValues = stats.close,
-          pathsDistributor = pathsDistributor
+          maxKeyValueCountPerSegment = segmentConfig.maxCount,
+          pathsDistributor = pathsDistributor,
+          createdInLevel = createdInLevel,
+          keyValues = stats.close
         )
     }
 
@@ -122,6 +123,7 @@ protected case class MemorySegment(path: Path,
 
       Segment.memory(
         minSegmentSize = segmentConfig.minSize,
+        maxKeyValueCountPerSegment = segmentConfig.maxCount,
         pathsDistributor = pathsDistributor,
         createdInLevel = createdInLevel,
         keyValues = mergeStats

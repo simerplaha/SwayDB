@@ -70,6 +70,7 @@ private[core] object Segment extends LazyLogging {
   val emptyIterable = Iterable.empty[Segment]
 
   def memory(minSegmentSize: Int,
+             maxKeyValueCountPerSegment: Int,
              pathsDistributor: PathsDistributor,
              createdInLevel: Long,
              keyValues: MergeStats.Memory.Closed[Iterable])(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -88,6 +89,7 @@ private[core] object Segment extends LazyLogging {
       var hasRange: Boolean = false
       var hasPut: Boolean = false
       var currentSegmentSize = 0
+      var currentSegmentKeyValuesCount = 0
       var minKey: Slice[Byte] = null
       var lastKeyValue: Memory = null
 
@@ -98,6 +100,7 @@ private[core] object Segment extends LazyLogging {
         hasRange = false
         hasPut = false
         currentSegmentSize = 0
+        currentSegmentKeyValuesCount = 0
         minKey = null
         lastKeyValue = null
       }
@@ -175,8 +178,9 @@ private[core] object Segment extends LazyLogging {
           put(keyValue)
 
           currentSegmentSize += MergeStats.Memory calculateSize keyValue
+          currentSegmentKeyValuesCount += 1
 
-          if (currentSegmentSize >= minSegmentSize)
+          if (currentSegmentSize >= minSegmentSize || currentSegmentKeyValuesCount >= maxKeyValueCountPerSegment)
             createSegment()
       }
 
@@ -445,16 +449,18 @@ private[core] object Segment extends LazyLogging {
                    createdInLevel: Int,
                    pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
-                   minSegmentSize: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                        timeOrder: TimeOrder[Slice[Byte]],
-                                        functionStore: FunctionStore,
-                                        fileSweeper: FileSweeper.Enabled,
-                                        idGenerator: IDGenerator): Slice[Segment] =
+                   minSegmentSize: Int,
+                   maxKeyValueCountPerSegment: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                    timeOrder: TimeOrder[Slice[Byte]],
+                                                    functionStore: FunctionStore,
+                                                    fileSweeper: FileSweeper.Enabled,
+                                                    idGenerator: IDGenerator): Slice[Segment] =
     copyToMemory(
       keyValues = segment.iterator(),
       pathsDistributor = pathsDistributor,
       removeDeletes = removeDeletes,
       minSegmentSize = minSegmentSize,
+      maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
       createdInLevel = createdInLevel
     )
 
@@ -462,6 +468,7 @@ private[core] object Segment extends LazyLogging {
                    pathsDistributor: PathsDistributor,
                    removeDeletes: Boolean,
                    minSegmentSize: Int,
+                   maxKeyValueCountPerSegment: Int,
                    createdInLevel: Int)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
@@ -477,6 +484,7 @@ private[core] object Segment extends LazyLogging {
       minSegmentSize = minSegmentSize,
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
+      maxKeyValueCountPerSegment = maxKeyValueCountPerSegment,
       keyValues = builder
     )
   }

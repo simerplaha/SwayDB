@@ -89,10 +89,6 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   //default setting, these can be overridden to apply different settings for test cases.
 
-  def segmentSize: Int = 2.mb
-
-  def mapSize: Long = 4.mb
-
   def levelFoldersCount = 0
 
   def mmapSegmentsOnWrite = true
@@ -320,7 +316,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
       if (levelStorage.memory)
         Segment.memory(
-          minSegmentSize = segmentSize,
+          minSegmentSize = segmentConfig.minSize,
+          maxKeyValueCountPerSegment = segmentConfig.maxCount,
           pathsDistributor = pathsDistributor,
           createdInLevel = createdInLevel,
           keyValues = MergeStats.memoryBuilder(keyValues).close
@@ -375,7 +372,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(minSegmentSize = segmentSize, pushForward = false, deleteEventually = false),
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(pushForward = false, deleteEventually = false),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                       fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
@@ -404,7 +401,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
   object TestLevelZero {
 
     def apply(nextLevel: Option[Level],
-              mapSize: Long = mapSize,
+              mapSize: Long = randomIntMax(10.mb),
               brake: LevelZeroMeter => Accelerator = Accelerator.brake(),
               throttle: LevelZeroMeter => FiniteDuration = _ => Duration.Zero)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
