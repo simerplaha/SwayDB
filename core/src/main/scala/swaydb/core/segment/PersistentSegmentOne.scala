@@ -164,6 +164,8 @@ protected case class PersistentSegmentOne(file: DBFile,
   implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
   implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
 
+  override def formatId: Byte = PersistentSegmentOne.formatId
+
   def path = file.path
 
   override def close: Unit = {

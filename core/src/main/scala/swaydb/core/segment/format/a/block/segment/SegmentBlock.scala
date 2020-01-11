@@ -149,11 +149,11 @@ private[core] object SegmentBlock extends LazyLogging {
                        val deleteEventually: Boolean,
                        val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
 
-    def copyWithMinSize(size: Int): SegmentBlock.Config =
-      new SegmentBlock.Config(
+    def copy(minSize: Int, maxCount: Int = maxCount): SegmentBlock.Config =
+      SegmentBlock.Config.applyInternal(
         ioStrategy = ioStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
-        minSize = size max 1,
+        minSize = minSize,
         maxCount = maxCount,
         pushForward = pushForward,
         mmapWrites = mmapWrites,
@@ -248,7 +248,7 @@ private[core] object SegmentBlock extends LazyLogging {
               binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
               sortedIndexConfig = sortedIndexConfig,
               valuesConfig = valuesConfig,
-              segmentConfig = segmentConfig.copyWithMinSize(size = Int.MaxValue)
+              segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
             )
 
           assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")
@@ -260,9 +260,9 @@ private[core] object SegmentBlock extends LazyLogging {
             ByteSizeOf.byte +
               Bytes.sizeOfUnsignedInt(listSegmentSize)
 
-          val segmentBytesRequired = segments.foldLeft(headerSize + listSegment.segmentBytes.size)(_ + _.segmentBytes.size)
+          val slotsRequired = segments.foldLeft(headerSize + listSegment.segmentBytes.size)(_ + _.segmentBytes.size)
 
-          val segmentBytes = Slice.create[Slice[Byte]](segmentBytesRequired)
+          val segmentBytes = Slice.create[Slice[Byte]](slotsRequired)
 
           val headerBytes = Slice.create[Byte](headerSize)
           headerBytes add PersistentSegmentMany.formatId
@@ -276,8 +276,8 @@ private[core] object SegmentBlock extends LazyLogging {
           }
 
           TransientSegment.Many(
-            minKey = listSegment.minKey,
-            maxKey = listSegment.maxKey,
+            minKey = segments.head.minKey,
+            maxKey = segments.last.maxKey,
             headerSize = headerSize,
             minMaxFunctionId = listSegment.minMaxFunctionId,
             nearestDeadline = listSegment.nearestDeadline,
@@ -347,8 +347,10 @@ private[core] object SegmentBlock extends LazyLogging {
         )
 
       val keyValuesCount = keyValues.keyValuesCount
-      val maxSegmentsCount = (sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)) / segmentConfig.minSize
-      val segments = Slice.create[ClosedBlocksWithFooter](maxSegmentsCount + 5)
+      val totalAllocatedSize = sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)
+      val maxSegmentCountBasedOnSize = totalAllocatedSize / segmentConfig.minSize
+      val maxSegmentsCount = maxSegmentCountBasedOnSize max (keyValuesCount / segmentConfig.maxCount)
+      val segments = Slice.create[ClosedBlocksWithFooter](maxSegmentsCount + 10)
 
       def unwrittenTailSegmentBytes() =
         sortedIndex.compressibleBytes.unwrittenTailSize() + {
@@ -383,7 +385,13 @@ private[core] object SegmentBlock extends LazyLogging {
 
           //check and close segment if segment size limit is reached.
           //to do - maybe check if compression is defined and increase the segmentSize.
-          if ((currentSegmentSize >= segmentConfig.minSize || processedInThisSegment >= segmentConfig.maxCount) && unwrittenTailSegmentBytes() > segmentConfig.minSize) {
+          def segmentSizeLimitReached: Boolean =
+            currentSegmentSize >= segmentConfig.minSize && unwrittenTailSegmentBytes() > segmentConfig.minSize
+
+          def segmentCountLimitReached: Boolean =
+            processedInThisSegment >= segmentConfig.maxCount && (keyValuesCount - totalProcessedCount >= segmentConfig.maxCount)
+
+          if (segmentCountLimitReached || segmentSizeLimitReached) {
             logger.debug(s"Creating segment of size: $currentSegmentSize.bytes")
 
             val (closedSegment, nextSortedIndex, nextValues) =

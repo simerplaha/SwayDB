@@ -1320,7 +1320,7 @@ object CommonAssertions {
         binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
         sortedIndexConfig = sortedIndexBlock,
         valuesConfig = ValuesBlock.Config.random,
-        segmentConfig = SegmentBlock.Config.random.copyWithMinSize(Int.MaxValue)
+        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue)
       )
 
     segment should have size 1
@@ -1408,7 +1408,7 @@ object CommonAssertions {
       binarySearchIndexConfig = binarySearchIndexConfig,
       sortedIndexConfig = sortedIndexConfig,
       valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
+      segmentConfig = segmentConfig.copy(Int.MaxValue)
     ) map {
       segments =>
         segments should have size 1
@@ -1468,7 +1468,7 @@ object CommonAssertions {
         binarySearchIndexConfig = binarySearchIndexConfig,
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
+        segmentConfig = segmentConfig.copy(Int.MaxValue)
       )
 
     blockCaches should have size 1

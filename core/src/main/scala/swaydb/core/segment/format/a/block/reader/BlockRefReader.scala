@@ -51,13 +51,11 @@ private[core] object BlockRefReader {
       reader = ref.reader
     )
 
-  def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset], start: Int, size: Int)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] = {
-    val from = ref.offset.start + start
+  def apply[O <: BlockOffset](ref: BlockRefReader[_ <: BlockOffset], start: Int, size: Int)(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader[O](
-      offset = blockOps.createOffset(from, from + size - 1),
+      offset = blockOps.createOffset(ref.offset.start + start, size),
       reader = ref.reader
     )
-  }
 
   def apply[O <: BlockOffset](bytes: Slice[Byte])(implicit blockOps: BlockOps[O, _]): BlockRefReader[O] =
     new BlockRefReader(

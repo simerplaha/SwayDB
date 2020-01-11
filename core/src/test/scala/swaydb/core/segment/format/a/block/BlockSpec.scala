@@ -1,6 +1,7 @@
 package swaydb.core.segment.format.a.block
 
 import org.scalatest.OptionValues._
+import swaydb.compression.CompressionInternal
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -226,20 +227,26 @@ class BlockSpec extends TestBase {
   }
 
   "unblock" in {
-    val dataBytes = Slice.create[Byte](300, true)
-    val compression = randomCompression()
-    val compressedBytes = Block.compress(dataBytes, Seq(compression), "testBlock")
-    compressedBytes.fixHeaderSize()
+    runThis(100.times) {
+      val dataBytes = Slice.create[Byte](300, true)
+      val compression = randomCompression()
+      val compressedBytes = Block.compress(dataBytes, Seq(compression), "testBlock")
+      compressedBytes.fixHeaderSize()
 
-    compressedBytes.compressedBytes shouldBe defined
+      compressedBytes.compressedBytes shouldBe defined
 
-    val segmentBytes = compressedBytes.headerBytes ++ compressedBytes.compressedBytes.get
-    segmentBytes.size should be < dataBytes.size
+      val segmentBytes = compressedBytes.headerBytes ++ compressedBytes.compressedBytes.get
 
-    val ref = BlockRefReader[SegmentBlock.Offset](segmentBytes)
+      if (compression == CompressionInternal.UnCompressed)
+        segmentBytes shouldBe compressedBytes.headerBytes ++ dataBytes
+      else
+        segmentBytes.size should be < dataBytes.size
 
-    val decompressedBlock = Block.unblock(ref)
-    decompressedBlock.readFullBlock() shouldBe dataBytes
+      val ref = BlockRefReader[SegmentBlock.Offset](segmentBytes)
+
+      val decompressedBlock = Block.unblock(ref)
+      decompressedBlock.readFullBlock() shouldBe dataBytes
+    }
   }
 
   "unblocking nested compressed block" in {

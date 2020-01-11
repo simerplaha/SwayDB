@@ -72,7 +72,8 @@ private[core] object SegmentSerialiser {
         }
 
       bytes
-        .addUnsignedInt(this.formatId)
+        .add(this.formatId)
+        .add(segment.formatId)
         .addUnsignedInt(segmentPath.size)
         .addBytes(segmentPath)
         .addUnsignedInt(segment.createdInLevel)
@@ -118,6 +119,7 @@ private[core] object SegmentSerialiser {
       if (formatId != this.formatId)
         throw new Exception(s"Invalid serialised Segment formatId: $formatId")
 
+      val segmentFormatId = reader.get()
       val segmentPathLength = reader.readUnsignedInt()
       val segmentPathBytes = reader.read(segmentPathLength).unslice()
       val segmentPath = Paths.get(new String(segmentPathBytes.toArray, StandardCharsets.UTF_8))
@@ -164,6 +166,7 @@ private[core] object SegmentSerialiser {
 
       Segment(
         path = segmentPath,
+        formatId = segmentFormatId,
         createdInLevel = createdInLevel,
         blockCacheFileId = BlockCacheFileIDGenerator.nextID,
         mmapReads = mmapSegmentsOnRead,
@@ -201,6 +204,7 @@ private[core] object SegmentSerialiser {
         }
 
       ByteSizeOf.byte + //formatId
+        ByteSizeOf.byte + //segmentFormatId
         Bytes.sizeOfUnsignedInt(segmentPath.length) +
         segmentPath.length +
         Bytes.sizeOfUnsignedInt(segment.createdInLevel) +

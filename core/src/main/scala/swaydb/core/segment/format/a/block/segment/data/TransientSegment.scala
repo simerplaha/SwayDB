@@ -114,6 +114,6 @@ object TransientSegment {
       (flattenSegmentBytes, nearestDeadline)
 
     override def toString: String =
-      s"TransientSegment Segment. Size: ${segmentSize}"
+      s"TransientSegment Segment. Size: $segmentSize"
   }
 }

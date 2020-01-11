@@ -40,7 +40,7 @@ import swaydb.core.level.compaction.throttle.{ThrottleCompactor, ThrottleState}
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, NextLevel, PathsDistributor}
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.{Segment, SegmentIO}
+import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -281,7 +281,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
+          segmentConfig = segmentConfig.copy(Int.MaxValue)
         )
 
       segments should have size 1
@@ -372,7 +372,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
               binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
               hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
               bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random(pushForward = false, deleteEventually = false),
+              segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random2(pushForward = false, deleteEventually = false),
               keyValues: Slice[Memory] = Slice.empty)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
                                                       keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                       fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper,
@@ -796,17 +796,22 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     assert(keyValues, segment) //first
     if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
 
-    if (persistent) {
-      segment.clearCachedKeyValues()
-      assert(keyValues, segment) //same Segment but test with cleared cache.
+    segment match {
+      case segment: PersistentSegment =>
+        segment.clearCachedKeyValues()
+        assert(keyValues, segment) //same Segment but test with cleared cache.
 
-      val segmentReopened = segment.reopen //reopen
-      if (closeAfterCreate) segmentReopened.close
-      assert(keyValues, segmentReopened)
-      if (testAgainAfterAssert) assert(keyValues, segmentReopened)
-      segmentReopened.close
-    } else {
-      segment.close
+        val segmentReopened = segment.reopen //reopen
+        if (closeAfterCreate) segmentReopened.close
+        assert(keyValues, segmentReopened)
+
+        if (testAgainAfterAssert) assert(keyValues, segmentReopened)
+        segmentReopened.close
+
+      case _: Segment =>
+      //memory segment cannot be reopened
     }
+
+    segment.close
   }
 }

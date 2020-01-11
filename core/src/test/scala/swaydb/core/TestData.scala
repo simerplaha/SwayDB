@@ -53,7 +53,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.BaseEntryIdFormatA
 import swaydb.core.segment.format.a.entry.writer.EntryWriter
 import swaydb.core.segment.merge.MergeStats
-import swaydb.core.segment.{Segment, SegmentIO, ThreadReadState}
+import swaydb.core.segment.{PersistentSegment, Segment, SegmentIO, ThreadReadState}
 import swaydb.core.util.{BlockCacheFileIDGenerator, IDGenerator}
 import swaydb.data.MaxKey
 import swaydb.data.accelerate.Accelerator
@@ -92,21 +92,22 @@ object TestData {
   def randomBoolean(): Boolean =
     Random.nextBoolean()
 
-  implicit class ReopenSegment(segment: Segment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                 ec: ExecutionContext,
-                                                 keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                 fileSweeper: FileSweeper.Enabled = fileSweeper,
-                                                 timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
-                                                 blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
-                                                 segmentIO: SegmentIO = SegmentIO.random) {
+  implicit class ReopenSegment(segment: PersistentSegment)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                           ec: ExecutionContext,
+                                                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                           fileSweeper: FileSweeper.Enabled = fileSweeper,
+                                                           timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long,
+                                                           blockCache: Option[BlockCache.State] = TestSweeper.randomBlockCache,
+                                                           segmentIO: SegmentIO = SegmentIO.random) {
 
-    def tryReopen: Segment =
+    def tryReopen: PersistentSegment =
       tryReopen(segment.path)
 
-    def tryReopen(path: Path): Segment = {
+    def tryReopen(path: Path): PersistentSegment = {
       val reopenedSegment =
         Segment(
           path = path,
+          formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
           mmapReads = randomBoolean(),
           mmapWrites = randomBoolean(),
@@ -122,10 +123,10 @@ object TestData {
       reopenedSegment
     }
 
-    def reopen: Segment =
+    def reopen: PersistentSegment =
       tryReopen.runRandomIO.right.value
 
-    def reopen(path: Path): Segment =
+    def reopen(path: Path): PersistentSegment =
       tryReopen(path).runRandomIO.right.value
 
     def get(key: Slice[Byte]): KeyValueOptional =
@@ -213,7 +214,7 @@ object TestData {
             binarySearchIndexConfig = level.binarySearchIndexConfig,
             hashIndexConfig = level.hashIndexConfig,
             bloomFilterConfig = level.bloomFilterConfig,
-            segmentConfig = level.segmentConfig.copyWithMinSize(Int.MaxValue)
+            segmentConfig = level.segmentConfig.copy(Int.MaxValue)
           )
         } flatMap {
           segments =>
@@ -263,7 +264,7 @@ object TestData {
                 binarySearchIndexConfig = level.binarySearchIndexConfig,
                 sortedIndexConfig = level.sortedIndexConfig,
                 valuesConfig = level.valuesConfig,
-                segmentConfig = level.segmentConfig.copyWithMinSize(segmentSize),
+                segmentConfig = level.segmentConfig.copy(segmentSize),
                 levelStorage =
                   LevelStorage.Persistent(
                     dir = level.pathDistributor.headPath,
@@ -441,11 +442,11 @@ object TestData {
 
   implicit class SegmentConfig(values: SegmentBlock.Config.type) {
     def random: SegmentBlock.Config =
-      random()
+      random(hasCompression = randomBoolean())
 
     def random(hasCompression: Boolean = randomBoolean(),
-               minSegmentSize: Int = randomIntMax(30.mb),
-               maxKeyValuesPerSegment: Int = randomIntMax(1000000),
+               minSegmentSize: Int = randomIntMax(4.mb),
+               maxKeyValuesPerSegment: Int = randomIntMax(100000),
                deleteEventually: Boolean = randomBoolean(),
                mmapWrites: Boolean = randomBoolean(),
                mmapReads: Boolean = randomBoolean(),
@@ -462,6 +463,27 @@ object TestData {
         mmapReads = mmapReads,
         deleteEventually = deleteEventually,
         compressions = _ => if (hasCompression) randomCompressions() else Seq.empty
+      )
+
+    def random2(ioStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
+                cacheBlocksOnCreate: Boolean = randomBoolean(),
+                compressions: UncompressedBlockInfo => Seq[CompressionInternal] = _ => randomCompressionsOrEmpty(),
+                maxKeyValuesPerSegment: Int = randomIntMax(1000000),
+                deleteEventually: Boolean = randomBoolean(),
+                mmapWrites: Boolean = randomBoolean(),
+                mmapReads: Boolean = randomBoolean(),
+                pushForward: Boolean = randomBoolean(),
+                minSegmentSize: Int = randomIntMax(30.mb)): SegmentBlock.Config =
+      SegmentBlock.Config.applyInternal(
+        ioStrategy = ioStrategy,
+        cacheBlocksOnCreate = cacheBlocksOnCreate,
+        maxCount = maxKeyValuesPerSegment,
+        minSize = minSegmentSize,
+        pushForward = pushForward,
+        mmapWrites = mmapWrites,
+        mmapReads = mmapReads,
+        deleteEventually = deleteEventually,
+        compressions = compressions
       )
   }
 
@@ -1729,14 +1751,14 @@ object TestData {
           )
       )
 
-    def writeClosedSingle(keyValues: Iterable[Memory],
-                          createdInLevel: Int = randomIntMax(),
-                          bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                          hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                          binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
-                          sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
-                          valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
-                          segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): TransientSegment.One = {
+    def writeClosedOne(keyValues: Iterable[Memory],
+                       createdInLevel: Int = randomIntMax(),
+                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
+                       hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
+                       binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
+                       sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
+                       valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
+                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random): TransientSegment.One = {
       val segments =
         SegmentBlock.writeOnes(
           mergeStats = MergeStats.persistentBuilder(keyValues).close(sortedIndexConfig.enableAccessPositionIndex),
@@ -1746,7 +1768,7 @@ object TestData {
           binarySearchIndexConfig = binarySearchIndexConfig,
           sortedIndexConfig = sortedIndexConfig,
           valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig.copyWithMinSize(Int.MaxValue)
+          segmentConfig = segmentConfig.copy(Int.MaxValue)
         )
 
       segments should have size 1

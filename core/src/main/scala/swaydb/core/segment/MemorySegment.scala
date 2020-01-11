@@ -63,6 +63,8 @@ protected case class MemorySegment(path: Path,
 
   import keyOrder._
 
+  override def formatId: Byte = 0
+
   override def put(newKeyValues: Slice[KeyValue],
                    removeDeletes: Boolean,
                    createdInLevel: Int,

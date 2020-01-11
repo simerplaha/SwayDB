@@ -122,7 +122,6 @@ protected object PersistentSegmentMany {
       minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
       nearestExpiryDeadline = segment.nearestDeadline,
-      segments = segment.segments,
       initial = initial
     )
   }
@@ -136,7 +135,6 @@ protected object PersistentSegmentMany {
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             nearestExpiryDeadline: Option[Deadline],
-            segments: Slice[TransientSegment.One],
             initial: Option[SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                    functionStore: FunctionStore,
@@ -151,7 +149,7 @@ protected object PersistentSegmentMany {
       BlockRefReader(
         file = file,
         start = 1,
-        fileSize = segmentSize
+        fileSize = segmentSize - 1
       )
 
     val segments =
@@ -171,7 +169,7 @@ protected object PersistentSegmentMany {
 
             val blockedReader: BlockRefReader[SegmentBlock.Offset] = fileBlockRef.copy()
             val listSegmentSize = blockedReader.readUnsignedInt()
-            val listSegment = fileBlockRef.read(listSegmentSize)
+            val listSegment = blockedReader.read(listSegmentSize)
             val listSegmentRef = BlockRefReader[SegmentBlock.Offset](listSegment)
 
             val segmentRef =
@@ -198,14 +196,24 @@ protected object PersistentSegmentMany {
             //                cacheMemorySweeper.add(listSegmentSize, self)
             //            }
 
+            val tailSegmentBytesFromOffset = blockedReader.getPosition
+            val tailManySegmentsSize = fileBlockRef.size.toInt - tailSegmentBytesFromOffset
+
             segmentRef.iterator() foreach {
               case range: Persistent.Range =>
                 range.unsliceKeys
 
+                val thisSegmentBlockRef =
+                  BlockRefReader[SegmentBlock.Offset](
+                    ref = fileBlockRef.copy(),
+                    start = tailSegmentBytesFromOffset,
+                    size = tailManySegmentsSize
+                  )
+
                 val segmentRef =
                   TransientSegmentSerialiser.toSegmentRef(
                     path = file.path,
-                    reader = blockedReader,
+                    reader = thisSegmentBlockRef,
                     range = range,
                     valuesReaderCacheable = None,
                     sortedIndexReaderCacheable = None,
@@ -215,7 +223,7 @@ protected object PersistentSegmentMany {
                     footerCacheable = None
                   )
 
-                skipList.put(minKey, segmentRef)
+                skipList.put(segmentRef.minKey, segmentRef)
 
               case _: Persistent.Put =>
               //ignore. Put is stored so that it's possible to perform binary search but currently binary search is not required.
@@ -263,6 +271,8 @@ protected case class PersistentSegmentMany(file: DBFile,
   implicit val partialKeyOrder: KeyOrder[Persistent.Partial] = KeyOrder(Ordering.by[Persistent.Partial, Slice[Byte]](_.key)(keyOrder))
   implicit val persistentKeyOrder: KeyOrder[Persistent] = KeyOrder(Ordering.by[Persistent, Slice[Byte]](_.key)(keyOrder))
   implicit val segmentSearcher: SegmentSearcher = SegmentSearcher
+
+  override def formatId: Byte = PersistentSegmentMany.formatId
 
   private def skipList: SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef] =
     segments

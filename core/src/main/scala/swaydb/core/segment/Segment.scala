@@ -77,11 +77,11 @@ private[core] object Segment extends LazyLogging {
                                                             timeOrder: TimeOrder[Slice[Byte]],
                                                             functionStore: FunctionStore,
                                                             fileSweeper: FileSweeper.Enabled,
-                                                            idGenerator: IDGenerator): Slice[Segment] =
+                                                            idGenerator: IDGenerator): Slice[MemorySegment] =
     if (keyValues.isEmpty) {
       throw IO.throwable("Empty key-values submitted to memory Segment.")
     } else {
-      val segments = ListBuffer.empty[Segment]
+      val segments = ListBuffer.empty[MemorySegment]
 
       var skipList = SkipList.immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
@@ -366,6 +366,7 @@ private[core] object Segment extends LazyLogging {
           Slice(
             Segment(
               path = nextPath,
+              formatId = PersistentSegmentOne.formatId,
               createdInLevel = segment.createdInLevel,
               blockCacheFileId = segment.file.blockCacheFileId,
               mmapReads = segmentConfig.mmapReads,
@@ -420,7 +421,7 @@ private[core] object Segment extends LazyLogging {
                                                         fileSweeper: FileSweeper.Enabled,
                                                         blockCache: Option[BlockCache.State],
                                                         segmentIO: SegmentIO,
-                                                        idGenerator: IDGenerator): Slice[Segment] = {
+                                                        idGenerator: IDGenerator): Slice[PersistentSegment] = {
     val builder =
       if (removeDeletes)
         MergeStats.persistent[Memory, ListBuffer](ListBuffer.newBuilder)(SegmentGrouper.addLastLevel)
@@ -454,7 +455,7 @@ private[core] object Segment extends LazyLogging {
                                                     timeOrder: TimeOrder[Slice[Byte]],
                                                     functionStore: FunctionStore,
                                                     fileSweeper: FileSweeper.Enabled,
-                                                    idGenerator: IDGenerator): Slice[Segment] =
+                                                    idGenerator: IDGenerator): Slice[MemorySegment] =
     copyToMemory(
       keyValues = segment.iterator(),
       pathsDistributor = pathsDistributor,
@@ -473,7 +474,7 @@ private[core] object Segment extends LazyLogging {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         functionStore: FunctionStore,
                                         fileSweeper: FileSweeper.Enabled,
-                                        idGenerator: IDGenerator): Slice[Segment] = {
+                                        idGenerator: IDGenerator): Slice[MemorySegment] = {
     val builder =
       new MergeStats.Memory.Closed[Iterable](
         isEmpty = false,
@@ -490,6 +491,7 @@ private[core] object Segment extends LazyLogging {
   }
 
   def apply(path: Path,
+            formatId: Byte,
             createdInLevel: Int,
             blockCacheFileId: Long,
             mmapReads: Boolean,
@@ -505,7 +507,7 @@ private[core] object Segment extends LazyLogging {
                                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                          fileSweeper: FileSweeper.Enabled,
                                          blockCache: Option[BlockCache.State],
-                                         segmentIO: SegmentIO): Segment = {
+                                         segmentIO: SegmentIO): PersistentSegment = {
 
     val file =
       if (mmapReads)
@@ -525,23 +527,39 @@ private[core] object Segment extends LazyLogging {
           checkExists = checkExists
         )
 
-    PersistentSegmentOne(
-      file = file,
-      createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
-      minKey = minKey,
-      maxKey = maxKey,
-      segmentSize = segmentSize,
-      minMaxFunctionId = minMaxFunctionId,
-      nearestExpiryDeadline = nearestExpiryDeadline,
-      valuesReaderCacheable = None,
-      sortedIndexReaderCacheable = None,
-      hashIndexReaderCacheable = None,
-      binarySearchIndexReaderCacheable = None,
-      bloomFilterReaderCacheable = None,
-      footerCacheable = None
-    )
+    if (formatId == PersistentSegmentOne.formatId)
+      PersistentSegmentOne(
+        file = file,
+        createdInLevel = createdInLevel,
+        mmapReads = mmapReads,
+        mmapWrites = mmapWrites,
+        minKey = minKey,
+        maxKey = maxKey,
+        segmentSize = segmentSize,
+        minMaxFunctionId = minMaxFunctionId,
+        nearestExpiryDeadline = nearestExpiryDeadline,
+        valuesReaderCacheable = None,
+        sortedIndexReaderCacheable = None,
+        hashIndexReaderCacheable = None,
+        binarySearchIndexReaderCacheable = None,
+        bloomFilterReaderCacheable = None,
+        footerCacheable = None
+      )
+    else if (formatId == PersistentSegmentMany.formatId)
+      PersistentSegmentMany(
+        file = file,
+        createdInLevel = createdInLevel,
+        mmapReads = mmapReads,
+        mmapWrites = mmapWrites,
+        minKey = minKey,
+        maxKey = maxKey,
+        segmentSize = segmentSize,
+        minMaxFunctionId = minMaxFunctionId,
+        nearestExpiryDeadline = nearestExpiryDeadline,
+        initial = None
+      )
+    else
+      throw new Exception(s"Invalid segment formatId: $formatId")
   }
 
   /**
@@ -561,7 +579,7 @@ private[core] object Segment extends LazyLogging {
                                   functionStore: FunctionStore,
                                   blockCache: Option[BlockCache.State],
                                   keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                  fileSweeper: FileSweeper.Enabled): Segment = {
+                                  fileSweeper: FileSweeper.Enabled): PersistentSegment = {
 
     implicit val segmentIO: SegmentIO = SegmentIO.defaultSynchronisedStoredIfCompressed
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
@@ -1047,6 +1065,8 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
   val segmentSize: Int
   val nearestPutDeadline: Option[Deadline]
   val minMaxFunctionId: Option[MinMax[Slice[Byte]]]
+
+  def formatId: Byte
 
   def createdInLevel: Int
 

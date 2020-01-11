@@ -92,7 +92,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
   "Level.takeSmallSegments" should {
     "filter smaller segments from a Level" in {
       //disable throttling so small segment compaction does not occur
-      val level = TestLevel(nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random(minSegmentSize = 1.kb))
+      val level = TestLevel(nextLevel = None, throttle = (_) => Throttle(Duration.Zero, 0), segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 1.kb))
 
       val keyValues = randomPutKeyValues(1000, addPutDeadlines = false)
       level.putKeyValuesTest(keyValues).runRandomIO.right.value
@@ -131,7 +131,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.mb)
+            segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb)
           ).runRandomIO.right.value
 
       segments should have size 1
@@ -162,7 +162,7 @@ sealed trait LevelReadSpec extends TestBase with MockFactory {
             binarySearchIndexConfig = BinarySearchIndexBlock.Config.random,
             hashIndexConfig = HashIndexBlock.Config.random,
             bloomFilterConfig = BloomFilterBlock.Config.random,
-            segmentConfig = SegmentBlock.Config.random(minSegmentSize = 100.mb)
+            segmentConfig = SegmentBlock.Config.random2(minSegmentSize = 100.mb)
           ).runRandomIO.right.value
 
       segments should have size 1
