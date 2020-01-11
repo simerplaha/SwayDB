@@ -210,6 +210,7 @@ private[core] object SegmentBlock extends LazyLogging {
           TransientSegment.Many(
             minKey = listSegment.minKey,
             maxKey = listSegment.maxKey,
+            headerSize = headerSize,
             minMaxFunctionId = listSegment.minMaxFunctionId,
             nearestDeadline = listSegment.nearestDeadline,
             segments = Slice(listSegment) ++ segments,

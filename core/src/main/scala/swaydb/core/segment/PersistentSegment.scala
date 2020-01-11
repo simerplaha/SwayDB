@@ -62,7 +62,7 @@ protected object PersistentSegment {
                                            keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                            blockCache: Option[BlockCache.State],
                                            fileSweeper: FileSweeper.Enabled,
-                                           segmentIO: SegmentIO) =
+                                           segmentIO: SegmentIO): PersistentSegment =
     PersistentSegment(
       file = file,
       createdInLevel = createdInLevel,

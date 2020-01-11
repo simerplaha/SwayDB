@@ -42,10 +42,10 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.{MaxKey, Reserve}
-import swaydb.{Aggregator, ForEach, Error, IO}
-import scala.jdk.CollectionConverters._
+import swaydb.{Aggregator, Error, ForEach, IO}
 
 import scala.concurrent.duration.Deadline
+import scala.jdk.CollectionConverters._
 
 protected object PersistentSegmentList {
 
@@ -62,7 +62,7 @@ protected object PersistentSegmentList {
                                             keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                             blockCache: Option[BlockCache.State],
                                             fileSweeper: FileSweeper.Enabled,
-                                            segmentIO: SegmentIO) = {
+                                            segmentIO: SegmentIO): PersistentSegmentList = {
     val initial =
       if (segment.segments.isEmpty) {
         None
@@ -70,11 +70,15 @@ protected object PersistentSegmentList {
         val skipList = SkipList.immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
         implicit val blockMemorySweeper = blockCache.map(_.sweeper)
 
+        val firstSegmentOffset =
+          segment.headerSize +
+            segment.segments.head.segmentSize
+
         //drop head ignoring the list block.
         segment
           .segments
           .dropHead()
-          .foldLeft(segment.segments.head.segmentSize) {
+          .foldLeft(firstSegmentOffset) {
             case (offset, one) =>
               val thisSegmentSize = one.segmentSize
 

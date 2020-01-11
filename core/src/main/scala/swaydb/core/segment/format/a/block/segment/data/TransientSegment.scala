@@ -90,6 +90,7 @@ object TransientSegment {
 
   case class Many(minKey: Slice[Byte],
                   maxKey: MaxKey[Slice[Byte]],
+                  headerSize: Int,
                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                   nearestDeadline: Option[Deadline],
                   segments: Slice[TransientSegment.One],
