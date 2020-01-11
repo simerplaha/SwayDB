@@ -225,8 +225,30 @@ protected object PersistentSegmentMany {
 
                 skipList.put(segmentRef.minKey, segmentRef)
 
-              case _: Persistent.Put =>
-              //ignore. Put is stored so that it's possible to perform binary search but currently binary search is not required.
+              case put: Persistent.Put =>
+                put.unsliceKeys
+
+                val thisSegmentBlockRef =
+                  BlockRefReader[SegmentBlock.Offset](
+                    ref = fileBlockRef.copy(),
+                    start = tailSegmentBytesFromOffset,
+                    size = tailManySegmentsSize
+                  )
+
+                val segmentRef =
+                  TransientSegmentSerialiser.toSegmentRef(
+                    path = file.path,
+                    reader = thisSegmentBlockRef,
+                    put = put,
+                    valuesReaderCacheable = None,
+                    sortedIndexReaderCacheable = None,
+                    hashIndexReaderCacheable = None,
+                    binarySearchIndexReaderCacheable = None,
+                    bloomFilterReaderCacheable = None,
+                    footerCacheable = None
+                  )
+
+                skipList.put(segmentRef.minKey, segmentRef)
 
               case _: Persistent.Fixed =>
                 throw new Exception("Non put key-value written to List segment")

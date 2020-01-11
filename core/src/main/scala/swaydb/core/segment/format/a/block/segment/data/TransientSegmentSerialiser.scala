@@ -50,12 +50,15 @@ object TransientSegmentSerialiser {
         value addUnsignedInt offset
         value addUnsignedInt size
 
-        Slice(
-          Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)),
-          //this put currently not used but is stored to be backward compatible if onDisk binary search
-          //is refered
-          Memory.Put(maxKey, value, None, Time.empty)
-        )
+        if (one.minKey equals maxKey)
+          Slice(Memory.Put(maxKey, value, None, Time.empty))
+        else
+          Slice(
+            Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)),
+            //this put currently not used but is stored to be backward compatible if onDisk binary search
+            //is refered
+            Memory.Put(maxKey, value, None, Time.empty)
+          )
 
       case MaxKey.Range(fromKey, maxKey) =>
         val value = Slice.create[Byte](ByteSizeOf.byte + (ByteSizeOf.varInt * 2) + fromKey.size)
@@ -64,7 +67,10 @@ object TransientSegmentSerialiser {
         value addUnsignedInt size
         value addAll fromKey
 
-        Slice(Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)))
+        if (one.minKey equals maxKey)
+          Slice(Memory.Put(maxKey, value, None, Time.empty))
+        else
+          Slice(Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)))
     }
 
   def toSegmentRef(path: Path,
@@ -133,5 +139,67 @@ object TransientSegmentSerialiser {
       case _: Value =>
         throw new Exception("Invalid value. Update expected")
     }
+
+  def toSegmentRef(path: Path,
+                   reader: BlockRefReader[SegmentBlock.Offset],
+                   put: Persistent.Put,
+                   valuesReaderCacheable: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
+                   sortedIndexReaderCacheable: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
+                   hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
+                   binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
+                   bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
+                   footerCacheable: Option[SegmentFooterBlock])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                segmentIO: SegmentIO,
+                                                                blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue]): SegmentRef = {
+    val valueReader = Reader(put.getOrFetchValue.getC)
+    val maxKeyId = valueReader.get()
+    if (maxKeyId == 0) {
+      val segmentOffset = valueReader.readUnsignedInt()
+      val segmentSize = valueReader.readUnsignedInt()
+      SegmentRef(
+        path = path.resolve(s".ref.$segmentOffset"),
+        minKey = put.key,
+        maxKey = MaxKey.Fixed(put.key),
+        blockRef =
+          BlockRefReader(
+            ref = reader,
+            start = segmentOffset,
+            size = segmentSize
+          ),
+        segmentIO = segmentIO,
+        valuesReaderCacheable = valuesReaderCacheable,
+        sortedIndexReaderCacheable = sortedIndexReaderCacheable,
+        hashIndexReaderCacheable = hashIndexReaderCacheable,
+        binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
+        bloomFilterReaderCacheable = bloomFilterReaderCacheable,
+        footerCacheable = footerCacheable
+      )
+    } else if (maxKeyId == 1) {
+      val segmentOffset = valueReader.readUnsignedInt()
+      val segmentSize = valueReader.readUnsignedInt()
+      val maxKeyMinKey = valueReader.readRemaining()
+      SegmentRef(
+        path = path.resolve(s".ref.$segmentOffset"),
+        minKey = put.key,
+        maxKey = MaxKey.Range(maxKeyMinKey, put.key),
+        blockRef =
+          BlockRefReader(
+            ref = reader,
+            start = segmentOffset,
+            size = segmentSize
+          ),
+        segmentIO = segmentIO,
+        valuesReaderCacheable = valuesReaderCacheable,
+        sortedIndexReaderCacheable = sortedIndexReaderCacheable,
+        hashIndexReaderCacheable = hashIndexReaderCacheable,
+        binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
+        bloomFilterReaderCacheable = bloomFilterReaderCacheable,
+        footerCacheable = footerCacheable
+      )
+    } else {
+      throw new Exception(s"Invalid maxKeyId: $maxKeyId")
+    }
+  }
 
 }

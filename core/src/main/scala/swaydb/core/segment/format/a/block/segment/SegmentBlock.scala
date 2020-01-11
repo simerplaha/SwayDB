@@ -237,7 +237,14 @@ private[core] object SegmentBlock extends LazyLogging {
               offset + segmentSize
           }
 
+          //enableAccessPosition and normalising index is current not required for list segment since no binary search is perform.
           val closedListKeyValues = listKeyValue.close(hasAccessPositionIndex = false)
+
+          val modifiedSortedIndex =
+            if (sortedIndexConfig.enableAccessPositionIndex || sortedIndexConfig.normaliseIndex)
+              sortedIndexConfig.copy(enableAccessPositionIndex = false, normaliseIndex = false)
+            else
+              sortedIndexConfig
 
           val listSegments =
             writeOnes(
@@ -246,7 +253,7 @@ private[core] object SegmentBlock extends LazyLogging {
               bloomFilterConfig = BloomFilterBlock.Config.disabled,
               hashIndexConfig = HashIndexBlock.Config.disabled,
               binarySearchIndexConfig = BinarySearchIndexBlock.Config.disabled,
-              sortedIndexConfig = sortedIndexConfig,
+              sortedIndexConfig = modifiedSortedIndex,
               valuesConfig = valuesConfig,
               segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
             )
