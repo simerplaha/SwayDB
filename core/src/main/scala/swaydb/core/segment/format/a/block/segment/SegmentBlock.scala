@@ -183,7 +183,7 @@ private[core] object SegmentBlock extends LazyLogging {
               segmentConfig = segmentConfig
             )
 
-          assert(listSegments.size == 1, s"${listSegments.size} != 1")
+          assert(listSegments.size == 1, s"listSegments.size: ${listSegments.size} != 1")
 
           val listSegment = listSegments.head
           val listSegmentSize = listSegment.segmentSize

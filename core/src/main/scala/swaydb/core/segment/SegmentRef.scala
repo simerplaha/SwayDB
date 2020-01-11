@@ -658,60 +658,12 @@ private[core] object SegmentRef {
     //will be the same as existing or less than the current sizes so there is no need to create a
     //MergeState builder.
     if (footer.createdInLevel == createdInLevel) {
-      val sortedIndexBlock = ref.segmentBlockCache.getSortedIndex()
-      val valuesBlock = ref.segmentBlockCache.getValues()
-
-      val sortedIndexSize =
-        sortedIndexBlock.compressionInfo match {
-          case Some(compressionInfo) =>
-            compressionInfo.decompressedLength
-
-          case None =>
-            sortedIndexBlock.offset.size
-        }
-
-      val valuesSize =
-        valuesBlock match {
-          case Some(valuesBlock) =>
-            valuesBlock.compressionInfo match {
-              case Some(value) =>
-                value.decompressedLength
-
-              case None =>
-                valuesBlock.offset.size
-            }
-          case None =>
-            0
-        }
-
-      val keyValues =
-        Segment
-          .toMemoryIterator(ref.iterator(), removeDeletes)
-          .to(Iterable)
-
-      val mergeStats =
-        new MergeStats.Persistent.Closed[Iterable](
-          isEmpty = false,
-          keyValuesCount = footer.keyValueCount,
-          keyValues = keyValues,
-          totalValuesSize = valuesSize,
-          maxSortedIndexSize = sortedIndexSize
-        )
-
-      SegmentBlock.writeOneOrMany(
-        mergeStats = mergeStats,
-        createdInLevel = createdInLevel,
-        bloomFilterConfig = bloomFilterConfig,
-        hashIndexConfig = hashIndexConfig,
-        binarySearchIndexConfig = binarySearchIndexConfig,
-        sortedIndexConfig = sortedIndexConfig,
-        valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig,
-        minSegmentSize = minSegmentSize
-      )
-    } else {
-      refresh(
-        keyValues = ref.iterator(),
+      val iterator = ref.iterator()
+      refreshForSameLevel(
+        sortedIndexBlock = ref.segmentBlockCache.getSortedIndex(),
+        valuesBlock = ref.segmentBlockCache.getValues(),
+        iterator = iterator,
+        keyValuesCount = footer.keyValueCount,
         minSegmentSize = minSegmentSize,
         removeDeletes = removeDeletes,
         createdInLevel = createdInLevel,
@@ -723,18 +675,99 @@ private[core] object SegmentRef {
         segmentConfig = segmentConfig
       )
     }
+    else
+      refreshForNewLevel(
+        keyValues = ref.iterator(),
+        minSegmentSize = minSegmentSize,
+        removeDeletes = removeDeletes,
+        createdInLevel = createdInLevel,
+        valuesConfig = valuesConfig,
+        sortedIndexConfig = sortedIndexConfig,
+        binarySearchIndexConfig = binarySearchIndexConfig,
+        hashIndexConfig = hashIndexConfig,
+        bloomFilterConfig = bloomFilterConfig,
+        segmentConfig = segmentConfig
+      )
   }
 
-  def refresh(keyValues: Iterator[Persistent],
-              minSegmentSize: Int,
-              removeDeletes: Boolean,
-              createdInLevel: Int,
-              valuesConfig: ValuesBlock.Config,
-              sortedIndexConfig: SortedIndexBlock.Config,
-              binarySearchIndexConfig: BinarySearchIndexBlock.Config,
-              hashIndexConfig: HashIndexBlock.Config,
-              bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
+  /**
+   * This refresh does not compute new sortedIndex size and uses existing. Saves an iteration
+   * and performs refresh instantly.
+   */
+  def refreshForSameLevel(sortedIndexBlock: SortedIndexBlock,
+                          valuesBlock: Option[ValuesBlock],
+                          iterator: Iterator[Persistent],
+                          keyValuesCount: Int,
+                          minSegmentSize: Int,
+                          removeDeletes: Boolean,
+                          createdInLevel: Int,
+                          valuesConfig: ValuesBlock.Config,
+                          sortedIndexConfig: SortedIndexBlock.Config,
+                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                          hashIndexConfig: HashIndexBlock.Config,
+                          bloomFilterConfig: BloomFilterBlock.Config,
+                          segmentConfig: SegmentBlock.Config) = {
+
+    val sortedIndexSize =
+      sortedIndexBlock.compressionInfo match {
+        case Some(compressionInfo) =>
+          compressionInfo.decompressedLength
+
+        case None =>
+          sortedIndexBlock.offset.size
+      }
+
+    val valuesSize =
+      valuesBlock match {
+        case Some(valuesBlock) =>
+          valuesBlock.compressionInfo match {
+            case Some(value) =>
+              value.decompressedLength
+
+            case None =>
+              valuesBlock.offset.size
+          }
+        case None =>
+          0
+      }
+
+    val keyValues =
+      Segment
+        .toMemoryIterator(iterator, removeDeletes)
+        .to(Iterable)
+
+    val mergeStats =
+      new MergeStats.Persistent.Closed[Iterable](
+        isEmpty = false,
+        keyValuesCount = keyValuesCount,
+        keyValues = keyValues,
+        totalValuesSize = valuesSize,
+        maxSortedIndexSize = sortedIndexSize
+      )
+
+    SegmentBlock.writeOneOrMany(
+      mergeStats = mergeStats,
+      createdInLevel = createdInLevel,
+      bloomFilterConfig = bloomFilterConfig,
+      hashIndexConfig = hashIndexConfig,
+      binarySearchIndexConfig = binarySearchIndexConfig,
+      sortedIndexConfig = sortedIndexConfig,
+      valuesConfig = valuesConfig,
+      segmentConfig = segmentConfig,
+      minSegmentSize = minSegmentSize
+    )
+  }
+
+  def refreshForNewLevel(keyValues: Iterator[Persistent],
+                         minSegmentSize: Int,
+                         removeDeletes: Boolean,
+                         createdInLevel: Int,
+                         valuesConfig: ValuesBlock.Config,
+                         sortedIndexConfig: SortedIndexBlock.Config,
+                         binarySearchIndexConfig: BinarySearchIndexBlock.Config,
+                         hashIndexConfig: HashIndexBlock.Config,
+                         bloomFilterConfig: BloomFilterBlock.Config,
+                         segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
     val memoryKeyValues =
       Segment
         .toMemoryIterator(keyValues, removeDeletes)
