@@ -105,17 +105,19 @@ protected object PersistentSegmentOne {
 
     implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
+    val segmentBlockRef =
+      BlockRefReader(
+        file = file,
+        start = 1,
+        fileSize = segmentSize - 1
+      )
+
     val ref =
       SegmentRef(
         path = file.path,
         minKey = minKey,
         maxKey = maxKey,
-        blockRef =
-          BlockRefReader(
-            file = file,
-            start = 1,
-            fileSize = segmentSize
-          ),
+        blockRef = segmentBlockRef,
         segmentIO = segmentIO,
         valuesReaderCacheable = valuesReaderCacheable,
         sortedIndexReaderCacheable = sortedIndexReaderCacheable,
