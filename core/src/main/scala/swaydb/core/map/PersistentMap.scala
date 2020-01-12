@@ -222,18 +222,18 @@ private[map] object PersistentMap extends LazyLogging {
   }
 }
 
-private[map] case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
-                                                                mmap: Boolean,
-                                                                fileSize: Long,
-                                                                flushOnOverflow: Boolean,
-                                                                skipList: SkipList.Concurrent[OK, OV, K, V],
-                                                                private var currentFile: DBFile,
-                                                                private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
-                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                      fileSweeper: FileSweeper,
-                                                                                                      functionStore: FunctionStore,
-                                                                                                      writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                      skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
+protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
+                                                             mmap: Boolean,
+                                                             fileSize: Long,
+                                                             flushOnOverflow: Boolean,
+                                                             skipList: SkipList.Concurrent[OK, OV, K, V],
+                                                             private var currentFile: DBFile,
+                                                             private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
+                                                                                                   timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                   fileSweeper: FileSweeper,
+                                                                                                   functionStore: FunctionStore,
+                                                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]) extends Map[OK, OV, K, V] with LazyLogging {
 
   // actualSize of the file can be different to fileSize when the entry's size is > fileSize.
   // In this case a file is created just to fit those bytes (for that one entry).
