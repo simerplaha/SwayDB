@@ -19,7 +19,7 @@
 
 package swaydb.core.segment
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
@@ -33,9 +33,9 @@ import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.{BlockRefReader, UnblockedReader}
-import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
+import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
@@ -54,8 +54,6 @@ protected object PersistentSegmentOne {
 
   def apply(file: DBFile,
             createdInLevel: Int,
-            mmapReads: Boolean,
-            mmapWrites: Boolean,
             segment: TransientSegment.One)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                            timeOrder: TimeOrder[Slice[Byte]],
                                            functionStore: FunctionStore,
@@ -66,8 +64,6 @@ protected object PersistentSegmentOne {
     PersistentSegmentOne(
       file = file,
       createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
       minKey = segment.minKey,
       maxKey = segment.maxKey,
       minMaxFunctionId = segment.minMaxFunctionId,
@@ -83,8 +79,6 @@ protected object PersistentSegmentOne {
 
   def apply(file: DBFile,
             createdInLevel: Int,
-            mmapReads: Boolean,
-            mmapWrites: Boolean,
             minKey: Slice[Byte],
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -130,8 +124,6 @@ protected object PersistentSegmentOne {
     new PersistentSegmentOne(
       file = file,
       createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
       minKey = minKey,
       maxKey = maxKey,
       minMaxFunctionId = minMaxFunctionId,
@@ -140,12 +132,79 @@ protected object PersistentSegmentOne {
       ref = ref
     )
   }
+
+  def apply(file: DBFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                          timeOrder: TimeOrder[Slice[Byte]],
+                          functionStore: FunctionStore,
+                          blockCache: Option[BlockCache.State],
+                          keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                          fileSweeper: FileSweeper.Enabled,
+                          segmentIO: SegmentIO): PersistentSegment = {
+
+    implicit val blockCacheMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
+
+    val fileSize = file.fileSize.toInt
+
+    val refReader =
+      BlockRefReader(
+        file = file,
+        start = 1,
+        fileSize = fileSize - 1
+      )
+
+    val segmentBlockCache =
+      SegmentBlockCache(
+        path = Paths.get("Reading segment"),
+        segmentIO = segmentIO,
+        blockRef = refReader,
+        valuesReaderCacheable = None,
+        sortedIndexReaderCacheable = None,
+        hashIndexReaderCacheable = None,
+        binarySearchIndexReaderCacheable = None,
+        bloomFilterReaderCacheable = None,
+        footerCacheable = None
+      )
+
+    val footer = segmentBlockCache.getFooter()
+    val sortedIndexReader = segmentBlockCache.createSortedIndexReader()
+    val valuesReaderOrNull = segmentBlockCache.createValuesReaderOrNull()
+
+    val keyValues =
+      SortedIndexBlock.toSlice(
+        keyValueCount = footer.keyValueCount,
+        sortedIndexReader = sortedIndexReader,
+        valuesReaderOrNull = valuesReaderOrNull
+      )
+
+    val deadlineMinMaxFunctionId = DeadlineAndFunctionId(keyValues)
+
+    PersistentSegmentOne(
+      file = file,
+      createdInLevel = footer.createdInLevel,
+      minKey = keyValues.head.key.unslice(),
+      maxKey =
+        keyValues.last match {
+          case fixed: KeyValue.Fixed =>
+            MaxKey.Fixed(fixed.key.unslice())
+
+          case range: KeyValue.Range =>
+            MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+        },
+      minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
+      segmentSize = fileSize,
+      nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
+      valuesReaderCacheable = segmentBlockCache.valuesReaderCacheable,
+      sortedIndexReaderCacheable = segmentBlockCache.sortedIndexReaderCacheable,
+      hashIndexReaderCacheable = segmentBlockCache.hashIndexReaderCacheable,
+      binarySearchIndexReaderCacheable = segmentBlockCache.binarySearchIndexReaderCacheable,
+      bloomFilterReaderCacheable = segmentBlockCache.bloomFilterReaderCacheable,
+      footerCacheable = segmentBlockCache.footerCacheable
+    )
+  }
 }
 
 protected case class PersistentSegmentOne(file: DBFile,
                                           createdInLevel: Int,
-                                          mmapReads: Boolean,
-                                          mmapWrites: Boolean,
                                           minKey: Slice[Byte],
                                           maxKey: MaxKey[Slice[Byte]],
                                           minMaxFunctionId: Option[MinMax[Slice[Byte]]],
@@ -227,8 +286,8 @@ protected case class PersistentSegmentOne(file: DBFile,
     Segment.persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
+      mmapReads = segmentConfig.mmapReads,
+      mmapWrites = segmentConfig.mmapWrites,
       segments = segments
     )
   }
@@ -259,8 +318,8 @@ protected case class PersistentSegmentOne(file: DBFile,
     Segment.persistent(
       pathsDistributor = pathsDistributor,
       createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
+      mmapReads = segmentConfig.mmapReads,
+      mmapWrites = segmentConfig.mmapWrites,
       segments = segments
     )
   }

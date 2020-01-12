@@ -262,8 +262,6 @@ private[core] object Segment extends LazyLogging {
                 PersistentSegmentOne(
                   file = file,
                   createdInLevel = createdInLevel,
-                  mmapReads = mmapReads,
-                  mmapWrites = mmapWrites,
                   segment = segment
                 )
 
@@ -271,8 +269,6 @@ private[core] object Segment extends LazyLogging {
                 PersistentSegmentMany(
                   file = file,
                   createdInLevel = createdInLevel,
-                  mmapReads = mmapReads,
-                  mmapWrites = mmapWrites,
                   segment = segment
                 )
             }
@@ -531,8 +527,6 @@ private[core] object Segment extends LazyLogging {
       PersistentSegmentOne(
         file = file,
         createdInLevel = createdInLevel,
-        mmapReads = mmapReads,
-        mmapWrites = mmapWrites,
         minKey = minKey,
         maxKey = maxKey,
         segmentSize = segmentSize,
@@ -549,8 +543,6 @@ private[core] object Segment extends LazyLogging {
       PersistentSegmentMany(
         file = file,
         createdInLevel = createdInLevel,
-        mmapReads = mmapReads,
-        mmapWrites = mmapWrites,
         minKey = minKey,
         maxKey = maxKey,
         segmentSize = segmentSize,
@@ -602,60 +594,19 @@ private[core] object Segment extends LazyLogging {
           checkExists = checkExists
         )
 
-    val refReader = BlockRefReader(file)
+    val formatId = file.get(0)
 
-    val segmentBlockCache =
-      SegmentBlockCache(
-        path = Paths.get("Reading segment"),
-        segmentIO = segmentIO,
-        blockRef = refReader,
-        valuesReaderCacheable = None,
-        sortedIndexReaderCacheable = None,
-        hashIndexReaderCacheable = None,
-        binarySearchIndexReaderCacheable = None,
-        bloomFilterReaderCacheable = None,
-        footerCacheable = None
-      )
-
-    val footer = segmentBlockCache.getFooter()
-    val sortedIndexReader = segmentBlockCache.createSortedIndexReader()
-    val valuesReaderOrNull = segmentBlockCache.createValuesReaderOrNull()
-
-    val keyValues =
-      SortedIndexBlock.toSlice(
-        keyValueCount = footer.keyValueCount,
-        sortedIndexReader = sortedIndexReader,
-        valuesReaderOrNull = valuesReaderOrNull
-      )
+    val segment =
+      if (formatId == PersistentSegmentOne.formatId)
+        PersistentSegmentOne(file = file)
+      else if (formatId == PersistentSegmentMany.formatId)
+        PersistentSegmentMany(file = file)
+      else
+        throw new Exception(s"Invalid Segment formatId: $formatId")
 
     file.close()
 
-    val deadlineMinMaxFunctionId = DeadlineAndFunctionId(keyValues)
-
-    PersistentSegmentOne(
-      file = file,
-      createdInLevel = createdInLevel,
-      mmapReads = mmapReads,
-      mmapWrites = mmapWrites,
-      minKey = keyValues.head.key.unslice(),
-      maxKey =
-        keyValues.last match {
-          case fixed: KeyValue.Fixed =>
-            MaxKey.Fixed(fixed.key.unslice())
-
-          case range: KeyValue.Range =>
-            MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
-        },
-      minMaxFunctionId = deadlineMinMaxFunctionId.minMaxFunctionId,
-      segmentSize = refReader.offset.size,
-      nearestExpiryDeadline = deadlineMinMaxFunctionId.nearestDeadline,
-      valuesReaderCacheable = segmentBlockCache.valuesReaderCacheable,
-      sortedIndexReaderCacheable = segmentBlockCache.sortedIndexReaderCacheable,
-      hashIndexReaderCacheable = segmentBlockCache.hashIndexReaderCacheable,
-      binarySearchIndexReaderCacheable = segmentBlockCache.binarySearchIndexReaderCacheable,
-      bloomFilterReaderCacheable = segmentBlockCache.bloomFilterReaderCacheable,
-      footerCacheable = segmentBlockCache.footerCacheable
-    )
+    segment
   }
 
   def segmentSizeForMerge(segment: Segment): Int =
