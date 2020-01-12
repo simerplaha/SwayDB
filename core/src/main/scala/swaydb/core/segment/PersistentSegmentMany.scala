@@ -40,13 +40,11 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.{MaxKey, Reserve}
 import swaydb.{Error, IO}
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.compat._
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
@@ -217,7 +215,7 @@ protected object PersistentSegmentMany {
     val segmentRefKeyValues =
       listSegment
         .iterator()
-        .to(new SliceFactory(footer.keyValueCount))
+        .toList
 
     val deadlineFunctionId = DeadlineAndFunctionId(segmentRefKeyValues)
 
@@ -631,7 +629,7 @@ protected case class PersistentSegmentMany(file: DBFile,
     Segment.getAllKeyValuesRef(segmentRefs)
 
   override def iterator(): Iterator[Persistent] =
-    segmentRefs.foldLeft(Iterator.empty[Persistent]) {
+    segmentRefs.foldLeft(List.empty[Persistent].iterator) {
       case (iterator, segment) =>
         iterator ++ segment.iterator()
     }

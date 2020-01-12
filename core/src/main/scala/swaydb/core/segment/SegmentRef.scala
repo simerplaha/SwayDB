@@ -42,6 +42,7 @@ import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.compat._
 
 private[core] sealed trait SegmentRefOptional extends SomeOrNone[SegmentRefOptional, SegmentRef] {
   override def noneS: SegmentRefOptional = SegmentRef.Null
