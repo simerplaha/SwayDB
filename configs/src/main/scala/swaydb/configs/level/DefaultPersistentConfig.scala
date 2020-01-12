@@ -76,7 +76,7 @@ object DefaultPersistentConfig {
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -109,7 +109,7 @@ object DefaultPersistentConfig {
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segment =

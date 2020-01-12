@@ -19,5 +19,4 @@
 
 package swaydb.macros
 
-object Test {
-}
+class Test
