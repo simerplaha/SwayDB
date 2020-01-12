@@ -21,13 +21,25 @@ package swaydb.data
 
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.SomeOrNoneCovariant
 
-sealed trait MaxKey[T] {
+sealed trait MaxKeyOrNull[+T] extends SomeOrNoneCovariant[MaxKeyOrNull[T], MaxKey[T]] {
+  override def noneC: MaxKeyOrNull[Nothing] = MaxKey.Null
+}
+
+sealed trait MaxKey[+T] extends MaxKeyOrNull[T] {
   def maxKey: T
   def inclusive: Boolean
+  override def isNoneC: Boolean = false
+  override def getC: MaxKey[T] = this
 }
 
 object MaxKey {
+
+  final case object Null extends MaxKeyOrNull[Nothing] {
+    override def isNoneC: Boolean = true
+    override def getC: MaxKey[Nothing] = throw new Exception("MaxKey is of type Null")
+  }
 
   implicit class MaxKeyImplicits(maxKey: MaxKey[Slice[Byte]]) {
     @inline final def unslice() =
@@ -45,11 +57,11 @@ object MaxKey {
     }
   }
 
-  case class Fixed[T](maxKey: T) extends MaxKey[T] {
+  case class Fixed[+T](maxKey: T) extends MaxKey[T] {
     override def inclusive: Boolean = true
   }
 
-  case class Range[T](fromKey: T, maxKey: T) extends MaxKey[T] {
+  case class Range[+T](fromKey: T, maxKey: T) extends MaxKey[T] {
     override def inclusive: Boolean = false
   }
 }

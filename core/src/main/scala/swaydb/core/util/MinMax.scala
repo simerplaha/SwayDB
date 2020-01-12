@@ -29,6 +29,14 @@ import scala.annotation.tailrec
 
 private[core] object MinMax {
 
+  implicit class MinMaxByteImplicits(minMax: MinMax[Slice[Byte]]) {
+    def unslice(): MinMax[Slice[Byte]] =
+      MinMax(
+        min = minMax.min.unslice(),
+        max = minMax.max.unslice()
+      )
+  }
+
   private def minimum[T](left: T,
                          right: T)(implicit ordering: Ordering[T]): T =
     if (ordering.compare(left, right) <= 0)

@@ -463,20 +463,7 @@ sealed trait SegmentWriteSpec extends TestBase {
                     path = segment.path,
                     mmapReads = randomBoolean(),
                     checkExists = randomBoolean()
-                  ).runRandomIO.right.value
-
-                try {
-                  readSegment shouldBe segment
-                } catch {
-                  case exception: Exception =>
-                    Segment(
-                      path = segment.path,
-                      mmapReads = randomBoolean(),
-                      checkExists = randomBoolean()
-                    )
-
-                    throw exception
-                }
+                  )
               }
           )
         }

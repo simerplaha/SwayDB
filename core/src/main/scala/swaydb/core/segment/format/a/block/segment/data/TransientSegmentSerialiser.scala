@@ -94,8 +94,8 @@ object TransientSegmentSerialiser {
           val segmentSize = valueReader.readUnsignedInt()
           SegmentRef(
             path = path.resolve(s".ref.$segmentOffset"),
-            minKey = range.fromKey,
-            maxKey = MaxKey.Fixed(range.toKey),
+            minKey = range.fromKey.unslice(),
+            maxKey = MaxKey.Fixed(range.toKey.unslice()),
             blockRef =
               BlockRefReader(
                 ref = reader,
@@ -116,8 +116,8 @@ object TransientSegmentSerialiser {
           val maxKeyMinKey = valueReader.readRemaining()
           SegmentRef(
             path = path.resolve(s".ref.$segmentOffset"),
-            minKey = range.fromKey,
-            maxKey = MaxKey.Range(maxKeyMinKey, range.toKey),
+            minKey = range.fromKey.unslice(),
+            maxKey = MaxKey.Range(maxKeyMinKey.unslice(), range.toKey.unslice()),
             blockRef =
               BlockRefReader(
                 ref = reader,
@@ -160,7 +160,7 @@ object TransientSegmentSerialiser {
       SegmentRef(
         path = path.resolve(s".ref.$segmentOffset"),
         minKey = put.key,
-        maxKey = MaxKey.Fixed(put.key),
+        maxKey = MaxKey.Fixed(put.key.unslice()),
         blockRef =
           BlockRefReader(
             ref = reader,
@@ -181,8 +181,8 @@ object TransientSegmentSerialiser {
       val maxKeyMinKey = valueReader.readRemaining()
       SegmentRef(
         path = path.resolve(s".ref.$segmentOffset"),
-        minKey = put.key,
-        maxKey = MaxKey.Range(maxKeyMinKey, put.key),
+        minKey = put.key.unslice(),
+        maxKey = MaxKey.Range(maxKeyMinKey.unslice(), put.key.unslice()),
         blockRef =
           BlockRefReader(
             ref = reader,

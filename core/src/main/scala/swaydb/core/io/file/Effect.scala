@@ -204,6 +204,9 @@ private[core] object Effect extends LazyLogging {
   def folderId(path: Path): Long =
     path.getFileName.toString.toLong
 
+  def fileExtension(path: Path): Extension =
+    fileId(path)._2
+
   def fileId(path: Path): (Long, Extension) = {
     val fileName = path.getFileName.toString
     val extensionIndex = fileName.lastIndexOf(".")
