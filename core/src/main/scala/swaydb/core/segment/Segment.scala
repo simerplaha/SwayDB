@@ -19,10 +19,11 @@
 
 package swaydb.core.segment
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
+import swaydb.IO
 import swaydb.IO._
 import swaydb.core.actor.{FileSweeper, FileSweeperItem, MemorySweeper}
 import swaydb.core.data._
@@ -33,10 +34,9 @@ import swaydb.core.map.Map
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
-import swaydb.core.segment.format.a.block.reader.BlockRefReader
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
 import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
-import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCache}
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
@@ -47,11 +47,10 @@ import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.util.SomeOrNone
-import swaydb.IO
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
 import scala.collection.compat._
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
