@@ -63,12 +63,9 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
           .mapRecoverIO {
             segmentPath =>
               IO {
-                val levelNumber = levelPath.getFileName.toString.toInt
                 Segment(
                   path = segmentPath,
-                  createdInLevel = levelNumber,
                   mmapReads = false,
-                  mmapWrites = false,
                   checkExists = true
                 )(keyOrder, timeOrder, functionStore, None, memorySweeper, fileSweeper)
               }

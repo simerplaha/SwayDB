@@ -107,7 +107,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               shouldPrefixCompress = _ % 5 == 0,
               prefixCompressKeysOnly = true,
               enableAccessPositionIndex = true,
-              normaliseIndex = false,
+              normaliseIndex = true,
               compressions = _ => Seq.empty
             ),
           binarySearchIndexConfig =
@@ -129,17 +129,17 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
               compressions = _ => Seq.empty
             ),
-          hashIndexConfig =
-            HashIndexBlock.Config(
-              maxProbe = 5,
-              format = HashIndexEntryFormat.Reference,
-              minimumNumberOfKeys = 5,
-              minimumNumberOfHits = 5,
-              allocateSpace = _.requiredSpace,
-              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
-              compressions = _ => Seq.empty
-            ),
-          //          hashIndexConfig = HashIndexBlock.Config.disabled,
+//          hashIndexConfig =
+//            HashIndexBlock.Config(
+//              maxProbe = 5,
+//              format = HashIndexEntryFormat.Reference,
+//              minimumNumberOfKeys = 5,
+//              minimumNumberOfHits = 5,
+//              allocateSpace = _.requiredSpace,
+//              ioStrategy = _ => IOStrategy.ConcurrentIO(cacheOnAccess = true),
+//              compressions = _ => Seq.empty
+//            ),
+                    hashIndexConfig = HashIndexBlock.Config.disabled,
           bloomFilterConfig =
             BloomFilterBlock.Config.disabled,
           //        BloomFilterBlock.Config(
@@ -161,12 +161,12 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               },
               cacheBlocksOnCreate = false,
               minSize = Int.MaxValue,
-              maxCount = keyValuesCount,
+              maxCount = keyValuesCount / 100,
               pushForward = false,
               mmapWrites = mmapSegmentsOnWrite,
               mmapReads = mmapSegmentsOnRead,
               deleteEventually = false,
-              compressions = _ => Seq(randomCompressionLZ4())
+              compressions = _ => Seq.empty
             )
         )
     }

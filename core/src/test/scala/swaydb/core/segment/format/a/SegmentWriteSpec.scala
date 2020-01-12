@@ -81,7 +81,7 @@ class SegmentWriteSpec3 extends SegmentWriteSpec {
 
 sealed trait SegmentWriteSpec extends TestBase {
 
-  val keyValuesCount = 100
+  val keyValuesCount = 10
 
   implicit val testTimer: TestTimer = TestTimer.Empty
 
@@ -448,22 +448,35 @@ sealed trait SegmentWriteSpec extends TestBase {
       if (memory) {
         //memory Segments cannot re-initialise Segments after shutdown.
       } else {
-        runThis(10.times) {
+        runThis(100.times, log = true) {
           assertSegment(
-            keyValues = randomizedKeyValues(keyValuesCount),
+            keyValues = randomizedKeyValues(keyValuesCount, startId = Some(0)),
+
+            segmentConfig =
+              SegmentBlock.Config.random.copy(maxCount = 5),
+
             assert =
               (keyValues, segment) => {
                 implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = orNone(TestSweeper.keyValueSweeperBlock)
                 val readSegment =
                   Segment(
                     path = segment.path,
-                    createdInLevel = segment.createdInLevel,
                     mmapReads = randomBoolean(),
-                    mmapWrites = randomBoolean(),
-                    checkExists = false
+                    checkExists = randomBoolean()
                   ).runRandomIO.right.value
 
-                readSegment shouldBe segment
+                try {
+                  readSegment shouldBe segment
+                } catch {
+                  case exception: Exception =>
+                    Segment(
+                      path = segment.path,
+                      mmapReads = randomBoolean(),
+                      checkExists = randomBoolean()
+                    )
+
+                    throw exception
+                }
               }
           )
         }

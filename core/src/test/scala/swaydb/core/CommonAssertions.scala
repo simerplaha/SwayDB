@@ -544,14 +544,18 @@ object CommonAssertions {
 
     def shouldBe(expected: Segment): Unit = {
       actual.path shouldBe expected.path
+      actual.segmentId shouldBe expected.segmentId
       actual.segmentSize shouldBe expected.segmentSize
       actual.minKey shouldBe expected.minKey
       actual.maxKey shouldBe expected.maxKey
+      actual.hasRange shouldBe expected.hasRange
+      actual.hasPut shouldBe expected.hasPut
+      actual.hasBloomFilter shouldBe expected.hasBloomFilter
       actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
+      actual.nearestPutDeadline shouldBe expected.nearestPutDeadline
       actual.getKeyValueCount().runRandomIO.right.value shouldBe expected.getKeyValueCount().runRandomIO.right.value
       actual.persistent shouldBe actual.persistent
       actual.existsOnDisk shouldBe expected.existsOnDisk
-      actual.minMaxFunctionId shouldBe expected.minMaxFunctionId
       actual.segmentId shouldBe expected.segmentId
       assertReads(expected.toSlice().runRandomIO.right.value, actual)
     }

@@ -40,6 +40,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.slice.Slice.SliceFactory
 import swaydb.data.slice.{Slice, SliceOptional}
 import swaydb.data.{MaxKey, Reserve}
 import swaydb.{Error, IO}
@@ -153,14 +154,14 @@ protected object PersistentSegmentMany {
         reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"${file.path}: ${this.getClass.getSimpleName}"))
       ) {
         (initial, self) => //initial set clean up.
-          blockCacheMemorySweeper foreach {
-            cacheMemorySweeper =>
-              cacheMemorySweeper.add(initial.size * 500, self)
-          }
+        //          blockCacheMemorySweeper foreach {
+        //            cacheMemorySweeper =>
+        //              cacheMemorySweeper.add(initial.size * 500, self)
+        //          }
       } {
         (_, self) =>
           IO {
-            parseListSegment(
+            parseSkipList(
               file = file,
               minKey = minKey,
               maxKey = maxKey,
@@ -182,8 +183,12 @@ protected object PersistentSegmentMany {
   }
 
   def apply(file: DBFile)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                          timeOrder: TimeOrder[Slice[Byte]],
+                          functionStore: FunctionStore,
                           keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                           blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                          blockCache: Option[BlockCache.State],
+                          fileSweeper: FileSweeper.Enabled,
                           segmentIO: SegmentIO): PersistentSegmentMany = {
     val fileBlockRef: BlockRefReader[SegmentBlock.Offset] =
       BlockRefReader(
@@ -192,7 +197,7 @@ protected object PersistentSegmentMany {
         fileSize = file.fileSize.toInt - 1
       )
 
-    val skipList =
+    val listSegment =
       parseListSegment(
         file = file,
         minKey = null,
@@ -200,18 +205,40 @@ protected object PersistentSegmentMany {
         fileBlockRef = fileBlockRef
       )
 
-    skipList
+    val footer = listSegment.getFooter()
 
-    ???
+    val keyValues = listSegment.iterator().to(new SliceFactory(footer.keyValueCount))
+
+    val maxKey =
+      keyValues.last match {
+        case fixed: Persistent.Fixed =>
+          MaxKey.Fixed(fixed.key.unslice())
+
+        case range: Persistent.Range =>
+          MaxKey.Range(range.fromKey.unslice(), range.toKey.unslice())
+      }
+
+    val deadlineFunctionId = DeadlineAndFunctionId(keyValues)
+
+    PersistentSegmentMany(
+      file = file,
+      segmentSize = file.fileSize.toInt,
+      createdInLevel = footer.createdInLevel,
+      minKey = keyValues.head.key.unslice(),
+      maxKey = maxKey,
+      minMaxFunctionId = deadlineFunctionId.minMaxFunctionId,
+      nearestExpiryDeadline = deadlineFunctionId.nearestDeadline,
+      initial = None
+    )
   }
 
-  private def parseListSegment(file: DBFile,
-                               minKey: Slice[Byte],
-                               maxKey: MaxKey[Slice[Byte]],
-                               fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
-                                                                                  blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                                  segmentIO: SegmentIO): SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef] = {
+  private def parseSkipList(file: DBFile,
+                            minKey: Slice[Byte],
+                            maxKey: MaxKey[Slice[Byte]],
+                            fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                               keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                               blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                                                               segmentIO: SegmentIO): SkipList.Immutable[SliceOptional[Byte], SegmentRefOptional, Slice[Byte], SegmentRef] = {
     val blockedReader: BlockRefReader[SegmentBlock.Offset] = fileBlockRef.copy()
     val listSegmentSize = blockedReader.readUnsignedInt()
     val listSegment = blockedReader.read(listSegmentSize)
@@ -301,6 +328,34 @@ protected object PersistentSegmentMany {
 
     skipList
   }
+
+  private def parseListSegment(file: DBFile,
+                               minKey: Slice[Byte],
+                               maxKey: MaxKey[Slice[Byte]],
+                               fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                  keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                                  blockCacheMemorySweeper: Option[MemorySweeper.Block],
+                                                                                  segmentIO: SegmentIO): SegmentRef = {
+    val blockedReader: BlockRefReader[SegmentBlock.Offset] = fileBlockRef.copy()
+    val listSegmentSize = blockedReader.readUnsignedInt()
+    val listSegment = blockedReader.read(listSegmentSize)
+    val listSegmentRef = BlockRefReader[SegmentBlock.Offset](listSegment)
+
+    SegmentRef(
+      path = file.path,
+      minKey = minKey,
+      maxKey = maxKey,
+      blockRef = listSegmentRef,
+      segmentIO = segmentIO,
+      valuesReaderCacheable = None,
+      sortedIndexReaderCacheable = None,
+      hashIndexReaderCacheable = None,
+      binarySearchIndexReaderCacheable = None,
+      bloomFilterReaderCacheable = None,
+      footerCacheable = None
+    )
+  }
+
 }
 
 protected case class PersistentSegmentMany(file: DBFile,

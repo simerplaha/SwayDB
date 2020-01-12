@@ -225,9 +225,6 @@ private[swaydb] object Value {
         applies = applies
       )
 
-    def deadline =
-      Segment.getNearestDeadline(scala.None, applies)
-
     override def toPutMayBe(key: Slice[Byte]): Option[Memory.Put] =
       scala.None
 

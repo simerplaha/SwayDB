@@ -569,7 +569,7 @@ private[swaydb] object Memory {
         )
 
     override val deadline =
-      Segment.getNearestDeadline(None, applies)
+      None
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 

@@ -563,9 +563,7 @@ private[core] object Segment extends LazyLogging {
    * This function is only used for Appendix file recovery initialization.
    */
   def apply(path: Path,
-            createdInLevel: Int,
             mmapReads: Boolean,
-            mmapWrites: Boolean,
             checkExists: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
@@ -859,37 +857,39 @@ private[core] object Segment extends LazyLogging {
       }
     } getOrElse false
 
-  def getNearestDeadline(deadline: Option[Deadline],
-                         next: KeyValue): Option[Deadline] =
+  def getNearestPutDeadline(deadline: Option[Deadline],
+                            next: KeyValue): Option[Deadline] =
     next match {
       case readOnly: KeyValue.Put =>
         FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
 
-      case readOnly: KeyValue.Remove =>
-        FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
+      case _: KeyValue.Remove =>
+        //        FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
+        deadline
 
-      case readOnly: KeyValue.Update =>
-        FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
+      case _: KeyValue.Update =>
+        //        FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
+        deadline
 
-      case readOnly: KeyValue.PendingApply =>
-        FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
+      case _: KeyValue.PendingApply =>
+        //        FiniteDurations.getNearestDeadline(deadline, readOnly.deadline)
+        deadline
 
       case _: KeyValue.Function =>
         deadline
 
       case range: KeyValue.Range =>
         range.fetchFromAndRangeValueUnsafe match {
-          case (fromValue: Value.FromValue, rangeValue) =>
-            val fromValueDeadline = getNearestDeadline(deadline, fromValue)
-            getNearestDeadline(fromValueDeadline, rangeValue)
+          case (fromValue: Value.FromValue, _) =>
+            getNearestPutDeadline(deadline, fromValue)
 
-          case (Value.FromValue.Null, rangeValue) =>
-            getNearestDeadline(deadline, rangeValue)
+          case (Value.FromValue.Null, _) =>
+            deadline
         }
     }
 
-  def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: Memory): Option[Deadline] =
+  def getNearestPutDeadline(deadline: Option[Deadline],
+                            keyValue: Memory): Option[Deadline] =
     keyValue match {
       case writeOnly: Memory.Fixed =>
         FiniteDurations.getNearestDeadline(deadline, writeOnly.deadline)
@@ -897,49 +897,50 @@ private[core] object Segment extends LazyLogging {
       case range: Memory.Range =>
         (range.fromValue, range.rangeValue) match {
           case (fromValue: Value.FromValue, rangeValue) =>
-            val fromValueDeadline = getNearestDeadline(deadline, fromValue)
-            getNearestDeadline(fromValueDeadline, rangeValue)
+            val fromValueDeadline = getNearestPutDeadline(deadline, fromValue)
+            getNearestPutDeadline(fromValueDeadline, rangeValue)
 
           case (Value.FromValue.Null, rangeValue) =>
-            getNearestDeadline(deadline, rangeValue)
+            getNearestPutDeadline(deadline, rangeValue)
         }
     }
 
-  def getNearestDeadline(deadline: Option[Deadline],
-                         keyValue: Value.FromValue): Option[Deadline] =
+  def getNearestPutDeadline(deadline: Option[Deadline],
+                            keyValue: Value.FromValue): Option[Deadline] =
     keyValue match {
-      case rangeValue: Value.RangeValue =>
-        getNearestDeadline(deadline, rangeValue)
+      case _: Value.RangeValue =>
+        //        getNearestDeadline(deadline, rangeValue)
+        deadline
 
       case put: Value.Put =>
         FiniteDurations.getNearestDeadline(deadline, put.deadline)
     }
 
-  def getNearestDeadline(deadline: Option[Deadline],
-                         rangeValue: Value.RangeValue): Option[Deadline] =
-    rangeValue match {
-      case remove: Value.Remove =>
-        FiniteDurations.getNearestDeadline(deadline, remove.deadline)
-      case update: Value.Update =>
-        FiniteDurations.getNearestDeadline(deadline, update.deadline)
-      case _: Value.Function =>
-        deadline
-      case pendingApply: Value.PendingApply =>
-        FiniteDurations.getNearestDeadline(deadline, pendingApply.deadline)
-    }
+  //  def getNearestDeadline(deadline: Option[Deadline],
+  //                         rangeValue: Value.RangeValue): Option[Deadline] =
+  //    rangeValue match {
+  //      case remove: Value.Remove =>
+  //        FiniteDurations.getNearestDeadline(deadline, remove.deadline)
+  //      case update: Value.Update =>
+  //        FiniteDurations.getNearestDeadline(deadline, update.deadline)
+  //      case _: Value.Function =>
+  //        deadline
+  //      case pendingApply: Value.PendingApply =>
+  //        FiniteDurations.getNearestDeadline(deadline, pendingApply.deadline)
+  //    }
 
-  def getNearestDeadline(previous: Option[Deadline],
-                         applies: Slice[Value.Apply]): Option[Deadline] =
-    applies.foldLeft(previous) {
-      case (deadline, apply) =>
-        getNearestDeadline(
-          deadline = deadline,
-          rangeValue = apply
-        )
-    }
+  //  def getNearestDeadline(previous: Option[Deadline],
+  //                         applies: Slice[Value.Apply]): Option[Deadline] =
+  //    applies.foldLeft(previous) {
+  //      case (deadline, apply) =>
+  //        getNearestDeadline(
+  //          deadline = deadline,
+  //          rangeValue = apply
+  //        )
+  //    }
 
   def getNearestDeadline(keyValues: Iterable[KeyValue]): Option[Deadline] =
-    keyValues.foldLeftRecover(Option.empty[Deadline])(getNearestDeadline)
+    keyValues.foldLeftRecover(Option.empty[Deadline])(getNearestPutDeadline)
 
   def getNearestDeadlineSegment(previous: Segment,
                                 next: Segment): SegmentOptional =

@@ -20,7 +20,7 @@
 package swaydb.core.segment
 
 import swaydb.core.data.{KeyValue, Value}
-import swaydb.core.segment.Segment.getNearestDeadline
+import swaydb.core.segment.Segment.getNearestPutDeadline
 import swaydb.core.util.{FiniteDurations, MinMax}
 import swaydb.data.slice.Slice
 
@@ -57,22 +57,22 @@ protected object DeadlineAndFunctionId {
           minMaxFunctionId = minMaxFunctionId
         )
 
-      case readOnly: KeyValue.Remove =>
+      case _: KeyValue.Remove =>
         DeadlineAndFunctionId(
-          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          deadline = deadline,
           minMaxFunctionId = minMaxFunctionId
         )
 
-      case readOnly: KeyValue.Update =>
+      case _: KeyValue.Update =>
         DeadlineAndFunctionId(
-          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          deadline = deadline,
           minMaxFunctionId = minMaxFunctionId
         )
 
       case readOnly: KeyValue.PendingApply =>
         val applies = readOnly.getOrFetchApplies
         DeadlineAndFunctionId(
-          deadline = FiniteDurations.getNearestDeadline(deadline, readOnly.deadline),
+          deadline = deadline,
           minMaxFunctionId = MinMax.minMaxFunction(applies, minMaxFunctionId)
         )
 
@@ -85,15 +85,15 @@ protected object DeadlineAndFunctionId {
       case range: KeyValue.Range =>
         range.fetchFromAndRangeValueUnsafe match {
           case (fromValue: Value.FromValue, rangeValue) =>
-            val fromValueDeadline = getNearestDeadline(deadline, fromValue)
+            val fromValueDeadline = getNearestPutDeadline(deadline, fromValue)
             DeadlineAndFunctionId(
-              deadline = getNearestDeadline(fromValueDeadline, rangeValue),
+              deadline = getNearestPutDeadline(fromValueDeadline, rangeValue),
               minMaxFunctionId = MinMax.minMaxFunction(fromValue, rangeValue, minMaxFunctionId)
             )
 
           case (Value.FromValue.Null, rangeValue) =>
             DeadlineAndFunctionId(
-              deadline = getNearestDeadline(deadline, rangeValue),
+              deadline = getNearestPutDeadline(deadline, rangeValue),
               minMaxFunctionId = MinMax.minMaxFunction(Value.FromValue.Null, rangeValue, minMaxFunctionId)
             )
         }
