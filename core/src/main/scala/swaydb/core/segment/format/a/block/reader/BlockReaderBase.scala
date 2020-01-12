@@ -21,7 +21,7 @@ package swaydb.core.segment.format.a.block.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.segment.format.a.block.BlockOffset
-import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOptional}
+import swaydb.data.slice.{Reader, ReaderBase, Slice, SliceOption}
 
 /**
  * Defers [[ReaderBase]] related operations to [[BlockReader]].
@@ -59,7 +59,7 @@ private[block] trait BlockReaderBase extends ReaderBase with LazyLogging {
   def readFullBlock(): Slice[Byte] =
     BlockReader readFullBlock state
 
-  def readFullBlockOrNone(): SliceOptional[Byte] =
+  def readFullBlockOrNone(): SliceOption[Byte] =
     if (offset.size == 0)
       Slice.Null
     else

@@ -30,20 +30,20 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-private[core] sealed trait KeyValueOptional {
+private[core] sealed trait KeyValueOption {
   def getUnsafe: KeyValue
 
   def toOptional: Option[KeyValue] =
     this match {
-      case optional: MemoryOptional =>
+      case optional: MemoryOption =>
         optional.toOptionS
 
-      case optional: PersistentOptional =>
+      case optional: PersistentOption =>
         optional.toOptionS
     }
 }
@@ -60,7 +60,7 @@ private[core] sealed trait KeyValue {
 
 private[core] object KeyValue {
 
-  sealed trait Null extends KeyValueOptional
+  sealed trait Null extends KeyValueOption
 
   /**
    * Key-values that can be added to [[swaydb.core.actor.MemorySweeper]].
@@ -82,7 +82,7 @@ private[core] object KeyValue {
     def time: Time
   }
 
-  sealed trait PutOptional {
+  sealed trait PutOption {
     def getPut: KeyValue.Put
     def isNoneS: Boolean
     def isSome: Boolean =
@@ -116,19 +116,19 @@ private[core] object KeyValue {
       else
         Some(getPut)
 
-    def flatMap(put: KeyValue.Put => PutOptional): PutOptional =
+    def flatMap(put: KeyValue.Put => PutOption): PutOption =
       if (isNoneS)
         this
       else
         put(getPut)
 
-    def getOrElse(f: => PutOptional): PutOptional =
+    def getOrElse(f: => PutOption): PutOption =
       if (isSome)
         this
       else
         f
 
-    def orElse(f: => PutOptional): PutOptional =
+    def orElse(f: => PutOption): PutOption =
       if (isNoneS)
         f
       else
@@ -146,7 +146,7 @@ private[core] object KeyValue {
       else
         f(getPut)
 
-    def mapSliceOptional(f: KeyValue.Put => SliceOptional[Byte]): SliceOptional[Byte] =
+    def mapSliceOptional(f: KeyValue.Put => SliceOption[Byte]): SliceOption[Byte] =
       if (isNoneS)
         Slice.Null
       else
@@ -154,19 +154,19 @@ private[core] object KeyValue {
   }
 
   object Put {
-    final case object Null extends PutOptional {
+    final case object Null extends PutOption {
       override def getPut: KeyValue.Put = throw new Exception("KeyValue.Put is of type Null")
       override def isNoneS: Boolean = true
     }
   }
 
-  sealed trait Put extends KeyValue.Fixed with PutOptional {
+  sealed trait Put extends KeyValue.Fixed with PutOption {
     def valueLength: Int
     def deadline: Option[Deadline]
     def hasTimeLeft(): Boolean
     def isOverdue(): Boolean = !hasTimeLeft()
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
-    def getOrFetchValue: SliceOptional[Byte]
+    def getOrFetchValue: SliceOption[Byte]
     def time: Time
     def toFromValue(): Value.Put
     def copyWithDeadlineAndTime(deadline: Option[Deadline], time: Time): KeyValue.Put
@@ -190,7 +190,7 @@ private[core] object KeyValue {
     def isOverdue(): Boolean = !hasTimeLeft()
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean
     def time: Time
-    def getOrFetchValue: SliceOptional[Byte]
+    def getOrFetchValue: SliceOption[Byte]
     def toFromValue(): Value.Update
     def toPut(): KeyValue.Put
     def toPut(deadline: Option[Deadline]): KeyValue.Put
@@ -235,21 +235,21 @@ private[core] object KeyValue {
 
 }
 
-private[swaydb] sealed trait MemoryOptional extends SomeOrNone[MemoryOptional, Memory] with KeyValueOptional {
-  override def noneS: MemoryOptional = Memory.Null
+private[swaydb] sealed trait MemoryOption extends SomeOrNone[MemoryOption, Memory] with KeyValueOption {
+  override def noneS: MemoryOption = Memory.Null
 
   override def getUnsafe: KeyValue =
     getS
 }
 
-private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
+private[swaydb] sealed trait Memory extends KeyValue with MemoryOption {
   def id: Byte
   def isRange: Boolean
   def isRemoveRangeMayBe: Boolean
   def isPut: Boolean
   def persistentTime: Time
   def mergedKey: Slice[Byte]
-  def value: SliceOptional[Byte]
+  def value: SliceOption[Byte]
   def deadline: Option[Deadline]
 
   def unslice(): Memory
@@ -263,7 +263,7 @@ private[swaydb] sealed trait Memory extends KeyValue with MemoryOptional {
 
 private[swaydb] object Memory {
 
-  final case object Null extends MemoryOptional with KeyValue.Null {
+  final case object Null extends MemoryOption with KeyValue.Null {
     override val isNoneS: Boolean = true
 
     override def getS: Memory =
@@ -295,7 +295,7 @@ private[swaydb] object Memory {
   }
 
   //if value is empty byte slice, return None instead of empty Slice.We do not store empty byte arrays.
-  def compressibleValue(keyValue: Memory): SliceOptional[Byte] =
+  def compressibleValue(keyValue: Memory): SliceOption[Byte] =
     if (keyValue.value.existsC(_.isEmpty))
       Slice.Null
     else
@@ -348,7 +348,7 @@ private[swaydb] object Memory {
     }
 
   case class Put(key: Slice[Byte],
-                 value: SliceOptional[Byte],
+                 value: SliceOption[Byte],
                  deadline: Option[Deadline],
                  time: Time) extends Memory.Fixed with KeyValue.Put {
 
@@ -367,12 +367,12 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = deadline
 
     def unslice(): Memory.Put =
-      if (key.isOriginalFullSlice && value.isUnslicedOptional && time.time.isOriginalFullSlice)
+      if (key.isOriginalFullSlice && value.isUnslicedOption && time.time.isOriginalFullSlice)
         this
       else
         Put(
           key = key.unslice(),
-          value = value.unsliceOptional(),
+          value = value.unsliceOption(),
           deadline = deadline,
           time = time.unslice()
         )
@@ -386,7 +386,7 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: SliceOptional[Byte] =
+    override def getOrFetchValue: SliceOption[Byte] =
       if (value.existsC(_.isEmpty))
         Slice.Null
       else
@@ -415,7 +415,7 @@ private[swaydb] object Memory {
   }
 
   case class Update(key: Slice[Byte],
-                    value: SliceOptional[Byte],
+                    value: SliceOption[Byte],
                     deadline: Option[Deadline],
                     time: Time) extends KeyValue.Update with Memory.Fixed {
 
@@ -432,12 +432,12 @@ private[swaydb] object Memory {
     override def indexEntryDeadline: Option[Deadline] = deadline
 
     def unslice(): Memory.Update =
-      if (key.isOriginalFullSlice && value.isUnslicedOptional && time.time.isOriginalFullSlice)
+      if (key.isOriginalFullSlice && value.isUnslicedOption && time.time.isOriginalFullSlice)
         this
       else
         Update(
           key = key.unslice(),
-          value = value.unsliceOptional(),
+          value = value.unsliceOption(),
           deadline = deadline,
           time = time.unslice()
         )
@@ -448,7 +448,7 @@ private[swaydb] object Memory {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: SliceOptional[Byte] =
+    override def getOrFetchValue: SliceOption[Byte] =
       if (value.existsC(_.isEmpty))
         Slice.Null
       else
@@ -510,7 +510,7 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = None
 
-    override def value: SliceOptional[Byte] = function
+    override def value: SliceOption[Byte] = function
 
     override def deadline: Option[Deadline] = None
 
@@ -557,7 +557,7 @@ private[swaydb] object Memory {
 
     override def isRemoveRangeMayBe = false
 
-    override lazy val value: SliceOptional[Byte] = ValueSerializer.writeBytes(applies)
+    override lazy val value: SliceOption[Byte] = ValueSerializer.writeBytes(applies)
 
     def unslice(): Memory.PendingApply =
       if (key.isOriginalFullSlice && applies.forall(_.isUnsliced))
@@ -608,7 +608,7 @@ private[swaydb] object Memory {
 
     override def indexEntryDeadline: Option[Deadline] = deadline
 
-    override def value: SliceOptional[Byte] = Slice.Null
+    override def value: SliceOption[Byte] = Slice.Null
 
     override def unslice(): Memory.Remove =
       if (key.isOriginalFullSlice && time.time.isOriginalFullSlice)
@@ -687,7 +687,7 @@ private[swaydb] object Memory {
 
     override lazy val mergedKey: Slice[Byte] = Bytes.compressJoin(fromKey, toKey)
 
-    override lazy val value: SliceOptional[Byte] = {
+    override lazy val value: SliceOption[Byte] = {
       val bytesRequired = OptionRangeValueSerializer.bytesRequired(fromValue, rangeValue)
       val bytes = if (bytesRequired == 0) Slice.Null else Slice.create[Byte](bytesRequired)
       bytes.foreachC(OptionRangeValueSerializer.write(fromValue, rangeValue, _))
@@ -715,17 +715,17 @@ private[swaydb] object Memory {
   }
 }
 
-private[core] sealed trait PersistentOptional extends SomeOrNone[PersistentOptional, Persistent] with KeyValueOptional {
-  override def noneS: PersistentOptional = Persistent.Null
+private[core] sealed trait PersistentOption extends SomeOrNone[PersistentOption, Persistent] with KeyValueOption {
+  override def noneS: PersistentOption = Persistent.Null
 
-  def asPartial: Persistent.PartialOptional =
+  def asPartial: Persistent.PartialOption =
     if (this.isSomeS)
       getS
     else
       Persistent.Partial.Null
 }
 
-private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial with PersistentOptional {
+private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent.Partial with PersistentOption {
 
   def indexOffset: Int
   def nextIndexOffset: Int
@@ -750,7 +750,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
   def isValueCached: Boolean
 
-  def toMemoryOption(): MemoryOptional =
+  def toMemoryOption(): MemoryOption =
     toMemory()
 
   override def isNoneS: Boolean =
@@ -771,7 +771,7 @@ private[core] sealed trait Persistent extends KeyValue.CacheAble with Persistent
 
 private[core] object Persistent {
 
-  final case object Null extends PersistentOptional with KeyValue.Null {
+  final case object Null extends PersistentOption with KeyValue.Null {
     override val isNoneS: Boolean = true
     override def getS: Persistent = throw new Exception("get on Persistent key-value that is none")
     override def getUnsafe: KeyValue = getS
@@ -783,17 +783,17 @@ private[core] object Persistent {
    * and only key is read for processing.
    */
 
-  private[core] sealed trait PartialOptional extends SomeOrNoneCovariant[PartialOptional, Partial] {
-    override def noneC: PartialOptional = Partial.Null
+  private[core] sealed trait PartialOption extends SomeOrNoneCovariant[PartialOption, Partial] {
+    override def noneC: PartialOption = Partial.Null
 
-    def toPersistentOptional: PersistentOptional =
+    def toPersistentOptional: PersistentOption =
       if (isNoneC)
         Persistent.Null
       else
         getC.toPersistent
   }
 
-  sealed trait Partial extends PartialOptional {
+  sealed trait Partial extends PartialOption {
     /**
      * Flags used to indicated if this key-value was a successful binary search match.
      *
@@ -819,7 +819,7 @@ private[core] object Persistent {
 
   object Partial {
 
-    final case object Null extends PartialOptional {
+    final case object Null extends PartialOption {
       override val isNoneC: Boolean = true
       override def getC: Partial = throw new Exception("Partial is of type Null")
     }
@@ -970,7 +970,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, SliceOptional[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
@@ -980,7 +980,7 @@ private[core] object Persistent {
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlockOrNone()
-                  .unsliceOptional()
+                  .unsliceOption()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -994,7 +994,7 @@ private[core] object Persistent {
 
   case class Put(private var _key: Slice[Byte],
                  deadline: Option[Deadline],
-                 private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOptional[Byte]],
+                 private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOption[Byte]],
                  private var _time: Time,
                  nextIndexOffset: Int,
                  nextKeySize: Int,
@@ -1024,7 +1024,7 @@ private[core] object Persistent {
     def hasTimeLeftAtLeast(minus: FiniteDuration): Boolean =
       deadline.forall(deadline => (deadline - minus).hasTimeLeft())
 
-    override def getOrFetchValue: SliceOptional[Byte] =
+    override def getOrFetchValue: SliceOption[Byte] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def isValueCached: Boolean =
@@ -1074,7 +1074,7 @@ private[core] object Persistent {
         _key = key,
         deadline = deadline,
         valueCache =
-          Cache.noIO[ValuesBlock.Offset, SliceOptional[Byte]](synchronised = true, stored = true, initial = None) {
+          Cache.noIO[ValuesBlock.Offset, SliceOption[Byte]](synchronised = true, stored = true, initial = None) {
             (offset, _) =>
               if (offset.size == 0)
                 Slice.Null
@@ -1084,7 +1084,7 @@ private[core] object Persistent {
                 UnblockedReader.moveTo(offset, valuesReaderOrNull)
                   .copy()
                   .readFullBlockOrNone()
-                  .unsliceOptional()
+                  .unsliceOption()
           },
         _time = time,
         nextIndexOffset = nextIndexOffset,
@@ -1098,7 +1098,7 @@ private[core] object Persistent {
 
   case class Update(private var _key: Slice[Byte],
                     deadline: Option[Deadline],
-                    private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOptional[Byte]],
+                    private val valueCache: CacheNoIO[ValuesBlock.Offset, SliceOption[Byte]],
                     private var _time: Time,
                     nextIndexOffset: Int,
                     nextKeySize: Int,
@@ -1128,7 +1128,7 @@ private[core] object Persistent {
     override def isValueCached: Boolean =
       valueCache.isCached
 
-    def getOrFetchValue: SliceOptional[Byte] =
+    def getOrFetchValue: SliceOption[Byte] =
       valueCache.value(ValuesBlock.Offset(valueOffset, valueLength))
 
     override def toFromValue(): Value.Update =

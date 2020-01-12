@@ -27,11 +27,11 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.segment.{Segment, SegmentIO, SegmentOptional}
+import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.SkipList
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
@@ -64,7 +64,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+      val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
       readEntry applyTo skipList
       val scalaSkipList = skipList.asScala
 
@@ -89,7 +89,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+      val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
       readEntry applyTo skipList
       skipList shouldBe empty
     }
@@ -120,7 +120,7 @@ class AppendixMapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Segment]](Reader(slice))
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
+      val skipList = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(keyOrder)
       readEntry applyTo skipList
 
       def scalaSkipList = skipList.asScala

@@ -27,7 +27,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
-import swaydb.core.data.{Persistent, PersistentOptional, Time}
+import swaydb.core.data.{Persistent, PersistentOption, Time}
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.reader.UnblockedReader

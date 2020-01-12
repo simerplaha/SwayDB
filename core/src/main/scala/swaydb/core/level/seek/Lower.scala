@@ -37,8 +37,8 @@ private[core] object Lower {
    */
   def lowerFromValue(key: Slice[Byte],
                      fromKey: Slice[Byte],
-                     fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyValue.PutOptional =
-    fromValue.flatMapSomeS(KeyValue.Put.Null: KeyValue.PutOptional) {
+                     fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyValue.PutOption =
+    fromValue.flatMapSomeS(KeyValue.Put.Null: KeyValue.PutOption) {
       fromValue =>
         if (keyOrder.lt(fromKey, key))
           fromValue.toMemory(fromKey) match {
@@ -60,7 +60,7 @@ private[core] object Lower {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): KeyValue.PutOptional =
+           functionStore: FunctionStore): KeyValue.PutOption =
     Lower(key, readState, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   def seeker(key: Slice[Byte],
@@ -70,7 +70,7 @@ private[core] object Lower {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   currentWalker: CurrentWalker,
                                   nextWalker: NextWalker,
-                                  functionStore: FunctionStore): KeyValue.PutOptional =
+                                  functionStore: FunctionStore): KeyValue.PutOption =
     Lower(key, readState, currentSeek, nextSeek)
 
   /**
@@ -88,7 +88,7 @@ private[core] object Lower {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): KeyValue.PutOptional = {
+                                 functionStore: FunctionStore): KeyValue.PutOption = {
 
     import keyOrder._
     currentSeek match {

@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.core.data.{Persistent, PersistentOptional}
+import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice}
@@ -32,13 +32,13 @@ sealed trait ValueOffsetReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read(indexReader: ReaderBase,
-           previous: PersistentOptional): Int
+           previous: PersistentOption): Int
 }
 
 object ValueOffsetReader {
 
   private def readOffset(indexReader: ReaderBase,
-                         previous: PersistentOptional,
+                         previous: PersistentOption,
                          commonBytes: Int): Int =
     previous match {
       case previous: Persistent =>
@@ -56,7 +56,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: PersistentOptional): Int =
+                      previous: PersistentOption): Int =
       readOffset(indexReader, previous, 1)
   }
 
@@ -64,7 +64,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: PersistentOptional): Int =
+                      previous: PersistentOption): Int =
       readOffset(indexReader, previous, 2)
   }
 
@@ -72,7 +72,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: PersistentOptional): Int =
+                      previous: PersistentOption): Int =
       readOffset(indexReader, previous, 3)
   }
 
@@ -80,7 +80,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: PersistentOptional): Int =
+                      previous: PersistentOption): Int =
       indexReader.readUnsignedInt()
   }
 
@@ -88,7 +88,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = true
 
     override def read(indexReader: ReaderBase,
-                      previous: PersistentOptional): Int =
+                      previous: PersistentOption): Int =
       previous match {
         case previous: Persistent =>
           previous.valueOffset
@@ -102,7 +102,7 @@ object ValueOffsetReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read(indexReader: ReaderBase,
-                      previous: PersistentOptional): Int =
+                      previous: PersistentOption): Int =
       0
   }
 }

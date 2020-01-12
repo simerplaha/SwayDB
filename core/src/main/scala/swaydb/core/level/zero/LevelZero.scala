@@ -36,12 +36,12 @@ import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
-import swaydb.core.segment.{Segment, SegmentOptional, ThreadReadState}
+import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.{MinMax, Options}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
 import swaydb.{OK, IO, Tag}
@@ -65,7 +65,7 @@ private[core] object LevelZero extends LazyLogging {
     //LevelZero does not required FileSweeper since they are all Map files.
     implicit val fileSweeper: FileSweeper = FileSweeper.Disabled
 
-    implicit val skipListMerger: SkipListMerger[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] = LevelZeroSkipListMerger
+    implicit val skipListMerger: SkipListMerger[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = LevelZeroSkipListMerger
     val mapsAndPathAndLock =
       storage match {
         case Level0Storage.Persistent(mmap, databaseDirectory, recovery) =>
@@ -97,7 +97,7 @@ private[core] object LevelZero extends LazyLogging {
               IO(FileChannel.open(lockFile, StandardOpenOption.WRITE).tryLock()) flatMap {
                 lock =>
                   logger.info("{}: Recovering Maps.", path)
-                  Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+                  Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                     path = path,
                     mmap = mmap,
                     fileSize = mapSize,
@@ -139,7 +139,7 @@ private[core] object LevelZero extends LazyLogging {
           timer map {
             implicit timer =>
               val map =
-                Maps.memory[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+                Maps.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
                   fileSize = mapSize,
                   acceleration = acceleration,
                   nullKey = Slice.Null,
@@ -178,7 +178,7 @@ private[core] object LevelZero extends LazyLogging {
 
 private[swaydb] case class LevelZero(path: Path,
                                      mapSize: Long,
-                                     maps: Maps[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
+                                     maps: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                      nextLevel: Option[NextLevel],
                                      inMemory: Boolean,
                                      throttle: LevelZeroMeter => FiniteDuration,
@@ -384,7 +384,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   private def getFromMap(key: Slice[Byte],
-                         currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): MemoryOptional =
+                         currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
       currentMap.skipList.floor(key) match {
         case floor: Memory.Fixed if floor.key equiv key =>
@@ -403,7 +403,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   private def getFromNextLevel(key: Slice[Byte],
                                readState: ThreadReadState,
-                               otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional =
+                               otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
     otherMaps.headOption match {
       case Some(nextMap) =>
         find(
@@ -423,22 +423,22 @@ private[swaydb] case class LevelZero(path: Path,
         }
     }
 
-  def currentGetter(currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]) =
+  def currentGetter(currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) =
     new CurrentGetter {
-      override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOptional =
+      override def get(key: Slice[Byte], readState: ThreadReadState): MemoryOption =
         getFromMap(key, currentMap)
     }
 
-  def nextGetter(readState: ThreadReadState, otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]) =
+  def nextGetter(readState: ThreadReadState, otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
     new NextGetter {
-      override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOptional =
+      override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, otherMaps)
     }
 
   private def find(key: Slice[Byte],
                    readState: ThreadReadState,
-                   currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-                   otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional =
+                   currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                   otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
     Get.seek(
       key = key,
       readState = readState,
@@ -447,7 +447,7 @@ private[swaydb] case class LevelZero(path: Path,
     )
 
   def get(key: Slice[Byte],
-          readState: ThreadReadState): KeyValue.PutOptional = {
+          readState: ThreadReadState): KeyValue.PutOption = {
     val currentMaps = maps.currentMapsSlice
     find(
       key = key,
@@ -458,76 +458,76 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   def getKey(key: Slice[Byte],
-             readState: ThreadReadState): SliceOptional[Byte] =
+             readState: ThreadReadState): SliceOption[Byte] =
     get(key, readState).mapSliceOptional(_.key)
 
-  def firstKeyFromMaps: SliceOptional[Byte] =
-    maps.reduce[SliceOptional[Byte]](
+  def firstKeyFromMaps: SliceOption[Byte] =
+    maps.reduce[SliceOption[Byte]](
       nullValue = Slice.Null,
       applier = _.skipList.headKey,
-      reduce = MinMax.minFavourLeftC[SliceOptional[Byte], Slice[Byte]](_, _)(keyOrder)
+      reduce = MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
-  def lastKeyFromMaps: SliceOptional[Byte] =
-    maps.reduce[SliceOptional[Byte]](
+  def lastKeyFromMaps: SliceOption[Byte] =
+    maps.reduce[SliceOption[Byte]](
       nullValue = Slice.Null,
       applier =
         map =>
           map
             .skipList
             .last()
-            .flatMapSomeS(Slice.Null: SliceOptional[Byte]) {
+            .flatMapSomeS(Slice.Null: SliceOption[Byte]) {
               case fixed: KeyValue.Fixed =>
                 fixed.key
 
               case range: KeyValue.Range =>
                 range.toKey
             },
-      reduce = MinMax.maxFavourLeftC[SliceOptional[Byte], Slice[Byte]](_, _)(keyOrder)
+      reduce = MinMax.maxFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
-  def lastKey(readState: ThreadReadState): SliceOptional[Byte] =
+  def lastKey(readState: ThreadReadState): SliceOption[Byte] =
     last(readState).mapSliceOptional(_.key)
 
-  override def headKey(readState: ThreadReadState): SliceOptional[Byte] =
+  override def headKey(readState: ThreadReadState): SliceOption[Byte] =
     head(readState).mapSliceOptional(_.key)
 
-  def head(readState: ThreadReadState): KeyValue.PutOptional =
+  def head(readState: ThreadReadState): KeyValue.PutOption =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.headKey(readState) match {
           case nextLevelFirstKey: Slice[Byte] =>
             MinMax
-              .minFavourLeftC[SliceOptional[Byte], Slice[Byte]](firstKeyFromMaps, nextLevelFirstKey)(keyOrder)
-              .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(ceiling(_, readState))
+              .minFavourLeftC[SliceOption[Byte], Slice[Byte]](firstKeyFromMaps, nextLevelFirstKey)(keyOrder)
+              .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
 
           case Slice.Null =>
-            firstKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(ceiling(_, readState))
+            firstKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
         }
 
       case None =>
-        firstKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(ceiling(_, readState))
+        firstKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
     }
 
-  def last(readState: ThreadReadState): KeyValue.PutOptional =
+  def last(readState: ThreadReadState): KeyValue.PutOption =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.lastKey(readState) match {
           case nextLevelLastKey: Slice[Byte] =>
             MinMax
-              .maxFavourLeftC[SliceOptional[Byte], Slice[Byte]](lastKeyFromMaps, nextLevelLastKey)(keyOrder)
-              .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(floor(_, readState))
+              .maxFavourLeftC[SliceOption[Byte], Slice[Byte]](lastKeyFromMaps, nextLevelLastKey)(keyOrder)
+              .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
 
           case Slice.Null =>
-            lastKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(floor(_, readState))
+            lastKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
         }
 
       case None =>
-        lastKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional)(floor(_, readState))
+        lastKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
     }
 
   def ceiling(key: Slice[Byte],
-              readState: ThreadReadState): KeyValue.PutOptional = {
+              readState: ThreadReadState): KeyValue.PutOption = {
     val currentMaps = maps.currentMapsSlice
     ceiling(
       key = key,
@@ -539,8 +539,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState,
-              currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-              otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional =
+              currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+              otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
     find(
       key = key,
       readState = readState,
@@ -556,7 +556,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   def floor(key: Slice[Byte],
-            readState: ThreadReadState): KeyValue.PutOptional = {
+            readState: ThreadReadState): KeyValue.PutOption = {
     val currentMaps = maps.currentMapsSlice
     floor(
       key = key,
@@ -568,8 +568,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def floor(key: Slice[Byte],
             readState: ThreadReadState,
-            currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-            otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional =
+            currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+            otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
     find(
       key = key,
       readState = readState,
@@ -585,7 +585,7 @@ private[swaydb] case class LevelZero(path: Path,
     }
 
   private def higherFromMap(key: Slice[Byte],
-                            currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): MemoryOptional =
+                            currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
       currentMap.skipList.floor(key) match {
         case floorRange: Memory.Range if key >= floorRange.fromKey && key < floorRange.toKey =>
@@ -603,7 +603,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigherInNextLevel(key: Slice[Byte],
                             readState: ThreadReadState,
-                            otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional = {
+                            otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption = {
     val nextMapOrNull = otherMaps.headOrNull
     if (nextMapOrNull == null)
       nextLevel match {
@@ -622,10 +622,10 @@ private[swaydb] case class LevelZero(path: Path,
       )
   }
 
-  def currentWalker(currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-                    otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]) =
+  def currentWalker(currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                    otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
     new CurrentWalker {
-      override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOptional =
+      override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         find(
           key = key,
           readState = readState,
@@ -649,18 +649,18 @@ private[swaydb] case class LevelZero(path: Path,
         "current"
     }
 
-  def nextWalker(otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]) =
+  def nextWalker(otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
     new NextWalker {
       override def higher(key: Slice[Byte],
-                          readState: ThreadReadState): KeyValue.PutOptional =
+                          readState: ThreadReadState): KeyValue.PutOption =
         findHigherInNextLevel(key, readState, otherMaps)
 
       override def lower(key: Slice[Byte],
-                         readState: ThreadReadState): KeyValue.PutOptional =
+                         readState: ThreadReadState): KeyValue.PutOption =
         findLowerInNextLevel(key, readState, otherMaps)
 
       override def get(key: Slice[Byte],
-                       readState: ThreadReadState): KeyValue.PutOptional =
+                       readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, otherMaps)
 
       override def levelNumber: String =
@@ -669,8 +669,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findHigher(key: Slice[Byte],
                  readState: ThreadReadState,
-                 currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-                 otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional =
+                 currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                 otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
     Higher.seek(
       key = key,
       readState = readState,
@@ -690,7 +690,7 @@ private[swaydb] case class LevelZero(path: Path,
    * Higher queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
    */
   def higher(key: Slice[Byte],
-             readState: ThreadReadState): KeyValue.PutOptional = {
+             readState: ThreadReadState): KeyValue.PutOption = {
     val currentMaps = maps.currentMapsSlice
     findHigher(
       key = key,
@@ -701,7 +701,7 @@ private[swaydb] case class LevelZero(path: Path,
   }
 
   private def lowerFromMap(key: Slice[Byte],
-                           currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): MemoryOptional =
+                           currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
       currentMap.skipList.floor(key) match {
         case floorRange: Memory.Range if key > floorRange.fromKey && key <= floorRange.toKey =>
@@ -715,7 +715,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLowerInNextLevel(key: Slice[Byte],
                            readState: ThreadReadState,
-                           otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional = {
+                           otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption = {
     val nextMapOrNull = otherMaps.headOrNull
     if (nextMapOrNull == null)
       nextLevel match {
@@ -736,8 +736,8 @@ private[swaydb] case class LevelZero(path: Path,
 
   def findLower(key: Slice[Byte],
                 readState: ThreadReadState,
-                currentMap: map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
-                otherMaps: Slice[map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]]): KeyValue.PutOptional =
+                currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]): KeyValue.PutOption =
     Lower.seek(
       key = key,
       readState = readState,
@@ -757,7 +757,7 @@ private[swaydb] case class LevelZero(path: Path,
    * Lower queries require iteration of all maps anyway so a full initial conversion to a List is acceptable.
    */
   def lower(key: Slice[Byte],
-            readState: ThreadReadState): KeyValue.PutOptional = {
+            readState: ThreadReadState): KeyValue.PutOption = {
     val currentMaps = maps.currentMapsSlice
     findLower(
       key = key,
@@ -907,7 +907,7 @@ private[swaydb] case class LevelZero(path: Path,
   override def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean =
     nextLevel.exists(_.containsSegmentWithMinKey(minKey))
 
-  override def getSegment(minKey: Slice[Byte]): SegmentOptional =
+  override def getSegment(minKey: Slice[Byte]): SegmentOption =
     nextLevel match {
       case Some(segment) =>
         segment.getSegment(minKey)

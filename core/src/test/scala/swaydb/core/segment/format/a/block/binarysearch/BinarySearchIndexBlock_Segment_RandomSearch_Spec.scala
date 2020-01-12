@@ -24,7 +24,7 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, Persistent, PersistentOptional}
+import swaydb.core.data.{Memory, Persistent, PersistentOption}
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.{SegmentBlocks, TestBase, TestSweeper}
@@ -112,23 +112,23 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
       runThis(100.times, log = true, s"Running binary search test") {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
 
-        keyValues.zipWithIndex.foldLeft(Persistent.Null: PersistentOptional) {
+        keyValues.zipWithIndex.foldLeft(Persistent.Null: PersistentOption) {
           case (previous, (keyValue, index)) =>
 
             //println
             //println(s"Key: ${keyValue.key.readInt()}")
-            val start: PersistentOptional =
+            val start: PersistentOption =
               eitherOne(Persistent.Null, previous)
 
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
             //println("--- For end ---")
-            val end: PersistentOptional =
+            val end: PersistentOption =
             eitherOne(
               left = Persistent.Null,
               right = //There is a random test. It could get index out of bounds.
                 Try(keyValues(index + randomIntMax(keyValues.size - 1)))
                   .toOption
-                  .flatMapOption(Persistent.Null: PersistentOptional) {
+                  .flatMapOption(Persistent.Null: PersistentOption) {
                     keyValue =>
                       //read the end key from index.
                       BinarySearchIndexBlock.search(
@@ -233,19 +233,19 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
       runThis(100.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
         //test higher in reverse order
-        keyValues.zipWithIndex.foldRight(Persistent.Null: PersistentOptional) {
+        keyValues.zipWithIndex.foldRight(Persistent.Null: PersistentOption) {
           case ((keyValue, index), expectedHigher) =>
 
             //println(s"\nKey: ${keyValue.key.readInt()}")
 
             //println("--- Start ---")
-            val start: PersistentOptional =
+            val start: PersistentOption =
               eitherOne(
                 left = Persistent.Null,
                 right = //There is a random test. It could get index out of bounds.
                   Try(keyValues(randomIntMax(index)))
                     .toOption
-                    .flatMapOption(Persistent.Null: PersistentOptional) {
+                    .flatMapOption(Persistent.Null: PersistentOption) {
                       keyValue =>
                         //read the end key from index.
                         BinarySearchIndexBlock.search(
@@ -263,12 +263,12 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
 
             //println("--- End ---")
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
-            val end: PersistentOptional =
+            val end: PersistentOption =
             eitherOne(
               left = Persistent.Null,
               right = //There is a random test. It could get index out of bounds.
                 Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption
-                  .flatMapOption(Persistent.Null: PersistentOptional) {
+                  .flatMapOption(Persistent.Null: PersistentOption) {
                     keyValue =>
                       //read the end key from index.
                       BinarySearchIndexBlock.search(
@@ -334,19 +334,19 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
       runThis(100.times, log = true) {
         val (keyValues, blocks) = genKeyValuesAndBlocks()
 
-        keyValues.zipWithIndex.foldLeft(Persistent.Null: PersistentOptional) {
+        keyValues.zipWithIndex.foldLeft(Persistent.Null: PersistentOption) {
           case (expectedLower, (keyValue, index)) =>
 
             //println
             //println(s"Key: ${keyValue.key.readInt()}. Expected lower: ${expectedLower.map(_.key.readInt())}")
 
             //println("--- Start ---")
-            val start: PersistentOptional =
+            val start: PersistentOption =
               eitherOne(
                 left = Persistent.Null,
                 right = //There is a random test. It could get index out of bounds.
                   Try(keyValues(randomIntMax(index))).toOption
-                    .flatMapOption(Persistent.Null: PersistentOptional) {
+                    .flatMapOption(Persistent.Null: PersistentOption) {
                       keyValue =>
                         //read the end key from index.
                         BinarySearchIndexBlock.search(
@@ -366,14 +366,14 @@ class BinarySearchIndexBlock_Segment_RandomSearch_Spec extends TestBase with Moc
             //println("--- END ---")
             //randomly set start and end. Select a higher key-value which is a few indexes away from the actual key.
 
-            val end: PersistentOptional =
+            val end: PersistentOption =
               eitherOne(
                 left = Persistent.Null,
                 right = //There is a random test. It could get index out of bounds.
                   //                  Try(keyValues(index + randomIntMax(keyValues.size - 1))).toOption flatMap {
                   Try(keyValues(index))
                     .toOption
-                    .flatMapOption(Persistent.Null: PersistentOptional) {
+                    .flatMapOption(Persistent.Null: PersistentOption) {
                       //                  Try(keyValues(index + randomIntMax(index))).toOption flatMap {
                       endKeyValue =>
                         //read the end key from index.

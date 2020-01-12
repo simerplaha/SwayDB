@@ -26,7 +26,7 @@ import swaydb.core.util.LimitHashMap
 import scala.util.Random
 
 private[swaydb] sealed trait ThreadReadState {
-  def getSegmentState(path: Path): SegmentReadStateOptional
+  def getSegmentState(path: Path): SegmentReadStateOption
   def setSegmentState(path: Path, nextIndexOffset: SegmentReadState): Unit
 }
 
@@ -44,7 +44,7 @@ private[swaydb] object ThreadReadState {
 
   private class HashMapState(map: java.util.HashMap[Path, SegmentReadState]) extends ThreadReadState {
 
-    def getSegmentState(path: Path): SegmentReadStateOptional = {
+    def getSegmentState(path: Path): SegmentReadStateOption = {
       val state = map.get(path)
       if (state == null)
         SegmentReadState.Null
@@ -58,7 +58,7 @@ private[swaydb] object ThreadReadState {
 
   private class LimitHashMapState(map: LimitHashMap[Path, SegmentReadState]) extends ThreadReadState {
 
-    def getSegmentState(path: Path): SegmentReadStateOptional = {
+    def getSegmentState(path: Path): SegmentReadStateOption = {
       val state = map.getOrNull(path)
       if (state == null)
         SegmentReadState.Null

@@ -34,7 +34,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.repairAppendix.RepairResult.OverlappingSegments
 import swaydb.data.repairAppendix._
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.Serializer
 
 import scala.concurrent.ExecutionContext
@@ -191,7 +191,7 @@ object SwayDB extends LazyLogging {
                                                                                     valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
-    def function(key: Slice[Byte], value: SliceOptional[Byte], deadline: Option[Deadline]) =
+    def function(key: Slice[Byte], value: SliceOption[Byte], deadline: Option[Deadline]) =
       toCoreFunctionOutput(f(key.read[K], value.read[V], deadline))
 
     swaydb.core.data.SwayFunction.KeyValueDeadline(function)
@@ -200,7 +200,7 @@ object SwayDB extends LazyLogging {
   private[swaydb] def toCoreFunction[K, V](f: V => Apply[V])(implicit valueSerializer: Serializer[V]): swaydb.core.data.SwayFunction = {
     import swaydb.serializers._
 
-    def function(value: SliceOptional[Byte]) =
+    def function(value: SliceOption[Byte]) =
       toCoreFunctionOutput(f(value.read[V]))
 
     swaydb.core.data.SwayFunction.Value(function)

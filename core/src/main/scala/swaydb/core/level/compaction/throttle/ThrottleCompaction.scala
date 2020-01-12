@@ -21,12 +21,12 @@ package swaydb.core.level.compaction.throttle
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
-import swaydb.core.data.{Memory, MemoryOptional}
+import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.level.compaction.Compaction
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{LevelRef, NextLevel, TrashLevel}
 import swaydb.core.segment.Segment
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
 import scala.concurrent.duration._
@@ -183,7 +183,7 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private[throttle] def pushForward(zero: LevelZero,
                                     nextLevel: NextLevel,
                                     stateId: Long,
-                                    map: swaydb.core.map.Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): ThrottleLevelState =
+                                    map: swaydb.core.map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): ThrottleLevelState =
     nextLevel.put(map) match {
       case IO.Right(IO.Right(_)) =>
         logger.debug(s"Level(${zero.levelNumber}): Put to map successful.")

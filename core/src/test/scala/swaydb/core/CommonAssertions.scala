@@ -53,11 +53,11 @@ import swaydb.core.segment.format.a.block.segment.{SegmentBlock, SegmentBlockCac
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
-import swaydb.core.segment.{KeyMatcher, Segment, SegmentIO, SegmentOptional, SegmentSearcher, ThreadReadState}
+import swaydb.core.segment.{KeyMatcher, Segment, SegmentIO, SegmentOption, SegmentSearcher, ThreadReadState}
 import swaydb.core.util.SkipList
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Reader, Slice, SliceOptional}
+import swaydb.data.slice.{Reader, Slice, SliceOption}
 import swaydb.data.util.SomeOrNone
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -262,7 +262,7 @@ object CommonAssertions {
       }
   }
 
-  implicit class PrintSkipList(skipList: SkipList.Concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]) {
+  implicit class PrintSkipList(skipList: SkipList.Concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) {
 
     //stringify the skipList so that it's readable
     def asString(value: Value): String =
@@ -278,14 +278,14 @@ object CommonAssertions {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Memory): SkipList.Concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] =
+                          expected: Memory): SkipList.Concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory] = {
-    val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipList.Concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+    val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList
     skipList
@@ -333,8 +333,8 @@ object CommonAssertions {
   def assertMerge(newKeyValue: KeyValue,
                   oldKeyValue: KeyValue,
                   expected: KeyValue,
-                  lastLevelExpect: KeyValueOptional)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                     timeOrder: TimeOrder[Slice[Byte]]): Unit = {
+                  lastLevelExpect: KeyValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                   timeOrder: TimeOrder[Slice[Byte]]): Unit = {
     //    println("*** Expected assert ***")
     assertMerge(newKeyValue, oldKeyValue, Slice(expected), lastLevelExpect.toOptional.map(Slice(_)).getOrElse(Slice.empty))
     //println("*** Skip list assert ***")
@@ -510,16 +510,16 @@ object CommonAssertions {
       actual foreach (_.shouldBeSliced())
   }
 
-  implicit class PersistentKeyValueOptionImplicits(actual: PersistentOptional) {
-    def shouldBe(expected: PersistentOptional): Unit = {
+  implicit class PersistentKeyValueOptionImplicits(actual: PersistentOption) {
+    def shouldBe(expected: PersistentOption): Unit = {
       actual.isSomeS shouldBe expected.isSomeS
       if (actual.isSomeS)
         actual.getS shouldBe expected.getS
     }
   }
 
-  implicit class PersistentKeyValueKeyValueOptionImplicits(actual: PersistentOptional) {
-    def shouldBe(expected: MemoryOptional) = {
+  implicit class PersistentKeyValueKeyValueOptionImplicits(actual: PersistentOption) {
+    def shouldBe(expected: MemoryOption) = {
       actual.isSomeS shouldBe expected.isSomeS
       if (actual.isSomeS)
         actual.getS shouldBe expected.getS
@@ -597,10 +597,10 @@ object CommonAssertions {
     def shouldBe(expected: MapEntry[Slice[Byte], Segment]): Unit = {
       actual.entryBytesSize shouldBe expected.entryBytesSize
 
-      val actualMap = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val actualMap = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
       actual.applyTo(actualMap)
 
-      val expectedMap = SkipList.concurrent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
+      val expectedMap = SkipList.concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](Slice.Null, Segment.Null)(KeyOrder.default)
       expected.applyTo(expectedMap)
 
       actualMap.size shouldBe expectedMap.size
@@ -648,7 +648,7 @@ object CommonAssertions {
           if (lower.nonEmpty) {
             expectedLowerKeyValue shouldBe defined
             lower.get.key shouldBe expectedLowerKeyValue.get.key
-            lower.get.getOrFetchValue.runRandomIO.right.value shouldBe expectedLowerKeyValue.get.getOrFetchValue.asSliceOptional()
+            lower.get.getOrFetchValue.runRandomIO.right.value shouldBe expectedLowerKeyValue.get.getOrFetchValue.asSliceOption()
           } else {
             expectedLowerKeyValue shouldBe empty
           }

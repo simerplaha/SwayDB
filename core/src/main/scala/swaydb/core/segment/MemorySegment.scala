@@ -38,7 +38,7 @@ import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
@@ -53,7 +53,7 @@ protected case class MemorySegment(path: Path,
                                    hasRange: Boolean,
                                    hasPut: Boolean,
                                    createdInLevel: Int,
-                                   private[segment] val skipList: SkipList.Immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
+                                   private[segment] val skipList: SkipList.Immutable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                    nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                          functionStore: FunctionStore,
@@ -132,10 +132,10 @@ protected case class MemorySegment(path: Path,
       )
     }
 
-  override def getFromCache(key: Slice[Byte]): MemoryOptional =
+  override def getFromCache(key: Slice[Byte]): MemoryOption =
     skipList.get(key)
 
-  override def get(key: Slice[Byte], threadState: ThreadReadState): MemoryOptional =
+  override def get(key: Slice[Byte], threadState: ThreadReadState): MemoryOption =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
@@ -193,14 +193,14 @@ protected case class MemorySegment(path: Path,
     }
 
   override def lower(key: Slice[Byte],
-                     threadState: ThreadReadState): MemoryOptional =
+                     threadState: ThreadReadState): MemoryOption =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else
       skipList.lower(key)
 
   override def higher(key: Slice[Byte],
-                      threadState: ThreadReadState): MemoryOptional =
+                      threadState: ThreadReadState): MemoryOption =
     if (deleted)
       throw swaydb.Exception.NoSuchFile(path)
     else if (hasRange)

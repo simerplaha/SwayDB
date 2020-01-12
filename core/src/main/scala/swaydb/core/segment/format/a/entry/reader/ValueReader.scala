@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.entry.reader
 
-import swaydb.core.data.PersistentOptional
+import swaydb.core.data.PersistentOption
 import swaydb.core.segment.format.a.entry.id.BaseEntryId
 import swaydb.data.slice.ReaderBase
 import swaydb.data.util.TupleOrNone
@@ -32,7 +32,7 @@ sealed trait ValueReader[-T] {
   def isPrefixCompressed: Boolean
 
   def read[V](indexReader: ReaderBase,
-              previous: PersistentOptional,
+              previous: PersistentOption,
               valueOffsetReader: ValueOffsetReader[V],
               valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int]
 }
@@ -42,7 +42,7 @@ object ValueReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read[V](indexReader: ReaderBase,
-                         previous: PersistentOptional,
+                         previous: PersistentOption,
                          valueOffsetReader: ValueOffsetReader[V],
                          valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] =
       TupleOrNone.None
@@ -51,7 +51,7 @@ object ValueReader {
   implicit object ValueUncompressedReader extends ValueReader[BaseEntryId.Value.Uncompressed] {
     override def isPrefixCompressed: Boolean = false
     override def read[V](indexReader: ReaderBase,
-                         previous: PersistentOptional,
+                         previous: PersistentOption,
                          valueOffsetReader: ValueOffsetReader[V],
                          valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] = {
       val valueOffset = valueOffsetReader.read(indexReader, previous)
@@ -66,7 +66,7 @@ object ValueReader {
     override def isPrefixCompressed: Boolean = false
 
     override def read[V](indexReader: ReaderBase,
-                         previous: PersistentOptional,
+                         previous: PersistentOption,
                          valueOffsetReader: ValueOffsetReader[V],
                          valueLengthReader: ValueLengthReader[V]): TupleOrNone[Int, Int] =
       ValueUncompressedReader.read(

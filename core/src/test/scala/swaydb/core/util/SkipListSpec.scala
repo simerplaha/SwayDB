@@ -21,23 +21,23 @@ package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers._
 import swaydb.serializers.Default._
 
 class ConcurrentSkipListSpec extends SkipListSpec
 sealed trait SkipListSpec extends WordSpec with Matchers {
 
-  sealed trait OptionalValue
+  sealed trait ValueOption
   object Value {
-    final case object Null extends OptionalValue
-    case class Some(value: Int) extends OptionalValue
+    final case object Null extends ValueOption
+    case class Some(value: Int) extends ValueOption
   }
 
   implicit val ordering = KeyOrder.default
 
-  def createSkipList(): SkipList.Concurrent[SliceOptional[Byte], OptionalValue, Slice[Byte], Value.Some] =
-    SkipList.concurrent[SliceOptional[Byte], OptionalValue, Slice[Byte], Value.Some](Slice.Null, Value.Null)
+  def createSkipList(): SkipList.Concurrent[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some] =
+    SkipList.concurrent[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some](Slice.Null, Value.Null)
 
   "put & putIfAbsent" in {
     val skipList = createSkipList()

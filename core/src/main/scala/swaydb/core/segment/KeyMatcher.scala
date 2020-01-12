@@ -28,7 +28,7 @@ private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]
 
   def apply(previous: Persistent.Partial,
-            next: Persistent.PartialOptional,
+            next: Persistent.PartialOption,
             hasMore: Boolean): KeyMatcher.Result
 
   def keyOrder: KeyOrder[Slice[Byte]]
@@ -138,7 +138,7 @@ private[core] object KeyMatcher {
                        val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
-                       next: Persistent.PartialOptional,
+                       next: Persistent.PartialOption,
                        hasMore: Boolean): KeyMatcher.Result =
       next.getOrElseC(previous) match {
         case fixed: Persistent.Partial.Fixed =>
@@ -202,7 +202,7 @@ private[core] object KeyMatcher {
                              val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Lower with Lower.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
-                       next: Persistent.PartialOptional,
+                       next: Persistent.PartialOption,
                        hasMore: Boolean): KeyMatcher.Result =
       next match {
         case next: Persistent.Partial =>
@@ -283,7 +283,7 @@ private[core] object KeyMatcher {
                               val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Higher with Higher.MatchOnly {
 
     override def apply(previous: Persistent.Partial,
-                       next: Persistent.PartialOptional,
+                       next: Persistent.PartialOption,
                        hasMore: Boolean): KeyMatcher.Result = {
       val keyValue = next getOrElseC previous
       val nextCompare = keyOrder.compare(keyValue.key, key)

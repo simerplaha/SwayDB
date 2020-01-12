@@ -35,7 +35,7 @@ private[core] object Get {
            currentGetter: CurrentGetter,
            nextGetter: NextGetter)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                    timeOrder: TimeOrder[Slice[Byte]],
-                                   functionStore: FunctionStore): KeyValue.PutOptional =
+                                   functionStore: FunctionStore): KeyValue.PutOption =
     Get(key = key, readState = readState)(
       keyOrder = keyOrder,
       timeOrder = timeOrder,
@@ -49,10 +49,10 @@ private[core] object Get {
                                         timeOrder: TimeOrder[Slice[Byte]],
                                         currentGetter: CurrentGetter,
                                         nextGetter: NextGetter,
-                                        functionStore: FunctionStore): KeyValue.PutOptional = {
+                                        functionStore: FunctionStore): KeyValue.PutOption = {
 
     @tailrec
-    def resolve(current: KeyValue): KeyValue.PutOptional =
+    def resolve(current: KeyValue): KeyValue.PutOption =
       current match {
         case current: KeyValue.Put =>
           if (current.hasTimeLeft())

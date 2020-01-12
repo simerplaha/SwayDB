@@ -24,9 +24,9 @@ import java.nio.file.Path
 import swaydb.IO
 import swaydb.core.data.KeyValue
 import swaydb.core.level.zero.LevelZero
-import swaydb.core.segment.{Segment, SegmentOptional, ThreadReadState}
+import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
@@ -151,30 +151,30 @@ private[core] trait LevelRef {
 
   def rootPath: Path
 
-  def head(readState: ThreadReadState): KeyValue.PutOptional
+  def head(readState: ThreadReadState): KeyValue.PutOption
 
-  def last(readState: ThreadReadState): KeyValue.PutOptional
+  def last(readState: ThreadReadState): KeyValue.PutOption
 
   def get(key: Slice[Byte],
-          readState: ThreadReadState): KeyValue.PutOptional
+          readState: ThreadReadState): KeyValue.PutOption
 
   def ceiling(key: Slice[Byte],
-              readState: ThreadReadState): KeyValue.PutOptional
+              readState: ThreadReadState): KeyValue.PutOption
 
   def floor(key: Slice[Byte],
-            readState: ThreadReadState): KeyValue.PutOptional
+            readState: ThreadReadState): KeyValue.PutOption
 
   def mightContainKey(key: Slice[Byte]): Boolean
 
   def lower(key: Slice[Byte],
-            readState: ThreadReadState): KeyValue.PutOptional
+            readState: ThreadReadState): KeyValue.PutOption
 
   def higher(key: Slice[Byte],
-             readState: ThreadReadState): KeyValue.PutOptional
+             readState: ThreadReadState): KeyValue.PutOption
 
-  def headKey(readState: ThreadReadState): SliceOptional[Byte]
+  def headKey(readState: ThreadReadState): SliceOption[Byte]
 
-  def lastKey(readState: ThreadReadState): SliceOptional[Byte]
+  def lastKey(readState: ThreadReadState): SliceOption[Byte]
 
   def keyValueCount: Int
 
@@ -216,7 +216,7 @@ private[core] trait LevelRef {
 
   def containsSegmentWithMinKey(minKey: Slice[Byte]): Boolean
 
-  def getSegment(minKey: Slice[Byte]): SegmentOptional
+  def getSegment(minKey: Slice[Byte]): SegmentOption
 
   def existsOnDisk: Boolean
 

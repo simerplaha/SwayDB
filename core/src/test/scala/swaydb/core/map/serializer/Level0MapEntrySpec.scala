@@ -25,12 +25,12 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.core.TestData._
-import swaydb.core.data.{Memory, MemoryOptional}
+import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
 import swaydb.core.util.SkipList
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -57,7 +57,7 @@ class Level0MapEntrySpec extends TestBase {
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
         readEntry shouldBe addEntry
 
-        val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         readEntry applyTo skipList
         val scalaSkipList = skipList.asScala
 
@@ -162,7 +162,7 @@ class Level0MapEntrySpec extends TestBase {
       val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
       readEntry shouldBe entry
 
-      val skipList = SkipList.concurrent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       readEntry applyTo skipList
       def scalaSkipList = skipList.asScala
       assertSkipList()

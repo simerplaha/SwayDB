@@ -43,7 +43,7 @@ private[core] object FunctionMerger {
           oldKeyValue.copyWithDeadlineAndTime(Some(deadline), newKeyValue.time)
 
         case SwayFunctionOutput.Update(value, deadline) =>
-          Memory.Put(oldKeyValue.key, value.asSliceOptional(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
+          Memory.Put(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
     if (newKeyValue.time > oldKeyValue.time) {
@@ -106,7 +106,7 @@ private[core] object FunctionMerger {
           oldKeyValue.copyWithDeadlineAndTime(Some(deadline), newKeyValue.time)
 
         case SwayFunctionOutput.Update(value, deadline) =>
-          Memory.Update(oldKeyValue.key, value.asSliceOptional(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
+          Memory.Update(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
     def toPendingApply(): Memory.PendingApply = {
@@ -189,7 +189,7 @@ private[core] object FunctionMerger {
           Memory.Remove(oldKeyValue.key, Some(deadline), newKeyValue.time)
 
         case SwayFunctionOutput.Update(value, deadline) =>
-          Memory.Update(oldKeyValue.key, value.asSliceOptional(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
+          Memory.Update(oldKeyValue.key, value.asSliceOption(), deadline.orElse(oldKeyValue.deadline), newKeyValue.time)
       }
 
     def toPendingApply() =

@@ -45,7 +45,7 @@ import swaydb.core.util._
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.SomeOrNone
 
 import scala.annotation.tailrec
@@ -54,14 +54,14 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Deadline
 import scala.jdk.CollectionConverters._
 
-private[swaydb] sealed trait SegmentOptional extends SomeOrNone[SegmentOptional, Segment] {
-  override def noneS: SegmentOptional =
+private[swaydb] sealed trait SegmentOption extends SomeOrNone[SegmentOption, Segment] {
+  override def noneS: SegmentOption =
     Segment.Null
 }
 
 private[core] object Segment extends LazyLogging {
 
-  final case object Null extends SegmentOptional {
+  final case object Null extends SegmentOption {
     override def isNoneS: Boolean = true
     override def getS: Segment = throw new Exception("Segment is of type Null")
   }
@@ -82,7 +82,7 @@ private[core] object Segment extends LazyLogging {
     } else {
       val segments = ListBuffer.empty[MemorySegment]
 
-      var skipList = SkipList.immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+      var skipList = SkipList.immutable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       var minMaxFunctionId: Option[MinMax[Slice[Byte]]] = None
       var nearestDeadline: Option[Deadline] = None
       var hasRange: Boolean = false
@@ -93,7 +93,7 @@ private[core] object Segment extends LazyLogging {
       var lastKeyValue: Memory = null
 
       def setClosed(): Unit = {
-        skipList = SkipList.immutable[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
+        skipList = SkipList.immutable[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
         minMaxFunctionId = None
         nearestDeadline = None
         hasRange = false
@@ -641,7 +641,7 @@ private[core] object Segment extends LazyLogging {
                segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     segments.exists(segment => overlaps(minKey, maxKey, maxKeyInclusive, segment))
 
-  def overlaps(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
+  def overlaps(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     Segment.minMaxKey(map) exists {
       case (minKey, maxKey, maxKeyInclusive) =>
@@ -767,7 +767,7 @@ private[core] object Segment extends LazyLogging {
         }
     }
 
-  def tempMinMaxKeyValues(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): Slice[Memory] = {
+  def tempMinMaxKeyValues(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Slice[Memory] = {
     for {
       minKey <- map.skipList.head().mapS(memory => Memory.Put(memory.key, Slice.Null, None, Time.empty))
       maxKey <- map.skipList.last() mapS {
@@ -781,7 +781,7 @@ private[core] object Segment extends LazyLogging {
       Slice(minKey, maxKey)
   } getOrElse Slice.create[Memory](0)
 
-  def minMaxKey(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
+  def minMaxKey(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     for {
       minKey <- map.skipList.head().mapS(_.key)
       maxKey <- map.skipList.last() mapS {
@@ -812,7 +812,7 @@ private[core] object Segment extends LazyLogging {
     Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
 
   def minMaxKey(left: Iterable[Segment],
-                right: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
+                right: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit keyOrder: KeyOrder[Slice[Byte]]): Option[(Slice[Byte], Slice[Byte], Boolean)] =
     Slice.minMax(Segment.minMaxKey(left), Segment.minMaxKey(right))
 
   def overlapsWithBusySegments(inputSegments: Iterable[Segment],
@@ -833,7 +833,7 @@ private[core] object Segment extends LazyLogging {
       ).nonEmpty
     }
 
-  def overlapsWithBusySegments(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory],
+  def overlapsWithBusySegments(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                busySegments: Iterable[Segment],
                                appendixSegments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean =
     if (busySegments.isEmpty)
@@ -942,7 +942,7 @@ private[core] object Segment extends LazyLogging {
     keyValues.foldLeftRecover(Option.empty[Deadline])(getNearestPutDeadline)
 
   def getNearestDeadlineSegment(previous: Segment,
-                                next: Segment): SegmentOptional =
+                                next: Segment): SegmentOption =
     (previous.nearestPutDeadline, next.nearestPutDeadline) match {
       case (None, None) => Segment.Null
       case (Some(_), None) => previous
@@ -954,8 +954,8 @@ private[core] object Segment extends LazyLogging {
           next
     }
 
-  def getNearestDeadlineSegment(segments: Iterable[Segment]): SegmentOptional =
-    segments.foldLeft(Segment.Null: SegmentOptional) {
+  def getNearestDeadlineSegment(segments: Iterable[Segment]): SegmentOption =
+    segments.foldLeft(Segment.Null: SegmentOption) {
       case (previous, next) =>
         previous mapS {
           previous =>
@@ -1009,7 +1009,7 @@ private[core] object Segment extends LazyLogging {
   }
 }
 
-private[core] trait Segment extends FileSweeperItem with SegmentOptional { self =>
+private[core] trait Segment extends FileSweeperItem with SegmentOption { self =>
 
   val minKey: Slice[Byte]
   val maxKey: MaxKey[Slice[Byte]]
@@ -1047,17 +1047,17 @@ private[core] trait Segment extends FileSweeperItem with SegmentOptional { self 
               segmentConfig: SegmentBlock.Config,
               pathsDistributor: PathsDistributor = PathsDistributor(Seq(Dir(path.getParent, 1)), () => Seq()))(implicit idGenerator: IDGenerator): Slice[Segment]
 
-  def getFromCache(key: Slice[Byte]): KeyValueOptional
+  def getFromCache(key: Slice[Byte]): KeyValueOption
 
   def mightContainKey(key: Slice[Byte]): Boolean
 
   def mightContainFunction(key: Slice[Byte]): Boolean
 
-  def get(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
+  def get(key: Slice[Byte], threadState: ThreadReadState): KeyValueOption
 
-  def lower(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
+  def lower(key: Slice[Byte], threadState: ThreadReadState): KeyValueOption
 
-  def higher(key: Slice[Byte], threadState: ThreadReadState): KeyValueOptional
+  def higher(key: Slice[Byte], threadState: ThreadReadState): KeyValueOption
 
   def toSlice(): Slice[KeyValue]
 

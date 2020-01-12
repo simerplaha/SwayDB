@@ -30,14 +30,14 @@ import scala.reflect.ClassTag
 /**
  * Documentation - http://swaydb.io/slice
  */
-sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Slice[T]] {
-  override def noneC: SliceOptional[Nothing] = Slice.Null
+sealed trait SliceOption[+T] extends SomeOrNoneCovariant[SliceOption[T], Slice[T]] {
+  override def noneC: SliceOption[Nothing] = Slice.Null
 
-  def isUnslicedOptional: Boolean
+  def isUnslicedOption: Boolean
 
-  def asSliceOptional(): SliceOptional[T]
+  def asSliceOption(): SliceOption[T]
 
-  def unsliceOptional(): SliceOptional[T] =
+  def unsliceOption(): SliceOption[T] =
     if (this.isNoneC || this.getC.isEmpty)
       Slice.Null
     else
@@ -46,11 +46,11 @@ sealed trait SliceOptional[+T] extends SomeOrNoneCovariant[SliceOptional[T], Sli
 
 object Slice extends SliceCompanionBase {
 
-  final case object Null extends SliceOptional[Nothing] {
+  final case object Null extends SliceOption[Nothing] {
     override val isNoneC: Boolean = true
     override def getC: Slice[Nothing] = throw new Exception("Slice is of type Null")
-    override def isUnslicedOptional: Boolean = true
-    override def asSliceOptional(): SliceOptional[Nothing] = this
+    override def isUnslicedOption: Boolean = true
+    override def asSliceOption(): SliceOption[Nothing] = this
   }
 
   class SliceBuilder[A: ClassTag](sizeHint: Int) extends mutable.Builder[A, Slice[A]] {
@@ -110,7 +110,7 @@ class Slice[+T] private[slice](array: Array[T],
                                fromOffset: Int,
                                toOffset: Int,
                                written: Int)(implicit val iterableEvidence: ClassTag[T]@uncheckedVariance) extends SliceBase[T](array, fromOffset, toOffset, written)
-                                                                                                           with SliceOptional[T]
+                                                                                                           with SliceOption[T]
                                                                                                            with IterableOps[T, Slice, Slice[T]]
                                                                                                            with EvidenceIterableFactoryDefaults[T, Slice, ClassTag]
                                                                                                            with StrictOptimizedIterableOps[T, Slice, Slice[T]] {

@@ -28,12 +28,12 @@ trait NextWalker extends NextGetter {
   def levelNumber: String
 
   def higher(key: Slice[Byte],
-             readState: ThreadReadState): KeyValue.PutOptional
+             readState: ThreadReadState): KeyValue.PutOption
 
   def lower(key: Slice[Byte],
-            readState: ThreadReadState): KeyValue.PutOptional
+            readState: ThreadReadState): KeyValue.PutOption
 
   def get(key: Slice[Byte],
-          readState: ThreadReadState): KeyValue.PutOptional
+          readState: ThreadReadState): KeyValue.PutOption
 
 }

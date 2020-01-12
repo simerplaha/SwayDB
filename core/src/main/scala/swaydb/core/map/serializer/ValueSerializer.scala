@@ -24,7 +24,7 @@ import swaydb.core.data.{Time, Value}
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.core.util.Times._
-import swaydb.data.slice.{ReaderBase, Slice, SliceOptional}
+import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf
 
 import scala.annotation.implicitNotFound
@@ -71,7 +71,7 @@ private[core] object ValueSerializer {
       Time(remaining)
   }
 
-  def readValue(reader: ReaderBase): SliceOptional[Byte] = {
+  def readValue(reader: ReaderBase): SliceOption[Byte] = {
     val remaining = reader.readRemaining()
     if (remaining.isEmpty)
       Slice.Null
@@ -282,9 +282,9 @@ private[core] object ValueSerializer {
   /**
    * Serializer for a tuple of Option bytes and sequence bytes.
    */
-  implicit object TupleBytesAndOptionBytesSerializer extends ValueSerializer[(Slice[Byte], SliceOptional[Byte])] {
+  implicit object TupleBytesAndOptionBytesSerializer extends ValueSerializer[(Slice[Byte], SliceOption[Byte])] {
 
-    override def write(value: (Slice[Byte], SliceOptional[Byte]), bytes: Slice[Byte]): Unit =
+    override def write(value: (Slice[Byte], SliceOption[Byte]), bytes: Slice[Byte]): Unit =
       value._2 match {
         case second: Slice[Byte] =>
           bytes.addSignedInt(1)
@@ -294,7 +294,7 @@ private[core] object ValueSerializer {
           bytes.addAll(value._1)
       }
 
-    override def bytesRequired(value: (Slice[Byte], SliceOptional[Byte])): Int =
+    override def bytesRequired(value: (Slice[Byte], SliceOption[Byte])): Int =
       value._2 match {
         case second: Slice[Byte] =>
           1 +
@@ -304,7 +304,7 @@ private[core] object ValueSerializer {
             value._1.size
       }
 
-    override def read(reader: ReaderBase): (Slice[Byte], SliceOptional[Byte]) = {
+    override def read(reader: ReaderBase): (Slice[Byte], SliceOption[Byte]) = {
       val id = reader.readUnsignedInt()
       if (id == 0) {
         val all = reader.readRemaining()

@@ -40,7 +40,7 @@ import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
-import swaydb.core.segment.{Segment, SegmentAssigner, SegmentIO, SegmentOptional, ThreadReadState}
+import swaydb.core.segment.{Segment, SegmentAssigner, SegmentIO, SegmentOption, ThreadReadState}
 import swaydb.core.util.Collections._
 import swaydb.core.util.Exceptions._
 import swaydb.core.util.{MinMax, _}
@@ -48,7 +48,7 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.Dir
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice._
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
 import swaydb.{Error, IO}
 
@@ -130,7 +130,7 @@ private[core] object Level extends LazyLogging {
         implicit val merger = AppendixSkipListMerger
 
         //initialise appendix
-        val appendix: IO[swaydb.Error.Level, Map[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment]] =
+        val appendix: IO[swaydb.Error.Level, Map[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]] =
           appendixStorage match {
             case AppendixStorage.Persistent(mmap, appendixFlushCheckpointSize) =>
               logger.info("{}: Initialising appendix.", levelStorage.dir)
@@ -142,7 +142,7 @@ private[core] object Level extends LazyLogging {
               } else {
                 IO {
                   Effect createDirectoriesIfAbsent appendixFolder
-                  Map.persistent[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](
+                  Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
                     nullKey = Slice.Null,
                     nullValue = Segment.Null,
                     folder = appendixFolder,
@@ -157,7 +157,7 @@ private[core] object Level extends LazyLogging {
             case AppendixStorage.Memory =>
               logger.info("{}: Initialising appendix for in-memory Level", levelStorage.dir)
               IO {
-                Map.memory[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment](
+                Map.memory[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
                   Slice.Null,
                   Segment.Null
                 )
@@ -345,7 +345,7 @@ private[core] case class Level(dirs: Seq[Dir],
                                inMemory: Boolean,
                                throttle: LevelMeter => Throttle,
                                nextLevel: Option[NextLevel],
-                               appendix: Map[SliceOptional[Byte], SegmentOptional, Slice[Byte], Segment],
+                               appendix: Map[SliceOption[Byte], SegmentOption, Slice[Byte], Segment],
                                lock: Option[FileLock],
                                pathDistributor: PathsDistributor,
                                removeDeletedRecords: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -372,7 +372,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val currentWalker =
     new CurrentWalker {
       override def get(key: Slice[Byte],
-                       readState: ThreadReadState): KeyValue.PutOptional =
+                       readState: ThreadReadState): KeyValue.PutOption =
         self.get(key, readState)
 
       override def higher(key: Slice[Byte], readState: ThreadReadState): LevelSeek[KeyValue] =
@@ -388,15 +388,15 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val nextWalker =
     new NextWalker {
       override def higher(key: Slice[Byte],
-                          readState: ThreadReadState): KeyValue.PutOptional =
+                          readState: ThreadReadState): KeyValue.PutOption =
         higherInNextLevel(key, readState)
 
       override def lower(key: Slice[Byte],
-                         readState: ThreadReadState): KeyValue.PutOptional =
+                         readState: ThreadReadState): KeyValue.PutOption =
         lowerFromNextLevel(key, readState)
 
       override def get(key: Slice[Byte],
-                       readState: ThreadReadState): KeyValue.PutOptional =
+                       readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState)
 
       override def levelNumber: String =
@@ -406,7 +406,7 @@ private[core] case class Level(dirs: Seq[Dir],
   private implicit val currentGetter =
     new CurrentGetter {
       override def get(key: Slice[Byte],
-                       readState: ThreadReadState): KeyValueOptional =
+                       readState: ThreadReadState): KeyValueOption =
         getFromThisLevel(key, readState)
     }
 
@@ -484,7 +484,7 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
-  private[level] implicit def reserve(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
+  private[level] implicit def reserve(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
         map = map,
@@ -538,7 +538,7 @@ private[core] case class Level(dirs: Seq[Dir],
       )
     }
 
-  def isCopyable(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): Boolean =
+  def isCopyable(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Boolean =
     Segment
       .minMaxKey(map)
       .forall {
@@ -664,7 +664,7 @@ private[core] case class Level(dirs: Seq[Dir],
           Set(levelNumber)
       }
 
-  def put(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
+  def put(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace("{}: PutMap '{}' Maps.", pathDistributor.head, map.skipList.count())
     reserveAndRelease(map) {
       val appendixValues = appendix.skipList.values().asScala
@@ -704,7 +704,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * @return empty if copied into next Level else Segments copied into this Level.
    */
-  private def copyForwardOrCopyLocal(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
+  private def copyForwardOrCopyLocal(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[swaydb.Error.Level, CompactionResult[Iterable[Segment]]] = {
     val forwardResult = forward(map)
     if (forwardResult.value)
       IO.Right(forwardResult.updateValue(Segment.emptyIterable))
@@ -721,7 +721,7 @@ private[core] case class Level(dirs: Seq[Dir],
   /**
    * Returns segments that were not forwarded.
    */
-  private def forward(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]): CompactionResult[Boolean] = {
+  private def forward(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): CompactionResult[Boolean] = {
     logger.trace(s"{}: forwarding {} Map. pushForward = ${segmentConfig.pushForward}", pathDistributor.head, map.pathOption)
     if (segmentConfig.pushForward)
       nextLevel match {
@@ -753,7 +753,7 @@ private[core] case class Level(dirs: Seq[Dir],
       CompactionResult.`false`
   }
 
-  private[level] def copy(map: Map[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
+  private[level] def copy(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory])(implicit blockCache: Option[BlockCache.State]): IO[swaydb.Error.Level, Iterable[Segment]] =
     IO {
       logger.trace(s"{}: Copying {} Map", pathDistributor.head, map.pathOption)
 
@@ -1137,7 +1137,7 @@ private[core] case class Level(dirs: Seq[Dir],
     )
 
   def buildNewMapEntry(newSegments: Iterable[Segment],
-                       originalSegmentMayBe: SegmentOptional = Segment.Null,
+                       originalSegmentMayBe: SegmentOption = Segment.Null,
                        initialMapEntry: Option[MapEntry[Slice[Byte], Segment]]): IO[swaydb.Error.Level, MapEntry[Slice[Byte], Segment]] = {
     import keyOrder._
 
@@ -1173,14 +1173,14 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  def getFromThisLevel(key: Slice[Byte], readState: ThreadReadState): KeyValueOptional =
+  def getFromThisLevel(key: Slice[Byte], readState: ThreadReadState): KeyValueOption =
     appendix
       .skipList
       .floor(key)
-      .flatMapSomeS(Memory.Null: KeyValueOptional)(_.get(key, readState))
+      .flatMapSomeS(Memory.Null: KeyValueOption)(_.get(key, readState))
 
   def getFromNextLevel(key: Slice[Byte],
-                       readState: ThreadReadState): KeyValue.PutOptional =
+                       readState: ThreadReadState): KeyValue.PutOption =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.get(key, readState)
@@ -1189,7 +1189,7 @@ private[core] case class Level(dirs: Seq[Dir],
         KeyValue.Put.Null
     }
 
-  override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOptional =
+  override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
     Get(key, readState)
 
   private def mightContainKeyInThisLevel(key: Slice[Byte]): Boolean =
@@ -1238,7 +1238,7 @@ private[core] case class Level(dirs: Seq[Dir],
       }
 
   private def lowerFromNextLevel(key: Slice[Byte],
-                                 readState: ThreadReadState): KeyValue.PutOptional =
+                                 readState: ThreadReadState): KeyValue.PutOption =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.lower(key, readState)
@@ -1248,11 +1248,11 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   override def floor(key: Slice[Byte],
-                     readState: ThreadReadState): KeyValue.PutOptional =
+                     readState: ThreadReadState): KeyValue.PutOption =
     get(key, readState) orElse lower(key, readState)
 
   override def lower(key: Slice[Byte],
-                     readState: ThreadReadState): KeyValue.PutOptional =
+                     readState: ThreadReadState): KeyValue.PutOption =
     Lower(
       key = key,
       readState = readState,
@@ -1295,7 +1295,7 @@ private[core] case class Level(dirs: Seq[Dir],
   }
 
   private def higherInNextLevel(key: Slice[Byte],
-                                readState: ThreadReadState): KeyValue.PutOptional =
+                                readState: ThreadReadState): KeyValue.PutOption =
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.higher(key, readState)
@@ -1305,11 +1305,11 @@ private[core] case class Level(dirs: Seq[Dir],
     }
 
   def ceiling(key: Slice[Byte],
-              readState: ThreadReadState): KeyValue.PutOptional =
+              readState: ThreadReadState): KeyValue.PutOption =
     get(key, readState) orElse higher(key, readState)
 
   override def higher(key: Slice[Byte],
-                      readState: ThreadReadState): KeyValue.PutOptional =
+                      readState: ThreadReadState): KeyValue.PutOption =
     Higher(
       key = key,
       readState = readState,
@@ -1321,13 +1321,13 @@ private[core] case class Level(dirs: Seq[Dir],
    * Does a quick appendix lookup.
    * It does not check if the returned key is removed. Use [[Level.head]] instead.
    */
-  override def headKey(readState: ThreadReadState): SliceOptional[Byte] =
+  override def headKey(readState: ThreadReadState): SliceOption[Byte] =
     nextLevel match {
       case Some(nextLevel) =>
         val thisLevelHeadKey = appendix.skipList.headKey
         val nextLevelHeadKey = nextLevel.headKey(readState)
 
-        MinMax.minFavourLeftC[SliceOptional[Byte], Slice[Byte]](
+        MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](
           left = thisLevelHeadKey,
           right = nextLevelHeadKey
         )(keyOrder)
@@ -1340,31 +1340,31 @@ private[core] case class Level(dirs: Seq[Dir],
    * Does a quick appendix lookup.
    * It does not check if the returned key is removed. Use [[Level.last]] instead.
    */
-  override def lastKey(readState: ThreadReadState): SliceOptional[Byte] =
+  override def lastKey(readState: ThreadReadState): SliceOption[Byte] =
     nextLevel match {
       case Some(nextLevel) =>
-        val thisLevelLastKey = appendix.skipList.last().flatMapSomeS(Slice.Null: SliceOptional[Byte])(_.maxKey.maxKey)
+        val thisLevelLastKey = appendix.skipList.last().flatMapSomeS(Slice.Null: SliceOption[Byte])(_.maxKey.maxKey)
         val nextLevelLastKey = nextLevel.lastKey(readState)
 
-        MinMax.maxFavourLeftC[SliceOptional[Byte], Slice[Byte]](
+        MinMax.maxFavourLeftC[SliceOption[Byte], Slice[Byte]](
           left = thisLevelLastKey,
           right = nextLevelLastKey
         )(keyOrder)
 
       case None =>
-        appendix.skipList.last().flatMapSomeS(Slice.Null: SliceOptional[Byte])(_.maxKey.maxKey)
+        appendix.skipList.last().flatMapSomeS(Slice.Null: SliceOption[Byte])(_.maxKey.maxKey)
     }
 
-  override def head(readState: ThreadReadState): KeyValue.PutOptional =
+  override def head(readState: ThreadReadState): KeyValue.PutOption =
     headKey(readState)
-      .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional) {
+      .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption) {
         firstKey =>
           ceiling(firstKey, readState)
       }
 
-  override def last(readState: ThreadReadState): KeyValue.PutOptional =
+  override def last(readState: ThreadReadState): KeyValue.PutOption =
     lastKey(readState)
-      .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOptional) {
+      .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption) {
         lastKey =>
           floor(lastKey, readState)
       }
@@ -1395,7 +1395,7 @@ private[core] case class Level(dirs: Seq[Dir],
     countFromThisLevel + countFromNextLevel
   }
 
-  def getSegment(minKey: Slice[Byte]): SegmentOptional =
+  def getSegment(minKey: Slice[Byte]): SegmentOption =
     appendix
       .skipList
       .get(minKey)

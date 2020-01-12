@@ -19,7 +19,7 @@
 
 package swaydb.core.segment.format.a.block.sortedindex
 
-import swaydb.core.data.{Persistent, PersistentOptional}
+import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.reader.PersistentParser
@@ -30,7 +30,7 @@ sealed trait SortedIndexEntryParser[T] {
   def parse(readPosition: Int,
             headerInteger: Int,
             tailBytes: Slice[Byte],
-            previous: PersistentOptional,
+            previous: PersistentOption,
             sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): T
 
@@ -41,7 +41,7 @@ object SortedIndexEntryParser {
     override def parse(readPosition: Int,
                        headerInteger: Int,
                        tailBytes: Slice[Byte],
-                       previous: PersistentOptional,
+                       previous: PersistentOption,
                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent.Partial =
       PersistentParser.parsePartial(
@@ -57,7 +57,7 @@ object SortedIndexEntryParser {
     override def parse(readPosition: Int,
                        headerInteger: Int,
                        tailBytes: Slice[Byte],
-                       previous: PersistentOptional,
+                       previous: PersistentOption,
                        sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
                        valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock]): Persistent =
       PersistentParser.parse(

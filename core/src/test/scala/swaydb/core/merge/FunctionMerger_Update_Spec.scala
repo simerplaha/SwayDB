@@ -191,7 +191,7 @@ class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory
         runThis(100.times) {
           //mock functions are never called
           implicit val testTimer = TestTimer.Incremental()
-          val output = SwayFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOptional(), Some(randomDeadline()))
+          val output = SwayFunctionOutput.Update((randomStringOption: Slice[Byte]).asSliceOption(), Some(randomDeadline()))
 
           Seq(
             SwayFunction.Key(_ => output),

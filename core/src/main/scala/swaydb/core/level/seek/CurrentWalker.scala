@@ -28,7 +28,7 @@ trait CurrentWalker {
 
   def levelNumber: String
 
-  def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOptional
+  def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption
 
   def higher(key: Slice[Byte], readState: ThreadReadState): LevelSeek[KeyValue]
 

@@ -20,7 +20,7 @@
 package swaydb.core.segment.format.a.entry.reader
 
 import swaydb.core.data.Persistent.Partial
-import swaydb.core.data.{Persistent, PersistentOptional}
+import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
@@ -34,7 +34,7 @@ object PersistentParser {
   def parse(headerInteger: Int,
             indexOffset: Int,
             tailBytes: Slice[Byte],
-            previous: PersistentOptional,
+            previous: PersistentOption,
             mightBeCompressed: Boolean,
             keyCompressionOnly: Boolean,
             sortedIndexEndOffset: Int,

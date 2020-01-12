@@ -21,7 +21,7 @@ package swaydb.core.io.file
 
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.util.HashedMap
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
 
@@ -56,7 +56,7 @@ private[core] object BlockCache {
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
       skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]](Slice.Null)
+      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte], SliceOption[Byte]](Slice.Null)
     )
 
   def init(memorySweeper: MemorySweeper.All) =
@@ -64,13 +64,13 @@ private[core] object BlockCache {
       blockSize = memorySweeper.blockSize,
       sweeper = memorySweeper,
       skipBlockCacheSeekSize = memorySweeper.skipBlockCacheSeekSize,
-      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]](Slice.Null)
+      map = HashedMap.concurrent[BlockCache.Key, Slice[Byte], SliceOption[Byte]](Slice.Null)
     )
 
   class State(val blockSize: Int,
               val skipBlockCacheSeekSize: Int,
               val sweeper: MemorySweeper.Block,
-              private[file] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOptional[Byte]]) {
+              private[file] val map: HashedMap.Concurrent[BlockCache.Key, Slice[Byte], SliceOption[Byte]]) {
     val blockSizeDouble: Double = blockSize
 
     def clear() =

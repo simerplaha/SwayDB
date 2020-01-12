@@ -24,7 +24,7 @@ import swaydb.data.order.KeyOrder
 
 import scala.util.Random
 
-class SliceOptionalSpec extends WordSpec with Matchers {
+class SliceOptionSpec extends WordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
 
@@ -37,7 +37,7 @@ class SliceOptionalSpec extends WordSpec with Matchers {
 
   "orElse" in {
     (Slice.Null orElseC slice) shouldBe slice
-    Slice.Null.orElseC(slice: SliceOptional[Int]) shouldBe slice
+    Slice.Null.orElseC(slice: SliceOption[Int]) shouldBe slice
 
     (Slice.Null orElseC Slice.Null) shouldBe Slice.Null
   }

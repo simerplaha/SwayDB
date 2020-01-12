@@ -366,7 +366,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   private[block] def searchReference(key: Slice[Byte],
                                      hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                      sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                     valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
+                                     valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -375,7 +375,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val block = hashIndexReader.block
 
     @tailrec
-    def doFind(probe: Int): Persistent.PartialOptional =
+    def doFind(probe: Int): Persistent.PartialOption =
       if (probe >= block.maxProbe) {
         Persistent.Partial.Null
       } else {
@@ -488,7 +488,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   private[block] def searchCopy(key: Slice[Byte],
                                 hasIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
                                 sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional = {
+                                valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption = {
 
     val hash = key.hashCode()
     val hash1 = hash >>> 32
@@ -497,7 +497,7 @@ private[core] object HashIndexBlock extends LazyLogging {
     val block = hasIndexReader.block
 
     @tailrec
-    def doFind(probe: Int): Persistent.PartialOptional =
+    def doFind(probe: Int): Persistent.PartialOption =
       if (probe >= block.maxProbe) {
         Persistent.Partial.Null
       } else {
@@ -540,7 +540,7 @@ private[core] object HashIndexBlock extends LazyLogging {
   def search(key: Slice[Byte],
              hashIndexReader: UnblockedReader[HashIndexBlock.Offset, HashIndexBlock],
              sortedIndexReader: UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock],
-             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOptional =
+             valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.PartialOption =
     if (hashIndexReader.block.format.isCopy)
       searchCopy(
         key = key,

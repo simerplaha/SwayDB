@@ -23,7 +23,7 @@ import swaydb.IO
 import swaydb.core.data.Memory
 import swaydb.core.segment.format.a.entry.id.{BaseEntryId, MemoryToKeyValueIdBinder}
 import swaydb.core.util.{Bytes, Options}
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 
 private[a] trait ValueWriter {
   def write[T <: Memory](current: T,
@@ -134,7 +134,7 @@ private[a] object ValueWriter extends ValueWriter {
       )
 
   private def uncompressed[T <: Memory](current: T,
-                                        currentValue: SliceOptional[Byte],
+                                        currentValue: SliceOption[Byte],
                                         entryId: BaseEntryId.Time,
                                         builder: EntryWriter.Builder)(implicit binder: MemoryToKeyValueIdBinder[T],
                                                                       keyWriter: KeyWriter,

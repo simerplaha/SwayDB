@@ -21,14 +21,14 @@ package swaydb.core.segment.format.a.entry.reader
 
 import java.util
 
-import swaydb.core.data.{Persistent, PersistentOptional}
+import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.format.a.entry.id.PersistentToKeyValueIdBinder
 import swaydb.core.segment.format.a.entry.reader.base.BaseEntryReader
 import swaydb.core.util.Bytes
-import swaydb.data.slice.{ReaderBase, Slice, SliceOptional}
+import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 
 object PersistentReader {
@@ -56,7 +56,7 @@ object PersistentReader {
   def read[T <: Persistent](indexOffset: Int,
                             headerInteger: Int,
                             tailIndexEntry: Slice[Byte],
-                            previous: PersistentOptional,
+                            previous: PersistentOption,
                             //sorted index stats
                             mightBeCompressed: Boolean,
                             keyCompressionOnly: Boolean,
@@ -92,7 +92,7 @@ object PersistentReader {
                             headerKeyBytes: Slice[Byte],
                             keyValueId: Int,
                             tailReader: ReaderBase,
-                            previous: PersistentOptional,
+                            previous: PersistentOption,
                             //sorted index stats
                             mightBeCompressed: Boolean,
                             keyCompressionOnly: Boolean,
@@ -149,7 +149,7 @@ object PersistentReader {
       KeyReader.read(
         keyValueIdInt = keyValueId,
         keyBytes = headerKeyBytes,
-        previousKey = previous.flatMapSomeS(Slice.Null: SliceOptional[Byte])(_.key),
+        previousKey = previous.flatMapSomeS(Slice.Null: SliceOption[Byte])(_.key),
         keyValueId = binder.keyValueId
       )
 

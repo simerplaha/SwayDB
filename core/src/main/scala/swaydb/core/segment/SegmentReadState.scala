@@ -22,21 +22,21 @@ package swaydb.core.segment
 import java.nio.file.Path
 
 import swaydb.core
-import swaydb.core.data.{Persistent, PersistentOptional}
+import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.data.util.SomeOrNone
 
-protected sealed trait SegmentReadStateOptional extends SomeOrNone[SegmentReadStateOptional, SegmentReadState] {
-  override def noneS: SegmentReadStateOptional = SegmentReadState.Null
+protected sealed trait SegmentReadStateOption extends SomeOrNone[SegmentReadStateOption, SegmentReadState] {
+  override def noneS: SegmentReadStateOption = SegmentReadState.Null
 }
 
 protected object SegmentReadState {
-  final case object Null extends SegmentReadStateOptional {
+  final case object Null extends SegmentReadStateOption {
     override def isNoneS: Boolean = true
     override def getS: SegmentReadState = throw new Exception("SegmentState is of type Null")
   }
 
   def updateOnSuccessSequentialRead(path: Path,
-                                    segmentState: SegmentReadStateOptional,
+                                    segmentState: SegmentReadStateOption,
                                     threadReadState: ThreadReadState,
                                     found: Persistent): Unit =
     if (segmentState.isNoneS)
@@ -84,10 +84,10 @@ protected object SegmentReadState {
   }
 
   def updateAfterRandomRead(path: Path,
-                            start: PersistentOptional,
-                            segmentStateOptional: SegmentReadStateOptional,
+                            start: PersistentOption,
+                            segmentStateOptional: SegmentReadStateOption,
                             threadReadState: ThreadReadState,
-                            foundOption: PersistentOptional): Unit =
+                            foundOption: PersistentOption): Unit =
     if (segmentStateOptional.isSomeS)
       SegmentReadState.mutateAfterRandomRead(
         path = path,
@@ -107,9 +107,9 @@ protected object SegmentReadState {
    * Sets read state after a random read WITHOUT an existing [[SegmentReadState]] exists.
    */
   def createAfterRandomRead(path: Path,
-                            start: PersistentOptional,
+                            start: PersistentOption,
                             threadState: ThreadReadState,
-                            foundOption: PersistentOptional): Unit =
+                            foundOption: PersistentOption): Unit =
 
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
@@ -132,7 +132,7 @@ protected object SegmentReadState {
   def mutateAfterRandomRead(path: Path,
                             threadState: ThreadReadState,
                             segmentState: SegmentReadState, //should not be null.
-                            foundOption: PersistentOptional): Unit =
+                            foundOption: PersistentOption): Unit =
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
       foundKeyValue.unsliceKeys
@@ -150,8 +150,8 @@ protected object SegmentReadState {
  * get's set [[keyValue]].
  */
 protected class SegmentReadState(var keyValue: Persistent,
-                                 var lowerKeyValue: PersistentOptional,
-                                 var isSequential: Boolean) extends SegmentReadStateOptional {
+                                 var lowerKeyValue: PersistentOption,
+                                 var isSequential: Boolean) extends SegmentReadStateOption {
   override def isNoneS: Boolean = false
   override def getS: SegmentReadState = this
 }

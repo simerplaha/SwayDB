@@ -208,7 +208,7 @@ private[core] class SegmentBlockCache(path: Path,
     }
 
   /**
-   * TODO switch out null with [[swaydb.core.segment.format.a.block.reader.UnblockedReaderOptional]] for type-safety.
+   * TODO switch out null with [[swaydb.core.segment.format.a.block.reader.UnblockedReaderOption]] for type-safety.
    */
   def buildBlockReaderCacheOrNull[O <: BlockOffset, B <: Block[O]](initial: Option[UnblockedReader[O, B]],
                                                                    blockIO: IOAction => IOStrategy,

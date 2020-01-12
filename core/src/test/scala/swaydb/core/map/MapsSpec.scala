@@ -25,7 +25,7 @@ import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb.core.TestData._
 import swaydb.core.actor.FileSweeper
-import swaydb.core.data.{Memory, MemoryOptional, Value}
+import swaydb.core.data.{Memory, MemoryOption, Value}
 import swaydb.core.io.file.Effect._
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.util.Extension
@@ -33,7 +33,7 @@ import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.accelerate.Accelerator
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
@@ -58,7 +58,7 @@ class MapsSpec extends TestBase {
     "initialise and recover on reopen" in {
       val path = createRandomDir
       val maps =
-        Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+        Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null,
           path = path,
@@ -79,7 +79,7 @@ class MapsSpec extends TestBase {
 
       //reopen and it should contain the same entries as above and old map should value delete
       val reopen =
-        Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+        Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null,
           path = path,
@@ -109,7 +109,7 @@ class MapsSpec extends TestBase {
     "delete empty maps on recovery" in {
       val path = createRandomDir
       val maps =
-        Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+        Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null,
           path = path,
@@ -120,12 +120,12 @@ class MapsSpec extends TestBase {
         ).runRandomIO.right.value
 
       maps.queuedMapsCountWithCurrent shouldBe 1
-      val currentMapsPath = maps.map.asInstanceOf[PersistentMap[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]].path
+      val currentMapsPath = maps.map.asInstanceOf[PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]].path
       //above creates a map without any entries
 
       //reopen should create a new map, delete the previous maps current map as it's empty
       val reopen =
-        Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+        Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null,
           path = path,
@@ -144,7 +144,7 @@ class MapsSpec extends TestBase {
   "Maps.memory" should {
     "initialise" in {
       val map =
-        Maps.memory[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+        Maps.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null,
           fileSize = 1.mb,
@@ -161,7 +161,7 @@ class MapsSpec extends TestBase {
 
   "Maps" should {
     "initialise a new map if the current map is full" in {
-      def test(maps: Maps[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]) = {
+      def test(maps: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) = {
         maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value //entry size is 40.bytes
         maps.write(_ => MapEntry.Put(2: Slice[Byte], Memory.Range(2, 2, Value.FromValue.Null, Value.update(2)))).runRandomIO.right.value //another 43.bytes
         maps.queuedMapsCountWithCurrent shouldBe 1
@@ -175,7 +175,7 @@ class MapsSpec extends TestBase {
       //persistent
       val path = createRandomDir
       val maps =
-        Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](
+        Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null,
           path = path,
@@ -196,7 +196,7 @@ class MapsSpec extends TestBase {
     "write a key value larger then the actual fileSize" in {
       val largeValue = randomBytesSlice(1.mb)
 
-      def test(maps: Maps[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory]) = {
+      def test(maps: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) = {
         //adding 1.mb key-value to map, the file size is 500.bytes, since this is the first entry in the map and the map is empty,
         // the entry will value added.
         maps.write(_ => MapEntry.Put(1, Memory.put(1, largeValue))).runRandomIO.right.value //large entry
@@ -229,12 +229,12 @@ class MapsSpec extends TestBase {
 
       val path = createRandomDir
       //persistent
-      test(Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, fileSize = 500.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value)
+      test(Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, fileSize = 500.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value)
       //in memory
       test(Maps.memory(Slice.Null, Memory.Null, 500.bytes, Accelerator.brake()))
 
       //reopen start in recovery mode and existing maps are cached
-      val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, fileSize = 500.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val maps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, fileSize = 500.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.queuedMapsCount shouldBe 4
       maps.queuedMapsCountWithCurrent shouldBe 5
       maps.get(1) shouldBe Memory.put(1, largeValue)
@@ -245,7 +245,7 @@ class MapsSpec extends TestBase {
 
     "recover maps in newest to oldest order" in {
       val path = createRandomDir
-      val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val maps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(1, Memory.put(1)))
       maps.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2)))
       maps.write(_ => MapEntry.Put(3, Memory.put(3)))
@@ -257,13 +257,13 @@ class MapsSpec extends TestBase {
       maps.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(3, 2, 1, 0)
       maps.lastOption().value.pathOption.value.folderId shouldBe 0
 
-      val recovered1 = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val recovered1 = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       recovered1.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(4, 3, 2, 1, 0)
       recovered1.map.pathOption.value.folderId shouldBe 5
       recovered1.write(_ => MapEntry.Put[Slice[Byte], Memory.Remove](6, Memory.remove(6)))
       recovered1.lastOption().value.pathOption.value.folderId shouldBe 0
 
-      val recovered2 = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val recovered2 = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, fileSize = 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       recovered2.maps.asScala.toList.map(_.pathOption.value.folderId) should contain inOrderOnly(5, 4, 3, 2, 1, 0)
       recovered2.map.pathOption.value.folderId shouldBe 6
       recovered2.lastOption().value.pathOption.value.folderId shouldBe 0
@@ -271,12 +271,12 @@ class MapsSpec extends TestBase {
 
     "recover from existing maps" in {
       val path = createRandomDir
-      val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val maps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put[Slice[Byte], Memory](1, Memory.remove(1))).runRandomIO.right.value
 
-      val recoveredMaps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value.maps.asScala
+      val recoveredMaps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value.maps.asScala
 
       recoveredMaps should have size 3
       recoveredMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
@@ -288,7 +288,7 @@ class MapsSpec extends TestBase {
 
     "fail recovery if one of the map is corrupted and recovery mode is ReportFailure" in {
       val path = createRandomDir
-      val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val maps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put[Slice[Byte], Memory](3, Memory.remove(3))).runRandomIO.right.value
@@ -297,12 +297,12 @@ class MapsSpec extends TestBase {
       val secondMapsBytes = Files.readAllBytes(secondMapsPath)
       Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
-      Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
+      Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = true, 1.byte, Accelerator.brake(), RecoveryMode.ReportFailure).left.runRandomIO.right.value.exception shouldBe a[IllegalStateException]
     }
 
     "continue recovery if one of the map is corrupted and recovery mode is DropCorruptedTailEntries" in {
       val path = createRandomDir
-      val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val maps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(2, Memory.put(2))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(3, Memory.put(3, 3))).runRandomIO.right.value
@@ -314,7 +314,7 @@ class MapsSpec extends TestBase {
       val secondMapsBytes = Files.readAllBytes(secondMapsPath)
       Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
-      val recoveredMaps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntries).runRandomIO.right.value.maps.asScala
+      val recoveredMaps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntries).runRandomIO.right.value.maps.asScala
       //recovered maps will still be 3 but since second maps second entry is corrupted, the first entry will still exists.
       recoveredMaps should have size 3
 
@@ -333,7 +333,7 @@ class MapsSpec extends TestBase {
 
     "continue recovery if one of the map is corrupted and recovery mode is DropCorruptedTailEntriesAndMaps" in {
       val path = createRandomDir
-      val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val maps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(2, Memory.put(2, 2))).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(3, Memory.put(3))).runRandomIO.right.value
@@ -345,7 +345,7 @@ class MapsSpec extends TestBase {
       val secondMapsBytes = Files.readAllBytes(secondMapsPath)
       Files.write(secondMapsPath, secondMapsBytes.dropRight(1))
 
-      val recoveredMaps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntriesAndMaps).runRandomIO.right.value
+      val recoveredMaps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.DropCorruptedTailEntriesAndMaps).runRandomIO.right.value
       recoveredMaps.maps should have size 2
       //the last map is delete since the second last Map is found corrupted.
       maps.maps.asScala.last.exists shouldBe false
@@ -363,7 +363,7 @@ class MapsSpec extends TestBase {
 
     "start a new Map if writing an entry fails" in {
       val path = createRandomDir
-      val maps = Maps.persistent[SliceOptional[Byte], MemoryOptional, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
+      val maps = Maps.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null, path, mmap = false, 100.bytes, Accelerator.brake(), RecoveryMode.ReportFailure).runRandomIO.right.value
       maps.write(_ => MapEntry.Put(1, Memory.put(1))).runRandomIO.right.value
       maps.queuedMapsCountWithCurrent shouldBe 1
       //delete the map

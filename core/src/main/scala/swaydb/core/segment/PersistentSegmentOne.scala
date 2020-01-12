@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
-import swaydb.core.data.{KeyValue, Persistent, PersistentOptional}
+import swaydb.core.data.{KeyValue, Persistent, PersistentOption}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.{BlockCache, DBFile}
 import swaydb.core.level.PathsDistributor
@@ -324,7 +324,7 @@ protected case class PersistentSegmentOne(file: DBFile,
     )
   }
 
-  def getFromCache(key: Slice[Byte]): PersistentOptional =
+  def getFromCache(key: Slice[Byte]): PersistentOption =
     ref getFromCache key
 
   def mightContainKey(key: Slice[Byte]): Boolean =
@@ -339,13 +339,13 @@ protected case class PersistentSegmentOne(file: DBFile,
         )(FunctionStore.order)
     }
 
-  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOptional =
+  def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRef.get(key, threadState)
 
-  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOptional =
+  def lower(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRef.lower(key, threadState)
 
-  def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOptional =
+  def higher(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     SegmentRef.higher(key, threadState)
 
   def toSlice(): Slice[Persistent] =

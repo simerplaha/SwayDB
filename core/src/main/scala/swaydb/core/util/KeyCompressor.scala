@@ -20,7 +20,7 @@
 package swaydb.core.util
 
 import swaydb.IO
-import swaydb.core.data.{Memory, MemoryOptional}
+import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.data.MaxKey
 import swaydb.data.slice.Slice
 
@@ -29,7 +29,7 @@ private[core] object KeyCompressor {
   /**
    * @return (minKey, maxKey, fullKey)
    */
-  def compress(head: MemoryOptional,
+  def compress(head: MemoryOption,
                last: Memory): (Slice[Byte], MaxKey[Slice[Byte]], Slice[Byte]) =
     (head, last) match {
       case (keyValue: Memory, fixed: Memory.Fixed) =>

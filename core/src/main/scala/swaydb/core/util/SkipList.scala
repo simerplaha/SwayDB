@@ -34,75 +34,75 @@ import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 import scala.util.Random
 
-private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue] {
-  def nullKey: OptionalKey
-  def nullValue: OptionalValue
+private[core] sealed trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue] {
+  def nullKey: OptionKey
+  def nullValue: OptionValue
 
-  def put(key: SomeKey, value: SomeValue): Unit
-  def putIfAbsent(key: SomeKey, value: SomeValue): Boolean
-  def get(key: SomeKey): OptionalValue
-  def remove(key: SomeKey): Unit
+  def put(key: Key, value: Value): Unit
+  def putIfAbsent(key: Key, value: Value): Boolean
+  def get(key: Key): OptionValue
+  def remove(key: Key): Unit
 
-  def lower(key: SomeKey): OptionalValue
-  def lowerKey(key: SomeKey): OptionalKey
+  def lower(key: Key): OptionValue
+  def lowerKey(key: Key): OptionKey
 
-  def floor(key: SomeKey): OptionalValue
-  def floorKeyValue(key: SomeKey): Option[(SomeKey, SomeValue)]
+  def floor(key: Key): OptionValue
+  def floorKeyValue(key: Key): Option[(Key, Value)]
 
-  def higher(key: SomeKey): OptionalValue
-  def higherKey(key: SomeKey): OptionalKey
-  def higherKeyValue(key: SomeKey): Option[(SomeKey, SomeValue)]
+  def higher(key: Key): OptionValue
+  def higherKey(key: Key): OptionKey
+  def higherKeyValue(key: Key): Option[(Key, Value)]
 
-  def ceiling(key: SomeKey): OptionalValue
-  def ceilingKey(key: SomeKey): OptionalKey
+  def ceiling(key: Key): OptionValue
+  def ceilingKey(key: Key): OptionKey
 
   def isEmpty: Boolean
   def nonEmpty: Boolean
   def clear(): Unit
   def size: Int
-  def contains(key: SomeKey): Boolean
-  def headKey: OptionalKey
-  def lastKey: OptionalKey
+  def contains(key: Key): Boolean
+  def headKey: OptionKey
+  def lastKey: OptionKey
 
   def count(): Int
-  def last(): OptionalValue
-  def head(): OptionalValue
-  def headKeyValue: Option[(SomeKey, SomeValue)]
-  def values(): util.Collection[SomeValue]
-  def keys(): util.NavigableSet[SomeKey]
-  def take(count: Int): Slice[SomeValue]
-  def foldLeft[R](r: R)(f: (R, (SomeKey, SomeValue)) => R): R
-  def foreach[R](f: (SomeKey, SomeValue) => R): Unit
-  def subMap(from: SomeKey, to: SomeKey): util.NavigableMap[SomeKey, SomeValue]
-  def subMap(from: SomeKey, fromInclusive: Boolean, to: SomeKey, toInclusive: Boolean): util.NavigableMap[SomeKey, SomeValue]
-  def asScala: mutable.Map[SomeKey, SomeValue]
+  def last(): OptionValue
+  def head(): OptionValue
+  def headKeyValue: Option[(Key, Value)]
+  def values(): util.Collection[Value]
+  def keys(): util.NavigableSet[Key]
+  def take(count: Int): Slice[Value]
+  def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R
+  def foreach[R](f: (Key, Value) => R): Unit
+  def subMap(from: Key, to: Key): util.NavigableMap[Key, Value]
+  def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): util.NavigableMap[Key, Value]
+  def asScala: mutable.Map[Key, Value]
   def isConcurrent: Boolean
 
-  @inline final def toOptionValue(entry: java.util.Map.Entry[SomeKey, SomeValue]): OptionalValue =
+  @inline final def toOptionValue(entry: java.util.Map.Entry[Key, Value]): OptionValue =
     if (entry == null)
       nullValue
     else
       entry.getValue
 
-  @inline final def toOptionValue(value: SomeValue): OptionalValue =
+  @inline final def toOptionValue(value: Value): OptionValue =
     if (value == null)
       nullValue
     else
       value
 
-  @inline final def toOptionKey(key: SomeKey): OptionalKey =
+  @inline final def toOptionKey(key: Key): OptionKey =
     if (key == null)
       nullKey
     else
       key
 
-  @inline final def toOptionKeyValue(entry: java.util.Map.Entry[SomeKey, SomeValue]): Option[(SomeKey, SomeValue)] =
+  @inline final def toOptionKeyValue(entry: java.util.Map.Entry[Key, Value]): Option[(Key, Value)] =
     if (entry == null)
       None
     else
       Option((entry.getKey, entry.getValue))
 
-  @inline final def tryOptionValue(block: => java.util.Map.Entry[SomeKey, SomeValue]): OptionalValue =
+  @inline final def tryOptionValue(block: => java.util.Map.Entry[Key, Value]): OptionValue =
     try
       toOptionValue(block)
     catch {
@@ -110,7 +110,7 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
         nullValue
     }
 
-  @inline final def tryOptionKey(block: => SomeKey): OptionalKey =
+  @inline final def tryOptionKey(block: => Key): OptionKey =
     try
       toOptionKey(block)
     catch {
@@ -118,7 +118,7 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
         nullKey
     }
 
-  @inline final def tryOptionKeyValue(block: => java.util.Map.Entry[SomeKey, SomeValue]): Option[(SomeKey, SomeValue)] =
+  @inline final def tryOptionKeyValue(block: => java.util.Map.Entry[Key, Value]): Option[(Key, Value)] =
     try
       toOptionKeyValue(block)
     catch {
@@ -129,23 +129,23 @@ private[core] sealed trait SkipList[OptionalKey, OptionalValue, SomeKey <: Optio
 
 private[core] object SkipList {
   object Batch {
-    case class Remove[SomeKey](key: SomeKey) extends Batch[SomeKey, Nothing] {
-      override def apply[VV >: Nothing](skipList: SkipList[_, _, SomeKey, VV]): Unit =
+    case class Remove[Key](key: Key) extends Batch[Key, Nothing] {
+      override def apply[VV >: Nothing](skipList: SkipList[_, _, Key, VV]): Unit =
         skipList.remove(key)
     }
-    case class Put[SomeKey, SomeValue](key: SomeKey, value: SomeValue) extends Batch[SomeKey, SomeValue] {
-      override def apply[VV >: SomeValue](skipList: SkipList[_, _, SomeKey, VV]): Unit =
+    case class Put[Key, Value](key: Key, value: Value) extends Batch[Key, Value] {
+      override def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit =
         skipList.put(key, value)
     }
   }
 
-  sealed trait KeyValue[SomeKey, SomeValue] extends Tagged[(SomeKey, SomeValue), Option]
+  sealed trait KeyValue[Key, Value] extends Tagged[(Key, Value), Option]
   object KeyValue {
-    case class Some[SomeKey, SomeValue](key: SomeKey, value: SomeValue) extends KeyValue[SomeKey, SomeValue] {
-      def tuple: (SomeKey, SomeValue) =
+    case class Some[Key, Value](key: Key, value: Value) extends KeyValue[Key, Value] {
+      def tuple: (Key, Value) =
         (key, value)
 
-      override def get: Option[(SomeKey, SomeValue)] =
+      override def get: Option[(Key, Value)] =
         Option(tuple)
     }
 
@@ -154,33 +154,33 @@ private[core] object SkipList {
     }
   }
 
-  sealed trait Batch[SomeKey, +SomeValue] {
-    def apply[VV >: SomeValue](skipList: SkipList[_, _, SomeKey, VV]): Unit
+  sealed trait Batch[Key, +Value] {
+    def apply[VV >: Value](skipList: SkipList[_, _, Key, VV]): Unit
   }
 
-  def concurrent[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue](nullKey: OptionalKey,
-                                                                                                 nullValue: OptionalValue)(implicit ordering: KeyOrder[SomeKey]): SkipList.Concurrent[OptionalKey, OptionalValue, SomeKey, SomeValue] =
-    new Concurrent[OptionalKey, OptionalValue, SomeKey, SomeValue](
-      skipper = new ConcurrentSkipListMap[SomeKey, SomeValue](ordering),
+  def concurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipList.Concurrent[OptionKey, OptionValue, Key, Value] =
+    new Concurrent[OptionKey, OptionValue, Key, Value](
+      skipper = new ConcurrentSkipListMap[Key, Value](ordering),
       nullKey = nullKey,
       nullValue = nullValue
     )
 
-  def immutable[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue](nullKey: OptionalKey,
-                                                                                                nullValue: OptionalValue)(implicit ordering: KeyOrder[SomeKey]): SkipList.Immutable[OptionalKey, OptionalValue, SomeKey, SomeValue] =
-    new Immutable[OptionalKey, OptionalValue, SomeKey, SomeValue](
-      skipper = new util.TreeMap[SomeKey, SomeValue](ordering),
+  def immutable[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                                nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipList.Immutable[OptionKey, OptionValue, Key, Value] =
+    new Immutable[OptionKey, OptionValue, Key, Value](
+      skipper = new util.TreeMap[Key, Value](ordering),
       nullKey = nullKey,
       nullValue = nullValue
     )
 
-  def concurrent[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue](limit: Int,
-                                                                                                 nullKey: OptionalKey,
-                                                                                                 nullValue: OptionalValue)(implicit ordering: KeyOrder[SomeKey]): SkipList.ConcurrentLimit[OptionalKey, OptionalValue, SomeKey, SomeValue] =
-    new ConcurrentLimit[OptionalKey, OptionalValue, SomeKey, SomeValue](
+  def concurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
+                                                                                 nullKey: OptionKey,
+                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipList.ConcurrentLimit[OptionKey, OptionValue, Key, Value] =
+    new ConcurrentLimit[OptionKey, OptionValue, Key, Value](
       limit = limit,
       skipList =
-        SkipList.concurrent[OptionalKey, OptionalValue, SomeKey, SomeValue](
+        SkipList.concurrent[OptionKey, OptionValue, Key, Value](
           nullKey = nullKey,
           nullValue = nullValue
         ),
@@ -188,9 +188,9 @@ private[core] object SkipList {
       nullValue = nullValue
     )
 
-  private[core] class Immutable[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue](private var skipper: util.TreeMap[SomeKey, SomeValue],
-                                                                                                                val nullKey: OptionalKey,
-                                                                                                                val nullValue: OptionalValue) extends SkipListMapBase[OptionalKey, OptionalValue, SomeKey, SomeValue, util.TreeMap[SomeKey, SomeValue]](skipper, false) {
+  private[core] class Immutable[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: util.TreeMap[Key, Value],
+                                                                                                val nullKey: OptionKey,
+                                                                                                val nullValue: OptionValue) extends SkipListMapBase[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper, false) {
     /**
      * FIXME - [[SkipListMapBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
      * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
@@ -198,28 +198,28 @@ private[core] object SkipList {
      */
     skipper = null
 
-    override def remove(key: SomeKey): Unit =
+    override def remove(key: Key): Unit =
       throw new IllegalAccessException("Immutable SkipList")
 
-    override def batch(batches: Iterable[SkipList.Batch[SomeKey, SomeValue]]): Unit =
+    override def batch(batches: Iterable[SkipList.Batch[Key, Value]]): Unit =
       throw new IllegalAccessException("Immutable SkipList")
 
-    override def put(keyValues: Iterable[(SomeKey, SomeValue)]): Unit =
+    override def put(keyValues: Iterable[(Key, Value)]): Unit =
       throw new IllegalAccessException("Immutable SkipList")
 
     // only single put is allowed. Used during the creation of this skipList.
-    // override def put(key: SomeKey, value: SomeValue): Unit
+    // override def put(key: Key, value: Value): Unit
 
-    override def putIfAbsent(key: SomeKey, value: SomeValue): Boolean =
+    override def putIfAbsent(key: Key, value: Value): Boolean =
       throw new IllegalAccessException("Immutable SkipList")
 
-    override def cloneInstance(skipList: util.TreeMap[SomeKey, SomeValue]): Immutable[OptionalKey, OptionalValue, SomeKey, SomeValue] =
+    override def cloneInstance(skipList: util.TreeMap[Key, Value]): Immutable[OptionKey, OptionValue, Key, Value] =
       throw new IllegalAccessException("Immutable SkipList")
   }
 
-  private[core] class Concurrent[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue](private var skipper: ConcurrentSkipListMap[SomeKey, SomeValue],
-                                                                                                                 val nullKey: OptionalKey,
-                                                                                                                 val nullValue: OptionalValue) extends SkipListMapBase[OptionalKey, OptionalValue, SomeKey, SomeValue, ConcurrentSkipListMap[SomeKey, SomeValue]](skipper, true) {
+  private[core] class Concurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: ConcurrentSkipListMap[Key, Value],
+                                                                                                 val nullKey: OptionKey,
+                                                                                                 val nullValue: OptionValue) extends SkipListMapBase[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper, true) {
     /**
      * FIXME - [[SkipListMapBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
      * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
@@ -227,7 +227,7 @@ private[core] object SkipList {
      */
     skipper = null
 
-    override def cloneInstance(skipList: ConcurrentSkipListMap[SomeKey, SomeValue]): Concurrent[OptionalKey, OptionalValue, SomeKey, SomeValue] =
+    override def cloneInstance(skipList: ConcurrentSkipListMap[Key, Value]): Concurrent[OptionKey, OptionValue, Key, Value] =
       new Concurrent(
         skipper = skipList.clone(),
         nullKey = nullKey,
@@ -235,22 +235,22 @@ private[core] object SkipList {
       )
   }
 
-  protected abstract class SkipListMapBase[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue, SL <: util.NavigableMap[SomeKey, SomeValue]](@volatile var skipList: SL,
-                                                                                                                                                                        val isConcurrent: Boolean) extends SkipList[OptionalKey, OptionalValue, SomeKey, SomeValue] {
+  protected abstract class SkipListMapBase[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]](@volatile var skipList: SL,
+                                                                                                                                                val isConcurrent: Boolean) extends SkipList[OptionKey, OptionValue, Key, Value] {
 
-    def cloneInstance(skipList: SL): SkipListMapBase[OptionalKey, OptionalValue, SomeKey, SomeValue, SL]
+    def cloneInstance(skipList: SL): SkipListMapBase[OptionKey, OptionValue, Key, Value, SL]
 
-    override def get(key: SomeKey): OptionalValue =
+    override def get(key: Key): OptionValue =
       toOptionValue(skipList.get(key))
 
-    override def remove(key: SomeKey): Unit =
+    override def remove(key: Key): Unit =
       skipList.remove(key)
 
     /**
      * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which
      * write to appendix concurrently.
      */
-    def batch(batches: Iterable[SkipList.Batch[SomeKey, SomeValue]]): Unit = {
+    def batch(batches: Iterable[SkipList.Batch[Key, Value]]): Unit = {
       var cloned = false
       val targetSkipList =
         if (batches.size > 1) {
@@ -269,7 +269,7 @@ private[core] object SkipList {
         this.skipList = targetSkipList.skipList
     }
 
-    def put(keyValues: Iterable[(SomeKey, SomeValue)]): Unit = {
+    def put(keyValues: Iterable[(Key, Value)]): Unit = {
       var cloned = false
       val targetSkipList =
         if (keyValues.size > 1) {
@@ -288,34 +288,34 @@ private[core] object SkipList {
         this.skipList = targetSkipList
     }
 
-    override def put(key: SomeKey, value: SomeValue): Unit =
+    override def put(key: Key, value: Value): Unit =
       skipList.put(key, value)
 
-    def subMap(from: SomeKey, to: SomeKey): java.util.NavigableMap[SomeKey, SomeValue] =
+    def subMap(from: Key, to: Key): java.util.NavigableMap[Key, Value] =
       subMap(from = from, fromInclusive = true, to = to, toInclusive = false)
 
-    def subMap(from: SomeKey, fromInclusive: Boolean, to: SomeKey, toInclusive: Boolean): java.util.NavigableMap[SomeKey, SomeValue] =
+    def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): java.util.NavigableMap[Key, Value] =
       skipList.subMap(from, fromInclusive, to, toInclusive)
 
     /**
      * @return true
      */
-    override def putIfAbsent(key: SomeKey, value: SomeValue): Boolean =
+    override def putIfAbsent(key: Key, value: Value): Boolean =
       skipList.putIfAbsent(key, value) == null
 
-    override def floor(key: SomeKey): OptionalValue =
+    override def floor(key: Key): OptionValue =
       toOptionValue(skipList.floorEntry(key))
 
-    override def floorKeyValue(key: SomeKey): Option[(SomeKey, SomeValue)] =
+    override def floorKeyValue(key: Key): Option[(Key, Value)] =
       toOptionKeyValue(skipList.floorEntry(key))
 
-    override def higher(key: SomeKey): OptionalValue =
+    override def higher(key: Key): OptionValue =
       toOptionValue(skipList.higherEntry(key))
 
-    override def higherKeyValue(key: SomeKey): Option[(SomeKey, SomeValue)] =
+    override def higherKeyValue(key: Key): Option[(Key, Value)] =
       toOptionKeyValue(skipList.higherEntry(key))
 
-    override def ceiling(key: SomeKey): OptionalValue =
+    override def ceiling(key: Key): OptionValue =
       toOptionValue(skipList.ceilingEntry(key))
 
     def isEmpty: Boolean =
@@ -330,53 +330,53 @@ private[core] object SkipList {
     def size: Int =
       skipList.size()
 
-    def contains(key: SomeKey): Boolean =
+    def contains(key: Key): Boolean =
       skipList.containsKey(key)
 
-    def headKey: OptionalKey =
+    def headKey: OptionKey =
       tryOptionKey(skipList.firstKey())
 
-    def headKeyValue: Option[(SomeKey, SomeValue)] =
+    def headKeyValue: Option[(Key, Value)] =
       tryOptionKeyValue(skipList.firstEntry())
 
-    def lastKeyValue: Option[(SomeKey, SomeValue)] =
+    def lastKeyValue: Option[(Key, Value)] =
       tryOptionKeyValue(skipList.lastEntry())
 
-    def lastKey: OptionalKey =
+    def lastKey: OptionKey =
       tryOptionKey(skipList.lastKey())
 
-    def ceilingKey(key: SomeKey): OptionalKey =
+    def ceilingKey(key: Key): OptionKey =
       toOptionKey(skipList.ceilingKey(key))
 
-    def higherKey(key: SomeKey): OptionalKey =
+    def higherKey(key: Key): OptionKey =
       toOptionKey(skipList.higherKey(key))
 
-    def lower(key: SomeKey): OptionalValue =
+    def lower(key: Key): OptionValue =
       toOptionValue(skipList.lowerEntry(key))
 
-    def lowerKey(key: SomeKey): OptionalKey =
+    def lowerKey(key: Key): OptionKey =
       toOptionKey(skipList.lowerKey(key))
 
     def count() =
       skipList.size()
 
-    def last(): OptionalValue =
+    def last(): OptionValue =
       toOptionValue(skipList.lastEntry())
 
-    def head(): OptionalValue =
+    def head(): OptionValue =
       toOptionValue(skipList.firstEntry())
 
-    def values(): util.Collection[SomeValue] =
+    def values(): util.Collection[Value] =
       skipList.values()
 
-    def keys(): util.NavigableSet[SomeKey] =
+    def keys(): util.NavigableSet[Key] =
       skipList.navigableKeySet()
 
-    def take(count: Int): Slice[SomeValue] = {
+    def take(count: Int): Slice[Value] = {
       val slice = Slice.create(count)
 
       @tailrec
-      def doTake(nextOption: Option[(SomeKey, SomeValue)]): Slice[SomeValue] =
+      def doTake(nextOption: Option[(Key, Value)]): Slice[Value] =
         if (slice.isFull || nextOption.isEmpty)
           slice
         else {
@@ -388,47 +388,47 @@ private[core] object SkipList {
       doTake(headKeyValue).close()
     }
 
-    def foldLeft[R](r: R)(f: (R, (SomeKey, SomeValue)) => R): R = {
+    def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R = {
       var result = r
       skipList.forEach {
-        new BiConsumer[SomeKey, SomeValue] {
-          override def accept(key: SomeKey, value: SomeValue): Unit =
+        new BiConsumer[Key, Value] {
+          override def accept(key: Key, value: Value): Unit =
             result = f(result, (key, value))
         }
       }
       result
     }
 
-    def foreach[R](f: (SomeKey, SomeValue) => R): Unit =
+    def foreach[R](f: (Key, Value) => R): Unit =
       skipList.forEach {
-        new BiConsumer[SomeKey, SomeValue] {
-          override def accept(key: SomeKey, value: SomeValue): Unit =
+        new BiConsumer[Key, Value] {
+          override def accept(key: Key, value: Value): Unit =
             f(key, value)
         }
       }
 
-    def toSlice[V2 >: SomeValue : ClassTag](size: Int): Slice[V2] = {
+    def toSlice[V2 >: Value : ClassTag](size: Int): Slice[V2] = {
       val slice = Slice.create[V2](size)
       skipList.values() forEach {
-        new Consumer[SomeValue] {
-          def accept(keyValue: SomeValue): Unit =
+        new Consumer[Value] {
+          def accept(keyValue: Value): Unit =
             slice add keyValue
         }
       }
       slice
     }
 
-    override def asScala: mutable.Map[SomeKey, SomeValue] =
+    override def asScala: mutable.Map[Key, Value] =
       skipList.asScala
   }
 
-  private[core] class ConcurrentLimit[OptionalKey, OptionalValue, SomeKey <: OptionalKey, SomeValue <: OptionalValue](limit: Int,
-                                                                                                                      skipList: SkipList.Concurrent[OptionalKey, OptionalValue, SomeKey, SomeValue],
-                                                                                                                      val nullKey: OptionalKey,
-                                                                                                                      val nullValue: OptionalValue)(implicit ordering: KeyOrder[SomeKey]) extends SkipList[OptionalKey, OptionalValue, SomeKey, SomeValue] {
+  private[core] class ConcurrentLimit[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
+                                                                                                      skipList: SkipList.Concurrent[OptionKey, OptionValue, Key, Value],
+                                                                                                      val nullKey: OptionKey,
+                                                                                                      val nullValue: OptionValue)(implicit ordering: KeyOrder[Key]) extends SkipList[OptionKey, OptionValue, Key, Value] {
     val skipListSize = new AtomicInteger(0)
 
-    def dropOverflow(key: SomeKey): Unit =
+    def dropOverflow(key: Key): Unit =
       while (skipListSize.get() > limit)
         try {
           val firstKey = skipList.skipList.firstKey()
@@ -451,28 +451,28 @@ private[core] object SkipList {
           case _: Exception =>
         }
 
-    override def put(key: SomeKey, value: SomeValue): Unit = {
+    override def put(key: Key, value: Value): Unit = {
       dropOverflow(key)
       skipList.put(key, value)
       skipListSize.incrementAndGet()
     }
 
-    override def putIfAbsent(key: SomeKey, value: SomeValue): Boolean = {
+    override def putIfAbsent(key: Key, value: Value): Boolean = {
       dropOverflow(key)
       val put = skipList.putIfAbsent(key, value)
       if (put) skipListSize.incrementAndGet()
       put
     }
 
-    override def get(key: SomeKey): OptionalValue = skipList.get(key)
-    override def remove(key: SomeKey): Unit = skipList.remove(key)
-    override def floor(key: SomeKey): OptionalValue = skipList.floor(key)
-    override def floorKeyValue(key: SomeKey): Option[(SomeKey, SomeValue)] = skipList.floorKeyValue(key)
-    override def higher(key: SomeKey): OptionalValue = skipList.higher(key)
-    override def higherKey(key: SomeKey): OptionalKey = skipList.higherKey(key)
-    override def higherKeyValue(key: SomeKey): Option[(SomeKey, SomeValue)] = skipList.higherKeyValue(key)
-    override def ceiling(key: SomeKey): OptionalValue = skipList.ceiling(key)
-    override def ceilingKey(key: SomeKey): OptionalKey = skipList.ceilingKey(key)
+    override def get(key: Key): OptionValue = skipList.get(key)
+    override def remove(key: Key): Unit = skipList.remove(key)
+    override def floor(key: Key): OptionValue = skipList.floor(key)
+    override def floorKeyValue(key: Key): Option[(Key, Value)] = skipList.floorKeyValue(key)
+    override def higher(key: Key): OptionValue = skipList.higher(key)
+    override def higherKey(key: Key): OptionKey = skipList.higherKey(key)
+    override def higherKeyValue(key: Key): Option[(Key, Value)] = skipList.higherKeyValue(key)
+    override def ceiling(key: Key): OptionValue = skipList.ceiling(key)
+    override def ceilingKey(key: Key): OptionKey = skipList.ceilingKey(key)
     override def isEmpty: Boolean = skipList.isEmpty
     override def nonEmpty: Boolean = skipList.nonEmpty
     override def clear(): Unit = {
@@ -480,24 +480,24 @@ private[core] object SkipList {
       skipList.clear()
     }
     override def size: Int = skipList.size
-    override def contains(key: SomeKey): Boolean = skipList.contains(key)
-    override def headKey: OptionalKey = skipList.headKey
+    override def contains(key: Key): Boolean = skipList.contains(key)
+    override def headKey: OptionKey = skipList.headKey
 
-    override def lastKey: OptionalKey = skipList.lastKey
-    override def lower(key: SomeKey): OptionalValue = skipList.lower(key)
-    override def lowerKey(key: SomeKey): OptionalKey = skipList.lowerKey(key)
+    override def lastKey: OptionKey = skipList.lastKey
+    override def lower(key: Key): OptionValue = skipList.lower(key)
+    override def lowerKey(key: Key): OptionKey = skipList.lowerKey(key)
     override def count(): Int = skipList.count()
-    override def last(): OptionalValue = skipList.last()
-    override def head(): OptionalValue = skipList.head()
-    override def headKeyValue: Option[(SomeKey, SomeValue)] = skipList.headKeyValue
-    override def values(): util.Collection[SomeValue] = skipList.values()
-    override def keys(): util.NavigableSet[SomeKey] = skipList.keys()
-    override def take(count: Int): Slice[SomeValue] = skipList.take(count)
-    override def foldLeft[R](r: R)(f: (R, (SomeKey, SomeValue)) => R): R = skipList.foldLeft(r)(f)
-    override def foreach[R](f: (SomeKey, SomeValue) => R): Unit = skipList.foreach(f)
-    override def subMap(from: SomeKey, to: SomeKey): util.NavigableMap[SomeKey, SomeValue] = skipList.subMap(from, to)
-    override def subMap(from: SomeKey, fromInclusive: Boolean, to: SomeKey, toInclusive: Boolean): util.NavigableMap[SomeKey, SomeValue] = skipList.subMap(from, fromInclusive, to, toInclusive)
-    override def asScala: mutable.Map[SomeKey, SomeValue] = skipList.asScala
+    override def last(): OptionValue = skipList.last()
+    override def head(): OptionValue = skipList.head()
+    override def headKeyValue: Option[(Key, Value)] = skipList.headKeyValue
+    override def values(): util.Collection[Value] = skipList.values()
+    override def keys(): util.NavigableSet[Key] = skipList.keys()
+    override def take(count: Int): Slice[Value] = skipList.take(count)
+    override def foldLeft[R](r: R)(f: (R, (Key, Value)) => R): R = skipList.foldLeft(r)(f)
+    override def foreach[R](f: (Key, Value) => R): Unit = skipList.foreach(f)
+    override def subMap(from: Key, to: Key): util.NavigableMap[Key, Value] = skipList.subMap(from, to)
+    override def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): util.NavigableMap[Key, Value] = skipList.subMap(from, fromInclusive, to, toInclusive)
+    override def asScala: mutable.Map[Key, Value] = skipList.asScala
     override def isConcurrent: Boolean = skipList.isConcurrent
   }
 }

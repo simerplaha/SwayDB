@@ -54,10 +54,10 @@ abstract class SliceBase[+T](array: Array[T],
   def isFull =
     size == allocatedSize
 
-  def isUnslicedOptional: Boolean =
+  def isUnslicedOption: Boolean =
     nonEmpty && isOriginalFullSlice
 
-  def asSliceOptional(): SliceOptional[T] =
+  def asSliceOption(): SliceOption[T] =
     if (isEmpty)
       Slice.Null
     else

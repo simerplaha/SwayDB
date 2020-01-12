@@ -20,7 +20,7 @@
 package swaydb.core.data
 
 import swaydb.core.segment.Segment
-import swaydb.data.slice.{Slice, SliceOptional}
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.SomeOrNone
 
 import scala.concurrent.duration.Deadline
@@ -119,7 +119,7 @@ private[swaydb] object Value {
 
   }
 
-  case class Put(value: SliceOptional[Byte],
+  case class Put(value: SliceOption[Byte],
                  deadline: Option[Deadline],
                  time: Time) extends FromValue {
 
@@ -128,10 +128,10 @@ private[swaydb] object Value {
     override val hasRemoveMayBe: Boolean = false
 
     def unslice(): Value.Put =
-      Put(value = value.unsliceOptional(), deadline, time.unslice())
+      Put(value = value.unsliceOption(), deadline, time.unslice())
 
     override def isUnsliced: Boolean =
-      value.isUnslicedOptional && time.time.isOriginalFullSlice
+      value.isUnslicedOption && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Put =
       Memory.Put(
@@ -149,7 +149,7 @@ private[swaydb] object Value {
 
   }
 
-  case class Update(value: SliceOptional[Byte],
+  case class Update(value: SliceOption[Byte],
                     deadline: Option[Deadline],
                     time: Time) extends RangeValue with Apply {
 
@@ -158,10 +158,10 @@ private[swaydb] object Value {
     override val hasRemoveMayBe: Boolean = false
 
     def unslice(): Value.Update =
-      Update(value = value.unsliceOptional(), deadline, time.unslice())
+      Update(value = value.unsliceOption(), deadline, time.unslice())
 
     override def isUnsliced: Boolean =
-      value.isUnslicedOptional && time.time.isOriginalFullSlice
+      value.isUnslicedOption && time.time.isOriginalFullSlice
 
     def toMemory(key: Slice[Byte]): Memory.Update =
       Memory.Update(

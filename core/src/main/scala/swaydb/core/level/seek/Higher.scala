@@ -37,8 +37,8 @@ private[core] object Higher {
    */
   def higherFromValue(key: Slice[Byte],
                       fromKey: Slice[Byte],
-                      fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyValue.PutOptional =
-    fromValue.flatMapSomeS(KeyValue.Put.Null: KeyValue.PutOptional) {
+                      fromValue: FromValueOption)(implicit keyOrder: KeyOrder[Slice[Byte]]): KeyValue.PutOption =
+    fromValue.flatMapSomeS(KeyValue.Put.Null: KeyValue.PutOption) {
       fromValue =>
         if (keyOrder.gt(fromKey, key))
           fromValue.toMemory(fromKey) match {
@@ -60,7 +60,7 @@ private[core] object Higher {
            timeOrder: TimeOrder[Slice[Byte]],
            currentWalker: CurrentWalker,
            nextWalker: NextWalker,
-           functionStore: FunctionStore): KeyValue.PutOptional =
+           functionStore: FunctionStore): KeyValue.PutOption =
     Higher(key, readState, currentSeek, nextSeek)(keyOrder, timeOrder, currentWalker, nextWalker, functionStore)
 
   /**
@@ -78,7 +78,7 @@ private[core] object Higher {
                                  timeOrder: TimeOrder[Slice[Byte]],
                                  currentWalker: CurrentWalker,
                                  nextWalker: NextWalker,
-                                 functionStore: FunctionStore): KeyValue.PutOptional = {
+                                 functionStore: FunctionStore): KeyValue.PutOption = {
     import keyOrder._
 
     //    println(s"Current walker: ${currentWalker.levelNumber} - ${key.readInt()}")
