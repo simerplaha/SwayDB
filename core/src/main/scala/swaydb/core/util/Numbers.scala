@@ -21,7 +21,7 @@ package swaydb.core.util
 
 private[swaydb] object Numbers {
 
-  def whenOrZero(condition: Boolean)(int: Int): Int =
+  @inline final def whenOrZero(condition: Boolean)(int: Int): Int =
     if (condition)
       int
     else

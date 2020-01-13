@@ -34,32 +34,32 @@ object NullOps {
     null
   }
 
-  def map[A, T >: Null](value: A, f: A => T): T =
+  @inline final def map[A, T >: Null](value: A, f: A => T): T =
     if (value == null)
       null
     else
       f(value)
 
-  def foreach[A](value: A, f: A => Unit): Unit =
+  @inline final def foreach[A](value: A, f: A => Unit): Unit =
     if (value != null)
       f(value)
 
-  def foldLeft[A, T](initial: T)(value: A, f: (T, A) => T): T =
+  @inline final def foldLeft[A, T](initial: T)(value: A, f: (T, A) => T): T =
     if (value == null)
       initial
     else
       f(initial, value)
 
-  def getOrElse[A](value: A, or: => A): A =
+  @inline final def getOrElse[A](value: A, or: => A): A =
     if (value == null)
       or
     else
       value
 
-  def forall[A](item: A, condition: A => Boolean): Boolean =
+  @inline final def forall[A](item: A, condition: A => Boolean): Boolean =
     item == null || condition(item)
 
-  def tryOrNull[T >: Null](f: => T): T =
+  @inline final def tryOrNull[T >: Null](f: => T): T =
     try
       f
     catch {

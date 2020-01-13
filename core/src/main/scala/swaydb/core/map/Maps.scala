@@ -397,7 +397,7 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
     }
   }
 
-  private def findFirst[R](nullResult: R, f: Map[OK, OV, K, V] => R): R = {
+  @inline final private def findFirst[R](nullResult: R, f: Map[OK, OV, K, V] => R): R = {
     val iterator = maps.iterator()
 
     def getNext() = if (iterator.hasNext) iterator.next() else null
@@ -423,10 +423,10 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
       find(next)
   }
 
-  private def findAndReduce[R](nullResult: R,
-                               initial: R,
-                               applier: Map[OK, OV, K, V] => R,
-                               reducer: (R, R) => R): R = {
+  @inline final private def findAndReduce[R](nullResult: R,
+                                             initial: R,
+                                             applier: Map[OK, OV, K, V] => R,
+                                             reducer: (R, R) => R): R = {
     val iterator = maps.iterator()
 
     def getNextOrNull() = if (iterator.hasNext) iterator.next() else null
