@@ -3,7 +3,7 @@ import sbt.url
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
 
-val lz4Version = "1.7.0"
+val lz4Version = "1.7.1"
 val snappyVersion = "1.1.7.3"
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.9.2"
@@ -17,7 +17,7 @@ val catsEffectVersion = "2.0.0"
 val scalaJava8CompatVersion = "0.9.0"
 val junitJupiterVersion = "5.5.2"
 val scalaParallelCollectionsVersion = "0.2.0"
-val scalaCollectionsCompact = "2.1.2"
+val scalaCollectionsCompact = "2.1.3"
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.10"
