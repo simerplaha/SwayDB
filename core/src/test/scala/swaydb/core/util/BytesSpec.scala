@@ -284,7 +284,7 @@ class BytesSpec extends WordSpec with Matchers {
 
   "nonZero" should {
     "not add zero bytes for non zero integers and calculate size" in {
-      runThisParallel(1000.times) {
+      runThisParallel(100.times) {
         val max = randomIntMax(Int.MaxValue) max 1
         val min = (max - 100000) max 1
 
