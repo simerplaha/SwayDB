@@ -67,7 +67,7 @@ protected object PersistentSegmentMany {
         None
       } else {
         val skipList = SkipList.immutable[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef](Slice.Null, SegmentRef.Null)
-        implicit val blockMemorySweeper = blockCache.map(_.sweeper)
+        implicit val blockMemorySweeper: Option[MemorySweeper.Block] = blockCache.map(_.sweeper)
 
         val firstSegmentOffset =
           segment.headerSize +

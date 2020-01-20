@@ -491,6 +491,24 @@ object CommonAssertions {
       MergeStats.randomBuilder(actual)
   }
 
+  implicit class MergeStatsImplicits(clazz: MergeStats.type) {
+    def randomBuilder[FROM](keyValues: Iterable[FROM])(implicit converterOrNull: FROM => data.Memory): MergeStats[FROM, ListBuffer] =
+      if (Random.nextBoolean())
+        MergeStats.persistentBuilder(keyValues)
+      else if (Random.nextBoolean())
+        MergeStats.memoryBuilder(keyValues)
+      else
+        MergeStats.bufferBuilder(keyValues)
+
+    def random(): MergeStats[data.Memory, ListBuffer] =
+      if (Random.nextBoolean())
+        MergeStats.persistent(ListBuffer.newBuilder)(MergeStats.memoryToMemory)
+      else if (Random.nextBoolean())
+        MergeStats.memory(ListBuffer.newBuilder)(MergeStats.memoryToMemory)
+      else
+        MergeStats.buffer(ListBuffer.newBuilder)(MergeStats.memoryToMemory)
+  }
+
   implicit class SegmentsImplicits(actual: Iterable[Segment]) {
 
     def shouldHaveSameKeyValuesAs(expected: Iterable[Segment]): Unit =

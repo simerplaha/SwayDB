@@ -56,15 +56,13 @@ private[core] object ReserveRange extends LazyLogging {
 
   def get[T](from: Slice[Byte],
              to: Slice[Byte])(implicit state: State[T],
-                              ordering: KeyOrder[Slice[Byte]]): Option[T] = {
-    import ordering._
+                              ordering: KeyOrder[Slice[Byte]]): Option[T] =
     state.synchronized {
       state
         .ranges
-        .find(range => from.equiv(range.from) && to.equiv(range.to))
+        .find(range => ordering.equiv(from, range.from) && ordering.equiv(to, range.to))
         .flatMap(_.reserve.info)
     }
-  }
 
   def reserveOrGet[T](from: Slice[Byte],
                       to: Slice[Byte],
@@ -111,10 +109,9 @@ private[core] object ReserveRange extends LazyLogging {
   def free[T](from: Slice[Byte])(implicit state: State[T],
                                  ordering: KeyOrder[Slice[Byte]]): Unit =
     state.synchronized {
-      import ordering._
       state
         .ranges
-        .find(from equiv _.from)
+        .find(range => ordering.equiv(from, range.from))
         .foreach {
           range =>
             state.ranges -= range

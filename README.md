@@ -12,8 +12,11 @@
 [build-badge]: https://travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
-Embeddable persistent and in-memory database. Resource efficiency, performance 
-and easy data management with simple collection APIs.
+Embeddable persistent and in-memory database aims at:
+
+- **Simple** data types - `Map` & `Set` (see [#47](https://github.com/simerplaha/SwayDB/issues/47) for `List` & `Queue`)
+- **Speed** - writes & reads
+- **Resource efficiency** 
 
 [See documentation - SwayDB.io](http://swaydb.io) (currently being updated for latest version).
 
@@ -50,7 +53,8 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 [Quick start App](http://swaydb.io/quick-start/?language=scala/).
 
 ## Project status 
-Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases unless it's requested.
+Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases 
+unless it's requested.
 
 ## Related GitHub projects
 - [SwayDB.java.examples](https://github.com/simerplaha/SwayDB.java.examples) - Java examples demonstrating features and APIs.
