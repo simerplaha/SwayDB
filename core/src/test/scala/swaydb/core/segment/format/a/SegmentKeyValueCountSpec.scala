@@ -25,6 +25,7 @@ import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.data.order.KeyOrder
 
 class SegmentKeyValueCount0 extends SegmentKeyValueCount {
@@ -66,6 +67,10 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
       runThis(10.times) {
         assertSegment(
           keyValues = randomizedKeyValues(1),
+
+          segmentConfig =
+            SegmentBlock.Config.random.copy(Int.MaxValue, 0),
+
           assert =
             (keyValues, segment) => {
               keyValues should have size 1
@@ -79,6 +84,10 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
       runThis(10.times) {
         assertSegment(
           keyValues = randomizedKeyValues(keyValuesCount),
+
+          segmentConfig =
+            SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
+
           assert =
             (keyValues, segment) => {
               segment.getKeyValueCount().runRandomIO.right.value shouldBe keyValues.size

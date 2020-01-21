@@ -614,8 +614,7 @@ private[core] object Segment extends LazyLogging {
       case segment: PersistentSegmentOne =>
         val footer = segment.ref.getFooter()
         footer.sortedIndexOffset.size +
-          footer.valuesOffset.map(_.size).getOrElse(0) +
-          SegmentFooterBlock.optimalBytesRequired
+        footer.valuesOffset.map(_.size).getOrElse(0)
     }
 
   def belongsTo(keyValue: KeyValue,

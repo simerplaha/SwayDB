@@ -281,7 +281,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+          segmentConfig = segmentConfig
         )
 
       segments should have size 1
@@ -769,16 +769,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   def assertSegment[T](keyValues: Slice[Memory],
                        assert: (Slice[Memory], Segment) => T,
+                       segmentConfig: SegmentBlock.Config,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
                        sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random,
                        binarySearchIndexConfig: BinarySearchIndexBlock.Config = BinarySearchIndexBlock.Config.random,
                        hashIndexConfig: HashIndexBlock.Config = HashIndexBlock.Config.random,
-                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random,
-                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                                                        keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
-                                                                                        segmentIO: SegmentIO = SegmentIO.random) = {
+                       bloomFilterConfig: BloomFilterBlock.Config = BloomFilterBlock.Config.random)(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
+                                                                                                    keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
+                                                                                                    segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
     val segment =
       TestSegment(
@@ -794,13 +794,20 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
     if (closeAfterCreate) segment.close
 
     assert(keyValues, segment) //first
-    if (testAgainAfterAssert) assert(keyValues, segment) //with cache populated
+    if (testAgainAfterAssert) {
+      assert(keyValues, segment) //with cache populated
+
+      //clear cace and asssert
+      segment.clearCachedKeyValues()
+      assert(keyValues, segment) //same Segment but test with cleared cache.
+
+      //clear all caches and assert
+      segment.clearAllCaches()
+      assert(keyValues, segment) //same Segment but test with cleared cache.
+    }
 
     segment match {
       case segment: PersistentSegment =>
-        segment.clearCachedKeyValues()
-        assert(keyValues, segment) //same Segment but test with cleared cache.
-
         val segmentReopened = segment.reopen //reopen
         if (closeAfterCreate) segmentReopened.close
         assert(keyValues, segmentReopened)

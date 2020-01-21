@@ -25,6 +25,7 @@ import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.actor.MemorySweeper
 import swaydb.core.io.file.BlockCache
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.util.Benchmark
 import swaydb.core.{TestBase, TestSweeper}
 import swaydb.data.config.{ActorConfig, MemoryCache}
@@ -59,7 +60,11 @@ class SegmentMemorySweeperSpec extends TestBase {
       try {
 
         //create persistent Segment
-        val segment = TestSegment(keyValues)(KeyOrder.default, Some(memorySweeper), TestSweeper.fileSweeper, timeOrder, blockCache)
+        val segment =
+          TestSegment(
+            keyValues = keyValues,
+            segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false)
+          )(KeyOrder.default, Some(memorySweeper), TestSweeper.fileSweeper, timeOrder, blockCache)
 
         //initially Segment's cache is empty
         segment.areAllCachesEmpty shouldBe true

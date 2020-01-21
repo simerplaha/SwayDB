@@ -453,6 +453,7 @@ protected case class PersistentSegmentMany(file: DBFile,
   override def close: Unit = {
     file.close()
     segmentsCache.clear()
+    segmentRefsCache.clear()
   }
 
   def isOpen: Boolean =
@@ -666,6 +667,8 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   def clearAllCaches(): Unit = {
     clearCachedKeyValues()
+    segmentsCache.clear()
+    segmentRefsCache.clear()
     segmentRefs.foreach(_.clearBlockCache())
   }
 
