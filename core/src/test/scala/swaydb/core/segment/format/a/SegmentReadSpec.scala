@@ -937,7 +937,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
             Memory.Range(6, 10, Value.put(10, shuffledDeadlines(6)), Value.update(Slice.Null, Some(shuffledDeadlines(7))))
           )
 
-        Segment.getNearestDeadline(keyValues).value shouldBe deadlines.head
+        Segment.getNearestDeadline(keyValues).value shouldBe nearestPutDeadline(keyValues).value
       }
     }
   }

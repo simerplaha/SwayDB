@@ -214,7 +214,7 @@ object TestData {
             binarySearchIndexConfig = level.binarySearchIndexConfig,
             hashIndexConfig = level.hashIndexConfig,
             bloomFilterConfig = level.bloomFilterConfig,
-            segmentConfig = level.segmentConfig.copy(Int.MaxValue)
+            segmentConfig = level.segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
           )
         } flatMap {
           segments =>

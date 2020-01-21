@@ -281,7 +281,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
           binarySearchIndexConfig = binarySearchIndexConfig,
           hashIndexConfig = hashIndexConfig,
           bloomFilterConfig = bloomFilterConfig,
-          segmentConfig = segmentConfig.copy(Int.MaxValue)
+          segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
         )
 
       segments should have size 1
