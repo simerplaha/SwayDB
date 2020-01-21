@@ -1490,7 +1490,7 @@ object CommonAssertions {
         binarySearchIndexConfig = binarySearchIndexConfig,
         sortedIndexConfig = sortedIndexConfig,
         valuesConfig = valuesConfig,
-        segmentConfig = segmentConfig.copy(Int.MaxValue)
+        segmentConfig = segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
       )
 
     blockCaches should have size 1

@@ -354,10 +354,12 @@ private[core] object SegmentBlock extends LazyLogging {
         )
 
       val keyValuesCount = keyValues.keyValuesCount
+
       val totalAllocatedSize = sortedIndex.compressibleBytes.allocatedSize + values.fold(0)(_.compressibleBytes.allocatedSize)
-      val maxSegmentCountBasedOnSize = totalAllocatedSize / segmentConfig.minSize
-      val maxSegmentsCount = maxSegmentCountBasedOnSize max (keyValuesCount / segmentConfig.maxCount)
-      val segments = Slice.create[ClosedBlocksWithFooter](maxSegmentsCount + 10)
+      val maxSegmentCountBasedOnSize = (totalAllocatedSize / segmentConfig.minSize) + 1
+      val maxSegmentCountBasedOnCount = (keyValuesCount / segmentConfig.maxCount) + 1
+      val maxSegmentsCount = maxSegmentCountBasedOnSize max maxSegmentCountBasedOnCount
+      val segments = Slice.create[ClosedBlocksWithFooter](maxSegmentsCount)
 
       def unwrittenTailSegmentBytes() =
         sortedIndex.compressibleBytes.unwrittenTailSize() + {
@@ -387,7 +389,8 @@ private[core] object SegmentBlock extends LazyLogging {
           SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
           values foreach (ValuesBlock.write(keyValue, _))
 
-          var currentSegmentSize = sortedIndex.compressibleBytes.size + SegmentFooterBlock.optimalBytesRequired
+          //Do not include SegmentFooterBlock.optimalBytesRequired here. Screws up the above max segments count estimation.
+          var currentSegmentSize = sortedIndex.compressibleBytes.size
           values foreach (currentSegmentSize += _.compressibleBytes.size)
 
           //check and close segment if segment size limit is reached.
@@ -399,7 +402,7 @@ private[core] object SegmentBlock extends LazyLogging {
             processedInThisSegment >= segmentConfig.maxCount && (keyValuesCount - totalProcessedCount >= segmentConfig.maxCount)
 
           if (segmentCountLimitReached || segmentSizeLimitReached) {
-            logger.debug(s"Creating segment of size: $currentSegmentSize.bytes")
+            logger.debug(s"Creating segment of size: $currentSegmentSize.bytes. segmentCountLimitReached: $segmentCountLimitReached. segmentSizeLimitReached: $segmentSizeLimitReached")
 
             val (closedSegment, nextSortedIndex, nextValues) =
               writeSegmentBlock(
