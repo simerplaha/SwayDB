@@ -51,8 +51,7 @@ sealed trait Bag[BAG[_]] {
    *          will have a performance cost. [[point]] is used to cover these cases and [[IO]]
    *          types that are complete are directly converted to Future in current thread.
    */
-  @inline final def point[B](f: => BAG[B]): BAG[B] =
-    flatMap[Unit, B](unit)(_ => f)
+  @inline def point[B](f: => BAG[B]): BAG[B]
 }
 
 object Bag extends LazyLogging {
@@ -222,6 +221,7 @@ object Bag extends LazyLogging {
         override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
           transfer.to(self.orElse[A, B](transfer.from(a))(transfer.from(b)))
 
+        override def point[B](f: => X[B]): X[B] = f
       }
   }
 
@@ -256,7 +256,17 @@ object Bag extends LazyLogging {
 
         override def fromFuture[A](a: Future[A]): X[A] =
           transfer.to(self.fromFuture(a))
-        override def monad: Monad[X] = ???
+
+        override def monad: Monad[X] =
+          new Monad[X] {
+            override def map[A, B](a: A, f: A => B): X[B] = ???
+            override def flatMap[A, B](a: X[A], f: A => X[B]): X[B] = ???
+            override def success[A](a: A): X[A] = ???
+            override def failed[A](a: Throwable): X[A] = ???
+          }
+
+        override def point[B](f: => X[B]): X[B] =
+          flatMap[Unit, B](unit)(_ => f)
       }
   }
 
@@ -329,6 +339,9 @@ object Bag extends LazyLogging {
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
         IO[Throwable, A](a.get)
+
+      override def point[B](f: => ThrowableIO[B]): ThrowableIO[B] =
+        f
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
@@ -395,6 +408,9 @@ object Bag extends LazyLogging {
 
       override def fromFuture[A](a: Future[A]): Future[A] =
         a
+
+      override def point[B](f: => Future[B]): Future[B] =
+        f
     }
 
   implicit val apiIO: Bag.Sync[IO.ApiIO] = throwableIO.toBag[IO.ApiIO]
@@ -445,5 +461,7 @@ object Bag extends LazyLogging {
       override def failure[A](exception: Throwable): Id[A] = throw exception
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Id[A] = a.get
+
+      override def point[B](f: => Id[B]): Id[B] = f
     }
 }

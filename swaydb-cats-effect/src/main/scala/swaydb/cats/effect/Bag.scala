@@ -107,5 +107,8 @@ object Bag {
 
       override def fromFuture[A](a: Future[A]): IO[A] =
         IO.fromFuture(IO(a))
+
+      override def point[B](f: => IO[B]): IO[B] =
+        IO.suspend(f)
     }
 }

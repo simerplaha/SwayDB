@@ -109,5 +109,7 @@ object Bag {
       override def fromFuture[A](a: Future[A]): Task[A] =
         Task.fromFuture(_ => a)
 
+      override def point[B](f: => Task[B]): Task[B] =
+        Task.fromFunctionM(_ => f)
     }
 }
