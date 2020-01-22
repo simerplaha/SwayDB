@@ -699,7 +699,7 @@ private[core] object SegmentRef {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config) = {
+                          segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {

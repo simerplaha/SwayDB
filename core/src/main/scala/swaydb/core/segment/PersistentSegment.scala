@@ -19,7 +19,10 @@
 
 package swaydb.core.segment
 
+import java.nio.file.Path
+
 import swaydb.core.data.KeyValue
+import swaydb.core.io.file.DBFile
 import swaydb.core.level.PathsDistributor
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -32,6 +35,10 @@ import swaydb.data.config.Dir
 import swaydb.data.slice.Slice
 
 trait PersistentSegment extends Segment {
+  def file: DBFile
+
+  def copyTo(toPath: Path): Path
+
   def put(newKeyValues: Slice[KeyValue],
           removeDeletes: Boolean,
           createdInLevel: Int,

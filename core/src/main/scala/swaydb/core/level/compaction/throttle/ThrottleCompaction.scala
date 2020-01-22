@@ -403,7 +403,9 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
   private def copyForward(level: NextLevel): Int =
     level.nextLevel match {
       case Some(nextLevel) =>
-        val (copyable, _) = nextLevel.partitionUnreservedCopyable(level.segmentsInLevel())
+        val segmentsInLevel = level.segmentsInLevel()
+        val (copyable, nonCopyable) = nextLevel.partitionUnreservedCopyable(segmentsInLevel)
+        logger.debug(s"Level(${level.levelNumber}): Total segments: ${segmentsInLevel.size}, Can copy: ${copyable.size} segments. Remaining: ${nonCopyable.size} segments.")
         putForward(
           segments = copyable,
           thisLevel = level,
@@ -437,10 +439,9 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
         case IO.Right(_) =>
           thisLevel
             .removeSegments(segments)
-            .recoverWith {
-              case _ =>
-                IO.Right[swaydb.Error.Level, Int](segments.size)
-            }
+            //transform because remove might be eventual depending on the level's config.
+            .transform(_ => segments.size)
+            .recover(_ => segments.size)
 
         case IO.Left(error) =>
           IO.Left(error)

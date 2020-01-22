@@ -74,7 +74,7 @@ private[core] class AppendixMapEntryReader(mmapSegmentsOnRead: Boolean,
           reader = reader,
           mmapSegmentsOnRead = mmapSegmentsOnRead,
           mmapSegmentsOnWrite = mmapSegmentsOnWrite,
-          checkExists = true
+          checkExists = false
         )
 
       MapEntry.Put(

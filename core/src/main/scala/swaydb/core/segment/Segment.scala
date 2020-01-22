@@ -353,7 +353,7 @@ private[core] object Segment extends LazyLogging {
                                                         segmentIO: SegmentIO,
                                                         idGenerator: IDGenerator): Slice[Segment] =
     segment match {
-      case segment: PersistentSegmentOne =>
+      case segment: PersistentSegment =>
         val nextPath = pathsDistributor.next.resolve(IDGenerator.segmentId(idGenerator.nextID))
 
         segment.copyTo(nextPath)
@@ -361,7 +361,7 @@ private[core] object Segment extends LazyLogging {
           Slice(
             Segment(
               path = nextPath,
-              formatId = PersistentSegmentOne.formatId,
+              formatId = segment.formatId,
               createdInLevel = segment.createdInLevel,
               blockCacheFileId = segment.file.blockCacheFileId,
               mmapReads = segmentConfig.mmapReads,

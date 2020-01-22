@@ -264,13 +264,13 @@ object TestData {
                 binarySearchIndexConfig = level.binarySearchIndexConfig,
                 sortedIndexConfig = level.sortedIndexConfig,
                 valuesConfig = level.valuesConfig,
-                segmentConfig = level.segmentConfig.copy(segmentSize),
+                segmentConfig = level.segmentConfig.copy(minSize = segmentSize),
                 levelStorage =
                   LevelStorage.Persistent(
                     dir = level.pathDistributor.headPath,
                     otherDirs = level.dirs.drop(1).map(dir => Dir(dir.path, 1))
                   ),
-                appendixStorage = AppendixStorage.Persistent(mmap = true, 4.mb),
+                appendixStorage = AppendixStorage.Persistent(mmap = randomBoolean(), 4.mb),
                 nextLevel = nextLevel,
                 throttle = throttle
               )
