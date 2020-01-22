@@ -566,7 +566,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
           val segment =
             TestSegment(
               keyValues = keyValues,
-              segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true)
+              segmentConfig = SegmentBlock.Config.random(hasCompression = randomBoolean(), cacheBlocksOnCreate = true, minSegmentSize = Int.MaxValue)
             ).asInstanceOf[PersistentSegmentOne]
 
           val blockCache = segment.ref.segmentBlockCache

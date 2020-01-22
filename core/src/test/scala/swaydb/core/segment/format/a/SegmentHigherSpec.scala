@@ -69,9 +69,6 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
         assertSegment(
           keyValues = Slice(randomFixedKeyValue(1)),
 
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(10000), randomIntMax(1)),
-
           assert =
             (keyValue, segment) => {
               val readState = ThreadReadState.random
@@ -88,9 +85,6 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
       runThis(50.times) {
         assertSegment(
           keyValues = Slice(randomRangeKeyValue(1, 10)),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(10000), randomIntMax(1)),
 
           assert =
             (keyValue, segment) => {
@@ -114,9 +108,6 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
       //1, 2, 3
       assertSegment(
         keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2), randomFixedKeyValue(3)),
-
-        segmentConfig =
-          SegmentBlock.Config.random.copy(randomIntMax(10000), randomIntMax(5)),
 
         assert =
           (keyValues, segment) => {
@@ -145,9 +136,6 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
             randomRangeKeyValue(20, 30)
             //            randomGroup(Slice(randomFixedKeyValue(30), randomRangeKeyValue(40, 50))).toMemory
           ),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(10000), randomIntMax(100)),
 
           assert =
             (keyValues, segment) => {
@@ -208,7 +196,6 @@ sealed trait SegmentHigherSpec extends TestBase with ScalaFutures with PrivateMe
     "random" in {
       assertSegment(
         keyValues = randomizedKeyValues(keyValuesCount),
-        segmentConfig = SegmentBlock.Config.random.copy(randomIntMax(10000), randomIntMax(100)),
         assert = assertHigher(_, _)
       )
     }

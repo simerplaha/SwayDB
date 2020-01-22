@@ -77,9 +77,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
         assertSegment(
           keyValues = Slice(randomFixedKeyValue(1)),
 
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(100), randomIntMax(1)),
-
           assert =
             (keyValues, segment) =>
               Random.shuffle(
@@ -93,9 +90,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
         assertSegment(
           keyValues = Slice(randomFixedKeyValue(1), randomFixedKeyValue(2)),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(100), randomIntMax(2)),
 
           assert =
             (keyValues, segment) =>
@@ -114,9 +108,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
       runThis(100.times) {
         assertSegment(
           keyValues = Slice(randomRangeKeyValue(1, 10)),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(100), randomIntMax(5)),
 
           assert =
             (keyValues, segment) =>
@@ -137,9 +128,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
         assertSegment(
           keyValues =
             Slice(randomRangeKeyValue(1, 10), randomRangeKeyValue(10, 20)),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(100), randomIntMax(5)),
 
           assert =
             (keyValues, segment) =>
@@ -178,9 +166,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
 
         testAgainAfterAssert = false,
 
-        segmentConfig =
-          SegmentBlock.Config.random.copy(randomIntMax(keyValuesCount * 100), randomIntMax(keyValuesCount)),
-
         assert =
           (keyValues, segment) =>
             (0 until keyValues.size) foreach {
@@ -209,9 +194,6 @@ sealed trait SegmentGetSpec extends TestBase with ScalaFutures with PrivateMetho
         assertSegment(
           keyValues =
             randomizedKeyValues(keyValuesCount),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(randomIntMax(keyValuesCount * 100), randomIntMax(keyValuesCount)),
 
           testAgainAfterAssert =
             false,

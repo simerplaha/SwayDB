@@ -769,7 +769,8 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
   def assertSegment[T](keyValues: Slice[Memory],
                        assert: (Slice[Memory], Segment) => T,
-                       segmentConfig: SegmentBlock.Config,
+                       segmentConfig: SegmentBlock.Config = SegmentBlock.Config.random,
+                       ensureOneSegmentOnly: Boolean = true,
                        testAgainAfterAssert: Boolean = true,
                        closeAfterCreate: Boolean = false,
                        valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random,
@@ -780,6 +781,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
                                                                                                     keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax,
                                                                                                     segmentIO: SegmentIO = SegmentIO.random) = {
     println(s"assertSegment - keyValues: ${keyValues.size}")
+
+    //ensure that only one segment gets created
+    val adjustedSegmentConfig =
+      if (!ensureOneSegmentOnly || keyValues.size == 1) //one doesn't matter.
+        segmentConfig
+      else if (memory)
+        segmentConfig.copy(minSize = Int.MaxValue, maxCount = Int.MaxValue)
+      else
+        segmentConfig.copy(minSize = Int.MaxValue, maxCount = randomIntMax(keyValues.size + 1))
+
     val segment =
       TestSegment(
         keyValues = keyValues,
@@ -788,7 +799,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         binarySearchIndexConfig = binarySearchIndexConfig,
         hashIndexConfig = hashIndexConfig,
         bloomFilterConfig = bloomFilterConfig,
-        segmentConfig = segmentConfig
+        segmentConfig = adjustedSegmentConfig
       )
 
     if (closeAfterCreate) segment.close

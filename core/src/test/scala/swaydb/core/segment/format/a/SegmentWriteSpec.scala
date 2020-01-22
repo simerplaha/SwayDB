@@ -103,12 +103,6 @@ sealed trait SegmentWriteSpec extends TestBase {
             randomizedKeyValues(eitherOne(randomIntMax(keyValuesCount) max 1, keyValuesCount)),
           //            Slice(randomPutKeyValue(1, None, None)(previous = None, sortedIndexConfig = SortedIndexBlock.Config.random.copy(disableKeyPrefixCompression = true, prefixCompressionResetCount = 0))),
 
-          segmentConfig =
-            if (persistent)
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount))
-            else
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount) + keyValuesCount),
-
           assert =
             (keyValues, segment) => {
               assertReads(keyValues, segment)
@@ -148,12 +142,6 @@ sealed trait SegmentWriteSpec extends TestBase {
           keyValues =
             Slice(randomRangeKeyValue(1, 10), randomFixedKeyValue(11)),
 
-          segmentConfig =
-            if (persistent)
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(2))
-            else
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(2) + 2),
-
           assert =
             (keyValues, segment) => {
               segment.minKey shouldBe (1: Slice[Byte])
@@ -170,12 +158,6 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(50.times) {
         assertSegment(
           keyValues = Slice(randomFixedKeyValue(0), randomRangeKeyValue(1, 10)),
-
-          segmentConfig =
-            if (persistent)
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(2))
-            else
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(2) + 2),
 
           assert =
             (keyValues, segment) => {
@@ -238,12 +220,6 @@ sealed trait SegmentWriteSpec extends TestBase {
         assertSegment(
           keyValues = readKeyValues,
 
-          segmentConfig =
-            if (persistent)
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValues.size))
-            else
-              SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValues.size) + keyValues.size),
-
           assert =
             (keyValues, segment) => {
               assertMinAndMaxKeyAreSliced(segment)
@@ -282,6 +258,8 @@ sealed trait SegmentWriteSpec extends TestBase {
 
     "not create bloomFilter if the Segment has Remove range key-values or function key-values and set hasRange to true" in {
 
+      //adjustSegmentConfig = false so that Many Segments do not get created.
+
       def doAssert(keyValues: Slice[KeyValue], segment: Segment) = {
         segment.hasBloomFilter shouldBe false
         assertBloom(keyValues, segment)
@@ -291,33 +269,29 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.remove(randomDeadlineOption, Time.empty))),
-
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
-
+        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+        ensureOneSegmentOnly = false,
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.remove(None, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
-
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
-
+        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+        ensureOneSegmentOnly = false,
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.update(Slice.Null, randomDeadlineOption, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
-
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
-
+        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+        ensureOneSegmentOnly = false,
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.put(1, randomDeadlineOption, Time.empty), Value.remove(randomDeadlineOption, Time.empty))),
-
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
-
+        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, keyValuesCount),
+        ensureOneSegmentOnly = false,
         assert = doAssert
       )
 
@@ -342,9 +316,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               compressions = _ => randomCompressionsOrEmpty()
             ),
 
-          segmentConfig =
-            SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
-
           assert =
             (keyValues, segment) => {
               segment.hasBloomFilter.runRandomIO.right.value shouldBe true
@@ -366,9 +337,6 @@ sealed trait SegmentWriteSpec extends TestBase {
               compressions = _ => randomCompressionsOrEmpty()
             ),
 
-          segmentConfig =
-            SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
-
           assert =
             (keyValues, segment) => {
               segment.hasBloomFilter.runRandomIO.right.value shouldBe true
@@ -389,51 +357,43 @@ sealed trait SegmentWriteSpec extends TestBase {
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.update(10))),
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) 2 else randomIntMax(2)),
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.remove(None, Time.empty), Value.update(10))),
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) 2 else randomIntMax(2)),
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.put(1), Value.update(10))),
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) 2 else randomIntMax(2)),
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, FromValue.Null, Value.remove(None, Time.empty))),
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) 2 else randomIntMax(2)),
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.remove(10.seconds.fromNow), Value.remove(None, Time.empty))),
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) 2 else randomIntMax(2)),
         assert = doAssert
       )
 
       assertSegment(
         keyValues = Slice(Memory.put(0), Memory.Range(1, 10, Value.put(1), Value.remove(None, Time.empty))),
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) 2 else randomIntMax(2)),
         assert = doAssert
       )
 
       runThisParallel(100.times) {
         assertSegment(
           keyValues = Slice(Memory.put(0), randomRangeKeyValue(1, 10)),
-          segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) 2 else randomIntMax(2)),
           assert = doAssert
         )
       }
 
       assertSegment(
         keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addRanges = true, addPutDeadlines = true, addRemoveDeadlines = true),
-        segmentConfig = SegmentBlock.Config.random.copy(Int.MaxValue, if (memory) keyValuesCount else randomIntMax(keyValuesCount)),
         assert = doAssert
       )
     }
@@ -445,9 +405,6 @@ sealed trait SegmentWriteSpec extends TestBase {
         assertSegment(
           keyValues =
             randomPutKeyValues(keyValuesCount),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
 
           assert =
             (keyValues, segment) => {
@@ -476,12 +433,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             keyValues =
               randomizedKeyValues(keyValuesCount),
 
-            segmentConfig =
-              SegmentBlock.Config.random(
-                minSegmentSize = Int.MaxValue,
-                maxKeyValuesPerSegment = randomIntMax(keyValuesCount),
-                cacheBlocksOnCreate = false
-              ),
+            segmentConfig = SegmentBlock.Config.random(cacheBlocksOnCreate = false),
 
             closeAfterCreate =
               true,
@@ -520,9 +472,6 @@ sealed trait SegmentWriteSpec extends TestBase {
         runThis(100.times, log = true) {
           assertSegment(
             keyValues = randomizedKeyValues(keyValuesCount, startId = Some(0)),
-
-            segmentConfig =
-              SegmentBlock.Config.random.copy(maxCount = 5),
 
             assert =
               (keyValues, segment) => {

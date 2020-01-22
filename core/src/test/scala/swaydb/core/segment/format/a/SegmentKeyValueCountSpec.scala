@@ -68,9 +68,6 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
         assertSegment(
           keyValues = randomizedKeyValues(1),
 
-          segmentConfig =
-            SegmentBlock.Config.random.copy(Int.MaxValue, 0),
-
           assert =
             (keyValues, segment) => {
               keyValues should have size 1
@@ -84,9 +81,6 @@ sealed trait SegmentKeyValueCount extends TestBase with ScalaFutures with Privat
       runThis(10.times) {
         assertSegment(
           keyValues = randomizedKeyValues(keyValuesCount),
-
-          segmentConfig =
-            SegmentBlock.Config.random.copy(Int.MaxValue, randomIntMax(keyValuesCount)),
 
           assert =
             (keyValues, segment) => {
