@@ -68,7 +68,7 @@ protected object PersistentSegmentOne {
       maxKey = segment.maxKey,
       minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
-      nearestExpiryDeadline = segment.nearestDeadline,
+      nearestExpiryDeadline = segment.nearestPutDeadline,
       valuesReaderCacheable = segment.valuesUnblockedReader,
       sortedIndexReaderCacheable = segment.sortedIndexUnblockedReader,
       hashIndexReaderCacheable = segment.hashIndexUnblockedReader,

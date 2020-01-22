@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.Compression
 import swaydb.compression.CompressionInternal
 import swaydb.core.data.Memory
-import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.segment.format.a.block._
 import swaydb.core.segment.format.a.block.binarysearch.BinarySearchIndexBlock
 import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
@@ -34,6 +33,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.MergeStats
 import swaydb.core.segment.merge.MergeStats.Persistent
+import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections}
 import swaydb.data.config.{IOAction, IOStrategy, SegmentConfig, UncompressedBlockInfo}
 import swaydb.data.slice.Slice
@@ -282,12 +282,16 @@ private[core] object SegmentBlock extends LazyLogging {
               segmentBytes addAll segment.segmentBytes
           }
 
+          assert(listSegment.minMaxFunctionId.isEmpty, "minMaxFunctionId was not empty")
+
           TransientSegment.Many(
             minKey = segments.head.minKey,
             maxKey = segments.last.maxKey,
             headerSize = headerSize,
-            minMaxFunctionId = listSegment.minMaxFunctionId,
-            nearestDeadline = listSegment.nearestDeadline,
+            //minMaxFunctionId is not stored in Many. All functionId request should be deferred
+            //onto the SegmentRefs itself.
+            minMaxFunctionId = None,
+            nearestPutDeadline = listSegment.nearestPutDeadline,
             segments = Slice(listSegment) ++ segments,
             segmentBytes = segmentBytes
           )

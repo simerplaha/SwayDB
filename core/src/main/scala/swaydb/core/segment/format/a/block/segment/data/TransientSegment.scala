@@ -40,7 +40,7 @@ sealed trait TransientSegment {
   def segmentSize: Int
   def segmentBytes: Slice[Slice[Byte]]
   def minMaxFunctionId: Option[MinMax[Slice[Byte]]]
-  def nearestDeadline: Option[Deadline]
+  def nearestPutDeadline: Option[Deadline]
   def flattenSegmentBytes: Slice[Byte]
   def flattenSegment: (Slice[Byte], Option[Deadline])
 }
@@ -51,7 +51,7 @@ object TransientSegment {
                  maxKey: MaxKey[Slice[Byte]],
                  segmentBytes: Slice[Slice[Byte]],
                  minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                 nearestDeadline: Option[Deadline],
+                 nearestPutDeadline: Option[Deadline],
                  valuesUnblockedReader: Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]],
                  sortedIndexClosedState: SortedIndexBlock.State,
                  sortedIndexUnblockedReader: Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]],
@@ -75,7 +75,7 @@ object TransientSegment {
     }
 
     override def flattenSegment: (Slice[Byte], Option[Deadline]) =
-      (flattenSegmentBytes, nearestDeadline)
+      (flattenSegmentBytes, nearestPutDeadline)
 
     override def toString: String =
       s"TransientSegment Segment. Size: ${segmentSize}"
@@ -92,7 +92,7 @@ object TransientSegment {
                   maxKey: MaxKey[Slice[Byte]],
                   headerSize: Int,
                   minMaxFunctionId: Option[MinMax[Slice[Byte]]],
-                  nearestDeadline: Option[Deadline],
+                  nearestPutDeadline: Option[Deadline],
                   segments: Slice[TransientSegment.One],
                   segmentBytes: Slice[Slice[Byte]]) extends TransientSegment {
 
@@ -111,7 +111,7 @@ object TransientSegment {
     }
 
     override def flattenSegment: (Slice[Byte], Option[Deadline]) =
-      (flattenSegmentBytes, nearestDeadline)
+      (flattenSegmentBytes, nearestPutDeadline)
 
     override def toString: String =
       s"TransientSegment Segment. Size: $segmentSize"

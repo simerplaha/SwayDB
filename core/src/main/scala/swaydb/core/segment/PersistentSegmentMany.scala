@@ -118,7 +118,7 @@ protected object PersistentSegmentMany {
       maxKey = segment.maxKey,
       minMaxFunctionId = segment.minMaxFunctionId,
       segmentSize = segment.segmentSize,
-      nearestExpiryDeadline = segment.nearestDeadline,
+      nearestExpiryDeadline = segment.nearestPutDeadline,
       initial = initial
     )
   }
@@ -559,14 +559,12 @@ protected case class PersistentSegmentMany(file: DBFile,
       .floor(key)
       .existsS(_.mightContain(key))
 
+  /**
+   * [[PersistentSegmentMany]] is not aware of [[minMaxFunctionId]].
+   * It should be deferred to [[SegmentRef]].
+   */
   override def mightContainFunction(key: Slice[Byte]): Boolean =
-    minMaxFunctionId exists {
-      minMaxFunctionId =>
-        MinMax.contains(
-          key = key,
-          minMax = minMaxFunctionId
-        )(FunctionStore.order)
-    }
+    segmentRefs exists (_.mightContain(key))
 
   def get(key: Slice[Byte], threadState: ThreadReadState): PersistentOption =
     segments

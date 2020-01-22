@@ -50,14 +50,17 @@ object TransientSegmentSerialiser {
         value addUnsignedInt offset
         value addUnsignedInt size
 
+        /**
+         * - nearestDeadline is stored so that the parent many segment knows which segment to refresh.
+         * - minMaxFunctionIds are not stored here. All request for mightContainFunction are deferred onto the SegmentRef itself.
+         */
+
         if (one.minKey equals maxKey)
-          Slice(Memory.Put(maxKey, value, None, Time.empty))
+          Slice(Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty))
         else
           Slice(
             Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)),
-            //this put currently not used but is stored to be backward compatible if onDisk binary search
-            //is refered
-            Memory.Put(maxKey, value, None, Time.empty)
+            Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty)
           )
 
       case MaxKey.Range(fromKey, maxKey) =>
@@ -67,10 +70,17 @@ object TransientSegmentSerialiser {
         value addUnsignedInt size
         value addAll fromKey
 
-        if (one.minKey equals maxKey)
-          Slice(Memory.Put(maxKey, value, None, Time.empty))
-        else
-          Slice(Memory.Range(one.minKey, maxKey, Value.FromValue.Null, Value.Update(value, None, Time.empty)))
+        if (one.minKey equals maxKey) {
+          Slice(Memory.Put(maxKey, value, one.nearestPutDeadline, Time.empty))
+        } else {
+          val fromValue =
+            if (one.nearestPutDeadline.isEmpty)
+              Value.FromValue.Null
+            else
+              Value.Put(Slice.Null, one.nearestPutDeadline, Time.empty)
+
+          Slice(Memory.Range(one.minKey, maxKey, fromValue, Value.Update(value, None, Time.empty)))
+        }
     }
 
   def toSegmentRef(path: Path,
@@ -201,5 +211,4 @@ object TransientSegmentSerialiser {
       throw new Exception(s"Invalid maxKeyId: $maxKeyId")
     }
   }
-
 }

@@ -29,8 +29,8 @@ import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.Value.{FromValue, RangeValue}
 import swaydb.core.data._
+import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.{Segment, SegmentIO}
 import swaydb.core.{TestBase, TestTimer}
 import swaydb.data.MaxKey
@@ -727,7 +727,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
           Nil
-        }
+      }
       Segment.overlapsWithBusySegments(inputSegments, busySegments, targetSegments) shouldBe true
 
       //               5-6
@@ -745,7 +745,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
           TestSegment(Slice(randomFixedKeyValue(9), randomFixedKeyValue(10))) ::
           Nil
-        }
+      }
 
       //0-1
       //          3-4       7-8
@@ -786,7 +786,7 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         TestSegment(Slice(randomFixedKeyValue(1), randomFixedKeyValue(2))) ::
           TestSegment(Slice(randomFixedKeyValue(7), randomFixedKeyValue(8))) ::
           Nil
-        }
+      }
       Segment.overlapsWithBusySegments(inputMap, busySegments, targetSegments) shouldBe true
 
       //               5-6
@@ -997,8 +997,14 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
         val keyValues1 = randomizedKeyValues(1000)
         val keyValues2 = randomizedKeyValues(1000)
 
-        val segment1 = TestSegment(keyValues1)
-        val segment2 = TestSegment(keyValues2)
+        val segmentConfig =
+          if (persistent)
+            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2))
+          else
+            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
+
+        val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig)
+        val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig)
 
         val deadline = nearestPutDeadline(keyValues1 ++ keyValues2)
 
