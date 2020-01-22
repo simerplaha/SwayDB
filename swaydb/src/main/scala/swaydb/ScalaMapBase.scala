@@ -31,18 +31,19 @@ protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, IO.ApiIO]) exten
       var nextOne: (K, V) = _
 
       override def hasNext: Boolean =
-        if (nextOne == null)
-          db.headOption.get exists {
-            some =>
-              nextOne = some
-              true
-          }
-        else
-          db.stream.next(nextOne).get exists {
-            some =>
-              nextOne = some
-              true
-          }
+      //        if (nextOne == null)
+      //          db.headOption.get exists {
+      //            some =>
+      //              nextOne = some
+      //              true
+      //          }
+      //        else
+      //          db.stream.next(nextOne).get exists {
+      //            some =>
+      //              nextOne = some
+      //              true
+      //          }
+        ???
 
       override def next(): (K, V) =
         nextOne
@@ -52,10 +53,12 @@ protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, IO.ApiIO]) exten
     db.isEmpty.get
 
   override def headOption: Option[(K, V)] =
-    db.headOption.get
+  //    db.headOption.get
+    ???
 
   override def lastOption: Option[(K, V)] =
-    db.lastOption.get
+  //    db.lastOption.get
+    ???
 
   override def keySet: collection.Set[K] =
     db.keys.asScala
@@ -64,10 +67,12 @@ protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, IO.ApiIO]) exten
     db.contains(key).get
 
   override def last: (K, V) =
-    db.lastOption.get.get
+  //    db.lastOption.get.get
+    ???
 
   override def head: (K, V) =
-    db.headOption.get.get
+  //    db.headOption.get.get
+    ???
 
   override def clear(): Unit =
     db.clear().get

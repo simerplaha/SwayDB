@@ -19,26 +19,26 @@
 
 package swaydb
 
-protected trait Streamable[A, T[_]] {
+protected trait Streamable[A] {
 
-  def foreach[U](f: A => U): Stream[Unit, T]
+  def foreach[U](f: A => U): Stream[Unit]
 
-  def map[B](f: A => B): Stream[B, T]
-  def flatMap[B](f: A => Stream[B, T]): Stream[B, T]
+  def map[B](f: A => B): Stream[B]
+  def flatMap[B](f: A => Stream[B]): Stream[B]
 
-  def drop(count: Int): Stream[A, T]
-  def dropWhile(f: A => Boolean): Stream[A, T]
+  def drop(count: Int): Stream[A]
+  def dropWhile(f: A => Boolean): Stream[A]
 
-  def take(count: Int): Stream[A, T]
-  def takeWhile(f: A => Boolean): Stream[A, T]
+  def take(count: Int): Stream[A]
+  def takeWhile(f: A => Boolean): Stream[A]
 
-  def filter(f: A => Boolean): Stream[A, T]
-  def filterNot(f: A => Boolean): Stream[A, T]
+  def filter(f: A => Boolean): Stream[A]
+  def filterNot(f: A => Boolean): Stream[A]
 
-  def lastOption: T[Option[A]]
-  def headOption: T[Option[A]]
+  def lastOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]]
+  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]]
 
-  def foldLeft[B](initial: B)(f: (B, A) => B): T[B]
+  def foldLeft[B, BAG[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B]
 
-  def size: T[Int]
+  def size[BAG[_]](implicit bag: Bag[BAG]): BAG[Int]
 }

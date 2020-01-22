@@ -31,18 +31,19 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, IO.ApiIO]) extends mut
       var nextOne: A = _
 
       override def hasNext: Boolean =
-        if (nextOne == null)
-          db.headOption.get exists {
-            some =>
-              nextOne = some
-              true
-          }
-        else
-          db.stream.next(nextOne).get exists {
-            some =>
-              nextOne = some
-              true
-          }
+      //        if (nextOne == null)
+      //          db.headOption.get exists {
+      //            some =>
+      //              nextOne = some
+      //              true
+      //          }
+      //        else
+      //          db.stream.next(nextOne).get exists {
+      //            some =>
+      //              nextOne = some
+      //              true
+      //          }
+        ???
 
       override def next(): A =
         nextOne
@@ -52,16 +53,20 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, IO.ApiIO]) extends mut
     db.isEmpty.get
 
   override def headOption: Option[A] =
-    db.headOption.get
+  //    db.headOption.get
+    ???
 
   override def lastOption: Option[A] =
-    db.lastOption.get
+  //    db.lastOption.get
+    ???
 
   override def last: A =
-    db.lastOption.get.get
+  //    db.lastOption.get.get
+    ???
 
   override def head: A =
-    db.headOption.get.get
+  //    db.headOption.get.get
+    ???
 
   override def clear(): Unit =
     db.clear().get

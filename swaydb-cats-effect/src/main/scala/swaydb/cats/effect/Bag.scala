@@ -51,6 +51,8 @@ object Bag {
                      ec: ExecutionContext): swaydb.Bag.Async[IO] =
     new Async[IO] {
 
+      implicit val self: swaydb.Bag.Async[IO] = this
+
       override def executionContext: ExecutionContext =
         ec
 
@@ -98,7 +100,7 @@ object Bag {
       override def complete[A](promise: Promise[A], a: IO[A]): Unit =
         promise tryCompleteWith a.unsafeToFuture()
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] =
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] =
         swaydb.Bag.Async.foldLeft(
           initial = initial,
           after = after,
@@ -108,7 +110,7 @@ object Bag {
           operation = operation
         )
 
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO])(condition: A => Boolean): IO[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): IO[Option[A]] =
         swaydb.Bag.Async.collectFirst(
           previous = previous,
           stream = stream,

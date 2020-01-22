@@ -38,7 +38,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
                                 private val from: Option[From[K]] = None,
                                 private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
                                                                                        valueSerializer: Serializer[V],
-                                                                                       bag: Bag[BAG]) extends Streamable[(K, V), BAG] { self =>
+                                                                                       bag: Bag[BAG]) extends Streamable[(K, V)] { self =>
 
   def put(key: K, value: V): BAG[OK] =
     bag.point(core.put(key = key, value = Some(value)))
@@ -52,8 +52,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def put(keyValues: (K, V)*): BAG[OK] =
     bag.point(put(keyValues))
 
-  def put(keyValues: Stream[(K, V), BAG]): BAG[OK] =
-    bag.flatMap(keyValues.materialize)(put)
+  def put(keyValues: Stream[(K, V)]): BAG[OK] =
+  //    bag.flatMap(keyValues.materialize)(put)
+    ???
 
   def put(keyValues: Iterable[(K, V)]): BAG[OK] =
     put(keyValues.iterator)
@@ -77,8 +78,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def remove(keys: K*): BAG[OK] =
     bag.point(remove(keys))
 
-  def remove(keys: Stream[K, BAG]): BAG[OK] =
-    bag.flatMap(keys.materialize)(remove)
+  def remove(keys: Stream[K]): BAG[OK] =
+  //    bag.flatMap(keys.materialize)(remove)
+    ???
 
   def remove(keys: Iterable[K]): BAG[OK] =
     remove(keys.iterator)
@@ -101,8 +103,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def expire(keys: (K, Deadline)*): BAG[OK] =
     bag.point(expire(keys))
 
-  def expire(keys: Stream[(K, Deadline), BAG]): BAG[OK] =
-    bag.flatMap(keys.materialize)(expire)
+  def expire(keys: Stream[(K, Deadline)]): BAG[OK] =
+  //    bag.flatMap(keys.materialize)(expire)
+    ???
 
   def expire(keys: Iterable[(K, Deadline)]): BAG[OK] =
     expire(keys.iterator)
@@ -130,8 +133,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def update(keyValues: (K, V)*): BAG[OK] =
     bag.point(update(keyValues))
 
-  def update(keyValues: Stream[(K, V), BAG]): BAG[OK] =
-    bag.flatMap(keyValues.materialize)(update)
+  def update(keyValues: Stream[(K, V)]): BAG[OK] =
+  //    bag.flatMap(keyValues.materialize)(update)
+    ???
 
   def update(keyValues: Iterable[(K, V)]): BAG[OK] =
     update(keyValues.iterator)
@@ -170,11 +174,12 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.point(core.put(preparesToUntyped(prepare).iterator))
 
-  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF], BAG])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.flatMap(prepare.materialize) {
-      prepares =>
-        commit(prepares)
-    }
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+  //    bag.flatMap(prepare.materialize) {
+  //      prepares =>
+  //        commit(prepares)
+  //    }
+    ???
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.point(core.put(preparesToUntyped(prepare).iterator))
@@ -251,94 +256,99 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def fromOrAfter(key: K): Map[K, V, F, BAG] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  def headOption: BAG[Option[(K, V)]] =
-    headOption(core.readStates.get())
+  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[(K, V)]] =
+  //    headOption(core.readStates.get())
+    ???
 
-  protected def headOption(readState: ThreadReadState): BAG[Option[(K, V)]] =
-    bag.map {
-      from match {
-        case Some(from) =>
-          val fromKeyBytes: Slice[Byte] = from.key
+  //  protected def headOption(readState: ThreadReadState): BAG[Option[(K, V)]] =
+  //    bag.map {
+  //      from match {
+  //        case Some(from) =>
+  //          val fromKeyBytes: Slice[Byte] = from.key
+  //
+  //          if (from.before)
+  //            core.before(fromKeyBytes, readState)
+  //          else if (from.after)
+  //            core.after(fromKeyBytes, readState)
+  //          else
+  //            bag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
+  //              case some @ Some(_) =>
+  //                bag.success(some): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
+  //
+  //              case _ =>
+  //                if (from.orAfter)
+  //                  core.after(fromKeyBytes, readState)
+  //                else if (from.orBefore)
+  //                  core.before(fromKeyBytes, readState)
+  //                else
+  //                  bag.success(None): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
+  //            }
+  //
+  //        case None =>
+  //          if (reverseIteration) core.last(readState) else core.head(readState)
+  //      }
+  //    }(_.map {
+  //      case (key, value) =>
+  //        (key.read[K], value.read[V])
+  //    })
+  ???
 
-          if (from.before)
-            core.before(fromKeyBytes, readState)
-          else if (from.after)
-            core.after(fromKeyBytes, readState)
-          else
-            bag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
-              case some @ Some(_) =>
-                bag.success(some): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
-
-              case _ =>
-                if (from.orAfter)
-                  core.after(fromKeyBytes, readState)
-                else if (from.orBefore)
-                  core.before(fromKeyBytes, readState)
-                else
-                  bag.success(None): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
-            }
-
-        case None =>
-          if (reverseIteration) core.last(readState) else core.head(readState)
-      }
-    }(_.map {
-      case (key, value) =>
-        (key.read[K], value.read[V])
-    })
-
-  override def drop(count: Int): Stream[(K, V), BAG] =
+  override def drop(count: Int): Stream[(K, V)] =
     stream drop count
 
-  override def dropWhile(f: ((K, V)) => Boolean): Stream[(K, V), BAG] =
+  override def dropWhile(f: ((K, V)) => Boolean): Stream[(K, V)] =
     stream dropWhile f
 
-  override def take(count: Int): Stream[(K, V), BAG] =
+  override def take(count: Int): Stream[(K, V)] =
     stream take count
 
-  override def takeWhile(f: ((K, V)) => Boolean): Stream[(K, V), BAG] =
+  override def takeWhile(f: ((K, V)) => Boolean): Stream[(K, V)] =
     stream takeWhile f
 
-  override def map[B](f: ((K, V)) => B): Stream[B, BAG] =
+  override def map[B](f: ((K, V)) => B): Stream[B] =
     stream map f
 
-  override def flatMap[B](f: ((K, V)) => Stream[B, BAG]): Stream[B, BAG] =
+  override def flatMap[B](f: ((K, V)) => Stream[B]): Stream[B] =
     stream flatMap f
 
-  override def foreach[U](f: ((K, V)) => U): Stream[Unit, BAG] =
+  override def foreach[U](f: ((K, V)) => U): Stream[Unit] =
     stream foreach f
 
-  override def filter(f: ((K, V)) => Boolean): Stream[(K, V), BAG] =
+  override def filter(f: ((K, V)) => Boolean): Stream[(K, V)] =
     stream filter f
 
-  override def filterNot(f: ((K, V)) => Boolean): Stream[(K, V), BAG] =
+  override def filterNot(f: ((K, V)) => Boolean): Stream[(K, V)] =
     stream filterNot f
 
-  override def foldLeft[B](initial: B)(f: (B, (K, V)) => B): BAG[B] =
+  override def foldLeft[B, BAG[_]](initial: B)(f: (B, (K, V)) => B)(implicit bag: Bag[BAG]): BAG[B] =
     stream.foldLeft(initial)(f)
 
-  def size: BAG[Int] =
-    bag.point(keys.size)
+  override def size[BAG[_]](implicit bag: Bag[BAG]): BAG[Int] =
+  //    bag.point(keys.size)
+    ???
 
-  def stream: Stream[(K, V), BAG] =
-    new Stream[(K, V), BAG] {
-      val readState = core.readStates.get()
-      override def headOption: BAG[Option[(K, V)]] =
-        self.headOption(readState)
+  def stream: Stream[(K, V)] =
+  //    new Stream[(K, V)] {
+  //      val readState = core.readStates.get()
+  //      override def headOption: BAG[Option[(K, V)]] =
+  //        self.headOption(readState)
+  //
+  //      override private[swaydb] def next(previous: (K, V)): BAG[Option[(K, V)]] =
+  //        bag.map {
+  //          if (reverseIteration)
+  //            core.before(keySerializer.write(previous._1), readState)
+  //          else
+  //            core.after(keySerializer.write(previous._1), readState)
+  //        }(_.map {
+  //          case (key, value) =>
+  //            (key.read[K], value.read[V])
+  //        })
+  //    }
+    ???
 
-      override private[swaydb] def next(previous: (K, V)): BAG[Option[(K, V)]] =
-        bag.map {
-          if (reverseIteration)
-            core.before(keySerializer.write(previous._1), readState)
-          else
-            core.after(keySerializer.write(previous._1), readState)
-        }(_.map {
-          case (key, value) =>
-            (key.read[K], value.read[V])
-        })
-    }
-
-  def streamer: Streamer[(K, V), BAG] =
-    stream.streamer
+  def streamer: Streamer[(K, V)] =
+  //    stream.streamer
+    ???
 
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.point(core.bloomFilterKeyValueCount)
@@ -349,22 +359,23 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def nonEmpty: BAG[Boolean] =
     bag.map(isEmpty)(!_)
 
-  def lastOption: BAG[Option[(K, V)]] =
-    if (reverseIteration)
-      bag.map(core.head(core.readStates.get())) {
-        case Some((key, value)) =>
-          Some((key.read[K], value.read[V]))
-
-        case _ =>
-          None
-      }
-    else
-      bag.map(core.last(core.readStates.get())) {
-        case Some((key, value)) =>
-          Some((key.read[K], value.read[V]))
-        case _ =>
-          None
-      }
+  override def lastOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[(K, V)]] =
+  //    if (reverseIteration)
+  //      bag.map(core.head(core.readStates.get())) {
+  //        case Some((key, value)) =>
+  //          Some((key.read[K], value.read[V]))
+  //
+  //        case _ =>
+  //          None
+  //      }
+  //    else
+  //      bag.map(core.last(core.readStates.get())) {
+  //        case Some((key, value)) =>
+  //          Some((key.read[K], value.read[V]))
+  //        case _ =>
+  //          None
+  //      }
+    ???
 
   def reverse: Map[K, V, F, BAG] =
     copy(reverseIteration = true)

@@ -42,8 +42,8 @@ sealed trait Bag[BAG[_]] {
   def flatMap[A, B](fa: BAG[A])(f: A => BAG[B]): BAG[B]
   def success[A](value: A): BAG[A]
   def failure[A](exception: Throwable): BAG[A]
-  def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, BAG], drop: Int, take: Option[Int])(operation: (U, A) => U): BAG[U]
-  def collectFirst[A](previous: A, stream: swaydb.Stream[A, BAG])(condition: A => Boolean): BAG[Option[A]]
+  def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): BAG[U]
+  def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): BAG[Option[A]]
   def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): BAG[A]
   def toBag[X[_]](implicit transfer: Bag.Transfer[BAG, X]): Bag[X]
 
@@ -160,15 +160,6 @@ object Bag extends LazyLogging {
     def none[A]: X[Option[A]] =
       baseConverter.to(base.none)
 
-    val flipConverter =
-      new Bag.Transfer[X, T] {
-        override def to[A](a: X[A]): T[A] =
-          baseConverter.from(a)
-
-        override def from[A](a: T[A]): X[A] =
-          baseConverter.to(a)
-      }
-
     def apply[A](a: => A): X[A] =
       baseConverter.to(base.apply(a))
 
@@ -192,11 +183,11 @@ object Bag extends LazyLogging {
     def failure[A](exception: Throwable): X[A] =
       baseConverter.to(base.failure(exception))
 
-    def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
-      baseConverter.to(base.foldLeft(initial, after, stream.toBag[T](base, flipConverter), drop, take)(operation))
+    def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
+      baseConverter.to(base.foldLeft(initial, after, stream, drop, take)(operation))
 
-    def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
-      baseConverter.to(base.collectFirst(previous, stream.toBag[T](base, flipConverter))(condition))
+    def collectFirst[A](previous: A, stream: Stream[A])(condition: A => Boolean): X[Option[A]] =
+      baseConverter.to(base.collectFirst(previous, stream)(condition))
 
     def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): X[A] =
       baseConverter.to(base.fromIO(a))
@@ -291,13 +282,14 @@ object Bag extends LazyLogging {
         !isComplete(a)
     }
 
-    def foldLeft[A, U, T[_]](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit monad: Monad[T]): T[U] = {
+    def foldLeft[A, U, T[_]](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit monad: Monad[T],
+                                                                                                                                           bag: Bag[T]): T[U] = {
       def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): T[U] =
         if (take.contains(currentSize))
           monad.success(previousResult)
         else
           stream
-            .next(previous)
+            .next(previous)(bag)
             .flatMap {
               case Some(next) =>
                 if (drop >= 1) {
@@ -320,8 +312,8 @@ object Bag extends LazyLogging {
         monad.success(initial)
       else
         after
-          .map(stream.next)
-          .getOrElse(stream.headOption)
+          .map(stream.next(_)(bag))
+          .getOrElse(stream.headOption(bag))
           .flatMap {
             case Some(first) =>
               if (drop >= 1) {
@@ -341,9 +333,10 @@ object Bag extends LazyLogging {
           }
     }
 
-    def collectFirst[A, T[_]](previous: A, stream: swaydb.Stream[A, T], condition: A => Boolean)(implicit monad: Monad[T]): T[Option[A]] =
+    def collectFirst[A, T[_]](previous: A, stream: swaydb.Stream[A], condition: A => Boolean)(implicit monad: Monad[T],
+                                                                                              bag: Bag[T]): T[Option[A]] =
       stream
-        .next(previous)
+        .next(previous)(bag)
         .flatMap {
           case some @ Some(nextA) =>
             if (condition(nextA))
@@ -403,13 +396,13 @@ object Bag extends LazyLogging {
       override def orElse[A, B >: A](a: IO.ThrowableIO[A])(b: IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         a.orElse(b)
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO.ThrowableIO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ThrowableIO[U] = {
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ThrowableIO[U] = {
         @tailrec
         def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO.ThrowableIO[U] =
           if (take.contains(currentSize))
             IO.Right(previousResult)
           else
-            stream.next(previous) match {
+            stream.next(previous)(this) match {
               case IO.Right(Some(next)) =>
                 if (drop >= 1) {
                   fold(next, drop - 1, currentSize, previousResult)
@@ -434,7 +427,7 @@ object Bag extends LazyLogging {
         if (take.contains(0))
           IO.Right(initial)
         else
-          after.map(stream.next).getOrElse(stream.headOption) match {
+          after.map(stream.next(_)(this)).getOrElse(stream.headOption(this)) match {
             case IO.Right(Some(first)) =>
               if (drop >= 1)
                 fold(first, drop - 1, 0, initial)
@@ -458,8 +451,8 @@ object Bag extends LazyLogging {
       }
 
       @tailrec
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO.ThrowableIO])(condition: A => Boolean): IO.ThrowableIO[Option[A]] =
-        stream.next(previous) match {
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): IO.ThrowableIO[Option[A]] =
+        stream.next(previous)(this) match {
           case success @ IO.Right(Some(nextA)) =>
             if (condition(nextA))
               success
@@ -479,6 +472,8 @@ object Bag extends LazyLogging {
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
     new Async.Retryable[Future] {
+
+      implicit val self: Bag.Async.Retryable[Future] = this
 
       override def executionContext: ExecutionContext =
         ec
@@ -531,7 +526,7 @@ object Bag extends LazyLogging {
       def isComplete[A](a: Future[A]): Boolean =
         a.isCompleted
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] =
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] =
         swaydb.Bag.Async.foldLeft(
           initial = initial,
           after = after,
@@ -541,7 +536,7 @@ object Bag extends LazyLogging {
           operation = operation
         )
 
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Future])(condition: A => Boolean): Future[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): Future[Option[A]] =
         swaydb.Bag.Async.collectFirst(
           previous = previous,
           stream = stream,
@@ -603,11 +598,11 @@ object Bag extends LazyLogging {
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Id[A] = a.get
 
       //todo
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Id], drop: Int, take: Option[Int])(operation: (U, A) => U): Id[U] =
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): Id[U] =
         ???
 
       //todo
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Id])(condition: A => Boolean): Id[Option[A]] =
+      override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): Id[Option[A]] =
         ???
     }
 }

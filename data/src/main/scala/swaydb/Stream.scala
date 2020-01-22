@@ -30,23 +30,23 @@ object Stream {
   /**
    * Create and empty [[Stream]].
    */
-  def empty[A, T[_]](implicit bag: Bag[T]): Stream[A, T] =
-    apply[A, T](Iterable.empty)
+  def empty[A]: Stream[A] =
+    apply[A](Iterable.empty)
 
-  def range[T[_]](from: Int, to: Int)(implicit bag: Bag[T]): Stream[Int, T] =
-    apply[Int, T](from to to)
+  def range(from: Int, to: Int): Stream[Int] =
+    apply[Int](from to to)
 
-  def range[T[_]](from: Char, to: Char)(implicit bag: Bag[T]): Stream[Char, T] =
-    apply[Char, T](from to to)
+  def range(from: Char, to: Char): Stream[Char] =
+    apply[Char](from to to)
 
-  def rangeUntil[T[_]](from: Int, toExclusive: Int)(implicit bag: Bag[T]): Stream[Int, T] =
-    apply[Int, T](from until toExclusive)
+  def rangeUntil(from: Int, toExclusive: Int): Stream[Int] =
+    apply[Int](from until toExclusive)
 
-  def rangeUntil[T[_]](from: Char, to: Char)(implicit bag: Bag[T]): Stream[Char, T] =
-    apply[Char, T](from until to)
+  def rangeUntil(from: Char, to: Char): Stream[Char] =
+    apply[Char](from until to)
 
-  def tabulate[A, T[_]](n: Int)(f: Int => A)(implicit bag: Bag[T]): Stream[A, T] =
-    apply[A, T](
+  def tabulate[A](n: Int)(f: Int => A): Stream[A] =
+    apply[A](
       new Iterator[A] {
         var used = 0
 
@@ -61,32 +61,34 @@ object Stream {
       }
     )
 
-  def apply[A, T[_]](streamer: Streamer[A, T])(implicit bag: Bag[T]): Stream[A, T] =
-    new Stream[A, T] {
-      override def headOption(): T[Option[A]] =
-        streamer.head
-
-      override private[swaydb] def next(previous: A): T[Option[A]] =
-        streamer.next(previous)
-    }
+  def apply[A](streamer: Streamer[A]): Stream[A] =
+  //    new Stream[A] {
+  //      override def headOption(): T[Option[A]] =
+  //        streamer.head
+  //
+  //      override private[swaydb] def next(previous: A): T[Option[A]] =
+  //        streamer.next(previous)
+  //    }
+    ???
 
   /**
    * Create a [[Stream]] from a collection.
    */
-  def apply[A, T[_]](items: Iterable[A])(implicit bag: Bag[T]): Stream[A, T] =
-    apply[A, T](items.iterator)
+  def apply[A](items: Iterable[A]): Stream[A] =
+    apply[A](items.iterator)
 
-  def apply[A, T[_]](iterator: Iterator[A])(implicit bag: Bag[T]): Stream[A, T] =
-    new Stream[A, T] {
-      private def step(): T[Option[A]] =
-        if (iterator.hasNext)
-          bag.success(Some(iterator.next()))
-        else
-          bag.none
-
-      override def headOption(): T[Option[A]] = step()
-      override private[swaydb] def next(previous: A): T[Option[A]] = step()
-    }
+  def apply[A](iterator: Iterator[A]): Stream[A] =
+  //    new Stream[A] {
+  //      private def step(): T[Option[A]] =
+  //        if (iterator.hasNext)
+  //          bag.success(Some(iterator.next()))
+  //        else
+  //          bag.none
+  //
+  //      override def headOption(): T[Option[A]] = step()
+  //      override private[swaydb] def next(previous: A): T[Option[A]] = step()
+  //    }
+    ???
 }
 
 /**
@@ -97,307 +99,330 @@ object Stream {
  * @tparam A stream item's type
  * @tparam T wrapper type.
  */
-abstract class Stream[A, T[_]](implicit bag: Bag[T]) extends Streamable[A, T] { self =>
+trait Stream[A] extends Streamable[A] { self =>
 
   /**
    * Private val used in [[bag.foldLeft]] for reading only single item.
    */
   private val takeOne = Some(1)
 
-  def headOption: T[Option[A]]
-  private[swaydb] def next(previous: A): T[Option[A]]
+  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]]
+  private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]]
 
-  def take(c: Int): Stream[A, T] =
-    if (c == 0)
-      Stream.empty
-    else
-      new Stream[A, T] {
+  def foreach[U](f: A => U): Stream[Unit] = ???
 
-        override def headOption: T[Option[A]] =
-          self.headOption
+  def map[B](f: A => B): Stream[B] = ???
+  def flatMap[B](f: A => Stream[B]): Stream[B] = ???
 
-        //flag to count how many were taken.
-        private var taken = 1
-        override private[swaydb] def next(previous: A): T[Option[A]] =
-          if (taken == c)
-            bag.none
-          else
-            bag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
-              case (_, next) =>
-                taken += 1
-                Some(next)
-            }
-      }
+  def drop(count: Int): Stream[A] = ???
+  def dropWhile(f: A => Boolean): Stream[A] = ???
 
-  def takeWhile(f: A => Boolean): Stream[A, T] =
-    new Stream[A, T] {
-      override def headOption: T[Option[A]] =
-        bag.map(self.headOption) {
-          head =>
-            if (head.exists(f))
-              head
-            else
-              None
-        }
+  def take(count: Int): Stream[A] = ???
+  def takeWhile(f: A => Boolean): Stream[A] = ???
 
-      override private[swaydb] def next(previous: A): T[Option[A]] =
-        bag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
-          case (_, next) =>
-            if (f(next))
-              Some(next)
-            else
-              None
-        }
-    }
+  def filter(f: A => Boolean): Stream[A] = ???
+  def filterNot(f: A => Boolean): Stream[A] = ???
 
-  def drop(c: Int): Stream[A, T] =
-    if (c == 0)
-      self
-    else
-      new Stream[A, T] {
-        override def headOption: T[Option[A]] =
-          bag.flatMap(self.headOption) {
-            case Some(head) =>
-              if (c == 1)
-                next(head)
-              else
-                bag.foldLeft(Option.empty[A], Some(head), self, c - 1, takeOne) {
-                  case (_, next) =>
-                    Some(next)
-                }
+  def lastOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] = ???
 
-            case None =>
-              bag.none
-          }
+  def foldLeft[B, BAG[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B] = ???
 
-        override private[swaydb] def next(previous: A): T[Option[A]] =
-          self.next(previous)
-      }
+  def size[BAG[_]](implicit bag: Bag[BAG]): BAG[Int] = ???
 
-  def dropWhile(f: A => Boolean): Stream[A, T] =
-    new Stream[A, T] {
-      override def headOption: T[Option[A]] =
-        bag.flatMap(self.headOption) {
-          case headOption @ Some(head) =>
-            if (f(head))
-              bag.collectFirst(head, self)(!f(_))
-            else
-              bag.success(headOption)
-
-          case None =>
-            bag.none
-        }
-
-      override private[swaydb] def next(previous: A): T[Option[A]] =
-        self.next(previous)
-    }
-
-  def map[B](f: A => B): Stream[B, T] =
-    new Stream[B, T] {
-
-      var previousA: Option[A] = Option.empty
-
-      override def headOption: T[Option[B]] =
-        bag.map(self.headOption) {
-          previousAOption =>
-            previousA = previousAOption
-            previousAOption.map(f)
-        }
-
-      /**
-       * Previous input parameter here is ignored so that parent stream can be read.
-       */
-      override private[swaydb] def next(previous: B): T[Option[B]] =
-        previousA match {
-          case Some(previous) =>
-            bag.map(self.next(previous)) {
-              nextA =>
-                previousA = nextA
-                nextA.map(f)
-            }
-
-          case None =>
-            bag.none
-        }
-    }
-
-  def foreach[U](f: A => U): Stream[Unit, T] =
-    map[Unit](a => f(a))
-
-  def filter(f: A => Boolean): Stream[A, T] =
-    new Stream[A, T] {
-
-      override def headOption: T[Option[A]] =
-        bag.flatMap(self.headOption) {
-          case previousAOption @ Some(a) =>
-            if (f(a))
-              bag.success(previousAOption)
-            else
-              next(a)
-
-          case None =>
-            bag.none
-        }
-
-      override private[swaydb] def next(previous: A): T[Option[A]] =
-        bag.collectFirst(previous, self)(f)
-    }
-
-  def collect[B](pf: PartialFunction[A, B]): Stream[B, T] =
-    new Stream[B, T] {
-
-      var previousA: Option[A] = Option.empty
-
-      def stepForward(startFrom: Option[A]): T[Option[B]] =
-        startFrom match {
-          case Some(startFrom) =>
-            var nextMatch = Option.empty[B]
-
-            //collectFirst is a stackSafe way reading the stream until a condition is met.
-            //use collectFirst to stream until the first match.
-            val collected =
-            bag
-              .collectFirst(startFrom, self) {
-                nextA =>
-                  this.previousA = Some(nextA)
-                  nextMatch = this.previousA.collectFirst(pf)
-                  nextMatch.isDefined
-              }
-
-            bag.map(collected) {
-              _ =>
-                //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
-                nextMatch
-            }
-
-          case None =>
-            bag.none
-        }
-
-      override def headOption: T[Option[B]] =
-        bag.flatMap(self.headOption) {
-          headOption =>
-            //check if head satisfies the partial functions.
-            this.previousA = headOption //also store A in the current Stream so next() invocation starts from this A.
-            val previousAMayBe = previousA.collectFirst(pf) //check if headOption can be returned.
-
-            if (previousAMayBe.isDefined) //check if headOption satisfies the partial function.
-              bag.success(previousAMayBe) //yes it does. Return!
-            else if (headOption.isDefined) //headOption did not satisfy the partial function but check if headOption was defined and step forward.
-              stepForward(headOption) //headOption was defined so there might be more in the stream so step forward.
-            else //if there was no headOption then stream must be empty.
-              bag.none //empty stream.
-        }
-
-      /**
-       * Previous input parameter here is ignored so that parent stream can be read.
-       */
-      override private[swaydb] def next(previous: B): T[Option[B]] =
-        stepForward(previousA) //continue from previously read A.
-    }
-
-  def count(f: A => Boolean): T[Int] =
-    foldLeft(0) {
-      case (c, item) if f(item) => c + 1
-      case (c, _) => c
-    }
-
-  def collectFirst[B](pf: PartialFunction[A, B]): T[Option[B]] =
-    collect(pf).headOption
-
-  def filterNot(f: A => Boolean): Stream[A, T] =
-    filter(!f(_))
-
-  def flatMap[B](f: A => Stream[B, T]): Stream[B, T] =
-    new Stream[B, T] {
-      //cache stream and emits it's items.
-      //next Stream is read only if the current cached stream is emitted.
-      var innerStream: Stream[B, T] = _
-      var previousA: A = _
-
-      def streamNext(nextA: A): T[Option[B]] = {
-        innerStream = f(nextA)
-        previousA = nextA
-        innerStream.headOption
-      }
-
-      override def headOption: T[Option[B]] =
-        bag.flatMap(self.headOption) {
-          case Some(nextA) =>
-            streamNext(nextA)
-
-          case None =>
-            bag.none
-        }
-
-      override private[swaydb] def next(previous: B): T[Option[B]] =
-        bag.flatMap(innerStream.next(previous)) {
-          case some @ Some(_) =>
-            bag.success(some)
-
-          case None =>
-            bag.flatMap(self.next(previousA)) {
-              case Some(nextA) =>
-                streamNext(nextA)
-
-              case None =>
-                bag.none
-            }
-        }
-    }
-
-  /**
-   * Reads all items from the Stream and returns the last.
-   *
-   * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
-   */
-  def lastOption: T[Option[A]] =
-    foldLeft(Option.empty[A]) {
-      (_, next) =>
-        Some(next)
-    }
-
-  /**
-   * Materializes are executes the stream.
-   *
-   * TODO - tag.foldLeft should run point.
-   */
-  def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
-    bag.point(bag.foldLeft(initial, None, self, 0, None)(f))
-
-  /**
-   * Folds over all elements in the Stream to calculate it's total size.
-   */
-  def size: T[Int] =
-    foldLeft(0) {
-      case (size, _) =>
-        size + 1
-    }
-
-  /**
-   * Materialises/closes and processes the stream to a [[Seq]].
-   */
-  def materialize: T[ListBuffer[A]] =
-    foldLeft(ListBuffer.empty[A]) {
-      (buffer, item) =>
-        buffer += item
-    }
-
-  def streamer: Streamer[A, T] =
-    new Streamer[A, T] {
-      override def head: T[Option[A]] = self.headOption
-      override def next(previous: A): T[Option[A]] = self.next(previous)
-    }
-
-  /**
-   * Given a [[Bag.Transfer]] this function converts the current Stream to another type.
-   */
-  def toBag[B[_]](implicit bag: Bag[B], transfer: Bag.Transfer[T, B]): Stream[A, B] =
-    new Stream[A, B]()(bag) {
-      override def headOption: B[Option[A]] =
-        transfer.to(self.headOption)
-
-      override private[swaydb] def next(previous: A) =
-        transfer.to(self.next(previous))
-    }
+  //  def headOption: T[Option[A]]
+  //  private[swaydb] def next(previous: A): T[Option[A]]
+  //
+  //  def take(c: Int): Stream[A] =
+  //    if (c == 0)
+  //      Stream.empty
+  //    else
+  //      new Stream[A, T] {
+  //
+  //        override def headOption: T[Option[A]] =
+  //          self.headOption
+  //
+  //        //flag to count how many were taken.
+  //        private var taken = 1
+  //        override private[swaydb] def next(previous: A): T[Option[A]] =
+  //          if (taken == c)
+  //            bag.none
+  //          else
+  //            bag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+  //              case (_, next) =>
+  //                taken += 1
+  //                Some(next)
+  //            }
+  //      }
+  //
+  //  def takeWhile(f: A => Boolean): Stream[A, T] =
+  //    new Stream[A, T] {
+  //      override def headOption: T[Option[A]] =
+  //        bag.map(self.headOption) {
+  //          head =>
+  //            if (head.exists(f))
+  //              head
+  //            else
+  //              None
+  //        }
+  //
+  //      override private[swaydb] def next(previous: A): T[Option[A]] =
+  //        bag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+  //          case (_, next) =>
+  //            if (f(next))
+  //              Some(next)
+  //            else
+  //              None
+  //        }
+  //    }
+  //
+  //  def drop(c: Int): Stream[A, T] =
+  //    if (c == 0)
+  //      self
+  //    else
+  //      new Stream[A, T] {
+  //        override def headOption: T[Option[A]] =
+  //          bag.flatMap(self.headOption) {
+  //            case Some(head) =>
+  //              if (c == 1)
+  //                next(head)
+  //              else
+  //                bag.foldLeft(Option.empty[A], Some(head), self, c - 1, takeOne) {
+  //                  case (_, next) =>
+  //                    Some(next)
+  //                }
+  //
+  //            case None =>
+  //              bag.none
+  //          }
+  //
+  //        override private[swaydb] def next(previous: A): T[Option[A]] =
+  //          self.next(previous)
+  //      }
+  //
+  //  def dropWhile(f: A => Boolean): Stream[A, T] =
+  //    new Stream[A, T] {
+  //      override def headOption: T[Option[A]] =
+  //        bag.flatMap(self.headOption) {
+  //          case headOption @ Some(head) =>
+  //            if (f(head))
+  //              bag.collectFirst(head, self)(!f(_))
+  //            else
+  //              bag.success(headOption)
+  //
+  //          case None =>
+  //            bag.none
+  //        }
+  //
+  //      override private[swaydb] def next(previous: A): T[Option[A]] =
+  //        self.next(previous)
+  //    }
+  //
+  //  def map[B](f: A => B): Stream[B, T] =
+  //    new Stream[B, T] {
+  //
+  //      var previousA: Option[A] = Option.empty
+  //
+  //      override def headOption: T[Option[B]] =
+  //        bag.map(self.headOption) {
+  //          previousAOption =>
+  //            previousA = previousAOption
+  //            previousAOption.map(f)
+  //        }
+  //
+  //      /**
+  //       * Previous input parameter here is ignored so that parent stream can be read.
+  //       */
+  //      override private[swaydb] def next(previous: B): T[Option[B]] =
+  //        previousA match {
+  //          case Some(previous) =>
+  //            bag.map(self.next(previous)) {
+  //              nextA =>
+  //                previousA = nextA
+  //                nextA.map(f)
+  //            }
+  //
+  //          case None =>
+  //            bag.none
+  //        }
+  //    }
+  //
+  //  def foreach[U](f: A => U): Stream[Unit, T] =
+  //    map[Unit](a => f(a))
+  //
+  //  def filter(f: A => Boolean): Stream[A, T] =
+  //    new Stream[A, T] {
+  //
+  //      override def headOption: T[Option[A]] =
+  //        bag.flatMap(self.headOption) {
+  //          case previousAOption @ Some(a) =>
+  //            if (f(a))
+  //              bag.success(previousAOption)
+  //            else
+  //              next(a)
+  //
+  //          case None =>
+  //            bag.none
+  //        }
+  //
+  //      override private[swaydb] def next(previous: A): T[Option[A]] =
+  //        bag.collectFirst(previous, self)(f)
+  //    }
+  //
+  //  def collect[B](pf: PartialFunction[A, B]): Stream[B, T] =
+  //    new Stream[B, T] {
+  //
+  //      var previousA: Option[A] = Option.empty
+  //
+  //      def stepForward(startFrom: Option[A]): T[Option[B]] =
+  //        startFrom match {
+  //          case Some(startFrom) =>
+  //            var nextMatch = Option.empty[B]
+  //
+  //            //collectFirst is a stackSafe way reading the stream until a condition is met.
+  //            //use collectFirst to stream until the first match.
+  //            val collected =
+  //            bag
+  //              .collectFirst(startFrom, self) {
+  //                nextA =>
+  //                  this.previousA = Some(nextA)
+  //                  nextMatch = this.previousA.collectFirst(pf)
+  //                  nextMatch.isDefined
+  //              }
+  //
+  //            bag.map(collected) {
+  //              _ =>
+  //                //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
+  //                nextMatch
+  //            }
+  //
+  //          case None =>
+  //            bag.none
+  //        }
+  //
+  //      override def headOption: T[Option[B]] =
+  //        bag.flatMap(self.headOption) {
+  //          headOption =>
+  //            //check if head satisfies the partial functions.
+  //            this.previousA = headOption //also store A in the current Stream so next() invocation starts from this A.
+  //            val previousAMayBe = previousA.collectFirst(pf) //check if headOption can be returned.
+  //
+  //            if (previousAMayBe.isDefined) //check if headOption satisfies the partial function.
+  //              bag.success(previousAMayBe) //yes it does. Return!
+  //            else if (headOption.isDefined) //headOption did not satisfy the partial function but check if headOption was defined and step forward.
+  //              stepForward(headOption) //headOption was defined so there might be more in the stream so step forward.
+  //            else //if there was no headOption then stream must be empty.
+  //              bag.none //empty stream.
+  //        }
+  //
+  //      /**
+  //       * Previous input parameter here is ignored so that parent stream can be read.
+  //       */
+  //      override private[swaydb] def next(previous: B): T[Option[B]] =
+  //        stepForward(previousA) //continue from previously read A.
+  //    }
+  //
+  //  def count(f: A => Boolean): T[Int] =
+  //    foldLeft(0) {
+  //      case (c, item) if f(item) => c + 1
+  //      case (c, _) => c
+  //    }
+  //
+  //  def collectFirst[B](pf: PartialFunction[A, B]): T[Option[B]] =
+  //    collect(pf).headOption
+  //
+  //  def filterNot(f: A => Boolean): Stream[A, T] =
+  //    filter(!f(_))
+  //
+  //  def flatMap[B](f: A => Stream[B, T]): Stream[B, T] =
+  //    new Stream[B, T] {
+  //      //cache stream and emits it's items.
+  //      //next Stream is read only if the current cached stream is emitted.
+  //      var innerStream: Stream[B, T] = _
+  //      var previousA: A = _
+  //
+  //      def streamNext(nextA: A): T[Option[B]] = {
+  //        innerStream = f(nextA)
+  //        previousA = nextA
+  //        innerStream.headOption
+  //      }
+  //
+  //      override def headOption: T[Option[B]] =
+  //        bag.flatMap(self.headOption) {
+  //          case Some(nextA) =>
+  //            streamNext(nextA)
+  //
+  //          case None =>
+  //            bag.none
+  //        }
+  //
+  //      override private[swaydb] def next(previous: B): T[Option[B]] =
+  //        bag.flatMap(innerStream.next(previous)) {
+  //          case some @ Some(_) =>
+  //            bag.success(some)
+  //
+  //          case None =>
+  //            bag.flatMap(self.next(previousA)) {
+  //              case Some(nextA) =>
+  //                streamNext(nextA)
+  //
+  //              case None =>
+  //                bag.none
+  //            }
+  //        }
+  //    }
+  //
+  //  /**
+  //   * Reads all items from the Stream and returns the last.
+  //   *
+  //   * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
+  //   */
+  //  def lastOption: T[Option[A]] =
+  //    foldLeft(Option.empty[A]) {
+  //      (_, next) =>
+  //        Some(next)
+  //    }
+  //
+  //  /**
+  //   * Materializes are executes the stream.
+  //   *
+  //   * TODO - tag.foldLeft should run point.
+  //   */
+  //  def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
+  //    bag.point(bag.foldLeft(initial, None, self, 0, None)(f))
+  //
+  //  /**
+  //   * Folds over all elements in the Stream to calculate it's total size.
+  //   */
+  //  def size: T[Int] =
+  //    foldLeft(0) {
+  //      case (size, _) =>
+  //        size + 1
+  //    }
+  //
+  //  /**
+  //   * Materialises/closes and processes the stream to a [[Seq]].
+  //   */
+  //  def materialize: T[ListBuffer[A]] =
+  //    foldLeft(ListBuffer.empty[A]) {
+  //      (buffer, item) =>
+  //        buffer += item
+  //    }
+  //
+  //  def streamer: Streamer[A, T] =
+  //    new Streamer[A, T] {
+  //      override def head: T[Option[A]] = self.headOption
+  //      override def next(previous: A): T[Option[A]] = self.next(previous)
+  //    }
+  //
+  //  /**
+  //   * Given a [[Bag.Transfer]] this function converts the current Stream to another type.
+  //   */
+  //  def toBag[B[_]](implicit bag: Bag[B], transfer: Bag.Transfer[T, B]): Stream[A, B] =
+  //    new Stream[A, B]()(bag) {
+  //      override def headOption: B[Option[A]] =
+  //        transfer.to(self.headOption)
+  //
+  //      override private[swaydb] def next(previous: A) =
+  //        transfer.to(self.next(previous))
+  //    }
 }

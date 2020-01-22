@@ -62,7 +62,7 @@ object Stream {
 
   def create[A](ioStreamer: FutureStreamer[A]): StreamFuture[A] = {
     implicit val ec: ExecutionContext = ioStreamer.executorService.asScala
-    implicit val bag: Bag.Async.Retryable[Future] = Bag.future(ec)
+    implicit val tag: Bag.Async.Retryable[Future] = Bag.future(ec)
     new StreamFuture(swaydb.Stream(ioStreamer.toScalaStreamer))
   }
 }
