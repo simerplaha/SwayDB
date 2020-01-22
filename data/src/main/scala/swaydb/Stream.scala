@@ -189,7 +189,15 @@ trait Stream[A] extends Streamable[A] { self =>
    * TODO - tag.foldLeft should run point.
    */
   def foldLeft[B, T[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[T]): T[B] =
-    bag.point(step.Step.foldLeft(initial, None, self, 0, None)(f))
+    bag.point {
+      step.Step.foldLeft(
+        initial = initial,
+        after = None,
+        stream = self,
+        drop = 0,
+        take = None
+      )(f)
+    }
 
   /**
    * Folds over all elements in the Stream to calculate it's total size.
