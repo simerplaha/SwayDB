@@ -19,8 +19,9 @@
 
 package swaydb
 
+import swaydb.data.stream.{IntStream, step}
+
 import scala.collection.mutable.ListBuffer
-import swaydb.data.stream.step
 
 /**
  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
@@ -37,7 +38,7 @@ object Stream {
     apply[A](Iterable.empty)
 
   def range(from: Int, to: Int): Stream[Int] =
-    apply[Int](from to to)
+    new IntStream(from, to)
 
   def range(from: Char, to: Char): Stream[Char] =
     apply[Char](from to to)
@@ -81,17 +82,19 @@ object Stream {
     apply[A](items.iterator)
 
   def apply[A](iterator: Iterator[A]): Stream[A] =
-  //    new Stream[A] {
-  //      private def step(): T[Option[A]] =
-  //        if (iterator.hasNext)
-  //          bag.success(Some(iterator.next()))
-  //        else
-  //          bag.none
-  //
-  //      override def headOption(): T[Option[A]] = step()
-  //      override private[swaydb] def next(previous: A): T[Option[A]] = step()
-  //    }
-    ???
+    new Stream[A] {
+      private def step[T[_]](implicit bag: Bag[T]): T[Option[A]] =
+        if (iterator.hasNext)
+          bag.success(Some(iterator.next()))
+        else
+          bag.none
+
+      override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+        step(bag)
+
+      override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
+        step(bag)
+    }
 }
 
 /**

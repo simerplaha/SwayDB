@@ -30,7 +30,7 @@ private[swaydb] object Step {
   def foldLeft[A, B, T[_]](initial: B, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(f: (B, A) => B)(implicit bag: Bag[T]): T[B] =
     bag match {
       case bag: Bag.Sync[T] =>
-        bag.point(step.Step.foldLeftSync(initial, after, stream, drop, take)(f)(bag))
+        step.Step.foldLeftSync(initial, after, stream, drop, take)(f)(bag)
 
       case bag: Bag.Async[T] =>
         bag.point(step.Step.foldLeftAsync(initial, after, stream, drop, take, f)(bag.monad, bag))

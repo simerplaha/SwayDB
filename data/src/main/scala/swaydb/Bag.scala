@@ -425,7 +425,7 @@ object Bag extends LazyLogging {
 
   type Id[A] = A
 
-  val idTag =
+  val idBag =
     new Bag.Sync[Id] {
       override def isSuccess[A](a: Id[A]): Boolean = true
 
