@@ -35,8 +35,10 @@ protected trait Streamable[A] {
   def filter(f: A => Boolean): Stream[A]
   def filterNot(f: A => Boolean): Stream[A]
 
+  def collect[B](pf: PartialFunction[A, B]): Stream[B]
+  def collectFirst[B, T[_]](pf: PartialFunction[A, B])(implicit bag: Bag[T]): T[Option[B]]
+
   def lastOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]]
-  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]]
 
   def foldLeft[B, BAG[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B]
 

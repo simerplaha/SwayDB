@@ -22,7 +22,7 @@ package swaydb.monix
 import monix.eval._
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, IO, Serial}
+import swaydb.{Actor, IO, Monad, Serial}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
@@ -47,6 +47,9 @@ object Bag {
     new Async[Task] {
 
       implicit val self: swaydb.Bag.Async[Task] = this
+
+      override val monad: Monad[Task] =
+        implicitly[Monad[Task]]
 
       override def executionContext: ExecutionContext =
         scheduler
@@ -100,27 +103,11 @@ object Bag {
       override def complete[A](promise: Promise[A], a: Task[A]): Unit =
         promise tryCompleteWith a.runToFuture
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): Task[U] =
-        swaydb.Bag.Async.foldLeft(
-          initial = initial,
-          after = after,
-          stream = stream,
-          drop = drop,
-          take = take,
-          operation = operation
-        )
-
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): Task[Option[A]] =
-        swaydb.Bag.Async.collectFirst(
-          previous = previous,
-          stream = stream,
-          condition = condition
-        )
-
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Task[A] =
         Task.fromTry(a.toTry)
 
       override def fromFuture[A](a: Future[A]): Task[A] =
         Task.fromFuture(a)
+
     }
 }

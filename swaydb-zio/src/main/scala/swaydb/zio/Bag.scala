@@ -21,7 +21,7 @@ package swaydb.zio
 
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Serial}
+import swaydb.{Actor, Monad, Serial}
 import zio.Task
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -47,6 +47,9 @@ object Bag {
     new Async[Task] {
 
       implicit val self: swaydb.Bag.Async[Task] = this
+
+      override val monad: Monad[Task] =
+        implicitly[Monad[Task]]
 
       override def executionContext: ExecutionContext =
         runTime.platform.executor.asEC
@@ -100,27 +103,11 @@ object Bag {
       override def complete[A](promise: Promise[A], task: Task[A]): Unit =
         promise.tryCompleteWith(runTime.unsafeRunToFuture(task))
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): Task[U] =
-        swaydb.Bag.Async.foldLeft(
-          initial = initial,
-          after = after,
-          stream = stream,
-          drop = drop,
-          take = take,
-          operation = operation
-        )
-
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): Task[Option[A]] =
-        swaydb.Bag.Async.collectFirst(
-          previous = previous,
-          stream = stream,
-          condition = condition
-        )
-
       override def fromIO[E: swaydb.IO.ExceptionHandler, A](a: swaydb.IO[E, A]): Task[A] =
         Task.fromTry(a.toTry)
 
       override def fromFuture[A](a: Future[A]): Task[A] =
         Task.fromFuture(_ => a)
+
     }
 }

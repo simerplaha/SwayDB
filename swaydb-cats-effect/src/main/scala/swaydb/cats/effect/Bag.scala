@@ -19,14 +19,13 @@
 
 package swaydb.cats.effect
 
+import cats.effect.{ContextShift, IO}
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Serial}
-import swaydb.{IO => SwayIO}
+import swaydb.{Actor, Monad, Serial, IO => SwayIO}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
-import cats.effect.{ContextShift, IO}
 
 object Bag {
 
@@ -52,6 +51,9 @@ object Bag {
     new Async[IO] {
 
       implicit val self: swaydb.Bag.Async[IO] = this
+
+      override val monad: Monad[IO] =
+        implicitly[Monad[IO]]
 
       override def executionContext: ExecutionContext =
         ec
@@ -99,23 +101,6 @@ object Bag {
 
       override def complete[A](promise: Promise[A], a: IO[A]): Unit =
         promise tryCompleteWith a.unsafeToFuture()
-
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] =
-        swaydb.Bag.Async.foldLeft(
-          initial = initial,
-          after = after,
-          stream = stream,
-          drop = drop,
-          take = take,
-          operation = operation
-        )
-
-      override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): IO[Option[A]] =
-        swaydb.Bag.Async.collectFirst(
-          previous = previous,
-          stream = stream,
-          condition = condition
-        )
 
       override def fromIO[E: SwayIO.ExceptionHandler, A](a: SwayIO[E, A]): IO[A] =
         IO.fromTry(a.toTry)

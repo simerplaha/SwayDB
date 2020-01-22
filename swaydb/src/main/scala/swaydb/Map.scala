@@ -327,6 +327,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   //    bag.point(keys.size)
     ???
 
+  override def collect[B](pf: PartialFunction[(K, V), B]): Stream[B] = ???
+  override def collectFirst[B, T[_]](pf: PartialFunction[(K, V), B])(implicit bag: Bag[T]): T[Option[B]] = ???
+
   def stream: Stream[(K, V)] =
   //    new Stream[(K, V)] {
   //      val readState = core.readStates.get()
@@ -397,4 +400,5 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getClass.getSimpleName
+
 }

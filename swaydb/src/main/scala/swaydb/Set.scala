@@ -192,11 +192,11 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
   def fromOrAfter(key: A): Set[A, F, BAG] =
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
-  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
-  //    headOption(core.readStates.get())
+  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+  //    headOption(core.readStates.get())(bag)
     ???
 
-  protected def headOption(readState: ThreadReadState): BAG[Option[A]] =
+  protected def headOption(readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[Option[A]] =
     bag.map {
       from match {
         case Some(from) =>
@@ -258,6 +258,9 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
   def size[BAG[_]](implicit bag: Bag[BAG]): BAG[Int] =
     stream.size
 
+  override def collect[B](pf: PartialFunction[A, B]): Stream[B] = ???
+  override def collectFirst[B, T[_]](pf: PartialFunction[A, B])(implicit bag: Bag[T]): T[Option[B]] = ???
+
   def stream: Stream[A] =
   //    new Stream[A] {
   //      override def headOption: BAG[Option[A]] =
@@ -311,4 +314,5 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getClass.getSimpleName
+
 }
