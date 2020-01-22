@@ -198,6 +198,7 @@ object Bag extends LazyLogging {
     def isFailure[A](a: T[A]): Boolean
     def exception[A](a: T[A]): Option[Throwable]
     def getOrElse[A, B >: A](a: T[A])(b: => B): B
+    def getUnsafe[A](a: T[A]): A
     def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
 
     def toBag[X[_]](implicit transfer: Bag.Transfer[T, X]): Bag.Sync[X] =
@@ -225,10 +226,94 @@ object Bag extends LazyLogging {
         override def getOrElse[A, B >: A](a: X[A])(b: => B): B =
           self.getOrElse[A, B](transfer.from(a))(b)
 
+        override def getUnsafe[A](a: X[A]): A =
+          self.getUnsafe(transfer.from(a))
+
         override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
           transfer.to(self.orElse[A, B](transfer.from(a))(transfer.from(b)))
 
       }
+  }
+
+  object Sync {
+    def foldLeft[A, U, T[_]](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U)(implicit bag: Bag.Sync[T]): T[U] = {
+      @tailrec
+      def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): T[U] =
+        if (take.contains(currentSize)) {
+          bag.success(previousResult)
+        } else {
+          val nextBagged = stream.next(previous)(bag)
+          if (bag.isSuccess(nextBagged)) {
+            bag.getUnsafe(nextBagged) match {
+              case Some(next) =>
+                if (drop >= 1) {
+                  fold(next, drop - 1, currentSize, previousResult)
+                } else {
+                  val nextResult =
+                    try {
+                      operation(previousResult, next)
+                    } catch {
+                      case exception: Throwable =>
+                        return bag.failure(exception)
+                    }
+                  fold(next, drop, currentSize + 1, nextResult)
+                }
+
+              case None =>
+                bag.success(previousResult)
+            }
+          } else {
+            nextBagged.asInstanceOf[T[U]]
+          }
+        }
+
+      if (take.contains(0)) {
+        bag.success(initial)
+      } else {
+        val someFirstBagged = after.map(stream.next(_)(bag)).getOrElse(stream.headOption(bag))
+        if (bag.isSuccess(someFirstBagged)) {
+          bag.getUnsafe(someFirstBagged) match {
+            case Some(first) =>
+              if (drop >= 1)
+                fold(first, drop - 1, 0, initial)
+              else {
+                val next =
+                  try {
+                    operation(initial, first)
+                  } catch {
+                    case throwable: Throwable =>
+                      return bag.failure(throwable)
+                  }
+                fold(first, drop, 1, next)
+              }
+
+            case None =>
+              bag.success(initial)
+          }
+        } else {
+          someFirstBagged.asInstanceOf[T[U]]
+        }
+      }
+    }
+
+    @tailrec
+    def collectFirst[A, T[_]](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean)(implicit bag: Bag.Sync[T]): T[Option[A]] = {
+      val next = stream.next(previous)(bag)
+      if (bag.isSuccess(next)) {
+        bag.getUnsafe(next) match {
+          case Some(nextA) =>
+            if (condition(nextA))
+              next
+            else
+              collectFirst(nextA, stream)(condition)(bag)
+
+          case None =>
+            bag.none
+        }
+      } else {
+        next
+      }
+    }
   }
 
   trait Async[T[_]] extends Bag[T] { self =>
@@ -393,81 +478,29 @@ object Bag extends LazyLogging {
       override def getOrElse[A, B >: A](a: IO.ThrowableIO[A])(b: => B): B =
         a.getOrElse(b)
 
+      override def getUnsafe[A](a: ThrowableIO[A]): A =
+        a.get
+
       override def orElse[A, B >: A](a: IO.ThrowableIO[A])(b: IO.ThrowableIO[B]): IO.ThrowableIO[B] =
         a.orElse(b)
 
-      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ThrowableIO[U] = {
-        @tailrec
-        def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): IO.ThrowableIO[U] =
-          if (take.contains(currentSize))
-            IO.Right(previousResult)
-          else
-            stream.next(previous)(this) match {
-              case IO.Right(Some(next)) =>
-                if (drop >= 1) {
-                  fold(next, drop - 1, currentSize, previousResult)
-                } else {
-                  val nextResult =
-                    try {
-                      operation(previousResult, next)
-                    } catch {
-                      case exception: Throwable =>
-                        return IO.failed(exception)
-                    }
-                  fold(next, drop, currentSize + 1, nextResult)
-                }
+      override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): IO.ThrowableIO[U] =
+        swaydb.Bag.Sync.foldLeft[A, U, IO.ThrowableIO](
+          initial = initial,
+          after = after,
+          stream = stream,
+          drop = drop,
+          take = take
+        )(operation)(this)
 
-              case IO.Right(None) =>
-                IO.Right(previousResult)
-
-              case IO.Left(error) =>
-                IO.Left(error)
-            }
-
-        if (take.contains(0))
-          IO.Right(initial)
-        else
-          after.map(stream.next(_)(this)).getOrElse(stream.headOption(this)) match {
-            case IO.Right(Some(first)) =>
-              if (drop >= 1)
-                fold(first, drop - 1, 0, initial)
-              else {
-                val next =
-                  try {
-                    operation(initial, first)
-                  } catch {
-                    case throwable: Throwable =>
-                      return IO.failed(throwable)
-                  }
-                fold(first, drop, 1, next)
-              }
-
-            case IO.Right(None) =>
-              IO.Right(initial)
-
-            case IO.Left(error) =>
-              IO.Left(error)
-          }
-      }
-
-      @tailrec
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): IO.ThrowableIO[Option[A]] =
-        stream.next(previous)(this) match {
-          case success @ IO.Right(Some(nextA)) =>
-            if (condition(nextA))
-              success
-            else
-              collectFirst(nextA, stream)(condition)
+        swaydb.Bag.Sync.collectFirst[A, IO.ThrowableIO](
+          previous = previous,
+          stream = stream
+        )(condition)(this)
 
-          case none @ IO.Right(None) =>
-            none
-
-          case failure @ IO.Left(_) =>
-            failure
-        }
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
         IO[Throwable, A](a.get)
-
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
@@ -572,6 +605,8 @@ object Bag extends LazyLogging {
 
       override def getOrElse[A, B >: A](a: Id[A])(b: => B): B = a
 
+      override def getUnsafe[A](a: Id[A]): A = a
+
       override def orElse[A, B >: A](a: Id[A])(b: Id[B]): Id[B] = a
 
       override def unit: Id[Unit] = ()
@@ -597,12 +632,19 @@ object Bag extends LazyLogging {
 
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Id[A] = a.get
 
-      //todo
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U): Id[U] =
-        ???
+        swaydb.Bag.Sync.foldLeft[A, U, Id](
+          initial = initial,
+          after = after,
+          stream = stream,
+          drop = drop,
+          take = take
+        )(operation)(this)
 
-      //todo
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean): Id[Option[A]] =
-        ???
+        swaydb.Bag.Sync.collectFirst[A, Id](
+          previous = previous,
+          stream = stream
+        )(condition)(this)
     }
 }
