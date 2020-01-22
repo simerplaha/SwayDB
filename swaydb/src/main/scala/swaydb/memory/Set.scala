@@ -53,7 +53,7 @@ object Set extends LazyLogging {
                         deleteSegmentsEventually: Boolean = true,
                         acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
                                                                                               functionClassTag: ClassTag[F],
-                                                                                              tag: swaydb.Tag[T],
+                                                                                              tag: swaydb.Bag[T],
                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
                                                                                               fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Set[A, F, T]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
@@ -78,7 +78,7 @@ object Set extends LazyLogging {
       memoryCache = MemoryCache.Disable
     ) map {
       db =>
-        swaydb.Set[A, F, T](db.toTag)
+        swaydb.Set[A, F, T](db.toBag)
     }
   }
 }

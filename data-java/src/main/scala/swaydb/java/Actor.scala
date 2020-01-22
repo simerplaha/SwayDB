@@ -26,7 +26,7 @@ import java.util.{Comparator, TimerTask}
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.java.data.TriFunctionVoid
 import swaydb.java.data.util.Java.JavaFunction
-import swaydb.{Scheduler, Tag}
+import swaydb.{Scheduler, Bag}
 
 import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FutureConverters._
@@ -37,7 +37,7 @@ object Actor {
   final class TerminatedActor extends Throwable
 
   trait ActorBase[T, S] {
-    implicit val tag = Tag.future(asScala.executionContext)
+    implicit val tag = Bag.future(asScala.executionContext)
 
     def asScala: swaydb.ActorRef[T, S]
 

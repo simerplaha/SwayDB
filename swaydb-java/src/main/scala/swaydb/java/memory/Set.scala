@@ -31,7 +31,7 @@ import swaydb.java.data.util.Java.{JavaFunction, _}
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{IO, KeyOrderConverter, PureFunction, Return}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, SwayDB, Tag}
+import swaydb.{Apply, SwayDB, Bag}
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.DurationConverters._
@@ -74,7 +74,7 @@ object Set {
               acceleration = acceleration.asScala
             )(serializer = serializer,
               functionClassTag = functionClassTag,
-              tag = Tag.throwableIO,
+              tag = Bag.throwableIO,
               keyOrder = Left(scalaKeyOrder),
               fileSweeperEC = fileSweeperEC
             ).get

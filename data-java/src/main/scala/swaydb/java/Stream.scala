@@ -19,7 +19,7 @@
 
 package swaydb.java
 
-import swaydb.Tag
+import swaydb.Bag
 import swaydb.java.data.util.Java._
 
 import scala.jdk.CollectionConverters._
@@ -62,7 +62,7 @@ object Stream {
 
   def create[A](ioStreamer: FutureStreamer[A]): StreamFuture[A] = {
     implicit val ec: ExecutionContext = ioStreamer.executorService.asScala
-    implicit val tag: Tag.Async.Retryable[Future] = Tag.future(ec)
+    implicit val bag: Bag.Async.Retryable[Future] = Bag.future(ec)
     new StreamFuture(swaydb.Stream(ioStreamer.toScalaStreamer))
   }
 }

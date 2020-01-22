@@ -30,7 +30,7 @@ import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{IO, KeyOrderConverter, Return}
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Tag}
+import swaydb.{Apply, Bag}
 
 import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
@@ -57,7 +57,7 @@ object Map {
             )(keySerializer = keySerializer,
               valueSerializer = valueSerializer,
               functionClassTag = functionClassTag,
-              tag = Tag.throwableIO,
+              tag = Bag.throwableIO,
               keyOrder = Left(scalaKeyOrder)
             ).get
 

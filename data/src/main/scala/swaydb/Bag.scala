@@ -29,48 +29,48 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
 /**
- * [[Tag]]s are used to tag databases operations (side-effects) into types that can be
+ * [[Bag]]s are used to tag databases operations (side-effects) into types that can be
  * used to build custom Sync and Async wrappers.
  */
-sealed trait Tag[T[_]] {
-  def unit: T[Unit]
-  def none[A]: T[Option[A]]
-  def apply[A](a: => A): T[A]
-  def createSerial(): Serial[T]
-  def foreach[A](a: T[A])(f: A => Unit): Unit
-  def map[A, B](a: T[A])(f: A => B): T[B]
-  def flatMap[A, B](fa: T[A])(f: A => T[B]): T[B]
-  def success[A](value: A): T[A]
-  def failure[A](exception: Throwable): T[A]
-  def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, T], drop: Int, take: Option[Int])(operation: (U, A) => U): T[U]
-  def collectFirst[A](previous: A, stream: swaydb.Stream[A, T])(condition: A => Boolean): T[Option[A]]
-  def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): T[A]
-  def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag[X]
+sealed trait Bag[BAG[_]] {
+  def unit: BAG[Unit]
+  def none[A]: BAG[Option[A]]
+  def apply[A](a: => A): BAG[A]
+  def createSerial(): Serial[BAG]
+  def foreach[A](a: BAG[A])(f: A => Unit): Unit
+  def map[A, B](a: BAG[A])(f: A => B): BAG[B]
+  def flatMap[A, B](fa: BAG[A])(f: A => BAG[B]): BAG[B]
+  def success[A](value: A): BAG[A]
+  def failure[A](exception: Throwable): BAG[A]
+  def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, BAG], drop: Int, take: Option[Int])(operation: (U, A) => U): BAG[U]
+  def collectFirst[A](previous: A, stream: swaydb.Stream[A, BAG])(condition: A => Boolean): BAG[Option[A]]
+  def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): BAG[A]
+  def toBag[X[_]](implicit transfer: Bag.Transfer[BAG, X]): Bag[X]
 
   /**
-   * For Async [[Tag]]s [[apply]] will always run asynchronously but to cover
+   * For Async [[Bag]]s [[apply]] will always run asynchronously but to cover
    * cases where the operation might already be executed [[point]] is used.
    *
    * @example All SwayDB writes occur synchronously using [[IO]]. Running completed [[IO]] in a [[Future]]
    *          will have a performance cost. [[point]] is used to cover these cases and [[IO]]
    *          types that are complete are directly converted to Future in current thread.
    */
-  @inline final def point[B](f: => T[B]): T[B] =
+  @inline final def point[B](f: => BAG[B]): BAG[B] =
     flatMap[Unit, B](unit)(_ => f)
 }
 
-object Tag extends LazyLogging {
+object Bag extends LazyLogging {
 
   /**
-   * Converts containers. More tags can be created from existing Tags with this trait using [[Tag.toTag]]
+   * Converts containers. More tags can be created from existing Tags with this trait using [[Bag.toBag]]
    */
-  trait Converter[A[_], B[_]] {
+  trait Transfer[A[_], B[_]] {
     def to[T](a: A[T]): B[T]
     def from[T](a: B[T]): A[T]
   }
 
-  object Converter {
-    implicit val optionToTry = new Converter[Option, Try] {
+  object Transfer {
+    implicit val optionToTry = new Transfer[Option, Try] {
       override def to[T](a: Option[T]): Try[T] =
         tryTag(a.get)
 
@@ -78,7 +78,7 @@ object Tag extends LazyLogging {
         a.toOption
     }
 
-    implicit val tryToOption = new Converter[Try, Option] {
+    implicit val tryToOption = new Transfer[Try, Option] {
       override def to[T](a: Try[T]): Option[T] =
         a.toOption
 
@@ -86,7 +86,7 @@ object Tag extends LazyLogging {
         tryTag(a.get)
     }
 
-    implicit val tryToIO = new Converter[Try, IO.ApiIO] {
+    implicit val tryToIO = new Transfer[Try, IO.ApiIO] {
       override def to[T](a: Try[T]): ApiIO[T] =
         IO.fromTry[Error.API, T](a)
 
@@ -94,21 +94,21 @@ object Tag extends LazyLogging {
         a.toTry
     }
 
-    implicit val ioToTry = new Converter[IO.ApiIO, Try] {
+    implicit val ioToTry = new Transfer[IO.ApiIO, Try] {
       override def to[T](a: ApiIO[T]): Try[T] =
         a.toTry
       override def from[T](a: Try[T]): ApiIO[T] =
         IO.fromTry[Error.API, T](a)
     }
 
-    implicit val ioToOption = new Converter[IO.ApiIO, Option] {
+    implicit val ioToOption = new Transfer[IO.ApiIO, Option] {
       override def to[T](a: ApiIO[T]): Option[T] =
         a.toOption
       override def from[T](a: Option[T]): ApiIO[T] =
         IO[Error.API, T](a.get)
     }
 
-    implicit val throwableToApiIO = new Tag.Converter[IO.ThrowableIO, IO.ApiIO] {
+    implicit val throwableToApiIO = new Bag.Transfer[IO.ThrowableIO, IO.ApiIO] {
       override def to[T](a: IO.ThrowableIO[T]): IO.ApiIO[T] =
         IO[swaydb.Error.API, T](a.get)
 
@@ -116,7 +116,7 @@ object Tag extends LazyLogging {
         IO(a.get)
     }
 
-    implicit val throwableToTry = new Tag.Converter[IO.ThrowableIO, Try] {
+    implicit val throwableToTry = new Bag.Transfer[IO.ThrowableIO, Try] {
       override def to[T](a: IO.ThrowableIO[T]): Try[T] =
         a.toTry
 
@@ -124,7 +124,7 @@ object Tag extends LazyLogging {
         IO.fromTry(a)
     }
 
-    implicit val throwableToOption = new Tag.Converter[IO.ThrowableIO, Option] {
+    implicit val throwableToOption = new Bag.Transfer[IO.ThrowableIO, Option] {
       override def to[T](a: IO.ThrowableIO[T]): Option[T] =
         a.toOption
 
@@ -132,7 +132,7 @@ object Tag extends LazyLogging {
         IO(a.get)
     }
 
-    implicit val throwableToUnit = new Tag.Converter[IO.ThrowableIO, IO.UnitIO] {
+    implicit val throwableToUnit = new Bag.Transfer[IO.ThrowableIO, IO.UnitIO] {
       override def to[T](a: IO.ThrowableIO[T]): IO.UnitIO[T] =
         IO[Unit, T](a.get)(IO.ExceptionHandler.Unit)
 
@@ -140,7 +140,7 @@ object Tag extends LazyLogging {
         IO(a.get)
     }
 
-    implicit val throwableToNothing = new Tag.Converter[IO.ThrowableIO, IO.NothingIO] {
+    implicit val throwableToNothing = new Bag.Transfer[IO.ThrowableIO, IO.NothingIO] {
       override def to[T](a: IO.ThrowableIO[T]): IO.NothingIO[T] =
         IO[Nothing, T](a.get)(IO.ExceptionHandler.Nothing)
 
@@ -149,10 +149,10 @@ object Tag extends LazyLogging {
     }
   }
 
-  private sealed trait ToTagBase[T[_], X[_]] {
-    def base: Tag[T]
+  private sealed trait ToBagBase[T[_], X[_]] {
+    def base: Bag[T]
 
-    def baseConverter: Tag.Converter[T, X]
+    def baseConverter: Bag.Transfer[T, X]
 
     def unit: X[Unit] =
       baseConverter.to(base.unit)
@@ -161,7 +161,7 @@ object Tag extends LazyLogging {
       baseConverter.to(base.none)
 
     val flipConverter =
-      new Tag.Converter[X, T] {
+      new Bag.Transfer[X, T] {
         override def to[A](a: X[A]): T[A] =
           baseConverter.from(a)
 
@@ -193,83 +193,83 @@ object Tag extends LazyLogging {
       baseConverter.to(base.failure(exception))
 
     def foldLeft[A, U](initial: U, after: Option[A], stream: Stream[A, X], drop: Int, take: Option[Int])(operation: (U, A) => U): X[U] =
-      baseConverter.to(base.foldLeft(initial, after, stream.to[T](base, flipConverter), drop, take)(operation))
+      baseConverter.to(base.foldLeft(initial, after, stream.toBag[T](base, flipConverter), drop, take)(operation))
 
     def collectFirst[A](previous: A, stream: Stream[A, X])(condition: A => Boolean): X[Option[A]] =
-      baseConverter.to(base.collectFirst(previous, stream.to[T](base, flipConverter))(condition))
+      baseConverter.to(base.collectFirst(previous, stream.toBag[T](base, flipConverter))(condition))
 
     def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): X[A] =
       baseConverter.to(base.fromIO(a))
   }
 
-  trait Sync[T[_]] extends Tag[T] { self =>
+  trait Sync[T[_]] extends Bag[T] { self =>
     def isSuccess[A](a: T[A]): Boolean
     def isFailure[A](a: T[A]): Boolean
     def exception[A](a: T[A]): Option[Throwable]
     def getOrElse[A, B >: A](a: T[A])(b: => B): B
     def orElse[A, B >: A](a: T[A])(b: T[B]): T[B]
 
-    def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Sync[X] =
-      new Tag.Sync[X] with ToTagBase[T, X] {
-        override val base: Tag[T] = self
+    def toBag[X[_]](implicit transfer: Bag.Transfer[T, X]): Bag.Sync[X] =
+      new Bag.Sync[X] with ToBagBase[T, X] {
+        override val base: Bag[T] = self
 
-        override val baseConverter: Converter[T, X] = converter
+        override val baseConverter: Transfer[T, X] = transfer
 
         override def createSerial(): Serial[X] =
           new Serial[X] {
             val selfSerial = base.createSerial()
             override def execute[F](f: => F): X[F] =
-              converter.to(selfSerial.execute(f))
+              transfer.to(selfSerial.execute(f))
           }
 
         override def exception[A](a: X[A]): Option[Throwable] =
-          self.exception(converter.from(a))
+          self.exception(transfer.from(a))
 
         override def isSuccess[A](a: X[A]): Boolean =
-          self.isSuccess(converter.from(a))
+          self.isSuccess(transfer.from(a))
 
         override def isFailure[A](a: X[A]): Boolean =
-          self.isFailure(converter.from(a))
+          self.isFailure(transfer.from(a))
 
         override def getOrElse[A, B >: A](a: X[A])(b: => B): B =
-          self.getOrElse[A, B](converter.from(a))(b)
+          self.getOrElse[A, B](transfer.from(a))(b)
 
         override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
-          converter.to(self.orElse[A, B](converter.from(a))(converter.from(b)))
+          transfer.to(self.orElse[A, B](transfer.from(a))(transfer.from(b)))
 
       }
   }
 
-  trait Async[T[_]] extends Tag[T] { self =>
+  trait Async[T[_]] extends Bag[T] { self =>
     def fromPromise[A](a: Promise[A]): T[A]
     def complete[A](promise: Promise[A], a: T[A]): Unit
     def executionContext: ExecutionContext
     def fromFuture[A](a: Future[A]): T[A]
 
-    def toTag[X[_]](implicit converter: Tag.Converter[T, X]): Tag.Async[X] =
-      new Tag.Async[X] with ToTagBase[T, X] {
-        override val base: Tag[T] = self
+    def toBag[X[_]](implicit transfer: Bag.Transfer[T, X]): Bag.Async[X] =
+      new Bag.Async[X] with ToBagBase[T, X] {
+        override val base: Bag[T] = self
 
-        override val baseConverter: Converter[T, X] = converter
+        override val baseConverter: Transfer[T, X] = transfer
 
         override def createSerial(): Serial[X] =
           new Serial[X] {
             val selfSerial = base.createSerial()
             override def execute[F](f: => F): X[F] =
-              converter.to(selfSerial.execute(f))
+              transfer.to(selfSerial.execute(f))
           }
 
         override def fromPromise[A](a: Promise[A]): X[A] =
-          converter.to(self.fromPromise(a))
+          transfer.to(self.fromPromise(a))
 
         override def complete[A](promise: Promise[A], a: X[A]): Unit =
-          self.complete(promise, converter.from(a))
+          self.complete(promise, transfer.from(a))
 
         override def executionContext: ExecutionContext =
           self.executionContext
 
         override def fromFuture[A](a: Future[A]): X[A] =
-          converter.to(self.fromFuture(a))
+          transfer.to(self.fromFuture(a))
       }
   }
 
@@ -285,7 +285,7 @@ object Tag extends LazyLogging {
      * isComplete is required to add stack-safe read retries if there were failures like
      * async closed files during reads etc.
      */
-    trait Retryable[T[_]] extends Tag.Async[T] { self =>
+    trait Retryable[T[_]] extends Bag.Async[T] { self =>
       def isComplete[A](a: T[A]): Boolean
       def isIncomplete[A](a: T[A]): Boolean =
         !isComplete(a)
@@ -356,8 +356,8 @@ object Tag extends LazyLogging {
         }
   }
 
-  implicit val throwableIO: Tag.Sync[IO.ThrowableIO] =
-    new Tag.Sync[IO.ThrowableIO] {
+  implicit val throwableIO: Bag.Sync[IO.ThrowableIO] =
+    new Bag.Sync[IO.ThrowableIO] {
       override val unit: IO.ThrowableIO[Unit] =
         IO.unit
 
@@ -477,7 +477,7 @@ object Tag extends LazyLogging {
 
     }
 
-  implicit def future(implicit ec: ExecutionContext): Tag.Async.Retryable[Future] =
+  implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
     new Async.Retryable[Future] {
 
       override def executionContext: ExecutionContext =
@@ -532,7 +532,7 @@ object Tag extends LazyLogging {
         a.isCompleted
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Future], drop: Int, take: Option[Int])(operation: (U, A) => U): Future[U] =
-        swaydb.Tag.Async.foldLeft(
+        swaydb.Bag.Async.foldLeft(
           initial = initial,
           after = after,
           stream = stream,
@@ -542,7 +542,7 @@ object Tag extends LazyLogging {
         )
 
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Future])(condition: A => Boolean): Future[Option[A]] =
-        swaydb.Tag.Async.collectFirst(
+        swaydb.Bag.Async.collectFirst(
           previous = previous,
           stream = stream,
           condition = condition
@@ -555,20 +555,20 @@ object Tag extends LazyLogging {
         a
     }
 
-  implicit val apiIO: Tag.Sync[IO.ApiIO] = throwableIO.toTag[IO.ApiIO]
+  implicit val apiIO: Bag.Sync[IO.ApiIO] = throwableIO.toBag[IO.ApiIO]
 
-  implicit val unit: Tag.Sync[IO.UnitIO] = throwableIO.toTag[IO.UnitIO]
+  implicit val unit: Bag.Sync[IO.UnitIO] = throwableIO.toBag[IO.UnitIO]
 
-  implicit val nothing: Tag.Sync[IO.UnitIO] = throwableIO.toTag[IO.UnitIO]
+  implicit val nothing: Bag.Sync[IO.UnitIO] = throwableIO.toBag[IO.UnitIO]
 
-  implicit val tryTag: Tag.Sync[Try] = throwableIO.toTag[Try]
+  implicit val tryTag: Bag.Sync[Try] = throwableIO.toBag[Try]
 
-  implicit val option: Tag.Sync[Option] = throwableIO.toTag[Option]
+  implicit val option: Bag.Sync[Option] = throwableIO.toBag[Option]
 
   type Id[A] = A
 
   val idTag =
-    new Tag.Sync[Id] {
+    new Bag.Sync[Id] {
       override def isSuccess[A](a: Id[A]): Boolean = true
 
       override def isFailure[A](a: Id[A]): Boolean = false

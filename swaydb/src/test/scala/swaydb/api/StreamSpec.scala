@@ -20,9 +20,9 @@
 package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
-import swaydb.Tag._
+import swaydb.Bag._
 import swaydb.core.RunThis._
-import swaydb.{IO, Stream, Tag}
+import swaydb.{IO, Stream, Bag}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -40,7 +40,7 @@ class StreamTrySpec extends StreamSpec[Try] {
   override def get[A](a: Try[A]): A = a.get
 }
 
-sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec with Matchers {
+sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec with Matchers {
 
   def get[A](a: T[A]): A
 
@@ -132,7 +132,7 @@ sealed abstract class StreamSpec[T[_]](implicit tag: Tag[T]) extends WordSpec wi
         .collectFirst { case n if n % 2 == 0 => n }
         .await should contain(2)
     }
-    
+
     "collect all" in {
       Stream[Int, T](1 to 1000)
         .collect { case n => n }

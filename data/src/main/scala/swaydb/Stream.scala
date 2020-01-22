@@ -30,22 +30,22 @@ object Stream {
   /**
    * Create and empty [[Stream]].
    */
-  def empty[A, T[_]](implicit tag: Tag[T]): Stream[A, T] =
+  def empty[A, T[_]](implicit bag: Bag[T]): Stream[A, T] =
     apply[A, T](Iterable.empty)
 
-  def range[T[_]](from: Int, to: Int)(implicit tag: Tag[T]): Stream[Int, T] =
+  def range[T[_]](from: Int, to: Int)(implicit bag: Bag[T]): Stream[Int, T] =
     apply[Int, T](from to to)
 
-  def range[T[_]](from: Char, to: Char)(implicit tag: Tag[T]): Stream[Char, T] =
+  def range[T[_]](from: Char, to: Char)(implicit bag: Bag[T]): Stream[Char, T] =
     apply[Char, T](from to to)
 
-  def rangeUntil[T[_]](from: Int, toExclusive: Int)(implicit tag: Tag[T]): Stream[Int, T] =
+  def rangeUntil[T[_]](from: Int, toExclusive: Int)(implicit bag: Bag[T]): Stream[Int, T] =
     apply[Int, T](from until toExclusive)
 
-  def rangeUntil[T[_]](from: Char, to: Char)(implicit tag: Tag[T]): Stream[Char, T] =
+  def rangeUntil[T[_]](from: Char, to: Char)(implicit bag: Bag[T]): Stream[Char, T] =
     apply[Char, T](from until to)
 
-  def tabulate[A, T[_]](n: Int)(f: Int => A)(implicit tag: Tag[T]): Stream[A, T] =
+  def tabulate[A, T[_]](n: Int)(f: Int => A)(implicit bag: Bag[T]): Stream[A, T] =
     apply[A, T](
       new Iterator[A] {
         var used = 0
@@ -61,7 +61,7 @@ object Stream {
       }
     )
 
-  def apply[A, T[_]](streamer: Streamer[A, T])(implicit tag: Tag[T]): Stream[A, T] =
+  def apply[A, T[_]](streamer: Streamer[A, T])(implicit bag: Bag[T]): Stream[A, T] =
     new Stream[A, T] {
       override def headOption(): T[Option[A]] =
         streamer.head
@@ -73,16 +73,16 @@ object Stream {
   /**
    * Create a [[Stream]] from a collection.
    */
-  def apply[A, T[_]](items: Iterable[A])(implicit tag: Tag[T]): Stream[A, T] =
+  def apply[A, T[_]](items: Iterable[A])(implicit bag: Bag[T]): Stream[A, T] =
     apply[A, T](items.iterator)
 
-  def apply[A, T[_]](iterator: Iterator[A])(implicit tag: Tag[T]): Stream[A, T] =
+  def apply[A, T[_]](iterator: Iterator[A])(implicit bag: Bag[T]): Stream[A, T] =
     new Stream[A, T] {
       private def step(): T[Option[A]] =
         if (iterator.hasNext)
-          tag.success(Some(iterator.next()))
+          bag.success(Some(iterator.next()))
         else
-          tag.none
+          bag.none
 
       override def headOption(): T[Option[A]] = step()
       override private[swaydb] def next(previous: A): T[Option[A]] = step()
@@ -93,14 +93,14 @@ object Stream {
  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
  * it's required by the stream.
  *
- * @param tag Implementation for the tag type.
+ * @param bag Implementation for the tag type.
  * @tparam A stream item's type
  * @tparam T wrapper type.
  */
-abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { self =>
+abstract class Stream[A, T[_]](implicit bag: Bag[T]) extends Streamable[A, T] { self =>
 
   /**
-   * Private val used in [[tag.foldLeft]] for reading only single item.
+   * Private val used in [[bag.foldLeft]] for reading only single item.
    */
   private val takeOne = Some(1)
 
@@ -120,9 +120,9 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         private var taken = 1
         override private[swaydb] def next(previous: A): T[Option[A]] =
           if (taken == c)
-            tag.none
+            bag.none
           else
-            tag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+            bag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
               case (_, next) =>
                 taken += 1
                 Some(next)
@@ -132,7 +132,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   def takeWhile(f: A => Boolean): Stream[A, T] =
     new Stream[A, T] {
       override def headOption: T[Option[A]] =
-        tag.map(self.headOption) {
+        bag.map(self.headOption) {
           head =>
             if (head.exists(f))
               head
@@ -141,7 +141,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
         }
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
-        tag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
+        bag.foldLeft(Option.empty[A], Some(previous), self, 0, takeOne) {
           case (_, next) =>
             if (f(next))
               Some(next)
@@ -156,18 +156,18 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     else
       new Stream[A, T] {
         override def headOption: T[Option[A]] =
-          tag.flatMap(self.headOption) {
+          bag.flatMap(self.headOption) {
             case Some(head) =>
               if (c == 1)
                 next(head)
               else
-                tag.foldLeft(Option.empty[A], Some(head), self, c - 1, takeOne) {
+                bag.foldLeft(Option.empty[A], Some(head), self, c - 1, takeOne) {
                   case (_, next) =>
                     Some(next)
                 }
 
             case None =>
-              tag.none
+              bag.none
           }
 
         override private[swaydb] def next(previous: A): T[Option[A]] =
@@ -177,15 +177,15 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
   def dropWhile(f: A => Boolean): Stream[A, T] =
     new Stream[A, T] {
       override def headOption: T[Option[A]] =
-        tag.flatMap(self.headOption) {
+        bag.flatMap(self.headOption) {
           case headOption @ Some(head) =>
             if (f(head))
-              tag.collectFirst(head, self)(!f(_))
+              bag.collectFirst(head, self)(!f(_))
             else
-              tag.success(headOption)
+              bag.success(headOption)
 
           case None =>
-            tag.none
+            bag.none
         }
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
@@ -198,7 +198,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       var previousA: Option[A] = Option.empty
 
       override def headOption: T[Option[B]] =
-        tag.map(self.headOption) {
+        bag.map(self.headOption) {
           previousAOption =>
             previousA = previousAOption
             previousAOption.map(f)
@@ -210,14 +210,14 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       override private[swaydb] def next(previous: B): T[Option[B]] =
         previousA match {
           case Some(previous) =>
-            tag.map(self.next(previous)) {
+            bag.map(self.next(previous)) {
               nextA =>
                 previousA = nextA
                 nextA.map(f)
             }
 
           case None =>
-            tag.none
+            bag.none
         }
     }
 
@@ -228,19 +228,19 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     new Stream[A, T] {
 
       override def headOption: T[Option[A]] =
-        tag.flatMap(self.headOption) {
+        bag.flatMap(self.headOption) {
           case previousAOption @ Some(a) =>
             if (f(a))
-              tag.success(previousAOption)
+              bag.success(previousAOption)
             else
               next(a)
 
           case None =>
-            tag.none
+            bag.none
         }
 
       override private[swaydb] def next(previous: A): T[Option[A]] =
-        tag.collectFirst(previous, self)(f)
+        bag.collectFirst(previous, self)(f)
     }
 
   def collect[B](pf: PartialFunction[A, B]): Stream[B, T] =
@@ -256,7 +256,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
             //collectFirst is a stackSafe way reading the stream until a condition is met.
             //use collectFirst to stream until the first match.
             val collected =
-            tag
+            bag
               .collectFirst(startFrom, self) {
                 nextA =>
                   this.previousA = Some(nextA)
@@ -264,29 +264,29 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
                   nextMatch.isDefined
               }
 
-            tag.map(collected) {
+            bag.map(collected) {
               _ =>
                 //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
                 nextMatch
             }
 
           case None =>
-            tag.none
+            bag.none
         }
 
       override def headOption: T[Option[B]] =
-        tag.flatMap(self.headOption) {
+        bag.flatMap(self.headOption) {
           headOption =>
             //check if head satisfies the partial functions.
             this.previousA = headOption //also store A in the current Stream so next() invocation starts from this A.
             val previousAMayBe = previousA.collectFirst(pf) //check if headOption can be returned.
 
             if (previousAMayBe.isDefined) //check if headOption satisfies the partial function.
-              tag.success(previousAMayBe) //yes it does. Return!
+              bag.success(previousAMayBe) //yes it does. Return!
             else if (headOption.isDefined) //headOption did not satisfy the partial function but check if headOption was defined and step forward.
               stepForward(headOption) //headOption was defined so there might be more in the stream so step forward.
             else //if there was no headOption then stream must be empty.
-              tag.none //empty stream.
+              bag.none //empty stream.
         }
 
       /**
@@ -322,26 +322,26 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
       }
 
       override def headOption: T[Option[B]] =
-        tag.flatMap(self.headOption) {
+        bag.flatMap(self.headOption) {
           case Some(nextA) =>
             streamNext(nextA)
 
           case None =>
-            tag.none
+            bag.none
         }
 
       override private[swaydb] def next(previous: B): T[Option[B]] =
-        tag.flatMap(innerStream.next(previous)) {
+        bag.flatMap(innerStream.next(previous)) {
           case some @ Some(_) =>
-            tag.success(some)
+            bag.success(some)
 
           case None =>
-            tag.flatMap(self.next(previousA)) {
+            bag.flatMap(self.next(previousA)) {
               case Some(nextA) =>
                 streamNext(nextA)
 
               case None =>
-                tag.none
+                bag.none
             }
         }
     }
@@ -363,7 +363,7 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
    * TODO - tag.foldLeft should run point.
    */
   def foldLeft[B](initial: B)(f: (B, A) => B): T[B] =
-    tag.point(tag.foldLeft(initial, None, self, 0, None)(f))
+    bag.point(bag.foldLeft(initial, None, self, 0, None)(f))
 
   /**
    * Folds over all elements in the Stream to calculate it's total size.
@@ -390,14 +390,14 @@ abstract class Stream[A, T[_]](implicit tag: Tag[T]) extends Streamable[A, T] { 
     }
 
   /**
-   * Given a [[Tag.Converter]] this function converts the current Stream to another type.
+   * Given a [[Bag.Transfer]] this function converts the current Stream to another type.
    */
-  def to[B[_]](implicit tag: Tag[B], converter: Tag.Converter[T, B]): Stream[A, B] =
-    new Stream[A, B]()(tag) {
+  def toBag[B[_]](implicit bag: Bag[B], transfer: Bag.Transfer[T, B]): Stream[A, B] =
+    new Stream[A, B]()(bag) {
       override def headOption: B[Option[A]] =
-        converter.to(self.headOption)
+        transfer.to(self.headOption)
 
       override private[swaydb] def next(previous: A) =
-        converter.to(self.next(previous))
+        transfer.to(self.next(previous))
     }
 }

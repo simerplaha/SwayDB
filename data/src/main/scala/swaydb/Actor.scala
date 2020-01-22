@@ -39,14 +39,14 @@ sealed trait ActorRef[-T, S] { self =>
 
   def send(message: T): Unit
 
-  def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R]
+  def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R]
 
   /**
    * Sends a message to this actor with delay
    */
   def send(message: T, delay: FiniteDuration)(implicit scheduler: Scheduler): TimerTask
 
-  def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Task[R, X]
+  def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[X]): Actor.Task[R, X]
 
   def totalWeight: Int
 
@@ -417,7 +417,7 @@ class Actor[-T, S](val state: S,
         wakeUp(currentStashed = currentStashed)
     }
 
-  override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit tag: Tag.Async[X]): X[R] = {
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T)(implicit bag: Bag.Async[X]): X[R] = {
     val promise = Promise[R]()
 
     implicit val queueOrder = QueueOrder.FIFO
@@ -425,10 +425,10 @@ class Actor[-T, S](val state: S,
     val replyTo: ActorRef[R, Unit] = Actor[R]((response, _) => promise.success(response))
     this send message(replyTo)
 
-    tag fromPromise promise
+    bag fromPromise promise
   }
 
-  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, tag: Tag.Async[X]): Actor.Task[R, X] = {
+  override def ask[R, X[_]](message: ActorRef[R, Unit] => T, delay: FiniteDuration)(implicit scheduler: Scheduler, bag: Bag.Async[X]): Actor.Task[R, X] = {
     val promise = Promise[R]()
 
     implicit val queueOrder = QueueOrder.FIFO
@@ -436,7 +436,7 @@ class Actor[-T, S](val state: S,
     val replyTo: ActorRef[R, Unit] = Actor[R]((response, _) => promise.success(response))
     val task = this.send(message(replyTo), delay)
 
-    new Actor.Task(tag fromPromise promise, task)
+    new Actor.Task(bag fromPromise promise, task)
   }
 
   @inline private def wakeUp(currentStashed: Int): Unit =

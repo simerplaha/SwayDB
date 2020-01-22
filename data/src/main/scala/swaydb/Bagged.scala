@@ -20,21 +20,21 @@
 package swaydb
 
 
-trait Tagged[A, T[_]] {
-  def get: T[A]
+trait Bagged[A, BAG[_]] {
+  def get: BAG[A]
 
-  @inline final def isSuccess[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
-    tag.isSuccess(b)
+  @inline final def isSuccess[B](b: BAG[B])(implicit bag: Bag.Sync[BAG]): Boolean =
+    bag.isSuccess(b)
 
-  @inline final def isFailure[B](b: T[B])(implicit tag: Tag.Sync[T]): Boolean =
-    tag.isFailure(b)
+  @inline final def isFailure[B](b: BAG[B])(implicit bag: Bag.Sync[BAG]): Boolean =
+    bag.isFailure(b)
 
-  @inline final def getOrElse[B >: A](b: => B)(implicit tag: Tag.Sync[T]): B =
-    tag.getOrElse[A, B](get)(b)
+  @inline final def getOrElse[B >: A](b: => B)(implicit bag: Bag.Sync[BAG]): B =
+    bag.getOrElse[A, B](get)(b)
 
-  @inline final def orElse[B >: A](b: => T[B])(implicit tag: Tag.Sync[T]): T[B] =
-    tag.orElse[A, B](get)(b)
+  @inline final def orElse[B >: A](b: => BAG[B])(implicit bag: Bag.Sync[BAG]): BAG[B] =
+    bag.orElse[A, B](get)(b)
 
-  @inline final def exception(a: T[A])(implicit tag: Tag.Sync[T]): Option[Throwable] =
-    tag.exception(a)
+  @inline final def exception(a: BAG[A])(implicit bag: Bag.Sync[BAG]): Option[Throwable] =
+    bag.exception(a)
 }

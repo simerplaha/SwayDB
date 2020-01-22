@@ -35,7 +35,7 @@ object Interop {
    */
   private class InteropImplicit[K, V, F, T[_]](map: swaydb.Map[K, V, F, T]) {
     @inline final def asJava(implicit tag: ClassTag[F]): MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] = {
-      val scalaMap: swaydb.Map[K, V, F, ThrowableIO] = map.toTag[swaydb.IO.ThrowableIO]
+      val scalaMap: swaydb.Map[K, V, F, ThrowableIO] = map.toBag[swaydb.IO.ThrowableIO]
       if (tag == ClassTag.Nothing)
         MapIO[K, V, swaydb.java.PureFunction.VoidM[K, V]](scalaMap).asInstanceOf[MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
       else

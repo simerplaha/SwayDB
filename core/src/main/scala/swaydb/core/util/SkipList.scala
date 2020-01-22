@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.{BiConsumer, Consumer}
 
-import swaydb.Tagged
+import swaydb.Bagged
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -139,7 +139,7 @@ private[core] object SkipList {
     }
   }
 
-  sealed trait KeyValue[Key, Value] extends Tagged[(Key, Value), Option]
+  sealed trait KeyValue[Key, Value] extends Bagged[(Key, Value), Option]
   object KeyValue {
     case class Some[Key, Value](key: Key, value: Value) extends KeyValue[Key, Value] {
       def tuple: (Key, Value) =

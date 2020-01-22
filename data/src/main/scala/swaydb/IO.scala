@@ -868,17 +868,17 @@ object IO {
     def toIO: IO[E, A] =
       IO(getUnsafe)
 
-    def run[B >: A, T[_]](tried: Int)(implicit tag: Tag[T]): T[B] =
-      tag match {
-        case sync: Tag.Sync[T] =>
+    def run[B >: A, T[_]](tried: Int)(implicit bag: Bag[T]): T[B] =
+      bag match {
+        case sync: Bag.Sync[T] =>
           runSync[B, T](tried)(sync)
 
-        //if a tag is provided that implements isComplete then execute it directly
-        case async: Tag.Async.Retryable[T] =>
+        //if a bag is provided that implements isComplete then execute it directly
+        case async: Bag.Async.Retryable[T] =>
           runAsync[B, T](tried)(async)
 
-        case async: Tag.Async[T] =>
-          //else run the Tag as Future and return it's result.
+        case async: Bag.Async[T] =>
+          //else run the Bag as Future and return it's result.
           implicit val ec = async.executionContext
           async.fromFuture(runAsync[B, Future](tried))
       }
@@ -932,7 +932,7 @@ object IO {
      * TODO -  Similar to [[runIO]]. [[runIO]] should be calling this function
      * to build it's execution process.
      */
-    private def runSync[B >: A, T[_]](tried: Int)(implicit tag: Tag.Sync[T]): T[B] = {
+    private def runSync[B >: A, T[_]](tried: Int)(implicit bag: Bag.Sync[T]): T[B] = {
 
       def blockIfNeeded(deferred: IO.Defer[E, B]): Unit =
         deferred.error foreach {
@@ -953,14 +953,14 @@ object IO {
             logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
             io match {
               case success @ IO.Right(_) =>
-                tag.fromIO(success)
+                bag.fromIO(success)
 
               case IO.Left(error) =>
                 logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                   doRun(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
                 else
-                  tag.fromIO(io)
+                  bag.fromIO(io)
             }
 
           case scala.util.Right(deferred) =>
@@ -974,7 +974,7 @@ object IO {
       doRun(this, tried)
     }
 
-    private def runAsync[B >: A, T[_]](tried: Int)(implicit tag: Tag.Async.Retryable[T]): T[B] = {
+    private def runAsync[B >: A, T[_]](tried: Int)(implicit bag: Bag.Async.Retryable[T]): T[B] = {
 
       /**
        * If the value is already fetched [[isPending]] run in current thread
@@ -989,14 +989,14 @@ object IO {
                 if (promise.isCompleted)
                   None
                 else
-                  Some(tag.fromPromise(promise))
+                  Some(bag.fromPromise(promise))
             }
         }
 
       def runDelayed(deferred: IO.Defer[E, B],
                      tried: Int,
                      async: T[Unit]): T[B] =
-        tag.flatMap(async) {
+        bag.flatMap(async) {
           _ =>
             runNow(deferred, tried)
         }
@@ -1011,7 +1011,7 @@ object IO {
       @tailrec
       def runNow(deferred: IO.Defer[E, B], tried: Int): T[B] =
         when(tried > 0)(delayedRun(deferred)) match {
-          case Some(async) if tag.isIncomplete(async) =>
+          case Some(async) if bag.isIncomplete(async) =>
             logger.trace(s"Run delayed! isCached: ${getValue.isDefined}.")
             runDelayed(deferred, tried, async)
 
@@ -1022,13 +1022,13 @@ object IO {
               case scala.util.Left(io) =>
                 io match {
                   case success @ IO.Right(_) =>
-                    tag.fromIO(success)
+                    bag.fromIO(success)
 
                   case IO.Left(error) =>
                     if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
                       runNow(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
                     else
-                      tag.fromIO(io)
+                      bag.fromIO(io)
                 }
 
               case scala.util.Right(deferred) =>

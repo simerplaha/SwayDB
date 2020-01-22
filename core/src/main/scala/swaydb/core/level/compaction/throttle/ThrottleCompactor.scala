@@ -30,7 +30,7 @@ import swaydb.core.util.FiniteDurations._
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.slice.Slice
 import swaydb.data.util.Futures
-import swaydb.{Actor, ActorWire, IO, Tag}
+import swaydb.{Actor, ActorWire, IO, Bag}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -295,7 +295,7 @@ private[core] object ThrottleCompactor extends Compactor[ThrottleState] with Laz
     )(ThrottleCompaction)
 
   override def terminate(state: ThrottleState, compactor: ActorWire[Compactor[ThrottleState], ThrottleState]): Future[Unit] = {
-    implicit val tag = Tag.future(state.executionContext)
+    implicit val tag = Bag.future(state.executionContext)
 
     val terminated =
       state.child match {

@@ -20,14 +20,14 @@
 package swaydb.monix
 
 import monix.eval._
-import swaydb.Tag.Async
+import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, IO, Serial}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 
-object Tag {
+object Bag {
 
   implicit object MonixTaskMonad extends swaydb.Monad[Task] {
     override def map[A, B](a: A, f: A => B): Task[B] =
@@ -43,7 +43,7 @@ object Tag {
       Task.fromTry(scala.util.Failure(a))
   }
 
-  implicit def apply(implicit scheduler: monix.execution.Scheduler): swaydb.Tag.Async[Task] =
+  implicit def apply(implicit scheduler: monix.execution.Scheduler): swaydb.Bag.Async[Task] =
     new Async[Task] {
 
       override def executionContext: ExecutionContext =
@@ -99,7 +99,7 @@ object Tag {
         promise tryCompleteWith a.runToFuture
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, Task], drop: Int, take: Option[Int])(operation: (U, A) => U): Task[U] =
-        swaydb.Tag.Async.foldLeft(
+        swaydb.Bag.Async.foldLeft(
           initial = initial,
           after = after,
           stream = stream,
@@ -109,7 +109,7 @@ object Tag {
         )
 
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, Task])(condition: A => Boolean): Task[Option[A]] =
-        swaydb.Tag.Async.collectFirst(
+        swaydb.Bag.Async.collectFirst(
           previous = previous,
           stream = stream,
           condition = condition

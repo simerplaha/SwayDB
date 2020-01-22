@@ -44,7 +44,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
-import swaydb.{OK, IO, Tag}
+import swaydb.{OK, IO, Bag}
 
 import scala.concurrent.duration.{Deadline, _}
 import scala.jdk.CollectionConverters._
@@ -935,10 +935,10 @@ private[swaydb] case class LevelZero(path: Path,
   override def delete: IO[swaydb.Error.Delete, Unit] =
     LevelZero.delete(this)
 
-  final def run[R, T[_]](apply: LevelZero => R)(implicit tag: Tag[T]): T[R] =
-    tag.point {
+  final def run[R, T[_]](apply: LevelZero => R)(implicit bag: Bag[T]): T[R] =
+    bag.point {
       try
-        tag.success(apply(this))
+        bag.success(apply(this))
       catch {
         case throwable: Throwable =>
           val error = IO.ExceptionHandler.toError(throwable)

@@ -19,7 +19,7 @@
 
 package swaydb.cats.effect
 
-import swaydb.Tag.Async
+import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.{Actor, Serial}
 import swaydb.{IO => SwayIO}
@@ -28,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 import cats.effect.{ContextShift, IO}
 
-object Tag {
+object Bag {
 
   implicit object CatsEffectIOMonad extends swaydb.Monad[IO] {
     override def map[A, B](a: A, f: A => B): IO[B] =
@@ -48,7 +48,7 @@ object Tag {
    * Async tag for Cats-effect's IO.
    */
   implicit def apply(implicit contextShift: ContextShift[IO],
-                     ec: ExecutionContext): swaydb.Tag.Async[IO] =
+                     ec: ExecutionContext): swaydb.Bag.Async[IO] =
     new Async[IO] {
 
       override def executionContext: ExecutionContext =
@@ -99,7 +99,7 @@ object Tag {
         promise tryCompleteWith a.unsafeToFuture()
 
       override def foldLeft[A, U](initial: U, after: Option[A], stream: swaydb.Stream[A, IO], drop: Int, take: Option[Int])(operation: (U, A) => U): IO[U] =
-        swaydb.Tag.Async.foldLeft(
+        swaydb.Bag.Async.foldLeft(
           initial = initial,
           after = after,
           stream = stream,
@@ -109,7 +109,7 @@ object Tag {
         )
 
       override def collectFirst[A](previous: A, stream: swaydb.Stream[A, IO])(condition: A => Boolean): IO[Option[A]] =
-        swaydb.Tag.Async.collectFirst(
+        swaydb.Bag.Async.collectFirst(
           previous = previous,
           stream = stream,
           condition = condition

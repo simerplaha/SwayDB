@@ -410,7 +410,7 @@ class ActorSpec extends WordSpec with Matchers {
 
   "ask" should {
     case class ToInt(string: String)(val replyTo: ActorRef[Int, Unit])
-    implicit val futureTag = Tag.future(ec)
+    implicit val futureTag = Bag.future(ec)
 
     "ask" in {
       val actor =
