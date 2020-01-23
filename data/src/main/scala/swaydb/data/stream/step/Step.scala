@@ -19,9 +19,8 @@
 
 package swaydb.data.stream.step
 
-import swaydb.Monad._
+import swaydb.Bag
 import swaydb.data.stream.step
-import swaydb.{Bag, Monad}
 
 import scala.annotation.tailrec
 
@@ -33,7 +32,7 @@ private[swaydb] object Step {
         step.Step.foldLeftSync(initial, afterOrNull, stream, drop, take)(f)(bag)
 
       case bag: Bag.Async[T] =>
-        bag.point(step.Step.foldLeftAsync(initial, afterOrNull, stream, drop, take, f)(bag.monad, bag))
+        bag.point(step.Step.foldLeftAsync(initial, afterOrNull, stream, drop, take, f)(bag))
     }
 
   def collectFirst[A, T[_]](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean)(implicit bag: Bag[T]): T[A] =
@@ -42,7 +41,7 @@ private[swaydb] object Step {
         step.Step.collectFirstSync(previous, stream)(condition)(bag)
 
       case bag: Bag.Async[T] =>
-        bag.point(step.Step.collectFirstAsync(previous, stream, condition)(bag.monad, bag))
+        bag.point(step.Step.collectFirstAsync(previous, stream, condition)(bag))
     }
 
   def foldLeftSync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U)(implicit bag: Bag.Sync[T]): T[U] = {
@@ -59,13 +58,7 @@ private[swaydb] object Step {
           else if (drop >= 1) {
             fold(next, drop - 1, currentSize, previousResult)
           } else {
-            val nextResult =
-              try {
-                operation(previousResult, next)
-              } catch {
-                case exception: Throwable =>
-                  return bag.failure(exception)
-              }
+            val nextResult = operation(previousResult, next)
             fold(next, drop, currentSize + 1, nextResult)
           }
         } else {
@@ -89,13 +82,7 @@ private[swaydb] object Step {
         else if (drop >= 1)
           fold(first, drop - 1, 0, initial)
         else {
-          val next =
-            try {
-              operation(initial, first)
-            } catch {
-              case throwable: Throwable =>
-                return bag.failure(throwable)
-            }
+          val next = operation(initial, first)
           fold(first, drop, 1, next)
         }
       } else {
@@ -118,34 +105,29 @@ private[swaydb] object Step {
     }
   }
 
-  def foldLeftAsync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit monad: Monad[T],
-                                                                                                                                            bag: Bag.Async[T]): T[U] = {
+  def foldLeftAsync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit bag: Bag.Async[T]): T[U] = {
     def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): T[U] =
       if (take.contains(currentSize))
-        monad.success(previousResult)
+        bag.success(previousResult)
       else
-        stream
-          .nextOrNull(previous)(bag)
-          .flatMap {
-            case null =>
-              monad.success(previousResult)
+        bag.flatMap(
+          stream
+            .nextOrNull(previous)(bag)
+        ) {
+          case null =>
+            bag.success(previousResult)
 
-            case next =>
-              if (drop >= 1) {
-                fold(next, drop - 1, currentSize, previousResult)
-              } else {
-                try {
-                  val newResult = operation(previousResult, next)
-                  fold(next, drop, currentSize + 1, newResult)
-                } catch {
-                  case throwable: Throwable =>
-                    monad.failed(throwable)
-                }
-              }
-          }
+          case next =>
+            if (drop >= 1) {
+              fold(next, drop - 1, currentSize, previousResult)
+            } else {
+              val newResult = operation(previousResult, next)
+              fold(next, drop, currentSize + 1, newResult)
+            }
+        }
 
     if (take.contains(0)) {
-      monad.success(initial)
+      bag.success(initial)
     } else {
       val someFirstBagged =
         if (afterOrNull == null)
@@ -153,39 +135,30 @@ private[swaydb] object Step {
         else
           stream.nextOrNull(afterOrNull)(bag)
 
-      someFirstBagged
-        .flatMap {
-          case null =>
-            monad.success(initial)
+      bag.flatMap(someFirstBagged) {
+        case null =>
+          bag.success(initial)
 
-          case first =>
-            if (drop >= 1) {
-              fold(first, drop - 1, 0, initial)
-            } else {
-              try {
-                val nextResult = operation(initial, first)
-                fold(first, drop, 1, nextResult)
-              } catch {
-                case throwable: Throwable =>
-                  monad.failed(throwable)
-              }
-            }
-        }
+        case first =>
+          if (drop >= 1) {
+            fold(first, drop - 1, 0, initial)
+          } else {
+            val nextResult = operation(initial, first)
+            fold(first, drop, 1, nextResult)
+          }
+      }
     }
   }
 
-  def collectFirstAsync[A, T[_]](previous: A, stream: swaydb.Stream[A], condition: A => Boolean)(implicit monad: Monad[T],
-                                                                                                 bag: Bag.Async[T]): T[A] =
-    stream
-      .nextOrNull(previous)(bag)
-      .flatMap {
-        case null =>
-          monad.success(null.asInstanceOf[A])
+  def collectFirstAsync[A, T[_]](previous: A, stream: swaydb.Stream[A], condition: A => Boolean)(implicit bag: Bag.Async[T]): T[A] =
+    bag.flatMap(stream.nextOrNull(previous)(bag)) {
+      case null =>
+        bag.success(null.asInstanceOf[A])
 
-        case nextA =>
-          if (condition(nextA))
-            monad.success(nextA)
-          else
-            collectFirstAsync(nextA, stream, condition)
-      }
+      case nextA =>
+        if (condition(nextA))
+          bag.success(nextA)
+        else
+          collectFirstAsync(nextA, stream, condition)
+    }
 }

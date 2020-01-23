@@ -57,7 +57,7 @@ sealed trait Bag[BAG[_]] {
 object Bag extends LazyLogging {
 
   /**
-   * Converts containers. More tags can be created from existing Tags with this trait using [[Bag.toBag]]
+   * Converts containers. More tags can be created from existing Bags with this trait using [[Bag.toBag]]
    */
   trait Transfer[A[_], B[_]] {
     def to[T](a: A[T]): B[T]
@@ -67,7 +67,7 @@ object Bag extends LazyLogging {
   object Transfer {
     implicit val optionToTry = new Transfer[Option, Try] {
       override def to[T](a: Option[T]): Try[T] =
-        tryTag(a.get)
+        tryBag(a.get)
 
       override def from[T](a: Try[T]): Option[T] =
         a.toOption
@@ -78,7 +78,7 @@ object Bag extends LazyLogging {
         a.toOption
 
       override def from[T](a: Option[T]): Try[T] =
-        tryTag(a.get)
+        tryBag(a.get)
     }
 
     implicit val tryToIO = new Transfer[Try, IO.ApiIO] {
@@ -230,7 +230,6 @@ object Bag extends LazyLogging {
     def complete[A](promise: Promise[A], a: T[A]): Unit
     def executionContext: ExecutionContext
     def fromFuture[A](a: Future[A]): T[A]
-    def monad: Monad[T]
 
     def toBag[X[_]](implicit transfer: Bag.Transfer[T, X]): Bag.Async[X] =
       new Bag.Async[X] with ToBagBase[T, X] {
@@ -257,14 +256,6 @@ object Bag extends LazyLogging {
         override def fromFuture[A](a: Future[A]): X[A] =
           transfer.to(self.fromFuture(a))
 
-        override def monad: Monad[X] =
-          new Monad[X] {
-            override def map[A, B](a: A, f: A => B): X[B] = ???
-            override def flatMap[A, B](a: X[A], f: A => X[B]): X[B] = ???
-            override def success[A](a: A): X[A] = ???
-            override def failed[A](a: Throwable): X[A] = ???
-          }
-
         override def point[B](f: => X[B]): X[B] =
           flatMap[Unit, B](unit)(_ => f)
       }
@@ -273,7 +264,7 @@ object Bag extends LazyLogging {
   object Async {
 
     /**
-     * Reserved for Tags that have the ability to check is T.isComplete or not.
+     * Reserved for Bags that have the ability to check is T.isComplete or not.
      *
      * zio.Task and monix.Task do not have this ability but scala.Future does.
      *
@@ -349,9 +340,6 @@ object Bag extends LazyLogging {
 
       implicit val self: Bag.Async.Retryable[Future] = this
 
-      override val monad: Monad[Future] =
-        implicitly[Monad[Future]]
-
       override def executionContext: ExecutionContext =
         ec
 
@@ -419,7 +407,7 @@ object Bag extends LazyLogging {
 
   implicit val nothing: Bag.Sync[IO.UnitIO] = throwableIO.toBag[IO.UnitIO]
 
-  implicit val tryTag: Bag.Sync[Try] = throwableIO.toBag[Try]
+  implicit val tryBag: Bag.Sync[Try] = throwableIO.toBag[Try]
 
   implicit val option: Bag.Sync[Option] = throwableIO.toBag[Option]
 

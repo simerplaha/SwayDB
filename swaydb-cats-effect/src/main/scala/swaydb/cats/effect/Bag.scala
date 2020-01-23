@@ -22,26 +22,12 @@ package swaydb.cats.effect
 import cats.effect.{ContextShift, IO}
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Monad, Serial, IO => SwayIO}
+import swaydb.{Actor, Serial, IO => SwayIO}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 
 object Bag {
-
-  implicit object CatsEffectIOMonad extends swaydb.Monad[IO] {
-    override def map[A, B](a: A, f: A => B): IO[B] =
-      IO(f(a))
-
-    override def flatMap[A, B](a: IO[A], f: A => IO[B]): IO[B] =
-      a.flatMap(f)
-
-    override def success[A](a: A): IO[A] =
-      IO.pure(a)
-
-    override def failed[A](a: Throwable): IO[A] =
-      IO.fromTry(scala.util.Failure(a))
-  }
 
   /**
    * Async tag for Cats-effect's IO.
@@ -51,9 +37,6 @@ object Bag {
     new Async[IO] {
 
       implicit val self: swaydb.Bag.Async[IO] = this
-
-      override val monad: Monad[IO] =
-        implicitly[Monad[IO]]
 
       override def executionContext: ExecutionContext =
         ec

@@ -22,34 +22,17 @@ package swaydb.monix
 import monix.eval._
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, IO, Monad, Serial}
+import swaydb.{Actor, IO, Serial}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 
 object Bag {
 
-  implicit object MonixTaskMonad extends swaydb.Monad[Task] {
-    override def map[A, B](a: A, f: A => B): Task[B] =
-      Task(f(a))
-
-    override def flatMap[A, B](a: Task[A], f: A => Task[B]): Task[B] =
-      a.flatMap(f)
-
-    override def success[A](a: A): Task[A] =
-      Task.now(a)
-
-    override def failed[A](a: Throwable): Task[A] =
-      Task.fromTry(scala.util.Failure(a))
-  }
-
   implicit def apply(implicit scheduler: monix.execution.Scheduler): swaydb.Bag.Async[Task] =
     new Async[Task] {
 
       implicit val self: swaydb.Bag.Async[Task] = this
-
-      override val monad: Monad[Task] =
-        implicitly[Monad[Task]]
 
       override def executionContext: ExecutionContext =
         scheduler

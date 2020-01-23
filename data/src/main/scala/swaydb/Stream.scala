@@ -220,10 +220,15 @@ trait Stream[A] { self =>
     new Streamer[A] {
       var previous: A = _
 
-      override def nextOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
-        if (previous == null)
-          self.headOrNull
-        else
-          self.nextOrNull(previous)
+      override def nextOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] = {
+        val next =
+          if (previous == null)
+            self.headOrNull
+          else
+            self.nextOrNull(previous)
+
+        bag.foreach(next)(previous = _)
+        next
+      }
     }
 }

@@ -21,7 +21,7 @@ package swaydb.zio
 
 import swaydb.Bag.Async
 import swaydb.data.config.ActorConfig.QueueOrder
-import swaydb.{Actor, Monad, Serial}
+import swaydb.{Actor, Serial}
 import zio.Task
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -29,27 +29,10 @@ import scala.util.{Failure, Try}
 
 object Bag {
 
-  implicit object ZIOTaskMonad extends swaydb.Monad[Task] {
-    override def map[A, B](a: A, f: A => B): Task[B] =
-      Task(f(a))
-
-    override def flatMap[A, B](a: Task[A], f: A => Task[B]): Task[B] =
-      a.flatMap(f)
-
-    override def success[A](a: A): Task[A] =
-      Task.succeed(a)
-
-    override def failed[A](a: Throwable): Task[A] =
-      Task.fromTry(scala.util.Failure(a))
-  }
-
   implicit def apply[T](implicit runTime: zio.Runtime[T]): swaydb.Bag.Async[Task] =
     new Async[Task] {
 
       implicit val self: swaydb.Bag.Async[Task] = this
-
-      override val monad: Monad[Task] =
-        implicitly[Monad[Task]]
 
       override def executionContext: ExecutionContext =
         runTime.platform.executor.asEC
