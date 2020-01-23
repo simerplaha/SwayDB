@@ -68,16 +68,6 @@ object Stream {
       }
     )
 
-  def apply[A](streamer: Streamer[A]): Stream[A] =
-  //    new Stream[A] {
-  //      override def headOption(): T[Option[A]] =
-  //        streamer.head
-  //
-  //      override private[swaydb] def next(previous: A): T[Option[A]] =
-  //        streamer.next(previous)
-  //    }
-    ???
-
   /**
    * Create a [[Stream]] from a collection.
    */
@@ -104,7 +94,7 @@ object Stream {
  * A [[Stream]] performs lazy iteration. It does not cache data and fetches data only if
  * it's required by the stream.
  */
-trait Stream[A] extends Streamable[A] { self =>
+trait Stream[A] { self =>
 
   private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
   private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[A]
@@ -224,5 +214,16 @@ trait Stream[A] extends Streamable[A] { self =>
     foldLeft(ListBuffer.empty[A]) {
       (buffer, item) =>
         buffer += item
+    }
+
+  def streamer: Streamer[A] =
+    new Streamer[A] {
+      var previous: A = _
+
+      override def nextOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+        if (previous == null)
+          self.headOrNull
+        else
+          self.nextOrNull(previous)
     }
 }

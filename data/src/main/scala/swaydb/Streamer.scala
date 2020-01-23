@@ -25,6 +25,7 @@ package swaydb
  * This trait can be used to create async or sync streams.
  */
 trait Streamer[A] {
-  def head[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]]
-  def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]]
+  def nextOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
+  final def nextOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+    bag.map(nextOrNull)(Option(_))
 }
