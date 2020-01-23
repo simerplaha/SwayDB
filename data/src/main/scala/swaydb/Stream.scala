@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.data.stream.{IntStream, step}
+import swaydb.data.stream.{StreamInt, step}
 
 import scala.collection.mutable.ListBuffer
 
@@ -38,7 +38,7 @@ object Stream {
     apply[A](Iterable.empty)
 
   def range(from: Int, to: Int): Stream[Int] =
-    new IntStream(from, to)
+    new StreamInt(from, to)
 
   def range(from: Char, to: Char): Stream[Char] =
     apply[Char](from to to)

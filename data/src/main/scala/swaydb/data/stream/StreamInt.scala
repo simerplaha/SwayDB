@@ -21,13 +21,13 @@ package swaydb.data.stream
 
 import swaydb.Bag
 
-class IntStream(from: Int, to: Int) extends swaydb.Stream[Int] {
+class StreamInt(from: Int, to: Int) extends swaydb.Stream[Int] {
   var current = from
 
   override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[Int]] =
     bag.success(Some(from))
 
-  override private[swaydb] def next[BAG[_]](previous: Int)(implicit bag: Bag[BAG]) =
+  override private[swaydb] def next[BAG[_]](previous: Int)(implicit bag: Bag[BAG]): BAG[Option[Int]] =
     if (previous < to)
       bag.success(Some(previous + 1))
     else
