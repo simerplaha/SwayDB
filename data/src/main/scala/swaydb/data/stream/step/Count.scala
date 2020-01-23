@@ -24,23 +24,21 @@ import swaydb.{Bag, Stream}
 private[swaydb] class Count[A](previousStream: Stream[A],
                                condition: A => Boolean) extends Stream[A] {
 
-//  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
-//    bag.map(previousStream.headOption) {
-//      head =>
-//        if (head.exists(condition))
-//          head
-//        else
-//          None
-//    }
-//
-//  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
-//    Step.foldLeft(Option.empty[A], Some(previous), previousStream, 0, Stream.takeOne) {
-//      case (_, next) =>
-//        if (condition(next))
-//          Some(next)
-//        else
-//          None
-//    }
-  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] = ???
-  override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) = ???
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+    bag.map(previousStream.headOrNull) {
+      head =>
+        if (head == null || condition(head))
+          head
+        else
+          null.asInstanceOf[A]
+    }
+
+  override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
+    Step.foldLeft(null.asInstanceOf[A], previous, previousStream, 0, Stream.takeOne) {
+      case (_, next) =>
+        if (condition(next))
+          next
+        else
+          null.asInstanceOf[A]
+    }
 }

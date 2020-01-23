@@ -24,50 +24,56 @@ import swaydb.{Bag, Stream}
 private[swaydb] class Collect[A, B](previousStream: Stream[A],
                                     pf: PartialFunction[A, B]) extends Stream[B] {
 
-  var previousA: Option[A] = Option.empty
+  var previousA: A = _
 
-  def stepForward[T[_]](startFrom: Option[A])(implicit bag: Bag[T]): T[Option[B]] =
-    startFrom match {
-      case Some(startFrom) =>
-        var nextMatch = Option.empty[B]
+  def stepForward[T[_]](startFromOrNull: A)(implicit bag: Bag[T]): T[B] =
+    if (startFromOrNull == null) {
+      bag.success(null.asInstanceOf[B])
+    } else {
+      var nextMatch: B = null.asInstanceOf[B]
 
-        //collectFirst is a stackSafe way reading the stream until a condition is met.
-        //use collectFirst to stream until the first match.
+      //collectFirst is a stackSafe way reading the stream until a condition is met.
+      //use collectFirst to stream until the first match.
 
-        val collected =
-          Step
-            .collectFirst(startFrom, previousStream) {
-              nextA =>
-                this.previousA = Some(nextA)
-                nextMatch = this.previousA.collectFirst(pf)
-                nextMatch.isDefined
-            }
+      val collected =
+        Step
+          .collectFirst(startFromOrNull, previousStream) {
+            nextAOrNull =>
+              this.previousA = nextAOrNull
 
-        bag.map(collected) {
-          _ =>
-            //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
-            nextMatch
-        }
+              if (this.previousA != null && pf.isDefinedAt(this.previousA))
+                nextMatch = pf.apply(this.previousA)
 
-      case None =>
-        bag.none
+              nextMatch != null
+          }
+
+      bag.map(collected) {
+        _ =>
+          //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
+          nextMatch
+      }
     }
 
-  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[B]] =
-    bag.flatMap(previousStream.headOption) {
-      headOption =>
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] =
+    bag.flatMap(previousStream.headOrNull) {
+      headOrNull =>
         //check if head satisfies the partial functions.
-        this.previousA = headOption //also store A in the current Stream so next() invocation starts from this A.
-        val previousAMayBe = previousA.collectFirst(pf) //check if headOption can be returned.
+        this.previousA = headOrNull //also store A in the current Stream so next() invocation starts from this A.
+        val previousAOrNull =
+          if (previousA == null || !pf.isDefinedAt(previousA))
+            null.asInstanceOf[B]
+          else
+            pf.apply(previousA)
+        //check if headOption can be returned.
 
-        if (previousAMayBe.isDefined) //check if headOption satisfies the partial function.
-          bag.success(previousAMayBe) //yes it does. Return!
-        else if (headOption.isDefined) //headOption did not satisfy the partial function but check if headOption was defined and step forward.
-          stepForward(headOption) //headOption was defined so there might be more in the stream so step forward.
+        if (previousAOrNull != null) //check if headOption satisfies the partial function.
+          bag.success(previousAOrNull) //yes it does. Return!
+        else if (headOrNull != null) //headOption did not satisfy the partial function but check if headOption was defined and step forward.
+          stepForward(headOrNull) //headOption was defined so there might be more in the stream so step forward.
         else //if there was no headOption then stream must be empty.
-          bag.none //empty stream.
+          bag.success(null.asInstanceOf[B]) //empty stream.
     }
 
-  override private[swaydb] def next[BAG[_]](previous: B)(implicit bag: Bag[BAG]): BAG[Option[B]] =
+  override private[swaydb] def nextOrNull[BAG[_]](previous: B)(implicit bag: Bag[BAG]) =
     stepForward(previousA) //continue from previously read A.
 }

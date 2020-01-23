@@ -19,7 +19,7 @@
 
 package swaydb
 
-import swaydb.data.stream.{StreamInt, step}
+import swaydb.data.stream.step
 
 import scala.collection.mutable.ListBuffer
 
@@ -41,7 +41,7 @@ object Stream {
     apply[T](items.iterator)
 
   def range(from: Int, to: Int): Stream[Int] =
-    new StreamInt(from, to)
+    apply[Int](from to to)
 
   def range(from: Char, to: Char): Stream[Char] =
     apply[Char](from to to)
@@ -109,7 +109,7 @@ trait Stream[A] extends Streamable[A] { self =>
   def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
   private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[A]
 
-  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+  final def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
     bag.map(headOrNull)(Option(_))
 
   def foreach[U](f: A => U): Stream[Unit] =
@@ -170,7 +170,10 @@ trait Stream[A] extends Streamable[A] { self =>
     )
 
   def collectFirst[B, T[_]](pf: PartialFunction[A, B])(implicit bag: Bag[T]): T[Option[B]] =
-    bag.map(collect(pf).headOrNull)(Option(_))
+    bag.map(collectFirstOrNull(pf))(Option(_))
+
+  def collectFirstOrNull[B, T[_]](pf: PartialFunction[A, B])(implicit bag: Bag[T]): T[B] =
+    collect(pf).headOrNull
 
   def count[T[_]](f: A => Boolean)(implicit bag: Bag[T]): T[Int] =
     foldLeft(0) {
@@ -198,7 +201,7 @@ trait Stream[A] extends Streamable[A] { self =>
     bag.point {
       step.Step.foldLeft(
         initial = initial,
-        after = None,
+        afterOrNull = null.asInstanceOf[A],
         stream = self,
         drop = 0,
         take = None

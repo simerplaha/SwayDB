@@ -27,23 +27,21 @@ private[swaydb] class Take[A](previousStream: Stream[A],
 
   var taken: Int = 0
 
-//  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
-//    if (take <= 0) {
-//      bag.none
-//    } else {
-//      taken += 1
-//      previousStream.headOption
-//    }
-//
-//  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
-//    if (taken == take)
-//      bag.none
-//    else
-//      Step.foldLeft(Option.empty[A], Some(previous), previousStream, 0, Stream.takeOne) {
-//        case (_, next) =>
-//          taken += 1
-//          Some(next)
-//      }
-  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] = ???
-  override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) = ???
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+    if (take <= 0) {
+      bag.success(null.asInstanceOf[A])
+    } else {
+      taken += 1
+      previousStream.headOrNull
+    }
+
+  override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
+    if (taken == take)
+      bag.success(null.asInstanceOf[A])
+    else
+      Step.foldLeft(null.asInstanceOf[A], previous, previousStream, 0, Stream.takeOne) {
+        case (_, next) =>
+          taken += 1
+          next
+      }
 }

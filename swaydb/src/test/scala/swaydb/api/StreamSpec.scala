@@ -103,10 +103,12 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .await should contain(1)
     }
 
-    "headOptio2n" in {
+    "take" in {
       Stream[Int](1, 2)
-        .lastOption[T]
-        .await should contain(2)
+        .map(_ + 1)
+        .take(1)
+        .materialize[T]
+        .await shouldBe List(2)
     }
 
     "count" in {
@@ -139,7 +141,7 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
 
     "collectFirst" in {
       Stream[Int](1 to 1000)
-        .collectFirst[Int, T] { case n if n % 2 == 0 => n }
+        .collectFirst[Int, T] { case n: Int if n % 2 == 0 => n }
         .await should contain(2)
     }
 
