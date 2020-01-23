@@ -37,6 +37,9 @@ object Stream {
   def empty[A]: Stream[A] =
     apply[A](Iterable.empty)
 
+  def apply[T](items: T*): Stream[T] =
+    apply[T](items.iterator)
+
   def range(from: Int, to: Int): Stream[Int] =
     new StreamInt(from, to)
 
