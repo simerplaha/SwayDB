@@ -19,7 +19,6 @@
 
 package swaydb
 
-import org.omg.CORBA.portable.Streamable
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.core.segment.ThreadReadState
@@ -286,7 +285,6 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
       case (key, value) =>
         (key.read[K], value.read[V])
     })
-
 
   def stream: Stream[(K, V)] =
     new Stream[(K, V)] {

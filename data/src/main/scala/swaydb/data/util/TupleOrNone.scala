@@ -26,7 +26,7 @@ sealed trait TupleOrNone[+L, +R] extends SomeOrNoneCovariant[TupleOrNone[L, R], 
 object TupleOrNone {
   final object None extends TupleOrNone[Nothing, Nothing] {
     override def isNoneC: Boolean = true
-    override def getC: Some[Nothing, Nothing] = throw new Exception("KeyValue is of type Null")
+    override def getC: Some[Nothing, Nothing] = throw new Exception("Tuple is of type Null")
   }
 
   case class Some[+L, +R](left: L, right: R) extends TupleOrNone[L, R] {
