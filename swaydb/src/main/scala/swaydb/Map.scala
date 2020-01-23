@@ -260,38 +260,37 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   //    headOption(core.readStates.get())
     ???
 
-  //  protected def headOption(readState: ThreadReadState): BAG[Option[(K, V)]] =
-  //    bag.map {
-  //      from match {
-  //        case Some(from) =>
-  //          val fromKeyBytes: Slice[Byte] = from.key
-  //
-  //          if (from.before)
-  //            core.before(fromKeyBytes, readState)
-  //          else if (from.after)
-  //            core.after(fromKeyBytes, readState)
-  //          else
-  //            bag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
-  //              case some @ Some(_) =>
-  //                bag.success(some): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
-  //
-  //              case _ =>
-  //                if (from.orAfter)
-  //                  core.after(fromKeyBytes, readState)
-  //                else if (from.orBefore)
-  //                  core.before(fromKeyBytes, readState)
-  //                else
-  //                  bag.success(None): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
-  //            }
-  //
-  //        case None =>
-  //          if (reverseIteration) core.last(readState) else core.head(readState)
-  //      }
-  //    }(_.map {
-  //      case (key, value) =>
-  //        (key.read[K], value.read[V])
-  //    })
-  ???
+  protected def headOption(readState: ThreadReadState): BAG[Option[(K, V)]] =
+    bag.map {
+      from match {
+        case Some(from) =>
+          val fromKeyBytes: Slice[Byte] = from.key
+
+          if (from.before)
+            core.before(fromKeyBytes, readState)
+          else if (from.after)
+            core.after(fromKeyBytes, readState)
+          else
+            bag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
+              case some @ Some(_) =>
+                bag.success(some): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
+
+              case _ =>
+                if (from.orAfter)
+                  core.after(fromKeyBytes, readState)
+                else if (from.orBefore)
+                  core.before(fromKeyBytes, readState)
+                else
+                  bag.success(None): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
+            }
+
+        case None =>
+          if (reverseIteration) core.last(readState) else core.head(readState)
+      }
+    }(_.map {
+      case (key, value) =>
+        (key.read[K], value.read[V])
+    })
 
   override def drop(count: Int): Stream[(K, V)] =
     stream drop count

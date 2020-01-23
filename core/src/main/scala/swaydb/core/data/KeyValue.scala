@@ -31,7 +31,7 @@ import swaydb.core.util.Bytes
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant}
+import swaydb.data.util.{SomeOrNone, SomeOrNoneCovariant, TupleOrNone}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -96,6 +96,14 @@ private[core] object KeyValue {
         val value = put.getOrFetchValue
         val key = put.key
         Some((key, value.toOptionC))
+      }
+
+    def toTupleOrNone: TupleOrNone[Slice[Byte], SliceOption[Byte]] =
+      if (isNoneS) {
+        TupleOrNone.None
+      } else {
+        val put = this.getPut
+        TupleOrNone.Some(put.key, put.getOrFetchValue)
       }
 
     def getValue: Option[Option[Slice[Byte]]] =
