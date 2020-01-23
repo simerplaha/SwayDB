@@ -26,21 +26,23 @@ private[swaydb] class Drop[A](previousStream: Stream[A],
 
   var taken: Int = 0
 
-  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
-    bag.flatMap(previousStream.headOption) {
-      case Some(head) =>
-        if (drop == 1)
-          next(head)
-        else
-          Step.foldLeft(Option.empty[A], Some(head), previousStream, drop - 1, Stream.takeOne) {
-            case (_, next) =>
-              Some(next)
-          }
-
-      case None =>
-        bag.none
-    }
-
-  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
-    previousStream next previous
+//  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+//    bag.flatMap(previousStream.headOption) {
+//      case Some(head) =>
+//        if (drop == 1)
+//          next(head)
+//        else
+//          Step.foldLeft(Option.empty[A], Some(head), previousStream, drop - 1, Stream.takeOne) {
+//            case (_, next) =>
+//              Some(next)
+//          }
+//
+//      case None =>
+//        bag.none
+//    }
+//
+//  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
+//    previousStream next previous
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] = ???
+  override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) = ???
 }

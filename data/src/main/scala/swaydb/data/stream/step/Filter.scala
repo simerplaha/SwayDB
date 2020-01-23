@@ -24,18 +24,20 @@ import swaydb.{Bag, Stream}
 private[swaydb] class Filter[A](previousStream: Stream[A],
                                 condition: A => Boolean) extends Stream[A] {
 
-  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
-    bag.flatMap(previousStream.headOption) {
-      case previousAOption @ Some(a) =>
-        if (condition(a))
-          bag.success(previousAOption)
-        else
-          next(a)
-
-      case None =>
-        bag.none
-    }
-
-  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
-    Step.collectFirst(previous, previousStream)(condition)
+//  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+//    bag.flatMap(previousStream.headOption) {
+//      case previousAOption @ Some(a) =>
+//        if (condition(a))
+//          bag.success(previousAOption)
+//        else
+//          next(a)
+//
+//      case None =>
+//        bag.none
+//    }
+//
+//  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
+//    Step.collectFirst(previous, previousStream)(condition)
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] = ???
+  override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) = ???
 }

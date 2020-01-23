@@ -26,23 +26,25 @@ private[swaydb] class Map[A, B](previousStream: Stream[A],
 
   var previousA: Option[A] = Option.empty
 
-  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[B]] =
-    bag.map(previousStream.headOption) {
-      previousAOption =>
-        previousA = previousAOption
-        previousAOption.map(f)
-    }
-
-  override private[swaydb] def next[BAG[_]](previous: B)(implicit bag: Bag[BAG]): BAG[Option[B]] =
-    previousA match {
-      case Some(previous) =>
-        bag.map(previousStream.next(previous)) {
-          nextA =>
-            previousA = nextA
-            nextA.map(f)
-        }
-
-      case None =>
-        bag.none
-    }
+//  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[B]] =
+//    bag.map(previousStream.headOption) {
+//      previousAOption =>
+//        previousA = previousAOption
+//        previousAOption.map(f)
+//    }
+//
+//  override private[swaydb] def next[BAG[_]](previous: B)(implicit bag: Bag[BAG]): BAG[Option[B]] =
+//    previousA match {
+//      case Some(previous) =>
+//        bag.map(previousStream.next(previous)) {
+//          nextA =>
+//            previousA = nextA
+//            nextA.map(f)
+//        }
+//
+//      case None =>
+//        bag.none
+//    }
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] = ???
+  override private[swaydb] def nextOrNull[BAG[_]](previous: B)(implicit bag: Bag[BAG]) = ???
 }

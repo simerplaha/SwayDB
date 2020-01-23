@@ -36,6 +36,10 @@ class StreamIOSpec extends StreamSpec[IO.ApiIO] {
   override def get[A](a: IO.ApiIO[A]): A = a.get
 }
 
+class StreamIDSpec extends StreamSpec[Bag.Id] {
+  override def get[A](a: Bag.Id[A]): A = a
+}
+
 class StreamTrySpec extends StreamSpec[Try] {
   override def get[A](a: Try[A]): A = a.get
 }
@@ -97,6 +101,12 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
       Stream[Int](1 to 100)
         .headOption[T]
         .await should contain(1)
+    }
+
+    "headOptio2n" in {
+      Stream[Int](1, 2)
+        .lastOption[T]
+        .await should contain(2)
     }
 
     "count" in {

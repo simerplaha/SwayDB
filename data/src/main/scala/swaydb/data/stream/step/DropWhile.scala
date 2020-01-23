@@ -24,18 +24,20 @@ import swaydb.{Bag, Stream}
 private[swaydb] class DropWhile[A](previousStream: Stream[A],
                                    condition: A => Boolean) extends Stream[A] {
 
-  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
-    bag.flatMap(previousStream.headOption) {
-      case headOption @ Some(head) =>
-        if (condition(head))
-          Step.collectFirst(head, previousStream)(!condition(_))
-        else
-          bag.success(headOption)
-
-      case None =>
-        bag.none
-    }
-
-  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
-    previousStream next previous
+//  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+//    bag.flatMap(previousStream.headOption) {
+//      case headOption @ Some(head) =>
+//        if (condition(head))
+//          Step.collectFirst(head, previousStream)(!condition(_))
+//        else
+//          bag.success(headOption)
+//
+//      case None =>
+//        bag.none
+//    }
+//
+//  override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]] =
+//    previousStream next previous
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] = ???
+  override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) = ???
 }

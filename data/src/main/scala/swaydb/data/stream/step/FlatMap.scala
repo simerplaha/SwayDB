@@ -29,33 +29,35 @@ private[swaydb] class FlatMap[A, B](previousStream: Stream[A],
   var innerStream: Stream[B] = _
   var previousA: A = _
 
-  def streamNext[T[_]](nextA: A)(implicit bag: Bag[T]): T[Option[B]] = {
-    innerStream = f(nextA)
-    previousA = nextA
-    innerStream.headOption
-  }
-
-  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[B]] =
-    bag.flatMap(previousStream.headOption) {
-      case Some(nextA) =>
-        streamNext(nextA)
-
-      case None =>
-        bag.none
-    }
-
-  override private[swaydb] def next[BAG[_]](previous: B)(implicit bag: Bag[BAG]) =
-    bag.flatMap(innerStream.next(previous)) {
-      case some @ Some(_) =>
-        bag.success(some)
-
-      case None =>
-        bag.flatMap(previousStream.next(previousA)) {
-          case Some(nextA) =>
-            streamNext(nextA)
-
-          case None =>
-            bag.none
-        }
-    }
+//  def streamNext[T[_]](nextA: A)(implicit bag: Bag[T]): T[Option[B]] = {
+//    innerStream = f(nextA)
+//    previousA = nextA
+//    innerStream.headOption
+//  }
+//
+//  override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[B]] =
+//    bag.flatMap(previousStream.headOption) {
+//      case Some(nextA) =>
+//        streamNext(nextA)
+//
+//      case None =>
+//        bag.none
+//    }
+//
+//  override private[swaydb] def next[BAG[_]](previous: B)(implicit bag: Bag[BAG]) =
+//    bag.flatMap(innerStream.next(previous)) {
+//      case some @ Some(_) =>
+//        bag.success(some)
+//
+//      case None =>
+//        bag.flatMap(previousStream.next(previousA)) {
+//          case Some(nextA) =>
+//            streamNext(nextA)
+//
+//          case None =>
+//            bag.none
+//        }
+//    }
+  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] = ???
+  override private[swaydb] def nextOrNull[BAG[_]](previous: B)(implicit bag: Bag[BAG]) = ???
 }

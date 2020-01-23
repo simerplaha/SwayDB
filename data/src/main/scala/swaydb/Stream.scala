@@ -86,16 +86,16 @@ object Stream {
 
   def apply[A](iterator: Iterator[A]): Stream[A] =
     new Stream[A] {
-      private def step[T[_]](implicit bag: Bag[T]): T[Option[A]] =
+      private def step[T[_]](implicit bag: Bag[T]): T[A] =
         if (iterator.hasNext)
-          bag.success(Some(iterator.next()))
+          bag.success(iterator.next())
         else
-          bag.none
+          bag.success(null.asInstanceOf[A])
 
-      override def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+      override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
         step(bag)
 
-      override private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
+      override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
         step(bag)
     }
 }
@@ -106,8 +106,11 @@ object Stream {
  */
 trait Stream[A] extends Streamable[A] { self =>
 
-  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]]
-  private[swaydb] def next[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[Option[A]]
+  def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
+  private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[A]
+
+  def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
+    bag.map(headOrNull)(Option(_))
 
   def foreach[U](f: A => U): Stream[Unit] =
     map[Unit](a => f(a))
@@ -167,7 +170,7 @@ trait Stream[A] extends Streamable[A] { self =>
     )
 
   def collectFirst[B, T[_]](pf: PartialFunction[A, B])(implicit bag: Bag[T]): T[Option[B]] =
-    collect(pf).headOption
+    bag.map(collect(pf).headOrNull)(Option(_))
 
   def count[T[_]](f: A => Boolean)(implicit bag: Bag[T]): T[Int] =
     foldLeft(0) {
