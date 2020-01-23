@@ -27,7 +27,7 @@ private[swaydb] class Take[A](previousStream: Stream[A],
 
   var taken: Int = 0
 
-  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+  override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
     if (take <= 0) {
       bag.success(null.asInstanceOf[A])
     } else {

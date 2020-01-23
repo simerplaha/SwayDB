@@ -26,7 +26,7 @@ private[swaydb] class Map[A, B](previousStream: Stream[A],
 
   var previousA: A = _
 
-  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] =
+  override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[B] =
     bag.map(previousStream.headOrNull) {
       previousAOrNull =>
         previousA = previousAOrNull

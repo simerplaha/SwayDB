@@ -24,7 +24,7 @@ import swaydb.{Bag, Stream}
 private[swaydb] class Filter[A](previousStream: Stream[A],
                                 condition: A => Boolean) extends Stream[A] {
 
-  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+  override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
     bag.flatMap(previousStream.headOrNull) {
       case null =>
         bag.success(null.asInstanceOf[A])

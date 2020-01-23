@@ -26,7 +26,7 @@ private[swaydb] class Drop[A](previousStream: Stream[A],
 
   var taken: Int = 0
 
-  override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+  override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
     bag.flatMap(previousStream.headOrNull) {
       case null =>
         bag.success(null.asInstanceOf[A])

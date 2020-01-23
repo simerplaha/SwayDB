@@ -92,7 +92,7 @@ object Stream {
         else
           bag.success(null.asInstanceOf[A])
 
-      override def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
         step(bag)
 
       override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
@@ -106,7 +106,7 @@ object Stream {
  */
 trait Stream[A] extends Streamable[A] { self =>
 
-  def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
+  private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A]
   private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[A]
 
   final def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
