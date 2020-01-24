@@ -38,6 +38,7 @@ sealed trait Bag[BAG[_]] {
   def createSerial(): Serial[BAG]
   def foreach[A](a: BAG[A])(f: A => Unit): Unit
   def map[A, B](a: BAG[A])(f: A => B): BAG[B]
+  def transform[A, B](a: BAG[A])(f: A => B): BAG[B]
   def flatMap[A, B](fa: BAG[A])(f: A => BAG[B]): BAG[B]
   def success[A](value: A): BAG[A]
   def failure[A](exception: Throwable): BAG[A]
@@ -163,6 +164,9 @@ object Bag extends LazyLogging {
 
     def map[A, B](a: X[A])(f: A => B): X[B] =
       baseConverter.to(base.map(baseConverter.from(a))(f))
+
+    def transform[A, B](a: X[A])(f: A => B): X[B] =
+      baseConverter.to(base.transform(baseConverter.from(a))(f))
 
     def flatMap[A, B](fa: X[A])(f: A => X[B]): X[B] =
       baseConverter.to {
@@ -304,6 +308,9 @@ object Bag extends LazyLogging {
       override def map[A, B](a: IO.ThrowableIO[A])(f: A => B): IO.ThrowableIO[B] =
         a.map(f)
 
+      override def transform[A, B](a: ThrowableIO[A])(f: A => B): ThrowableIO[B] =
+        a.transform(f)
+
       override def foreach[A](a: IO.ThrowableIO[A])(f: A => Unit): Unit =
         a.foreach(f)
 
@@ -333,6 +340,7 @@ object Bag extends LazyLogging {
 
       override def point[B](f: => ThrowableIO[B]): ThrowableIO[B] =
         f
+
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
@@ -370,6 +378,9 @@ object Bag extends LazyLogging {
       override def map[A, B](a: Future[A])(f: A => B): Future[B] =
         a.map(f)
 
+      override def transform[A, B](a: Future[A])(f: A => B): Future[B] =
+        a.transform(f, throwable => throwable)
+
       override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] =
         fa.flatMap(f)
 
@@ -399,6 +410,7 @@ object Bag extends LazyLogging {
 
       override def point[B](f: => Future[B]): Future[B] =
         f
+
     }
 
   implicit val apiIO: Bag.Sync[IO.ApiIO] = throwableIO.toBag[IO.ApiIO]
@@ -413,7 +425,7 @@ object Bag extends LazyLogging {
 
   type Id[A] = A
 
-  implicit val idBag =
+  implicit val idBag: Bag.Sync[Id] =
     new Bag.Sync[Id] {
       override def isSuccess[A](a: Id[A]): Boolean = true
 
@@ -442,6 +454,8 @@ object Bag extends LazyLogging {
 
       override def map[A, B](a: Id[A])(f: A => B): Id[B] = f(a)
 
+      override def transform[A, B](a: Id[A])(f: A => B): Id[B] = f(a)
+
       override def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = f(fa)
 
       override def success[A](value: A): Id[A] = value
@@ -451,5 +465,6 @@ object Bag extends LazyLogging {
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Id[A] = a.get
 
       override def point[B](f: => Id[B]): Id[B] = f
+
     }
 }

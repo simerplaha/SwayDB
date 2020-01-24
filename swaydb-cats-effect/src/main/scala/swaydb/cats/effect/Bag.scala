@@ -67,6 +67,9 @@ object Bag {
       override def map[A, B](a: IO[A])(f: A => B): IO[B] =
         a.map(f)
 
+      override def transform[A, B](a: IO[A])(f: A => B): IO[B] =
+        a.map(f) //todo how to transform?
+
       override def flatMap[A, B](fa: IO[A])(f: A => IO[B]): IO[B] =
         fa.flatMap(f)
 
@@ -93,5 +96,6 @@ object Bag {
 
       override def point[B](f: => IO[B]): IO[B] =
         IO.suspend(f)
+
     }
 }

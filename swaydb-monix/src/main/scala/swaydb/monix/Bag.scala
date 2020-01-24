@@ -68,6 +68,9 @@ object Bag {
       override def map[A, B](a: Task[A])(f: A => B): Task[B] =
         a.map(f)
 
+      override def transform[A, B](a: Task[A])(f: A => B): Task[B] =
+        a.map(f) //todo how to transform in monix?
+
       override def flatMap[A, B](fa: Task[A])(f: A => Task[B]): Task[B] =
         fa.flatMap(f)
 
@@ -94,5 +97,6 @@ object Bag {
 
       override def point[B](f: => Task[B]): Task[B] =
         Task.fromEffect(f)
+
     }
 }

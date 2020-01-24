@@ -74,11 +74,11 @@ object Stream {
   def apply[A](items: Iterable[A]): Stream[A] =
     apply[A](items.iterator)
 
-  def apply[A](iterator: Iterator[A]): Stream[A] =
+  def apply[A](it: Iterator[A]): Stream[A] =
     new Stream[A] {
       private def step[T[_]](implicit bag: Bag[T]): T[A] =
-        if (iterator.hasNext)
-          bag.success(iterator.next())
+        if (it.hasNext)
+          bag.success(it.next())
         else
           bag.success(null.asInstanceOf[A])
 
@@ -230,5 +230,31 @@ trait Stream[A] { self =>
         bag.foreach(next)(previous = _)
         next
       }
+    }
+
+  def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[A]] =
+    new Iterator[BAG[A]] {
+      val stream = streamer
+      var item: BAG[A] = _
+      var failedStream: Boolean = false
+
+      override def hasNext: Boolean =
+        if (failedStream) {
+          false
+        } else {
+          val next = stream.nextOrNull
+          if (bag.isSuccess(next)) {
+            val unsafeGet: A = bag.getUnsafe(next)
+            item = next
+            unsafeGet != null
+          } else {
+            item = next
+            failedStream = true
+            true
+          }
+        }
+
+      override def next(): BAG[A] =
+        item
     }
 }

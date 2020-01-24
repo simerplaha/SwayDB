@@ -253,7 +253,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def headOption: BAG[Option[(K, V)]] =
-    bag.map(headOrNull(readState = core.readStates.get()))(Option(_))
+    bag.transform(headOrNull(readState = core.readStates.get()))(Option(_))
 
   private def headOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[(K, V)] =
     bag.map(headOptionTupleOrNull(readState)) {
@@ -325,10 +325,10 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     bag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: BAG[Boolean] =
-    bag.map(core.headKey(core.readStates.get()))(_.isNoneC)
+    bag.transform(core.headKey(core.readStates.get()))(_.isNoneC)
 
   def nonEmpty: BAG[Boolean] =
-    bag.map(isEmpty)(!_)
+    bag.transform(isEmpty)(!_)
 
   def lastOption: BAG[Option[(K, V)]] =
     if (reverseIteration)
