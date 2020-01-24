@@ -39,7 +39,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
                                 private val from: Option[From[K]] = None,
                                 private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
                                                                                        valueSerializer: Serializer[V],
-                                                                                       bag: Bag[BAG]) { self =>
+                                                                                       val bag: Bag[BAG]) { self =>
 
   def put(key: K, value: V): BAG[OK] =
     bag.point(core.put(key = key, value = value))
@@ -255,7 +255,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def headOption: BAG[Option[(K, V)]] =
     bag.map(headOrNull(readState = core.readStates.get()))(Option(_))
 
-  protected def headOrNull(readState: ThreadReadState): BAG[(K, V)] =
+  private def headOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[(K, V)] =
     bag.map(headOptionTupleOrNull(readState)) {
       case TupleOrNone.None =>
         null
@@ -265,7 +265,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     }
 
   //NOTE: is not async. use headOrNull instead
-  private def headOptionTupleOrNull(readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  private def headOptionTupleOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     from match {
       case Some(from) =>
         val fromKeyBytes: Slice[Byte] = from.key
@@ -295,7 +295,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
           core.head(readState)
     }
 
-  private def nextTupleOrNone(previous: (K, V), readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  private def nextTupleOrNone[BAG[_]](previous: (K, V), readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     if (reverseIteration)
       core.before(keySerializer.write(previous._1), readState)
     else

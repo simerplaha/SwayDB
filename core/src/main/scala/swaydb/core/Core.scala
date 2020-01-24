@@ -213,13 +213,13 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def registerFunction(functionId: Slice[Byte], function: SwayFunction): BAG[OK] =
     zero.run(_.registerFunction(functionId, function))
 
-  def head(readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  def head[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     zero.run(_.head(readState).toTupleOrNone)
 
   def headKey(readState: ThreadReadState): BAG[SliceOption[Byte]] =
     zero.run(_.headKey(readState))
 
-  def last(readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  def last[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     zero.run(_.last(readState).toTupleOrNone)
 
   def lastKey(readState: ThreadReadState): BAG[SliceOption[Byte]] =
@@ -253,20 +253,20 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
              readState: ThreadReadState): BAG[SliceOption[Byte]] =
     zero.run(_.getKey(key, readState))
 
-  def getKeyValue(key: Slice[Byte],
-                  readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  def getKeyValue[BAG[_]](key: Slice[Byte],
+                          readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     zero.run(_.get(key, readState).toTupleOrNone)
 
-  def before(key: Slice[Byte],
-             readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  def before[BAG[_]](key: Slice[Byte],
+                     readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     zero.run(_.lower(key, readState).toTupleOrNone)
 
   def beforeKey(key: Slice[Byte],
                 readState: ThreadReadState): BAG[SliceOption[Byte]] =
     zero.run(_.lower(key, readState).getKey)
 
-  def after(key: Slice[Byte],
-            readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  def after[BAG[_]](key: Slice[Byte],
+                    readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     zero.run(_.higher(key, readState).toTupleOrNone)
 
   def afterKey(key: Slice[Byte],

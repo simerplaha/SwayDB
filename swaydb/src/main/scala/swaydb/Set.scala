@@ -43,7 +43,7 @@ object Set {
 case class Set[A, F, BAG[_]](private val core: Core[BAG],
                              private val from: Option[From[A]],
                              private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
-                                                                                    bag: Bag[BAG]) { self =>
+                                                                                    val bag: Bag[BAG]) { self =>
 
   def get(elem: A): BAG[Option[A]] =
   //    bag.map(core.getKey(elem, core.readStates.get()))(_.map(_.read[A]))
