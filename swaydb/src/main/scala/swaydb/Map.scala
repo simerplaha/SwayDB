@@ -24,7 +24,8 @@ import swaydb.core.Core
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.util.TupleOrNone
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -41,13 +42,13 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
                                                                                        bag: Bag[BAG]) { self =>
 
   def put(key: K, value: V): BAG[OK] =
-    bag.point(core.put(key = key, value = Some(value)))
+    bag.point(core.put(key = key, value = value))
 
   def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK] =
-    bag.point(core.put(key, Some(value), expireAfter.fromNow))
+    bag.point(core.put(key, value, expireAfter.fromNow))
 
   def put(key: K, value: V, expireAt: Deadline): BAG[OK] =
-    bag.point(core.put(key, Some(value), expireAt))
+    bag.point(core.put(key, value, expireAt))
 
   def put(keyValues: (K, V)*): BAG[OK] =
     bag.point(put(keyValues))
@@ -63,7 +64,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
       core.put {
         keyValues map {
           case (key, value) =>
-            Prepare.Put(keySerializer.write(key), Some(valueSerializer.write(value)), None)
+            Prepare.Put(keySerializer.write(key), valueSerializer.write(value), None)
         }
       }
     }
@@ -122,10 +123,10 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     }
 
   def update(key: K, value: V): BAG[OK] =
-    bag.point(core.update(key, Some(value)))
+    bag.point(core.update(key, value))
 
   def update(from: K, to: K, value: V): BAG[OK] =
-    bag.point(core.update(from, to, Some(value)))
+    bag.point(core.update(from, to, value))
 
   def update(keyValues: (K, V)*): BAG[OK] =
     bag.point(update(keyValues))
@@ -141,7 +142,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
       core.put {
         keyValues map {
           case (key, value) =>
-            Prepare.Update(keySerializer.write(key), Some(valueSerializer.write(value)))
+            Prepare.Update(keySerializer.write(key), valueSerializer.write(value))
         }
       }
     }
@@ -191,12 +192,12 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
    * This function is mostly used for Set databases where partial ordering on the Key is provided.
    */
   def getKey(key: K): BAG[Option[K]] =
-    bag.map(core.getKey(key, core.readStates.get()))(_.map(_.read[K]))
+    bag.map(core.getKey(key, core.readStates.get()))(_.mapC(_.read[K]))
 
   def getKeyValue(key: K): BAG[Option[(K, V)]] =
-    bag.map(core.getKeyValue(key, core.readStates.get()))(_.map {
-      case (key, value) =>
-        (key.read[K], value.read[V])
+    bag.map(core.getKeyValue(key, core.readStates.get()))(_.mapC {
+      keyValue =>
+        (keyValue.left.read[K], keyValue.right.read[V])
     })
 
   def contains(key: K): BAG[Boolean] =
@@ -252,58 +253,69 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     copy(from = Some(From(key = key, orBefore = false, orAfter = true, before = false, after = false)))
 
   def headOption: BAG[Option[(K, V)]] =
-    headOption(readState = core.readStates.get())
+    bag.map(headOrNull(readState = core.readStates.get()))(Option(_))
 
-  protected def headOption(readState: ThreadReadState): BAG[Option[(K, V)]] =
-    bag.map {
-      from match {
-        case Some(from) =>
-          val fromKeyBytes: Slice[Byte] = from.key
+  protected def headOrNull(readState: ThreadReadState): BAG[(K, V)] =
+    bag.map(headOptionTupleOrNull(readState)) {
+      case TupleOrNone.None =>
+        null
 
-          if (from.before)
-            core.before(fromKeyBytes, readState)
-          else if (from.after)
-            core.after(fromKeyBytes, readState)
-          else
-            bag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
-              case some @ Some(_) =>
-                bag.success(some): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
+      case TupleOrNone.Some(left, right) =>
+        (left.read[K], right.read[V])
+    }
 
-              case _ =>
-                if (from.orAfter)
-                  core.after(fromKeyBytes, readState)
-                else if (from.orBefore)
-                  core.before(fromKeyBytes, readState)
-                else
-                  bag.success(None): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]]
-            }
+  //NOTE: is not async. use headOrNull instead
+  private def headOptionTupleOrNull(readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+    from match {
+      case Some(from) =>
+        val fromKeyBytes: Slice[Byte] = from.key
 
-        case None =>
-          if (reverseIteration) core.last(readState) else core.head(readState)
-      }
-    }(_.map {
-      case (key, value) =>
-        (key.read[K], value.read[V])
-    })
+        if (from.before)
+          core.before(fromKeyBytes, readState)
+        else if (from.after)
+          core.after(fromKeyBytes, readState)
+        else
+          bag.flatMap(core.getKeyValue(fromKeyBytes, readState)) {
+            case some @ TupleOrNone.Some(_, _) =>
+              bag.success(some)
+
+            case TupleOrNone.None =>
+              if (from.orAfter)
+                core.after(fromKeyBytes, readState)
+              else if (from.orBefore)
+                core.before(fromKeyBytes, readState)
+              else
+                bag.success(TupleOrNone.None)
+          }
+
+      case None =>
+        if (reverseIteration)
+          core.last(readState)
+        else
+          core.head(readState)
+    }
+
+  private def nextTupleOrNone(previous: (K, V), readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+    if (reverseIteration)
+      core.before(keySerializer.write(previous._1), readState)
+    else
+      core.after(keySerializer.write(previous._1), readState)
 
   def stream: Stream[(K, V)] =
     new Stream[(K, V)] {
       val readState = core.readStates.get()
-      //      override def headOption: BAG[Option[(K, V)]] =
-      //        self.headOption(readState)
-      //
-      //      override private[swaydb] def next(previous: (K, V)): BAG[Option[(K, V)]] =
-      //        bag.map {
-      //          if (reverseIteration)
-      //            core.before(keySerializer.write(previous._1), readState)
-      //          else
-      //            core.after(keySerializer.write(previous._1), readState)
-      //        }(_.map {
-      //          case (key, value) =>
-      //            (key.read[K], value.read[V])
-      //        })
-      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]) = ???
-      override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V))(implicit bag: Bag[BAG]) = ???
+
+      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[(K, V)] =
+        self.headOrNull(readState)
+
+      override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V))(implicit bag: Bag[BAG]): BAG[(K, V)] =
+        bag.map(nextTupleOrNone(previous, readState)) {
+          case TupleOrNone.None =>
+            null
+
+          case TupleOrNone.Some(left, right) =>
+            (left.read[K], right.read[V])
+        }
     }
 
   def streamer: Streamer[(K, V)] =
@@ -313,7 +325,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     bag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: BAG[Boolean] =
-    bag.map(core.headKey(core.readStates.get()))(_.isEmpty)
+    bag.map(core.headKey(core.readStates.get()))(_.isNoneC)
 
   def nonEmpty: BAG[Boolean] =
     bag.map(isEmpty)(!_)
@@ -321,17 +333,18 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def lastOption: BAG[Option[(K, V)]] =
     if (reverseIteration)
       bag.map(core.head(core.readStates.get())) {
-        case Some((key, value)) =>
+        case TupleOrNone.Some(key, value) =>
           Some((key.read[K], value.read[V]))
 
-        case _ =>
+        case TupleOrNone.None =>
           None
       }
     else
       bag.map(core.last(core.readStates.get())) {
-        case Some((key, value)) =>
+        case TupleOrNone.Some(key, value) =>
           Some((key.read[K], value.read[V]))
-        case _ =>
+
+        case TupleOrNone.None =>
           None
       }
 

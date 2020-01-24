@@ -106,17 +106,17 @@ private[core] object KeyValue {
         TupleOrNone.Some(put.key, put.getOrFetchValue)
       }
 
-    def getValue: Option[Option[Slice[Byte]]] =
+    def getValue: Option[SliceOption[Byte]] =
       if (isNoneS)
         None
       else
-        Some(this.getPut.getOrFetchValue.toOptionC)
+        Some(this.getPut.getOrFetchValue)
 
-    def getKey: Option[Slice[Byte]] =
+    def getKey: SliceOption[Byte] =
       if (isNoneS)
-        None
+        Slice.Null
       else
-        Some(this.getPut.key)
+        this.getPut.key
 
     def toOptionPut: Option[KeyValue.Put] =
       if (isNoneS)

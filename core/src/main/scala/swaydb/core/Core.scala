@@ -32,8 +32,9 @@ import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
-import swaydb.data.slice.Slice
-import swaydb.{IO, OK, Prepare, Bag}
+import swaydb.data.slice.{Slice, SliceOption}
+import swaydb.data.util.TupleOrNone
+import swaydb.{Bag, IO, OK, Prepare}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
@@ -85,7 +86,7 @@ private[swaydb] object Core {
       enableTimer = enableTimer
     )
 
-  private def prepareToMapEntry(entries: Iterator[Prepare[Slice[Byte], Option[Slice[Byte]], Slice[Byte]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
+  private def prepareToMapEntry(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
       case (mapEntry, prepare) =>
         val nextEntry =
@@ -93,7 +94,7 @@ private[swaydb] object Core {
             case Prepare.Put(key, value, expire) =>
               if (key.isEmpty) throw new Exception("Key cannot be empty.")
 
-              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value.getOrElse(Slice.Null), expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
+              MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, expire, timer.next))(LevelZeroMapEntryWriter.Level0PutWriter)
 
             case Prepare.Add(key, expire) =>
               if (key.isEmpty) throw new Exception("Key cannot be empty.")
@@ -118,10 +119,10 @@ private[swaydb] object Core {
 
               toKey map {
                 toKey =>
-                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Update(value.getOrElse(Slice.Null), None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
-                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value.getOrElse(Slice.Null), None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                  (MapEntry.Put[Slice[Byte], Memory.Range](key, Memory.Range(key, toKey, Value.FromValue.Null, Value.Update(value, None, timer.next)))(LevelZeroMapEntryWriter.Level0RangeWriter): MapEntry[Slice[Byte], Memory]) ++
+                    MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
               } getOrElse {
-                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value.getOrElse(Slice.Null), None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
+                MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next))(LevelZeroMapEntryWriter.Level0UpdateWriter)
               }
 
             case Prepare.ApplyFunction(key, toKey, function) =>
@@ -158,10 +159,10 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def put(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
     serial.execute(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): BAG[OK] =
+  def put(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
     serial.execute(zero.put(key, value))
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): BAG[OK] =
+  def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): BAG[OK] =
     serial.execute(zero.put(key, value, removeAt))
 
   /**
@@ -173,7 +174,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
    * @note If the default time order [[TimeOrder.long]] is used
    *       Times should always be unique and in incremental order for *ALL* key values.
    */
-  def put(entries: Iterator[Prepare[Slice[Byte], Option[Slice[Byte]], Slice[Byte]]]): BAG[OK] =
+  def put(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]]): BAG[OK] =
     if (entries.isEmpty)
       bag.failure(new IllegalArgumentException("Cannot write empty batch"))
     else
@@ -194,13 +195,13 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def update(key: Slice[Byte], value: Slice[Byte]): BAG[OK] =
     serial.execute(zero.update(key, value))
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): BAG[OK] =
+  def update(key: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
     serial.execute(zero.update(key, value))
 
   def update(fromKey: Slice[Byte], to: Slice[Byte], value: Slice[Byte]): BAG[OK] =
     serial.execute(zero.update(fromKey, to, value))
 
-  def update(fromKey: Slice[Byte], to: Slice[Byte], value: Option[Slice[Byte]]): BAG[OK] =
+  def update(fromKey: Slice[Byte], to: Slice[Byte], value: SliceOption[Byte]): BAG[OK] =
     serial.execute(zero.update(fromKey, to, value))
 
   def function(key: Slice[Byte], function: Slice[Byte]): BAG[OK] =
@@ -212,17 +213,17 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   def registerFunction(functionId: Slice[Byte], function: SwayFunction): BAG[OK] =
     zero.run(_.registerFunction(functionId, function))
 
-  def head(readState: ThreadReadState): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    zero.run(_.head(readState).toTuple)
+  def head(readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+    zero.run(_.head(readState).toTupleOrNone)
 
-  def headKey(readState: ThreadReadState): BAG[Option[Slice[Byte]]] =
-    zero.run(_.headKey(readState).toOptionC)
+  def headKey(readState: ThreadReadState): BAG[SliceOption[Byte]] =
+    zero.run(_.headKey(readState))
 
-  def last(readState: ThreadReadState): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    zero.run(_.last(readState).toTuple)
+  def last(readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+    zero.run(_.last(readState).toTupleOrNone)
 
-  def lastKey(readState: ThreadReadState): BAG[Option[Slice[Byte]]] =
-    zero.run(_.lastKey(readState).toOptionC)
+  def lastKey(readState: ThreadReadState): BAG[SliceOption[Byte]] =
+    zero.run(_.lastKey(readState))
 
   def bloomFilterKeyValueCount: BAG[Int] =
     zero.run(_.keyValueCount)
@@ -245,31 +246,31 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     zero.run(_.mightContainFunction(functionId))
 
   def get(key: Slice[Byte],
-          readState: ThreadReadState): BAG[Option[Option[Slice[Byte]]]] =
+          readState: ThreadReadState): BAG[Option[SliceOption[Byte]]] =
     zero.run(_.get(key, readState).getValue)
 
   def getKey(key: Slice[Byte],
-             readState: ThreadReadState): BAG[Option[Slice[Byte]]] =
-    zero.run(_.getKey(key, readState).toOptionC)
+             readState: ThreadReadState): BAG[SliceOption[Byte]] =
+    zero.run(_.getKey(key, readState))
 
   def getKeyValue(key: Slice[Byte],
-                  readState: ThreadReadState): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    zero.run(_.get(key, readState).toTuple)
+                  readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+    zero.run(_.get(key, readState).toTupleOrNone)
 
   def before(key: Slice[Byte],
-             readState: ThreadReadState): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    zero.run(_.lower(key, readState).toTuple)
+             readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+    zero.run(_.lower(key, readState).toTupleOrNone)
 
   def beforeKey(key: Slice[Byte],
-                readState: ThreadReadState): BAG[Option[Slice[Byte]]] =
+                readState: ThreadReadState): BAG[SliceOption[Byte]] =
     zero.run(_.lower(key, readState).getKey)
 
   def after(key: Slice[Byte],
-            readState: ThreadReadState): BAG[Option[(Slice[Byte], Option[Slice[Byte]])]] =
-    zero.run(_.higher(key, readState).toTuple)
+            readState: ThreadReadState): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+    zero.run(_.higher(key, readState).toTupleOrNone)
 
   def afterKey(key: Slice[Byte],
-               readState: ThreadReadState): BAG[Option[Slice[Byte]]] =
+               readState: ThreadReadState): BAG[SliceOption[Byte]] =
     zero.run(_.higher(key, readState).getKey)
 
   def valueSize(key: Slice[Byte],

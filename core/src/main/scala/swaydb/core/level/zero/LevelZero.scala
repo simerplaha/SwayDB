@@ -228,15 +228,15 @@ private[swaydb] case class LevelZero(path: Path,
     OK.instance
   }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]], removeAt: Deadline): OK = {
+  def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), Some(removeAt), timer.next)))
+    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), timer.next)))
     OK.instance
   }
 
-  def put(key: Slice[Byte], value: Option[Slice[Byte]]): OK = {
+  def put(key: Slice[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value.getOrElse(Slice.Null), None, timer.next)))
+    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
     OK.instance
   }
 
@@ -295,16 +295,13 @@ private[swaydb] case class LevelZero(path: Path,
     OK.instance
   }
 
-  def update(key: Slice[Byte], value: Option[Slice[Byte]]): OK = {
+  def update(key: Slice[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Update(key, value.getOrElse(Slice.Null), None, timer.next)))
+    maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
     OK.instance
   }
 
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Slice[Byte]): OK =
-    update(fromKey, toKey, Some(value))
-
-  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: Option[Slice[Byte]]): OK = {
+  def update(fromKey: Slice[Byte], toKey: Slice[Byte], value: SliceOption[Byte]): OK = {
     validateInput(fromKey, toKey)
 
     if (fromKey equiv toKey)
@@ -319,9 +316,9 @@ private[swaydb] case class LevelZero(path: Path,
                 fromKey = fromKey,
                 toKey = toKey,
                 fromValue = Value.FromValue.Null,
-                rangeValue = Value.Update(value.getOrElse(Slice.Null), None, timer.next)
+                rangeValue = Value.Update(value, None, timer.next)
               )
-            ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value.getOrElse(Slice.Null), None, timer.next))
+            ): MapEntry[Slice[Byte], Memory]) ++ MapEntry.Put[Slice[Byte], Memory.Update](toKey, Memory.Update(toKey, value, None, timer.next))
         }
 
     OK.instance

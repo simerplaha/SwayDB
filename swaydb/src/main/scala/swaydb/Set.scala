@@ -46,7 +46,8 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
                                                                                     bag: Bag[BAG]) { self =>
 
   def get(elem: A): BAG[Option[A]] =
-    bag.map(core.getKey(elem, core.readStates.get()))(_.map(_.read[A]))
+  //    bag.map(core.getKey(elem, core.readStates.get()))(_.map(_.read[A]))
+    ???
 
   def contains(elem: A): BAG[Boolean] =
     bag.point(core.contains(elem, core.readStates.get()))
@@ -76,7 +77,8 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     add(elems.iterator)
 
   def add(elems: Iterator[A]): BAG[OK] =
-    bag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
+  //    bag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
+    ???
 
   def remove(elem: A): BAG[OK] =
     bag.point(core.remove(elem))
@@ -192,33 +194,34 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     headOption(core.readStates.get())
 
   protected def headOption(readState: ThreadReadState): BAG[Option[A]] =
-    bag.map {
-      from match {
-        case Some(from) =>
-          val fromKeyBytes: Slice[Byte] = from.key
-          if (from.before)
-            core.beforeKey(fromKeyBytes, readState)
-          else if (from.after)
-            core.afterKey(fromKeyBytes, readState)
-          else
-            bag.flatMap(core.getKey(fromKeyBytes, readState)) {
-              case Some(key) =>
-                bag.success(Some(key)): BAG[Option[Slice[Byte]]]
-
-              case _ =>
-                if (from.orAfter)
-                  core.afterKey(fromKeyBytes, readState)
-                else if (from.orBefore)
-                  core.beforeKey(fromKeyBytes, readState)
-                else
-                  bag.success(None): BAG[Option[Slice[Byte]]]
-            }
-
-        case None =>
-          if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
-
-      }
-    }(_.map(_.read[A]))
+  //    bag.map {
+  //      from match {
+  //        case Some(from) =>
+  //          val fromKeyBytes: Slice[Byte] = from.key
+  //          if (from.before)
+  //            core.beforeKey(fromKeyBytes, readState)
+  //          else if (from.after)
+  //            core.afterKey(fromKeyBytes, readState)
+  //          else
+  //            bag.flatMap(core.getKey(fromKeyBytes, readState)) {
+  //              case Some(key) =>
+  //                bag.success(Some(key)): BAG[Option[Slice[Byte]]]
+  //
+  //              case _ =>
+  //                if (from.orAfter)
+  //                  core.afterKey(fromKeyBytes, readState)
+  //                else if (from.orBefore)
+  //                  core.beforeKey(fromKeyBytes, readState)
+  //                else
+  //                  bag.success(None): BAG[Option[Slice[Byte]]]
+  //            }
+  //
+  //        case None =>
+  //          if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
+  //
+  //      }
+  //    }(_.map(_.read[A]))
+    ???
 
   def stream: Stream[A] =
     new Stream[A] {
@@ -244,16 +247,18 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     bag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: BAG[Boolean] =
-    bag.map(core.headKey(core.readStates.get()))(_.isEmpty)
+  //    bag.map(core.headKey(core.readStates.get()))(_.isEmpty)
+    ???
 
   def nonEmpty: BAG[Boolean] =
     bag.map(isEmpty)(!_)
 
   def lastOption: BAG[Option[A]] =
-    if (reverseIteration)
-      bag.map(core.headKey(core.readStates.get()))(_.map(_.read[A]))
-    else
-      bag.map(core.lastKey(core.readStates.get()))(_.map(_.read[A]))
+  //    if (reverseIteration)
+  //      bag.map(core.headKey(core.readStates.get()))(_.map(_.read[A]))
+  //    else
+  //      bag.map(core.lastKey(core.readStates.get()))(_.map(_.read[A]))
+    ???
 
   def reverse: Set[A, F, BAG] =
     copy(reverseIteration = true)
