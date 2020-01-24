@@ -139,7 +139,12 @@ sealed trait LevelSegmentSpec extends TestBase with MockFactory {
         level.putKeyValuesTest(keyValues2).runRandomIO.right.value
         level.isEmpty shouldBe false
 
-        val segments = Seq(TestSegment(keyValues1).runRandomIO.right.value, TestSegment(keyValues3).runRandomIO.right.value)
+        val segments =
+          Seq(
+            TestSegment(keyValues1, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue)),
+            TestSegment(keyValues3, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue))
+          )
+
         level.put(segments).right.right.value.right.value should contain only level.levelNumber
 
         assertReads(allKeyValues, level)

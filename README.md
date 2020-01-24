@@ -58,6 +58,9 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases 
 unless it's requested.
 
+See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release) that are 
+required before SwayDB is production ready. 
+
 ## Related GitHub projects
 - [SwayDB.java.examples](https://github.com/simerplaha/SwayDB.java.examples) - Java examples demonstrating features and APIs.
 - [SwayDB.kotlin.examples](https://github.com/simerplaha/SwayDB.kotlin.examples) - Kotlin examples demonstrating features and APIs.
