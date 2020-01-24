@@ -67,6 +67,12 @@ package object serializers {
 
   implicit class DecodeOptionSliceOption(slice: SliceOption[Byte]) {
     @inline final def read[T](implicit serializer: Serializer[T]): T =
-      slice.valueOrElseC(serializer.read, serializer.read(Slice.emptyBytes))
+      slice match {
+        case slice: Slice[Byte] =>
+          serializer.read(slice)
+
+        case Slice.Null =>
+          serializer.read(Slice.emptyBytes)
+      }
   }
 }

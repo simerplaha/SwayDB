@@ -261,7 +261,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
         null
 
       case TupleOrNone.Some(left, right) =>
-        (left.read[K], right.read[V])
+        val key = left.read[K]
+        val value = right.read[V]
+        (key, value)
     }
 
   private def headOptionTupleOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
