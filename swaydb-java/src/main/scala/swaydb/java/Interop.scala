@@ -19,27 +19,26 @@
 
 package swaydb.java
 
-import swaydb.Apply
-import swaydb.IO.ThrowableIO
+import swaydb.{Apply, Bag}
 
 import scala.reflect.ClassTag
 
 object Interop {
 
   /**
-   * Experimental function that Converts a Scala [[swaydb.Map]] into [[swaydb.java.MapIO]].
+   * Experimental function that Converts a Scala [[swaydb.Map]] into [[swaydb.java.Map]].
    *
-   * When working with Java and Scala both in the same application invoke [[swaydb.java.MapIO.asScala]] to access the
+   * When working with Java and Scala both in the same application invoke [[swaydb.java.Map.asScala]] to access the
    * map is Scala. Converting from Scala to Java is not recommended since Java implementation is
    * dependant on Scala implementation and not the other way around (One way - Java -> Scala).
    */
   private class InteropImplicit[K, V, F, T[_]](map: swaydb.Map[K, V, F, T]) {
-    @inline final def asJava(implicit tag: ClassTag[F]): MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] = {
-      val scalaMap: swaydb.Map[K, V, F, ThrowableIO] = map.toBag[swaydb.IO.ThrowableIO]
+    @inline final def asJava(implicit tag: ClassTag[F]): Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] = {
+      val scalaMap: swaydb.Map[K, V, F, Bag.Less] = map.toBag[Bag.Less]
       if (tag == ClassTag.Nothing)
-        MapIO[K, V, swaydb.java.PureFunction.VoidM[K, V]](scalaMap).asInstanceOf[MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
+        Map[K, V, swaydb.java.PureFunction.VoidM[K, V]](scalaMap).asInstanceOf[Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
       else
-        MapIO[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]](scalaMap)
+        Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]](scalaMap)
     }
   }
 

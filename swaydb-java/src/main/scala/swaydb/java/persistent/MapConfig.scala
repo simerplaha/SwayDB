@@ -42,7 +42,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
-object Map {
+object MapConfig {
 
   class Config[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]], SF](@BeanProperty var dir: Path,
                                                                              @BeanProperty var maxOpenSegments: Int = 1000,
@@ -72,45 +72,42 @@ object Map {
 
     implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 
-    def init(): IO[Throwable, swaydb.java.MapIO[K, V, F]] =
-      IO.fromScala {
-        swaydb.IO {
-          val scalaMap =
-            swaydb.persistent.Map[K, V, SF, swaydb.IO.ThrowableIO](
-              dir = dir,
-              maxOpenSegments = maxOpenSegments,
-              memoryCacheSize = memoryCacheSize,
-              blockSize = blockSize,
-              mapSize = mapSize,
-              mmapMaps = mmapMaps,
-              recoveryMode = recoveryMode,
-              mmapAppendix = mmapAppendix,
-              mmapSegments = mmapSegments,
-              minSegmentSize = minSegmentSize,
-              appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-              otherDirs = otherDirs,
-              memorySweeperPollInterval = memorySweeperPollInterval.toScala,
-              fileSweeperPollInterval = fileSweeperPollInterval.toScala,
-              mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-              compressDuplicateValues = compressDuplicateValues,
-              deleteSegmentsEventually = deleteSegmentsEventually,
-              acceleration = acceleration.asScala
-            )(keySerializer = keySerializer,
-              valueSerializer = valueSerializer,
-              functionClassTag = functionClassTag,
-              tag = Bag.throwableIO,
-              keyOrder = Left(scalaKeyOrder),
-              fileSweeperEC = fileSweeperEC
-            ).get
+    def init(): swaydb.java.Map[K, V, F] = {
+      val scalaMap =
+        swaydb.persistent.Map[K, V, SF, Bag.Less](
+          dir = dir,
+          maxOpenSegments = maxOpenSegments,
+          memoryCacheSize = memoryCacheSize,
+          blockSize = blockSize,
+          mapSize = mapSize,
+          mmapMaps = mmapMaps,
+          recoveryMode = recoveryMode,
+          mmapAppendix = mmapAppendix,
+          mmapSegments = mmapSegments,
+          minSegmentSize = minSegmentSize,
+          appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+          otherDirs = otherDirs,
+          memorySweeperPollInterval = memorySweeperPollInterval.toScala,
+          fileSweeperPollInterval = fileSweeperPollInterval.toScala,
+          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+          compressDuplicateValues = compressDuplicateValues,
+          deleteSegmentsEventually = deleteSegmentsEventually,
+          acceleration = acceleration.asScala
+        )(keySerializer = keySerializer,
+          valueSerializer = valueSerializer,
+          functionClassTag = functionClassTag,
+          tag = Bag.bagless,
+          keyOrder = Left(scalaKeyOrder),
+          fileSweeperEC = fileSweeperEC
+        ).get
 
-          swaydb.java.MapIO[K, V, F](scalaMap)
-        }
-      }
+      swaydb.java.Map[K, V, F](scalaMap)
+    }
   }
 
-  def configFunctions[K, V, F](dir: Path,
-                               keySerializer: JavaSerializer[K],
-                               valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, Apply.Map[V]]] =
+  def withFunctions[K, V, F](dir: Path,
+                             keySerializer: JavaSerializer[K],
+                             valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, Apply.Map[V]]] =
     new Config(
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
@@ -118,9 +115,9 @@ object Map {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
     )
 
-  def config[K, V](dir: Path,
-                   keySerializer: JavaSerializer[K],
-                   valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction.VoidM[K, V], Void] =
+  def withoutFunctions[K, V](dir: Path,
+                             keySerializer: JavaSerializer[K],
+                             valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction.VoidM[K, V], Void] =
     new Config[K, V, swaydb.java.PureFunction.VoidM[K, V], Void](
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),

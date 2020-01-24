@@ -36,7 +36,7 @@ class StreamIOSpec extends StreamSpec[IO.ApiIO] {
   override def get[A](a: IO.ApiIO[A]): A = a.get
 }
 
-class StreamIDSpec extends StreamSpec[Bag.Less] {
+class StreamBagLessSpec extends StreamSpec[Bag.Less] {
   override def get[A](a: Bag.Less[A]): A = a
 }
 
@@ -141,7 +141,7 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
 
     "collectFirst" in {
       Stream[Int](1 to 1000)
-        .collectFirst[Int, T] { case n: Int if n % 2 == 0 => n }
+        .collectFirst[Int, T] { case n if n % 2 == 0 => n }
         .await should contain(2)
     }
 

@@ -441,7 +441,10 @@ private[throttle] object ThrottleCompaction extends Compaction[ThrottleState] wi
             .removeSegments(segments)
             //transform because remove might be eventual depending on the level's config.
             .transform(_ => segments.size)
-            .recover(_ => segments.size)
+            .recover {
+              case _ =>
+                segments.size
+            }
 
         case IO.Left(error) =>
           IO.Left(error)

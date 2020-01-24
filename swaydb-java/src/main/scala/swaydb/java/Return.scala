@@ -34,12 +34,12 @@ sealed trait Return[+V]
 object Return {
 
   /**
-   * Return types for [[swaydb.java.PureFunction]] used in [[swaydb.java.MapIO]]
+   * Return types for [[swaydb.java.PureFunction]] used in [[swaydb.java.Map]]
    */
   sealed trait Map[V] extends Return[V]
 
   /**
-   * Return types for [[swaydb.java.PureFunction]] used in [[swaydb.java.SetIO]]
+   * Return types for [[swaydb.java.PureFunction]] used in [[swaydb.java.Set]]
    */
   sealed trait Set[V] extends Return[V]
 

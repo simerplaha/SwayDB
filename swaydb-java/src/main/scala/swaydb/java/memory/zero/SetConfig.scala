@@ -36,7 +36,7 @@ import scala.beans.BeanProperty
 import scala.compat.java8.FunctionConverters._
 import scala.reflect.ClassTag
 
-object Set {
+object SetConfig {
 
   class Config[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], SF](@BeanProperty var mapSize: Int = 4.mb,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
@@ -46,31 +46,28 @@ object Set {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
-    def init(): IO[Throwable, swaydb.java.SetIO[A, F]] =
-      IO.fromScala {
-        swaydb.IO {
-          val scalaMap =
-            swaydb.memory.zero.Set[A, SF, swaydb.IO.ThrowableIO](
-              mapSize = mapSize,
-              acceleration = acceleration.asScala
-            )(serializer = serializer,
-              functionClassTag = functionClassTag,
-              tag = Bag.throwableIO,
-              keyOrder = Left(scalaKeyOrder)
-            ).get
+    def init(): swaydb.java.Set[A, F] = {
+      val scalaMap =
+        swaydb.memory.zero.Set[A, SF, Bag.Less](
+          mapSize = mapSize,
+          acceleration = acceleration.asScala
+        )(serializer = serializer,
+          functionClassTag = functionClassTag,
+          tag = Bag.bagless,
+          keyOrder = Left(scalaKeyOrder)
+        ).get
 
-          swaydb.java.SetIO[A, F](scalaMap)
-        }
-      }
+      swaydb.java.Set[A, F](scalaMap)
+    }
   }
 
-  def configWithFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =
+  def withFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
     )
 
-  def config[A](serializer: JavaSerializer[A]): Config[A, PureFunction.VoidS[A], Void] =
+  def withoutFunctions[A](serializer: JavaSerializer[A]): Config[A, PureFunction.VoidS[A], Void] =
     new Config[A, swaydb.java.PureFunction.VoidS[A], Void](
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]

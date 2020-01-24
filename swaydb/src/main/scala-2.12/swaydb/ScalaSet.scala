@@ -26,26 +26,26 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaSet {
 
-  def apply[A, F](db: Set[A, F, IO.ApiIO]): mutable.Set[A] =
+  def apply[A, F](db: Set[A, F, Bag.Less]): mutable.Set[A] =
     new ScalaSetBase[A, F](db) {
 
       override def +=(elem: A): this.type = {
-        db.add(elem).get
+        db.add(elem)
         this
       }
 
       override def -=(elem: A): this.type = {
-        db.remove(elem).get
+        db.remove(elem)
         this
       }
 
       override def --=(xs: TraversableOnce[A]): this.type = {
-        db.remove(xs.toIterable).get
+        db.remove(xs.toIterable)
         this
       }
 
       override def ++=(xs: TraversableOnce[A]): this.type = {
-        db.add(xs.toIterable).get
+        db.add(xs.toIterable)
         this
       }
     }

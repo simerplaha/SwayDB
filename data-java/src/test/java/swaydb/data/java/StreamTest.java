@@ -21,7 +21,6 @@ package swaydb.data.java;
 
 import org.junit.jupiter.api.Test;
 import swaydb.java.Stream;
-import swaydb.java.StreamIO;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,29 +32,27 @@ class StreamTest {
   List<Integer> source = Arrays.asList(1, 2, 3, 4, 5);
 
   @Test
-  void mapIO() throws Throwable {
+  void mapIO() {
 
-    StreamIO<Integer> stream = Stream.create(source.iterator());
+    Stream<Integer> stream = Stream.create(source.iterator());
 
     List<Integer> streamIntegers =
       stream
         .map(integer -> integer + 10)
-        .materialize()
-        .tryGet();
+        .materialize();
 
     assertEquals(Arrays.asList(11, 12, 13, 14, 15), streamIntegers);
   }
 
   @Test
-  void flatMapIO() throws Throwable {
+  void flatMapIO() {
 
-    StreamIO<Integer> stream = Stream.create(source.iterator());
+    Stream<Integer> stream = Stream.create(source.iterator());
 
     List<Integer> streamIntegers =
       stream
         .flatMap(integer -> Stream.create(Collections.singletonList(integer + 20).iterator()))
-        .materialize()
-        .tryGet();
+        .materialize();
 
     assertEquals(Arrays.asList(21, 22, 23, 24, 25), streamIntegers);
   }

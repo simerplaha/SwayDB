@@ -50,7 +50,7 @@ sealed trait PureFunction[+K, +V, +R <: Return[V]] {
 /**
  * Function types for SwayDB.
  *
- * Your registered functions ([[MapIO.registerFunction]]) should implement one of the these functions that
+ * Your registered functions ([[Map.registerFunction]]) should implement one of the these functions that
  * informs SwayDB of target data for the on the applied key should be read to execute the function.
  */
 object PureFunction {
@@ -60,7 +60,7 @@ object PureFunction {
       case _: VoidM[_, _] =>
 
         /**
-         * currently there is no type-safe way to omit this type from [[MapIO]] & [[SetIO]] classes.
+         * currently there is no type-safe way to omit this type from [[Map]] & [[Set]] classes.
          *
          * These functions work very well in Scala but in Scala to add safety to user's APIs [[VoidM]] type is required.
          */
@@ -108,12 +108,12 @@ object PureFunction {
     }
 
   /**
-   * Type used to indicate disabled functions for [[swaydb.java.MapIO]]
+   * Type used to indicate disabled functions for [[swaydb.java.Map]]
    */
   final abstract class VoidM[K, V] extends PureFunction[K, V, Return.Map[V]]
 
   /**
-   * Type used to indicate disabled functions for [[swaydb.java.SetIO]]
+   * Type used to indicate disabled functions for [[swaydb.java.Set]]
    */
   final abstract class VoidS[K] extends PureFunction.OnKey[K, Void, Return.Set[Void]]
 

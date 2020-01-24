@@ -110,10 +110,7 @@ private[swaydb] object Step {
       if (take.contains(currentSize))
         bag.success(previousResult)
       else
-        bag.flatMap(
-          stream
-            .nextOrNull(previous)(bag)
-        ) {
+        bag.flatMap(stream.nextOrNull(previous)(bag)) {
           case null =>
             bag.success(previousResult)
 

@@ -19,50 +19,91 @@
 
 package swaydb.java
 
+import java.util.Optional
+import java.util.function.{BiFunction, Consumer, Predicate}
+
 import swaydb.Bag
 import swaydb.java.data.util.Java._
 
+import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
-import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.compat._
 
 object Stream {
-  def fromScala[A](stream: swaydb.Stream[A, swaydb.IO.ThrowableIO]): StreamIO[A] =
-    new StreamIO(stream)
+  def fromScala[A](stream: swaydb.Stream[A]): Stream[A] =
+    new Stream(stream)
 
-  def fromScala[A](stream: swaydb.Stream[A, scala.concurrent.Future])(implicit ec: ExecutionContext): StreamFuture[A] =
-    new StreamFuture(stream)
+  def create[A](iterator: java.util.Iterator[A]): Stream[A] =
+    new Stream[A](swaydb.Stream(iterator.asScala.to(Iterable)))
 
-  def create[A](iterator: java.util.Iterator[A]): StreamIO[A] =
-    new StreamIO[A](swaydb.Stream(iterator.asScala.to(Iterable)))
+  def create[A](iterator: java.util.List[A]): Stream[A] =
+    new Stream[A](swaydb.Stream(iterator.asScala))
 
-  def create[A](iterator: java.util.List[A]): StreamIO[A] =
-    new StreamIO[A](swaydb.Stream(iterator.asScala))
+  def create[A](iterator: java.util.Collection[A]): Stream[A] =
+    new Stream[A](swaydb.Stream(iterator.asScala))
 
-  def create[A](iterator: java.util.Collection[A]): StreamIO[A] =
-    new StreamIO[A](swaydb.Stream(iterator.asScala))
+  def range(from: Integer, to: Integer): Stream[Integer] =
+    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer]])
 
-  def create[A](ioStreamer: IOStreamer[A]): StreamIO[A] =
-    new StreamIO(swaydb.Stream(ioStreamer.toScalaStreamer))
+  def rangeUntil(from: Integer, toExclusive: Integer): Stream[Integer] =
+    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer]])
 
-  def range(from: Integer, to: Integer): StreamIO[Integer] =
-    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, to).asInstanceOf[swaydb.Stream[Integer, swaydb.IO.ThrowableIO]])
+  def range(from: Character, to: Character): Stream[Character] =
+    new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character]])
 
-  def rangeUntil(from: Integer, toExclusive: Integer): StreamIO[Integer] =
-    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, toExclusive).asInstanceOf[swaydb.Stream[Integer, swaydb.IO.ThrowableIO]])
+  def rangeUntil(from: Character, toExclusive: Character): Stream[Character] =
+    new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character]])
 
-  def range(from: Character, to: Character): StreamIO[Character] =
-    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, to).asInstanceOf[swaydb.Stream[Character, swaydb.IO.ThrowableIO]])
+  def tabulate[T](count: Int, function: JavaFunction[Int, T]): Stream[T] =
+    new Stream(swaydb.Stream.tabulate[T](count)(function.apply))
+}
 
-  def rangeUntil(from: Character, toExclusive: Character): StreamIO[Character] =
-    new StreamIO(swaydb.Stream.range[swaydb.IO.ThrowableIO](from, toExclusive).asInstanceOf[swaydb.Stream[Character, swaydb.IO.ThrowableIO]])
+class Stream[A](val asScala: swaydb.Stream[A]) {
+  implicit val javaThrowableExceptionHandler = swaydb.java.IO.throwableExceptionHandler
+  implicit val bag = Bag.bagless
 
-  def tabulate[T](count: Int, function: JavaFunction[Int, T]): StreamIO[T] =
-    new StreamIO(swaydb.Stream.tabulate[T, swaydb.IO.ThrowableIO](count)(function.apply))
+  def forEach(consumer: Consumer[A]): Stream[Unit] =
+    new Stream[Unit](asScala.foreach(consumer.asScala))
 
-  def create[A](ioStreamer: FutureStreamer[A]): StreamFuture[A] = {
-    implicit val ec: ExecutionContext = ioStreamer.executorService.asScala
-    implicit val tag: Bag.Async.Retryable[Future] = Bag.future(ec)
-    new StreamFuture(swaydb.Stream(ioStreamer.toScalaStreamer))
-  }
+  def map[B](function: JavaFunction[A, B]): Stream[B] =
+    Stream.fromScala(asScala.map(function.asScala))
+
+  def flatMap[B](function: JavaFunction[A, Stream[B]]): Stream[B] =
+    Stream.fromScala(asScala.flatMap(function.asScala(_).asScala))
+
+  def drop(count: Int): Stream[A] =
+    Stream.fromScala(asScala.drop(count))
+
+  def dropWhile(predicate: Predicate[A]): Stream[A] =
+    Stream.fromScala(asScala.dropWhile(predicate.test))
+
+  def take(count: Int): Stream[A] =
+    Stream.fromScala(asScala.take(count))
+
+  def takeWhile(predicate: Predicate[A]): Stream[A] =
+    Stream.fromScala(asScala.takeWhile(predicate.test))
+
+  def filter(predicate: Predicate[A]): Stream[A] =
+    Stream.fromScala(asScala.filter(predicate.test))
+
+  def filterNot(predicate: Predicate[A]): Stream[A] =
+    Stream.fromScala(asScala.filterNot(predicate.test))
+
+  def lastOption: Optional[A] =
+    asScala.lastOption.asJava
+
+  def headOption: Optional[A] =
+    asScala.headOption.asJava
+
+  def foldLeft[B](initial: B, function: BiFunction[B, A, B]): B =
+    asScala.foldLeft(initial)(function.asScala)(bag)
+
+  def count(predicate: Predicate[A]): Int =
+    asScala.count(predicate.test)(bag)
+
+  def size: Int =
+    asScala.size(bag)
+
+  def materialize: java.util.List[A] =
+    asScala.materialize.asJava
 }

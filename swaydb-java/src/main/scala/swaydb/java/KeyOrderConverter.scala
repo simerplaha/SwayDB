@@ -50,5 +50,4 @@ protected object KeyOrderConverter {
             comparator.compare(ByteSlice(left), ByteSlice(right))
         }
       )
-
 }

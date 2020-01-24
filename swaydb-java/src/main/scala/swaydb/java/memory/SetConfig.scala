@@ -40,7 +40,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
-object Set {
+object SetConfig {
 
   class Config[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], SF](@BeanProperty var mapSize: Int = 4.mb,
                                                                                       @BeanProperty var minSegmentSize: Int = 2.mb,
@@ -59,38 +59,35 @@ object Set {
 
     implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 
-    def init(): IO[Throwable, swaydb.java.SetIO[A, F]] =
-      new IO(
-        swaydb.IO {
-          val scalaMap =
-            swaydb.memory.Set[A, SF, swaydb.IO.ThrowableIO](
-              mapSize = mapSize,
-              minSegmentSize = minSegmentSize,
-              maxOpenSegments = maxOpenSegments,
-              maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
-              fileSweeperPollInterval = fileSweeperPollInterval.toScala,
-              mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-              deleteSegmentsEventually = deleteSegmentsEventually,
-              acceleration = acceleration.asScala
-            )(serializer = serializer,
-              functionClassTag = functionClassTag,
-              tag = Bag.throwableIO,
-              keyOrder = Left(scalaKeyOrder),
-              fileSweeperEC = fileSweeperEC
-            ).get
+    def init(): swaydb.java.Set[A, F] = {
+      val scalaMap =
+        swaydb.memory.Set[A, SF, Bag.Less](
+          mapSize = mapSize,
+          minSegmentSize = minSegmentSize,
+          maxOpenSegments = maxOpenSegments,
+          maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
+          fileSweeperPollInterval = fileSweeperPollInterval.toScala,
+          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+          deleteSegmentsEventually = deleteSegmentsEventually,
+          acceleration = acceleration.asScala
+        )(serializer = serializer,
+          functionClassTag = functionClassTag,
+          tag = Bag.bagless,
+          keyOrder = Left(scalaKeyOrder),
+          fileSweeperEC = fileSweeperEC
+        ).get
 
-          swaydb.java.SetIO[A, F](scalaMap)
-        }
-      )(IO.throwableExceptionHandler)
+      swaydb.java.Set[A, F](scalaMap)
+    }
   }
 
-  def configWithFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =
+  def withFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
     )
 
-  def config[A](serializer: JavaSerializer[A]): Config[A, PureFunction.VoidS[A], Void] =
+  def withoutFunctions[A](serializer: JavaSerializer[A]): Config[A, PureFunction.VoidS[A], Void] =
     new Config[A, PureFunction.VoidS[A], Void](
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]

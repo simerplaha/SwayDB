@@ -26,26 +26,26 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaMap {
 
-  def apply[K, V, F](db: Map[K, V, F, IO.ApiIO]): mutable.Map[K, V] =
+  def apply[K, V, F](db: Map[K, V, F, Bag.Less]): mutable.Map[K, V] =
     new ScalaMapBase[K, V, F](db) {
 
       override def +=(kv: (K, V)): this.type = {
-        db.put(kv._1, kv._2).get
+        db.put(kv._1, kv._2)
         this
       }
 
       override def -=(key: K): this.type = {
-        db.remove(key).get
+        db.remove(key)
         this
       }
 
       override def --=(xs: TraversableOnce[K]): this.type = {
-        db.remove(xs.toIterable).get
+        db.remove(xs.toIterable)
         this
       }
 
       override def ++=(xs: TraversableOnce[(K, V)]): this.type = {
-        db.put(xs.toIterable).get
+        db.put(xs.toIterable)
         this
       }
     }
