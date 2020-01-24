@@ -39,7 +39,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
                                 private val from: Option[From[K]] = None,
                                 private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
                                                                                        valueSerializer: Serializer[V],
-                                                                                       val bag: Bag[BAG]) { self =>
+                                                                                       bag: Bag[BAG]) { self =>
 
   def put(key: K, value: V): BAG[OK] =
     bag.point(core.put(key = key, value = value))
@@ -264,7 +264,6 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
         (left.read[K], right.read[V])
     }
 
-  //NOTE: is not async. use headOrNull instead
   private def headOptionTupleOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     from match {
       case Some(from) =>
@@ -317,9 +316,6 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
             (left.read[K], right.read[V])
         }
     }
-
-  def streamer: Streamer[(K, V)] =
-    stream.streamer
 
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.point(core.bloomFilterKeyValueCount)

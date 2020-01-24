@@ -24,7 +24,7 @@ import swaydb.core.Core
 import swaydb.core.segment.ThreadReadState
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
-import swaydb.data.slice.Slice
+import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -43,11 +43,10 @@ object Set {
 case class Set[A, F, BAG[_]](private val core: Core[BAG],
                              private val from: Option[From[A]],
                              private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
-                                                                                    val bag: Bag[BAG]) { self =>
+                                                                                    bag: Bag[BAG]) { self =>
 
   def get(elem: A): BAG[Option[A]] =
-  //    bag.map(core.getKey(elem, core.readStates.get()))(_.map(_.read[A]))
-    ???
+    bag.map(core.getKey(elem, core.readStates.get()))(_.mapC(_.read[A]))
 
   def contains(elem: A): BAG[Boolean] =
     bag.point(core.contains(elem, core.readStates.get()))
@@ -77,8 +76,7 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     add(elems.iterator)
 
   def add(elems: Iterator[A]): BAG[OK] =
-  //    bag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = None, deadline = None))))
-    ???
+    bag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = Slice.Null, deadline = None))))
 
   def remove(elem: A): BAG[OK] =
     bag.point(core.remove(elem))
@@ -194,71 +192,80 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     headOption(core.readStates.get())
 
   protected def headOption(readState: ThreadReadState): BAG[Option[A]] =
-  //    bag.map {
-  //      from match {
-  //        case Some(from) =>
-  //          val fromKeyBytes: Slice[Byte] = from.key
-  //          if (from.before)
-  //            core.beforeKey(fromKeyBytes, readState)
-  //          else if (from.after)
-  //            core.afterKey(fromKeyBytes, readState)
-  //          else
-  //            bag.flatMap(core.getKey(fromKeyBytes, readState)) {
-  //              case Some(key) =>
-  //                bag.success(Some(key)): BAG[Option[Slice[Byte]]]
-  //
-  //              case _ =>
-  //                if (from.orAfter)
-  //                  core.afterKey(fromKeyBytes, readState)
-  //                else if (from.orBefore)
-  //                  core.beforeKey(fromKeyBytes, readState)
-  //                else
-  //                  bag.success(None): BAG[Option[Slice[Byte]]]
-  //            }
-  //
-  //        case None =>
-  //          if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
-  //
-  //      }
-  //    }(_.map(_.read[A]))
-    ???
+    bag.transform(headOrNull(readState))(Option(_))
+
+  private def headOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[A] =
+    bag.map(headSliceOption(readState)) {
+      case Slice.Null =>
+        null.asInstanceOf[A]
+
+      case slice: Slice[Byte] =>
+        serializer.read(slice)
+    }
+
+  private def headSliceOption[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
+    from match {
+      case Some(from) =>
+        val fromKeyBytes: Slice[Byte] = from.key
+        if (from.before)
+          core.beforeKey(fromKeyBytes, readState)
+        else if (from.after)
+          core.afterKey(fromKeyBytes, readState)
+        else
+          bag.flatMap(core.getKey(fromKeyBytes, readState)) {
+            case Slice.Null =>
+              if (from.orAfter)
+                core.afterKey(fromKeyBytes, readState)
+              else if (from.orBefore)
+                core.beforeKey(fromKeyBytes, readState)
+              else
+                bag.success(Slice.Null)
+
+            case slice: Slice[Byte] =>
+              bag.success(slice)
+          }
+
+      case None =>
+        if (reverseIteration) core.lastKey(readState) else core.headKey(readState)
+    }
+
+  private def nextSliceOption[BAG[_]](previous: A, readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
+    if (reverseIteration)
+      core.beforeKey(serializer.write(previous), readState)
+    else
+      core.afterKey(serializer.write(previous), readState)
 
   def stream: Stream[A] =
     new Stream[A] {
-      //      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
-      //        self.headOption
-      //
-      //      override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]): BAG[A] =
-      //        bag.map {
-      //          if (reverseIteration)
-      //            core.beforeKey(serializer.write(previous), core.readStates.get())
-      //          else
-      //            core.afterKey(serializer.write(previous), core.readStates.get())
-      //
-      //        }(_.map(_.read[A]))
-      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]) = ???
-      override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) = ???
-    }
+      val readState = core.readStates.get()
 
-  def streamer: Streamer[A] =
-    stream.streamer
+      override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]) =
+        self.headOrNull(readState)
+
+      override private[swaydb] def nextOrNull[BAG[_]](previous: A)(implicit bag: Bag[BAG]) =
+        bag.map(nextSliceOption(previous, readState)) {
+          case Slice.Null =>
+            null.asInstanceOf[A]
+
+          case slice: Slice[Byte] =>
+            serializer.read(slice)
+        }
+    }
 
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.point(core.bloomFilterKeyValueCount)
 
   def isEmpty: BAG[Boolean] =
-  //    bag.map(core.headKey(core.readStates.get()))(_.isEmpty)
-    ???
+    bag.map(core.headKey(core.readStates.get()))(_.isNoneC)
 
   def nonEmpty: BAG[Boolean] =
     bag.map(isEmpty)(!_)
 
   def lastOption: BAG[Option[A]] =
-  //    if (reverseIteration)
-  //      bag.map(core.headKey(core.readStates.get()))(_.map(_.read[A]))
-  //    else
-  //      bag.map(core.lastKey(core.readStates.get()))(_.map(_.read[A]))
-    ???
+    if (reverseIteration)
+      bag.map(core.headKey(core.readStates.get()))(_.mapC(_.read[A]))
+    else
+      bag.map(core.lastKey(core.readStates.get()))(_.mapC(_.read[A]))
 
   def reverse: Set[A, F, BAG] =
     copy(reverseIteration = true)
