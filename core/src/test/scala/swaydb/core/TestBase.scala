@@ -412,6 +412,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
         storage = level0Storage,
         nextLevel = nextLevel,
         enableTimer = true,
+        cacheKeyValueIds = randomBoolean(),
         throttle = throttle,
         acceleration = brake
       ).value

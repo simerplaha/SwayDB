@@ -92,6 +92,7 @@ object Map extends LazyLogging {
                            mightContainFalsePositiveRate: Double = 0.01,
                            compressDuplicateValues: Boolean = true,
                            deleteSegmentsEventually: Boolean = true,
+                           cacheKeyValueIds: Boolean = true,
                            acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                  valueSerializer: Serializer[V],
                                                                                                  functionClassTag: ClassTag[F],
@@ -103,6 +104,7 @@ object Map extends LazyLogging {
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
+      cacheKeyValueIds = cacheKeyValueIds,
       config = DefaultPersistentConfig(
         dir = dir,
         otherDirs = otherDirs,

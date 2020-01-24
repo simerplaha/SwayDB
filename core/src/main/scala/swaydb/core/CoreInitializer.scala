@@ -116,10 +116,11 @@ private[core] object CoreInitializer extends LazyLogging {
       LevelZero(
         mapSize = config.mapSize,
         storage = config.storage,
-        nextLevel = None,
         enableTimer = enableTimer,
-        throttle = config.throttle,
-        acceleration = config.acceleration
+        cacheKeyValueIds = false,
+        nextLevel = None,
+        acceleration = config.acceleration,
+        throttle = config.throttle
       ) match {
         case IO.Right(zero) =>
           bufferCleanerEC foreach (ec => BufferCleaner.initialiseCleaner(Scheduler()(ec)))
@@ -139,6 +140,7 @@ private[core] object CoreInitializer extends LazyLogging {
       storage = config.storage,
       nextLevel = None,
       enableTimer = enableTimer,
+      cacheKeyValueIds = false,
       throttle = config.throttle,
       acceleration = config.acceleration
     ) match {
@@ -186,6 +188,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
   def apply(config: SwayDBConfig,
             enableTimer: Boolean,
+            cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -287,6 +290,7 @@ private[core] object CoreInitializer extends LazyLogging {
                 mapSize = config.level0.mapSize,
                 storage = config.level0.storage,
                 enableTimer = enableTimer,
+                cacheKeyValueIds = cacheKeyValueIds,
                 nextLevel = Some(level1),
                 throttle = config.level0.throttle,
                 acceleration = config.level0.acceleration

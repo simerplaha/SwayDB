@@ -43,6 +43,7 @@ private[swaydb] object Core {
 
   def apply(config: SwayDBPersistentConfig,
             enableTimer: Boolean,
+            cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -50,12 +51,14 @@ private[swaydb] object Core {
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
+      cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache
     )
 
   def apply(config: SwayDBMemoryConfig,
             enableTimer: Boolean,
+            cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
@@ -63,6 +66,7 @@ private[swaydb] object Core {
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
+      cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache
     )

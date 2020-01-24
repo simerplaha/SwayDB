@@ -303,6 +303,7 @@ object TestData {
                       dir = level.path.getParent,
                       recovery = RecoveryMode.ReportFailure
                     ),
+                  cacheKeyValueIds = randomBoolean(),
                   nextLevel = level.nextLevel,
                   acceleration = Accelerator.brake(),
                   throttle = level.throttle

@@ -67,6 +67,7 @@ object Set extends LazyLogging {
                         mightContainFalsePositiveRate: Double = 0.01,
                         compressDuplicateValues: Boolean = true,
                         deleteSegmentsEventually: Boolean = true,
+                        cacheKeyValueIds: Boolean = true,
                         acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
                                                                                               functionClassTag: ClassTag[F],
                                                                                               tag: swaydb.Bag[T],
@@ -77,6 +78,7 @@ object Set extends LazyLogging {
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
+      cacheKeyValueIds = cacheKeyValueIds,
       config =
         DefaultEventuallyPersistentConfig(
           dir = dir,

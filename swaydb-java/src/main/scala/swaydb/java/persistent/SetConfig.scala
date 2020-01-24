@@ -60,6 +60,7 @@ object SetConfig {
                                                                                       @BeanProperty var blockSize: Int = 4098,
                                                                                       @BooleanBeanProperty var compressDuplicateValues: Boolean = true,
                                                                                       @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
+                                                                                      @BooleanBeanProperty var cacheKeyValueIds: Boolean = true,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                                       @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
                                                                                       @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.sweeperExecutorService,
@@ -90,6 +91,7 @@ object SetConfig {
           blockSize = blockSize,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
+          cacheKeyValueIds = cacheKeyValueIds,
           acceleration = acceleration.asScala
         )(serializer = serializer,
           functionClassTag = functionClassTag,

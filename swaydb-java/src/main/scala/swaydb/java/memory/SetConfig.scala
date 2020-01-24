@@ -49,6 +49,7 @@ object SetConfig {
                                                                                       @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
                                                                                       @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
                                                                                       @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
+                                                                                      @BooleanBeanProperty var cacheKeyValueIds: Boolean = true,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                                       @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
                                                                                       @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.sweeperExecutorService,
@@ -69,6 +70,7 @@ object SetConfig {
           fileSweeperPollInterval = fileSweeperPollInterval.toScala,
           mightContainFalsePositiveRate = mightContainFalsePositiveRate,
           deleteSegmentsEventually = deleteSegmentsEventually,
+          cacheKeyValueIds = cacheKeyValueIds,
           acceleration = acceleration.asScala
         )(serializer = serializer,
           functionClassTag = functionClassTag,

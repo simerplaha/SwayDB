@@ -61,6 +61,7 @@ object MapConfig {
                                                                              @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
                                                                              @BooleanBeanProperty var compressDuplicateValues: Boolean = true,
                                                                              @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
+                                                                             @BooleanBeanProperty var cacheKeyValueIds: Boolean = true,
                                                                              @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                              @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[K]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[K]](swaydb.java.SwayDB.defaultComparator),
                                                                              @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.sweeperExecutorService,
@@ -92,6 +93,7 @@ object MapConfig {
           mightContainFalsePositiveRate = mightContainFalsePositiveRate,
           compressDuplicateValues = compressDuplicateValues,
           deleteSegmentsEventually = deleteSegmentsEventually,
+          cacheKeyValueIds = cacheKeyValueIds,
           acceleration = acceleration.asScala
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,

@@ -21,6 +21,7 @@ package swaydb.core.segment.format.a.entry.reader
 
 import java.util
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
@@ -31,14 +32,16 @@ import swaydb.core.util.Bytes
 import swaydb.data.slice.{ReaderBase, Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 
-object PersistentReader {
+object PersistentReader extends LazyLogging {
 
   private var cachedBaseEntryIds: util.HashMap[Int, (TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])] = _
 
   val zeroValueOffsetAndLength = (-1, 0)
 
-  def populateBaseEntryIds() = {
+  def populateBaseEntryIds(): Unit = {
     cachedBaseEntryIds = new util.HashMap[Int, (TimeReader[_], DeadlineReader[_], ValueOffsetReader[_], ValueLengthReader[_], ValueReader[_])](BaseEntryReader.readers.head.maxID + 200)
+
+    logger.info("Caching key-value IDs ...")
 
     (BaseEntryReader.readers.head.minID to BaseEntryReader.readers.last.maxID) foreach {
       baseId =>
@@ -51,6 +54,8 @@ object PersistentReader {
           )
         cachedBaseEntryIds.put(baseId, readers)
     }
+
+    logger.info(s"Cached ${cachedBaseEntryIds.size()} key-value IDs!")
   }
 
   def read[T <: Persistent](indexOffset: Int,

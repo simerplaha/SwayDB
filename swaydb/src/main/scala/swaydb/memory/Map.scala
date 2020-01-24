@@ -49,6 +49,7 @@ object Map extends LazyLogging {
                            fileSweeperPollInterval: FiniteDuration = 10.seconds,
                            mightContainFalsePositiveRate: Double = 0.01,
                            deleteSegmentsEventually: Boolean = true,
+                           cacheKeyValueIds: Boolean = true,
                            acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                  valueSerializer: Serializer[V],
                                                                                                  functionClassTag: ClassTag[F],
@@ -59,6 +60,7 @@ object Map extends LazyLogging {
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
+      cacheKeyValueIds = cacheKeyValueIds,
       config =
         DefaultMemoryConfig(
           mapSize = mapSize,

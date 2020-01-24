@@ -36,6 +36,7 @@ import swaydb.core.map
 import swaydb.core.map.serializer.{TimerMapEntryReader, TimerMapEntryWriter}
 import swaydb.core.map.timer.Timer
 import swaydb.core.map.{MapEntry, Maps, SkipListMerger}
+import swaydb.core.segment.format.a.entry.reader.PersistentReader
 import swaydb.core.segment.{Segment, SegmentOption, ThreadReadState}
 import swaydb.core.util.{MinMax, Options}
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -44,7 +45,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
-import swaydb.{OK, IO, Bag}
+import swaydb.{Bag, IO, OK}
 
 import scala.concurrent.duration.{Deadline, _}
 import scala.jdk.CollectionConverters._
@@ -54,6 +55,7 @@ private[core] object LevelZero extends LazyLogging {
   def apply(mapSize: Long,
             storage: Level0Storage,
             enableTimer: Boolean,
+            cacheKeyValueIds: Boolean,
             nextLevel: Option[NextLevel],
             acceleration: LevelZeroMeter => Accelerator,
             throttle: LevelZeroMeter => FiniteDuration)(implicit keyOrder: KeyOrder[Slice[Byte]],
@@ -61,6 +63,11 @@ private[core] object LevelZero extends LazyLogging {
                                                         functionStore: FunctionStore): IO[swaydb.Error.Level, LevelZero] = {
     import swaydb.core.map.serializer.LevelZeroMapEntryReader.Level0Reader
     import swaydb.core.map.serializer.LevelZeroMapEntryWriter._
+
+    if (cacheKeyValueIds)
+      PersistentReader.populateBaseEntryIds()
+    else
+      logger.info("cacheKeyValueIds is false. Key-value IDs cache disabled!")
 
     //LevelZero does not required FileSweeper since they are all Map files.
     implicit val fileSweeper: FileSweeper = FileSweeper.Disabled

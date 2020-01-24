@@ -80,13 +80,15 @@ object SwayDB extends LazyLogging {
    */
   def apply[K, V, F](config: SwayDBPersistentConfig,
                      fileCache: FileCache.Enable,
-                     memoryCache: MemoryCache)(implicit keySerializer: Serializer[K],
+                     memoryCache: MemoryCache,
+                     cacheKeyValueIds: Boolean)(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                functionClassTag: ClassTag[F],
                                                keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
+      cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
@@ -96,12 +98,14 @@ object SwayDB extends LazyLogging {
 
   def apply[T, F](config: SwayDBPersistentConfig,
                   fileCache: FileCache.Enable,
-                  memoryCache: MemoryCache)(implicit serializer: Serializer[T],
+                  memoryCache: MemoryCache,
+                  cacheKeyValueIds: Boolean)(implicit serializer: Serializer[T],
                                             functionClassTag: ClassTag[F],
                                             keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
+      cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
@@ -111,13 +115,15 @@ object SwayDB extends LazyLogging {
 
   def apply[K, V, F](config: SwayDBMemoryConfig,
                      fileCache: FileCache.Enable,
-                     memoryCache: MemoryCache)(implicit keySerializer: Serializer[K],
+                     memoryCache: MemoryCache,
+                     cacheKeyValueIds: Boolean)(implicit keySerializer: Serializer[K],
                                                valueSerializer: Serializer[V],
                                                functionClassTag: ClassTag[F],
                                                keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
+      cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
@@ -127,12 +133,14 @@ object SwayDB extends LazyLogging {
 
   def apply[T, F](config: SwayDBMemoryConfig,
                   fileCache: FileCache.Enable,
-                  memoryCache: MemoryCache)(implicit serializer: Serializer[T],
+                  memoryCache: MemoryCache,
+                  cacheKeyValueIds: Boolean)(implicit serializer: Serializer[T],
                                             functionClassTag: ClassTag[F],
                                             keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
+      cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
       memoryCache = memoryCache
     ) map {
