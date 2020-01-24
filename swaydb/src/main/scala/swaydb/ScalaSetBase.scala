@@ -21,54 +21,30 @@ package swaydb
 
 import scala.collection.mutable
 
-protected abstract class ScalaSetBase[A, F](db: Set[A, F, IO.ApiIO]) extends mutable.Set[A] {
+protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Id]) extends mutable.Set[A] {
 
   override def contains(elem: A): Boolean =
-    db.contains(elem).get
+    db.contains(elem)
 
   override def iterator: Iterator[A] =
-    new Iterator[A] {
-      var nextOne: A = _
-
-      override def hasNext: Boolean =
-      //        if (nextOne == null)
-      //          db.headOption.get exists {
-      //            some =>
-      //              nextOne = some
-      //              true
-      //          }
-      //        else
-      //          db.stream.next(nextOne).get exists {
-      //            some =>
-      //              nextOne = some
-      //              true
-      //          }
-        ???
-
-      override def next(): A =
-        nextOne
-    }
+    db.iterator(Bag.idBag)
 
   override def isEmpty: Boolean =
-    db.isEmpty.get
+    db.isEmpty
 
   override def headOption: Option[A] =
-  //    db.headOption.get
-    ???
+    db.headOption
 
   override def lastOption: Option[A] =
-  //    db.lastOption.get
-    ???
+    db.lastOption
 
   override def last: A =
-  //    db.lastOption.get.get
-    ???
+    db.lastOption.get
 
   override def head: A =
-  //    db.headOption.get.get
-    ???
+    db.headOption.get
 
   override def clear(): Unit =
-    db.clear().get
+    db.clear()
 
 }

@@ -27,26 +27,26 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaMap {
 
-  def apply[K, V, F](db: Map[K, V, F, IO.ApiIO]): mutable.Map[K, V] =
+  def apply[K, V, F](db: Map[K, V, F, Bag.Id]): mutable.Map[K, V] =
     new ScalaMapBase[K, V, F](db) {
 
       override def addOne(kv: (K, V)): this.type = {
-        db.put(kv._1, kv._2).get
+        db.put(kv._1, kv._2)
         this
       }
 
       override def subtractOne(key: K): this.type = {
-        db.remove(key).get
+        db.remove(key)
         this
       }
 
       override def subtractAll(xs: IterableOnce[K]): this.type = {
-        db.remove(xs.iterator).get
+        db.remove(xs.iterator)
         this
       }
 
       override def addAll(xs: IterableOnce[(K, V)]): this.type = {
-        db.put(xs.iterator).get
+        db.put(xs.iterator)
         this
       }
     }

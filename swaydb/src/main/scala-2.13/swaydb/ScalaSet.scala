@@ -27,25 +27,25 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaSet {
 
-  def apply[A, F](db: Set[A, F, IO.ApiIO]): mutable.Set[A] =
+  def apply[A, F](db: Set[A, F, Bag.Id]): mutable.Set[A] =
     new ScalaSetBase[A, F](db) {
       override def addOne(elem: A): this.type = {
-        db.add(elem).get
+        db.add(elem)
         this
       }
 
       override def subtractOne(elem: A): this.type = {
-        db.remove(elem).get
+        db.remove(elem)
         this
       }
 
       override def subtractAll(xs: IterableOnce[A]): this.type = {
-        db.remove(xs.iterator).get
+        db.remove(xs.iterator)
         this
       }
 
       override def addAll(xs: IterableOnce[A]): this.type = {
-        db.add(xs.iterator).get
+        db.add(xs.iterator)
         this
       }
     }

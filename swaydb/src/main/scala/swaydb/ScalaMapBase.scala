@@ -21,60 +21,36 @@ package swaydb
 
 import scala.collection.mutable
 
-protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, IO.ApiIO]) extends mutable.Map[K, V] {
+protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, Bag.Id]) extends mutable.Map[K, V] {
 
   override def get(key: K): Option[V] =
-    db.get(key).get
+    db.get(key)
 
   override def iterator: Iterator[(K, V)] =
-    new Iterator[(K, V)] {
-      var nextOne: (K, V) = _
-
-      override def hasNext: Boolean =
-      //        if (nextOne == null)
-      //          db.headOption.get exists {
-      //            some =>
-      //              nextOne = some
-      //              true
-      //          }
-      //        else
-      //          db.stream.next(nextOne).get exists {
-      //            some =>
-      //              nextOne = some
-      //              true
-      //          }
-        ???
-
-      override def next(): (K, V) =
-        nextOne
-    }
+    db.iterator(Bag.idBag)
 
   override def isEmpty: Boolean =
-    db.isEmpty.get
+    db.isEmpty
 
   override def headOption: Option[(K, V)] =
-  //    db.headOption.get
-    ???
+    db.headOption
 
   override def lastOption: Option[(K, V)] =
-  //    db.lastOption.get
-    ???
+    db.lastOption
 
   override def keySet: collection.Set[K] =
     db.keys.asScala
 
   override def contains(key: K): Boolean =
-    db.contains(key).get
+    db.contains(key)
 
   override def last: (K, V) =
-  //    db.lastOption.get.get
-    ???
+    db.lastOption.get
 
   override def head: (K, V) =
-  //    db.headOption.get.get
-    ???
+    db.headOption.get
 
   override def clear(): Unit =
-    db.clear().get
+    db.clear()
 
 }
