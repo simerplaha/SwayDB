@@ -252,6 +252,9 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
         }
     }
 
+  def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[A]] =
+    stream.iterator(bag)
+
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.point(core.bloomFilterKeyValueCount)
 
@@ -284,5 +287,4 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getClass.getSimpleName
-
 }

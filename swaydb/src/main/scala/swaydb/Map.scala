@@ -317,6 +317,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
         }
     }
 
+  def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
+    stream.iterator(bag)
+
   def sizeOfBloomFilterEntries: BAG[Int] =
     bag.point(core.bloomFilterKeyValueCount)
 
