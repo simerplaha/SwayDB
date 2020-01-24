@@ -47,7 +47,7 @@ private[swaydb] class Collect[A, B](previousStream: Stream[A],
               nextMatch != null
           }
 
-      bag.map(collected) {
+      bag.transform(collected) {
         _ =>
           //return the matched result. This code could be improved if tag.collectFirst also took a pf instead of a function.
           nextMatch
