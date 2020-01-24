@@ -96,6 +96,5 @@ object Bag {
 
       override def suspend[B](f: => IO[B]): IO[B] =
         IO.suspend(f)
-
     }
 }

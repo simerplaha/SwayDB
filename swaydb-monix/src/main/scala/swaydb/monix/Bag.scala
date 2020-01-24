@@ -96,7 +96,6 @@ object Bag {
         Task.fromFuture(a)
 
       override def suspend[B](f: => Task[B]): Task[B] =
-        Task.fromEffect(f)
-
+        Task.suspend(f)
     }
 }
