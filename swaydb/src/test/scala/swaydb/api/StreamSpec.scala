@@ -36,8 +36,8 @@ class StreamIOSpec extends StreamSpec[IO.ApiIO] {
   override def get[A](a: IO.ApiIO[A]): A = a.get
 }
 
-class StreamIDSpec extends StreamSpec[Bag.Id] {
-  override def get[A](a: Bag.Id[A]): A = a
+class StreamIDSpec extends StreamSpec[Bag.Less] {
+  override def get[A](a: Bag.Less[A]): A = a
 }
 
 class StreamTrySpec extends StreamSpec[Try] {

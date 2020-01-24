@@ -49,22 +49,22 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     bag.map(core.getKey(elem, core.readStates.get()))(_.mapC(_.read[A]))
 
   def contains(elem: A): BAG[Boolean] =
-    bag.point(core.contains(elem, core.readStates.get()))
+    bag.suspend(core.contains(elem, core.readStates.get()))
 
   def mightContain(elem: A): BAG[Boolean] =
-    bag.point(core mightContainKey elem)
+    bag.suspend(core mightContainKey elem)
 
   def mightContainFunction(functionId: A): BAG[Boolean] =
-    bag.point(core mightContainFunction functionId)
+    bag.suspend(core mightContainFunction functionId)
 
   def add(elem: A): BAG[OK] =
-    bag.point(core.put(key = elem))
+    bag.suspend(core.put(key = elem))
 
   def add(elem: A, expireAt: Deadline): BAG[OK] =
-    bag.point(core.put(elem, None, expireAt))
+    bag.suspend(core.put(elem, None, expireAt))
 
   def add(elem: A, expireAfter: FiniteDuration): BAG[OK] =
-    bag.point(core.put(elem, None, expireAfter.fromNow))
+    bag.suspend(core.put(elem, None, expireAfter.fromNow))
 
   def add(elems: A*): BAG[OK] =
     add(elems)
@@ -76,13 +76,13 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     add(elems.iterator)
 
   def add(elems: Iterator[A]): BAG[OK] =
-    bag.point(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = Slice.Null, deadline = None))))
+    bag.suspend(core.put(elems.map(elem => Prepare.Put(key = serializer.write(elem), value = Slice.Null, deadline = None))))
 
   def remove(elem: A): BAG[OK] =
-    bag.point(core.remove(elem))
+    bag.suspend(core.remove(elem))
 
   def remove(from: A, to: A): BAG[OK] =
-    bag.point(core.remove(from, to))
+    bag.suspend(core.remove(from, to))
 
   def remove(elems: A*): BAG[OK] =
     remove(elems)
@@ -94,19 +94,19 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     remove(elems.iterator)
 
   def remove(elems: Iterator[A]): BAG[OK] =
-    bag.point(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
+    bag.suspend(core.put(elems.map(elem => Prepare.Remove(serializer.write(elem)))))
 
   def expire(elem: A, after: FiniteDuration): BAG[OK] =
-    bag.point(core.remove(elem, after.fromNow))
+    bag.suspend(core.remove(elem, after.fromNow))
 
   def expire(elem: A, at: Deadline): BAG[OK] =
-    bag.point(core.remove(elem, at))
+    bag.suspend(core.remove(elem, at))
 
   def expire(from: A, to: A, after: FiniteDuration): BAG[OK] =
-    bag.point(core.remove(from, to, after.fromNow))
+    bag.suspend(core.remove(from, to, after.fromNow))
 
   def expire(from: A, to: A, at: Deadline): BAG[OK] =
-    bag.point(core.remove(from, to, at))
+    bag.suspend(core.remove(from, to, at))
 
   def expire(elems: (A, Deadline)*): BAG[OK] =
     expire(elems)
@@ -118,7 +118,7 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     expire(elems.iterator)
 
   def expire(elems: Iterator[(A, Deadline)]): BAG[OK] =
-    bag.point {
+    bag.suspend {
       core.put {
         elems map {
           elemWithExpire =>
@@ -132,19 +132,19 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     }
 
   def clear(): BAG[OK] =
-    bag.point(core.clear(core.readStates.get()))
+    bag.suspend(core.clear(core.readStates.get()))
 
   def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
   def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    bag.point(core.function(from, to, function.id))
+    bag.suspend(core.function(from, to, function.id))
 
   def applyFunction[PF <: F](elem: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    bag.point(core.function(elem, function.id))
+    bag.suspend(core.function(elem, function.id))
 
   def commit[PF <: F](prepare: Prepare[A, Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    bag.point(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
 
   def commit[PF <: F](prepare: Stream[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -153,7 +153,7 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[A, Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    bag.point(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
 
   def levelZeroMeter: LevelZeroMeter =
     core.levelZeroMeter
@@ -168,7 +168,7 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     (elem: Slice[Byte]).size
 
   def expiration(elem: A): BAG[Option[Deadline]] =
-    bag.point(core.deadline(elem, core.readStates.get()))
+    bag.suspend(core.deadline(elem, core.readStates.get()))
 
   def timeLeft(elem: A): BAG[Option[FiniteDuration]] =
     bag.map(expiration(elem))(_.map(_.timeLeft))
@@ -256,7 +256,7 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     stream.iterator(bag)
 
   def sizeOfBloomFilterEntries: BAG[Int] =
-    bag.point(core.bloomFilterKeyValueCount)
+    bag.suspend(core.bloomFilterKeyValueCount)
 
   def isEmpty: BAG[Boolean] =
     bag.map(core.headKey(core.readStates.get()))(_.isNoneC)
@@ -277,13 +277,13 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     copy(core = core.toBag[X])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A, F](toBag[Bag.Id](Bag.idBag))
+    ScalaSet[A, F](toBag[Bag.Less](Bag.bagless))
 
   def close(): BAG[Unit] =
-    bag.point(core.close())
+    bag.suspend(core.close())
 
   def delete(): BAG[Unit] =
-    bag.point(core.delete())
+    bag.suspend(core.delete())
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getClass.getSimpleName

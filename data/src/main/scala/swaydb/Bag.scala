@@ -46,13 +46,13 @@ sealed trait Bag[BAG[_]] {
 
   /**
    * For Async [[Bag]]s [[apply]] will always run asynchronously but to cover
-   * cases where the operation might already be executed [[point]] is used.
+   * cases where the operation might already be executed [[suspend]] is used.
    *
    * @example All SwayDB writes occur synchronously using [[IO]]. Running completed [[IO]] in a [[Future]]
-   *          will have a performance cost. [[point]] is used to cover these cases and [[IO]]
+   *          will have a performance cost. [[suspend]] is used to cover these cases and [[IO]]
    *          types that are complete are directly converted to Future in current thread.
    */
-  @inline def point[B](f: => BAG[B]): BAG[B]
+  @inline def suspend[B](f: => BAG[B]): BAG[B]
 }
 
 object Bag extends LazyLogging {
@@ -225,7 +225,7 @@ object Bag extends LazyLogging {
         override def orElse[A, B >: A](a: X[A])(b: X[B]): X[B] =
           transfer.to(self.orElse[A, B](transfer.from(a))(transfer.from(b)))
 
-        override def point[B](f: => X[B]): X[B] = f
+        override def suspend[B](f: => X[B]): X[B] = f
       }
   }
 
@@ -260,7 +260,7 @@ object Bag extends LazyLogging {
         override def fromFuture[A](a: Future[A]): X[A] =
           transfer.to(self.fromFuture(a))
 
-        override def point[B](f: => X[B]): X[B] =
+        override def suspend[B](f: => X[B]): X[B] =
           flatMap[Unit, B](unit)(_ => f)
       }
   }
@@ -338,7 +338,7 @@ object Bag extends LazyLogging {
       override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): IO.ThrowableIO[A] =
         IO[Throwable, A](a.get)
 
-      override def point[B](f: => ThrowableIO[B]): ThrowableIO[B] =
+      override def suspend[B](f: => ThrowableIO[B]): ThrowableIO[B] =
         f
 
     }
@@ -408,7 +408,7 @@ object Bag extends LazyLogging {
       override def fromFuture[A](a: Future[A]): Future[A] =
         a
 
-      override def point[B](f: => Future[B]): Future[B] =
+      override def suspend[B](f: => Future[B]): Future[B] =
         f
 
     }
@@ -423,48 +423,48 @@ object Bag extends LazyLogging {
 
   implicit val option: Bag.Sync[Option] = throwableIO.toBag[Option]
 
-  type Id[A] = A
+  type Less[A] = A
 
-  implicit val idBag: Bag.Sync[Id] =
-    new Bag.Sync[Id] {
-      override def isSuccess[A](a: Id[A]): Boolean = true
+  implicit val bagless: Bag.Sync[Less] =
+    new Bag.Sync[Less] {
+      override def isSuccess[A](a: Less[A]): Boolean = true
 
-      override def isFailure[A](a: Id[A]): Boolean = false
+      override def isFailure[A](a: Less[A]): Boolean = false
 
-      override def exception[A](a: Id[A]): Option[Throwable] = None
+      override def exception[A](a: Less[A]): Option[Throwable] = None
 
-      override def getOrElse[A, B >: A](a: Id[A])(b: => B): B = a
+      override def getOrElse[A, B >: A](a: Less[A])(b: => B): B = a
 
-      override def getUnsafe[A](a: Id[A]): A = a
+      override def getUnsafe[A](a: Less[A]): A = a
 
-      override def orElse[A, B >: A](a: Id[A])(b: Id[B]): Id[B] = a
+      override def orElse[A, B >: A](a: Less[A])(b: Less[B]): Less[B] = a
 
-      override def unit: Id[Unit] = ()
+      override def unit: Less[Unit] = ()
 
-      override def none[A]: Id[Option[A]] = Option.empty[A]
+      override def none[A]: Less[Option[A]] = Option.empty[A]
 
-      override def apply[A](a: => A): Id[A] = a
+      override def apply[A](a: => A): Less[A] = a
 
-      override def createSerial(): Serial[Id] =
-        new Serial[Id] {
-          override def execute[F](f: => F): Id[F] = f
+      override def createSerial(): Serial[Less] =
+        new Serial[Less] {
+          override def execute[F](f: => F): Less[F] = f
         }
 
-      override def foreach[A](a: Id[A])(f: A => Unit): Unit = f(a)
+      override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
 
-      override def map[A, B](a: Id[A])(f: A => B): Id[B] = f(a)
+      override def map[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
 
-      override def transform[A, B](a: Id[A])(f: A => B): Id[B] = f(a)
+      override def transform[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
 
-      override def flatMap[A, B](fa: Id[A])(f: A => Id[B]): Id[B] = f(fa)
+      override def flatMap[A, B](fa: Less[A])(f: A => Less[B]): Less[B] = f(fa)
 
-      override def success[A](value: A): Id[A] = value
+      override def success[A](value: A): Less[A] = value
 
-      override def failure[A](exception: Throwable): Id[A] = throw exception
+      override def failure[A](exception: Throwable): Less[A] = throw exception
 
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Id[A] = a.get
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Less[A] = a.get
 
-      override def point[B](f: => Id[B]): Id[B] = f
+      override def suspend[B](f: => Less[B]): Less[B] = f
 
     }
 }

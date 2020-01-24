@@ -27,7 +27,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default.{SliceOptionSerializer, SliceSerializer}
 
 sealed trait Test {
-  val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Id]
+  val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Less]
 
   def randomWrite: Boolean
 
@@ -50,7 +50,7 @@ case class MemoryTest(keyValueCount: Long,
                       useMap: Boolean,
                       mapSize: Int,
                       segmentSize: Int) extends Test {
-  override val map = memory.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Id](mapSize = mapSize, minSegmentSize = segmentSize).get
+  override val map = memory.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Less](mapSize = mapSize, minSegmentSize = segmentSize).get
 }
 
 case class PersistentTest(dir: Path,
@@ -65,13 +65,13 @@ case class PersistentTest(dir: Path,
                           segmentSize: Int) extends Test {
   override val map =
     if (mmap)
-      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Id](
+      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Less](
         dir = dir,
         mapSize = mapSize,
         minSegmentSize = segmentSize
       ).get
     else
-      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Id](
+      persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Less](
         dir = dir,
         mmapMaps = false,
         mmapAppendix = false,

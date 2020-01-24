@@ -42,16 +42,16 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
                                                                                        bag: Bag[BAG]) { self =>
 
   def put(key: K, value: V): BAG[OK] =
-    bag.point(core.put(key = key, value = value))
+    bag.suspend(core.put(key = key, value = value))
 
   def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK] =
-    bag.point(core.put(key, value, expireAfter.fromNow))
+    bag.suspend(core.put(key, value, expireAfter.fromNow))
 
   def put(key: K, value: V, expireAt: Deadline): BAG[OK] =
-    bag.point(core.put(key, value, expireAt))
+    bag.suspend(core.put(key, value, expireAt))
 
   def put(keyValues: (K, V)*): BAG[OK] =
-    bag.point(put(keyValues))
+    bag.suspend(put(keyValues))
 
   def put(keyValues: Stream[(K, V)]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(put)
@@ -60,7 +60,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     put(keyValues.iterator)
 
   def put(keyValues: Iterator[(K, V)]): BAG[OK] =
-    bag.point {
+    bag.suspend {
       core.put {
         keyValues map {
           case (key, value) =>
@@ -70,13 +70,13 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     }
 
   def remove(key: K): BAG[OK] =
-    bag.point(core.remove(key))
+    bag.suspend(core.remove(key))
 
   def remove(from: K, to: K): BAG[OK] =
-    bag.point(core.remove(from, to))
+    bag.suspend(core.remove(from, to))
 
   def remove(keys: K*): BAG[OK] =
-    bag.point(remove(keys))
+    bag.suspend(remove(keys))
 
   def remove(keys: Stream[K]): BAG[OK] =
     bag.flatMap(keys.materialize)(remove)
@@ -85,22 +85,22 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     remove(keys.iterator)
 
   def remove(keys: Iterator[K]): BAG[OK] =
-    bag.point(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
+    bag.suspend(core.put(keys.map(key => Prepare.Remove(keySerializer.write(key)))))
 
   def expire(key: K, after: FiniteDuration): BAG[OK] =
-    bag.point(core.remove(key, after.fromNow))
+    bag.suspend(core.remove(key, after.fromNow))
 
   def expire(key: K, at: Deadline): BAG[OK] =
-    bag.point(core.remove(key, at))
+    bag.suspend(core.remove(key, at))
 
   def expire(from: K, to: K, after: FiniteDuration): BAG[OK] =
-    bag.point(core.remove(from, to, after.fromNow))
+    bag.suspend(core.remove(from, to, after.fromNow))
 
   def expire(from: K, to: K, at: Deadline): BAG[OK] =
-    bag.point(core.remove(from, to, at))
+    bag.suspend(core.remove(from, to, at))
 
   def expire(keys: (K, Deadline)*): BAG[OK] =
-    bag.point(expire(keys))
+    bag.suspend(expire(keys))
 
   def expire(keys: Stream[(K, Deadline)]): BAG[OK] =
     bag.flatMap(keys.materialize)(expire)
@@ -109,7 +109,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     expire(keys.iterator)
 
   def expire(keys: Iterator[(K, Deadline)]): BAG[OK] =
-    bag.point {
+    bag.suspend {
       core.put {
         keys map {
           keyDeadline =>
@@ -123,13 +123,13 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     }
 
   def update(key: K, value: V): BAG[OK] =
-    bag.point(core.update(key, value))
+    bag.suspend(core.update(key, value))
 
   def update(from: K, to: K, value: V): BAG[OK] =
-    bag.point(core.update(from, to, value))
+    bag.suspend(core.update(from, to, value))
 
   def update(keyValues: (K, V)*): BAG[OK] =
-    bag.point(update(keyValues))
+    bag.suspend(update(keyValues))
 
   def update(keyValues: Stream[(K, V)]): BAG[OK] =
     bag.flatMap(keyValues.materialize)(update)
@@ -138,7 +138,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     update(keyValues.iterator)
 
   def update(keyValues: Iterator[(K, V)]): BAG[OK] =
-    bag.point {
+    bag.suspend {
       core.put {
         keyValues map {
           case (key, value) =>
@@ -148,7 +148,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     }
 
   def clear(): BAG[OK] =
-    bag.point(core.clear(core.readStates.get()))
+    bag.suspend(core.clear(core.readStates.get()))
 
   def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     (function: swaydb.PureFunction[K, V, Apply.Map[V]]) match {
@@ -163,13 +163,13 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     }
 
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.point(core.function(key, function.id))
+    bag.suspend(core.function(key, function.id))
 
   def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.point(core.function(from, to, function.id))
+    bag.suspend(core.function(from, to, function.id))
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.point(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -178,7 +178,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.point(core.put(preparesToUntyped(prepare).iterator))
+    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
 
   /**
    * Returns target value for the input key.
@@ -201,13 +201,13 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     })
 
   def contains(key: K): BAG[Boolean] =
-    bag.point(core.contains(key, core.readStates.get()))
+    bag.suspend(core.contains(key, core.readStates.get()))
 
   def mightContain(key: K): BAG[Boolean] =
-    bag.point(core mightContainKey key)
+    bag.suspend(core mightContainKey key)
 
   def mightContainFunction(functionId: K): BAG[Boolean] =
-    bag.point(core mightContainFunction functionId)
+    bag.suspend(core mightContainFunction functionId)
 
   def keys: Set[K, F, BAG] =
     Set[K, F, BAG](
@@ -232,7 +232,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     (value: Slice[Byte]).size
 
   def expiration(key: K): BAG[Option[Deadline]] =
-    bag.point(core.deadline(key, core.readStates.get()))
+    bag.suspend(core.deadline(key, core.readStates.get()))
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
@@ -323,7 +323,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     stream.iterator(bag)
 
   def sizeOfBloomFilterEntries: BAG[Int] =
-    bag.point(core.bloomFilterKeyValueCount)
+    bag.suspend(core.bloomFilterKeyValueCount)
 
   def isEmpty: BAG[Boolean] =
     bag.transform(core.headKey(core.readStates.get()))(_.isNoneC)
@@ -359,13 +359,13 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     copy(core = core.toBag[X])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V, F](toBag[Bag.Id](Bag.idBag))
+    ScalaMap[K, V, F](toBag[Bag.Less](Bag.bagless))
 
   def close(): BAG[Unit] =
-    bag.point(core.close())
+    bag.suspend(core.close())
 
   def delete(): BAG[Unit] =
-    bag.point(core.delete())
+    bag.suspend(core.delete())
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getClass.getSimpleName

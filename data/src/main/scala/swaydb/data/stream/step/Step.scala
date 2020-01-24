@@ -32,7 +32,7 @@ private[swaydb] object Step {
         step.Step.foldLeftSync(initial, afterOrNull, stream, drop, take)(f)(bag)
 
       case bag: Bag.Async[T] =>
-        bag.point(step.Step.foldLeftAsync(initial, afterOrNull, stream, drop, take, f)(bag))
+        bag.suspend(step.Step.foldLeftAsync(initial, afterOrNull, stream, drop, take, f)(bag))
     }
 
   def collectFirst[A, T[_]](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean)(implicit bag: Bag[T]): T[A] =
@@ -41,7 +41,7 @@ private[swaydb] object Step {
         step.Step.collectFirstSync(previous, stream)(condition)(bag)
 
       case bag: Bag.Async[T] =>
-        bag.point(step.Step.collectFirstAsync(previous, stream, condition)(bag))
+        bag.suspend(step.Step.collectFirstAsync(previous, stream, condition)(bag))
     }
 
   def foldLeftSync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U)(implicit bag: Bag.Sync[T]): T[U] = {

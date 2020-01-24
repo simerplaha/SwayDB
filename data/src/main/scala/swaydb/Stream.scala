@@ -188,7 +188,7 @@ trait Stream[A] { self =>
    * TODO - tag.foldLeft should run point.
    */
   def foldLeft[B, T[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[T]): T[B] =
-    bag.point {
+    bag.suspend {
       step.Step.foldLeft(
         initial = initial,
         afterOrNull = null.asInstanceOf[A],

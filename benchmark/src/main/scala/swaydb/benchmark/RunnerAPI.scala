@@ -31,14 +31,14 @@ import scala.util.Random
 
 case class RunnerAPI(test: Test) extends LazyLogging {
 
-  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Id] = test.map
+  private val map: swaydb.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Less] = test.map
   private val randomWrite: Boolean = test.randomWrite
   private val randomRead: Boolean = test.randomRead
   private val forwardIteration: Boolean = test.forwardIteration
   private val reverseIteration: Boolean = test.reverseIteration
   private val keyValueCount: Long = test.keyValueCount
 
-  implicit val bag = Bag.idBag
+  implicit val bag = Bag.bagless
 
   def run = {
     println(s"\nCreating $keyValueCount test key-values.\n")
@@ -99,7 +99,7 @@ case class RunnerAPI(test: Test) extends LazyLogging {
             case (key, _) =>
             //              println(s"${LongSerializer.read(key)}")
           }
-          .materialize[Bag.Id]
+          .materialize[Bag.Less]
       }
     else {
       println(s"mapsCount: ${map.levelZeroMeter.mapsCount}")

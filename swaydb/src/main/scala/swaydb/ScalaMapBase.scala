@@ -21,13 +21,13 @@ package swaydb
 
 import scala.collection.mutable
 
-protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, Bag.Id]) extends mutable.Map[K, V] {
+protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, Bag.Less]) extends mutable.Map[K, V] {
 
   override def get(key: K): Option[V] =
     db.get(key)
 
   override def iterator: Iterator[(K, V)] =
-    db.iterator(Bag.idBag)
+    db.iterator(Bag.bagless)
 
   override def isEmpty: Boolean =
     db.isEmpty

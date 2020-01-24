@@ -27,7 +27,7 @@ import scala.collection.mutable
  */
 private[swaydb] object ScalaSet {
 
-  def apply[A, F](db: Set[A, F, Bag.Id]): mutable.Set[A] =
+  def apply[A, F](db: Set[A, F, Bag.Less]): mutable.Set[A] =
     new ScalaSetBase[A, F](db) {
       override def addOne(elem: A): this.type = {
         db.add(elem)

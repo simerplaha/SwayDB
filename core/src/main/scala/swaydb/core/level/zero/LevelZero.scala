@@ -933,7 +933,7 @@ private[swaydb] case class LevelZero(path: Path,
     LevelZero.delete(this)
 
   final def run[R, T[_]](apply: LevelZero => R)(implicit bag: Bag[T]): T[R] =
-    bag.point {
+    bag.suspend {
       try
         bag.success(apply(this))
       catch {
