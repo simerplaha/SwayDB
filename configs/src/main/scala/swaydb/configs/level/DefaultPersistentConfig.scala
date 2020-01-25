@@ -59,8 +59,13 @@ object DefaultPersistentConfig {
             maxKeyValuesPerSegment: Int,
             appendixFlushCheckpointSize: Int,
             mightContainFalsePositiveRate: Double,
+            pushForward: Boolean,
             compressDuplicateValues: Boolean,
+            compressDuplicateRangeValues: Boolean,
             deleteSegmentsEventually: Boolean,
+            cacheSegmentBlocksOnCreate: Boolean,
+            enableBinarySearchPositionIndex: Boolean,
+            normaliseSortedIndexForBinarySearch: Boolean,
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig = {
 
     /**
@@ -74,8 +79,8 @@ object DefaultPersistentConfig {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         sortedIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
+            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = normaliseSortedIndexForBinarySearch),
+            enablePositionIndex = enableBinarySearchPositionIndex,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
@@ -92,7 +97,7 @@ object DefaultPersistentConfig {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            searchSortedIndexDirectly = true,
+            searchSortedIndexDirectly = pushForward,
             indexFormat = IndexFormat.CopyKey,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -108,13 +113,13 @@ object DefaultPersistentConfig {
         values =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
+            compressDuplicateRangeValues = compressDuplicateRangeValues,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
           ),
         segment =
           SegmentConfig(
-            cacheSegmentBlocksOnCreate = true,
+            cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate,
             deleteSegmentsEventually = deleteSegmentsEventually,
             pushForward = true,
             mmap = mmapSegments,

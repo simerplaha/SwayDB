@@ -73,14 +73,14 @@ private[core] trait SegmentSearcher {
 }
 
 private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
-
-  var seqSeeks = 0
-  var successfulSeqSeeks = 0
-  var failedSeqSeeks = 0
-
-  var hashIndexSeeks = 0
-  var successfulHashIndexSeeks = 0
-  var failedHashIndexSeeks = 0
+  //
+  //  var seqSeeks = 0
+  //  var successfulSeqSeeks = 0
+  //  var failedSeqSeeks = 0
+  //
+  //  var hashIndexSeeks = 0
+  //  var successfulHashIndexSeeks = 0
+  //  var failedHashIndexSeeks = 0
 
   def searchSequential(key: Slice[Byte],
                        start: PersistentOption,
@@ -137,7 +137,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
           if (hashIndexReaderOrNull.block.isPerfect && !sortedIndexReader.block.hasPrefixCompression && !hasRange) {
             Persistent.Null
           } else {
-            failedHashIndexSeeks += 1
+            //            failedHashIndexSeeks += 1
             BinarySearchIndexBlock.search(
               key = key,
               lowest = start,
@@ -150,7 +150,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
           }
 
         case keyValue: Persistent.Partial =>
-          successfulHashIndexSeeks += 1
+          //          successfulHashIndexSeeks += 1
           keyValue.toPersistent
       }
 

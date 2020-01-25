@@ -350,14 +350,14 @@ private[core] object BinarySearchIndexBlock {
         valuesCount - 1
     }
 
-  var totalHops = 0
+  //  var totalHops = 0
   //  var maxHop = 0
   //  var minHop = 0
   //  var currentHops = 0
-  var binarySeeks = 0
-  var binarySuccessfulDirectSeeks = 0
-  var binarySuccessfulSeeksWithWalkForward = 0
-  var binaryFailedSeeks = 0
+  //  var binarySeeks = 0
+  //  var binarySuccessfulDirectSeeks = 0
+  //  var binarySuccessfulSeeksWithWalkForward = 0
+  //  var binaryFailedSeeks = 0
   //  var failedWithLower = 0
   //  var sameLower = 0
   //  var greaterLower = 0
@@ -391,7 +391,7 @@ private[core] object BinarySearchIndexBlock {
     var knownLowest: Persistent.PartialOption = Persistent.Partial.Null
 
     while (start <= end) {
-      totalHops += 1
+      //      totalHops += 1
       //            currentHops += 1
 
       val mid = start + (end - start) / 2
@@ -572,7 +572,7 @@ private[core] object BinarySearchIndexBlock {
              valuesReaderOrNull: UnblockedReader[ValuesBlock.Offset, ValuesBlock])(implicit ordering: KeyOrder[Slice[Byte]],
                                                                                    partialKeyOrder: KeyOrder[Persistent.Partial]): Persistent.PartialOption =
     if (sortedIndexReader.block.isBinarySearchable) {
-      binarySeeks += 1
+      //      binarySeeks += 1
       binarySearchMatchOrLower(
         key = key,
         lowest = lowest,
@@ -598,7 +598,7 @@ private[core] object BinarySearchIndexBlock {
     } else {
       //println(s"Key: ${key.readInt()}")
       //          hops = 0
-      binarySeeks += 1
+      //      binarySeeks += 1
       //          maxHop = maxHop max currentHops
       //          minHop = minHop min currentHops
       //          currentHops = 0
@@ -613,12 +613,12 @@ private[core] object BinarySearchIndexBlock {
         valuesOrNull = valuesReaderOrNull
       ) match {
         case partial: Persistent.Partial if partial.isBinarySearchMatched =>
-          binarySuccessfulDirectSeeks += 1
+          //          binarySuccessfulDirectSeeks += 1
           partial
 
         case lowerOrNone =>
           if (binarySearchIndexReaderOrNull.block.isFullIndex && !sortedIndexReader.block.hasPrefixCompression) {
-            binaryFailedSeeks += 1
+            //            binaryFailedSeeks += 1
             Persistent.Partial.Null
           } else {
             val startFrom = lowerOrNone.toPersistentOptional
