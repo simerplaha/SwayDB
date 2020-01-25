@@ -296,11 +296,11 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
           core.head(readState)
     }
 
-  private def nextTupleOrNone[BAG[_]](previous: (K, V), readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
+  private def nextTupleOrNone[BAG[_]](previousKey: K, readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     if (reverseIteration)
-      core.before(keySerializer.write(previous._1), readState)
+      core.before(keySerializer.write(previousKey), readState)
     else
-      core.after(keySerializer.write(previous._1), readState)
+      core.after(keySerializer.write(previousKey), readState)
 
   def stream: Stream[(K, V)] =
     new Stream[(K, V)] {
@@ -310,12 +310,14 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
         self.headOrNull(readState)
 
       override private[swaydb] def nextOrNull[BAG[_]](previous: (K, V))(implicit bag: Bag[BAG]): BAG[(K, V)] =
-        bag.map(nextTupleOrNone(previous, readState)) {
+        bag.map(nextTupleOrNone(previous._1, readState)) {
           case TupleOrNone.None =>
             null
 
           case TupleOrNone.Some(left, right) =>
-            (left.read[K], right.read[V])
+            val key = left.read[K]
+            val value = right.read[V]
+            (key, value)
         }
     }
 

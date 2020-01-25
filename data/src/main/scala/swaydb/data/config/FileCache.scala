@@ -38,10 +38,11 @@ object FileCache {
                 ec: ExecutionContext) =
       FileCache.Enable(
         maxOpen = maxOpen,
-        actorConfig = ActorConfig.TimeLoop(
-          delay = interval,
-          ec = ec
-        )
+        actorConfig =
+          ActorConfig.TimeLoop(
+            delay = interval,
+            ec = ec
+          )
       )
   }
 

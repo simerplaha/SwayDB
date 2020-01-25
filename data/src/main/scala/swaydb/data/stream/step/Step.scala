@@ -95,11 +95,11 @@ private[swaydb] object Step {
   def collectFirstSync[A, T[_]](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean)(implicit bag: Bag.Sync[T]): T[A] = {
     val next = stream.nextOrNull(previous)(bag)
     if (bag.isSuccess(next)) {
-      val nextA = bag.getUnsafe(next)
-      if (nextA == null || condition(nextA))
+      val firstMaybe = bag.getUnsafe(next)
+      if (firstMaybe == null || condition(firstMaybe))
         next
       else
-        collectFirstSync(nextA, stream)(condition)(bag)
+        collectFirstSync(firstMaybe, stream)(condition)(bag)
     } else {
       next
     }

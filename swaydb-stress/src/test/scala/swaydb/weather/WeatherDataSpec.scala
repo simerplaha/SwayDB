@@ -129,6 +129,7 @@ sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAft
             println(s"Foreach: key = $key. Value = $value")
           value shouldBe WeatherData(Water(key, Direction.East, key), Wind(key, Direction.West, key, key), Location.Sydney)
       }
+      .materialize
 
   def doTakeWhile = {
     //start from anywhere but take at least 100 keyValues

@@ -176,6 +176,7 @@ private[core] object SegmentSerialiser {
         segmentSize = segmentSize,
         minMaxFunctionId = minMaxFunctionId,
         nearestExpiryDeadline = nearestExpiryDeadline,
+        copiedFrom = None,
         checkExists = checkExists
       )
     }

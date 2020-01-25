@@ -330,24 +330,24 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
 
     def printStats() = {
 
-      println("seqSeeks: " + SegmentSearcher.seqSeeks)
-      println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
-      println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
-      println
-      //
-      println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
-      println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
-      println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
-      println
+//      println("seqSeeks: " + SegmentSearcher.seqSeeks)
+//      println("successfulSeqSeeks: " + SegmentSearcher.successfulSeqSeeks)
+//      println("failedSeqSeeks: " + SegmentSearcher.failedSeqSeeks)
+//      println
+//      //
+//      println("hashIndexSeeks: " + SegmentSearcher.hashIndexSeeks)
+//      println("successfulHashIndexSeeks: " + SegmentSearcher.successfulHashIndexSeeks)
+//      println("failedHashIndexSeeks: " + SegmentSearcher.failedHashIndexSeeks)
+//      println
 
-      println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
-      println("binarySuccessfulDirectSeeks: " + BinarySearchIndexBlock.binarySuccessfulDirectSeeks)
-      println("binarySuccessfulSeeksWithWalkForward: " + BinarySearchIndexBlock.binarySuccessfulSeeksWithWalkForward)
-      println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
+//      println("binarySeeks: " + BinarySearchIndexBlock.binarySeeks)
+//      println("binarySuccessfulDirectSeeks: " + BinarySearchIndexBlock.binarySuccessfulDirectSeeks)
+//      println("binarySuccessfulSeeksWithWalkForward: " + BinarySearchIndexBlock.binarySuccessfulSeeksWithWalkForward)
+//      println("binaryFailedSeeks: " + BinarySearchIndexBlock.binaryFailedSeeks)
       //      println("failedWithLower: " + BinarySearchIndexBlock.failedWithLower)
       //      println("greaterLower: " + BinarySearchIndexBlock.greaterLower)
       //      println("sameLower: " + BinarySearchIndexBlock.sameLower)
-      println("Total hops: " + BinarySearchIndexBlock.totalHops)
+//      println("Total hops: " + BinarySearchIndexBlock.totalHops)
       //      println("maxHops: " + BinarySearchIndexBlock.maxHop)
       //      println("minHop: " + BinarySearchIndexBlock.minHop)
       println

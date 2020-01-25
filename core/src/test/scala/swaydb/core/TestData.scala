@@ -109,14 +109,15 @@ object TestData {
           path = path,
           formatId = segment.formatId,
           createdInLevel = segment.createdInLevel,
+          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           mmapReads = randomBoolean(),
           mmapWrites = randomBoolean(),
-          blockCacheFileId = BlockCacheFileIDGenerator.nextID,
           minKey = segment.minKey,
           maxKey = segment.maxKey,
           segmentSize = segment.segmentSize,
           minMaxFunctionId = segment.minMaxFunctionId,
-          nearestExpiryDeadline = segment.nearestPutDeadline
+          nearestExpiryDeadline = segment.nearestPutDeadline,
+          copiedFrom = orNone(Some(segment))
         )
 
       segment.close

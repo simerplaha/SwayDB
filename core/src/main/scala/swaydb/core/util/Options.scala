@@ -49,4 +49,16 @@ private[swaydb] object Options {
       value(option.get)
     else
       orElse
+
+  def nullCheck[V](option: Option[V]): Option[V] =
+    option match {
+      case Some(value) =>
+        if (value == null)
+          None
+        else
+          option
+
+      case None =>
+        None
+    }
 }

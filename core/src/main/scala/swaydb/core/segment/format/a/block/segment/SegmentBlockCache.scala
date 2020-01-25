@@ -37,9 +37,7 @@ import swaydb.core.segment.format.a.block.{Block, BlockOffset, BlockOps}
 import swaydb.data.Reserve
 import swaydb.data.config.{IOAction, IOStrategy}
 import swaydb.data.slice.Slice
-import swaydb.{ForEach, Error, IO}
-
-import scala.reflect.ClassTag
+import swaydb.{Error, IO}
 
 private[core] object SegmentBlockCache {
 
@@ -62,8 +60,13 @@ private[core] object SegmentBlockCache {
       binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
       bloomFilterReaderCacheable = bloomFilterReaderCacheable,
       footerCacheable = footerCacheable,
+
+      /**
+       * Cannot be used anymore because of partial caching on copied can be applied
+       * if only some of the Segment's block were slice readers. See [[SegmentBlockCache.validateCachedReaderForCopiedSegment]]
+       */
       //Value configured in [[SegmentBlock.Config.cacheBlocksOnCreate]]
-      areBlocksCacheableOnCreate = sortedIndexReaderCacheable.isDefined
+      //areBlocksCacheableOnCreate = sortedIndexReaderCacheable.isDefined
     )
 }
 
@@ -78,8 +81,7 @@ private[core] class SegmentBlockCache(path: Path,
                                       var hashIndexReaderCacheable: Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]],
                                       var binarySearchIndexReaderCacheable: Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]],
                                       var bloomFilterReaderCacheable: Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]],
-                                      var footerCacheable: Option[SegmentFooterBlock],
-                                      val areBlocksCacheableOnCreate: Boolean)(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
+                                      var footerCacheable: Option[SegmentFooterBlock])(implicit cacheMemorySweeper: Option[MemorySweeper.Cache]) {
 
   //names for Unblocked reader caches.
   private val sortedIndexReaderCacheName = "sortedIndexReaderCache"
@@ -214,7 +216,15 @@ private[core] class SegmentBlockCache(path: Path,
                                                                    blockIO: IOAction => IOStrategy,
                                                                    resourceName: String)(implicit blockOps: BlockOps[O, B]) =
     Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Option[BlockedReader[O, B]], UnblockedReader[O, B]](
-      initial = if (areBlocksCacheableOnCreate && initial.isEmpty) Some(null) else initial,
+      /**
+       * areBlocksCacheableOnCreate cannot be used anymore because of partial caching on copied can be applied
+       * if only some of the Segment's block were slice readers. See [[SegmentBlockCache.validateCachedReaderForCopiedSegment]]
+       *
+       * This is ok because if blocks are cached on create then only the footer (already cached) will be read to
+       * populate the null readers (means no reader exists). Therefore no IO is performed.
+       */
+      //      initial = if (areBlocksCacheableOnCreate && initial.isEmpty) Some(null) else initial,
+      initial = initial,
       strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
@@ -453,6 +463,38 @@ private[core] class SegmentBlockCache(path: Path,
 
   def createSortedIndexReader(): UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock] =
     createReader(sortedIndexReaderCache, getSortedIndex())
+
+  private def validateCachedReaderForCopiedSegment[O <: BlockOffset, B <: Block[O]](optionReader: Option[UnblockedReader[O, B]]): Option[UnblockedReader[O, B]] =
+    optionReader match {
+      case Some(reader) =>
+        if (reader == null)
+          optionReader
+        else if (reader.isFile)
+          None
+        else
+          Some(reader.copy())
+
+      case None =>
+        None
+    }
+
+  def cachedValuesSliceReader(): Option[UnblockedReader[ValuesBlock.Offset, ValuesBlock]] =
+    validateCachedReaderForCopiedSegment(valuesReaderCacheOrNull.get())
+
+  def cachedSortedIndexSliceReader(): Option[UnblockedReader[SortedIndexBlock.Offset, SortedIndexBlock]] =
+    validateCachedReaderForCopiedSegment(sortedIndexReaderCache.get())
+
+  def cachedHashIndexSliceReader(): Option[UnblockedReader[HashIndexBlock.Offset, HashIndexBlock]] =
+    validateCachedReaderForCopiedSegment(hashIndexReaderCacheOrNull.get())
+
+  def cachedBinarySearchIndexSliceReader(): Option[UnblockedReader[BinarySearchIndexBlock.Offset, BinarySearchIndexBlock]] =
+    validateCachedReaderForCopiedSegment(binarySearchIndexReaderCacheOrNull.get())
+
+  def cachedBloomFilterSliceReader(): Option[UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]] =
+    validateCachedReaderForCopiedSegment(bloomFilterReaderCacheOrNull.get())
+
+  def cachedFooter(): Option[SegmentFooterBlock] =
+    footerBlockCache.get()
 
   def toSlice(): Slice[Persistent] = {
     val keyValueCount = getFooter().keyValueCount

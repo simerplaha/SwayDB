@@ -364,6 +364,7 @@ private[core] object Segment extends LazyLogging {
               formatId = segment.formatId,
               createdInLevel = segment.createdInLevel,
               blockCacheFileId = segment.file.blockCacheFileId,
+              copiedFrom = Some(segment),
               mmapReads = segmentConfig.mmapReads,
               mmapWrites = segmentConfig.mmapWrites,
               minKey = segment.minKey,
@@ -496,6 +497,7 @@ private[core] object Segment extends LazyLogging {
             segmentSize: Int,
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             nearestExpiryDeadline: Option[Deadline],
+            copiedFrom: Option[PersistentSegment],
             checkExists: Boolean = true)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                          timeOrder: TimeOrder[Slice[Byte]],
                                          functionStore: FunctionStore,
@@ -523,21 +525,44 @@ private[core] object Segment extends LazyLogging {
         )
 
     if (formatId == PersistentSegmentOne.formatId)
-      PersistentSegmentOne(
-        file = file,
-        createdInLevel = createdInLevel,
-        minKey = minKey,
-        maxKey = maxKey,
-        segmentSize = segmentSize,
-        minMaxFunctionId = minMaxFunctionId,
-        nearestExpiryDeadline = nearestExpiryDeadline,
-        valuesReaderCacheable = None,
-        sortedIndexReaderCacheable = None,
-        hashIndexReaderCacheable = None,
-        binarySearchIndexReaderCacheable = None,
-        bloomFilterReaderCacheable = None,
-        footerCacheable = None
-      )
+      copiedFrom match {
+        case Some(one: PersistentSegmentOne) =>
+          PersistentSegmentOne(
+            file = file,
+            createdInLevel = createdInLevel,
+            minKey = minKey,
+            maxKey = maxKey,
+            segmentSize = segmentSize,
+            minMaxFunctionId = minMaxFunctionId,
+            nearestExpiryDeadline = nearestExpiryDeadline,
+            valuesReaderCacheable = one.ref.segmentBlockCache.cachedValuesSliceReader(),
+            sortedIndexReaderCacheable = one.ref.segmentBlockCache.cachedSortedIndexSliceReader(),
+            hashIndexReaderCacheable = one.ref.segmentBlockCache.cachedHashIndexSliceReader(),
+            binarySearchIndexReaderCacheable = one.ref.segmentBlockCache.cachedBinarySearchIndexSliceReader(),
+            bloomFilterReaderCacheable = one.ref.segmentBlockCache.cachedBloomFilterSliceReader(),
+            footerCacheable = one.ref.segmentBlockCache.cachedFooter()
+          )
+
+        case Some(_: PersistentSegmentMany) =>
+          throw new Exception(s"Invalid copy. Copied as ${PersistentSegmentOne.getClass.getSimpleName} but received ${PersistentSegmentMany.getClass.getSimpleName}.")
+
+        case None =>
+          PersistentSegmentOne(
+            file = file,
+            createdInLevel = createdInLevel,
+            minKey = minKey,
+            maxKey = maxKey,
+            segmentSize = segmentSize,
+            minMaxFunctionId = minMaxFunctionId,
+            nearestExpiryDeadline = nearestExpiryDeadline,
+            valuesReaderCacheable = None,
+            sortedIndexReaderCacheable = None,
+            hashIndexReaderCacheable = None,
+            binarySearchIndexReaderCacheable = None,
+            bloomFilterReaderCacheable = None,
+            footerCacheable = None
+          )
+      }
     else if (formatId == PersistentSegmentMany.formatId)
       PersistentSegmentMany(
         file = file,
@@ -547,6 +572,7 @@ private[core] object Segment extends LazyLogging {
         segmentSize = segmentSize,
         minMaxFunctionId = minMaxFunctionId,
         nearestExpiryDeadline = nearestExpiryDeadline,
+        //todo initial should be set for many copied Segment.
         initial = None
       )
     else
@@ -614,7 +640,7 @@ private[core] object Segment extends LazyLogging {
       case segment: PersistentSegmentOne =>
         val footer = segment.ref.getFooter()
         footer.sortedIndexOffset.size +
-        footer.valuesOffset.map(_.size).getOrElse(0)
+          footer.valuesOffset.map(_.size).getOrElse(0)
     }
 
   def belongsTo(keyValue: KeyValue,
