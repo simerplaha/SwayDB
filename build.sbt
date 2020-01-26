@@ -64,7 +64,6 @@ def publishScalaOptions(scalaVersion: String): Seq[String] = {
   publishOptions ++ commonScalaOptions
 }
 
-
 val commonSettings = Seq(
   organization := "io.swaydb",
   scalaVersion := scalaVersion.value,
