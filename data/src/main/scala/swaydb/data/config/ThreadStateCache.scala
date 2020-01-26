@@ -37,4 +37,10 @@ object ThreadStateCache {
 
   case object NoLimit extends ThreadStateCache
 
+  /**
+   * Disabling ThreadState can be used if your database configuration
+   * allows for perfect HashIndexes and if you do not use iterations.
+   * Otherwise disabling [[ThreadStateCache]] can have noticable performance impact.
+   */
+  case object Disable extends ThreadStateCache
 }

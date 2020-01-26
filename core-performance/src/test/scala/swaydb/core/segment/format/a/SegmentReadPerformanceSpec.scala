@@ -19,6 +19,7 @@
 
 package swaydb.core.segment.format.a
 
+import swaydb.compression.CompressionInternal
 import swaydb.core.TestData._
 import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data.Memory
@@ -107,7 +108,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               shouldPrefixCompress = _ % 5 == 0,
               prefixCompressKeysOnly = true,
               enableAccessPositionIndex = true,
-              normaliseIndex = true,
+              normaliseIndex = false,
               compressions = _ => Seq.empty
             ),
           binarySearchIndexConfig =
@@ -166,6 +167,7 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
               mmapWrites = mmapSegmentsOnWrite,
               mmapReads = mmapSegmentsOnRead,
               deleteEventually = false,
+//              compressions = _ => Seq(CompressionInternal.randomLZ4(Double.MinValue))
               compressions = _ => Seq.empty
             )
         )
@@ -328,6 +330,10 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       //      segment.getAll().get
     }
 
+    Benchmark(s"value ${keyValues.size} key values when Segment memory = $memory, mmapSegmentWrites = $mmapSegmentsOnWrite, mmapSegmentReads = $mmapSegmentsOnRead") {
+      assertGet(segment)
+    }
+
     def printStats() = {
 
 //      println("seqSeeks: " + SegmentSearcher.seqSeeks)
@@ -431,5 +437,4 @@ sealed trait SegmentReadPerformanceSpec extends TestBase {
       assertLower(segment)
     }
   }
-
 }

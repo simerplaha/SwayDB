@@ -240,26 +240,23 @@ trait Stream[A] { self =>
   def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[A]] =
     new Iterator[BAG[A]] {
       val stream = streamer
-      var item: BAG[A] = _
+      var nextBag: BAG[A] = _
       var failedStream: Boolean = false
 
       override def hasNext: Boolean =
         if (failedStream) {
           false
         } else {
-          val next = stream.nextOrNull
-          if (bag.isSuccess(next)) {
-            val unsafeGet: A = bag.getUnsafe(next)
-            item = next
-            unsafeGet != null
+          nextBag = stream.nextOrNull
+          if (bag.isSuccess(nextBag)) {
+            bag.getUnsafe(nextBag) != null
           } else {
-            item = next
             failedStream = true
             true
           }
         }
 
       override def next(): BAG[A] =
-        item
+        nextBag
     }
 }

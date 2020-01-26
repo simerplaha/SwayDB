@@ -168,6 +168,12 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
 
             case ThreadStateCache.NoLimit =>
               ThreadReadState.hashMap()
+
+            case ThreadStateCache.Disable =>
+              ThreadReadState.limitHashMap(
+                maxSize = 0,
+                probe = 0
+              )
           }
       }
     }
