@@ -45,14 +45,16 @@ private[swaydb] object Core {
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
-            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                      timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+            memoryCache: MemoryCache,
+            threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
+      threadStateCache = threadStateCache,
       memoryCache = memoryCache
     )
 
@@ -60,14 +62,16 @@ private[swaydb] object Core {
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
-            memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                      timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+            memoryCache: MemoryCache,
+            threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                timeOrder: TimeOrder[Slice[Byte]],
+                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
+      threadStateCache = threadStateCache,
       memoryCache = memoryCache
     )
 
@@ -146,6 +150,7 @@ private[swaydb] object Core {
 }
 
 private[swaydb] class Core[BAG[_]](val zero: LevelZero,
+                                   threadStateCache: ThreadStateCache,
                                    onClose: => IO.Defer[swaydb.Error.Close, Unit])(implicit bag: Bag[BAG]) {
 
   private val serial = bag.createSerial()
@@ -153,7 +158,17 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
   protected[swaydb] val readStates =
     ThreadLocal.withInitial[ThreadReadState] {
       new Supplier[ThreadReadState] {
-        override def get(): ThreadReadState = ThreadReadState.limitHashMap(10, 2)
+        override def get(): ThreadReadState =
+          threadStateCache match {
+            case ThreadStateCache.Limit(hashMapMaxSize, maxProbe) =>
+              ThreadReadState.limitHashMap(
+                maxSize = hashMapMaxSize,
+                probe = maxProbe
+              )
+
+            case ThreadStateCache.NoLimit =>
+              ThreadReadState.hashMap()
+          }
       }
     }
 
@@ -254,7 +269,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     zero.run(_.get(key, readState).getValue)
 
   def getKey[BAG[_]](key: Slice[Byte],
-             readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
+                     readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
     zero.run(_.getKey(key, readState))
 
   def getKeyValue[BAG[_]](key: Slice[Byte],
@@ -266,7 +281,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     zero.run(_.lower(key, readState).toTupleOrNone)
 
   def beforeKey[BAG[_]](key: Slice[Byte],
-                readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
+                        readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
     zero.run(_.lower(key, readState).getKey)
 
   def after[BAG[_]](key: Slice[Byte],
@@ -274,7 +289,7 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     zero.run(_.higher(key, readState).toTupleOrNone)
 
   def afterKey[BAG[_]](key: Slice[Byte],
-               readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
+                       readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[SliceOption[Byte]] =
     zero.run(_.higher(key, readState).getKey)
 
   def valueSize(key: Slice[Byte],
@@ -297,5 +312,9 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
     zero.run(_.clear(readState))
 
   def toBag[BAG[_]](implicit bag: Bag[BAG]): Core[BAG] =
-    new Core[BAG](zero, onClose)(bag)
+    new Core[BAG](
+      zero = zero,
+      threadStateCache = threadStateCache,
+      onClose = onClose
+    )(bag)
 }

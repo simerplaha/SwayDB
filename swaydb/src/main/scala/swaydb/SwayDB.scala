@@ -81,16 +81,18 @@ object SwayDB extends LazyLogging {
   def apply[K, V, F](config: SwayDBPersistentConfig,
                      fileCache: FileCache.Enable,
                      memoryCache: MemoryCache,
+                     threadStateCache: ThreadStateCache,
                      cacheKeyValueIds: Boolean)(implicit keySerializer: Serializer[K],
-                                               valueSerializer: Serializer[V],
-                                               functionClassTag: ClassTag[F],
-                                               keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
+                                                valueSerializer: Serializer[V],
+                                                functionClassTag: ClassTag[F],
+                                                keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
-      memoryCache = memoryCache
+      memoryCache = memoryCache,
+      threadStateCache = threadStateCache
     ) map {
       db =>
         swaydb.Map[K, V, F, IO.ApiIO](db)
@@ -99,14 +101,16 @@ object SwayDB extends LazyLogging {
   def apply[T, F](config: SwayDBPersistentConfig,
                   fileCache: FileCache.Enable,
                   memoryCache: MemoryCache,
+                  threadStateCache: ThreadStateCache,
                   cacheKeyValueIds: Boolean)(implicit serializer: Serializer[T],
-                                            functionClassTag: ClassTag[F],
-                                            keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
+                                             functionClassTag: ClassTag[F],
+                                             keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
+      threadStateCache = threadStateCache,
       memoryCache = memoryCache
     ) map {
       db =>
@@ -116,15 +120,17 @@ object SwayDB extends LazyLogging {
   def apply[K, V, F](config: SwayDBMemoryConfig,
                      fileCache: FileCache.Enable,
                      memoryCache: MemoryCache,
+                     threadStateCache: ThreadStateCache,
                      cacheKeyValueIds: Boolean)(implicit keySerializer: Serializer[K],
-                                               valueSerializer: Serializer[V],
-                                               functionClassTag: ClassTag[F],
-                                               keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
+                                                valueSerializer: Serializer[V],
+                                                functionClassTag: ClassTag[F],
+                                                keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
+      threadStateCache = threadStateCache,
       memoryCache = memoryCache
     ) map {
       db =>
@@ -134,14 +140,16 @@ object SwayDB extends LazyLogging {
   def apply[T, F](config: SwayDBMemoryConfig,
                   fileCache: FileCache.Enable,
                   memoryCache: MemoryCache,
+                  threadStateCache: ThreadStateCache,
                   cacheKeyValueIds: Boolean)(implicit serializer: Serializer[T],
-                                            functionClassTag: ClassTag[F],
-                                            keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
+                                             functionClassTag: ClassTag[F],
+                                             keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, IO.ApiIO]] =
     Core(
       config = config,
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
       fileCache = fileCache,
+      threadStateCache = threadStateCache,
       memoryCache = memoryCache
     ) map {
       db =>

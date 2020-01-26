@@ -56,13 +56,14 @@ object Map extends LazyLogging {
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
-      config = DefaultPersistentZeroConfig(
-        dir = dir,
-        otherDirs = otherDirs,
-        mapSize = mapSize, mmapMaps = mmapMaps,
-        recoveryMode = recoveryMode,
-        acceleration = acceleration
-      )
+      config =
+        DefaultPersistentZeroConfig(
+          dir = dir,
+          otherDirs = otherDirs,
+          mapSize = mapSize, mmapMaps = mmapMaps,
+          recoveryMode = recoveryMode,
+          acceleration = acceleration
+        )
     ) map {
       db =>
         swaydb.Map[K, V, F, T](db.toBag)

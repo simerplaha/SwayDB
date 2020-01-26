@@ -26,7 +26,7 @@ import swaydb.configs.level.DefaultEventuallyPersistentConfig
 import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.config._
+import swaydb.data.config.{ThreadStateCache, _}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -85,19 +85,21 @@ object Map extends LazyLogging {
                            compressDuplicateValues: Boolean = true,
                            deleteSegmentsEventually: Boolean = true,
                            cacheKeyValueIds: Boolean = true,
-                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                                 valueSerializer: Serializer[V],
-                                                                                                 functionClassTag: ClassTag[F],
-                                                                                                 tag: swaydb.Bag[T],
-                                                                                                 keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
-                                                                                                 fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
-                                                                                                 memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, T]] = {
+                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
+                                                                                                                             valueSerializer: Serializer[V],
+                                                                                                                             functionClassTag: ClassTag[F],
+                                                                                                                             tag: swaydb.Bag[T],
+                                                                                                                             keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
+                                                                                                                             fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
+                                                                                                                             memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, T]] = {
 
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
+      threadStateCache = threadStateCache,
       config =
         DefaultEventuallyPersistentConfig(
           dir = dir,

@@ -52,17 +52,18 @@ object Set extends LazyLogging {
                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
                                                                                               ec: Option[ExecutionContext] = Some(SwayDB.sweeperExecutionContext)): IO[Error.Boot, swaydb.Set[A, F, T]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
-    
+
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
-      config = DefaultPersistentZeroConfig(
-        dir = dir,
-        otherDirs = otherDirs,
-        recoveryMode = recoveryMode,
-        mapSize = mapSize,
-        mmapMaps = mmapMaps,
-        acceleration = acceleration
-      )
+      config =
+        DefaultPersistentZeroConfig(
+          dir = dir,
+          otherDirs = otherDirs,
+          recoveryMode = recoveryMode,
+          mapSize = mapSize,
+          mmapMaps = mmapMaps,
+          acceleration = acceleration
+        )
     ) map {
       db =>
         swaydb.Set[A, F, T](db.toBag)

@@ -24,7 +24,7 @@ import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.Core
 import swaydb.core.function.FunctionStore
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.config.{FileCache, MemoryCache}
+import swaydb.data.config.{FileCache, MemoryCache, ThreadStateCache}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -52,16 +52,18 @@ object Set extends LazyLogging {
                         mightContainFalsePositiveRate: Double = 0.01,
                         deleteSegmentsEventually: Boolean = true,
                         cacheKeyValueIds: Boolean = true,
-                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
-                                                                                              functionClassTag: ClassTag[F],
-                                                                                              tag: swaydb.Bag[T],
-                                                                                              keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
-                                                                                              fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Set[A, F, T]] = {
+                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
+                                                                                                                          functionClassTag: ClassTag[F],
+                                                                                                                          tag: swaydb.Bag[T],
+                                                                                                                          keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
+                                                                                                                          fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Set[A, F, T]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
       cacheKeyValueIds = cacheKeyValueIds,
+      threadStateCache = threadStateCache,
       config =
         DefaultMemoryConfig(
           mapSize = mapSize,

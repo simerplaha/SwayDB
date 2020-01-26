@@ -125,7 +125,7 @@ private[core] object CoreInitializer extends LazyLogging {
         case IO.Right(zero) =>
           bufferCleanerEC foreach (ec => BufferCleaner.initialiseCleaner(Scheduler()(ec)))
           addShutdownHookNoCompaction(zero)
-          IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, IO.Defer.unit))
+          IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
 
         case IO.Left(error) =>
           IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
@@ -146,7 +146,7 @@ private[core] object CoreInitializer extends LazyLogging {
     ) match {
       case IO.Right(zero) =>
         addShutdownHookNoCompaction(zero)
-        IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, IO.Defer.unit))
+        IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
 
       case IO.Left(error) =>
         IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
@@ -190,6 +190,7 @@ private[core] object CoreInitializer extends LazyLogging {
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,
             fileCache: FileCache.Enable,
+            threadStateCache: ThreadStateCache,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
                                       functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
@@ -328,6 +329,7 @@ private[core] object CoreInitializer extends LazyLogging {
 
                       new Core[IO.ApiIO](
                         zero = zero,
+                        threadStateCache = threadStateCache,
                         onClose = onClose
                       )
                   }
