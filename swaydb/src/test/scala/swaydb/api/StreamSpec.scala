@@ -229,5 +229,26 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .materialize[T]
         .await should contain only(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000)
     }
+
+    "failure should terminate the Stream" in {
+      def stream =
+        Stream[Int](1 to 1000)
+          .map {
+            int =>
+              if (int == 100)
+                throw new Exception(s"Failed at $int")
+              else
+                int
+          }
+          .materialize[T]
+
+      val exception =
+        if (bag == Bag.less)
+          IO(stream).left.get
+        else
+          IO(stream.await).left.get
+
+      exception.getMessage shouldBe "Failed at 100"
+    }
   }
 }
