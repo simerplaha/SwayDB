@@ -54,7 +54,7 @@ protected object Key {
       Slice.writeInt(2)
   }
 
-  implicit val deadlinePickler = transformPickler((nano: Long) => Deadline(nano, TimeUnit.NANOSECONDS))(_.time.toNanos)
+  implicit val deadlinePickler = transformPickler((nano: Long) => Deadline((nano, TimeUnit.NANOSECONDS)))(_.time.toNanos)
 
   implicit object KeySerializer extends swaydb.serializers.Serializer[Key] {
     override def write(data: Key): Slice[Byte] =

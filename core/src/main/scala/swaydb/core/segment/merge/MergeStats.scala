@@ -27,7 +27,6 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.Random
 
 private[core] sealed trait MergeStats[FROM, +T[_]] extends Aggregator[FROM, T[data.Memory]] {
 
@@ -151,7 +150,7 @@ private[core] object MergeStats {
           (Bytes.sizeOfUnsignedInt(maxValueSize) * totalValuesCount) + //valueLength
           totalTimesSize
 
-      def updateStats(keyValue: data.Memory) = {
+      def updateStats(keyValue: data.Memory): Unit = {
         maxMergedKeySize = this.maxMergedKeySize max keyValue.mergedKey.size
         totalMergedKeysSize = this.totalMergedKeysSize + keyValue.mergedKey.size
 

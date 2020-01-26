@@ -57,7 +57,7 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: java.util.Iterator[KeyVal[K, V]]): swaydb.OK =
-    asScala.put(keyValues.asScala.map(_.toTuple).toIterable)
+    asScala.put(keyValues.asScala.map(_.toTuple).to(Iterable))
 
   def remove(key: K): swaydb.OK =
     asScala.remove(key)
@@ -72,7 +72,7 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
     asScala.remove(keys.asScala)
 
   def remove(keys: java.util.Iterator[K]): swaydb.OK =
-    asScala.remove(keys.asScala.toIterable)
+    asScala.remove(keys.asScala.to(Iterable))
 
   def expire(key: K, after: java.time.Duration): swaydb.OK =
     asScala.expire(key, after.toScala)
@@ -92,7 +92,7 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
     asScala.expire(keys.asScala.map(_.toScala))
 
   def expire(keys: java.util.Iterator[Pair[K, java.time.Duration]]): swaydb.OK =
-    asScala.expire(keys.asScala.map(_.asScalaDeadline).toIterable)
+    asScala.expire(keys.asScala.map(_.asScalaDeadline).to(Iterable))
 
   def expiration(key: K): Optional[Deadline] =
     asScala.expiration(key).asJavaMap(_.asJava)

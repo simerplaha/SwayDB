@@ -36,8 +36,6 @@ object Bag {
                      ec: ExecutionContext): swaydb.Bag.Async[IO] =
     new Async[IO] {
 
-      implicit val self: swaydb.Bag.Async[IO] = this
-
       override def executionContext: ExecutionContext =
         ec
 

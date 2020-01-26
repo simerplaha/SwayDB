@@ -22,6 +22,7 @@ package swaydb.configs.level
 import java.nio.file.Path
 import java.util.concurrent.Executors
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionExecutionContext
 import swaydb.data.config._
@@ -29,7 +30,7 @@ import swaydb.data.config._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 
-object DefaultPersistentZeroConfig {
+object DefaultPersistentZeroConfig extends LazyLogging {
 
   private lazy val compactionExecutionContext =
     new ExecutionContext {
@@ -38,8 +39,11 @@ object DefaultPersistentZeroConfig {
       def execute(runnable: Runnable) =
         threadPool execute runnable
 
-      def reportFailure(exception: Throwable): Unit =
-        System.err.println("Execution context failure", exception)
+      def reportFailure(exception: Throwable): Unit = {
+        val message = s"REPORT FAILURE! ${exception.getMessage}"
+        println(message)
+        logger.error(message, exception)
+      }
     }
 
   /**

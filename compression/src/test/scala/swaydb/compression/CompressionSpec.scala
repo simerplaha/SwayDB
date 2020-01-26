@@ -30,7 +30,7 @@ import scala.util.Random
 
 class CompressionSpec extends WordSpec {
 
-  def assertSuccessfulCompression(compression: CompressionInternal) = {
+  private def assertSuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
     val bytes: Slice[Byte] = string
     val compressedBytes: Slice[Byte] = compression.compressor.compress(bytes).get
@@ -39,7 +39,7 @@ class CompressionSpec extends WordSpec {
     decompressedString shouldBe string
   }
 
-  def assertUnsuccessfulCompression(compression: CompressionInternal) = {
+  private def assertUnsuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)
     val bytes: Slice[Byte] = string
     compression.compressor.compress(bytes) shouldBe empty

@@ -23,7 +23,6 @@ import java.nio.file.Path
 import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Aggregator, ForEach}
 import swaydb.core.actor.FileSweeper
 import swaydb.core.data.{Memory, _}
 import swaydb.core.function.FunctionStore

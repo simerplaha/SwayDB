@@ -36,7 +36,6 @@ import swaydb.core.segment.format.a.block.bloomfilter.BloomFilterBlock
 import swaydb.core.segment.format.a.block.hashindex.HashIndexBlock
 import swaydb.core.segment.format.a.block.segment.SegmentBlock
 import swaydb.core.segment.format.a.block.segment.data.TransientSegment
-import swaydb.core.segment.format.a.block.segment.footer.SegmentFooterBlock
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
@@ -543,8 +542,8 @@ private[core] object Segment extends LazyLogging {
             footerCacheable = one.ref.segmentBlockCache.cachedFooter()
           )
 
-        case Some(_: PersistentSegmentMany) =>
-          throw new Exception(s"Invalid copy. Copied as ${PersistentSegmentOne.getClass.getSimpleName} but received ${PersistentSegmentMany.getClass.getSimpleName}.")
+        case Some(segment: PersistentSegmentMany) =>
+          throw new Exception(s"Invalid copy. Copied as ${PersistentSegmentOne.getClass.getSimpleName} but received ${segment.getClass.getSimpleName}.")
 
         case None =>
           PersistentSegmentOne(

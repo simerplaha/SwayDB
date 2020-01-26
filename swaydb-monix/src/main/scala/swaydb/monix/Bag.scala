@@ -32,8 +32,6 @@ object Bag {
   implicit def apply(implicit scheduler: monix.execution.Scheduler): swaydb.Bag.Async[Task] =
     new Async[Task] {
 
-      implicit val self: swaydb.Bag.Async[Task] = this
-
       override def executionContext: ExecutionContext =
         scheduler
 

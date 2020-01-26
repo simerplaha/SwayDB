@@ -55,6 +55,6 @@ private[swaydb] object Times {
       if (deadline <= 0L)
         None
       else
-        Some(Deadline(deadline, TimeUnit.NANOSECONDS))
+        Some(Deadline((deadline, TimeUnit.NANOSECONDS)))
   }
 }

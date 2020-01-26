@@ -21,7 +21,6 @@ package swaydb.data.config
 
 import java.nio.file.Path
 
-import swaydb.Compression
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.storage.Level0Storage

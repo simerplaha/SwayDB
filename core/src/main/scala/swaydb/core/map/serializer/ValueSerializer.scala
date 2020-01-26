@@ -298,7 +298,7 @@ private[core] object ValueSerializer {
       value._2 match {
         case second: Slice[Byte] =>
           1 +
-            ValueSerializer.bytesRequired[(Slice[Byte], Slice[Byte])](value._1, second)
+            ValueSerializer.bytesRequired[(Slice[Byte], Slice[Byte])]((value._1, second))
         case Slice.Null =>
           1 +
             value._1.size
@@ -357,7 +357,7 @@ private[core] object ValueSerializer {
               val left = reader.read(leftSize)
               val rightSize = reader.readUnsignedInt()
               val right = reader.read(rightSize)
-              tuples add(left, right)
+              tuples.add((left, right))
               i += 1
             }
 

@@ -346,8 +346,6 @@ object Bag extends LazyLogging {
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
     new Async.Retryable[Future] {
 
-      implicit val self: Bag.Async.Retryable[Future] = this
-
       override def executionContext: ExecutionContext =
         ec
 

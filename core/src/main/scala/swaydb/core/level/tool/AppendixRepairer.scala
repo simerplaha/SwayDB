@@ -29,7 +29,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.function.FunctionStore
 import swaydb.core.io.file.Effect
 import swaydb.core.level.AppendixSkipListMerger
-import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryReader, MapEntryWriter}
+import swaydb.core.map.serializer.{AppendixMapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, SkipListMerger}
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
 import swaydb.core.util.Extension
@@ -52,7 +52,6 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
         mmapSegmentsOnWrite = false
       )(keyOrder, timeOrder, functionStore, None, fileSweeper, None, SegmentIO.defaultSynchronisedStoredIfCompressed)
 
-    import reader._
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger
     implicit val memorySweeper = Option.empty[MemorySweeper.KeyValue]
@@ -163,7 +162,6 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                                  fileSweeper: FileSweeper.Enabled,
                                                  functionStore: FunctionStore,
                                                  writer: MapEntryWriter[MapEntry.Put[Slice[Byte], Segment]],
-                                                 mapReader: MapEntryReader[MapEntry[Slice[Byte], Segment]],
                                                  skipListMerger: SkipListMerger[SliceOption[Byte], SegmentOption, Slice[Byte], Segment]): IO[swaydb.Error.Level, Unit] =
     IO {
       Effect.walkDelete(appendixDir)

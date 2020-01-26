@@ -20,7 +20,6 @@
 package swaydb.core.segment.format.a.block.sortedindex
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.{Aggregator, ForEach}
 import swaydb.compression.CompressionInternal
 import swaydb.core.data._
 import swaydb.core.segment.KeyMatcher

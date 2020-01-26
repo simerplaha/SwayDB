@@ -56,7 +56,7 @@ private[swaydb] object Collections {
           f(item) match {
             case Some(value) =>
               //Not a good idea to break out with return. Needs improvement.
-              return Some(value, item)
+              return Some((value, item))
 
             case None =>
             //continue reading

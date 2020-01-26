@@ -19,7 +19,6 @@
 
 package swaydb.core.data
 
-import swaydb.core.segment.Segment
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.SomeOrNone
 
@@ -27,7 +26,7 @@ import scala.concurrent.duration.Deadline
 
 private[swaydb] sealed trait Value {
   def hasRemoveMayBe: Boolean
-  def unslice: Value
+  def unslice(): Value
   def isUnsliced: Boolean
   def time: Time
 }

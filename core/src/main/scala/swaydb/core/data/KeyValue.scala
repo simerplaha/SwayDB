@@ -23,8 +23,7 @@ import swaydb.IO
 import swaydb.core.cache.{Cache, CacheNoIO}
 import swaydb.core.map.serializer.RangeValueSerializer.OptionRangeValueSerializer
 import swaydb.core.map.serializer.{RangeValueSerializer, ValueSerializer}
-import swaydb.core.segment.{KeyMatcher, Segment}
-import swaydb.core.segment.format.a.block._
+import swaydb.core.segment.KeyMatcher
 import swaydb.core.segment.format.a.block.reader.UnblockedReader
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util.Bytes

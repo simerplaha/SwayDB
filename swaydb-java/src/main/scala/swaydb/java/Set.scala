@@ -21,7 +21,6 @@ package swaydb.java
 
 import java.util
 import java.util.Optional
-import java.util.function.{Consumer, Predicate}
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter

@@ -32,8 +32,6 @@ object Bag {
   implicit def apply[T](implicit runTime: zio.Runtime[T]): swaydb.Bag.Async[Task] =
     new Async[Task] {
 
-      implicit val self: swaydb.Bag.Async[Task] = this
-
       override def executionContext: ExecutionContext =
         runTime.platform.executor.asEC
 
