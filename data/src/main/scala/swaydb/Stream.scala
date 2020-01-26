@@ -20,6 +20,7 @@
 package swaydb
 
 import swaydb.data.stream.step
+import swaydb.data.util.OptionMutable
 
 import scala.collection.mutable.ListBuffer
 
@@ -176,11 +177,20 @@ trait Stream[A] { self =>
    *
    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
    */
-  def lastOption[T[_]](implicit bag: Bag[T]): T[Option[A]] =
-    foldLeft(Option.empty[A]) {
-      (_, next) =>
-        Some(next)
-    }
+  def lastOption[T[_]](implicit bag: Bag[T]): T[Option[A]] = {
+    val last =
+      foldLeft(OptionMutable.Null: OptionMutable[A]) {
+        (previous, next) =>
+          if (previous.isNoneC) {
+            OptionMutable.Some(next)
+          } else {
+            previous.getC setValue next
+            previous
+          }
+      }
+
+    bag.transform(last)(_.toOption)
+  }
 
   /**
    * Materializes are executes the stream.
@@ -188,15 +198,13 @@ trait Stream[A] { self =>
    * TODO - tag.foldLeft should run point.
    */
   def foldLeft[B, T[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[T]): T[B] =
-    bag.suspend {
-      step.Step.foldLeft(
-        initial = initial,
-        afterOrNull = null.asInstanceOf[A],
-        stream = self,
-        drop = 0,
-        take = None
-      )(f)
-    }
+    step.Step.foldLeft(
+      initial = initial,
+      afterOrNull = null.asInstanceOf[A],
+      stream = self,
+      drop = 0,
+      take = None
+    )(f)
 
   /**
    * Folds over all elements in the Stream to calculate it's total size.
@@ -211,10 +219,7 @@ trait Stream[A] { self =>
    * Materialises/closes and processes the stream to a [[Seq]].
    */
   def materialize[T[_]](implicit bag: Bag[T]): T[ListBuffer[A]] =
-    foldLeft(ListBuffer.empty[A]) {
-      (buffer, item) =>
-        buffer += item
-    }
+    foldLeft(ListBuffer.empty[A])(_ += _)
 
   def streamer: Streamer[A] =
     new Streamer[A] {

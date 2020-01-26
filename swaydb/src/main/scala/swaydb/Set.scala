@@ -277,7 +277,7 @@ case class Set[A, F, BAG[_]](private val core: Core[BAG],
     copy(core = core.toBag[X])
 
   def asScala: scala.collection.mutable.Set[A] =
-    ScalaSet[A, F](toBag[Bag.Less](Bag.bagless))
+    ScalaSet[A, F](toBag[Bag.Less](Bag.less))
 
   def close(): BAG[Unit] =
     bag.suspend(core.close())

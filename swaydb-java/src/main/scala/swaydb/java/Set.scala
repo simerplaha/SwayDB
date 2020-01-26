@@ -41,7 +41,7 @@ import scala.collection.compat._
 case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
-  implicit val bag = Bag.bagless
+  implicit val bag = Bag.less
 
   val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], Bag.Less] =
     _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], Bag.Less]]
@@ -190,7 +190,7 @@ case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]
 
   def iterator: java.util.Iterator[A] =
     asScala
-      .iterator(Bag.bagless)
+      .iterator(Bag.less)
       .asJava
 
   def sizeOfBloomFilterEntries: Integer =

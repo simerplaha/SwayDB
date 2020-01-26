@@ -25,6 +25,14 @@ private[swaydb] sealed trait OptionMutable[+T] extends SomeOrNoneCovariant[Optio
   override def noneC: OptionMutable[Nothing] = OptionMutable.Null
   def setValue(value: T@uncheckedVariance): Unit
   def value: T
+  def toOption: Option[T] =
+    this match {
+      case OptionMutable.Null =>
+        None
+
+      case OptionMutable.Some(value) =>
+        Some(value)
+    }
 }
 
 private[swaydb] object OptionMutable {
@@ -37,7 +45,7 @@ private[swaydb] object OptionMutable {
     override def value: Nothing = throwException
   }
 
-  final class Some[+T](var value: T@uncheckedVariance) extends OptionMutable[T] {
+  final case class Some[+T](var value: T@uncheckedVariance) extends OptionMutable[T] {
 
     override def isNoneC: Boolean = false
     override def getC: Some[T] = this

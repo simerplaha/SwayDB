@@ -68,15 +68,19 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
 
     val previous = previousKeyValue
 
+    val forKey = Slice[Byte](2.toByte, 3.toByte)
+
     SegmentReadState.createOnSuccessSequentialRead(
       path = path,
+      forKey = forKey,
       readState = threadState,
       found = previous
     )
 
     val segmentState = threadState.getSegmentState(path)
-    segmentState.getS.keyValue shouldBe previous
-    segmentState.getS.keyValue.key.underlyingArraySize shouldBe 1
+    segmentState.getS.forKey shouldBe forKey
+    segmentState.getS.foundKeyValue shouldBe previous
+    segmentState.getS.foundKeyValue.key.underlyingArraySize shouldBe 1
     segmentState.getS.isSequential shouldBe true
   }
 
@@ -87,8 +91,11 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
     val previous = previousKeyValue
     val next = nextKeyValue
 
+    val forKey = Slice[Byte](2.toByte, 3.toByte)
+
     SegmentReadState.createOnSuccessSequentialRead(
       path = path,
+      forKey = randomBytesSlice(),
       readState = threadState,
       found = previous
     )
@@ -97,14 +104,16 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
 
     SegmentReadState.mutateOnSuccessSequentialRead(
       path = path,
+      forKey = forKey,
       readState = threadState,
       found = nextKeyValue,
       segmentState = segmentState
     )
 
     val readSegmentState = threadState.getSegmentState(path).getS
-    readSegmentState.getS.keyValue shouldBe nextKeyValue
-    readSegmentState.getS.keyValue.key.underlyingArraySize shouldBe 2
+    readSegmentState.getS.forKey shouldBe forKey
+    readSegmentState.getS.foundKeyValue shouldBe nextKeyValue
+    readSegmentState.getS.foundKeyValue.key.underlyingArraySize shouldBe 2
     readSegmentState.getS.isSequential shouldBe true
   }
 
@@ -116,6 +125,7 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
 
         SegmentReadState.createAfterRandomRead(
           path = path,
+          forKey = randomBytesSlice(),
           threadState = threadState,
           foundOption = Persistent.Null,
           start = previousKeyValue
@@ -133,16 +143,20 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         val previous = previousKeyValue
         val next = nextKeyValue
 
+        val forKey = randomBytesSlice()
+
         SegmentReadState.createAfterRandomRead(
           path = path,
+          forKey = forKey,
           threadState = threadState,
           foundOption = next,
           start = previous
         )
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe next
-        segmentState.keyValue.key.underlyingArraySize shouldBe 2
+        segmentState.forKey shouldBe forKey
+        segmentState.foundKeyValue shouldBe next
+        segmentState.foundKeyValue.key.underlyingArraySize shouldBe 2
         segmentState.isSequential shouldBe true
       }
     }
@@ -155,16 +169,20 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         val previous = previousKeyValue
         val next = nextKeyValue
 
+        val forKey = randomBytesSlice()
+
         SegmentReadState.createAfterRandomRead(
           path = path,
+          forKey = forKey,
           threadState = threadState,
           foundOption = next.copy(indexOffset = 500),
           start = previous
         )
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe next
-        segmentState.keyValue.key.underlyingArraySize shouldBe 2
+        segmentState.forKey shouldBe forKey
+        segmentState.foundKeyValue shouldBe next
+        segmentState.foundKeyValue.key.underlyingArraySize shouldBe 2
         segmentState.isSequential shouldBe false
       }
     }
@@ -178,17 +196,32 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
 
         val previous = previousKeyValue
 
-        threadState.setSegmentState(path, new SegmentReadState(previous, Persistent.Null, randomBoolean()))
+        val forKey1 = randomBytesSlice()
+
+        threadState.setSegmentState(
+          path = path,
+          nextIndexOffset =
+            new SegmentReadState(
+              forKey = forKey1,
+              foundKeyValue = previous,
+              foundLowerKeyValue = Persistent.Null,
+              isSequential = randomBoolean()
+            )
+        )
+
+        val forKey2 = randomBytesSlice()
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,
+          forKey = forKey2,
           threadState = threadState,
           foundOption = Persistent.Null,
           segmentState = threadState.getSegmentState(path).getS
         )
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe previous
+        segmentState.forKey shouldBe forKey1
+        segmentState.foundKeyValue shouldBe previous
         segmentState.isSequential shouldBe false
       }
     }
@@ -201,18 +234,31 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         val previous = previousKeyValue
         val next = nextKeyValue.copy(indexOffset = 1000)
 
-        threadState.setSegmentState(path, new SegmentReadState(previous, Persistent.Null, randomBoolean()))
+        threadState.setSegmentState(
+          path = path,
+          nextIndexOffset =
+            new SegmentReadState(
+              forKey = randomBytesSlice(),
+              foundKeyValue = previous,
+              foundLowerKeyValue = Persistent.Null,
+              isSequential = randomBoolean()
+            )
+        )
+
+        val forKey = randomBytesSlice()
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,
+          forKey = forKey,
           threadState = threadState,
           foundOption = next,
           segmentState = threadState.getSegmentState(path).getS
         )
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe next
-        segmentState.keyValue.key.underlyingArraySize shouldBe 2
+        segmentState.forKey shouldBe forKey
+        segmentState.foundKeyValue shouldBe next
+        segmentState.foundKeyValue.key.underlyingArraySize shouldBe 2
         segmentState.isSequential shouldBe false
       }
     }
@@ -225,18 +271,31 @@ class SegmentReadStateSpec extends WordSpec with Matchers {
         val previous = previousKeyValue
         val next = nextKeyValue
 
-        threadState.setSegmentState(path, new SegmentReadState(previous, Persistent.Null, randomBoolean()))
+        threadState.setSegmentState(
+          path = path,
+          nextIndexOffset =
+            new SegmentReadState(
+              forKey = randomBytesSlice(),
+              foundKeyValue = previous,
+              foundLowerKeyValue = Persistent.Null,
+              isSequential = randomBoolean()
+            )
+        )
+
+        val forKey = randomBytesSlice()
 
         SegmentReadState.mutateAfterRandomRead(
           path = path,
+          forKey= forKey,
           threadState = threadState,
           foundOption = next,
           segmentState = threadState.getSegmentState(path).getS
         )
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe next
-        segmentState.keyValue.key.underlyingArraySize shouldBe 2
+        segmentState.forKey shouldBe forKey
+        segmentState.foundKeyValue shouldBe next
+        segmentState.foundKeyValue.key.underlyingArraySize shouldBe 2
         segmentState.isSequential shouldBe true
       }
     }

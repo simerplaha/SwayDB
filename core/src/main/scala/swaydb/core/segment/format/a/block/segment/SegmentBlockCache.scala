@@ -59,7 +59,7 @@ private[core] object SegmentBlockCache {
       hashIndexReaderCacheable = hashIndexReaderCacheable,
       binarySearchIndexReaderCacheable = binarySearchIndexReaderCacheable,
       bloomFilterReaderCacheable = bloomFilterReaderCacheable,
-      footerCacheable = footerCacheable,
+      footerCacheable = footerCacheable
 
       /**
        * Cannot be used anymore because of partial caching on copied can be applied

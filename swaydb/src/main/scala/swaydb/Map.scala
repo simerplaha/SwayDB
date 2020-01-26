@@ -361,7 +361,7 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     copy(core = core.toBag[X])
 
   def asScala: scala.collection.mutable.Map[K, V] =
-    ScalaMap[K, V, F](toBag[Bag.Less](Bag.bagless))
+    ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
 
   def close(): BAG[Unit] =
     bag.suspend(core.close())

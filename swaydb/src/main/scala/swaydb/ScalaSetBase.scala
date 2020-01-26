@@ -27,7 +27,7 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Less]) extends mut
     db.contains(elem)
 
   override def iterator: Iterator[A] =
-    db.iterator(Bag.bagless)
+    db.iterator(Bag.less)
 
   override def isEmpty: Boolean =
     db.isEmpty

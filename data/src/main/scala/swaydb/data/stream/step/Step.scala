@@ -44,7 +44,7 @@ private[swaydb] object Step {
         bag.suspend(step.Step.collectFirstAsync(previous, stream, condition)(bag))
     }
 
-  def foldLeftSync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U)(implicit bag: Bag.Sync[T]): T[U] = {
+  private def foldLeftSync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U)(implicit bag: Bag.Sync[T]): T[U] = {
     @tailrec
     def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): T[U] =
       if (take.contains(currentSize)) {
@@ -92,7 +92,7 @@ private[swaydb] object Step {
   }
 
   @tailrec
-  def collectFirstSync[A, T[_]](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean)(implicit bag: Bag.Sync[T]): T[A] = {
+  private def collectFirstSync[A, T[_]](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean)(implicit bag: Bag.Sync[T]): T[A] = {
     val next = stream.nextOrNull(previous)(bag)
     if (bag.isSuccess(next)) {
       val firstMaybe = bag.getUnsafe(next)
@@ -105,7 +105,7 @@ private[swaydb] object Step {
     }
   }
 
-  def foldLeftAsync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit bag: Bag.Async[T]): T[U] = {
+  private def foldLeftAsync[A, U, T[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int], operation: (U, A) => U)(implicit bag: Bag.Async[T]): T[U] = {
     def fold(previous: A, drop: Int, currentSize: Int, previousResult: U): T[U] =
       if (take.contains(currentSize))
         bag.success(previousResult)
@@ -147,7 +147,7 @@ private[swaydb] object Step {
     }
   }
 
-  def collectFirstAsync[A, T[_]](previous: A, stream: swaydb.Stream[A], condition: A => Boolean)(implicit bag: Bag.Async[T]): T[A] =
+  private def collectFirstAsync[A, T[_]](previous: A, stream: swaydb.Stream[A], condition: A => Boolean)(implicit bag: Bag.Async[T]): T[A] =
     bag.flatMap(stream.nextOrNull(previous)(bag)) {
       case null =>
         bag.success(null.asInstanceOf[A])

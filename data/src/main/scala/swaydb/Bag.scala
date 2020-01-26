@@ -425,7 +425,7 @@ object Bag extends LazyLogging {
 
   type Less[A] = A
 
-  implicit val bagless: Bag.Sync[Less] =
+  implicit val less: Bag.Sync[Less] =
     new Bag.Sync[Less] {
       override def isSuccess[A](a: Less[A]): Boolean = true
 

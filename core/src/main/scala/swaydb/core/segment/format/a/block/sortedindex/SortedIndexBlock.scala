@@ -1121,6 +1121,18 @@ private[core] object SortedIndexBlock extends LazyLogging {
       next = next.asPartial,
       hasMore = (next getOrElseS previous).hasMore
     ) match {
+      //if it's higher with MatchOnly set to true but the currently read key-value is a key match this means the next higher is only a step forward.
+      //make an exception and do another seek.
+      case KeyMatcher.Result.BehindStopped if matcher.isHigher && next.getOrElseS(previous).existsS(keyValue => keyValue.hasMore && matcher.keyOrder.equiv(keyValue.key, matcher.key)) =>
+        val nextKeyValue =
+          readKeyValue(
+            previous = next.getOrElseS(previous),
+            indexReader = indexReader,
+            valuesReaderOrNull = valuesReaderOrNull
+          )
+
+        new KeyMatcher.Result.Matched(nextKeyValue)
+
       case result: KeyMatcher.Result.Complete =>
         result
 

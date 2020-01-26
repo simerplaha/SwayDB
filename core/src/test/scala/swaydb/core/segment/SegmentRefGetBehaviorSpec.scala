@@ -142,7 +142,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue1.key, threadState = threadState) shouldBe keyValue1
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue1
+        segmentState.foundKeyValue shouldBe keyValue1
         keyValue1.key.underlyingArraySize shouldBe 4
         segmentState.isSequential shouldBe true
       }
@@ -169,7 +169,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue2.key, threadState = threadState) shouldBe keyValue2
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue2
+        segmentState.foundKeyValue shouldBe keyValue2
         keyValue2.key.underlyingArraySize shouldBe 4
         segmentState.isSequential shouldBe true
       }
@@ -220,7 +220,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue100.key, threadState = threadState) shouldBe keyValue100
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue100
+        segmentState.foundKeyValue shouldBe keyValue100
         segmentState.isSequential shouldBe false
       }
 
@@ -256,7 +256,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue101.key, threadState = threadState) shouldBe keyValue101
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue101
+        segmentState.foundKeyValue shouldBe keyValue101
         segmentState.isSequential shouldBe true
       }
 
@@ -308,7 +308,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue3.key, threadState = threadState) shouldBe keyValue3
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue3
+        segmentState.foundKeyValue shouldBe keyValue3
         segmentState.isSequential shouldBe false
       }
     }

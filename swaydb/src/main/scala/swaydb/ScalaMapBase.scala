@@ -27,7 +27,7 @@ protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, Bag.Less]) exten
     db.get(key)
 
   override def iterator: Iterator[(K, V)] =
-    db.iterator(Bag.bagless)
+    db.iterator(Bag.less)
 
   override def isEmpty: Boolean =
     db.isEmpty

@@ -944,10 +944,18 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
   "getNearestDeadlineSegment" should {
     "return None deadline if non of the key-values in the Segments contains deadline" in {
+      def segmentConfig(keyValuesCount: Int) =
+        if (persistent)
+          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2))
+        else
+          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
 
       runThis(100.times) {
-        val segment1 = TestSegment(randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false))
-        val segment2 = TestSegment(randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false))
+        val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+        val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig(keyValues1.size))
+
+        val keyValues2 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
+        val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig(keyValues2.size))
 
         Segment.getNearestDeadlineSegment(segment1, segment2).toOptionS shouldBe empty
 

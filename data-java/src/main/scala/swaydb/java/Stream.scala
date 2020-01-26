@@ -60,7 +60,7 @@ object Stream {
 
 class Stream[A](val asScala: swaydb.Stream[A]) {
   implicit val javaThrowableExceptionHandler = swaydb.java.IO.throwableExceptionHandler
-  implicit val bag = Bag.bagless
+  implicit val bag = Bag.less
 
   def forEach(consumer: Consumer[A]): Stream[Unit] =
     new Stream[Unit](asScala.foreach(consumer.asScala))

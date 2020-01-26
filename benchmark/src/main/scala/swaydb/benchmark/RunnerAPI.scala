@@ -38,7 +38,7 @@ case class RunnerAPI(test: Test) extends LazyLogging {
   private val reverseIteration: Boolean = test.reverseIteration
   private val keyValueCount: Long = test.keyValueCount
 
-  implicit val bag = Bag.bagless
+  implicit val bag = Bag.less
 
   def run = {
     println(s"\nCreating $keyValueCount test key-values.\n")

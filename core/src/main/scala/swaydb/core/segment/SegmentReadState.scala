@@ -23,6 +23,7 @@ import java.nio.file.Path
 
 import swaydb.core
 import swaydb.core.data.{Persistent, PersistentOption}
+import swaydb.data.slice.Slice
 import swaydb.data.util.SomeOrNone
 
 protected sealed trait SegmentReadStateOption extends SomeOrNone[SegmentReadStateOption, SegmentReadState] {
@@ -36,18 +37,21 @@ protected object SegmentReadState {
   }
 
   def updateOnSuccessSequentialRead(path: Path,
+                                    forKey: Slice[Byte],
                                     segmentState: SegmentReadStateOption,
                                     threadReadState: ThreadReadState,
                                     found: Persistent): Unit =
     if (segmentState.isNoneS)
       createOnSuccessSequentialRead(
         path = path,
+        forKey = forKey,
         readState = threadReadState,
         found = found
       )
     else
       mutateOnSuccessSequentialRead(
         path = path,
+        forKey = forKey,
         readState = threadReadState,
         segmentState = segmentState.getS,
         found = found
@@ -58,14 +62,16 @@ protected object SegmentReadState {
    */
 
   def createOnSuccessSequentialRead(path: Path,
+                                    forKey: Slice[Byte],
                                     readState: ThreadReadState,
                                     found: Persistent): Unit = {
     found.unsliceKeys
 
     val segmentState =
       new SegmentReadState(
-        keyValue = found,
-        lowerKeyValue = Persistent.Null,
+        foundKeyValue = found,
+        forKey = forKey,
+        foundLowerKeyValue = Persistent.Null,
         isSequential = true
       )
 
@@ -73,17 +79,20 @@ protected object SegmentReadState {
   }
 
   def mutateOnSuccessSequentialRead(path: Path,
+                                    forKey: Slice[Byte],
                                     readState: ThreadReadState,
                                     segmentState: SegmentReadState,
                                     found: Persistent): Unit = {
     found.unsliceKeys
     val state = segmentState.getS
     //mutate segmentState for next sequential read
-    state.keyValue = found
+    state.forKey = forKey
+    state.foundKeyValue = found
     state.isSequential = true
   }
 
   def updateAfterRandomRead(path: Path,
+                            forKey: Slice[Byte],
                             start: PersistentOption,
                             segmentStateOptional: SegmentReadStateOption,
                             threadReadState: ThreadReadState,
@@ -91,6 +100,7 @@ protected object SegmentReadState {
     if (segmentStateOptional.isSomeS)
       SegmentReadState.mutateAfterRandomRead(
         path = path,
+        forKey = forKey,
         threadState = threadReadState,
         segmentState = segmentStateOptional.getS,
         foundOption = foundOption
@@ -98,8 +108,9 @@ protected object SegmentReadState {
     else
       SegmentReadState.createAfterRandomRead(
         path = path,
-        threadState = threadReadState,
+        forKey = forKey,
         start = start,
+        threadState = threadReadState,
         foundOption = foundOption
       )
 
@@ -107,6 +118,7 @@ protected object SegmentReadState {
    * Sets read state after a random read WITHOUT an existing [[SegmentReadState]] exists.
    */
   def createAfterRandomRead(path: Path,
+                            forKey: Slice[Byte],
                             start: PersistentOption,
                             threadState: ThreadReadState,
                             foundOption: PersistentOption): Unit =
@@ -118,8 +130,9 @@ protected object SegmentReadState {
 
       val segmentState =
         new core.segment.SegmentReadState(
-          keyValue = foundKeyValue,
-          lowerKeyValue = Persistent.Null,
+          foundKeyValue = foundKeyValue,
+          forKey = forKey,
+          foundLowerKeyValue = Persistent.Null,
           isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
         )
 
@@ -130,27 +143,30 @@ protected object SegmentReadState {
    * Sets read state after a random read WITH an existing [[SegmentReadState]] exists.
    */
   def mutateAfterRandomRead(path: Path,
+                            forKey: Slice[Byte],
                             threadState: ThreadReadState,
                             segmentState: SegmentReadState, //should not be null.
                             foundOption: PersistentOption): Unit =
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
       foundKeyValue.unsliceKeys
-      segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue.nextIndexOffset
-      segmentState.keyValue = foundKeyValue
+      segmentState.forKey = forKey
+      segmentState.isSequential = foundKeyValue.indexOffset == segmentState.foundKeyValue.nextIndexOffset
+      segmentState.foundKeyValue = foundKeyValue
     } else {
       segmentState.isSequential = false
     }
 }
 
 /**
- * Both Get and Higher functions mutate [[keyValue]]. But lower
- * can only mutate [[lowerKeyValue]] as it depends on get to fetch
+ * Both Get and Higher functions mutate [[foundKeyValue]]. But lower
+ * can only mutate [[foundLowerKeyValue]] as it depends on get to fetch
  * the end key-value for faster lower search and should not mutate
- * get's set [[keyValue]].
+ * get's set [[foundKeyValue]].
  */
-protected class SegmentReadState(var keyValue: Persistent,
-                                 var lowerKeyValue: PersistentOption,
+protected class SegmentReadState(var forKey: Slice[Byte],
+                                 var foundKeyValue: Persistent,
+                                 var foundLowerKeyValue: PersistentOption,
                                  var isSequential: Boolean) extends SegmentReadStateOption {
   override def isNoneS: Boolean = false
   override def getS: SegmentReadState = this

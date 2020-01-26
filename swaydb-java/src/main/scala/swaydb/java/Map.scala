@@ -39,7 +39,7 @@ import scala.collection.compat._
  */
 case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 
-  implicit val bag = Bag.bagless
+  implicit val bag = Bag.less
 
   val asScala: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less] =
     _asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]]
@@ -205,7 +205,7 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
 
   def iterator: java.util.Iterator[KeyVal[K, V]] =
     asScala
-      .iterator(Bag.bagless)
+      .iterator(Bag.less)
       .map(KeyVal(_))
       .asJava
 

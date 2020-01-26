@@ -1256,7 +1256,7 @@ private[core] case class Level(dirs: Seq[Dir],
     Lower(
       key = key,
       readState = readState,
-      currentSeek = Seek.Current.Read(Int.MinValue),
+      currentSeek = Seek.Current.readStart,
       nextSeek = Seek.Next.Read
     )
 
@@ -1313,7 +1313,7 @@ private[core] case class Level(dirs: Seq[Dir],
     Higher(
       key = key,
       readState = readState,
-      currentSeek = Seek.Current.Read(Int.MinValue),
+      currentSeek = Seek.Current.readStart,
       nextSeek = Seek.Next.Read
     )
 

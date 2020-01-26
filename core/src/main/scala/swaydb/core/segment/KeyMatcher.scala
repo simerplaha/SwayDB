@@ -27,6 +27,8 @@ import swaydb.data.slice.Slice
 private[core] sealed trait KeyMatcher {
   def key: Slice[Byte]
 
+  def isHigher: Boolean
+
   def apply(previous: Persistent.Partial,
             next: Persistent.PartialOption,
             hasMore: Boolean): KeyMatcher.Result
@@ -137,6 +139,9 @@ private[core] object KeyMatcher {
   private class Getter(val key: Slice[Byte],
                        val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Get with Get.MatchOnly {
 
+    override def isHigher: Boolean =
+      false
+
     override def apply(previous: Persistent.Partial,
                        next: Persistent.PartialOption,
                        hasMore: Boolean): KeyMatcher.Result =
@@ -200,6 +205,9 @@ private[core] object KeyMatcher {
 
   private class LowerMatcher(val key: Slice[Byte],
                              val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Lower with Lower.MatchOnly {
+
+    override def isHigher: Boolean =
+      false
 
     override def apply(previous: Persistent.Partial,
                        next: Persistent.PartialOption,
@@ -281,6 +289,9 @@ private[core] object KeyMatcher {
 
   private class HigherMatcher(val key: Slice[Byte],
                               val matchOnly: Boolean)(implicit val keyOrder: KeyOrder[Slice[Byte]]) extends Higher with Higher.MatchOnly {
+
+    override def isHigher: Boolean =
+      true
 
     override def apply(previous: Persistent.Partial,
                        next: Persistent.PartialOption,
