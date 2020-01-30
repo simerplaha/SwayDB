@@ -41,7 +41,7 @@ import swaydb.data.config._
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.storage.{AppendixStorage, LevelStorage}
-import swaydb.{ActorWire, Error, IO, Scheduler}
+import swaydb.{ActorWire, Bag, Error, IO, Scheduler}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -109,9 +109,9 @@ private[core] object CoreInitializer extends LazyLogging {
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
-                                  bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+                                  bufferCleanerEC: Option[ExecutionContext] = None): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     if (config.storage.isMMAP && bufferCleanerEC.isEmpty)
-      IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]]("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
+      IO.failed[swaydb.Error.Boot, Core[Bag.Less]]("ExecutionContext for ByteBuffer is required for memory-mapped configured databases.") //FIXME - create a LevelZeroPersistentMMAPConfig type to remove this error check.
     else
       LevelZero(
         mapSize = config.mapSize,
@@ -125,16 +125,16 @@ private[core] object CoreInitializer extends LazyLogging {
         case IO.Right(zero) =>
           bufferCleanerEC foreach (ec => BufferCleaner.initialiseCleaner(Scheduler()(ec)))
           addShutdownHookNoCompaction(zero)
-          IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
+          IO[swaydb.Error.Boot, Core[Bag.Less]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
 
         case IO.Left(error) =>
-          IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+          IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
       }
 
   def apply(config: LevelZeroMemoryConfig,
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     LevelZero(
       mapSize = config.mapSize,
       storage = config.storage,
@@ -146,10 +146,10 @@ private[core] object CoreInitializer extends LazyLogging {
     ) match {
       case IO.Right(zero) =>
         addShutdownHookNoCompaction(zero)
-        IO[swaydb.Error.Boot, Core[IO.ApiIO]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
+        IO[swaydb.Error.Boot, Core[Bag.Less]](new Core(zero, ThreadStateCache.NoLimit, IO.Defer.unit))
 
       case IO.Left(error) =>
-        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
     }
 
   def executionContext(levelConfig: LevelConfig): Option[CompactionExecutionContext] =
@@ -193,7 +193,7 @@ private[core] object CoreInitializer extends LazyLogging {
             threadStateCache: ThreadStateCache,
             memoryCache: MemoryCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                       timeOrder: TimeOrder[Slice[Byte]],
-                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] = {
+                                      functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] = {
 
     implicit val fileSweeper: FileSweeper.Enabled =
       FileSweeper(fileCache)
@@ -278,7 +278,7 @@ private[core] object CoreInitializer extends LazyLogging {
       }
 
     def createLevels(levelConfigs: List[LevelConfig],
-                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[IO.ApiIO]] =
+                     previousLowerLevel: Option[NextLevel]): IO[swaydb.Error.Level, Core[Bag.Less]] =
       levelConfigs match {
         case Nil =>
           createLevel(
@@ -327,7 +327,7 @@ private[core] object CoreInitializer extends LazyLogging {
                             }
                         }
 
-                      new Core[IO.ApiIO](
+                      new Core[Bag.Less](
                         zero = zero,
                         threadStateCache = threadStateCache,
                         onClose = onClose
@@ -356,10 +356,10 @@ private[core] object CoreInitializer extends LazyLogging {
      */
     createLevels(config.otherLevels.reverse, None) match {
       case IO.Right(core) =>
-        IO[swaydb.Error.Boot, Core[IO.ApiIO]](core)
+        IO[swaydb.Error.Boot, Core[Bag.Less]](core)
 
       case IO.Left(error) =>
-        IO.failed[swaydb.Error.Boot, Core[IO.ApiIO]](error.exception)
+        IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
     }
   }
 }

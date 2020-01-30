@@ -68,7 +68,7 @@ private[core] object MemorySweeper {
             blockSize = block.minIOSeekSize,
             cacheSize = block.cacheCapacity,
             skipBlockCacheSeekSize = block.skipBlockCacheSeekSize,
-            actorConfig = Some(block.sweeperActorConfig)
+            actorConfig = Some(block.actorConfig)
           )
         )
 
@@ -89,7 +89,7 @@ private[core] object MemorySweeper {
             skipBlockCacheSeekSize = block.skipBlockCacheSeekSize,
             sweepKeyValues = block.sweepCachedKeyValues,
             maxKeyValuesPerSegment = block.maxCachedKeyValueCountPerSegment,
-            actorConfig = Some(block.sweeperActorConfig)
+            actorConfig = Some(block.actorConfig)
           )
         )
     }

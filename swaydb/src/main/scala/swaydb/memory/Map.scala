@@ -82,7 +82,7 @@ object Map extends LazyLogging {
         MemoryCache.KeyValueCacheOnly(
           cacheCapacity = memoryCacheSize,
           maxCachedKeyValueCountPerSegment = Some(maxCachedKeyValuesPerSegment),
-          memorySweeper = None
+          actorConfig = None
         )
     ) map {
       db =>

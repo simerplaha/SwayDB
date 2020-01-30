@@ -48,7 +48,7 @@ private[swaydb] object Core {
             memoryCache: MemoryCache,
             threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
@@ -65,7 +65,7 @@ private[swaydb] object Core {
             memoryCache: MemoryCache,
             threadStateCache: ThreadStateCache)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                 timeOrder: TimeOrder[Slice[Byte]],
-                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer,
@@ -79,7 +79,7 @@ private[swaydb] object Core {
             config: LevelZeroPersistentConfig)(implicit mmapCleanerEC: Option[ExecutionContext],
                                                keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
-                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+                                               functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer
@@ -88,7 +88,7 @@ private[swaydb] object Core {
   def apply(config: LevelZeroMemoryConfig,
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
-                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[IO.ApiIO]] =
+                                  functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
     CoreInitializer(
       config = config,
       enableTimer = enableTimer

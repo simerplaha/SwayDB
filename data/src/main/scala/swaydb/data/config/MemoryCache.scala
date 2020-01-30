@@ -38,7 +38,7 @@ object MemoryCache {
         minIOSeekSize = minIOSeekSize,
         skipBlockCacheSeekSize = skipBlockCacheSeekSize,
         cacheCapacity = memorySize,
-        sweeperActorConfig =
+        actorConfig =
           ActorConfig.TimeLoop(
             delay = interval,
             ec = ec
@@ -53,22 +53,22 @@ object MemoryCache {
   sealed trait Block extends Enabled {
     val minIOSeekSize: Int
     val cacheCapacity: Int
-    val sweeperActorConfig: ActorConfig
+    val actorConfig: ActorConfig
   }
 
   case class ByteCacheOnly(minIOSeekSize: Int,
                            skipBlockCacheSeekSize: Int,
                            cacheCapacity: Int,
-                           sweeperActorConfig: ActorConfig) extends Block
+                           actorConfig: ActorConfig) extends Block
 
   case class KeyValueCacheOnly(cacheCapacity: Int,
                                maxCachedKeyValueCountPerSegment: Option[Int],
-                               memorySweeper: Option[ActorConfig]) extends Enabled
+                               actorConfig: Option[ActorConfig]) extends Enabled
 
   case class All(minIOSeekSize: Int,
                  skipBlockCacheSeekSize: Int,
                  cacheCapacity: Int,
                  maxCachedKeyValueCountPerSegment: Option[Int],
                  sweepCachedKeyValues: Boolean,
-                 sweeperActorConfig: ActorConfig) extends Enabled with Block
+                 actorConfig: ActorConfig) extends Enabled with Block
 }
