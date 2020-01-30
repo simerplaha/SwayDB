@@ -91,14 +91,14 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         otherDirs = otherDirs,
         mmapAppendix = mmapPersistentAppendix,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-        sortedIndex =
+        sortedKeyIndex =
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
             enablePositionIndex = true,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compressions = _ => Seq.empty
           ),
-        hashIndex =
+        randomKeyIndex =
           RandomKeyIndex.Enable(
             maxProbe = 1,
             minimumNumberOfKeys = 2,

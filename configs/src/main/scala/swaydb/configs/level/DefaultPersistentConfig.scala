@@ -78,7 +78,7 @@ object DefaultPersistentConfig extends LazyLogging {
         otherDirs = otherDirs,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        sortedIndex =
+        sortedKeyIndex =
           SortedKeyIndex.Enable(
             prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = normaliseSortedIndexForBinarySearch),
             enablePositionIndex = enableBinarySearchPositionIndex,
