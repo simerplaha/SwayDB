@@ -98,7 +98,7 @@ object DefaultPersistentConfig extends LazyLogging {
         binarySearchIndex =
           BinarySearchIndex.FullIndex(
             minimumNumberOfKeys = 10,
-            searchSortedIndexDirectly = pushForward,
+            searchSortedIndexDirectly = true,
             indexFormat = IndexFormat.CopyKey,
             ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
             compression = _ => Seq.empty
@@ -122,7 +122,7 @@ object DefaultPersistentConfig extends LazyLogging {
           SegmentConfig(
             cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate,
             deleteSegmentsEventually = deleteSegmentsEventually,
-            pushForward = true,
+            pushForward = pushForward,
             mmap = mmapSegments,
             minSegmentSize = minSegmentSize,
             maxKeyValuesPerSegment = maxKeyValuesPerSegment,
