@@ -54,18 +54,16 @@ object SwayDB extends LazyLogging {
    *
    * This can be overridden by provided an implicit parameter in the scope of where the database is initialized.
    */
-  lazy val sweeperExecutionContext = new ExecutionContext {
-    val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
+  def sweeperExecutionContext =
+    new ExecutionContext {
+      val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 
-    def execute(runnable: Runnable): Unit =
-      threadPool execute runnable
+      def execute(runnable: Runnable): Unit =
+        threadPool execute runnable
 
-    def reportFailure(exception: Throwable): Unit =
-      logger.error("sweeperExecutionContext context failure", exception)
-  }
-
-  lazy val sweeperExecutorService: ExecutorService =
-    sweeperExecutionContext.threadPool
+      def reportFailure(exception: Throwable): Unit =
+        logger.error("sweeperExecutionContext context failure", exception)
+    }
 
   /**
    * Creates a database based on the input config.

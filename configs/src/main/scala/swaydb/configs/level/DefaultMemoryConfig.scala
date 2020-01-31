@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 
 object DefaultMemoryConfig extends LazyLogging {
 
-  private lazy val compactionExecutionContext =
+  private def compactionExecutionContext =
     new ExecutionContext {
       val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 

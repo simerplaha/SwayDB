@@ -32,7 +32,7 @@ import scala.concurrent.duration._
 
 object DefaultPersistentConfig extends LazyLogging {
 
-  private lazy val executionContext =
+  private def executionContext =
     new ExecutionContext {
       val threadPool = Executors.newSingleThreadExecutor(SingleThreadFactory.create())
 
@@ -66,7 +66,8 @@ object DefaultPersistentConfig extends LazyLogging {
             deleteSegmentsEventually: Boolean,
             cacheSegmentBlocksOnCreate: Boolean,
             enableBinarySearchPositionIndex: Boolean,
-            normaliseSortedIndexForBinarySearch: Boolean,
+            cacheSegmentBlocksOnAccess: Boolean,
+            prefixCompression: PrefixCompression,
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig = {
 
     /**
@@ -80,9 +81,9 @@ object DefaultPersistentConfig extends LazyLogging {
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
         sortedKeyIndex =
           SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = normaliseSortedIndexForBinarySearch),
+            prefixCompression = prefixCompression,
             enablePositionIndex = enableBinarySearchPositionIndex,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
             compressions = _ => Seq.empty
           ),
         randomKeyIndex =
@@ -92,7 +93,7 @@ object DefaultPersistentConfig extends LazyLogging {
             minimumNumberOfHits = 2,
             indexFormat = IndexFormat.Reference,
             allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
             compression = _ => Seq.empty
           ),
         binarySearchIndex =
@@ -100,7 +101,7 @@ object DefaultPersistentConfig extends LazyLogging {
             minimumNumberOfKeys = 10,
             searchSortedIndexDirectly = true,
             indexFormat = IndexFormat.CopyKey,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
             compression = _ => Seq.empty
           ),
         mightContainKeyIndex =
@@ -108,14 +109,14 @@ object DefaultPersistentConfig extends LazyLogging {
             falsePositiveRate = mightContainFalsePositiveRate,
             minimumNumberOfKeys = 10,
             updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
             compression = _ => Seq.empty
           ),
         values =
           ValuesConfig(
             compressDuplicateValues = compressDuplicateValues,
             compressDuplicateRangeValues = compressDuplicateRangeValues,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
+            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
             compression = _ => Seq.empty
           ),
         segment =
@@ -127,8 +128,8 @@ object DefaultPersistentConfig extends LazyLogging {
             minSegmentSize = minSegmentSize,
             maxKeyValuesPerSegment = maxKeyValuesPerSegment,
             ioStrategy = {
-              case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-              case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
+              case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess)
+              case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess)
               case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
             },
             compression = _ => Seq.empty

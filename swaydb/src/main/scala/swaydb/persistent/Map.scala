@@ -97,8 +97,9 @@ object Map extends LazyLogging {
                              cacheKeyValueIds: Boolean = true,
                              cacheSegmentBlocksOnCreate: Boolean = true,
                              enableBinarySearchPositionIndex: Boolean = true,
-                             normaliseSortedIndexForBinarySearch: Boolean = false,
+                             cacheSegmentBlocksOnAccess: Boolean = true,
                              acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                             prefixCompression: PrefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
                              threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                                valueSerializer: Serializer[V],
                                                                                                                                functionClassTag: ClassTag[F],
@@ -131,7 +132,8 @@ object Map extends LazyLogging {
           deleteSegmentsEventually = deleteSegmentsEventually,
           cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate,
           enableBinarySearchPositionIndex = enableBinarySearchPositionIndex,
-          normaliseSortedIndexForBinarySearch = normaliseSortedIndexForBinarySearch,
+          cacheSegmentBlocksOnAccess = cacheSegmentBlocksOnAccess,
+          prefixCompression = prefixCompression,
           acceleration = acceleration
         ),
       fileCache =
