@@ -39,7 +39,7 @@ object ConfigWizard {
                           recoveryMode: RecoveryMode,
                           compactionExecutionContext: CompactionExecutionContext.Create,
                           acceleration: LevelZeroMeter => Accelerator,
-                          throttle: LevelZeroMeter => FiniteDuration) =
+                          throttle: LevelZeroMeter => FiniteDuration): LevelZeroPersistentConfig =
     LevelZeroPersistentConfig(
       mapSize = mapSize,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
@@ -51,7 +51,7 @@ object ConfigWizard {
   def addMemoryLevel0(mapSize: Long,
                       compactionExecutionContext: CompactionExecutionContext.Create,
                       acceleration: LevelZeroMeter => Accelerator,
-                      throttle: LevelZeroMeter => FiniteDuration) =
+                      throttle: LevelZeroMeter => FiniteDuration): LevelZeroMemoryConfig =
     LevelZeroMemoryConfig(
       mapSize = mapSize,
       storage = Level0Storage.Memory,
@@ -226,7 +226,7 @@ sealed trait SwayDBConfig {
 
   def memory: Boolean = !persistent
 
-  def hasMMAP(levelConfig: LevelConfig) =
+  def hasMMAP(levelConfig: LevelConfig): Boolean =
     levelConfig match {
       case TrashLevelConfig =>
         false

@@ -43,7 +43,7 @@ object Set extends LazyLogging {
   def apply[A, F, BAG[_]](mapSize: Int = 4.mb,
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
                                                                                                 functionClassTag: ClassTag[F],
-                                                                                                tag: swaydb.Bag[BAG],
+                                                                                                bag: swaydb.Bag[BAG],
                                                                                                 keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 

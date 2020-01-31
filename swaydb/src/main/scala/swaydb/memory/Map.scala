@@ -54,7 +54,7 @@ object Map extends LazyLogging {
                              threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                                valueSerializer: Serializer[V],
                                                                                                                                functionClassTag: ClassTag[F],
-                                                                                                                               tag: swaydb.Bag[BAG],
+                                                                                                                               bag: swaydb.Bag[BAG],
                                                                                                                                keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
                                                                                                                                fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)

@@ -49,7 +49,7 @@ object Map extends LazyLogging {
                              acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
                                                                                                    valueSerializer: Serializer[V],
                                                                                                    functionClassTag: ClassTag[F],
-                                                                                                   tag: swaydb.Bag[BAG],
+                                                                                                   bag: swaydb.Bag[BAG],
                                                                                                    keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
                                                                                                    ec: Option[ExecutionContext] = Some(SwayDB.sweeperExecutionContext)): IO[Error.Boot, swaydb.Map[K, V, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)

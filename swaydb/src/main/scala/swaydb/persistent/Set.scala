@@ -73,7 +73,7 @@ object Set extends LazyLogging {
                           prefixCompression: PrefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
                                                                                                                             functionClassTag: ClassTag[F],
-                                                                                                                            tag: swaydb.Bag[BAG],
+                                                                                                                            bag: swaydb.Bag[BAG],
                                                                                                                             keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
                                                                                                                             fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
                                                                                                                             memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {

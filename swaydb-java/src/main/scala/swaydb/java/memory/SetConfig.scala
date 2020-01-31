@@ -74,7 +74,7 @@ object SetConfig {
           acceleration = acceleration.asScala
         )(serializer = serializer,
           functionClassTag = functionClassTag,
-          tag = Bag.less,
+          bag = Bag.less,
           keyOrder = Left(scalaKeyOrder),
           fileSweeperEC = fileSweeperEC
         ).get

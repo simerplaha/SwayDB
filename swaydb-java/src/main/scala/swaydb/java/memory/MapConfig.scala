@@ -78,7 +78,7 @@ object MapConfig {
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
           functionClassTag = functionClassTag,
-          tag = Bag.less,
+          bag = Bag.less,
           keyOrder = Left(scalaKeyOrder),
           fileSweeperEC = fileSweeperEC
         ).get
