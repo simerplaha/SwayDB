@@ -41,16 +41,16 @@ object Set extends LazyLogging {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit def functionStore: FunctionStore = FunctionStore.memory()
 
-  def apply[A, F, T[_]](dir: Path,
-                        mapSize: Int = 4.mb,
-                        mmapMaps: Boolean = true,
-                        recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                        otherDirs: Seq[Dir] = Seq.empty,
-                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
-                                                                                              functionClassTag: ClassTag[F],
-                                                                                              tag: swaydb.Bag[T],
-                                                                                              keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
-                                                                                              ec: Option[ExecutionContext] = Some(SwayDB.sweeperExecutionContext)): IO[Error.Boot, swaydb.Set[A, F, T]] = {
+  def apply[A, F, BAG[_]](dir: Path,
+                          mapSize: Int = 4.mb,
+                          mmapMaps: Boolean = true,
+                          recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                          otherDirs: Seq[Dir] = Seq.empty,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit serializer: Serializer[A],
+                                                                                                functionClassTag: ClassTag[F],
+                                                                                                tag: swaydb.Bag[BAG],
+                                                                                                keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
+                                                                                                ec: Option[ExecutionContext] = Some(SwayDB.sweeperExecutionContext)): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(
@@ -66,7 +66,7 @@ object Set extends LazyLogging {
         )
     ) map {
       db =>
-        swaydb.Set[A, F, T](db.toBag)
+        swaydb.Set[A, F, BAG](db.toBag)
     }
   }
 }

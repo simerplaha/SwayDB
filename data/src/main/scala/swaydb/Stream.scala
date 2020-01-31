@@ -77,7 +77,7 @@ object Stream {
 
   def apply[A](it: Iterator[A]): Stream[A] =
     new Stream[A] {
-      private def step[T[_]](implicit bag: Bag[T]): T[A] =
+      private def step[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
         if (it.hasNext)
           bag.success(it.next())
         else
@@ -160,13 +160,13 @@ trait Stream[A] { self =>
       pf = pf
     )
 
-  def collectFirst[B, T[_]](pf: PartialFunction[A, B])(implicit bag: Bag[T]): T[Option[B]] =
+  def collectFirst[B, BAG[_]](pf: PartialFunction[A, B])(implicit bag: Bag[BAG]): BAG[Option[B]] =
     bag.map(collectFirstOrNull(pf))(Option(_))
 
-  def collectFirstOrNull[B, T[_]](pf: PartialFunction[A, B])(implicit bag: Bag[T]): T[B] =
+  def collectFirstOrNull[B, BAG[_]](pf: PartialFunction[A, B])(implicit bag: Bag[BAG]): BAG[B] =
     collect(pf).headOrNull
 
-  def count[T[_]](f: A => Boolean)(implicit bag: Bag[T]): T[Int] =
+  def count[BAG[_]](f: A => Boolean)(implicit bag: Bag[BAG]): BAG[Int] =
     foldLeft(0) {
       case (c, item) if f(item) => c + 1
       case (c, _) => c
@@ -177,7 +177,7 @@ trait Stream[A] { self =>
    *
    * For a more efficient one use swaydb.Map.lastOption or swaydb.Set.lastOption instead.
    */
-  def lastOption[T[_]](implicit bag: Bag[T]): T[Option[A]] = {
+  def lastOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] = {
     val last =
       foldLeft(OptionMutable.Null: OptionMutable[A]) {
         (previous, next) =>
@@ -197,7 +197,7 @@ trait Stream[A] { self =>
    *
    * TODO - tag.foldLeft should run point.
    */
-  def foldLeft[B, T[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[T]): T[B] =
+  def foldLeft[B, BAG[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B] =
     step.Step.foldLeft(
       initial = initial,
       afterOrNull = null.asInstanceOf[A],
@@ -209,7 +209,7 @@ trait Stream[A] { self =>
   /**
    * Folds over all elements in the Stream to calculate it's total size.
    */
-  def size[T[_]](implicit bag: Bag[T]): T[Int] =
+  def size[BAG[_]](implicit bag: Bag[BAG]): BAG[Int] =
     foldLeft(0) {
       case (size, _) =>
         size + 1
@@ -218,7 +218,7 @@ trait Stream[A] { self =>
   /**
    * Materialises/closes and processes the stream to a [[Seq]].
    */
-  def materialize[T[_]](implicit bag: Bag[T]): T[ListBuffer[A]] =
+  def materialize[BAG[_]](implicit bag: Bag[BAG]): BAG[ListBuffer[A]] =
     foldLeft(ListBuffer.empty[A])(_ += _)
 
   def streamer: Streamer[A] =

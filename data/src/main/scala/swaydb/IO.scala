@@ -868,16 +868,16 @@ object IO {
     def toIO: IO[E, A] =
       IO(getUnsafe)
 
-    def run[B >: A, T[_]](tried: Int)(implicit bag: Bag[T]): T[B] =
+    def run[B >: A, BAG[_]](tried: Int)(implicit bag: Bag[BAG]): BAG[B] =
       bag match {
-        case sync: Bag.Sync[T] =>
-          runSync[B, T](tried)(sync)
+        case sync: Bag.Sync[BAG] =>
+          runSync[B, BAG](tried)(sync)
 
         //if a bag is provided that implements isComplete then execute it directly
-        case async: Bag.Async.Retryable[T] =>
-          runAsync[B, T](tried)(async)
+        case async: Bag.Async.Retryable[BAG] =>
+          runAsync[B, BAG](tried)(async)
 
-        case async: Bag.Async[T] =>
+        case async: Bag.Async[BAG] =>
           //else run the Bag as Future and return it's result.
           implicit val ec = async.executionContext
           async.fromFuture(runAsync[B, Future](tried))
@@ -932,7 +932,7 @@ object IO {
      * TODO -  Similar to [[runIO]]. [[runIO]] should be calling this function
      * to build it's execution process.
      */
-    private def runSync[B >: A, T[_]](tried: Int)(implicit bag: Bag.Sync[T]): T[B] = {
+    private def runSync[B >: A, BAG[_]](tried: Int)(implicit bag: Bag.Sync[BAG]): BAG[B] = {
 
       def blockIfNeeded(deferred: IO.Defer[E, B]): Unit =
         deferred.error foreach {
@@ -946,7 +946,7 @@ object IO {
         }
 
       @tailrec
-      def doRun(deferred: IO.Defer[E, B], tried: Int): T[B] = {
+      def doRun(deferred: IO.Defer[E, B], tried: Int): BAG[B] = {
         if (tried > 0) blockIfNeeded(deferred)
         IO.Defer.runAndRecover(deferred) match {
           case scala.util.Left(io) =>
@@ -974,13 +974,13 @@ object IO {
       doRun(this, tried)
     }
 
-    private def runAsync[B >: A, T[_]](tried: Int)(implicit bag: Bag.Async.Retryable[T]): T[B] = {
+    private def runAsync[B >: A, BAG[_]](tried: Int)(implicit bag: Bag.Async.Retryable[BAG]): BAG[B] = {
 
       /**
        * If the value is already fetched [[isPending]] run in current thread
        * else return a T that listens for the value to be complete.
        */
-      def delayedRun(deferred: IO.Defer[E, B]): Option[T[Unit]] =
+      def delayedRun(deferred: IO.Defer[E, B]): Option[BAG[Unit]] =
         deferred.error flatMap {
           error =>
             ExceptionHandler.recover(error) flatMap {
@@ -995,7 +995,7 @@ object IO {
 
       def runDelayed(deferred: IO.Defer[E, B],
                      tried: Int,
-                     async: T[Unit]): T[B] =
+                     async: BAG[Unit]): BAG[B] =
         bag.flatMap(async) {
           _ =>
             runNow(deferred, tried)
@@ -1009,7 +1009,7 @@ object IO {
           None
 
       @tailrec
-      def runNow(deferred: IO.Defer[E, B], tried: Int): T[B] =
+      def runNow(deferred: IO.Defer[E, B], tried: Int): BAG[B] =
         when(tried > 0)(delayedRun(deferred)) match {
           case Some(async) if bag.isIncomplete(async) =>
             logger.trace(s"Run delayed! isCached: ${getValue.isDefined}.")

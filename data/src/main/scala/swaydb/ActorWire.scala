@@ -58,7 +58,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
     }
 
   final class Ask {
-    def map[R, T[_]](function: (I, S) => R)(implicit bag: Bag.Async[T]): T[R] = {
+    def map[R, BAG[_]](function: (I, S) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
@@ -69,7 +69,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
       bag fromPromise promise
     }
 
-    def map[R, T[_]](function: (I, S, ActorWire[I, S]) => R)(implicit bag: Bag.Async[T]): T[R] = {
+    def map[R, BAG[_]](function: (I, S, ActorWire[I, S]) => R)(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
@@ -80,7 +80,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
       bag fromPromise promise
     }
 
-    def flatMap[R, T[_]](function: (I, S) => T[R])(implicit bag: Bag.Async[T]): T[R] = {
+    def flatMap[R, BAG[_]](function: (I, S) => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
@@ -91,7 +91,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
       bag fromPromise promise
     }
 
-    def flatMap[R, T[_]](function: (I, S, ActorWire[I, S]) => T[R])(implicit bag: Bag.Async[T]): T[R] = {
+    def flatMap[R, BAG[_]](function: (I, S, ActorWire[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): BAG[R] = {
       val promise = Promise[R]()
 
       actor send {
@@ -102,7 +102,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
       bag fromPromise promise
     }
 
-    def map[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit bag: Bag.Async[T]): Actor.Task[R, T] = {
+    def map[R, BAG[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => R)(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
       val promise = Promise[R]()
 
       val timerTask =
@@ -114,7 +114,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
       new Task(bag fromPromise promise, timerTask)
     }
 
-    def flatMap[R, T[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => T[R])(implicit bag: Bag.Async[T]): Actor.Task[R, T] = {
+    def flatMap[R, BAG[_]](delay: FiniteDuration)(function: (I, S, ActorWire[I, S]) => BAG[R])(implicit bag: Bag.Async[BAG]): Actor.Task[R, BAG] = {
       val promise = Promise[R]()
 
       val timerTask =
@@ -149,7 +149,7 @@ final class ActorWire[I, S] private[swaydb](impl: I,
       delay = delay
     )
 
-  def state[T[_]](implicit bag: Bag.Async[T]): T[S] =
+  def state[BAG[_]](implicit bag: Bag.Async[BAG]): BAG[S] =
     ask
       .map {
         (_, state: S) =>

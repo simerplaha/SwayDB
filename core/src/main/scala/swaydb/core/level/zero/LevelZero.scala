@@ -939,7 +939,7 @@ private[swaydb] case class LevelZero(path: Path,
   override def delete: IO[swaydb.Error.Delete, Unit] =
     LevelZero.delete(this)
 
-  final def run[R, T[_]](apply: LevelZero => R)(implicit bag: Bag[T]): T[R] =
+  final def run[R, BAG[_]](apply: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
     bag.suspend {
       try
         bag.success(apply(this))

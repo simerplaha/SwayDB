@@ -26,7 +26,7 @@ private[swaydb] class Collect[A, B](previousStream: Stream[A],
 
   var previousA: A = _
 
-  def stepForward[T[_]](startFromOrNull: A)(implicit bag: Bag[T]): T[B] =
+  def stepForward[BAG[_]](startFromOrNull: A)(implicit bag: Bag[BAG]): BAG[B] =
     if (startFromOrNull == null) {
       bag.success(null.asInstanceOf[B])
     } else {

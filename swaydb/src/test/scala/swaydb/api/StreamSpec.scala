@@ -44,11 +44,11 @@ class StreamTrySpec extends StreamSpec[Try] {
   override def get[A](a: Try[A]): A = a.get
 }
 
-sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec with Matchers {
+sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpec with Matchers {
 
-  def get[A](a: T[A]): A
+  def get[A](a: BAG[A]): A
 
-  implicit class Get[A](a: T[A]) {
+  implicit class Get[A](a: BAG[A]) {
     def await = get(a)
   }
 
@@ -57,49 +57,49 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
     "empty" in {
       Stream.empty[Int]
         .map(_.toString)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe empty
     }
 
     "range" in {
       Stream
         .range(1, 100)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (1 to 100)
 
       Stream
         .range('a', 'z')
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe ('a' to 'z')
     }
 
     "rangeUntil" in {
       Stream
         .rangeUntil(1, 100)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (1 to 99)
 
       Stream
         .rangeUntil('a', 'z')
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe ('a' to 'y')
     }
 
     "tabulate" in {
       Stream
         .tabulate[Int](5)(_ + 1)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (1 to 5)
 
       Stream
         .tabulate[Int](0)(_ + 1)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe empty
     }
 
     "headOption" in {
       Stream[Int](1 to 100)
-        .headOption[T]
+        .headOption[BAG]
         .await should contain(1)
     }
 
@@ -107,19 +107,19 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
       Stream[Int](1, 2)
         .map(_ + 1)
         .take(1)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe List(2)
     }
 
     "count" in {
       Stream[Int](1 to 100)
-        .count[T](_ % 2 == 0)
+        .count[BAG](_ % 2 == 0)
         .await shouldBe 50
     }
 
     "lastOptionLinear" in {
       Stream[Int](1 to 100)
-        .lastOption[T]
+        .lastOption[BAG]
         .await should contain(100)
     }
 
@@ -128,27 +128,27 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .map(_ + " one")
         .map(_ + " two")
         .map(_ + " three")
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (1 to 1000).map(_ + " one two three")
     }
 
     "collect conditional" in {
       Stream[Int](1 to 1000)
         .collect { case n if n % 2 == 0 => n }
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (2 to 1000 by 2)
     }
 
     "collectFirst" in {
       Stream[Int](1 to 1000)
-        .collectFirst[Int, T] { case n if n % 2 == 0 => n }
+        .collectFirst[Int, BAG] { case n if n % 2 == 0 => n }
         .await should contain(2)
     }
 
     "collect all" in {
       Stream[Int](1 to 1000)
         .collect { case n => n }
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (1 to 1000)
     }
 
@@ -160,7 +160,7 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .map(_.toInt)
         .drop(2)
         .take(1)
-        .materialize[T]
+        .materialize[BAG]
         .await should contain only 13
     }
 
@@ -170,7 +170,7 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .drop(10)
         .take(1)
         .map(_.toInt)
-        .materialize[T]
+        .materialize[BAG]
         .await should have size 1
     }
 
@@ -179,7 +179,7 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .map(_.toString)
         .drop(10)
         .takeWhile(_.toInt <= 10)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe empty
     }
 
@@ -188,21 +188,21 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .map(_.toString)
         .drop(10)
         .dropWhile(_.toInt <= 20)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe empty
 
       Stream[Int](1 to 20)
         .map(_.toString)
         .drop(11)
         .dropWhile(_.toInt % 2 == 0)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (13 to 20).map(_.toString)
     }
 
     "flatMap" in {
       Stream[Int](1 to 10)
         .flatMap(_ => Stream[Int](1 to 10))
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe Array.fill(10)(1 to 10).flatten
     }
 
@@ -211,7 +211,7 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
         .map(_ + 10)
         .filter(_ % 2 == 0)
         .take(2)
-        .materialize[T]
+        .materialize[BAG]
         .await should contain only(12, 14)
     }
 
@@ -219,14 +219,14 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
       Stream[Int](1 to 10)
         .filterNot(_ % 2 == 0)
         .take(2)
-        .materialize[T]
+        .materialize[BAG]
         .await shouldBe (1 to 10).filter(_ % 2 != 0).take(2)
     }
 
     "not stack overflow" in {
       Stream[Int](1 to 1000000)
         .filter(_ % 100000 == 0)
-        .materialize[T]
+        .materialize[BAG]
         .await should contain only(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000)
     }
 
@@ -240,7 +240,7 @@ sealed abstract class StreamSpec[T[_]](implicit bag: Bag[T]) extends WordSpec wi
               else
                 int
           }
-          .materialize[T]
+          .materialize[BAG]
 
       val exception =
         if (bag == Bag.less)

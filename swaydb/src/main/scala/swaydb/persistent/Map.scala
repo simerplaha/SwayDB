@@ -74,38 +74,38 @@ object Map extends LazyLogging {
    * @return Database instance
    */
 
-  def apply[K, V, F, T[_]](dir: Path,
-                           maxOpenSegments: Int = 1000,
-                           memoryCacheSize: Int = 100.mb,
-                           blockSize: Int = 4098,
-                           mapSize: Int = 4.mb,
-                           mmapMaps: Boolean = true,
-                           pushForward: Boolean = true,
-                           recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                           mmapAppendix: Boolean = true,
-                           mmapSegments: MMAP = MMAP.WriteAndRead,
-                           minSegmentSize: Int = 2.mb,
-                           maxKeyValuesPerSegment: Int = 100000,
-                           appendixFlushCheckpointSize: Int = 2.mb,
-                           otherDirs: Seq[Dir] = Seq.empty,
-                           memorySweeperPollInterval: FiniteDuration = 10.seconds,
-                           fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                           mightContainFalsePositiveRate: Double = 0.01,
-                           compressDuplicateValues: Boolean = true,
-                           compressDuplicateRangeValues: Boolean = true,
-                           deleteSegmentsEventually: Boolean = true,
-                           cacheKeyValueIds: Boolean = true,
-                           cacheSegmentBlocksOnCreate: Boolean = true,
-                           enableBinarySearchPositionIndex: Boolean = true,
-                           normaliseSortedIndexForBinarySearch: Boolean = false,
-                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                           threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
-                                                                                                                             valueSerializer: Serializer[V],
-                                                                                                                             functionClassTag: ClassTag[F],
-                                                                                                                             tag: swaydb.Bag[T],
-                                                                                                                             keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
-                                                                                                                             fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
-                                                                                                                             memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Map[K, V, F, T]] = {
+  def apply[K, V, F, BAG[_]](dir: Path,
+                             maxOpenSegments: Int = 1000,
+                             memoryCacheSize: Int = 100.mb,
+                             blockSize: Int = 4098,
+                             mapSize: Int = 4.mb,
+                             mmapMaps: Boolean = true,
+                             pushForward: Boolean = true,
+                             recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                             mmapAppendix: Boolean = true,
+                             mmapSegments: MMAP = MMAP.WriteAndRead,
+                             minSegmentSize: Int = 2.mb,
+                             maxKeyValuesPerSegment: Int = 100000,
+                             appendixFlushCheckpointSize: Int = 2.mb,
+                             otherDirs: Seq[Dir] = Seq.empty,
+                             memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                             fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                             mightContainFalsePositiveRate: Double = 0.01,
+                             compressDuplicateValues: Boolean = true,
+                             compressDuplicateRangeValues: Boolean = true,
+                             deleteSegmentsEventually: Boolean = true,
+                             cacheKeyValueIds: Boolean = true,
+                             cacheSegmentBlocksOnCreate: Boolean = true,
+                             enableBinarySearchPositionIndex: Boolean = true,
+                             normaliseSortedIndexForBinarySearch: Boolean = false,
+                             acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                             threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
+                                                                                                                               valueSerializer: Serializer[V],
+                                                                                                                               functionClassTag: ClassTag[F],
+                                                                                                                               tag: swaydb.Bag[BAG],
+                                                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
+                                                                                                                               fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
+                                                                                                                               memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Map[K, V, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(
@@ -150,7 +150,7 @@ object Map extends LazyLogging {
         )
     ) map {
       db =>
-        swaydb.Map[K, V, F, T](db.toBag)
+        swaydb.Map[K, V, F, BAG](db.toBag)
     }
   }
 }

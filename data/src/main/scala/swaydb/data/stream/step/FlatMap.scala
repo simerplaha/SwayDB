@@ -29,7 +29,7 @@ private[swaydb] class FlatMap[A, B](previousStream: Stream[A],
   var innerStream: Stream[B] = _
   var previousA: A = _
 
-  def streamNext[T[_]](nextA: A)(implicit bag: Bag[T]): T[B] = {
+  def streamNext[BAG[_]](nextA: A)(implicit bag: Bag[BAG]): BAG[B] = {
     innerStream = f(nextA)
     previousA = nextA
     innerStream.headOrNull

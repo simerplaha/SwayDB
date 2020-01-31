@@ -45,37 +45,37 @@ object Set extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[A, F, T[_]](dir: Path,
-                        maxOpenSegments: Int = 1000,
-                        memoryCacheSize: Int = 100.mb,
-                        mapSize: Int = 4.mb,
-                        mmapMaps: Boolean = true,
-                        pushForward: Boolean = true,
-                        recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                        mmapAppendix: Boolean = true,
-                        mmapSegments: MMAP = MMAP.WriteAndRead,
-                        minSegmentSize: Int = 2.mb,
-                        maxKeyValuesPerSegment: Int = 100000,
-                        appendixFlushCheckpointSize: Int = 2.mb,
-                        otherDirs: Seq[Dir] = Seq.empty,
-                        memorySweeperPollInterval: FiniteDuration = 10.seconds,
-                        fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                        mightContainFalsePositiveRate: Double = 0.01,
-                        blockSize: Int = 4098,
-                        cacheSegmentBlocksOnCreate: Boolean = true,
-                        enableBinarySearchPositionIndex: Boolean = true,
-                        normaliseSortedIndexForBinarySearch: Boolean = false,
-                        compressDuplicateValues: Boolean = true,
-                        compressDuplicateRangeValues: Boolean = true,
-                        deleteSegmentsEventually: Boolean = true,
-                        cacheKeyValueIds: Boolean = true,
-                        acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                        threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
-                                                                                                                          functionClassTag: ClassTag[F],
-                                                                                                                          tag: swaydb.Bag[T],
-                                                                                                                          keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
-                                                                                                                          fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
-                                                                                                                          memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Set[A, F, T]] = {
+  def apply[A, F, BAG[_]](dir: Path,
+                          maxOpenSegments: Int = 1000,
+                          memoryCacheSize: Int = 100.mb,
+                          mapSize: Int = 4.mb,
+                          mmapMaps: Boolean = true,
+                          pushForward: Boolean = true,
+                          recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                          mmapAppendix: Boolean = true,
+                          mmapSegments: MMAP = MMAP.WriteAndRead,
+                          minSegmentSize: Int = 2.mb,
+                          maxKeyValuesPerSegment: Int = 100000,
+                          appendixFlushCheckpointSize: Int = 2.mb,
+                          otherDirs: Seq[Dir] = Seq.empty,
+                          memorySweeperPollInterval: FiniteDuration = 10.seconds,
+                          fileSweeperPollInterval: FiniteDuration = 10.seconds,
+                          mightContainFalsePositiveRate: Double = 0.01,
+                          blockSize: Int = 4098,
+                          cacheSegmentBlocksOnCreate: Boolean = true,
+                          enableBinarySearchPositionIndex: Boolean = true,
+                          normaliseSortedIndexForBinarySearch: Boolean = false,
+                          compressDuplicateValues: Boolean = true,
+                          compressDuplicateRangeValues: Boolean = true,
+                          deleteSegmentsEventually: Boolean = true,
+                          cacheKeyValueIds: Boolean = true,
+                          acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                          threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
+                                                                                                                            functionClassTag: ClassTag[F],
+                                                                                                                            tag: swaydb.Bag[BAG],
+                                                                                                                            keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default),
+                                                                                                                            fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
+                                                                                                                            memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(
@@ -120,7 +120,7 @@ object Set extends LazyLogging {
         )
     ) map {
       db =>
-        swaydb.Set[A, F, T](db.toBag)
+        swaydb.Set[A, F, BAG](db.toBag)
     }
   }
 }

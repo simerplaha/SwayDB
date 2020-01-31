@@ -41,12 +41,12 @@ object Map extends LazyLogging {
    * A single level zero only database. Does not need compaction.
    */
 
-  def apply[K, V, F, T[_]](mapSize: Int = 4.mb,
-                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
-                                                                                                 valueSerializer: Serializer[V],
-                                                                                                 functionClassTag: ClassTag[F],
-                                                                                                 tag: swaydb.Bag[T],
-                                                                                                 keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.Map[K, V, F, T]] = {
+  def apply[K, V, F, BAG[_]](mapSize: Int = 4.mb,
+                             acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes())(implicit keySerializer: Serializer[K],
+                                                                                                   valueSerializer: Serializer[V],
+                                                                                                   functionClassTag: ClassTag[F],
+                                                                                                   tag: swaydb.Bag[BAG],
+                                                                                                   keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.Map[K, V, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
     Core(
@@ -57,7 +57,7 @@ object Map extends LazyLogging {
       )
     ) map {
       db =>
-        swaydb.Map[K, V, F, T](db.toBag)
+        swaydb.Map[K, V, F, BAG](db.toBag)
     }
   }
 }
