@@ -76,7 +76,7 @@ private[swaydb] object Core {
     )
 
   def apply(enableTimer: Boolean,
-            config: LevelZeroPersistentConfig)(implicit mmapCleanerEC: Option[ExecutionContext],
+            config: PersistentLevelZeroConfig)(implicit mmapCleanerEC: Option[ExecutionContext],
                                                keyOrder: KeyOrder[Slice[Byte]],
                                                timeOrder: TimeOrder[Slice[Byte]],
                                                functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =
@@ -85,7 +85,7 @@ private[swaydb] object Core {
       enableTimer = enableTimer
     )
 
-  def apply(config: LevelZeroMemoryConfig,
+  def apply(config: MemoryLevelZeroConfig,
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =

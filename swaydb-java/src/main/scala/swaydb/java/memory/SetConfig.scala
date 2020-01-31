@@ -20,23 +20,22 @@
 package swaydb.java.memory
 
 import java.util.Comparator
-import java.util.concurrent.ExecutorService
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
+import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
-import swaydb.java.data.util.Java.{JavaFunction, _}
+import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{IO, KeyOrderConverter, PureFunction, Return}
+import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, SwayDB, Bag}
+import swaydb.{Apply, Bag}
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
-import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
@@ -44,39 +43,31 @@ object SetConfig {
 
   class Config[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], SF](@BeanProperty var mapSize: Int = 4.mb,
                                                                                       @BeanProperty var minSegmentSize: Int = 2.mb,
-                                                                                      @BeanProperty var maxOpenSegments: Int = 100,
-                                                                                      @BeanProperty var maxCachedKeyValuesPerSegment: Int = 10,
-                                                                                      @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
-                                                                                      @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
+                                                                                      @BeanProperty var maxKeyValuesPerSegment: Int = 10,
                                                                                       @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
-                                                                                      @BooleanBeanProperty var cacheKeyValueIds: Boolean = true,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                                                                                      @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = DefaultConfigs.levelZeroThrottle,
+                                                                                      @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.lastLevelThrottle,
                                                                                       @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
-                                                                                      @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.sweeperExecutionContext.threadPool,
                                                                                       serializer: Serializer[A],
                                                                                       functionClassTag: ClassTag[SF]) {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
-
-    implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
 
     def init(): swaydb.java.Set[A, F] = {
       val scalaMap =
         swaydb.memory.Set[A, SF, Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
-          maxOpenSegments = maxOpenSegments,
-          maxCachedKeyValuesPerSegment = maxCachedKeyValuesPerSegment,
-          fileSweeperPollInterval = fileSweeperPollInterval.toScala,
-          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
+          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
           deleteSegmentsEventually = deleteSegmentsEventually,
-          cacheKeyValueIds = cacheKeyValueIds,
-          acceleration = acceleration.asScala
+          acceleration = acceleration.asScala,
+          levelZeroThrottle = levelZeroThrottle.asScala,
+          lastLevelThrottle = lastLevelThrottle.asScala
         )(serializer = serializer,
           functionClassTag = functionClassTag,
           bag = Bag.less,
-          keyOrder = Left(scalaKeyOrder),
-          fileSweeperEC = fileSweeperEC
+          keyOrder = Left(scalaKeyOrder)
         ).get
 
       swaydb.java.Set[A, F](scalaMap)

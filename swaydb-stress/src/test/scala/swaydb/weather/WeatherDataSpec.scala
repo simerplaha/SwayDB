@@ -38,11 +38,12 @@ class Memory_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCacheSize = 10.mb, acceleration = Accelerator.brake()).get
+  override val db = swaydb.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get
 }
 
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  //  override val db = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
+  override val db = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir).get
 }
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAfterAll {

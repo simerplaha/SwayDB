@@ -154,7 +154,7 @@ object SwayDB extends LazyLogging {
         swaydb.Set[T, F, Bag.Less](db)
     }
 
-  def apply[T, F](config: LevelZeroPersistentConfig)(implicit serializer: Serializer[T],
+  def apply[T, F](config: PersistentLevelZeroConfig)(implicit serializer: Serializer[T],
                                                      keyOrder: KeyOrder[Slice[Byte]],
                                                      mmapCleanerEC: Option[ExecutionContext]): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
@@ -165,7 +165,7 @@ object SwayDB extends LazyLogging {
         swaydb.Set[T, F, Bag.Less](db)
     }
 
-  def apply[T, F](config: LevelZeroMemoryConfig)(implicit serializer: Serializer[T],
+  def apply[T, F](config: MemoryLevelZeroConfig)(implicit serializer: Serializer[T],
                                                  keyOrder: KeyOrder[Slice[Byte]]): IO[swaydb.Error.Boot, swaydb.Set[T, F, Bag.Less]] =
     Core(
       config = config,

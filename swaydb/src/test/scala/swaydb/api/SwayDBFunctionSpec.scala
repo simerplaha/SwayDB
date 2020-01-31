@@ -88,16 +88,16 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
     swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO]().right.value
 }
 
-class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
-
-  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value
-}
-
-class SwayDBFunctionSpec5 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
-    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO]().right.value
-}
+//class SwayDBFunctionSpec4 extends SwayDBFunctionSpec {
+//
+//  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
+//    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value
+//}
+//
+//class SwayDBFunctionSpec5 extends SwayDBFunctionSpec {
+//  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
+//    swaydb.memory.zero.Map[Key, Int, Key.Function, IO.ApiIO]().right.value
+//}
 
 sealed trait SwayDBFunctionSpec extends TestBase {
 

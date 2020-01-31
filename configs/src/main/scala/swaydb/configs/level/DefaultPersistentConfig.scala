@@ -24,7 +24,7 @@ import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.compaction.{CompactionExecutionContext, Throttle}
+import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 
 import scala.concurrent.ExecutionContext
@@ -54,21 +54,22 @@ object DefaultPersistentConfig extends LazyLogging {
             mapSize: Int,
             mmapMaps: Boolean,
             recoveryMode: RecoveryMode,
-            mmapSegments: MMAP,
             mmapAppendix: Boolean,
-            minSegmentSize: Int,
-            maxKeyValuesPerSegment: Int,
             appendixFlushCheckpointSize: Int,
-            mightContainFalsePositiveRate: Double,
-            pushForward: Boolean,
-            compressDuplicateValues: Boolean,
-            compressDuplicateRangeValues: Boolean,
-            deleteSegmentsEventually: Boolean,
-            cacheSegmentBlocksOnCreate: Boolean,
-            enableBinarySearchPositionIndex: Boolean,
-            cacheSegmentBlocksOnAccess: Boolean,
-            prefixCompression: PrefixCompression,
-            acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig = {
+            sortedKeyIndex: SortedKeyIndex,
+            randomKeyIndex: RandomKeyIndex,
+            binarySearchIndex: BinarySearchIndex,
+            mightContainKeyIndex: MightContainIndex,
+            values: ValuesConfig,
+            segment: SegmentConfig,
+            acceleration: LevelZeroMeter => Accelerator,
+            levelZeroThrottle: LevelZeroMeter => FiniteDuration,
+            levelOneThrottle: LevelMeter => Throttle,
+            levelTwoThrottle: LevelMeter => Throttle,
+            levelThreeThrottle: LevelMeter => Throttle,
+            levelFourThrottle: LevelMeter => Throttle,
+            levelFiveThrottle: LevelMeter => Throttle,
+            levelSixThrottle: LevelMeter => Throttle): SwayDBPersistentConfig = {
 
     /**
      * Default config for each level. Only throttle is adjusted for each level.
@@ -79,68 +80,14 @@ object DefaultPersistentConfig extends LazyLogging {
         otherDirs = otherDirs,
         mmapAppendix = mmapAppendix,
         appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = prefixCompression,
-            enablePositionIndex = enableBinarySearchPositionIndex,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
-            compressions = _ => Seq.empty
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 5,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 10,
-            searchSortedIndexDirectly = true,
-            indexFormat = IndexFormat.CopyKey,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
-            compression = _ => Seq.empty
-          ),
-        mightContainKeyIndex =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
-            compression = _ => Seq.empty
-          ),
-        values =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = compressDuplicateRangeValues,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess),
-            compression = _ => Seq.empty
-          ),
-        segment =
-          SegmentConfig(
-            cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate,
-            deleteSegmentsEventually = deleteSegmentsEventually,
-            pushForward = pushForward,
-            mmap = mmapSegments,
-            minSegmentSize = minSegmentSize,
-            maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-            ioStrategy = {
-              case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess)
-              case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = cacheSegmentBlocksOnAccess)
-              case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-            },
-            compression = _ => Seq.empty
-          ),
+        sortedKeyIndex = sortedKeyIndex,
+        randomKeyIndex = randomKeyIndex,
+        binarySearchIndex = binarySearchIndex,
+        mightContainKeyIndex = mightContainKeyIndex,
+        values = values,
+        segment = segment,
         compactionExecutionContext = CompactionExecutionContext.Shared,
-        throttle =
-          levelMeter => {
-            val delay = (5 - levelMeter.segmentsCount).seconds
-            val batch = levelMeter.segmentsCount min 5
-            Throttle(delay, batch)
-          }
+        throttle = levelOneThrottle
       )
 
     /**
@@ -157,67 +104,13 @@ object DefaultPersistentConfig extends LazyLogging {
         recoveryMode = recoveryMode,
         compactionExecutionContext = CompactionExecutionContext.Create(executionContext),
         acceleration = acceleration,
-        throttle =
-          meter => {
-            val mapsCount = meter.mapsCount
-            if (mapsCount > 3)
-              Duration.Zero
-            else if (mapsCount > 2)
-              1.second
-            else
-              30.seconds
-          }
+        throttle = levelZeroThrottle
       )
       .addPersistentLevel1(level1Config)
-      .addPersistentLevel( //level2
-        level1Config.copy(
-          throttle =
-            levelMeter => {
-              val delay = (10 - levelMeter.segmentsCount).seconds
-              val batch = levelMeter.segmentsCount min 5
-              Throttle(delay, batch)
-            }
-        )
-      )
-      .addPersistentLevel( //level3
-        level1Config.copy(
-          throttle =
-            levelMeter => {
-              val delay = (30 - levelMeter.segmentsCount).seconds
-              val batch = levelMeter.segmentsCount min 5
-              Throttle(delay, batch)
-            }
-        )
-      )
-      .addPersistentLevel( //level4
-        level1Config.copy(
-          throttle =
-            levelMeter => {
-              val delay = (40 - levelMeter.segmentsCount).seconds
-              val batch = levelMeter.segmentsCount min 5
-              Throttle(delay, batch)
-            }
-        )
-      )
-      .addPersistentLevel( //level5
-        level1Config.copy(
-          throttle =
-            levelMeter => {
-              val delay = (50 - levelMeter.segmentsCount).seconds
-              val batch = levelMeter.segmentsCount min 5
-              Throttle(delay, batch)
-            }
-        )
-      )
-      .addPersistentLevel( //level6
-        level1Config.copy(
-          throttle =
-            levelMeter =>
-              if (levelMeter.requiresCleanUp)
-                Throttle(10.seconds, 2)
-              else
-                Throttle(1.hour, 5)
-        )
-      )
+      .addPersistentLevel(level1Config.copy(throttle = levelTwoThrottle)) //level2
+      .addPersistentLevel(level1Config.copy(throttle = levelThreeThrottle)) //level3
+      .addPersistentLevel(level1Config.copy(throttle = levelFourThrottle)) //level4
+      .addPersistentLevel(level1Config.copy(throttle = levelFiveThrottle)) //level5
+      .addPersistentLevel(level1Config.copy(throttle = levelSixThrottle)) //level6
   }
 }

@@ -31,10 +31,8 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{IO, KeyOrderConverter, SwayDB}
+import swaydb.{IO, KeyOrderConverter}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
 import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
@@ -46,53 +44,32 @@ object Map extends LazyLogging {
    * A 3 Leveled in-memory database where the 3rd is persistent.
    *
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
-   *
-   * @param dir                        Root directory for all Level where appendix folder & files are created
-   * @param otherDirs                  Secondary directories for all Levels where Segments get distributed.
-   * @param mapSize                    Size of LevelZero's maps (WAL)
-   * @param maxMemoryLevelSize         Total size of in-memory Level (Level1) before Segments gets pushed to persistent Level (Level2)
-   * @param maxSegmentsToPush          Numbers of Segments to push from in-memory Level (Level1) to persistent Level (Level2)
-   * @param memoryLevelSegmentSize     Size of Level1's Segments
-   * @param persistentLevelSegmentSize Size of Level2's Segments
-   * @param mmapPersistentSegments     Memory-maps Level2 Segments
-   * @param mmapPersistentAppendix     Memory-maps Level2's appendix file
-   * @param acceleration               Controls the write speed.
-   * @param keySerializer              Converts keys to Bytes
-   * @param valueSerializer            Converts values to Bytes
-   * @param keyOrder                   Sort order for keys
-   * @tparam K Type of key
-   * @tparam V Type of value
-   * @return Database instance
    */
   def apply[K, V, F, BAG[_]](dir: Path,
-                             maxOpenSegments: Int = 1000,
                              mapSize: Int = 4.mb,
                              maxMemoryLevelSize: Int = 100.mb,
                              maxSegmentsToPush: Int = 5,
                              memoryLevelSegmentSize: Int = 2.mb,
                              memoryLevelMaxKeyValuesCountPerSegment: Int = 200000,
-                             persistentLevelSegmentSize: Int = 4.mb,
-                             persistentLevelMaxKeyValuesPerSegment: Int = 100000,
                              persistentLevelAppendixFlushCheckpointSize: Int = 2.mb,
-                             mmapPersistentSegments: MMAP = MMAP.WriteAndRead,
-                             mmapPersistentAppendix: Boolean = true,
                              otherDirs: Seq[Dir] = Seq.empty,
-                             blockSize: Int = 4098.bytes,
-                             memoryCacheSize: Int = 100.mb,
-                             memorySweeperPollInterval: FiniteDuration = 10.seconds,
-                             fileSweeperPollInterval: FiniteDuration = 10.seconds,
-                             mightContainFalsePositiveRate: Double = 0.01,
-                             compressDuplicateValues: Boolean = true,
-                             deleteSegmentsEventually: Boolean = true,
                              cacheKeyValueIds: Boolean = true,
+                             mmapPersistentLevelAppendix: Boolean = true,
+                             deleteMemorySegmentsEventually: Boolean = true,
                              acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                             persitentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                             persitentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                             binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+                             mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                             values: ValuesConfig = DefaultConfigs.values(),
+                             segment: SegmentConfig = DefaultConfigs.segment(),
+                             fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                             memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
                              threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
                                                                                                                                valueSerializer: Serializer[V],
                                                                                                                                functionClassTag: ClassTag[F],
                                                                                                                                bag: swaydb.Bag[BAG],
-                                                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default),
-                                                                                                                               fileSweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext,
-                                                                                                                               memorySweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
+                                                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
 
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
 
@@ -106,33 +83,22 @@ object Map extends LazyLogging {
           otherDirs = otherDirs,
           mapSize = mapSize,
           maxMemoryLevelSize = maxMemoryLevelSize,
-          memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
           maxSegmentsToPush = maxSegmentsToPush,
           memoryLevelMinSegmentSize = memoryLevelSegmentSize,
-          persistentLevelMinSegmentSize = persistentLevelSegmentSize,
-          persistentLevelMaxKeyValuesPerSegment = persistentLevelMaxKeyValuesPerSegment,
+          memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
+          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-          mmapPersistentSegments = mmapPersistentSegments,
-          mmapPersistentAppendix = mmapPersistentAppendix,
-          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-          compressDuplicateValues = compressDuplicateValues,
-          deleteSegmentsEventually = deleteSegmentsEventually,
+          mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
+          persistentLevelSortedKeyIndex = persitentLevelSortedKeyIndex,
+          persistentLevelRandomKeyIndex = persitentLevelRandomKeyIndex,
+          persistentLevelBinarySearchIndex = binarySearchIndex,
+          persistentLevelMightContainKeyIndex = mightContainKeyIndex,
+          persistentLevelValuesConfig = values,
+          persistentLevelSegmentConfig = segment,
           acceleration = acceleration
         ),
-      fileCache =
-        FileCache.Enable.default(
-          maxOpen = maxOpenSegments,
-          interval = fileSweeperPollInterval,
-          ec = fileSweeperEC
-        ),
-      memoryCache =
-        MemoryCache.Enabled.default(
-          minIOSeekSize = blockSize,
-          skipBlockCacheSeekSize = blockSize * 10,
-          memorySize = memoryCacheSize,
-          interval = memorySweeperPollInterval,
-          ec = memorySweeperEC
-        )
+      fileCache = fileCache,
+      memoryCache = memoryCache
     ) map {
       db =>
         swaydb.Map[K, V, F, BAG](db.toBag)

@@ -56,14 +56,15 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             maxSegmentsToPush: Int,
             memoryLevelMinSegmentSize: Int,
             memoryLevelMaxKeyValuesCountPerSegment: Int,
-            persistentLevelMinSegmentSize: Int,
-            persistentLevelMaxKeyValuesPerSegment: Int,
+            deleteMemorySegmentsEventually: Boolean,
             persistentLevelAppendixFlushCheckpointSize: Int,
-            mmapPersistentSegments: MMAP,
-            mmapPersistentAppendix: Boolean,
-            mightContainFalsePositiveRate: Double,
-            compressDuplicateValues: Boolean,
-            deleteSegmentsEventually: Boolean,
+            mmapPersistentLevelAppendix: Boolean,
+            persistentLevelSortedKeyIndex: SortedKeyIndex,
+            persistentLevelRandomKeyIndex: RandomKeyIndex,
+            persistentLevelBinarySearchIndex: BinarySearchIndex,
+            persistentLevelMightContainKeyIndex: MightContainIndex,
+            persistentLevelValuesConfig: ValuesConfig,
+            persistentLevelSegmentConfig: SegmentConfig,
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
       .addMemoryLevel0(
@@ -76,7 +77,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         minSegmentSize = memoryLevelMinSegmentSize,
         maxKeyValuesPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
         copyForward = false,
-        deleteSegmentsEventually = deleteSegmentsEventually,
+        deleteSegmentsEventually = deleteMemorySegmentsEventually,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle =
           levelMeter => {
@@ -89,63 +90,14 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
       .addPersistentLevel(
         dir = dir,
         otherDirs = otherDirs,
-        mmapAppendix = mmapPersistentAppendix,
+        mmapAppendix = mmapPersistentLevelAppendix,
         appendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-        sortedKeyIndex =
-          SortedKeyIndex.Enable(
-            prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
-            enablePositionIndex = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compressions = _ => Seq.empty
-          ),
-        randomKeyIndex =
-          RandomKeyIndex.Enable(
-            maxProbe = 1,
-            minimumNumberOfKeys = 2,
-            minimumNumberOfHits = 2,
-            indexFormat = IndexFormat.Reference,
-            allocateSpace = _.requiredSpace,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        binarySearchIndex =
-          BinarySearchIndex.FullIndex(
-            minimumNumberOfKeys = 5,
-            indexFormat = IndexFormat.CopyKey,
-            searchSortedIndexDirectly = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        mightContainKey =
-          MightContainIndex.Enable(
-            falsePositiveRate = mightContainFalsePositiveRate,
-            minimumNumberOfKeys = 10,
-            updateMaxProbe = optimalMaxProbe => 1,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        values =
-          ValuesConfig(
-            compressDuplicateValues = compressDuplicateValues,
-            compressDuplicateRangeValues = true,
-            ioStrategy = ioAction => IOStrategy.SynchronisedIO(cacheOnAccess = true),
-            compression = _ => Seq.empty
-          ),
-        segment =
-          SegmentConfig(
-            cacheSegmentBlocksOnCreate = true,
-            deleteSegmentsEventually = deleteSegmentsEventually,
-            pushForward = false,
-            mmap = mmapPersistentSegments,
-            minSegmentSize = persistentLevelMinSegmentSize,
-            maxKeyValuesPerSegment = persistentLevelMaxKeyValuesPerSegment,
-            ioStrategy = {
-              case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-              case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-              case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
-            },
-            compression = _ => Seq.empty
-          ),
+        sortedKeyIndex = persistentLevelSortedKeyIndex,
+        randomKeyIndex = persistentLevelRandomKeyIndex,
+        binarySearchIndex = persistentLevelBinarySearchIndex,
+        mightContainKey = persistentLevelMightContainKeyIndex,
+        values = persistentLevelValuesConfig,
+        segment = persistentLevelSegmentConfig,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
           (_: LevelMeter) =>

@@ -24,44 +24,50 @@ import java.util.Comparator
 import java.util.concurrent.ExecutorService
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
-import swaydb.data.config.{Dir, MMAP, RecoveryMode}
+import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
-import swaydb.java.data.util.Java.{JavaFunction, _}
+import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.java.{IO, KeyOrderConverter, Return}
+import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, SwayDB, Bag}
+import swaydb.{Apply, Bag, SwayDB}
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
-import scala.compat.java8.DurationConverters._
 import scala.compat.java8.FunctionConverters._
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object MapConfig {
 
   class Config[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]], SF](@BeanProperty var dir: Path,
-                                                                             @BeanProperty var maxOpenSegments: Int = 1000,
-                                                                             @BeanProperty var memoryCacheSize: Int = 100.mb,
-                                                                             @BeanProperty var blockSize: Int = 4098,
                                                                              @BeanProperty var mapSize: Int = 4.mb,
                                                                              @BooleanBeanProperty var mmapMaps: Boolean = true,
                                                                              @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                                                                              @BooleanBeanProperty var mmapAppendix: Boolean = true,
-                                                                             @BeanProperty var mmapSegments: MMAP = MMAP.WriteAndRead,
-                                                                             @BeanProperty var minSegmentSize: Int = 2.mb,
                                                                              @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
                                                                              @BeanProperty var otherDirs: Seq[Dir] = Seq.empty,
-                                                                             @BeanProperty var memorySweeperPollInterval: java.time.Duration = 10.seconds.toJava,
-                                                                             @BeanProperty var fileSweeperPollInterval: java.time.Duration = 10.seconds.toJava,
-                                                                             @BeanProperty var mightContainFalsePositiveRate: Double = 0.01,
-                                                                             @BooleanBeanProperty var compressDuplicateValues: Boolean = true,
-                                                                             @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
                                                                              @BooleanBeanProperty var cacheKeyValueIds: Boolean = true,
+                                                                             @BeanProperty var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                                                                             @BeanProperty var sortedKeyIndex: SortedKeyIndex.Enable = DefaultConfigs.sortedKeyIndex(),
+                                                                             @BeanProperty var randomKeyIndex: RandomKeyIndex.Enable = DefaultConfigs.randomKeyIndex(),
+                                                                             @BeanProperty var binarySearchIndex: BinarySearchIndex.FullIndex = DefaultConfigs.binarySearchIndex(),
+                                                                             @BeanProperty var mightContainKeyIndex: MightContainIndex.Enable = DefaultConfigs.mightContainKeyIndex(),
+                                                                             @BeanProperty var values: ValuesConfig = DefaultConfigs.values(),
+                                                                             @BeanProperty var segment: SegmentConfig = DefaultConfigs.segment(),
+                                                                             @BeanProperty var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                                                                             @BeanProperty var memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+                                                                             @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = DefaultConfigs.levelZeroThrottle,
+                                                                             @BeanProperty var levelOneThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.levelOneThrottle,
+                                                                             @BeanProperty var levelTwoThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.levelTwoThrottle,
+                                                                             @BeanProperty var levelThreeThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.levelThreeThrottle,
+                                                                             @BeanProperty var levelFourThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.levelFourThrottle,
+                                                                             @BeanProperty var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.levelFiveThrottle,
+                                                                             @BeanProperty var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.levelSixThrottle,
                                                                              @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                              @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[K]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[K]](swaydb.java.SwayDB.defaultComparator),
                                                                              @BeanProperty var fileSweeperExecutorService: ExecutorService = SwayDB.sweeperExecutionContext.threadPool,
@@ -71,36 +77,39 @@ object MapConfig {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
-    implicit def fileSweeperEC: ExecutionContext = fileSweeperExecutorService.asScala
-
     def init(): swaydb.java.Map[K, V, F] = {
       val scalaMap =
         swaydb.persistent.Map[K, V, SF, Bag.Less](
           dir = dir,
-          maxOpenSegments = maxOpenSegments,
-          memoryCacheSize = memoryCacheSize,
-          blockSize = blockSize,
           mapSize = mapSize,
           mmapMaps = mmapMaps,
           recoveryMode = recoveryMode,
           mmapAppendix = mmapAppendix,
-          mmapSegments = mmapSegments,
-          minSegmentSize = minSegmentSize,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
           otherDirs = otherDirs,
-          memorySweeperPollInterval = memorySweeperPollInterval.toScala,
-          fileSweeperPollInterval = fileSweeperPollInterval.toScala,
-          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
-          compressDuplicateValues = compressDuplicateValues,
-          deleteSegmentsEventually = deleteSegmentsEventually,
           cacheKeyValueIds = cacheKeyValueIds,
-          acceleration = acceleration.asScala
+          acceleration = acceleration.asScala,
+          levelZeroThrottle = levelZeroThrottle.asScala,
+          levelOneThrottle = levelOneThrottle.asScala,
+          levelTwoThrottle = levelTwoThrottle.asScala,
+          levelThreeThrottle = levelThreeThrottle.asScala,
+          levelFourThrottle = levelFourThrottle.asScala,
+          levelFiveThrottle = levelFiveThrottle.asScala,
+          levelSixThrottle = levelSixThrottle.asScala,
+          threadStateCache = threadStateCache,
+          sortedKeyIndex = sortedKeyIndex,
+          randomKeyIndex = randomKeyIndex,
+          binarySearchIndex = binarySearchIndex,
+          mightContainKeyIndex = mightContainKeyIndex,
+          values = values,
+          segment = segment,
+          fileCache = fileCache,
+          memoryCache = memoryCache
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
           functionClassTag = functionClassTag,
           bag = Bag.less,
-          keyOrder = Left(scalaKeyOrder),
-          fileSweeperEC = fileSweeperEC
+          keyOrder = Left(scalaKeyOrder)
         ).get
 
       swaydb.java.Map[K, V, F](scalaMap)

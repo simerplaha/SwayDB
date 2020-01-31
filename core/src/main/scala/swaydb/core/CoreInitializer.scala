@@ -105,7 +105,7 @@ private[core] object CoreInitializer extends LazyLogging {
       closeLevels(zero)
     }
 
-  def apply(config: LevelZeroPersistentConfig,
+  def apply(config: PersistentLevelZeroConfig,
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore,
@@ -131,7 +131,7 @@ private[core] object CoreInitializer extends LazyLogging {
           IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
       }
 
-  def apply(config: LevelZeroMemoryConfig,
+  def apply(config: MemoryLevelZeroConfig,
             enableTimer: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): IO[swaydb.Error.Boot, Core[Bag.Less]] =

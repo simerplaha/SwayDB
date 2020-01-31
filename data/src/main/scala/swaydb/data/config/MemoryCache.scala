@@ -19,32 +19,11 @@
 
 package swaydb.data.config
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-
 sealed trait MemoryCache
 
 object MemoryCache {
 
   case object Disable extends MemoryCache
-
-  object Enabled {
-    def default(minIOSeekSize: Int,
-                skipBlockCacheSeekSize: Int,
-                memorySize: Int,
-                interval: FiniteDuration,
-                ec: ExecutionContext) =
-      ByteCacheOnly(
-        minIOSeekSize = minIOSeekSize,
-        skipBlockCacheSeekSize = skipBlockCacheSeekSize,
-        cacheCapacity = memorySize,
-        actorConfig =
-          ActorConfig.TimeLoop(
-            delay = interval,
-            ec = ec
-          )
-      )
-  }
 
   sealed trait Enabled extends MemoryCache {
     def cacheCapacity: Int

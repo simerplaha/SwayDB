@@ -39,8 +39,8 @@ object ConfigWizard {
                           recoveryMode: RecoveryMode,
                           compactionExecutionContext: CompactionExecutionContext.Create,
                           acceleration: LevelZeroMeter => Accelerator,
-                          throttle: LevelZeroMeter => FiniteDuration): LevelZeroPersistentConfig =
-    LevelZeroPersistentConfig(
+                          throttle: LevelZeroMeter => FiniteDuration): PersistentLevelZeroConfig =
+    PersistentLevelZeroConfig(
       mapSize = mapSize,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
       compactionExecutionContext = compactionExecutionContext,
@@ -51,8 +51,8 @@ object ConfigWizard {
   def addMemoryLevel0(mapSize: Long,
                       compactionExecutionContext: CompactionExecutionContext.Create,
                       acceleration: LevelZeroMeter => Accelerator,
-                      throttle: LevelZeroMeter => FiniteDuration): LevelZeroMemoryConfig =
-    LevelZeroMemoryConfig(
+                      throttle: LevelZeroMeter => FiniteDuration): MemoryLevelZeroConfig =
+    MemoryLevelZeroConfig(
       mapSize = mapSize,
       storage = Level0Storage.Memory,
       compactionExecutionContext = compactionExecutionContext,
@@ -70,7 +70,7 @@ sealed trait LevelZeroConfig {
   def throttle: LevelZeroMeter => FiniteDuration
 }
 
-case class LevelZeroPersistentConfig(mapSize: Long,
+case class PersistentLevelZeroConfig(mapSize: Long,
                                      storage: Level0Storage,
                                      compactionExecutionContext: CompactionExecutionContext.Create,
                                      acceleration: LevelZeroMeter => Accelerator,
@@ -135,7 +135,7 @@ case class LevelZeroPersistentConfig(mapSize: Long,
     )
 }
 
-case class LevelZeroMemoryConfig(mapSize: Long,
+case class MemoryLevelZeroConfig(mapSize: Long,
                                  storage: Level0Storage,
                                  compactionExecutionContext: CompactionExecutionContext.Create,
                                  acceleration: LevelZeroMeter => Accelerator,
@@ -241,7 +241,7 @@ sealed trait SwayDBConfig {
     level0.storage.isMMAP || hasMMAP(level1) || otherLevels.exists(hasMMAP)
 }
 
-case class SwayDBMemoryConfig(level0: LevelZeroMemoryConfig,
+case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
                               level1: LevelConfig,
                               otherLevels: List[LevelConfig]) extends SwayDBConfig {
 

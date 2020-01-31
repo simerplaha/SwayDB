@@ -78,7 +78,7 @@ class Persistent_SimulationSpec extends SimulationSpec {
 
 class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = false, mmapMaps = false, mmapSegments = MMAP.Disabled).get
+  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = false, mmapMaps = false, segment = swaydb.persistent.DefaultConfigs.segment().copy(mmap = MMAP.Disabled)).get
 }
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {

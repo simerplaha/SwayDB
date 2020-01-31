@@ -58,20 +58,20 @@ class SwayDBUpdateSpec3 extends SwayDBUpdateSpec {
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
-class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
-
-  val keyValueCount: Int = 10000
-
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
-}
-
-class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
-  val keyValueCount: Int = 10000
-
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
-}
+//class SwayDBUpdateSpec4 extends SwayDBUpdateSpec {
+//
+//  val keyValueCount: Int = 10000
+//
+//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
+//}
+//
+//class SwayDBUpdateSpec5 extends SwayDBUpdateSpec {
+//  val keyValueCount: Int = 10000
+//
+//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
+//}
 
 sealed trait SwayDBUpdateSpec extends TestBaseEmbedded {
 

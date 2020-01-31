@@ -50,16 +50,16 @@ class SwayDBGetSpec3 extends SwayDBGetSpec {
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
-class SwayDBGetSpec4 extends SwayDBGetSpec {
-
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
-}
-
-class SwayDBGetSpec5 extends SwayDBGetSpec {
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
-}
+//class SwayDBGetSpec4 extends SwayDBGetSpec {
+//
+//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
+//}
+//
+//class SwayDBGetSpec5 extends SwayDBGetSpec {
+//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
+//}
 
 sealed trait SwayDBGetSpec extends TestBase {
 

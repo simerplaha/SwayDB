@@ -40,20 +40,20 @@ class SwayDBSpec1 extends SwayDBSpec {
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
 
-class SwayDB_Zero_Spec0 extends SwayDBSpec {
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value
-
-  override val keyValueCount: Int = 100
-}
-
-class SwayDB_Zero_Spec1 extends SwayDBSpec {
-
-  override val keyValueCount: Int = 100
-
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
-}
+//class SwayDB_Zero_Spec0 extends SwayDBSpec {
+//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+//    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value
+//
+//  override val keyValueCount: Int = 100
+//}
+//
+//class SwayDB_Zero_Spec1 extends SwayDBSpec {
+//
+//  override val keyValueCount: Int = 100
+//
+//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+//    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
+//}
 
 class SwayDBSpec2 extends SwayDBSpec {
 

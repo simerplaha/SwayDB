@@ -32,20 +32,6 @@ object FileCache {
     override def get: Option[Enable] = None
   }
 
-  object Enable {
-    def default(maxOpen: Int,
-                interval: FiniteDuration,
-                ec: ExecutionContext) =
-      FileCache.Enable(
-        maxOpen = maxOpen,
-        actorConfig =
-          ActorConfig.TimeLoop(
-            delay = interval,
-            ec = ec
-          )
-      )
-  }
-
   case class Enable(maxOpen: Int,
                     actorConfig: ActorConfig) extends FileCache {
     override def get: Option[Enable] = Some(this)
