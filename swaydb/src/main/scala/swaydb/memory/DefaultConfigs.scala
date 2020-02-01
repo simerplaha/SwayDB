@@ -35,19 +35,9 @@ object DefaultConfigs {
       actorConfig = actorConfig
     )
 
-  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration = {
-    val mapsCount = meter.mapsCount
-    if (mapsCount > 3)
-      Duration.Zero
-    else if (mapsCount > 2)
-      1.second
-    else
-      30.seconds
-  }
+  def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration =
+    swaydb.persistent.DefaultConfigs.levelZeroThrottle(meter)
 
-  def lastLevelThrottle(levelMeter: LevelMeter): Throttle =
-    if (levelMeter.requiresCleanUp)
-      Throttle(10.seconds, 2)
-    else
-      Throttle(1.hour, 5)
+  def lastLevelThrottle(meter: LevelMeter): Throttle =
+    swaydb.persistent.DefaultConfigs.levelSixThrottle(meter)
 }

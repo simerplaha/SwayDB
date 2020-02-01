@@ -19,10 +19,12 @@
 
 package swaydb.core.level.compaction.throttle
 
+import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.level.zero.LevelZero
 import swaydb.core.level.{Level, LevelRef, TrashLevel}
+import swaydb.core.util.FiniteDurations._
 
-private[throttle] object ThrottleLevelOrdering {
+private[throttle] object ThrottleLevelOrdering extends LazyLogging {
 
   /**
    * Given the Level returns the ordering for [[LevelRef]].
@@ -50,13 +52,23 @@ private[throttle] object ThrottleLevelOrdering {
   def order(left: LevelZero,
             right: Level,
             leftState: ThrottleLevelState,
-            rightState: ThrottleLevelState): Int =
-    left.throttle(left.levelZeroMeter) compare right.throttle(right.meter).pushDelay
+            rightState: ThrottleLevelState): Int = {
+    val leftPushDelay = left.throttle(left.levelZeroMeter)
+    val rightPushDelay = right.throttle(right.meter).pushDelay
+    val compare = leftPushDelay compare rightPushDelay
+    logger.debug(s"Levels (${left.levelNumber} -> ${right.levelNumber}) - leftPushDelay: ${leftPushDelay.asString}/${leftPushDelay.toNanos} -> rightPushDelay: ${rightPushDelay.asString}/${rightPushDelay.toNanos} = $compare ")
+    compare
+  }
 
   def order(left: Level,
             right: Level,
             leftState: ThrottleLevelState,
-            rightState: ThrottleLevelState): Int =
-    left.throttle(left.meter).pushDelay compare right.throttle(right.meter).pushDelay
+            rightState: ThrottleLevelState): Int = {
+    val leftPushDelay = left.throttle(left.meter).pushDelay
+    val rightPushDelay = right.throttle(right.meter).pushDelay
+    val compare = leftPushDelay compare rightPushDelay
+    logger.debug(s"Levels (${left.levelNumber} -> ${right.levelNumber}) - leftPushDelay: ${leftPushDelay.asString}/${leftPushDelay.toNanos} -> rightPushDelay: ${rightPushDelay.asString}/${rightPushDelay.toNanos} = $compare ")
+    compare
+  }
 }
 

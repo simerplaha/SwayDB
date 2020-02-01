@@ -138,46 +138,44 @@ object DefaultConfigs {
 
   def levelZeroThrottle(meter: LevelZeroMeter): FiniteDuration = {
     val mapsCount = meter.mapsCount
-    if (mapsCount > 3)
+    if (mapsCount > 1)
       Duration.Zero
-    else if (mapsCount > 2)
-      1.second
     else
-      30.seconds
+      1.day
   }
 
-  def levelOneThrottle(levelMeter: LevelMeter): Throttle = {
-    val delay = (5 - levelMeter.segmentsCount).seconds
-    val batch = levelMeter.segmentsCount min 5
+  def levelOneThrottle(meter: LevelMeter): Throttle = {
+    val delay = (5 - meter.segmentsCount).seconds
+    val batch = meter.segmentsCount min 5
     Throttle(delay, batch)
   }
 
-  def levelTwoThrottle(levelMeter: LevelMeter): Throttle = {
-    val delay = (10 - levelMeter.segmentsCount).seconds
-    val batch = levelMeter.segmentsCount min 5
+  def levelTwoThrottle(meter: LevelMeter): Throttle = {
+    val delay = (10 - meter.segmentsCount).seconds
+    val batch = meter.segmentsCount min 5
     Throttle(delay, batch)
   }
 
-  def levelThreeThrottle(levelMeter: LevelMeter): Throttle = {
-    val delay = (30 - levelMeter.segmentsCount).seconds
-    val batch = levelMeter.segmentsCount min 5
+  def levelThreeThrottle(meter: LevelMeter): Throttle = {
+    val delay = (30 - meter.segmentsCount).seconds
+    val batch = meter.segmentsCount min 5
     Throttle(delay, batch)
   }
 
-  def levelFourThrottle(levelMeter: LevelMeter): Throttle = {
-    val delay = (40 - levelMeter.segmentsCount).seconds
-    val batch = levelMeter.segmentsCount min 5
+  def levelFourThrottle(meter: LevelMeter): Throttle = {
+    val delay = (40 - meter.segmentsCount).seconds
+    val batch = meter.segmentsCount min 5
     Throttle(delay, batch)
   }
 
-  def levelFiveThrottle(levelMeter: LevelMeter): Throttle = {
-    val delay = (50 - levelMeter.segmentsCount).seconds
-    val batch = levelMeter.segmentsCount min 5
+  def levelFiveThrottle(meter: LevelMeter): Throttle = {
+    val delay = (50 - meter.segmentsCount).seconds
+    val batch = meter.segmentsCount min 5
     Throttle(delay, batch)
   }
 
-  def levelSixThrottle(levelMeter: LevelMeter): Throttle =
-    if (levelMeter.requiresCleanUp)
+  def levelSixThrottle(meter: LevelMeter): Throttle =
+    if (meter.requiresCleanUp)
       Throttle(10.seconds, 2)
     else
       Throttle(1.hour, 5)

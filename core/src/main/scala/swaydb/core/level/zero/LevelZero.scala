@@ -25,7 +25,7 @@ import java.nio.file.{Path, Paths, StandardOpenOption}
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Level.ExceptionHandler
 import swaydb.core.actor.FileSweeper
-import swaydb.core.data.KeyValue.Put
+import swaydb.core.data.KeyValue.{Put, PutOption}
 import swaydb.core.data.Value.FromValue
 import swaydb.core.data._
 import swaydb.core.function.FunctionStore
@@ -45,6 +45,7 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
+import swaydb.data.util.TupleOrNone
 import swaydb.{Bag, IO, OK}
 
 import scala.concurrent.duration.{Deadline, _}
@@ -938,6 +939,44 @@ private[swaydb] case class LevelZero(path: Path,
 
   override def delete: IO[swaydb.Error.Delete, Unit] =
     LevelZero.delete(this)
+
+  def iterator(state: ThreadReadState): Iterator[PutOption] =
+    new Iterator[PutOption] {
+      var nextKeyValue: PutOption = _
+
+      override def hasNext: Boolean =
+        if (nextKeyValue == null) {
+          //          nextKeyValue = run(_.head(state))(Bag.less)
+          nextKeyValue = head(state)
+          nextKeyValue.isSome
+        } else {
+          //          nextKeyValue = run(_.higher(nextKeyValue.getKey.getC, state))(Bag.less)
+          nextKeyValue = higher(nextKeyValue.getKey.getC, state)
+          nextKeyValue.isSome
+        }
+
+      override def next(): PutOption =
+        nextKeyValue
+    }
+
+  def reverseIterator(state: ThreadReadState): Iterator[PutOption] =
+    new Iterator[PutOption] {
+      var nextKeyValue: PutOption = _
+
+      override def hasNext: Boolean =
+        if (nextKeyValue == null) {
+          //          nextKeyValue = run(_.last(state))(Bag.less)
+          nextKeyValue = last(state)
+          nextKeyValue.isSome
+        } else {
+          //          nextKeyValue = run(_.lower(nextKeyValue.getKey.getC, state))(Bag.less)
+          nextKeyValue = lower(nextKeyValue.getKey.getC, state)
+          nextKeyValue.isSome
+        }
+
+      override def next(): PutOption =
+        nextKeyValue
+    }
 
   final def run[R, BAG[_]](apply: LevelZero => R)(implicit bag: Bag[BAG]): BAG[R] =
     bag.suspend {
