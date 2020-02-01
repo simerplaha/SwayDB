@@ -84,7 +84,7 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def values(cacheOnAccess: Boolean = false): ValuesConfig =
+  def valuesConfig(cacheOnAccess: Boolean = false): ValuesConfig =
     ValuesConfig(
       compressDuplicateValues = true,
       compressDuplicateRangeValues = true,
@@ -96,7 +96,7 @@ object DefaultConfigs {
       compression = _ => Seq.empty
     )
 
-  def segment(cacheOnAccess: Boolean = false): SegmentConfig =
+  def segmentConfig(cacheOnAccess: Boolean = false): SegmentConfig =
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
       deleteSegmentsEventually = true,

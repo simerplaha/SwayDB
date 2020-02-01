@@ -261,8 +261,8 @@ private[core] object CoreInitializer extends LazyLogging {
             hashIndexConfig = block.hashindex.HashIndexBlock.Config(config = config.randomKeyIndex),
             binarySearchIndexConfig = block.binarysearch.BinarySearchIndexBlock.Config(config = config.binarySearchIndex),
             sortedIndexConfig = SortedIndexBlock.Config(config.sortedKeyIndex),
-            valuesConfig = ValuesBlock.Config(config.values),
-            segmentConfig = SegmentBlock.Config(config.segment),
+            valuesConfig = ValuesBlock.Config(config.valuesConfig),
+            segmentConfig = SegmentBlock.Config(config.segmentConfig),
             levelStorage =
               LevelStorage.Persistent(
                 dir = config.dir.resolve(id.toString),

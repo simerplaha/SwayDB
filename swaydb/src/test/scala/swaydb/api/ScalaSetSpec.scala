@@ -36,7 +36,7 @@ class ScalaSetSpec1 extends ScalaSetSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): Set[Int, Nothing, IO.ApiIO] =
-    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segment = swaydb.persistent.DefaultConfigs.segment().copy(minSegmentSize = 10.bytes)).right.value
+    swaydb.persistent.Set[Int, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value
 }
 
 class ScalaSetSpec2 extends ScalaSetSpec {

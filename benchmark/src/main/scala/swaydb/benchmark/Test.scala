@@ -68,7 +68,7 @@ case class PersistentTest(dir: Path,
       persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Less](
         dir = dir,
         mapSize = mapSize,
-        segment = persistent.DefaultConfigs.segment().copy(minSegmentSize = segmentSize)
+        segmentConfig = persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = segmentSize)
       ).get
     else
       persistent.Map[Slice[Byte], Option[Slice[Byte]], Nothing, Bag.Less](
@@ -76,6 +76,6 @@ case class PersistentTest(dir: Path,
         mapSize = mapSize,
         mmapMaps = false,
         mmapAppendix = false,
-        segment = persistent.DefaultConfigs.segment().copy(minSegmentSize = segmentSize, mmap = MMAP.Disabled)
+        segmentConfig = persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = segmentSize, mmap = MMAP.Disabled)
       ).get
 }

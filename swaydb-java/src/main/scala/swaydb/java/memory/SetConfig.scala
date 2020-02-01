@@ -46,8 +46,8 @@ object SetConfig {
                                                                                       @BeanProperty var maxKeyValuesPerSegment: Int = 10,
                                                                                       @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                                                                                      @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = DefaultConfigs.levelZeroThrottle,
-                                                                                      @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = DefaultConfigs.lastLevelThrottle,
+                                                                                      @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                                                                                      @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
                                                                                       @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
                                                                                       serializer: Serializer[A],
                                                                                       functionClassTag: ClassTag[SF]) {

@@ -96,8 +96,8 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
         randomKeyIndex = persistentLevelRandomKeyIndex,
         binarySearchIndex = persistentLevelBinarySearchIndex,
         mightContainKey = persistentLevelMightContainKeyIndex,
-        values = persistentLevelValuesConfig,
-        segment = persistentLevelSegmentConfig,
+        valuesConfig = persistentLevelValuesConfig,
+        segmentConfig = persistentLevelSegmentConfig,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         throttle =
           (_: LevelMeter) =>

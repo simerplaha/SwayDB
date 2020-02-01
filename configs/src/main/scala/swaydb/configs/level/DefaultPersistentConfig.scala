@@ -60,8 +60,8 @@ object DefaultPersistentConfig extends LazyLogging {
             randomKeyIndex: RandomKeyIndex,
             binarySearchIndex: BinarySearchIndex,
             mightContainKeyIndex: MightContainIndex,
-            values: ValuesConfig,
-            segment: SegmentConfig,
+            valuesConfig: ValuesConfig,
+            segmentConfig: SegmentConfig,
             acceleration: LevelZeroMeter => Accelerator,
             levelZeroThrottle: LevelZeroMeter => FiniteDuration,
             levelOneThrottle: LevelMeter => Throttle,
@@ -84,8 +84,8 @@ object DefaultPersistentConfig extends LazyLogging {
         randomKeyIndex = randomKeyIndex,
         binarySearchIndex = binarySearchIndex,
         mightContainKeyIndex = mightContainKeyIndex,
-        values = values,
-        segment = segment,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig,
         compactionExecutionContext = CompactionExecutionContext.Shared,
         throttle = levelOneThrottle
       )

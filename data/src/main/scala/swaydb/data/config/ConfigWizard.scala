@@ -84,7 +84,7 @@ case class PersistentLevelZeroConfig(mapSize: Long,
                           binarySearchIndex: BinarySearchIndex,
                           mightContainKeyIndex: MightContainIndex,
                           valuesConfig: ValuesConfig,
-                          segment: SegmentConfig,
+                          segmentConfig: SegmentConfig,
                           compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -99,8 +99,8 @@ case class PersistentLevelZeroConfig(mapSize: Long,
           randomKeyIndex = randomKeyIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainKeyIndex = mightContainKeyIndex,
-          values = valuesConfig,
-          segment = segment,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         ),
@@ -149,8 +149,8 @@ case class MemoryLevelZeroConfig(mapSize: Long,
                           randomKeyIndex: RandomKeyIndex,
                           binarySearchIndex: BinarySearchIndex,
                           mightContainKey: MightContainIndex,
-                          values: ValuesConfig,
-                          segment: SegmentConfig,
+                          valuesConfig: ValuesConfig,
+                          segmentConfig: SegmentConfig,
                           compactionExecutionContext: CompactionExecutionContext,
                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
@@ -165,8 +165,8 @@ case class MemoryLevelZeroConfig(mapSize: Long,
           randomKeyIndex = randomKeyIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainKeyIndex = mightContainKey,
-          values = values,
-          segment = segment,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         ),
@@ -213,8 +213,8 @@ case class PersistentLevelConfig(dir: Path,
                                  randomKeyIndex: RandomKeyIndex,
                                  binarySearchIndex: BinarySearchIndex,
                                  mightContainKeyIndex: MightContainIndex,
-                                 values: ValuesConfig,
-                                 segment: SegmentConfig,
+                                 valuesConfig: ValuesConfig,
+                                 segmentConfig: SegmentConfig,
                                  compactionExecutionContext: CompactionExecutionContext,
                                  throttle: LevelMeter => Throttle) extends LevelConfig
 
@@ -234,7 +234,7 @@ sealed trait SwayDBConfig {
         false
 
       case config: PersistentLevelConfig =>
-        config.mmapAppendix || config.segment.mmap.mmapRead || config.segment.mmap.mmapWrite
+        config.mmapAppendix || config.segmentConfig.mmap.mmapRead || config.segmentConfig.mmap.mmapWrite
     }
 
   def hasMMAP: Boolean =
@@ -260,8 +260,8 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
                          randomKeyIndex: RandomKeyIndex,
                          binarySearchIndex: BinarySearchIndex,
                          mightContainKey: MightContainIndex,
-                         values: ValuesConfig,
-                         segment: SegmentConfig,
+                         valuesConfig: ValuesConfig,
+                         segmentConfig: SegmentConfig,
                          compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     addPersistentLevel(
@@ -274,8 +274,8 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
         randomKeyIndex = randomKeyIndex,
         binarySearchIndex = binarySearchIndex,
         mightContainKeyIndex = mightContainKey,
-        values = values,
-        segment = segment,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig,
         compactionExecutionContext = compactionExecutionContext,
         throttle = throttle
       )
@@ -325,7 +325,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                          binarySearchIndex: BinarySearchIndex,
                          mightContainKeyIndex: MightContainIndex,
                          valuesConfig: ValuesConfig,
-                         segment: SegmentConfig,
+                         segmentConfig: SegmentConfig,
                          compactionExecutionContext: CompactionExecutionContext,
                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
@@ -339,8 +339,8 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
           randomKeyIndex = randomKeyIndex,
           binarySearchIndex = binarySearchIndex,
           mightContainKeyIndex = mightContainKeyIndex,
-          values = valuesConfig,
-          segment = segment,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         )
