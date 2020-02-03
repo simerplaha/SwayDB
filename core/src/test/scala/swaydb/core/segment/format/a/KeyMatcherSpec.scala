@@ -40,7 +40,7 @@ class KeyMatcherSpec extends TestBase {
     def compare(a: Slice[Byte], b: Slice[Byte]): Int =
       IntSerializer.read(a).compareTo(IntSerializer.read(b))
 
-    override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+    override def comparableKey(data: Slice[Byte]): Slice[Byte] =
       data
   }
 

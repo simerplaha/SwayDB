@@ -44,7 +44,7 @@ object KeyOrder {
         a.size - b.size
       }
 
-      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 
@@ -56,7 +56,7 @@ object KeyOrder {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         default.compare(a, b) * -1
 
-      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 
@@ -65,7 +65,7 @@ object KeyOrder {
       override def compare(x: K, y: K): Int =
         ordering.compare(x, y)
 
-      override def indexableKey(data: K): K =
+      override def comparableKey(data: K): K =
         data
     }
 
@@ -74,7 +74,7 @@ object KeyOrder {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readInt() compare y.readInt()
 
-      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 
@@ -83,7 +83,7 @@ object KeyOrder {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readLong() compare y.readLong()
 
-      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 }
@@ -94,17 +94,17 @@ trait KeyOrder[K] extends Ordering[K] {
    *
    * Useful for partially ordered keys.
    *
-   * For example if your key is 
+   * For example if your key is
    * {{{
    *   case class MyData(id: Int, name: Option[String]))
    * }}}
    *
    * Suppose your key is MyData(1, "John") and your [[KeyOrder]] if on MyData.id
-   * then this [[indexableKey]] should return MyData(1, None) so you can search for 
+   * then this [[comparableKey]] should return MyData(1, None) so you can search for
    * keys like MyData(1, None) and get result MyData(1, "John").
    *
    * This is called partial ordering and full reads on partial keys so you
    * can store extra data with key without having to read the value.
    */
-  def indexableKey(data: K): K
+  def comparableKey(data: K): K
 }

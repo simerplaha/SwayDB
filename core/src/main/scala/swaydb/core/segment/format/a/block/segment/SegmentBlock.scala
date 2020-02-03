@@ -393,8 +393,8 @@ private[core] object SegmentBlock extends LazyLogging {
           totalProcessedCount += 1
           processedInThisSegment += 1
 
-          val indexableKey = keyOrder.indexableKey(keyValue.key)
-          bloomFilterIndexableKeys += indexableKey
+          val comparableKey = keyOrder.comparableKey(keyValue.key)
+          bloomFilterIndexableKeys += comparableKey
 
           SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
           values foreach (ValuesBlock.write(keyValue, _))

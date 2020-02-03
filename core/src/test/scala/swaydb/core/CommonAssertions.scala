@@ -715,7 +715,7 @@ object CommonAssertions {
     keyValues.par.count {
       keyValue =>
         BloomFilterBlock.mightContain(
-          indexableKey = keyValue.key,
+          comparableKey = keyValue.key,
           reader = bloomFilter
         )
     } should be >= (keyValues.size * 0.90).toInt
@@ -741,7 +741,7 @@ object CommonAssertions {
     unzipedKeyValues.par.count {
       keyValue =>
         BloomFilterBlock.mightContain(
-          indexableKey = keyValue.key,
+          comparableKey = keyValue.key,
           reader = bloomFilterReader.copy()
         )
     } shouldBe unzipedKeyValues.size
@@ -766,7 +766,7 @@ object CommonAssertions {
     runThisParallel(1000.times) {
       val bloomFilter = Block.unblock[BloomFilterBlock.Offset, BloomFilterBlock](bloom.compressibleBytes)
       BloomFilterBlock.mightContain(
-        indexableKey = randomBytesSlice(randomIntMax(1000) min 100),
+        comparableKey = randomBytesSlice(randomIntMax(1000) min 100),
         reader = bloomFilter.copy()
       ).runRandomIO.right.value shouldBe false
     }

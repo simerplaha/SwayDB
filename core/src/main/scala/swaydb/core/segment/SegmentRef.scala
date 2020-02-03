@@ -865,7 +865,7 @@ private[core] class SegmentRef(val path: Path,
     val bloomFilterReader = segmentBlockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(
-        indexableKey = keyOrder.indexableKey(key),
+        comparableKey = keyOrder.comparableKey(key),
         reader = bloomFilterReader
       )
   }
