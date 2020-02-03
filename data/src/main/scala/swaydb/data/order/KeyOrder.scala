@@ -89,5 +89,22 @@ object KeyOrder {
 }
 
 trait KeyOrder[K] extends Ordering[K] {
+  /**
+   * The key is used to create secondary indexes like HashIndex and BloomFilters.
+   *
+   * Useful for partially ordered keys.
+   *
+   * For example if your key is 
+   * {{{
+   *   case class MyData(id: Int, name: Option[String]))
+   * }}}
+   *
+   * Suppose your key is MyData(1, "John") and your [[KeyOrder]] if on MyData.id
+   * then this [[indexableKey]] should return MyData(1, None) so you can search for 
+   * keys like MyData(1, None) and get result MyData(1, "John").
+   *
+   * This is called partial ordering and full reads on partial keys so you
+   * can store extra data with key without having to read the value.
+   */
   def indexableKey(data: K): K
 }

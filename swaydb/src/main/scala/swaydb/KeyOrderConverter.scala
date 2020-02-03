@@ -38,8 +38,11 @@ protected object KeyOrderConverter {
             typedKeyOrder.compare(typedKey1, typedKey2)
           }
 
-          override def indexableKey(data: Slice[Byte]): Slice[Byte] =
-            data
+          override def indexableKey(data: Slice[Byte]): Slice[Byte] = {
+            val typedData = serializer.read(data)
+            val indexedableTypedKey = typedKeyOrder.indexableKey(typedData)
+            serializer.write(indexedableTypedKey)
+          }
         }
     }
 }
