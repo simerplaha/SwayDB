@@ -36,6 +36,7 @@ import swaydb.core.segment.merge.MergeStats.Persistent
 import swaydb.core.segment.{PersistentSegmentMany, PersistentSegmentOne}
 import swaydb.core.util.{Bytes, Collections}
 import swaydb.data.config.{IOAction, IOStrategy, SegmentConfig, UncompressedBlockInfo}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.data.util.StorageUnits._
@@ -184,7 +185,7 @@ private[core] object SegmentBlock extends LazyLogging {
                      binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                      sortedIndexConfig: SortedIndexBlock.Config,
                      valuesConfig: ValuesBlock.Config,
-                     segmentConfig: SegmentBlock.Config): Slice[TransientSegment] =
+                     segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
     if (mergeStats.isEmpty) {
       Slice.empty
     } else {
@@ -213,7 +214,7 @@ private[core] object SegmentBlock extends LazyLogging {
                                singles: Slice[TransientSegment.One],
                                sortedIndexConfig: SortedIndexBlock.Config,
                                valuesConfig: ValuesBlock.Config,
-                               segmentConfig: SegmentBlock.Config): Slice[TransientSegment] =
+                               segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] =
     if (singles.isEmpty) {
       Slice.empty
     } else {
@@ -309,7 +310,7 @@ private[core] object SegmentBlock extends LazyLogging {
                 binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                 sortedIndexConfig: SortedIndexBlock.Config,
                 valuesConfig: ValuesBlock.Config,
-                segmentConfig: SegmentBlock.Config): Slice[TransientSegment.One] =
+                segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment.One] =
     if (mergeStats.isEmpty)
       Slice.empty
     else
@@ -338,7 +339,7 @@ private[core] object SegmentBlock extends LazyLogging {
                   binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                   sortedIndexConfig: SortedIndexBlock.Config,
                   valuesConfig: ValuesBlock.Config,
-                  segmentConfig: SegmentBlock.Config): Slice[ClosedBlocksWithFooter] =
+                  segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[ClosedBlocksWithFooter] =
     if (keyValues.isEmpty) {
       Slice.empty
     } else {
@@ -377,7 +378,7 @@ private[core] object SegmentBlock extends LazyLogging {
         }
 
       //keys to write to bloomFilter.
-      val bloomFilterKeys = ListBuffer.empty[Slice[Byte]]
+      val bloomFilterIndexableKeys = ListBuffer.empty[Slice[Byte]]
 
       var totalProcessedCount = 0 //numbers of key-values written
       var processedInThisSegment = 0 //numbers of key-values written
@@ -391,7 +392,9 @@ private[core] object SegmentBlock extends LazyLogging {
           closed = false
           totalProcessedCount += 1
           processedInThisSegment += 1
-          bloomFilterKeys += keyValue.key
+
+          val indexableKey = keyOrder.indexableKey(keyValue.key)
+          bloomFilterIndexableKeys += indexableKey
 
           SortedIndexBlock.write(keyValue = keyValue, state = sortedIndex)
           values foreach (ValuesBlock.write(keyValue, _))
@@ -415,7 +418,7 @@ private[core] object SegmentBlock extends LazyLogging {
               writeSegmentBlock(
                 createdInLevel = createdInLevel,
                 hasMoreKeyValues = totalProcessedCount < keyValuesCount,
-                bloomFilterKeys = bloomFilterKeys,
+                bloomFilterIndexableKeys = bloomFilterIndexableKeys,
                 sortedIndex = sortedIndex,
                 values = values,
                 bloomFilterConfig = bloomFilterConfig,
@@ -429,7 +432,7 @@ private[core] object SegmentBlock extends LazyLogging {
             segments add closedSegment
 
             //segment's closed. Prepare for next Segment.
-            bloomFilterKeys.clear() //clear bloomFilter keys.
+            bloomFilterIndexableKeys.clear() //clear bloomFilter keys.
 
             nextSortedIndex foreach { //set the newSortedIndex if it was created.
               newSortedIndex =>
@@ -450,7 +453,7 @@ private[core] object SegmentBlock extends LazyLogging {
           writeSegmentBlock(
             createdInLevel = createdInLevel,
             hasMoreKeyValues = false,
-            bloomFilterKeys = bloomFilterKeys,
+            bloomFilterIndexableKeys = bloomFilterIndexableKeys,
             sortedIndex = sortedIndex,
             values = values,
             bloomFilterConfig = bloomFilterConfig,
@@ -470,7 +473,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
   private def writeSegmentBlock(createdInLevel: Int,
                                 hasMoreKeyValues: Boolean,
-                                bloomFilterKeys: ListBuffer[Slice[Byte]],
+                                bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
                                 sortedIndex: SortedIndexBlock.State,
                                 values: Option[ValuesBlock.State],
                                 bloomFilterConfig: BloomFilterBlock.Config,
@@ -487,7 +490,7 @@ private[core] object SegmentBlock extends LazyLogging {
       closeBlocks(
         sortedIndex = sortedIndex,
         values = values,
-        bloomFilterKeys = bloomFilterKeys,
+        bloomFilterIndexableKeys = bloomFilterIndexableKeys,
         bloomFilterConfig = bloomFilterConfig,
         hashIndexConfig = hashIndexConfig,
         binarySearchIndexConfig = binarySearchIndexConfig,
@@ -577,7 +580,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
   private def closeBlocks(sortedIndex: SortedIndexBlock.State,
                           values: Option[ValuesBlock.State],
-                          bloomFilterKeys: ListBuffer[Slice[Byte]],
+                          bloomFilterIndexableKeys: ListBuffer[Slice[Byte]],
                           bloomFilterConfig: BloomFilterBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
@@ -586,11 +589,11 @@ private[core] object SegmentBlock extends LazyLogging {
     val valuesState = values map ValuesBlock.close
 
     val bloomFilter =
-      if (sortedIndexState.hasRemoveRange || bloomFilterKeys.size < bloomFilterConfig.minimumNumberOfKeys)
+      if (sortedIndexState.hasRemoveRange || bloomFilterIndexableKeys.size < bloomFilterConfig.minimumNumberOfKeys)
         None
       else
         BloomFilterBlock.init(
-          numberOfKeys = bloomFilterKeys.size,
+          numberOfKeys = bloomFilterIndexableKeys.size,
           falsePositiveRate = bloomFilterConfig.falsePositiveRate,
           updateMaxProbe = bloomFilterConfig.optimalMaxProbe,
           compressions = bloomFilterConfig.compressions
@@ -631,7 +634,7 @@ private[core] object SegmentBlock extends LazyLogging {
 
     bloomFilter foreach {
       bloomFilter =>
-        bloomFilterKeys foreach {
+        bloomFilterIndexableKeys foreach {
           key =>
             BloomFilterBlock.add(key, bloomFilter)
         }

@@ -198,7 +198,7 @@ private[core] object SegmentRef {
         val footer = segmentRef.segmentBlockCache.getFooter()
         val segmentStateOptional = threadState.getSegmentState(segmentRef.path)
         val getFromState =
-          if (footer.hasRange && segmentStateOptional.isSomeS)
+          if (segmentStateOptional.isSomeS)
             segmentStateOptional.getS.foundKeyValue match {
               case fixed: Persistent if keyOrder.equiv(fixed.key, key) =>
                 fixed
@@ -680,7 +680,7 @@ private[core] object SegmentRef {
               binarySearchIndexConfig: BinarySearchIndexBlock.Config,
               hashIndexConfig: HashIndexBlock.Config,
               bloomFilterConfig: BloomFilterBlock.Config,
-              segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
+              segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
 
     val footer = ref.getFooter()
     //if it's created in the same level the required spaces for sortedIndex and values
@@ -732,7 +732,7 @@ private[core] object SegmentRef {
                           binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                           hashIndexConfig: HashIndexBlock.Config,
                           bloomFilterConfig: BloomFilterBlock.Config,
-                          segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
+                          segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
 
     val sortedIndexSize =
       sortedIndexBlock.compressionInfo match {
@@ -791,7 +791,7 @@ private[core] object SegmentRef {
                          binarySearchIndexConfig: BinarySearchIndexBlock.Config,
                          hashIndexConfig: HashIndexBlock.Config,
                          bloomFilterConfig: BloomFilterBlock.Config,
-                         segmentConfig: SegmentBlock.Config): Slice[TransientSegment] = {
+                         segmentConfig: SegmentBlock.Config)(implicit keyOrder: KeyOrder[Slice[Byte]]): Slice[TransientSegment] = {
     val memoryKeyValues =
       Segment
         .toMemoryIterator(keyValues, removeDeletes)
@@ -819,7 +819,8 @@ private[core] class SegmentRef(val path: Path,
                                val maxKey: MaxKey[Slice[Byte]],
                                val minKey: Slice[Byte],
                                val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]],
-                               val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue]) extends SegmentRefOption with LazyLogging {
+                               val segmentBlockCache: SegmentBlockCache)(implicit keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
+                                                                         keyOrder: KeyOrder[Slice[Byte]]) extends SegmentRefOption with LazyLogging {
 
   override def isNoneS: Boolean =
     false
@@ -863,7 +864,7 @@ private[core] class SegmentRef(val path: Path,
     val bloomFilterReader = segmentBlockCache.createBloomFilterReaderOrNull()
     bloomFilterReader == null ||
       BloomFilterBlock.mightContain(
-        key = key,
+        indexableKey = keyOrder.indexableKey(key),
         reader = bloomFilterReader
       )
   }

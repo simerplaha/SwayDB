@@ -94,7 +94,7 @@ class HashIndexBlockSpec extends TestBase {
         segment.hashIndexReader.get.block.miss shouldBe 0
 
         HashIndexBlock.search(
-          key = keyValue.key,
+          indexableKey = keyValue.key,
           hashIndexReader = segment.hashIndexReader.get,
           sortedIndexReader = segment.sortedIndexReader,
           valuesReaderOrNull = segment.valuesReader.orNull

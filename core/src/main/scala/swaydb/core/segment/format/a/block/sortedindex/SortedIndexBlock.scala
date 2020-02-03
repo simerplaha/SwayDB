@@ -144,7 +144,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   //IndexEntries that are used to create secondary indexes - binarySearchIndex & hashIndex
   class SecondaryIndexEntry(var indexOffset: Int, //mutable because if the bytes are normalised then this is adjust during close.
                             val mergedKey: Slice[Byte],
-                            val unmergedKey: Slice[Byte],
+                            val indexableKey: Slice[Byte],
                             val keyType: Byte)
 
   case class Offset(start: Int, size: Int) extends BlockOffset
@@ -283,7 +283,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
   }
 
   def write(keyValue: Memory,
-            state: SortedIndexBlock.State): Unit = {
+            state: SortedIndexBlock.State)(implicit keyOrder: KeyOrder[Slice[Byte]]): Unit = {
     //currentWritePositionInThisSlice is used here because state.bytes can be a sub-slice.
     val positionBeforeWrite = state.compressibleBytes.currentWritePositionInThisSlice
 
@@ -370,7 +370,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         new SecondaryIndexEntry(
           indexOffset = positionBeforeWrite,
           mergedKey = keyValue.mergedKey,
-          unmergedKey = keyValue.key,
+          indexableKey = keyOrder.indexableKey(keyValue.key),
           keyType = keyValue.id
         )
 

@@ -43,6 +43,9 @@ object KeyOrder {
         }
         a.size - b.size
       }
+
+      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+        data
     }
 
   /**
@@ -52,25 +55,39 @@ object KeyOrder {
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         default.compare(a, b) * -1
+
+      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+        data
     }
 
   def apply[K](ordering: Ordering[K]): KeyOrder[K] =
     new KeyOrder[K]() {
       override def compare(x: K, y: K): Int =
         ordering.compare(x, y)
+
+      override def indexableKey(data: K): K =
+        data
     }
 
   val integer: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readInt() compare y.readInt()
+
+      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+        data
     }
 
   val long: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readLong() compare y.readLong()
+
+      override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+        data
     }
 }
 
-trait KeyOrder[K] extends Ordering[K]
+trait KeyOrder[K] extends Ordering[K] {
+  def indexableKey(data: K): K
+}

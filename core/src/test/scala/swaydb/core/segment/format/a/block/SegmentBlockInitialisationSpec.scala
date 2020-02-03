@@ -419,7 +419,6 @@ class SegmentBlockInitialisationSpec extends TestBase {
                     keyCounts = 1, //allocate space enough for 1
                     minimumNumberOfKeys = 0,
                     writeAbleLargestValueSize = Int.MaxValue,
-                    format = randomHashIndexSearchFormat(),
                     allocateSpace = _.requiredSpace
                   ),
                 ioStrategy = _ => randomIOAccess(),

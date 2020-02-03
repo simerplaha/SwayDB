@@ -39,6 +39,9 @@ class KeyMatcherSpec extends TestBase {
   implicit val integer = new KeyOrder[Slice[Byte]] {
     def compare(a: Slice[Byte], b: Slice[Byte]): Int =
       IntSerializer.read(a).compareTo(IntSerializer.read(b))
+
+    override def indexableKey(data: Slice[Byte]): Slice[Byte] =
+      data
   }
 
   /**

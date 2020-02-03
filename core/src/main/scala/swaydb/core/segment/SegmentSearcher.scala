@@ -128,7 +128,7 @@ private[core] object SegmentSearcher extends SegmentSearcher with LazyLogging {
     //println
     //println(s"Search key: ${key.readInt()}")
       HashIndexBlock.search(
-        key = key,
+        indexableKey = keyOrder.indexableKey(key),
         hashIndexReader = hashIndexReaderOrNull,
         sortedIndexReader = sortedIndexReader,
         valuesReaderOrNull = valuesReaderOrNull

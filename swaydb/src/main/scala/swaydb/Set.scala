@@ -40,7 +40,7 @@ object Set {
  *
  * For documentation check - http://swaydb.io/api/
  */
-case class Set[A, F, BAG[_]](private val core: Core[BAG],
+case class Set[A, F, BAG[_]](private[swaydb] val core: Core[BAG],
                              private val from: Option[From[A]],
                              private[swaydb] val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
                                                                                     bag: Bag[BAG]) { self =>

@@ -243,9 +243,9 @@ private[core] object BloomFilterBlock extends LazyLogging {
         )
       )
 
-  def add(key: Slice[Byte],
+  def add(indexableKey: Slice[Byte],
           state: BloomFilterBlock.State): Unit = {
-    val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
+    val hash = MurmurHash3Generic.murmurhash3_x64_64(indexableKey, 0, indexableKey.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
@@ -263,9 +263,9 @@ private[core] object BloomFilterBlock extends LazyLogging {
     }
   }
 
-  def mightContain(key: Slice[Byte],
+  def mightContain(indexableKey: Slice[Byte],
                    reader: UnblockedReader[BloomFilterBlock.Offset, BloomFilterBlock]): Boolean = {
-    val hash = MurmurHash3Generic.murmurhash3_x64_64(key, 0, key.size, 0)
+    val hash = MurmurHash3Generic.murmurhash3_x64_64(indexableKey, 0, indexableKey.size, 0)
     val hash1 = hash >>> 32
     val hash2 = (hash << 32) >> 32
 
