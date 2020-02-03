@@ -473,6 +473,7 @@ private[core] object SegmentRef {
                 )
 
               case state: SegmentReadState =>
+                state.forKey = key
                 state.foundLowerKeyValue = found
             }
             segmentRef addToSkipList found
@@ -519,7 +520,7 @@ private[core] object SegmentRef {
             val blockCache = segmentRef.segmentBlockCache
             val footer = blockCache.getFooter()
             val lowerFromState =
-              if (footer.hasRange && segmentStateOption.isSomeS)
+              if (segmentStateOption.isSomeS)
               //using foundKeyValue here instead of foundLowerKeyValue because foundKeyValue is always == foundLowerKeyValue if previous seek was lower
               //if not then foundKeyValue gives a higher chance of being lower for cases with random reads were performed.
                 segmentStateOption.getS.foundKeyValue match {
