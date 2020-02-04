@@ -72,11 +72,11 @@ private[core] object MemorySweeper {
           )
         )
 
-      case MemoryCache.KeyValueCacheOnly(capacity, maxKeyValuesPerSegment, actorConfig) =>
+      case MemoryCache.KeyValueCacheOnly(capacity, maxKeyValuesPerSegmentGroup, actorConfig) =>
         Some(
           MemorySweeper.KeyValueSweeper(
             cacheSize = capacity,
-            maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+            maxKeyValuesPerSegmentGroup = maxKeyValuesPerSegmentGroup,
             actorConfig = actorConfig
           )
         )
@@ -88,7 +88,7 @@ private[core] object MemorySweeper {
             cacheSize = block.cacheCapacity,
             skipBlockCacheSeekSize = block.skipBlockCacheSeekSize,
             sweepKeyValues = block.sweepCachedKeyValues,
-            maxKeyValuesPerSegment = block.maxCachedKeyValueCountPerSegment,
+            maxKeyValuesPerSegmentGroup = block.maxCachedKeyValueCountPerSegment,
             actorConfig = Some(block.actorConfig)
           )
         )
@@ -196,7 +196,7 @@ private[core] object MemorySweeper {
 
     def sweepKeyValues: Boolean
 
-    def maxKeyValuesPerSegment: Option[Int]
+    def maxKeyValuesPerSegmentGroup: Option[Int]
 
     def add(keyValue: Persistent,
             skipList: SkipList[_, _, Slice[Byte], _]): Unit =
@@ -211,7 +211,7 @@ private[core] object MemorySweeper {
   }
 
   case class KeyValueSweeper(cacheSize: Int,
-                             maxKeyValuesPerSegment: Option[Int],
+                             maxKeyValuesPerSegmentGroup: Option[Int],
                              actorConfig: Option[ActorConfig]) extends SweeperImplementation with KeyValue {
     override val sweepKeyValues: Boolean = actorConfig.isDefined
   }
@@ -219,7 +219,7 @@ private[core] object MemorySweeper {
   case class All(blockSize: Int,
                  cacheSize: Int,
                  skipBlockCacheSeekSize: Int,
-                 maxKeyValuesPerSegment: Option[Int],
+                 maxKeyValuesPerSegmentGroup: Option[Int],
                  sweepKeyValues: Boolean,
                  actorConfig: Option[ActorConfig]) extends SweeperImplementation with Block with KeyValue
 

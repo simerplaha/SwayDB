@@ -448,7 +448,7 @@ object TestData {
 
     def random(hasCompression: Boolean = randomBoolean(),
                minSegmentSize: Int = randomIntMax(4.mb),
-               maxKeyValuesPerSegment: Int = randomIntMax(100000),
+               maxKeyValuesPerSegmentGroup: Int = randomIntMax(100000),
                deleteEventually: Boolean = randomBoolean(),
                mmapWrites: Boolean = randomBoolean(),
                mmapReads: Boolean = randomBoolean(),
@@ -458,7 +458,7 @@ object TestData {
       SegmentBlock.Config.applyInternal(
         ioStrategy = _ => randomIOStrategy(cacheOnAccess),
         cacheBlocksOnCreate = cacheBlocksOnCreate,
-        maxCount = maxKeyValuesPerSegment,
+        maxCount = maxKeyValuesPerSegmentGroup,
         minSize = minSegmentSize,
         pushForward = pushForward,
         mmapWrites = mmapWrites,
@@ -470,7 +470,7 @@ object TestData {
     def random2(ioStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
                 cacheBlocksOnCreate: Boolean = randomBoolean(),
                 compressions: UncompressedBlockInfo => Seq[CompressionInternal] = _ => randomCompressionsOrEmpty(),
-                maxKeyValuesPerSegment: Int = randomIntMax(1000000),
+                maxKeyValuesPerSegmentGroup: Int = randomIntMax(1000000),
                 deleteEventually: Boolean = randomBoolean(),
                 mmapWrites: Boolean = randomBoolean(),
                 mmapReads: Boolean = randomBoolean(),
@@ -479,7 +479,7 @@ object TestData {
       SegmentBlock.Config.applyInternal(
         ioStrategy = ioStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
-        maxCount = maxKeyValuesPerSegment,
+        maxCount = maxKeyValuesPerSegmentGroup,
         minSize = minSegmentSize,
         pushForward = pushForward,
         mmapWrites = mmapWrites,

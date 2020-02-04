@@ -1588,7 +1588,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           SegmentBlock.Config.random(
             hasCompression = enableCompression,
             minSegmentSize = Int.MaxValue,
-            maxKeyValuesPerSegment = if (memory) keyValues.size else randomIntMax(keyValues.size)
+            maxKeyValuesPerSegmentGroup = if (memory) keyValues.size else randomIntMax(keyValues.size)
           )
 
         val segment =

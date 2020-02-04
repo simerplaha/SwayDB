@@ -14,29 +14,29 @@
 
 Embeddable persistent and in-memory database aimed at:
 
-- **Simple** data types - `Map` & `Set` (see [#47](https://github.com/simerplaha/SwayDB/issues/47) for `List` & `Queue`)
-- **Speed** - writes & reads
-- **Resource efficiency**
+- **Simple data types** - `Map` & `Set` (see [#47](https://github.com/simerplaha/SwayDB/issues/47) for `List` & `Queue`)
+- **High performance** - Fast writes & reads.
+- **Resource efficiency** - Reduce server costs (Non-blocking, high compression, low IOps, low GC footprint)
 
-See - [documentation - SwayDB.io](http://swaydb.io) (WIP - being updated for latest version).
+[Documentation - SwayDB.io](http://swaydb.io).
 
-See - [Project status](#Project-status).
+[Project status](#Project-status).
 
-## Performance for v0.2 (Outdated - [#119](https://github.com/simerplaha/SwayDB/issues/119))
+## Performance for v0.2
 
-| Storage  type   | Performance                               
-|:---------------:|:------------------------------------------------------
-| Persistent      | up to `308,000` writes/sec & `316,000` reads/sec                
-| In memory       | up to `653,000` writes/sec & `628,000` reads/sec                
+| Storage  type  | Performance                               
+|:---------------|:------------------------------------------------------
+| Persistent     | up to `482,000` writes/sec & `863,000` reads/sec                
+| Memory         | TODO                
 
-View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-mid-2014/memory). 
+View comparable benchmarks [here](http://swaydb.io/benchmarks/rocksdb/?language=scala/). 
 
 ## Overview
 
 - [Scala](https://github.com/simerplaha/SwayDB.scala.examples), [Java](http://swaydb.io/quick-start/?language=java/) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin).
 - Single or multiple disks persistent, in-memory or periodically persistent.
 - Simple data types - `Map[K, V]` & `Set[T]`.
-- Simple Stream based iteration following collections APIs.
+- Streaming.
 - Atomic updates and inserts with [transactions](http://swaydb.io/api/write/transaction/?language=scala/).
 - Custom updates using [JVM function](http://www.swaydb.io/api/write/registerFunction/).
 - TTL - auto [expiring](http://www.swaydb.io/api/write/expire/) key-values.
@@ -55,18 +55,20 @@ View detailed benchmark results [here](http://swaydb.io/performance/macbook-pro-
 [Quick start App](http://swaydb.io/quick-start/?language=scala/).
 
 ## Project status 
+Your feedback and review is very important to get to production. Please get involved via
+chat, issues or email which is on my [profile](https://github.com/simerplaha). 
+
 Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases 
 unless it's requested.
 
 See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release) that are 
-required before SwayDB is production ready. 
+required before becoming production ready. 
 
 ## Related GitHub projects
 - [SwayDB.java.examples](https://github.com/simerplaha/SwayDB.java.examples) - Java examples demonstrating features and APIs.
 - [SwayDB.kotlin.examples](https://github.com/simerplaha/SwayDB.kotlin.examples) - Kotlin examples demonstrating features and APIs.
 - [SwayDB.scala.examples](https://github.com/simerplaha/SwayDB.scala.examples) - Scala examples demonstrating features and APIs.
-- [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Benchmarks for write and read performance.
-- [SwayDB.stress](https://github.com/simerplaha/SwayDB.stress) - Stress tests.
+- [SwayDB.benchmark](https://github.com/simerplaha/SwayDB.benchmark) - Performance benchmarks.
 - [SwayDB.website](https://github.com/simerplaha/SwayDB.website) - Website code.
 
 ## Contribution

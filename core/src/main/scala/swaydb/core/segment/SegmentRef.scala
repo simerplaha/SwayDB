@@ -71,10 +71,10 @@ private[core] object SegmentRef {
     val skipList: Option[SkipList[SliceOption[Byte], PersistentOption, Slice[Byte], Persistent]] =
       keyValueMemorySweeper map {
         sweeper =>
-          sweeper.maxKeyValuesPerSegment match {
-            case Some(maxKeyValuesPerSegment) =>
+          sweeper.maxKeyValuesPerSegmentGroup match {
+            case Some(maxKeyValuesPerSegmentGroup) =>
               SkipList.concurrent(
-                limit = maxKeyValuesPerSegment,
+                limit = maxKeyValuesPerSegmentGroup,
                 nullKey = Slice.Null,
                 nullValue = Persistent.Null
               )

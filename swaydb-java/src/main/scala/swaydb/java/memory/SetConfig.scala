@@ -43,7 +43,7 @@ object SetConfig {
 
   class Config[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], SF](@BeanProperty var mapSize: Int = 4.mb,
                                                                                       @BeanProperty var minSegmentSize: Int = 2.mb,
-                                                                                      @BeanProperty var maxKeyValuesPerSegment: Int = 10,
+                                                                                      @BeanProperty var maxKeyValuesPerSegmentGroup: Int = 10,
                                                                                       @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                                       @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
@@ -59,7 +59,7 @@ object SetConfig {
         swaydb.memory.Set[A, SF, Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
-          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+          maxKeyValuesPerSegment = maxKeyValuesPerSegmentGroup,
           deleteSegmentsEventually = deleteSegmentsEventually,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,

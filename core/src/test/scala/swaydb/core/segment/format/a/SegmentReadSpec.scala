@@ -946,9 +946,9 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
     "return None deadline if non of the key-values in the Segments contains deadline" in {
       def segmentConfig(keyValuesCount: Int) =
         if (persistent)
-          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValuesCount * 2))
+          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegmentGroup = randomIntMax(keyValuesCount * 2))
         else
-          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
+          SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegmentGroup = Int.MaxValue)
 
       runThis(100.times) {
         val keyValues1 = randomizedKeyValues(keyValuesCount, addPutDeadlines = false, addRemoveDeadlines = false, addUpdateDeadlines = false)
@@ -1007,9 +1007,9 @@ sealed trait SegmentReadSpec extends TestBase with ScalaFutures {
 
         val segmentConfig =
           if (persistent)
-            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = randomIntMax(keyValues1.size * 2))
+            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegmentGroup = randomIntMax(keyValues1.size * 2))
           else
-            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue)
+            SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegmentGroup = Int.MaxValue)
 
         val segment1 = TestSegment(keyValues1, segmentConfig = segmentConfig)
         val segment2 = TestSegment(keyValues2, segmentConfig = segmentConfig)
