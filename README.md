@@ -22,11 +22,11 @@ Embeddable persistent and in-memory database aimed at:
 
 [Project status](#Project-status).
 
-## Performance for v0.2
+## Performance
 
 | Storage  type  | Performance                               
 |:---------------|:------------------------------------------------------
-| Persistent     | up to `482,000` writes/sec & `863,000` reads/sec                
+| Persistent     | up to `863,000` reads/sec & `482,000` writes/sec                 
 | Memory         | TODO                
 
 View comparable benchmarks [here](http://swaydb.io/benchmarks/rocksdb/?language=scala/). 
