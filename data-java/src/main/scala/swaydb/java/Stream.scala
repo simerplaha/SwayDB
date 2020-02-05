@@ -27,6 +27,7 @@ import swaydb.java.data.util.Java._
 
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
+import scala.collection.compat._
 
 object Stream {
   def fromScala[A](stream: swaydb.Stream[A]): Stream[A] =
