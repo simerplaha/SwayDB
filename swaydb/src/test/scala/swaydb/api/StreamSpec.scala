@@ -22,8 +22,9 @@ package swaydb.api
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Bag._
 import swaydb.core.RunThis._
-import swaydb.{IO, Stream, Bag}
+import swaydb.{Bag, IO, Stream}
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
@@ -164,7 +165,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
         .await should contain only 13
     }
 
-    "drop, take and foreach" in {
+    "drop, take" in {
       Stream[Int](1 to 1000)
         .map(_.toString)
         .drop(10)
@@ -172,6 +173,20 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
         .map(_.toInt)
         .materialize[BAG]
         .await should have size 1
+    }
+
+    "foreach" in {
+      var foreachItems = ListBuffer.empty[Int]
+
+      Stream[Int](1 to 1000)
+        .map(_.toString)
+        .drop(0)
+        .take(1000)
+        .map(_.toInt)
+        .foreach[BAG](foreachItems += _)
+        .await shouldBe (())
+
+      foreachItems shouldBe (1 to 1000)
     }
 
     "takeWhile" in {

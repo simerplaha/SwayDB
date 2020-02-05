@@ -92,8 +92,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     set
       .stream()
-      .forEach(actualKeyValues::add)
-      .materialize();
+      .forEach(actualKeyValues::add);
 
     HashSet<Integer> expectedKeyValues = new HashSet<>();
 

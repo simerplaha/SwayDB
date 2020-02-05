@@ -103,9 +103,6 @@ trait Stream[A] { self =>
   final def headOption[BAG[_]](implicit bag: Bag[BAG]): BAG[Option[A]] =
     bag.map(headOrNull)(Option(_))
 
-  def foreach[U](f: A => U): Stream[Unit] =
-    map[Unit](a => f(a))
-
   def map[B](f: A => B): Stream[B] =
     new step.Map(
       previousStream = self,
@@ -205,6 +202,12 @@ trait Stream[A] { self =>
       drop = 0,
       take = None
     )(f)
+
+  def foreach[BAG[_]](f: A => Unit)(implicit bag: Bag[BAG]): BAG[Unit] =
+    foldLeft(()) {
+      case (_, item) =>
+        f(item)
+    }
 
   /**
    * Folds over all elements in the Stream to calculate it's total size.

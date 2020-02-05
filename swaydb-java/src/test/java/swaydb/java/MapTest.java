@@ -95,8 +95,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
       .forEach(
         keyValue ->
           actualKeyValues.put(keyValue.key(), keyValue.value())
-      )
-      .materialize();
+      );
 
     map
       .iterator()

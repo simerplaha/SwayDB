@@ -27,7 +27,6 @@ import swaydb.java.data.util.Java._
 
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._
-import scala.collection.compat._
 
 object Stream {
   def fromScala[A](stream: swaydb.Stream[A]): Stream[A] =
@@ -62,8 +61,8 @@ class Stream[A](val asScala: swaydb.Stream[A]) {
   implicit val javaThrowableExceptionHandler = swaydb.java.IO.throwableExceptionHandler
   implicit val bag = Bag.less
 
-  def forEach(consumer: Consumer[A]): Stream[Unit] =
-    new Stream[Unit](asScala.foreach(consumer.asScala))
+  def forEach(consumer: Consumer[A]): Unit =
+    asScala.foreach(consumer.asScala)(bag)
 
   def map[B](function: JavaFunction[A, B]): Stream[B] =
     Stream.fromScala(asScala.map(function.asScala))

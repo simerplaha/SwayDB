@@ -30,7 +30,7 @@ class BagSpec extends WordSpec with Matchers {
 
       val result: swaydb.Stream[Int] = swaydb.Stream(1 to 100)
 
-      result.foreach(println).materialize
+      result.foreach(println)
     }
   }
 }
