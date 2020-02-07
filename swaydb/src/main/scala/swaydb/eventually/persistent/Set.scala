@@ -33,8 +33,6 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
 import swaydb.{IO, KeyOrderConverter, SwayDB}
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.{FiniteDuration, _}
 import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
