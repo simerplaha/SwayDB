@@ -464,7 +464,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
   }
 
   /**
-   * Key type used for test partialSetTest
+   * Key type used for test partialKeyOrderingSetTest
    */
   private static class MyKey implements Serializable {
     int id = 0;

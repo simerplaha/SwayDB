@@ -20,8 +20,6 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
-import java.util.Comparator
-import java.util.concurrent.ExecutorService
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -35,7 +33,7 @@ import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerialize
 import swaydb.java.{IO, KeyComparator, KeyOrderConverter, Return}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag, SwayDB}
+import swaydb.{Apply, Bag}
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.FunctionConverters._

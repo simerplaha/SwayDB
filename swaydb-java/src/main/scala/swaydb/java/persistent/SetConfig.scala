@@ -27,10 +27,10 @@ import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
+import swaydb.java._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java._
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
