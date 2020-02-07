@@ -19,18 +19,25 @@
 
 package swaydb.java
 
-import swaydb.data.order.KeyOrder.default
-import swaydb.java.data.slice.ByteSlice
+import java.util.Comparator
 
-object SwayDB {
-
-  def defaultComparator: KeyComparator[ByteSlice] =
-    new KeyComparator[ByteSlice] {
-      override def compare(t: ByteSlice, t1: ByteSlice): Int =
-        default.compare(t.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]], t1.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]])
-
-      override def comparableKey(data: ByteSlice): ByteSlice =
-        data
-    }
-
+trait KeyComparator[K] extends Comparator[K] {
+  /**
+   * The key is used to create secondary indexes like HashIndex and BloomFilters.
+   *
+   * Useful for partially ordered keys.
+   *
+   * For example if your key is
+   * {{{
+   *   class MyData(id: Int, name: Optional[String]))
+   * }}}
+   *
+   * Suppose your key is MyData(1, "John") and your [[KeyComparator]] if on MyData.id
+   * then this [[comparableKey]] should return MyData(1, None) so you can search for
+   * keys like MyData(1, None) and get result MyData(1, "John").
+   *
+   * This is called partial ordering and full reads on partial keys so you
+   * can store extra data with key without having to read the value.
+   */
+  def comparableKey(data: K): K
 }

@@ -20,8 +20,6 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
-import java.util.Comparator
-import java.util.concurrent.ExecutorService
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
@@ -32,10 +30,10 @@ import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{IO, KeyOrderConverter, PureFunction, Return}
+import swaydb.java._
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Bag, SwayDB}
+import swaydb.{Apply, Bag}
 
 import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.FunctionConverters._
@@ -69,7 +67,7 @@ object SetConfig {
                                                                                       @BeanProperty var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                                                                                       @BeanProperty var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                                                                                      @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
+                                                                                      @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[A]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[A]](swaydb.java.SwayDB.defaultComparator),
                                                                                       serializer: Serializer[A],
                                                                                       functionClassTag: ClassTag[SF]) {
 

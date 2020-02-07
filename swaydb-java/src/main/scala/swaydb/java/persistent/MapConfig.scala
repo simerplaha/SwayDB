@@ -32,7 +32,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{IO, KeyOrderConverter, Return}
+import swaydb.java.{IO, KeyComparator, KeyOrderConverter, Return}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag, SwayDB}
@@ -69,7 +69,7 @@ object MapConfig {
                                                                              @BeanProperty var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                                                                              @BeanProperty var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                                                                              @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                                                                             @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[K]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[K]](swaydb.java.SwayDB.defaultComparator),
+                                                                             @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[K]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[K]](swaydb.java.SwayDB.defaultComparator),
                                                                              keySerializer: Serializer[K],
                                                                              valueSerializer: Serializer[V],
                                                                              functionClassTag: ClassTag[SF]) {

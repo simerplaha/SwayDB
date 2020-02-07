@@ -25,15 +25,13 @@ import org.junit.jupiter.api.Test;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
+import swaydb.java.data.slice.Slice;
 import swaydb.java.memory.SetConfig;
 import swaydb.java.serializers.Serializer;
 
-import java.io.IOException;
+import java.io.*;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -346,8 +344,18 @@ abstract class SetTest extends TestBase implements JavaEventually {
     SetConfig.Config<Integer, PureFunction.VoidS<Integer>, Void> config =
       SetConfig.withoutFunctions(intSerializer());
 
-    Comparator<Integer> comparator =
-      (left, right) -> left.compareTo(right) * -1;
+    KeyComparator<Integer> comparator =
+      new KeyComparator<Integer>() {
+        @Override
+        public Integer comparableKey(Integer data) {
+          return data;
+        }
+
+        @Override
+        public int compare(Integer left, Integer right) {
+          return left.compareTo(right) * -1;
+        }
+      };
 
     config.setComparator(IO.rightNeverException(comparator));
 
@@ -453,5 +461,133 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     assertTrue(set.isEmpty());
 
+  }
+
+  /**
+   * Key type used for test partialSetTest
+   */
+  private static class MyKey implements Serializable {
+    int id = 0;
+    String string = "";
+
+
+    public MyKey(int id, String string) {
+      this.id = id;
+      this.string = string;
+    }
+
+    @Override
+    public String toString() {
+      return "MyKey{" +
+        "id=" + id +
+        ", string='" + string + '\'' +
+        '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      MyKey myKey = (MyKey) o;
+      return id == myKey.id &&
+        Objects.equals(string, myKey.string);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id, string);
+    }
+  }
+
+  /**
+   * Tests partially ordered keys.
+   */
+  @Test
+  void partialKeyOrderingSetTest() throws IOException {
+
+    //create a serialiser using ObjectOutputStream
+    Serializer<MyKey> serializer =
+      new Serializer<MyKey>() {
+        @Override
+        public byte[] write(MyKey data) {
+          try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(data);
+            oos.flush();
+            return bos.toByteArray();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        }
+
+        @Override
+        public MyKey read(ByteSlice slice) {
+          ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(slice.toByteBufferWrap().array(), slice.fromOffset(), slice.size());
+          try {
+            ObjectInputStream oos = new ObjectInputStream(byteArrayInputStream);
+            return (MyKey) oos.readObject();
+          } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      };
+
+    //partial key comparator
+    KeyComparator<MyKey> comparator =
+      new KeyComparator<MyKey>() {
+        @Override
+        public int compare(MyKey o1, MyKey o2) {
+          return Integer.compare(o1.id, o2.id);
+        }
+
+        @Override
+        public MyKey comparableKey(MyKey data) {
+          //since above compare is done only on id set the value of string to a static value..
+          return new MyKey(data.id, "");
+        }
+      };
+
+    //use a small map size so that Segments file gets generated for this this quickly.
+    int mapSize = 1000;
+
+    //memory set
+    SetConfig.Config<MyKey, PureFunction.VoidS<MyKey>, Void> memoryConfig = SetConfig.withoutFunctions(serializer);
+    memoryConfig.setComparator(IO.rightNeverException(comparator));
+    memoryConfig.setMapSize(mapSize);
+    Set<MyKey, PureFunction.VoidS<MyKey>> memorySet = memoryConfig.init();
+
+    //persistent Set
+    swaydb.java.persistent.SetConfig.Config<MyKey, PureFunction.VoidS<MyKey>, Void> persistentConfig = swaydb.java.persistent.SetConfig.withoutFunctions(testDir(), serializer);
+    persistentConfig.setComparator(IO.rightNeverException(comparator));
+    persistentConfig.setMapSize(mapSize);
+    Set<MyKey, PureFunction.VoidS<MyKey>> persistentSet = persistentConfig.init();
+
+    //create a slice to test for both maps
+    Slice<Set<MyKey, PureFunction.VoidS<MyKey>>> sets = Slice.create(2);
+    sets.add(memorySet);
+    sets.add(persistentSet);
+
+    sets.forEach(
+      set -> {
+        IntStream
+          .range(1, 2000)
+          .forEach(
+            integer ->
+              set.add(new MyKey(integer, "value" + integer))
+          );
+
+        IntStream
+          .range(1, 2000)
+          .forEach(
+            integer -> {
+              //here string in Key can be empty (partial key) but on get the entire key with string populated will be fetched.
+              Optional<MyKey> myKey = set.get(new MyKey(integer, ""));
+              assertTrue(myKey.isPresent());
+              assertEquals(new MyKey(integer, "value" + integer), myKey.get());
+            }
+          );
+      }
+    );
   }
 }

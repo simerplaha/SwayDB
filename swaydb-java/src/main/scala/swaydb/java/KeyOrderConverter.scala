@@ -19,8 +19,6 @@
 
 package swaydb.java
 
-import java.util.Comparator
-
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.java.data.slice.ByteSlice
@@ -28,26 +26,31 @@ import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {
 
-  def toScalaKeyOrder[K](comparatorIO: IO[Comparator[ByteSlice], Comparator[K]],
+  def toScalaKeyOrder[K](comparatorIO: IO[KeyComparator[ByteSlice], KeyComparator[K]],
                          keySerializer: Serializer[K]) =
     if (comparatorIO.isRight)
-      KeyOrder(
-        new Ordering[Slice[Byte]] {
-          val comparator = comparatorIO.getRight
+      new KeyOrder[Slice[Byte]] {
+        val comparator = comparatorIO.getRight
 
-          override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
-            val leftKey = keySerializer.read(left)
-            val rightKey = keySerializer.read(right)
-            comparator.compare(leftKey, rightKey)
-          }
+        override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
+          val leftKey = keySerializer.read(left)
+          val rightKey = keySerializer.read(right)
+          comparator.compare(leftKey, rightKey)
         }
-      )
+
+        override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
+          val typedData = keySerializer.read(data)
+          val comparableKey = comparator.comparableKey(typedData)
+          keySerializer.write(comparableKey)
+        }
+      }
     else
-      KeyOrder(
-        new Ordering[Slice[Byte]] {
-          val comparator = comparatorIO.getLeft
-          override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
-            comparator.compare(ByteSlice(left), ByteSlice(right))
-        }
-      )
+      new KeyOrder[Slice[Byte]] {
+        val comparator = comparatorIO.getLeft
+        override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
+          comparator.compare(ByteSlice(x), ByteSlice(y))
+
+        override def comparableKey(data: Slice[Byte]): Slice[Byte] =
+          comparator.comparableKey(ByteSlice(data)).asScala.asInstanceOf[Slice[Byte]]
+      }
 }

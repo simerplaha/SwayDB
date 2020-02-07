@@ -68,6 +68,12 @@ case class Slice[T](asScala: ScalaSlice[T]) extends java.lang.Iterable[T] {
   def size: Int =
     asScala.size
 
+  def fromOffset: Int =
+    asScala.fromOffset
+
+  def toOffset: Int =
+    asScala.toOffset
+
   def isEmpty =
     asScala.isEmpty
 

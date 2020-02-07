@@ -19,8 +19,6 @@
 
 package swaydb.java.memory
 
-import java.util.Comparator
-
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.KeyOrder
@@ -29,7 +27,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{IO, KeyOrderConverter, PureFunction, Return}
+import swaydb.java.{IO, KeyComparator, KeyOrderConverter, PureFunction, Return}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
@@ -48,7 +46,7 @@ object SetConfig {
                                                                                       @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                                                                                       @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                                                                                       @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                                                                                      @BeanProperty var comparator: IO[Comparator[ByteSlice], Comparator[A]] = IO.leftNeverException[Comparator[ByteSlice], Comparator[A]](swaydb.java.SwayDB.defaultComparator),
+                                                                                      @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[A]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[A]](swaydb.java.SwayDB.defaultComparator),
                                                                                       serializer: Serializer[A],
                                                                                       functionClassTag: ClassTag[SF]) {
 
