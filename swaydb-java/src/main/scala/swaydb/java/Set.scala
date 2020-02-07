@@ -48,13 +48,13 @@ case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]
   def get(elem: A): Optional[A] =
     asScala.get(elem).asJava
 
-  def contains(elem: A): java.lang.Boolean =
+  def contains(elem: A): Boolean =
     asScala.contains(elem)
 
-  def mightContain(elem: A): java.lang.Boolean =
+  def mightContain(elem: A): Boolean =
     asScala.mightContain(elem)
 
-  def mightContainFunction(function: A): java.lang.Boolean =
+  def mightContainFunction(function: A): Boolean =
     (asScala mightContainFunction function)
 
   def add(elem: A): swaydb.OK =
@@ -151,13 +151,13 @@ case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]
   def levelZeroMeter: LevelZeroMeter =
     asScala.levelZeroMeter
 
-  def levelMeter(levelNumber: Integer): Optional[LevelMeter] =
+  def levelMeter(levelNumber: Int): Optional[LevelMeter] =
     asScala.levelMeter(levelNumber).asJava
 
   def sizeOfSegments: Long =
     asScala.sizeOfSegments
 
-  def elemSize(elem: A): Integer =
+  def elemSize(elem: A): Int =
     asScala.elemSize(elem)
 
   def expiration(elem: A): Optional[Deadline] =
@@ -192,13 +192,13 @@ case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]
       .iterator(Bag.less)
       .asJava
 
-  def sizeOfBloomFilterEntries: Integer =
+  def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
 
-  def isEmpty: java.lang.Boolean =
+  def isEmpty: Boolean =
     asScala.isEmpty
 
-  def nonEmpty: java.lang.Boolean =
+  def nonEmpty: Boolean =
     asScala.nonEmpty
 
   def lastOptional: Optional[A] =

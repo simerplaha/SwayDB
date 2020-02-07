@@ -167,16 +167,16 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
   def level0Meter: LevelZeroMeter =
     asScala.levelZeroMeter
 
-  def levelMeter(levelNumber: Integer): Optional[LevelMeter] =
+  def levelMeter(levelNumber: Int): Optional[LevelMeter] =
     asScala.levelMeter(levelNumber).asJava
 
   def sizeOfSegments: Long =
     asScala.sizeOfSegments
 
-  def keySize(key: K): Integer =
+  def keySize(key: K): Int =
     asScala.keySize(key)
 
-  def valueSize(value: V): Integer =
+  def valueSize(value: V): Int =
     asScala.valueSize(value)
 
   def timeLeft(key: K): Optional[Duration] =
@@ -209,7 +209,7 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
       .map(KeyVal(_))
       .asJava
 
-  def sizeOfBloomFilterEntries: Integer =
+  def sizeOfBloomFilterEntries: Int =
     asScala.sizeOfBloomFilterEntries
 
   def isEmpty: java.lang.Boolean =
