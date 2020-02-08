@@ -21,6 +21,7 @@ package swaydb.api
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.Bag._
+import swaydb.IO.ApiIO
 import swaydb.core.RunThis._
 import swaydb.{Bag, IO, Stream}
 
@@ -31,23 +32,40 @@ import scala.util.Try
 
 class StreamFutureSpec extends StreamSpec[Future] {
   override def get[A](a: Future[A]): A = Await.result(a, 60.seconds)
+
+  override def getException(a: => Future[_]): Throwable = {
+    val future = try a finally {} //wait for the future to complete
+    sleep(1.second)
+    future.value.get.failed.get //get it's result
+  }
 }
 
 class StreamIOSpec extends StreamSpec[IO.ApiIO] {
   override def get[A](a: IO.ApiIO[A]): A = a.get
+
+  override def getException(a: => ApiIO[_]): Throwable =
+    a.left.get.exception
 }
 
 class StreamBagLessSpec extends StreamSpec[Bag.Less] {
   override def get[A](a: Bag.Less[A]): A = a
+
+  override def getException(a: => Less[_]): Throwable =
+    IO(a).left.get
 }
 
 class StreamTrySpec extends StreamSpec[Try] {
   override def get[A](a: Try[A]): A = a.get
+
+  override def getException(a: => Try[_]): Throwable =
+    a.failed.get
 }
 
 sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpec with Matchers {
 
   def get[A](a: BAG[A]): A
+
+  def getException(a: => BAG[_]): Throwable
 
   implicit class Get[A](a: BAG[A]) {
     def await = get(a)
@@ -246,7 +264,7 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
     }
 
     "failure should terminate the Stream" in {
-      def stream =
+      def matStream =
         Stream[Int](1 to 1000)
           .map {
             int =>
@@ -257,13 +275,23 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
           }
           .materialize[BAG]
 
-      val exception =
-        if (bag == Bag.less)
-          IO(stream).left.get
-        else
-          IO(stream.await).left.get
+      def foreachStream =
+        Stream[Int](1 to 1000)
+          .foreach[BAG] {
+            int =>
+              if (int == 100)
+                throw new Exception(s"Failed at $int")
+              else
+                int
+          }
 
-      exception.getMessage shouldBe "Failed at 100"
+      Seq(
+        getException(matStream),
+        getException(foreachStream),
+      ) foreach {
+        exception =>
+          exception.getMessage shouldBe "Failed at 100"
+      }
     }
   }
 }

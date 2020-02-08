@@ -29,19 +29,19 @@ private[swaydb] object Step {
   def foldLeft[A, B, BAG[_]](initial: B, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int])(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B] =
     bag match {
       case bag: Bag.Sync[BAG] =>
-        bag.suspend(step.Step.foldLeftSync(initial, afterOrNull, stream, drop, take)(f)(bag))
+        bag.safe(step.Step.foldLeftSync(initial, afterOrNull, stream, drop, take)(f)(bag))
 
       case bag: Bag.Async[BAG] =>
-        bag.suspend(step.Step.foldLeftAsync(initial, afterOrNull, stream, drop, take, f)(bag))
+        bag.safe(step.Step.foldLeftAsync(initial, afterOrNull, stream, drop, take, f)(bag))
     }
 
   def collectFirst[A, BAG[_]](previous: A, stream: swaydb.Stream[A])(condition: A => Boolean)(implicit bag: Bag[BAG]): BAG[A] =
     bag match {
       case bag: Bag.Sync[BAG] =>
-        bag.suspend(step.Step.collectFirstSync(previous, stream)(condition)(bag))
+        bag.safe(step.Step.collectFirstSync(previous, stream)(condition)(bag))
 
       case bag: Bag.Async[BAG] =>
-        bag.suspend(step.Step.collectFirstAsync(previous, stream, condition)(bag))
+        bag.safe(step.Step.collectFirstAsync(previous, stream, condition)(bag))
     }
 
   private def foldLeftSync[A, U, BAG[_]](initial: U, afterOrNull: A, stream: swaydb.Stream[A], drop: Int, take: Option[Int])(operation: (U, A) => U)(implicit bag: Bag.Sync[BAG]): BAG[U] = {

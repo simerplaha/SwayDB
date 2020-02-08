@@ -53,6 +53,12 @@ sealed trait Bag[BAG[_]] {
    *          types that are complete are directly converted to Future in current thread.
    */
   @inline def suspend[B](f: => BAG[B]): BAG[B]
+
+  final def safe[B](f: => BAG[B]): BAG[B] =
+    flatMap(unit) {
+      _ =>
+        f
+    }
 }
 
 object Bag extends LazyLogging {
@@ -93,6 +99,7 @@ object Bag extends LazyLogging {
     implicit val ioToTry = new Transfer[IO.ApiIO, Try] {
       override def to[T](a: ApiIO[T]): Try[T] =
         a.toTry
+
       override def from[T](a: Try[T]): ApiIO[T] =
         IO.fromTry[Error.API, T](a)
     }
@@ -100,6 +107,7 @@ object Bag extends LazyLogging {
     implicit val ioToOption = new Transfer[IO.ApiIO, Option] {
       override def to[T](a: ApiIO[T]): Option[T] =
         a.toOption
+
       override def from[T](a: Option[T]): ApiIO[T] =
         IO[Error.API, T](a.get)
     }
@@ -203,6 +211,7 @@ object Bag extends LazyLogging {
         override def createSerial(): Serial[X] =
           new Serial[X] {
             val selfSerial = base.createSerial()
+
             override def execute[F](f: => F): X[F] =
               transfer.to(selfSerial.execute(f))
           }
@@ -244,6 +253,7 @@ object Bag extends LazyLogging {
         override def createSerial(): Serial[X] =
           new Serial[X] {
             val selfSerial = base.createSerial()
+
             override def execute[F](f: => F): X[F] =
               transfer.to(selfSerial.execute(f))
           }
@@ -408,7 +418,6 @@ object Bag extends LazyLogging {
 
       override def suspend[B](f: => Future[B]): Future[B] =
         f
-
     }
 
   implicit val apiIO: Bag.Sync[IO.ApiIO] = throwableIO.toBag[IO.ApiIO]
