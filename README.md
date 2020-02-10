@@ -12,11 +12,8 @@
 [build-badge]: https://api.travis-ci.com/simerplaha/SwayDB.svg?branch=master
 [build-link]: https://travis-ci.com/simerplaha/SwayDB
 
-Embeddable persistent and in-memory database aimed at:
-
-- **Simple data types** - `Map` & `Set` (see [#47](https://github.com/simerplaha/SwayDB/issues/47) for `List` & `Queue`)
-- **High performance** - Fast writes & reads.
-- **Resource efficiency** - Reduce server costs (Non-blocking, high compression, low IOps, low GC footprint)
+Fast embeddable **persistent** and **in-memory** database that provides storage 
+as simple data types - `Map` or `Set`.
 
 [Documentation - SwayDB.io](http://swaydb.io).
 
@@ -29,7 +26,7 @@ Embeddable persistent and in-memory database aimed at:
 | Persistent     | up to `863,000` reads/sec & `482,000` writes/sec                 
 | Memory         | TODO                
 
-View comparable benchmarks [here](http://swaydb.io/benchmarks/rocksdb/?language=scala/). 
+[RocksDB comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/). 
 
 ## Overview
 
