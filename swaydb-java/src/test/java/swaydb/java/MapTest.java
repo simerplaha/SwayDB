@@ -39,10 +39,10 @@ import static swaydb.java.serializers.Default.intSerializer;
 
 class MemoryMapTest extends MapTest {
 
-  public <K, V> Map<K, V, PureFunction.VoidM<K, V>> createMap(Serializer<K> keySerializer,
-                                                              Serializer<V> valueSerializer) {
-    Map<K, V, PureFunction.VoidM<K, V>> map =
-      swaydb.java.memory.MapConfig
+  public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
+                                          Serializer<V> valueSerializer) {
+    Map<K, V, Void> map =
+      MapConfig
         .withoutFunctions(keySerializer, valueSerializer)
         .init();
 
@@ -57,9 +57,9 @@ class PersistentMapTest extends MapTest {
     deleteTestDir();
   }
 
-  public <K, V> Map<K, V, PureFunction.VoidM<K, V>> createMap(Serializer<K> keySerializer,
-                                                              Serializer<V> valueSerializer) throws IOException {
-    Map<K, V, PureFunction.VoidM<K, V>> map =
+  public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
+                                          Serializer<V> valueSerializer) throws IOException {
+    Map<K, V, Void> map =
       swaydb.java.persistent.MapConfig
         .withoutFunctions(testDir(), keySerializer, valueSerializer)
         .init();
@@ -70,12 +70,12 @@ class PersistentMapTest extends MapTest {
 
 abstract class MapTest extends TestBase implements JavaEventually {
 
-  public abstract <K, V> Map<K, V, PureFunction.VoidM<K, V>> createMap(Serializer<K> keySerializer,
-                                                                       Serializer<V> valueSerializer) throws IOException;
+  public abstract <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
+                                                   Serializer<V> valueSerializer) throws IOException;
 
   @Test
   void putTest() throws IOException {
-    Map<Integer, Integer, ?> map = createMap(intSerializer(), intSerializer());
+    Map<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     map.put(1, 1);
     map.put(2, 2);
@@ -136,7 +136,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void removeTest() throws IOException {
-    Map<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map = createMap(intSerializer(), intSerializer());
+    Map<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     //put 100 key-values
     IntStream
@@ -202,7 +202,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void expireTest() throws IOException {
-    Map<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map = createMap(intSerializer(), intSerializer());
+    Map<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     Duration expireAfter = Duration.ofSeconds(2);
 
@@ -258,7 +258,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void expireRangeShouldClearAllKeyValuesTest() throws IOException {
-    Map<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map = createMap(intSerializer(), intSerializer());
+    Map<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     int maxKeyValues = 10000;
 
@@ -305,7 +305,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void updateTest() throws IOException {
-    Map<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map = createMap(intSerializer(), intSerializer());
+    Map<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     IntStream
       .rangeClosed(1, 100)
@@ -354,7 +354,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void clearTest() throws IOException {
-    Map<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map = createMap(intSerializer(), intSerializer());
+    Map<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     IntStream
       .rangeClosed(1, 100000)
@@ -373,7 +373,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void commitTest() throws IOException {
-    Map<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map = createMap(intSerializer(), intSerializer());
+    Map<Integer, Integer, Void> map = createMap(intSerializer(), intSerializer());
 
     //create a 100 key-values
     map.put(Stream.range(1, 100).map(KeyVal::create));
@@ -427,7 +427,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   @Test
   void comparatorTest() {
 
-    MapConfig.Config<Integer, Integer, PureFunction.VoidM<Integer, Integer>, Void> config =
+    MapConfig.Config<Integer, Integer, Void> config =
       MapConfig.withoutFunctions(intSerializer(), intSerializer());
 
     KeyComparator<Integer> comparator =
@@ -447,7 +447,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     assertTrue(config.getComparator().isRight());
 
-    Map<Integer, Integer, PureFunction.VoidM<Integer, Integer>> map =
+    Map<Integer, Integer, Void> map =
       config
         .init();
 
@@ -523,7 +523,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
     };
 
 
-    Map<Key, Value, PureFunction.VoidM<Key, Value>> map =
+    Map<Key, Value, Void> map =
       createMap(keySerializer, valueSerializer);
 
     assertDoesNotThrow(() -> map.put(key1, value1));

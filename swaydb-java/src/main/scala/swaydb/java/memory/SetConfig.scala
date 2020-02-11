@@ -39,22 +39,22 @@ import scala.reflect.ClassTag
 
 object SetConfig {
 
-  class Config[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], SF](@BeanProperty var mapSize: Int = 4.mb,
-                                                                                      @BeanProperty var minSegmentSize: Int = 2.mb,
-                                                                                      @BeanProperty var maxKeyValuesPerSegmentGroup: Int = 10,
-                                                                                      @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
-                                                                                      @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                                                                                      @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                                                                                      @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                                                                                      @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[A]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[A]](swaydb.java.SwayDB.defaultComparator),
-                                                                                      serializer: Serializer[A],
-                                                                                      functionClassTag: ClassTag[SF]) {
+  class Config[A, F](@BeanProperty var mapSize: Int = 4.mb,
+                     @BeanProperty var minSegmentSize: Int = 2.mb,
+                     @BeanProperty var maxKeyValuesPerSegmentGroup: Int = 10,
+                     @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
+                     @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                     @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                     @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
+                     @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[A]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[A]](swaydb.java.SwayDB.defaultComparator),
+                     serializer: Serializer[A],
+                     functionClassTag: ClassTag[_]) {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
     def init(): swaydb.java.Set[A, F] = {
       val scalaMap =
-        swaydb.memory.Set[A, SF, Bag.Less](
+        swaydb.memory.Set[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]], Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegmentGroup,
@@ -63,7 +63,7 @@ object SetConfig {
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala
         )(serializer = serializer,
-          functionClassTag = functionClassTag,
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
           bag = Bag.less,
           keyOrder = Left(scalaKeyOrder)
         ).get
@@ -72,16 +72,16 @@ object SetConfig {
     }
   }
 
-  def withFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]], swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]] =
+  def withFunctions[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](serializer: JavaSerializer[A]): Config[A, F] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]]
+      functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])
     )
 
-  def withoutFunctions[A](serializer: JavaSerializer[A]): Config[A, PureFunction.VoidS[A], Void] =
-    new Config[A, PureFunction.VoidS[A], Void](
+  def withoutFunctions[A](serializer: JavaSerializer[A]): Config[A, Void] =
+    new Config[A, Void](
       serializer = SerializerConverter.toScala(serializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
+      functionClassTag = ClassTag.Nothing
     )
 
 }

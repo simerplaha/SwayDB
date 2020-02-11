@@ -37,7 +37,7 @@ import scala.collection.compat._
  *
  * For documentation check - http://swaydb.io/
  */
-case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
+case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
   implicit val exceptionHandler = swaydb.IO.ExceptionHandler.Throwable
   implicit val bag = Bag.less
@@ -121,13 +121,13 @@ case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]
     asScala.clear()
 
   def registerFunction(function: F): swaydb.OK =
-    asScala.registerFunction(PureFunction.asScala(function))
+    asScala.registerFunction(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
 
   def applyFunction(from: A, to: A, function: F): swaydb.OK =
-    asScala.applyFunction(from, to, PureFunction.asScala(function))
+    asScala.applyFunction(from, to, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
 
   def applyFunction(elem: A, function: F): swaydb.OK =
-    asScala.applyFunction(elem, PureFunction.asScala(function))
+    asScala.applyFunction(elem, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
 
   def commit[P <: Prepare.Set[A, F]](prepare: java.util.List[P]): swaydb.OK =
     commit[P](prepare.iterator())
@@ -136,14 +136,22 @@ case class Set[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]
     asScala.commit {
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]]) {
+          case (scala, java) =>
+            val javaFunk = java.asInstanceOf[Prepare.Set[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]]
+            scala += Prepare.toScala(javaFunk)
+        }
     }
 
   def commit[P <: Prepare.Set[A, F]](prepare: java.util.Iterator[P]): swaydb.OK = {
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[A, Nothing, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]]) {
+          case (scala, java) =>
+            val javaFunk = java.asInstanceOf[Prepare.Set[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]]
+            scala += Prepare.toScala(javaFunk)
+        }
 
     asScala commit prepareStatements
   }

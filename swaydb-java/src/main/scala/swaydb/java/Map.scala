@@ -37,7 +37,7 @@ import scala.collection.compat._
  *
  * For documentation check - http://swaydb.io/tag/
  */
-case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
+case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 
   implicit val bag = Bag.less
 
@@ -116,13 +116,13 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
     asScala.clear()
 
   def registerFunction(function: F): swaydb.OK =
-    asScala.registerFunction(PureFunction.asScala(function))
+    asScala.registerFunction(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
 
   def applyFunction(key: K, function: F): swaydb.OK =
-    asScala.applyFunction(key, PureFunction.asScala(function))
+    asScala.applyFunction(key, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
 
   def applyFunction(from: K, to: K, function: F): swaydb.OK =
-    asScala.applyFunction(from, to, PureFunction.asScala(function))
+    asScala.applyFunction(from, to, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
 
   def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.List[P]): swaydb.OK =
     commit[P](prepare.iterator())
@@ -131,14 +131,22 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
     asScala.commit {
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) {
+          case (scala, java) =>
+            val javaPrepare = java.asInstanceOf[Prepare.Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
+            scala += Prepare.toScala(javaPrepare)
+        }
     }
 
   def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.Iterator[P]): swaydb.OK = {
     val prepareStatements =
       prepare
         .asScala
-        .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]])(_ += Prepare.toScala(_))
+        .foldLeft(ListBuffer.empty[swaydb.Prepare[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]]) {
+          case (scala, java) =>
+            val javaPrepare = java.asInstanceOf[Prepare.Map[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]]]
+            scala += Prepare.toScala(javaPrepare)
+        }
 
     asScala commit prepareStatements
   }
@@ -161,7 +169,7 @@ case class Map[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](private
   def mightContainFunction(functionId: K): java.lang.Boolean =
     asScala.mightContainFunction(functionId)
 
-  def keys: Set[K, PureFunction.VoidS[K]] =
+  def keys: Set[K, Void] =
     Set(asScala.keys)
 
   def level0Meter: LevelZeroMeter =

@@ -40,8 +40,8 @@ import static swaydb.java.serializers.Default.intSerializer;
 
 class MemorySetTest extends SetTest {
 
-  public <K> Set<K, PureFunction.VoidS<K>> createSet(Serializer<K> keySerializer) {
-    Set<K, PureFunction.VoidS<K>> map =
+  public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
+    Set<K, Void> map =
       swaydb.java.memory.SetConfig
         .withoutFunctions(keySerializer)
         .init();
@@ -57,8 +57,8 @@ class PersistentSetTest extends SetTest {
     deleteTestDir();
   }
 
-  public <K> Set<K, PureFunction.VoidS<K>> createSet(Serializer<K> keySerializer) throws IOException {
-    Set<K, PureFunction.VoidS<K>> map =
+  public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
+    Set<K, Void> map =
       swaydb.java.persistent.SetConfig
         .withoutFunctions(testDir(), keySerializer)
         .init();
@@ -69,11 +69,11 @@ class PersistentSetTest extends SetTest {
 
 abstract class SetTest extends TestBase implements JavaEventually {
 
-  public abstract <K> Set<K, PureFunction.VoidS<K>> createSet(Serializer<K> keySerializer) throws IOException;
+  public abstract <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException;
 
   @Test
   void addTest() throws IOException {
-    Set<Integer, PureFunction.VoidS<Integer>> set = createSet(intSerializer());
+    Set<Integer, Void> set = createSet(intSerializer());
 
     set.add(1);
     set.add(2);
@@ -121,7 +121,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void removeTest() throws IOException {
-    Set<Integer, PureFunction.VoidS<Integer>> set = createSet(intSerializer());
+    Set<Integer, Void> set = createSet(intSerializer());
 
     //add 100 key-values
     IntStream
@@ -184,7 +184,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void expireTest() throws IOException {
-    Set<Integer, PureFunction.VoidS<Integer>> set = createSet(intSerializer());
+    Set<Integer, Void> set = createSet(intSerializer());
 
     Duration expireAfter = Duration.ofSeconds(2);
 
@@ -240,7 +240,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void expireRangeShouldClearAllKeyValuesTest() throws IOException {
-    Set<Integer, PureFunction.VoidS<Integer>> set = createSet(intSerializer());
+    Set<Integer, Void> set = createSet(intSerializer());
 
     int maxKeyValues = 10000;
 
@@ -283,7 +283,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void clearTest() throws IOException {
-    Set<Integer, PureFunction.VoidS<Integer>> set = createSet(intSerializer());
+    Set<Integer, Void> set = createSet(intSerializer());
 
     IntStream
       .rangeClosed(1, 100000)
@@ -299,7 +299,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void commitTest() throws IOException {
-    Set<Integer, PureFunction.VoidS<Integer>> set = createSet(intSerializer());
+    Set<Integer, Void> set = createSet(intSerializer());
 
     //create a 100 key-values
     set.add(Stream.range(1, 100));
@@ -341,7 +341,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
   @Test
   void comparatorTest() {
 
-    SetConfig.Config<Integer, PureFunction.VoidS<Integer>, Void> config =
+    SetConfig.Config<Integer, Void> config =
       SetConfig.withoutFunctions(intSerializer());
 
     KeyComparator<Integer> comparator =
@@ -361,7 +361,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     assertTrue(config.getComparator().isRight());
 
-    Set<Integer, PureFunction.VoidS<Integer>> set =
+    Set<Integer, Void> set =
       config
         .init();
 
@@ -407,8 +407,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
       }
     };
 
-    Set<Key, PureFunction.VoidS<Key>> set =
-      createSet(keySerializer);
+    Set<Key, Void> set = createSet(keySerializer);
 
     assertDoesNotThrow(() -> set.add(key1));
     assertDoesNotThrow(() -> set.add(key2));
@@ -552,19 +551,19 @@ abstract class SetTest extends TestBase implements JavaEventually {
     int mapSize = 1000;
 
     //memory set
-    SetConfig.Config<MyKey, PureFunction.VoidS<MyKey>, Void> memoryConfig = SetConfig.withoutFunctions(serializer);
+    SetConfig.Config<MyKey, Void> memoryConfig = SetConfig.withoutFunctions(serializer);
     memoryConfig.setComparator(IO.rightNeverException(comparator));
     memoryConfig.setMapSize(mapSize);
-    Set<MyKey, PureFunction.VoidS<MyKey>> memorySet = memoryConfig.init();
+    Set<MyKey, Void> memorySet = memoryConfig.init();
 
     //persistent Set
-    swaydb.java.persistent.SetConfig.Config<MyKey, PureFunction.VoidS<MyKey>, Void> persistentConfig = swaydb.java.persistent.SetConfig.withoutFunctions(testDir(), serializer);
+    swaydb.java.persistent.SetConfig.Config<MyKey, Void> persistentConfig = swaydb.java.persistent.SetConfig.withoutFunctions(testDir(), serializer);
     persistentConfig.setComparator(IO.rightNeverException(comparator));
     persistentConfig.setMapSize(mapSize);
-    Set<MyKey, PureFunction.VoidS<MyKey>> persistentSet = persistentConfig.init();
+    Set<MyKey, Void> persistentSet = persistentConfig.init();
 
     //create a slice to test for both maps
-    Slice<Set<MyKey, PureFunction.VoidS<MyKey>>> sets = Slice.create(2);
+    Slice<Set<MyKey, Void>> sets = Slice.create(2);
     sets.add(memorySet);
     sets.add(persistentSet);
 

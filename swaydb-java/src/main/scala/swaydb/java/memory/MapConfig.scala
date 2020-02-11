@@ -39,23 +39,23 @@ import scala.reflect.ClassTag
 
 object MapConfig {
 
-  class Config[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]], SF](@BeanProperty var mapSize: Int = 4.mb,
-                                                                             @BeanProperty var minSegmentSize: Int = 2.mb,
-                                                                             @BeanProperty var maxKeyValuesPerSegmentGroup: Int = 10,
-                                                                             @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
-                                                                             @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                                                                             @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                                                                             @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                                                                             @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[K]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[K]](swaydb.java.SwayDB.defaultComparator),
-                                                                             keySerializer: Serializer[K],
-                                                                             valueSerializer: Serializer[V],
-                                                                             functionClassTag: ClassTag[SF]) {
+  class Config[K, V, F](@BeanProperty var mapSize: Int = 4.mb,
+                        @BeanProperty var minSegmentSize: Int = 2.mb,
+                        @BeanProperty var maxKeyValuesPerSegmentGroup: Int = 10,
+                        @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
+                        @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                        @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                        @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
+                        @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[K]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[K]](swaydb.java.SwayDB.defaultComparator),
+                        keySerializer: Serializer[K],
+                        valueSerializer: Serializer[V],
+                        functionClassTag: ClassTag[_]) {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
     def init(): swaydb.java.Map[K, V, F] = {
       val scalaMap =
-        swaydb.memory.Map[K, V, SF, Bag.Less](
+        swaydb.memory.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegmentGroup,
@@ -65,7 +65,7 @@ object MapConfig {
           lastLevelThrottle = lastLevelThrottle.asScala
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
-          functionClassTag = functionClassTag,
+          functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
           bag = Bag.less,
           keyOrder = Left(scalaKeyOrder)
         ).get
@@ -74,19 +74,19 @@ object MapConfig {
     }
   }
 
-  def withFunctions[K, V](keySerializer: JavaSerializer[K],
-                          valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, Apply.Map[V]]] =
-    new Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]], swaydb.PureFunction[K, V, Apply.Map[V]]](
+  def withFunctions[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](keySerializer: JavaSerializer[K],
+                                                                              valueSerializer: JavaSerializer[V]): Config[K, V, F] =
+    new Config[K, V, F](
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
+      functionClassTag = ClassTag(classOf[swaydb.PureFunction[K, V, Apply.Map[V]]])
     )
 
   def withoutFunctions[K, V](keySerializer: JavaSerializer[K],
-                             valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction.VoidM[K, V], Void] =
-    new Config[K, V, swaydb.java.PureFunction.VoidM[K, V], Void](
+                             valueSerializer: JavaSerializer[V]): Config[K, V, Void] =
+    new Config[K, V, Void](
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
-      functionClassTag = ClassTag.Nothing.asInstanceOf[ClassTag[Void]]
+      functionClassTag = ClassTag.Nothing
     )
 }

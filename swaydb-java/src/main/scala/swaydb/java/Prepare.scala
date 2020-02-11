@@ -62,28 +62,28 @@ object Prepare {
   def applyFunctionInMap[K, V, F](fromKey: K, toKey: K, function: F): ApplyFunctionInMap[K, V, F] =
     ApplyFunctionInMap(fromKey, Optional.of(toKey), function)
 
-  def addToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T): AddToSet[T, F] =
+  def addToSet[T, F](elem: T): AddToSet[T, F] =
     AddToSet[T, F](elem, Optional.empty())
 
-  def addToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T, expireAfter: Duration): AddToSet[T, F] =
+  def addToSet[T, F](elem: T, expireAfter: Duration): AddToSet[T, F] =
     AddToSet[T, F](elem, Optional.of(expireAfter))
 
-  def removeFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T): RemoveFromSet[T, F] =
+  def removeFromSet[T, F](elem: T): RemoveFromSet[T, F] =
     RemoveFromSet[T, F](elem, Optional.empty(), Optional.empty())
 
-  def removeFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](fromElem: T, toElem: T): RemoveFromSet[T, F] =
+  def removeFromSet[T, F](fromElem: T, toElem: T): RemoveFromSet[T, F] =
     RemoveFromSet[T, F](fromElem, Optional.of(toElem), Optional.empty())
 
-  def expireFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T, after: Duration): RemoveFromSet[T, F] =
+  def expireFromSet[T, F](elem: T, after: Duration): RemoveFromSet[T, F] =
     RemoveFromSet[T, F](elem, Optional.empty(), Optional.of(after))
 
-  def expireFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](fromElem: T, toElem: T, after: Duration): RemoveFromSet[T, F] =
+  def expireFromSet[T, F](fromElem: T, toElem: T, after: Duration): RemoveFromSet[T, F] =
     RemoveFromSet[T, F](fromElem, Optional.of(toElem), Optional.of(after))
 
-  def applyFunctionToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T, function: F): ApplyFunctionToSet[T, F] =
+  def applyFunctionToSet[T, F](elem: T, function: F): ApplyFunctionToSet[T, F] =
     ApplyFunctionToSet[T, F](elem, Optional.empty(), function)
 
-  def applyFunctionToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](fromElem: T, toElem: T, function: F): ApplyFunctionToSet[T, F] =
+  def applyFunctionToSet[T, F](fromElem: T, toElem: T, function: F): ApplyFunctionToSet[T, F] =
     ApplyFunctionToSet[T, F](fromElem, Optional.of(toElem), function)
 
   /**
@@ -127,7 +127,7 @@ object Prepare {
   case class UpdateInMap[K, V, F](from: K, to: Optional[K], value: V) extends Prepare.Map[K, V, F]
   case class ApplyFunctionInMap[K, V, F](from: K, to: Optional[K], function: F) extends Prepare.Map[K, V, F]
 
-  case class AddToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](elem: T, expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
-  case class RemoveFromSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](from: T, to: Optional[T], expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
-  case class ApplyFunctionToSet[T, F <: swaydb.java.PureFunction.OnKey[T, Void, Return.Set[Void]]](from: T, to: Optional[T], function: F) extends Prepare.Set[T, F]
+  case class AddToSet[T, F](elem: T, expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
+  case class RemoveFromSet[T, F](from: T, to: Optional[T], expireAfter: Optional[Duration]) extends Prepare.Set[T, F]
+  case class ApplyFunctionToSet[T, F](from: T, to: Optional[T], function: F) extends Prepare.Set[T, F]
 }
