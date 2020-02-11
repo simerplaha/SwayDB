@@ -45,7 +45,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.StorageUnits._
-import swaydb.data.util.TupleOrNone
 import swaydb.{Bag, IO, OK}
 
 import scala.concurrent.duration.{Deadline, _}
@@ -226,25 +225,25 @@ private[swaydb] case class LevelZero(path: Path,
 
   def put(key: Slice[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put[Slice[Byte], Memory](key, Memory.Put(key, Slice.Null, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, Slice.Null, None, timer.next)))
     OK.instance
   }
 
   def put(key: Slice[Byte], value: Slice[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
     OK.instance
   }
 
   def put(key: Slice[Byte], value: SliceOption[Byte], removeAt: Deadline): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, Some(removeAt), timer.next)))
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, Some(removeAt), timer.next)))
     OK.instance
   }
 
   def put(key: Slice[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Put(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Put](key, Memory.Put(key, value, None, timer.next)))
     OK.instance
   }
 
@@ -299,13 +298,13 @@ private[swaydb] case class LevelZero(path: Path,
 
   def update(key: Slice[Byte], value: Slice[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
     OK.instance
   }
 
   def update(key: Slice[Byte], value: SliceOption[Byte]): OK = {
     validateInput(key)
-    maps.write(timer => MapEntry.Put(key, Memory.Update(key, value, None, timer.next)))
+    maps.write(timer => MapEntry.Put[Slice[Byte], Memory.Update](key, Memory.Update(key, value, None, timer.next)))
     OK.instance
   }
 
