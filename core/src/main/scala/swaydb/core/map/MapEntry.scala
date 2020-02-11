@@ -43,9 +43,9 @@ private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
   def applyTo[T >: V](skipList: SkipList.Concurrent[_, _, K, T]): Unit
 
-  val hasRange: Boolean
-  val hasUpdate: Boolean
-  val hasRemoveDeadline: Boolean
+  def hasRange: Boolean
+  def hasUpdate: Boolean
+  def hasRemoveDeadline: Boolean
 
   def entriesCount: Int
 
@@ -171,9 +171,9 @@ private[swaydb] object MapEntry {
                        value: V)(implicit serializer: MapEntryWriter[MapEntry.Put[K, V]]) extends MapEntry[K, V] {
 
     private var calculatedEntriesByteSize: Int = -1
-    val hasRange: Boolean = serializer.isRange
-    val hasUpdate: Boolean = serializer.isUpdate
-    val hasRemoveDeadline: Boolean =
+    def hasRange: Boolean = serializer.isRange
+    def hasUpdate: Boolean = serializer.isUpdate
+    def hasRemoveDeadline: Boolean =
       value match {
         case Memory.Remove(_, Some(_), _) => true
         case _ => false
@@ -192,7 +192,7 @@ private[swaydb] object MapEntry {
     override def applyTo[T >: V](skipList: SkipList.Concurrent[_, _, K, T]): Unit =
       skipList.put(key, value)
 
-    val entriesCount: Int =
+    def entriesCount: Int =
       1
 
     //copy single creates a new Map entry clearing the ListBuffer. Immutable list is used here to speed boot-up
@@ -204,9 +204,9 @@ private[swaydb] object MapEntry {
   case class Remove[K](key: K)(implicit serializer: MapEntryWriter[MapEntry.Remove[K]]) extends MapEntry[K, Nothing] {
 
     private var calculatedEntriesByteSize: Int = -1
-    val hasRange: Boolean = serializer.isRange
-    val hasUpdate: Boolean = serializer.isUpdate
-    val hasRemoveDeadline: Boolean = false
+    def hasRange: Boolean = serializer.isRange
+    def hasUpdate: Boolean = serializer.isUpdate
+    def hasRemoveDeadline: Boolean = false
 
     override def entryBytesSize: Int = {
       if (calculatedEntriesByteSize == -1)
@@ -221,7 +221,7 @@ private[swaydb] object MapEntry {
     override def applyTo[T >: Nothing](skipList: SkipList.Concurrent[_, _, K, T]): Unit =
       skipList.remove(key)
 
-    val entriesCount: Int =
+    def entriesCount: Int =
       1
 
     def copySingle() =
