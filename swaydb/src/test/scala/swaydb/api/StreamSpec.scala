@@ -23,6 +23,7 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.core.RunThis._
+import swaydb.core.util.Benchmark
 import swaydb.{Bag, IO, Stream}
 
 import scala.collection.mutable.ListBuffer
@@ -70,6 +71,16 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
   implicit class Get[A](a: BAG[A]) {
     def await = get(a)
   }
+
+  val failureIterator =
+    new Iterator[Int] {
+    override def hasNext: Boolean =
+      throw new Exception("Failed hasNext")
+
+    override def next(): Int =
+      throw new Exception("Failed next")
+  }
+
 
   "Stream" should {
 
@@ -122,6 +133,14 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
         .await should contain(1)
     }
 
+    "headOption failure" in {
+      def stream =
+        Stream[Int](failureIterator)
+          .headOption[BAG]
+
+      getException(stream).getMessage shouldBe "Failed hasNext"
+    }
+
     "take" in {
       Stream[Int](1, 2)
         .map(_ + 1)
@@ -140,6 +159,14 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
       Stream[Int](1 to 100)
         .lastOption[BAG]
         .await should contain(100)
+    }
+
+    "lastOption failure" in {
+      def stream =
+        Stream[Int](failureIterator)
+          .lastOption[BAG]
+
+      getException(stream).getMessage shouldBe "Failed hasNext"
     }
 
     "map" in {

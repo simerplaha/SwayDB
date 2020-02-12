@@ -77,11 +77,31 @@ object Stream {
 
   def apply[A](it: Iterator[A]): Stream[A] =
     new Stream[A] {
-      private def step[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+      @inline final private def stepBagLess[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
         if (it.hasNext)
           bag.success(it.next())
         else
           bag.success(null.asInstanceOf[A])
+
+      /**
+       * Iterators created manually will require saving from Exceptions within the Stream.
+       * This is not included in the Stream implementation itself because SwayDB handles
+       * Exceptions in LevelZero and try catch is expensive.
+       */
+      @inline final private def stepSafe[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+        bag.flatMap(bag(it.hasNext)) {
+          hasNext =>
+            if (hasNext)
+              bag(it.next())
+            else
+              bag.success(null.asInstanceOf[A])
+        }
+
+      @inline private final def step[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
+        if (bag == Bag.less)
+          stepBagLess(bag)
+        else
+          stepSafe(bag)
 
       override private[swaydb] def headOrNull[BAG[_]](implicit bag: Bag[BAG]): BAG[A] =
         step(bag)
@@ -191,17 +211,17 @@ trait Stream[A] { self =>
 
   /**
    * Materializes are executes the stream.
-   *
-   * TODO - tag.foldLeft should run point.
    */
   def foldLeft[B, BAG[_]](initial: B)(f: (B, A) => B)(implicit bag: Bag[BAG]): BAG[B] =
-    step.Step.foldLeft(
-      initial = initial,
-      afterOrNull = null.asInstanceOf[A],
-      stream = self,
-      drop = 0,
-      take = None
-    )(f)
+    bag.safe { //safe execution of the stream to recover errors.
+      step.Step.foldLeft(
+        initial = initial,
+        afterOrNull = null.asInstanceOf[A],
+        stream = self,
+        drop = 0,
+        take = None
+      )(f)
+    }
 
   def foreach[BAG[_]](f: A => Unit)(implicit bag: Bag[BAG]): BAG[Unit] =
     foldLeft(()) {

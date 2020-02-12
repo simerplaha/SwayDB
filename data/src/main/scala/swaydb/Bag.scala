@@ -54,7 +54,7 @@ sealed trait Bag[BAG[_]] {
    */
   @inline def suspend[B](f: => BAG[B]): BAG[B]
 
-  final def safe[B](f: => BAG[B]): BAG[B] =
+  def safe[B](f: => BAG[B]): BAG[B] =
     flatMap(unit) {
       _ =>
         f
@@ -350,7 +350,176 @@ object Bag extends LazyLogging {
 
       override def suspend[B](f: => ThrowableIO[B]): ThrowableIO[B] =
         f
+    }
 
+  implicit val apiIO: Bag.Sync[IO.ApiIO] =
+    new Sync[IO.ApiIO] {
+
+      implicit val exceptionHandler = swaydb.Error.API.ExceptionHandler
+
+      override def isSuccess[A](a: ApiIO[A]): Boolean =
+        a.isRight
+
+      override def isFailure[A](a: ApiIO[A]): Boolean =
+        a.isLeft
+
+      override def exception[A](a: ApiIO[A]): Option[Throwable] =
+        a.left.toOption.map(_.exception)
+
+      override def getOrElse[A, B >: A](a: ApiIO[A])(b: => B): B =
+        a.getOrElse(b)
+
+      override def getUnsafe[A](a: ApiIO[A]): A =
+        a.get
+
+      override def orElse[A, B >: A](a: ApiIO[A])(b: ApiIO[B]): ApiIO[B] =
+        a.orElse(b)
+
+      override def unit: ApiIO[Unit] =
+        IO.unit
+
+      override def none[A]: ApiIO[Option[A]] =
+        IO.none
+
+      override def apply[A](a: => A): ApiIO[A] =
+        IO(a)
+
+      override def createSerial(): Serial[ApiIO] =
+        new Serial[ApiIO] {
+          override def execute[F](f: => F): ApiIO[F] =
+            IO(f)
+        }
+
+      override def foreach[A](a: ApiIO[A])(f: A => Unit): Unit =
+        a.foreach(f)
+
+      override def map[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
+        a.map(f)
+
+      override def transform[A, B](a: ApiIO[A])(f: A => B): ApiIO[B] =
+        a.transform(f)
+
+      override def flatMap[A, B](fa: ApiIO[A])(f: A => ApiIO[B]): ApiIO[B] =
+        fa.flatMap(f)
+
+      override def success[A](value: A): ApiIO[A] =
+        IO.Right(value)
+
+      override def failure[A](exception: Throwable): ApiIO[A] =
+        IO.failed(exception)
+
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): ApiIO[A] =
+        IO[swaydb.Error.API, A](a.get)
+
+      override def suspend[B](f: => ApiIO[B]): ApiIO[B] =
+        f
+    }
+
+  implicit val tryBag: Bag.Sync[Try] =
+    new Bag.Sync[Try] {
+      val unit: scala.util.Success[Unit] = scala.util.Success(())
+
+      val none: scala.util.Success[Option[Nothing]] = scala.util.Success(None)
+
+      override def isSuccess[A](a: Try[A]): Boolean =
+        a.isSuccess
+
+      override def isFailure[A](a: Try[A]): Boolean =
+        a.isFailure
+
+      override def exception[A](a: Try[A]): Option[Throwable] =
+        a.failed.toOption
+
+      override def getOrElse[A, B >: A](a: Try[A])(b: => B): B =
+        a.getOrElse(b)
+
+      override def getUnsafe[A](a: Try[A]): A =
+        a.get
+
+      override def orElse[A, B >: A](a: Try[A])(b: Try[B]): Try[B] =
+        a.orElse(b)
+
+      override def none[A]: Try[Option[A]] =
+        none
+
+      override def apply[A](a: => A): Try[A] =
+        Try(a)
+
+      override def createSerial(): Serial[Try] =
+        new Serial[Try] {
+          override def execute[F](f: => F): Try[F] =
+            Try(f)
+        }
+
+      override def foreach[A](a: Try[A])(f: A => Unit): Unit =
+        a.foreach(f)
+
+      override def map[A, B](a: Try[A])(f: A => B): Try[B] =
+        a.map(f)
+
+      override def transform[A, B](a: Try[A])(f: A => B): Try[B] =
+        a.transform(a => Try(f(a)), exception => scala.util.Failure(exception))
+
+      override def flatMap[A, B](fa: Try[A])(f: A => Try[B]): Try[B] =
+        fa.flatMap(f)
+
+      override def success[A](value: A): Try[A] =
+        scala.util.Success(value)
+
+      override def failure[A](exception: Throwable): Try[A] =
+        scala.util.Failure(exception)
+
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Try[A] =
+        a.toTry
+
+      override def suspend[B](f: => Try[B]): Try[B] =
+        f
+    }
+
+  type Less[A] = A
+
+  implicit val less: Bag.Sync[Less] =
+    new Bag.Sync[Less] {
+      override def isSuccess[A](a: Less[A]): Boolean = true
+
+      override def isFailure[A](a: Less[A]): Boolean = false
+
+      override def exception[A](a: Less[A]): Option[Throwable] = None
+
+      override def getOrElse[A, B >: A](a: Less[A])(b: => B): B = a
+
+      override def getUnsafe[A](a: Less[A]): A = a
+
+      override def orElse[A, B >: A](a: Less[A])(b: Less[B]): Less[B] = a
+
+      override def unit: Less[Unit] = ()
+
+      override def none[A]: Less[Option[A]] = Option.empty[A]
+
+      override def apply[A](a: => A): Less[A] = a
+
+      override def createSerial(): Serial[Less] =
+        new Serial[Less] {
+          override def execute[F](f: => F): Less[F] = f
+        }
+
+      override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
+
+      override def map[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
+
+      override def transform[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
+
+      override def flatMap[A, B](fa: Less[A])(f: A => Less[B]): Less[B] = f(fa)
+
+      override def success[A](value: A): Less[A] = value
+
+      override def failure[A](exception: Throwable): Less[A] = throw exception
+
+      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Less[A] = a.get
+
+      override def suspend[B](f: => Less[B]): Less[B] = f
+
+      override def safe[B](f: => Less[B]): Less[B] = f
     }
 
   implicit def future(implicit ec: ExecutionContext): Bag.Async.Retryable[Future] =
@@ -418,60 +587,5 @@ object Bag extends LazyLogging {
 
       override def suspend[B](f: => Future[B]): Future[B] =
         f
-    }
-
-  implicit val apiIO: Bag.Sync[IO.ApiIO] = throwableIO.toBag[IO.ApiIO]
-
-  implicit val unit: Bag.Sync[IO.UnitIO] = throwableIO.toBag[IO.UnitIO]
-
-  implicit val nothing: Bag.Sync[IO.UnitIO] = throwableIO.toBag[IO.UnitIO]
-
-  implicit val tryBag: Bag.Sync[Try] = throwableIO.toBag[Try]
-
-  implicit val option: Bag.Sync[Option] = throwableIO.toBag[Option]
-
-  type Less[A] = A
-
-  implicit val less: Bag.Sync[Less] =
-    new Bag.Sync[Less] {
-      override def isSuccess[A](a: Less[A]): Boolean = true
-
-      override def isFailure[A](a: Less[A]): Boolean = false
-
-      override def exception[A](a: Less[A]): Option[Throwable] = None
-
-      override def getOrElse[A, B >: A](a: Less[A])(b: => B): B = a
-
-      override def getUnsafe[A](a: Less[A]): A = a
-
-      override def orElse[A, B >: A](a: Less[A])(b: Less[B]): Less[B] = a
-
-      override def unit: Less[Unit] = ()
-
-      override def none[A]: Less[Option[A]] = Option.empty[A]
-
-      override def apply[A](a: => A): Less[A] = a
-
-      override def createSerial(): Serial[Less] =
-        new Serial[Less] {
-          override def execute[F](f: => F): Less[F] = f
-        }
-
-      override def foreach[A](a: Less[A])(f: A => Unit): Unit = f(a)
-
-      override def map[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
-
-      override def transform[A, B](a: Less[A])(f: A => B): Less[B] = f(a)
-
-      override def flatMap[A, B](fa: Less[A])(f: A => Less[B]): Less[B] = f(fa)
-
-      override def success[A](value: A): Less[A] = value
-
-      override def failure[A](exception: Throwable): Less[A] = throw exception
-
-      override def fromIO[E: IO.ExceptionHandler, A](a: IO[E, A]): Less[A] = a.get
-
-      override def suspend[B](f: => Less[B]): Less[B] = f
-
     }
 }
