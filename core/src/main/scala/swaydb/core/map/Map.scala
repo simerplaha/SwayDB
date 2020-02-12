@@ -100,10 +100,12 @@ private[core] trait Map[OK, OV, K <: OK, V <: OV] {
 
   val fileSize: Long
 
-  def write(mapEntry: MapEntry[K, V]): Boolean
+  def writeSync(mapEntry: MapEntry[K, V]): Boolean
+
+  def writeNoSync(mapEntry: MapEntry[K, V]): Boolean
 
   def writeSafe[E: IO.ExceptionHandler](mapEntry: MapEntry[K, V]): IO[E, Boolean] =
-    IO[E, Boolean](write(mapEntry))
+    IO[E, Boolean](writeSync(mapEntry))
 
   def delete: Unit
 

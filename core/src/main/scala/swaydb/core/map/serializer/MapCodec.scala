@@ -45,17 +45,20 @@ private[core] object MapCodec extends LazyLogging {
     toMapEntry(map).map(write[K, V]) getOrElse Slice.emptyBytes
 
   def write[K, V](mapEntries: MapEntry[K, V]): Slice[Byte] = {
-    val totalSize = headerSize + mapEntries.entryBytesSize
+    val totalEntrySize = headerSize + mapEntries.entryBytesSize
 
-    val slice = Slice.create[Byte](totalSize.toInt)
-    val (headerSlice, payloadSlice) = slice splitInnerArrayAt headerSize
-    mapEntries writeTo payloadSlice
+    val slice = Slice.create[Byte](totalEntrySize)
 
-    headerSlice addLong (CRC32 forBytes payloadSlice)
-    headerSlice addInt payloadSlice.size
+    slice moveWritePosition headerSize
+    mapEntries writeTo slice
+
+    slice moveWritePosition 0
+    val payloadSlice = slice drop headerSize
+    slice addLong (CRC32 forBytes payloadSlice)
+    slice addInt payloadSlice.size
 
     slice moveWritePosition slice.allocatedSize
-    assert(headerSlice.size + payloadSlice.size == slice.allocatedSize, s"Slice is not full. Actual size: ${headerSlice.size + payloadSlice.size}, allocatedSize: ${slice.allocatedSize}")
+    assert(slice.size == slice.allocatedSize, s"Slice is not full. Actual size: ${slice.size}, allocatedSize: ${slice.allocatedSize}")
     slice
   }
 

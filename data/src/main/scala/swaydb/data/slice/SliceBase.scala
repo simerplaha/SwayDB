@@ -321,10 +321,10 @@ abstract class SliceBase[+T](array: Array[T],
     written = (writePosition - fromOffset) max written
   }
 
-  private[slice] def toByteBufferWrap: ByteBuffer =
+  private[swaydb] def toByteBufferWrap: ByteBuffer =
     ByteBuffer.wrap(array.asInstanceOf[Array[Byte]], fromOffset, size)
 
-  private[slice] def toByteBufferDirect: ByteBuffer =
+  private[swaydb] def toByteBufferDirect: ByteBuffer =
     ByteBuffer
       .allocateDirect(size)
       .put(array.asInstanceOf[Array[Byte]], 0, size)

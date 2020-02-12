@@ -76,22 +76,22 @@ class MapSpec extends TestBase {
           flushOnOverflow = false
         )
 
-      map.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-      map.write(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
+      map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
+      map.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
       map.skipList.get(1) shouldBe Memory.put(1, 1)
       map.skipList.get(2) shouldBe Memory.put(2, 2)
 
       map.hasRange shouldBe false
 
-      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
       map.skipList.get(1) shouldBe Memory.remove(1)
       map.skipList.get(2) shouldBe Memory.remove(2)
 
       map.hasRange shouldBe false
 
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
       map.skipList.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
       map.skipList.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
 
@@ -114,15 +114,15 @@ class MapSpec extends TestBase {
 
       map.hasRange shouldBe false
 
-      map.write(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
       map.skipList.get(1) shouldBe segment1
       map.skipList.get(2) shouldBe segment2
 
       map.hasRange shouldBe false
 
-      map.write(MapEntry.Remove[Slice[Byte]](1)) shouldBe true
-      map.write(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
+      map.writeSync(MapEntry.Remove[Slice[Byte]](1)) shouldBe true
+      map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
       map.skipList.get(1).toOptionS shouldBe empty
       map.skipList.get(2).toOptionS shouldBe empty
     }
@@ -207,11 +207,11 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map.write(MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, 1))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.put(2, 2))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Put](1, Memory.put(1, 1))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Put](2, Memory.put(2, 2))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
       map.skipList.get(1) shouldBe Memory.put(1, 1)
       map.skipList.get(2) shouldBe Memory.remove(2)
@@ -265,9 +265,9 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map.write(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
-      map.write(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
+      map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
       map.skipList.get(1) shouldBe segment1
       map.skipList.get(2).toOptionS shouldBe empty
 
@@ -312,10 +312,10 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map1.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-      map1.write(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
-      map1.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
-      map1.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+      map1.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
+      map1.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
+      map1.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
+      map1.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
 
       val map2 =
         Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -328,10 +328,10 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map2.write(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
-      map2.write(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
-      map2.write(MapEntry.Put(2, Memory.put(2, 22))) shouldBe true //second file will override 2's value to be 22
-      map2.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+      map2.writeSync(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
+      map2.writeSync(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
+      map2.writeSync(MapEntry.Put(2, Memory.put(2, 22))) shouldBe true //second file will override 2's value to be 22
+      map2.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
       //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
       val map2sLogFile = map2.path.resolve(0.toLogFileId)
@@ -388,9 +388,9 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map1.write(MapEntry.Put(1, segment1)) shouldBe true
-      map1.write(MapEntry.Put(2, segment2)) shouldBe true
-      map1.write(MapEntry.Put(3, segment3)) shouldBe true
+      map1.writeSync(MapEntry.Put(1, segment1)) shouldBe true
+      map1.writeSync(MapEntry.Put(2, segment2)) shouldBe true
+      map1.writeSync(MapEntry.Put(3, segment3)) shouldBe true
 
       val map2 =
         Map.persistent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment](
@@ -403,9 +403,9 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map2.write(MapEntry.Put(4, segment4)) shouldBe true
-      map2.write(MapEntry.Put(5, segment5)) shouldBe true
-      map2.write(MapEntry.Put(2, segment2Updated)) shouldBe true //second file will override 2's value to be segment2Updated
+      map2.writeSync(MapEntry.Put(4, segment4)) shouldBe true
+      map2.writeSync(MapEntry.Put(5, segment5)) shouldBe true
+      map2.writeSync(MapEntry.Put(2, segment2Updated)) shouldBe true //second file will override 2's value to be segment2Updated
 
       //move map2's log file into map1's log file folder named as 1.log and reboot to test recovery.
       val map2sLogFile = map2.path.resolve(0.toLogFileId)
@@ -527,12 +527,12 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-      map.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
-      map.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+      map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+      map.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
+      map.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
       map.currentFilePath.fileId shouldBe(0, Extension.Log)
 
@@ -583,11 +583,11 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-      map.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
-      map.write(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
+      map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
+      map.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
+      map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
       map.currentFilePath.fileId shouldBe(5, Extension.Log)
       map.path.resolveSibling(0.toLogFileId).exists shouldBe false //0.log gets deleted
@@ -716,7 +716,7 @@ class MapSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          map.write(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
+          map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
       }
       map.size shouldBe 100
       val allBytes = Files.readAllBytes(map.currentFilePath)
@@ -757,7 +757,7 @@ class MapSpec extends TestBase {
 
       (1 to 100) foreach {
         i =>
-          map.write(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
+          map.writeSync(MapEntry.Put(i, Memory.put(i, i))) shouldBe true
       }
       map.size shouldBe 100
       val allBytes = Files.readAllBytes(map.currentFilePath)
@@ -816,9 +816,9 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map1.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-      map1.write(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
-      map1.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
+      map1.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
+      map1.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
+      map1.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
 
       val map2 =
         Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -831,9 +831,9 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map2.write(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
-      map2.write(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
-      map2.write(MapEntry.Put(6, Memory.put(6, 6))) shouldBe true
+      map2.writeSync(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
+      map2.writeSync(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
+      map2.writeSync(MapEntry.Put(6, Memory.put(6, 6))) shouldBe true
 
       val map2sLogFile = map2.path.resolve(0.toLogFileId)
       val copiedLogFileId = map1.path.resolve(1.toLogFileId)
@@ -908,9 +908,9 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map1.write(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
-      map1.write(MapEntry.Put(2, Memory.put(2))) shouldBe true
-      map1.write(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
+      map1.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
+      map1.writeSync(MapEntry.Put(2, Memory.put(2))) shouldBe true
+      map1.writeSync(MapEntry.Put(3, Memory.put(3, 3))) shouldBe true
 
       val map2 =
         Map.persistent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
@@ -923,9 +923,9 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map2.write(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
-      map2.write(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
-      map2.write(MapEntry.Put(6, Memory.put(6, 6))) shouldBe true
+      map2.writeSync(MapEntry.Put(4, Memory.put(4, 4))) shouldBe true
+      map2.writeSync(MapEntry.Put(5, Memory.put(5, 5))) shouldBe true
+      map2.writeSync(MapEntry.Put(6, Memory.put(6, 6))) shouldBe true
 
       val map2sLogFile = map2.path.resolve(0.toLogFileId)
       val copiedLogFileId = map1.path.resolve(1.toLogFileId)
@@ -1007,14 +1007,14 @@ class MapSpec extends TestBase {
           //slice write them to that if map's randomly selected size is too small and multiple maps are written to.
           keyValues.groupedSlice(5) foreach {
             keyValues =>
-              map.write(keyValues.toMapEntry.value) shouldBe true
+              map.writeSync(keyValues.toMapEntry.value) shouldBe true
           }
           map.skipList.values().asScala shouldBe keyValues
 
           //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
           val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addPut = true)
           val updatedEntries = updatedValues.toMapEntry.value
-          map.write(updatedEntries) shouldBe true
+          map.writeSync(updatedEntries) shouldBe true
 
           //reopening the map should return in the original skipList.
           val reopened = map.reopen

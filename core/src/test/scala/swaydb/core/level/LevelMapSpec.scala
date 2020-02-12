@@ -100,7 +100,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
-        map.write(MapEntry.Put(keyValue.key, keyValue))
+        map.writeSync(MapEntry.Put(keyValue.key, keyValue))
     }
 
     "succeed" when {
@@ -170,7 +170,7 @@ sealed trait LevelMapSpec extends TestBase with MockFactory with PrivateMethodTe
     val keyValues = randomPutKeyValues(keyValuesCount, addRemoves = true, addPutDeadlines = false)
     keyValues foreach {
       keyValue =>
-        map.write(MapEntry.Put(keyValue.key, keyValue))
+        map.writeSync(MapEntry.Put(keyValue.key, keyValue))
     }
 
     "succeed" when {

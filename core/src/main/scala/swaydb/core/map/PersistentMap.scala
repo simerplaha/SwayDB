@@ -252,8 +252,8 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   def currentFilePath =
     currentFile.path
 
-  override def write(mapEntry: MapEntry[K, V]): Boolean =
-    synchronized(persist(mapEntry))
+  override def writeSync(mapEntry: MapEntry[K, V]): Boolean =
+    synchronized(writeNoSync(mapEntry))
 
   /**
    * Before writing the Entry, check to ensure if the current [[MapEntry]] requires a merge write or direct write.
@@ -267,8 +267,9 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
    * Range, Update or key-values with deadline.
    */
   @tailrec
-  private def persist(entry: MapEntry[K, V]): Boolean =
-    if ((bytesWritten + entry.totalByteSize) <= actualFileSize) {
+  final def writeNoSync(entry: MapEntry[K, V]): Boolean = {
+    val entryTotalByteSize = entry.totalByteSize
+    if ((bytesWritten + entryTotalByteSize) <= actualFileSize) {
       currentFile.append(MapCodec.write(entry))
       //if this main contains range then use skipListMerge.
       if (entry.hasRange) {
@@ -280,7 +281,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
         entry applyTo skipList
       }
       skipListKeyValuesMaxCount += entry.entriesCount
-      bytesWritten += entry.totalByteSize
+      bytesWritten += entryTotalByteSize
       //          println("bytesWritten: " + bytesWritten)
       true
     }
@@ -288,7 +289,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
     else if (!flushOnOverflow && bytesWritten != 0) {
       false
     } else {
-      val nextFilesSize = entry.totalByteSize.toLong max fileSize
+      val nextFilesSize = entryTotalByteSize.toLong max fileSize
       try {
         val newFile = PersistentMap.nextFile(currentFile, mmap, nextFilesSize, skipList)
         currentFile = newFile
@@ -299,8 +300,9 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
           logger.error("{}: Failed to replace with new file", currentFile.path, exception)
           throw new Exception("Fatal exception", exception)
       }
-      persist(entry)
+      writeNoSync(entry)
     }
+  }
 
   override def close(): Unit =
     currentFile.close()

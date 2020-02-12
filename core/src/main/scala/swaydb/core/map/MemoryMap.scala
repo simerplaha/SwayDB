@@ -42,24 +42,27 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](val skipList: SkipList.Concu
   def delete: Unit =
     skipList.clear()
 
-  override def write(entry: MapEntry[K, V]): Boolean =
-    synchronized {
-      if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entry.totalByteSize) <= fileSize)) {
-        if (entry.hasRange) {
-          _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
-          skipListMerger.insert(entry, skipList)
-        } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
-          skipListMerger.insert(entry, skipList)
-        } else {
-          entry applyTo skipList
-        }
-        skipListKeyValuesMaxCount += entry.entriesCount
-        currentBytesWritten += entry.totalByteSize
-        true
+  override def writeSync(entry: MapEntry[K, V]): Boolean =
+    synchronized(writeNoSync(entry))
+
+  override def writeNoSync(entry: MapEntry[K, V]): Boolean = {
+    val entryTotalByteSize = entry.totalByteSize
+    if (flushOnOverflow || currentBytesWritten == 0 || ((currentBytesWritten + entryTotalByteSize) <= fileSize)) {
+      if (entry.hasRange) {
+        _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
+        skipListMerger.insert(entry, skipList)
+      } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
+        skipListMerger.insert(entry, skipList)
       } else {
-        false
+        entry applyTo skipList
       }
+      skipListKeyValuesMaxCount += entry.entriesCount
+      currentBytesWritten += entryTotalByteSize
+      true
+    } else {
+      false
     }
+  }
 
   override def close(): Unit =
     ()

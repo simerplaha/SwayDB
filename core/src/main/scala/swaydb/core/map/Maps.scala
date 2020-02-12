@@ -321,7 +321,9 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   val meter =
     new LevelZeroMeter {
       override def defaultMapSize: Long = fileSize
+
       override def currentMapSize: Long = currentMap.fileSize
+
       override def mapsCount: Int = self.currentMapsCount
     }
 
@@ -369,7 +371,7 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   private def persist(entry: MapEntry[K, V]): Unit = {
     val persisted =
       try
-        currentMap write entry
+        currentMap writeNoSync entry
       catch {
         case throwable: Throwable =>
           //If there is a failure writing an Entry to the Map. Start a new Map immediately! This ensures that

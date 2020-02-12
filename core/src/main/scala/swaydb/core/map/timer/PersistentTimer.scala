@@ -146,13 +146,13 @@ private[core] class PersistentTimer(mod: Long,
 
   override val empty = false
 
-  private val time = new AtomicLong(startID)
+  private var time = startID
 
   override def next: Time =
     synchronized {
-      val nextTime = time.incrementAndGet()
-      if (nextTime % mod == 0) PersistentTimer.checkpoint(nextTime, mod, map)
-      Time(nextTime)
+      time += 1
+      if (time % mod == 0) PersistentTimer.checkpoint(time, mod, map)
+      Time(time)
     }
 
   override def close: Unit =

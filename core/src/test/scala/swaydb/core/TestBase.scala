@@ -245,7 +245,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Event
 
       keyValues foreach {
         keyValue =>
-          testMap.write(MapEntry.Put(keyValue.key, keyValue))
+          testMap.writeSync(MapEntry.Put(keyValue.key, keyValue))
       }
       testMap
     }
