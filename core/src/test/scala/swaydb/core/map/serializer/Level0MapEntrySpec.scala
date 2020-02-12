@@ -43,15 +43,13 @@ class Level0MapEntrySpec extends TestBase {
   "MapEntryWriterLevel0 & MapEntryReaderLevel0" should {
 
     "Write random entries" in {
-      import swaydb.Error.Map.ExceptionHandler
-
       def assert[V <: Memory](addEntry: MapEntry.Put[Slice[Byte], V])(implicit writer: MapEntryWriter[MapEntry.Put[Slice[Byte], V]],
-                                                                                      reader: MapEntryReader[MapEntry.Put[Slice[Byte], V]]) = {
+                                                                      reader: MapEntryReader[MapEntry.Put[Slice[Byte], V]]) = {
         val slice = Slice.create[Byte](addEntry.entryBytesSize)
         addEntry writeTo slice
         slice.isFull shouldBe true //this ensures that bytesRequiredFor is returning the correct size
 
-        reader.read(Reader(slice.drop(ByteSizeOf.int))).runRandomIO.right.value shouldBe addEntry
+        reader.read(Reader(slice.drop(ByteSizeOf.byte))).runRandomIO.right.value shouldBe addEntry
 
         import LevelZeroMapEntryReader.Level0Reader
         val readEntry = MapEntryReader.read[MapEntry[Slice[Byte], Memory]](Reader(slice)).runRandomIO.right.value
@@ -87,32 +85,32 @@ class Level0MapEntrySpec extends TestBase {
         case keyValue: Memory.Remove =>
           import LevelZeroMapEntryReader.Level0RemoveReader
           import LevelZeroMapEntryWriter.Level0RemoveWriter
-          assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Remove]))
+          assert(MapEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Put =>
           import LevelZeroMapEntryReader.Level0PutReader
           import LevelZeroMapEntryWriter.Level0PutWriter
-          assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Put]))
+          assert(MapEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Update =>
           import LevelZeroMapEntryReader.Level0UpdateReader
           import LevelZeroMapEntryWriter.Level0UpdateWriter
-          assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Update]))
+          assert(MapEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Function =>
           import LevelZeroMapEntryReader.Level0FunctionReader
           import LevelZeroMapEntryWriter.Level0FunctionWriter
-          assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Function]))
+          assert(MapEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.PendingApply =>
           import LevelZeroMapEntryReader.Level0PendingApplyReader
           import LevelZeroMapEntryWriter.Level0PendingApplyWriter
-          assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.PendingApply]))
+          assert(MapEntry.Put(keyValue.key, keyValue))
 
         case keyValue: Memory.Range =>
           import LevelZeroMapEntryReader.Level0RangeReader
           import LevelZeroMapEntryWriter.Level0RangeWriter
-          assert(MapEntry.Put(keyValue.key, keyValue.toMemory.asInstanceOf[Memory.Range]))
+          assert(MapEntry.Put(keyValue.key, keyValue))
       }
     }
 
@@ -164,7 +162,9 @@ class Level0MapEntrySpec extends TestBase {
 
       val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(keyOrder)
       readEntry applyTo skipList
+
       def scalaSkipList = skipList.asScala
+
       assertSkipList()
 
       def assertSkipList() = {
