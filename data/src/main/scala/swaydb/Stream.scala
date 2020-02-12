@@ -30,6 +30,11 @@ import scala.collection.mutable.ListBuffer
  */
 object Stream {
 
+  implicit class NumericStreamImplicits[T](stream: Stream[T])(implicit numeric: Numeric[T]) {
+    def sum[BAG[_]](implicit bag: Bag[BAG]): BAG[T] =
+      stream.foldLeft(numeric.zero)(numeric.plus)
+  }
+
   val takeOne = Some(1)
 
   /**

@@ -23,7 +23,6 @@ import org.scalatest.{Matchers, WordSpec}
 import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.core.RunThis._
-import swaydb.core.util.Benchmark
 import swaydb.{Bag, IO, Stream}
 
 import scala.collection.mutable.ListBuffer
@@ -74,13 +73,12 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
 
   val failureIterator =
     new Iterator[Int] {
-    override def hasNext: Boolean =
-      throw new Exception("Failed hasNext")
+      override def hasNext: Boolean =
+        throw new Exception("Failed hasNext")
 
-    override def next(): Int =
-      throw new Exception("Failed next")
-  }
-
+      override def next(): Int =
+        throw new Exception("Failed next")
+    }
 
   "Stream" should {
 
@@ -288,6 +286,14 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
         .filter(_ % 100000 == 0)
         .materialize[BAG]
         .await should contain only(100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000)
+    }
+
+    "sum" in {
+      val range = 1 to 100
+
+      Stream[Int](range)
+        .sum[BAG]
+        .await shouldBe range.sum
     }
 
     "failure should terminate the Stream" in {
