@@ -9,8 +9,8 @@
 [maven-badge]: https://img.shields.io/maven-central/v/io.swaydb/swaydb_2.12.svg
 [maven-link]: https://search.maven.org/search?q=g:io.swaydb%20AND%20a:swaydb_2.12
 
-[build-badge]: https://api.travis-ci.com/simerplaha/SwayDB.svg?branch=master
-[build-link]: https://travis-ci.com/simerplaha/SwayDB
+[build-badge]: https://github.com/simerplaha/SwayDB/workflows/Build/badge.svg
+[build-link]: https://github.com/simerplaha/SwayDB/actions
 
 Fast embeddable **persistent** and **in-memory** database that provides storage 
 as simple data types - `Map` or `Set`.
