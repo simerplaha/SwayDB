@@ -23,6 +23,7 @@ import java.io.IOException
 import java.nio.channels.{FileLock, WritableByteChannel}
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
+import java.util.function.BiPredicate
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.util.Extension
@@ -265,13 +266,15 @@ private[core] object Effect extends LazyLogging {
     Files.size(path)
 
   def printFilesSize(folder: Path, fileExtension: String) = {
-
-    def extensionFilter(path: Path, attributes: BasicFileAttributes) = {
-      val fileName = path.getFileName.toString
-      val isSST = fileName.contains(fileExtension)
-      //if (isSST) println(fileName)
-      isSST
-    }
+    val extensionFilter =
+      new BiPredicate[Path, BasicFileAttributes] {
+        override def test(path: Path, attributes: BasicFileAttributes): Boolean = {
+          val fileName = path.getFileName.toString
+          val isSST = fileName.contains(fileExtension)
+          //if (isSST) println(fileName)
+          isSST
+        }
+      }
 
     val size =
       Files
