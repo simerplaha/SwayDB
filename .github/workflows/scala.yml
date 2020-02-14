@@ -3,17 +3,32 @@ name: Build
 on: [push]
 
 jobs:
-  build:
+  build_211:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 3
-      fail-fast: false
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - run: sbt '++ 2.11.12 compile'
-      - run: sbt '++ 2.12.10 compile'
-      - run: sbt '++ 2.13.1 compile'
+      - run: sbt '++ 2.11.12 clean; compile'
+
+  build_212:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - run: sbt '++ 2.12.10 clean; compile'
+
+  build_213:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - run: sbt '++ 2.13.1 clean; compile'
