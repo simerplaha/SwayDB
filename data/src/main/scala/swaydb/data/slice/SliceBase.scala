@@ -223,14 +223,14 @@ abstract class SliceBase[+T](array: Array[T],
       slice(size - count, size - 1)
 
   //For performance. To avoid creation of Some wrappers
-  private[swaydb] def headOrNull: T =
+  def headOrNull: T =
     if (written <= 0)
       null.asInstanceOf[T]
     else
       array(fromOffset)
 
   //For performance. To avoid creation of Some wrappers
-  private[swaydb] def lastOrNull: T =
+  def lastOrNull: T =
     if (written <= 0)
       null.asInstanceOf[T]
     else
