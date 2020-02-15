@@ -72,7 +72,7 @@ object SetConfig {
     }
   }
 
-  def withFunctions[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](serializer: JavaSerializer[A]): Config[A, F] =
+  def withFunctions[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
     new Config(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])

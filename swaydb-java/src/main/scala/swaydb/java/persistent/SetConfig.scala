@@ -111,8 +111,8 @@ object SetConfig {
     }
   }
 
-  def withFunctions[A, F <: swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]](dir: Path,
-                                                                                       keySerializer: JavaSerializer[A]): Config[A, F] =
+  def withFunctions[A](dir: Path,
+                       keySerializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
     new Config(
       dir = dir,
       serializer = SerializerConverter.toScala(keySerializer),

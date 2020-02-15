@@ -113,9 +113,9 @@ object MapConfig {
     }
   }
 
-  def withFunctions[K, V, F <: swaydb.java.PureFunction[K, V, Return.Map[V]]](dir: Path,
-                                                                              keySerializer: JavaSerializer[K],
-                                                                              valueSerializer: JavaSerializer[V]): Config[K, V, F] =
+  def withFunctions[K, V](dir: Path,
+                          keySerializer: JavaSerializer[K],
+                          valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
     new Config(
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
