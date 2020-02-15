@@ -1024,11 +1024,9 @@ private[core] object Segment extends LazyLogging {
 
   def hasOnlyOneSegment(segments: Iterable[Segment]): Boolean = {
     val iterator = segments.iterator
-    if (iterator.hasNext) {
+    iterator.hasNext && {
       iterator.next()
       !iterator.hasNext //no next segment.
-    } else {
-      false
     }
   }
 }

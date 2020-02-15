@@ -53,102 +53,105 @@ private[core] object SegmentAssigner {
   def assignUnsafe(keyValuesCount: Int,
                    keyValues: Iterable[KeyValue],
                    segments: Iterable[Segment])(implicit keyOrder: KeyOrder[Slice[Byte]]): mutable.Map[Segment, Slice[KeyValue]] = {
-    import keyOrder._
-    val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue]]
-    val segmentsIterator = segments.iterator
+    if (Segment hasOnlyOneSegment segments) { //.size iterates the entire Iterable which is not needed.
+      mutable.Map((segments.head, Slice.from(keyValues, keyValuesCount)))
+    } else {
+      import keyOrder._
 
-    def getNextSegmentMayBe() = if (segmentsIterator.hasNext) segmentsIterator.next() else Segment.Null
+      val assignmentsMap = mutable.Map.empty[Segment, Slice[KeyValue]]
+      val segmentsIterator = segments.iterator
 
-    def assignKeyValueToSegment(segment: Segment,
-                                keyValue: KeyValue,
-                                remainingKeyValues: Int): Unit =
-      assignmentsMap.get(segment) match {
-        case Some(currentAssignments) =>
-          currentAssignments add keyValue
+      def getNextSegmentMayBe() = if (segmentsIterator.hasNext) segmentsIterator.next() else Segment.Null
 
-        case None =>
-          //+1 for cases when a Range might extend to the next Segment.
-          val initial = Slice.create[KeyValue](remainingKeyValues + 1)
-          initial add keyValue
-          assignmentsMap += (segment -> initial)
-      }
+      def assignKeyValueToSegment(segment: Segment,
+                                  keyValue: KeyValue,
+                                  remainingKeyValues: Int): Unit =
+        assignmentsMap.get(segment) match {
+          case Some(currentAssignments) =>
+            currentAssignments add keyValue
 
-    @tailrec
-    def assign(remainingKeyValues: MergeList[Memory.Range, KeyValue],
-               thisSegmentMayBe: SegmentOption,
-               nextSegmentMayBe: SegmentOption): Unit =
-      (remainingKeyValues.headOrNull, thisSegmentMayBe, nextSegmentMayBe) match {
-        //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
-        case (keyValue: KeyValue, thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isNoneS =>
-          keyValue match {
-            case keyValue: KeyValue.Fixed =>
-              assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-              assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+          case None =>
+            //+1 for cases when a Range might extend to the next Segment.
+            val initial = Slice.create[KeyValue](remainingKeyValues + 1)
+            initial add keyValue
+            assignmentsMap += (segment -> initial)
+        }
 
-            case keyValue: KeyValue.Range =>
-              nextSegmentMayBe match {
-                case nextSegment: Segment if keyValue.toKey > nextSegment.minKey =>
-                  val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
-                  val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
-                  val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
-
-                  assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
-                  assign(remainingKeyValues.dropPrepend(nextSegmentsRange), nextSegment, getNextSegmentMayBe())
-
-                case _ =>
-                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
-                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-              }
-          }
-
-
-        // is this a gap key between thisSegment and the nextSegment
-        case (keyValue: KeyValue, thisSegment: Segment, nextSegment: Segment) if keyValue.key < nextSegment.minKey =>
-          keyValue match {
-            case keyValue: KeyValue.Fixed =>
-              //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
-              if (assignmentsMap.contains(thisSegment)) {
+      @tailrec
+      def assign(remainingKeyValues: MergeList[Memory.Range, KeyValue],
+                 thisSegmentMayBe: SegmentOption,
+                 nextSegmentMayBe: SegmentOption): Unit =
+        (remainingKeyValues.headOrNull, thisSegmentMayBe, nextSegmentMayBe) match {
+          //add this key-value if it is the new smallest key or if this key belong to this Segment or if there is no next Segment
+          case (keyValue: KeyValue, thisSegment: Segment, _) if keyValue.key <= thisSegment.minKey || Segment.belongsTo(keyValue, thisSegment) || nextSegmentMayBe.isNoneS =>
+            keyValue match {
+              case keyValue: KeyValue.Fixed =>
                 assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
                 assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-              } else {
-                assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
-              }
 
-            case keyValue: KeyValue.Range =>
-              nextSegmentMayBe match {
-                case nextSegment: Segment if keyValue.toKey > nextSegment.minKey =>
-                  //if it's a gap Range key-value and it's flows onto the next Segment, just jump to the next Segment.
-                  assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
+              case keyValue: KeyValue.Range =>
+                nextSegmentMayBe match {
+                  case nextSegment: Segment if keyValue.toKey > nextSegment.minKey =>
+                    val (fromValue, rangeValue) = keyValue.fetchFromAndRangeValueUnsafe
+                    val thisSegmentsRange = Memory.Range(fromKey = keyValue.fromKey, toKey = nextSegment.minKey, fromValue = fromValue, rangeValue = rangeValue)
+                    val nextSegmentsRange = Memory.Range(fromKey = nextSegment.minKey, toKey = keyValue.toKey, fromValue = Value.FromValue.Null, rangeValue = rangeValue)
 
-                case _ =>
-                  //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
-                  //same code as above, need to push it to a common function.
-                  if (assignmentsMap.contains(thisSegment)) {
+                    assignKeyValueToSegment(thisSegment, thisSegmentsRange, remainingKeyValues.size)
+                    assign(remainingKeyValues.dropPrepend(nextSegmentsRange), nextSegment, getNextSegmentMayBe())
+
+                  case _ =>
                     assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
                     assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
-                  } else {
+                }
+            }
+
+
+          // is this a gap key between thisSegment and the nextSegment
+          case (keyValue: KeyValue, thisSegment: Segment, nextSegment: Segment) if keyValue.key < nextSegment.minKey =>
+            keyValue match {
+              case keyValue: KeyValue.Fixed =>
+                //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
+                if (assignmentsMap.contains(thisSegment)) {
+                  assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
+                  assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                } else {
+                  assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
+                }
+
+              case keyValue: KeyValue.Range =>
+                nextSegmentMayBe match {
+                  case nextSegment: Segment if keyValue.toKey > nextSegment.minKey =>
+                    //if it's a gap Range key-value and it's flows onto the next Segment, just jump to the next Segment.
                     assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
-                  }
-              }
-          }
 
-        case (_: KeyValue, _: Segment, nextSegment: Segment) =>
-          assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
+                  case _ =>
+                    //ignore if a key-value is not already assigned to thisSegment. No point adding a single key-value to a Segment.
+                    //same code as above, need to push it to a common function.
+                    if (assignmentsMap.contains(thisSegment)) {
+                      assignKeyValueToSegment(thisSegment, keyValue, remainingKeyValues.size)
+                      assign(remainingKeyValues.dropHead(), thisSegmentMayBe, nextSegmentMayBe)
+                    } else {
+                      assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
+                    }
+                }
+            }
 
-        case (_, _, _) =>
-          ()
-      }
+          case (_: KeyValue, _: Segment, nextSegment: Segment) =>
+            assign(remainingKeyValues, nextSegment, getNextSegmentMayBe())
 
-    if (Segment hasOnlyOneSegment segments) //.size iterates the entire Iterable which is not needed.
-      mutable.Map((segments.head, Slice.from(keyValues, keyValuesCount)))
-    else if (segmentsIterator.hasNext) {
-      assign(MergeList(keyValuesCount, keyValues.iterator), segmentsIterator.next(), getNextSegmentMayBe())
-      assignmentsMap map {
-        case (segment, keyValues) =>
-          (segment, keyValues.close())
+          case (_, _, _) =>
+            ()
+        }
+
+      if (segmentsIterator.hasNext) {
+        assign(MergeList(keyValuesCount, keyValues.iterator), segmentsIterator.next(), getNextSegmentMayBe())
+        assignmentsMap map {
+          case (segment, keyValues) =>
+            (segment, keyValues.close())
+        }
+      } else {
+        assignmentsMap
       }
     }
-    else
-      assignmentsMap
   }
 }
