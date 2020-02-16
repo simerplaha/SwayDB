@@ -21,9 +21,9 @@ package swaydb.core.util.skiplist
 
 import java.util
 
-private[core] class SkipListTreeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: util.TreeMap[Key, Value],
-                                                                                                    val nullKey: OptionKey,
-                                                                                                    val nullValue: OptionValue) extends SkipListBase[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper, false) {
+private[core] class SkipListMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: util.TreeMap[Key, Value],
+                                                                                                val nullKey: OptionKey,
+                                                                                                val nullValue: OptionValue) extends SkipListBase[OptionKey, OptionValue, Key, Value, util.TreeMap[Key, Value]](skipper, false) {
   /**
    * FIXME - [[SkipListBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
    * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
@@ -46,6 +46,6 @@ private[core] class SkipListTreeMap[OptionKey, OptionValue, Key <: OptionKey, Va
   override def putIfAbsent(key: Key, value: Value): Boolean =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 
-  override def cloneInstance(skipList: util.TreeMap[Key, Value]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
+  override def cloneInstance(skipList: util.TreeMap[Key, Value]): SkipListMap[OptionKey, OptionValue, Key, Value] =
     throw new IllegalAccessException("Operation not allowed - TreeMap SkipList")
 }

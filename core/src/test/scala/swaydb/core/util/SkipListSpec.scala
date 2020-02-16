@@ -133,5 +133,4 @@ sealed trait SkipListSpec extends WordSpec with Matchers {
     skipList.headKey shouldBe Slice.Null
     skipList.lastKey shouldBe Slice.Null
   }
-
 }

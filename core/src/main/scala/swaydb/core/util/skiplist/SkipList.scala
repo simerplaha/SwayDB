@@ -23,6 +23,7 @@ import java.util
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.Bagged
+import swaydb.core.util.Series
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -160,10 +161,19 @@ private[core] object SkipList {
       nullValue = nullValue
     )
 
-  def treeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                              nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
-    new SkipListTreeMap[OptionKey, OptionValue, Key, Value](
+  def map[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                          nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListMap[OptionKey, OptionValue, Key, Value] =
+    new SkipListMap[OptionKey, OptionValue, Key, Value](
       skipper = new util.TreeMap[Key, Value](ordering),
+      nullKey = nullKey,
+      nullValue = nullValue
+    )
+
+  def seriesVolatile[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                                     nullValue: OptionValue,
+                                                                                     maxLevelItems: Int)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
+    new SkipListSeries[OptionKey, OptionValue, Key, Value](
+      series = Series.navigableVolatile(10000),
       nullKey = nullKey,
       nullValue = nullValue
     )

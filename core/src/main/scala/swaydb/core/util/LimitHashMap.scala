@@ -52,11 +52,11 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else if (maxProbe <= 0)
       new NoProbe[K, V](
-        array = ArrayT.basic[(K, V)](limit)
+        series = Series.basic[(K, V)](limit)
       )
     else
       new Probed[K, V](
-        array = ArrayT.basic(limit),
+        series = Series.basic(limit),
         maxProbe = maxProbe,
         overwriteOldest = true,
         overwriteRandom = false
@@ -68,11 +68,11 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else if (maxProbe <= 0)
       new NoProbe[K, V](
-        array = ArrayT.atomic[(K, V)](limit)
+        series = Series.volatile[(K, V)](limit)
       )
     else
       new Probed[K, V](
-        array = ArrayT.atomic[(K, V, Int)](limit),
+        series = Series.volatile[(K, V, Int)](limit),
         maxProbe = maxProbe,
         overwriteOldest = true,
         overwriteRandom = false
@@ -84,11 +84,11 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else if (maxProbe <= 0)
       new NoProbe[K, V](
-        array = ArrayT.atomic[(K, V)](limit)
+        series = Series.volatile[(K, V)](limit)
       )
     else
       new Probed[K, V](
-        array = ArrayT.atomic[(K, V, Int)](limit),
+        series = Series.volatile[(K, V, Int)](limit),
         maxProbe = maxProbe,
         overwriteOldest = true,
         overwriteRandom = false
@@ -102,7 +102,7 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else
       new NoProbe[K, V](
-        array = ArrayT.basic[(K, V)](limit)
+        series = Series.basic[(K, V)](limit)
       )
 
   def concurrent[K, V >: Null](limit: Int): LimitHashMap[K, V] =
@@ -110,15 +110,15 @@ private[swaydb] object LimitHashMap {
       new Empty[K, V]
     else
       new NoProbe[K, V](
-        array = ArrayT.atomic[(K, V)](limit)
+        series = Series.volatile[(K, V)](limit)
       )
 
-  private class Probed[K, V >: Null](array: ArrayT[(K, V, Int)],
+  private class Probed[K, V >: Null](series: Series[(K, V, Int)],
                                      maxProbe: Int,
                                      overwriteOldest: Boolean,
                                      overwriteRandom: Boolean) extends LimitHashMap[K, V] {
 
-    val limit = array.length
+    val limit = series.length
     val limitMinusOne = limit - 1
     val time: AtomicInteger =
       if (overwriteOldest)
@@ -163,11 +163,11 @@ private[swaydb] object LimitHashMap {
     private def putOverwriteOldest(key: K, value: V, hashIndex: Int, nextHashIndex: Int, oldestIndex: Int, oldestIndexTime: Int, probe: Int): Unit =
       if (probe == maxProbe) {
         //overwrite the oldest
-        array.set(oldestIndex, (key, value, time.incrementAndGet()))
+        series.set(oldestIndex, (key, value, time.incrementAndGet()))
       } else {
-        val existing = array.getOrNull(nextHashIndex)
+        val existing = series.getOrNull(nextHashIndex)
         if (existing == null || existing._1 == key) {
-          array.set(nextHashIndex, (key, value, time.incrementAndGet()))
+          series.set(nextHashIndex, (key, value, time.incrementAndGet()))
         } else {
           val (nextOldestIndex, nextOldestTime) =
             if (oldestIndexTime > existing._3)
@@ -194,11 +194,11 @@ private[swaydb] object LimitHashMap {
       if (probe == maxProbe) {
         //random select and index to insert input.
         val index = (hashIndex + Random.nextInt(probe)) min limitMinusOne
-        array.set(index, (key, value, 0))
+        series.set(index, (key, value, 0))
       } else {
-        val existing = array.getOrNull(targetIndex)
+        val existing = series.getOrNull(targetIndex)
         if (existing == null || existing._1 == key)
-          array.set(targetIndex, (key, value, 0))
+          series.set(targetIndex, (key, value, 0))
         else
           putOverwriteRandom(key, value, hashIndex, if (targetIndex + 1 >= limit) 0 else targetIndex + 1, probe + 1)
       }
@@ -206,11 +206,11 @@ private[swaydb] object LimitHashMap {
     @tailrec
     private def putOverwriteHead(key: K, value: V, hashIndex: Int, targetIndex: Int, probe: Int): Unit =
       if (probe == maxProbe) {
-        array.set(hashIndex, (key, value, 0))
+        series.set(hashIndex, (key, value, 0))
       } else {
-        val existing = array.getOrNull(targetIndex)
+        val existing = series.getOrNull(targetIndex)
         if (existing == null || existing._1 == key)
-          array.set(targetIndex, (key, value, 0))
+          series.set(targetIndex, (key, value, 0))
         else
           putOverwriteHead(key, value, hashIndex, if (targetIndex + 1 >= limit) 0 else targetIndex + 1, probe + 1)
       }
@@ -225,7 +225,7 @@ private[swaydb] object LimitHashMap {
       if (probe == maxProbe) {
         null
       } else {
-        val keyValue = array.getOrNull(index)
+        val keyValue = series.getOrNull(index)
         if (keyValue != null && keyValue._1 == key)
           keyValue._2
         else
@@ -234,7 +234,7 @@ private[swaydb] object LimitHashMap {
 
     override def iterator: Iterator[(K, V)] =
       new Iterator[(K, V)] {
-        val innerIterator = array.iterator
+        val innerIterator = series.iterator
 
         override def hasNext: Boolean =
           innerIterator.hasNext
@@ -249,15 +249,15 @@ private[swaydb] object LimitHashMap {
       }
   }
 
-  private class NoProbe[K, V >: Null](array: ArrayT[(K, V)]) extends LimitHashMap[K, V] {
+  private class NoProbe[K, V >: Null](series: Series[(K, V)]) extends LimitHashMap[K, V] {
 
-    val limit = array.length
+    val limit = series.length
 
     def put(key: K, value: V) =
-      array.set(Math.abs(key.##) % limit, (key, value))
+      series.set(Math.abs(key.##) % limit, (key, value))
 
     def getOrNull(key: K): V = {
-      val value = array.getOrNull(Math.abs(key.##) % limit)
+      val value = series.getOrNull(Math.abs(key.##) % limit)
       if (value != null && value._1 == key)
         value._2
       else
@@ -265,7 +265,7 @@ private[swaydb] object LimitHashMap {
     }
 
     override def iterator: Iterator[(K, V)] =
-      array.iterator
+      series.iterator
   }
 
   private class Empty[K, V >: Null] extends LimitHashMap[K, V] {
