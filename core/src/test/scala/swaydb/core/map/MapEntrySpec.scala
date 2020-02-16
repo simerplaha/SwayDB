@@ -28,7 +28,7 @@ import swaydb.core.io.file.BlockCache
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
-import swaydb.core.util.SkipList
+import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}

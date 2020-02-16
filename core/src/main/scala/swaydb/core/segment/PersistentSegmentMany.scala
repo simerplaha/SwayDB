@@ -38,6 +38,7 @@ import swaydb.core.segment.format.a.block.segment.data.{TransientSegment, Transi
 import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.util._
+import swaydb.core.util.skiplist.{ImmutableSkipList, SkipList}
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -130,7 +131,7 @@ protected object PersistentSegmentMany {
             maxKey: MaxKey[Slice[Byte]],
             minMaxFunctionId: Option[MinMax[Slice[Byte]]],
             nearestExpiryDeadline: Option[Deadline],
-            initial: Option[SkipList.Immutable[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+            initial: Option[ImmutableSkipList[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                functionStore: FunctionStore,
                                                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
@@ -148,7 +149,7 @@ protected object PersistentSegmentMany {
       )
 
     val segments =
-      Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, SkipList.Immutable[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]](
+      Cache.deferredIO[swaydb.Error.Segment, swaydb.Error.ReservedResource, Unit, ImmutableSkipList[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]](
         initial = initial,
         strategy = _ => segmentIO.segmentBlockIO(IOAction.ReadDataOverview).forceCacheOnAccess,
         reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"${file.path}: ${this.getClass.getSimpleName}"))
@@ -277,7 +278,7 @@ protected object PersistentSegmentMany {
                             fileBlockRef: BlockRefReader[SegmentBlock.Offset])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                keyValueMemorySweeper: Option[MemorySweeper.KeyValue],
                                                                                blockCacheMemorySweeper: Option[MemorySweeper.Block],
-                                                                               segmentIO: SegmentIO): SkipList.Immutable[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
+                                                                               segmentIO: SegmentIO): ImmutableSkipList[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] = {
     val blockedReader: BlockRefReader[SegmentBlock.Offset] = fileBlockRef.copy()
     val listSegmentSize = blockedReader.readUnsignedInt()
     val listSegment = blockedReader.read(listSegmentSize)
@@ -405,7 +406,7 @@ protected case class PersistentSegmentMany(file: DBFile,
                                            minMaxFunctionId: Option[MinMax[Slice[Byte]]],
                                            segmentSize: Int,
                                            nearestPutDeadline: Option[Deadline],
-                                           private[segment] val segmentsCache: Cache[Error.Segment, Unit, SkipList.Immutable[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                           private[segment] val segmentsCache: Cache[Error.Segment, Unit, ImmutableSkipList[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef]])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                                                                                                                                              timeOrder: TimeOrder[Slice[Byte]],
                                                                                                                                                                                              functionStore: FunctionStore,
                                                                                                                                                                                              blockCache: Option[BlockCache.State],
@@ -419,7 +420,7 @@ protected case class PersistentSegmentMany(file: DBFile,
 
   override def formatId: Byte = PersistentSegmentMany.formatId
 
-  private def segments: SkipList.Immutable[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] =
+  private def segments: ImmutableSkipList[SliceOption[Byte], SegmentRefOption, Slice[Byte], SegmentRef] =
     segmentsCache
       .value(())
       .get

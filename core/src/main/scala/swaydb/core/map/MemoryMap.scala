@@ -21,11 +21,11 @@ package swaydb.core.map
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.function.FunctionStore
-import swaydb.core.util.SkipList
+import swaydb.core.util.skiplist.{ConcurrentSkipList, SkipList}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-protected class MemoryMap[OK, OV, K <: OK, V <: OV](val skipList: SkipList.Concurrent[OK, OV, K, V],
+protected class MemoryMap[OK, OV, K <: OK, V <: OV](val skipList: ConcurrentSkipList[OK, OV, K, V],
                                                     flushOnOverflow: Boolean,
                                                     val fileSize: Long)(implicit keyOrder: KeyOrder[K],
                                                                         timeOrder: TimeOrder[Slice[Byte]],

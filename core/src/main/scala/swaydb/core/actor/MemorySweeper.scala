@@ -21,7 +21,8 @@ package swaydb.core.actor
 
 import swaydb.core.data.{KeyValue, Persistent}
 import swaydb.core.io.file.BlockCache
-import swaydb.core.util.{HashedMap, SkipList}
+import swaydb.core.util.HashedMap
+import swaydb.core.util.skiplist.SkipList
 import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf

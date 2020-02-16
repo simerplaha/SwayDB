@@ -20,6 +20,7 @@
 package swaydb.core.util
 
 import org.scalatest.{Matchers, WordSpec}
+import swaydb.core.util.skiplist.{ConcurrentSkipList, SkipList}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers._
@@ -36,7 +37,7 @@ sealed trait SkipListSpec extends WordSpec with Matchers {
 
   implicit val ordering = KeyOrder.default
 
-  def createSkipList(): SkipList.Concurrent[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some] =
+  def createSkipList(): ConcurrentSkipList[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some] =
     SkipList.concurrent[SliceOption[Byte], ValueOption, Slice[Byte], Value.Some](Slice.Null, Value.Null)
 
   "put & putIfAbsent" in {

@@ -34,7 +34,8 @@ import swaydb.core.level.AppendixSkipListMerger
 import swaydb.core.level.zero.LevelZeroSkipListMerger
 import swaydb.core.map.serializer._
 import swaydb.core.segment.{Segment, SegmentIO, SegmentOption}
-import swaydb.core.util.{BlockCacheFileIDGenerator, Extension, SkipList}
+import swaydb.core.util.skiplist.SkipList
+import swaydb.core.util.{BlockCacheFileIDGenerator, Extension}
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}

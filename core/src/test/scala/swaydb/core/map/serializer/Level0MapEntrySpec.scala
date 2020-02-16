@@ -28,7 +28,7 @@ import swaydb.core.TestData._
 import swaydb.core.data.{Memory, MemoryOption}
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.MapEntry
-import swaydb.core.util.SkipList
+import swaydb.core.util.skiplist.SkipList
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.ByteSizeOf

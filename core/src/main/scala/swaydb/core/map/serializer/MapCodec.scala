@@ -24,7 +24,8 @@ import swaydb.Error.Map.ExceptionHandler
 import swaydb.IO
 import swaydb.core.io.reader.Reader
 import swaydb.core.map.{MapEntry, RecoveryResult}
-import swaydb.core.util.{CRC32, SkipList}
+import swaydb.core.util.CRC32
+import swaydb.core.util.skiplist.SkipList
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 

@@ -22,7 +22,7 @@ package swaydb.core.level
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.{MapEntry, SkipListMerger}
 import swaydb.core.segment.{Segment, SegmentOption}
-import swaydb.core.util.SkipList
+import swaydb.core.util.skiplist.ConcurrentSkipList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -33,15 +33,15 @@ import swaydb.data.slice.{Slice, SliceOption}
 object AppendixSkipListMerger extends SkipListMerger[SliceOption[Byte], SegmentOption, Slice[Byte], Segment] {
   override def insert(insertKey: Slice[Byte],
                       insertValue: Segment,
-                      skipList: SkipList.Concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                             functionStore: FunctionStore): Unit =
+                      skipList: ConcurrentSkipList[SliceOption[Byte], SegmentOption, Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                            timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                            functionStore: FunctionStore): Unit =
     throw new IllegalAccessException("Appendix does not require merger.")
 
   //Appendixes do not use Range so there will be no conflicts. Need a type-safe way of handling this.
   override def insert(entry: MapEntry[Slice[Byte], Segment],
-                      skipList: SkipList.Concurrent[SliceOption[Byte], SegmentOption, Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                             timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                             functionStore: FunctionStore): Unit =
+                      skipList: ConcurrentSkipList[SliceOption[Byte], SegmentOption, Slice[Byte], Segment])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                            timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                            functionStore: FunctionStore): Unit =
     throw new IllegalAccessException("Appendix does not require merger.")
 }

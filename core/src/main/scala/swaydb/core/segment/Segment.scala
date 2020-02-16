@@ -41,6 +41,7 @@ import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentGrouper}
 import swaydb.core.util.Collections._
 import swaydb.core.util._
+import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.config.{Dir, IOAction}
 import swaydb.data.order.{KeyOrder, TimeOrder}

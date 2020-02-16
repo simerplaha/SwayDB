@@ -29,7 +29,7 @@ import swaydb.core.actor.{FileSweeper, MemorySweeper}
 import swaydb.core.data._
 import swaydb.core.io.file.BlockCache
 import swaydb.core.segment.SegmentIO
-import swaydb.core.util.SkipList
+import swaydb.core.util.skiplist.SkipList
 import swaydb.core.{TestBase, TestSweeper, TestTimer}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
