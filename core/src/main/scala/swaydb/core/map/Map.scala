@@ -26,7 +26,7 @@ import swaydb.IO
 import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.util.skiplist.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -94,7 +94,7 @@ private[core] trait Map[OK, OV, K <: OK, V <: OV] {
 
   def hasRange: Boolean
 
-  val skipList: ConcurrentSkipList[OK, OV, K, V]
+  val skipList: SkipListConcurrent[OK, OV, K, V]
 
   def skipListKeyValuesMaxCount: Int
 

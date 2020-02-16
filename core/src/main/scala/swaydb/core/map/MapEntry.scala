@@ -22,7 +22,7 @@ package swaydb.core.map
 import swaydb.core.data.Memory
 import swaydb.core.map.MapEntry.{Put, Remove}
 import swaydb.core.map.serializer.{MapCodec, MapEntryWriter}
-import swaydb.core.util.skiplist.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -41,7 +41,7 @@ import scala.collection.mutable.ListBuffer
  */
 private[swaydb] sealed trait MapEntry[K, +V] { thisEntry =>
 
-  def applyTo[T >: V](skipList: ConcurrentSkipList[_, _, K, T]): Unit
+  def applyTo[T >: V](skipList: SkipListConcurrent[_, _, K, T]): Unit
 
   def hasRange: Boolean
   def hasUpdate: Boolean
@@ -137,7 +137,7 @@ private[swaydb] object MapEntry {
         //        override def applyTo[T >: V](skipList: ConcurrentSkipList[K, T]): Unit =
         //          _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] foreach (_.applyTo(skipList))
 
-        override def applyTo[T >: V](skipList: ConcurrentSkipList[_, _, K, T]): Unit = {
+        override def applyTo[T >: V](skipList: SkipListConcurrent[_, _, K, T]): Unit = {
           val batches: ListBuffer[SkipList.Batch[K, V]] =
             _entries.asInstanceOf[ListBuffer[MapEntry[K, V]]] map {
               case MapEntry.Put(key, value) =>
@@ -189,7 +189,7 @@ private[swaydb] object MapEntry {
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
-    override def applyTo[T >: V](skipList: ConcurrentSkipList[_, _, K, T]): Unit =
+    override def applyTo[T >: V](skipList: SkipListConcurrent[_, _, K, T]): Unit =
       skipList.put(key, value)
 
     def entriesCount: Int =
@@ -218,7 +218,7 @@ private[swaydb] object MapEntry {
     override def writeTo(slice: Slice[Byte]): Unit =
       serializer.write(this, slice)
 
-    override def applyTo[T >: Nothing](skipList: ConcurrentSkipList[_, _, K, T]): Unit =
+    override def applyTo[T >: Nothing](skipList: SkipListConcurrent[_, _, K, T]): Unit =
       skipList.remove(key)
 
     def entriesCount: Int =

@@ -35,7 +35,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.util._
-import swaydb.core.util.skiplist.ImmutableSkipList
+import swaydb.core.util.skiplist.SkipListTreeMap
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
@@ -53,7 +53,7 @@ protected case class MemorySegment(path: Path,
                                    hasRange: Boolean,
                                    hasPut: Boolean,
                                    createdInLevel: Int,
-                                   private[segment] val skipList: ImmutableSkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
+                                   private[segment] val skipList: SkipListTreeMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory],
                                    nearestPutDeadline: Option[Deadline])(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                                          functionStore: FunctionStore,

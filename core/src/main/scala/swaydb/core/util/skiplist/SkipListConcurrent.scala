@@ -21,7 +21,7 @@ package swaydb.core.util.skiplist
 
 import java.util.concurrent.ConcurrentSkipListMap
 
-private[core] class ConcurrentSkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: ConcurrentSkipListMap[Key, Value],
+private[core] class SkipListConcurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var skipper: ConcurrentSkipListMap[Key, Value],
                                                                                                        val nullKey: OptionKey,
                                                                                                        val nullValue: OptionValue) extends SkipListBase[OptionKey, OptionValue, Key, Value, ConcurrentSkipListMap[Key, Value]](skipper, true) {
   /**
@@ -31,8 +31,8 @@ private[core] class ConcurrentSkipList[OptionKey, OptionValue, Key <: OptionKey,
    */
   skipper = null
 
-  override def cloneInstance(skipList: ConcurrentSkipListMap[Key, Value]): ConcurrentSkipList[OptionKey, OptionValue, Key, Value] =
-    new ConcurrentSkipList(
+  override def cloneInstance(skipList: ConcurrentSkipListMap[Key, Value]): SkipListConcurrent[OptionKey, OptionValue, Key, Value] =
+    new SkipListConcurrent(
       skipper = skipList.clone(),
       nullKey = nullKey,
       nullValue = nullValue

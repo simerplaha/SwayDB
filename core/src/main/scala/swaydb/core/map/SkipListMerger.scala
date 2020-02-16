@@ -20,7 +20,7 @@
 package swaydb.core.map
 
 import swaydb.core.function.FunctionStore
-import swaydb.core.util.skiplist.ConcurrentSkipList
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -31,12 +31,12 @@ trait SkipListMerger[OK, OV, K <: OK, V <: OV] {
 
   def insert(insertKey: K,
              insertValue: V,
-             skipList: ConcurrentSkipList[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
+             skipList: SkipListConcurrent[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                          functionStore: FunctionStore): Unit
 
   def insert(entry: MapEntry[K, V],
-             skipList: ConcurrentSkipList[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
+             skipList: SkipListConcurrent[OK, OV, K, V])(implicit keyOrder: KeyOrder[K],
                                                          timeOrder: TimeOrder[Slice[Byte]],
                                                          functionStore: FunctionStore): Unit
 }

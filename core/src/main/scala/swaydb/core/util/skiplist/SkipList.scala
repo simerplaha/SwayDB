@@ -153,16 +153,16 @@ private[core] object SkipList {
   }
 
   def concurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): ConcurrentSkipList[OptionKey, OptionValue, Key, Value] =
-    new ConcurrentSkipList[OptionKey, OptionValue, Key, Value](
+                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrent[OptionKey, OptionValue, Key, Value] =
+    new SkipListConcurrent[OptionKey, OptionValue, Key, Value](
       skipper = new ConcurrentSkipListMap[Key, Value](ordering),
       nullKey = nullKey,
       nullValue = nullValue
     )
 
-  def immutable[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
-                                                                                nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): ImmutableSkipList[OptionKey, OptionValue, Key, Value] =
-    new ImmutableSkipList[OptionKey, OptionValue, Key, Value](
+  def treeMap[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](nullKey: OptionKey,
+                                                                              nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListTreeMap[OptionKey, OptionValue, Key, Value] =
+    new SkipListTreeMap[OptionKey, OptionValue, Key, Value](
       skipper = new util.TreeMap[Key, Value](ordering),
       nullKey = nullKey,
       nullValue = nullValue
@@ -170,8 +170,8 @@ private[core] object SkipList {
 
   def concurrent[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
                                                                                  nullKey: OptionKey,
-                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): ConcurrentSkipListLimit[OptionKey, OptionValue, Key, Value] =
-    new ConcurrentSkipListLimit[OptionKey, OptionValue, Key, Value](
+                                                                                 nullValue: OptionValue)(implicit ordering: KeyOrder[Key]): SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value] =
+    new SkipListConcurrentLimit[OptionKey, OptionValue, Key, Value](
       limit = limit,
       skipList =
         SkipList.concurrent[OptionKey, OptionValue, Key, Value](

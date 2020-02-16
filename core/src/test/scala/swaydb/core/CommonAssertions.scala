@@ -54,7 +54,7 @@ import swaydb.core.segment.format.a.block.sortedindex.SortedIndexBlock
 import swaydb.core.segment.format.a.block.values.ValuesBlock
 import swaydb.core.segment.merge.{MergeStats, SegmentMerger}
 import swaydb.core.segment.{KeyMatcher, Segment, SegmentIO, SegmentOption, SegmentSearcher, ThreadReadState}
-import swaydb.core.util.skiplist.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Reader, Slice, SliceOption}
@@ -262,7 +262,7 @@ object CommonAssertions {
       }
   }
 
-  implicit class PrintSkipList(skipList: ConcurrentSkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) {
+  implicit class PrintSkipList(skipList: SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]) {
 
     //stringify the skipList so that it's readable
     def asString(value: Value): String =
@@ -278,13 +278,13 @@ object CommonAssertions {
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
-                          expected: Memory): ConcurrentSkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
+                          expected: Memory): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
     assertSkipListMerge(newKeyValues, oldKeyValues, Slice(expected))
 
   def assertSkipListMerge(newKeyValues: Iterable[KeyValue],
                           oldKeyValues: Iterable[KeyValue],
                           expected: Iterable[KeyValue])(implicit keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default,
-                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): ConcurrentSkipList[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
+                                                        timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long): SkipListConcurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
     val skipList = SkipList.concurrent[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](Slice.Null, Memory.Null)(KeyOrder.default)
     (oldKeyValues ++ newKeyValues).map(_.toMemory) foreach (memory => LevelZeroSkipListMerger.insert(memory.key, memory, skipList))
     skipList.asScala.toList shouldBe expected.map(keyValue => (keyValue.key, keyValue.toMemory)).toList

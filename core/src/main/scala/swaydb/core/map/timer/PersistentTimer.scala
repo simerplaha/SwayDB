@@ -20,7 +20,6 @@
 package swaydb.core.map.timer
 
 import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
@@ -30,7 +29,7 @@ import swaydb.core.data.Time
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.{Map, MapEntry, PersistentMap, SkipListMerger}
-import swaydb.core.util.skiplist.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.skiplist.SkipListConcurrent
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -39,15 +38,15 @@ private[core] object PersistentTimer extends LazyLogging {
   private implicit object TimerSkipListMerger extends SkipListMerger[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]] {
     override def insert(insertKey: Slice[Byte],
                         insertValue: Slice[Byte],
-                        skipList: ConcurrentSkipList[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                       functionStore: FunctionStore): Unit =
+                        skipList: SkipListConcurrent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                      functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
 
     override def insert(entry: MapEntry[Slice[Byte], Slice[Byte]],
-                        skipList: ConcurrentSkipList[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
-                                                                                                                       timeOrder: TimeOrder[Slice[Byte]],
-                                                                                                                       functionStore: FunctionStore): Unit =
+                        skipList: SkipListConcurrent[SliceOption[Byte], SliceOption[Byte], Slice[Byte], Slice[Byte]])(implicit keyOrder: KeyOrder[Slice[Byte]],
+                                                                                                                      timeOrder: TimeOrder[Slice[Byte]],
+                                                                                                                      functionStore: FunctionStore): Unit =
       throw new IllegalAccessException("Timer does not require skipList merger.")
   }
 

@@ -28,8 +28,8 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.util.Random
 
-private[core] class ConcurrentSkipListLimit[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
-                                                                                                            skipList: ConcurrentSkipList[OptionKey, OptionValue, Key, Value],
+private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](limit: Int,
+                                                                                                            skipList: SkipListConcurrent[OptionKey, OptionValue, Key, Value],
                                                                                                             val nullKey: OptionKey,
                                                                                                             val nullValue: OptionValue)(implicit ordering: KeyOrder[Key]) extends SkipList[OptionKey, OptionValue, Key, Value] {
   val skipListSize = new AtomicInteger(0)

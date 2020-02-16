@@ -31,7 +31,7 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.Extension
-import swaydb.core.util.skiplist.{ConcurrentSkipList, SkipList}
+import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -54,7 +54,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): RecoveryResult[PersistentMap[OK, OV, K, V]] = {
     Effect.createDirectoryIfAbsent(folder)
-    val skipList: ConcurrentSkipList[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
+    val skipList: SkipListConcurrent[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
     val (fileRecoveryResult, hasRange) = recover(folder, mmap, fileSize, skipList, dropCorruptedTailEntries)
 
     RecoveryResult(
@@ -83,7 +83,7 @@ private[map] object PersistentMap extends LazyLogging {
                                                                   writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                   skipListMerger: SkipListMerger[OK, OV, K, V]): PersistentMap[OK, OV, K, V] = {
     Effect.createDirectoryIfAbsent(folder)
-    val skipList: ConcurrentSkipList[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
+    val skipList: SkipListConcurrent[OK, OV, K, V] = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder)
     val file = firstFile(folder, mmap, fileSize)
     new PersistentMap[OK, OV, K, V](
       path = folder,
@@ -107,7 +107,7 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def recover[OK, OV, K <: OK, V <: OV](folder: Path,
                                                      mmap: Boolean,
                                                      fileSize: Long,
-                                                     skipList: ConcurrentSkipList[OK, OV, K, V],
+                                                     skipList: SkipListConcurrent[OK, OV, K, V],
                                                      dropCorruptedTailEntries: Boolean)(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
                                                                                         mapReader: MapEntryReader[MapEntry[K, V]],
                                                                                         skipListMerger: SkipListMerger[OK, OV, K, V],
@@ -182,8 +182,8 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def nextFile[OK, OV, K <: OK, V <: OV](oldFiles: Iterable[DBFile],
                                                       mmap: Boolean,
                                                       fileSize: Long,
-                                                      skipList: ConcurrentSkipList[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                   fileSweeper: FileSweeper): Option[DBFile] =
+                                                      skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                  fileSweeper: FileSweeper): Option[DBFile] =
     oldFiles.lastOption map {
       lastFile =>
         val file = nextFile(lastFile, mmap, fileSize, skipList)
@@ -206,8 +206,8 @@ private[map] object PersistentMap extends LazyLogging {
   private[map] def nextFile[OK, OV, K <: OK, V <: OV](currentFile: DBFile,
                                                       mmap: Boolean,
                                                       size: Long,
-                                                      skipList: ConcurrentSkipList[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
-                                                                                                   fileSweeper: FileSweeper): DBFile = {
+                                                      skipList: SkipListConcurrent[OK, OV, K, V])(implicit writer: MapEntryWriter[MapEntry.Put[K, V]],
+                                                                                                  fileSweeper: FileSweeper): DBFile = {
 
     val nextPath = currentFile.path.incrementFileId
     val bytes = MapCodec.write(skipList)
@@ -227,7 +227,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
                                                              mmap: Boolean,
                                                              fileSize: Long,
                                                              flushOnOverflow: Boolean,
-                                                             skipList: ConcurrentSkipList[OK, OV, K, V],
+                                                             skipList: SkipListConcurrent[OK, OV, K, V],
                                                              private var currentFile: DBFile,
                                                              private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
