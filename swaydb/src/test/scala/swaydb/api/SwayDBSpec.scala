@@ -32,6 +32,13 @@ class SwayDBSpec0 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 }
 
+class SwayDB_MapSet_Spec0 extends SwayDBSpec {
+  override def newDB(): MapSet[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.MapSet[Int, String, Nothing, IO.ApiIO](randomDir).right.value
+
+  override val keyValueCount: Int = 100
+}
+
 class SwayDBSpec1 extends SwayDBSpec {
 
   override val keyValueCount: Int = 100
@@ -39,21 +46,6 @@ class SwayDBSpec1 extends SwayDBSpec {
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
-
-//class SwayDB_Zero_Spec0 extends SwayDBSpec {
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value
-//
-//  override val keyValueCount: Int = 100
-//}
-//
-//class SwayDB_Zero_Spec1 extends SwayDBSpec {
-//
-//  override val keyValueCount: Int = 100
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
-//}
 
 class SwayDBSpec2 extends SwayDBSpec {
 
@@ -70,132 +62,147 @@ class SwayDBSpec3 extends SwayDBSpec {
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
-
-//class SwayDB_Zero_Spec2 extends SwayDBSpec {
-//
-//  override val keyValueCount: Int = 100
-//
-//  override def newDB(): Map[Int, String, Tag.CoreIO] =
-//    swaydb.memory.zero.Map[Int, String](mapSize = 1.byte).runIO
-//}
-//
-//class SwayDB_Zero_Spec3 extends SwayDBSpec {
-//
-//  override val keyValueCount: Int = 100
-//
-//  override def newDB(): Map[Int, String, Tag.CoreIO] =
-//    swaydb.memory.zero.Map[Int, String]().runIO
-//}
-
 sealed trait SwayDBSpec extends TestBaseEmbedded {
 
-  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
+  def newDB(): SwayMap[Int, String, Nothing, IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 
   "SwayDB" should {
     "remove all but first and last" in {
-      val db = newDB()
+      //      val db = newDB()
 
-      (1 to 1000) foreach {
+      val db = swaydb.persistent.MapSet[Int, Int, Nothing, IO.ApiIO](randomDir).right.value
+      (1 to 10) foreach {
         i =>
-          db.put(i, i.toString).right.value
+          db.put(i, i).right.value
       }
-      println("Removing .... ")
-      db.remove(2, 999).right.value
-      println("Removed .... ")
+      //      println("Removing .... ")
+      //      db.remove(2, 999).right.value
+      //      println("Removed .... ")
+      //
+      //      db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))
+      //      db.headOption.right.value.value shouldBe ((1, "1"))
+      //      db.lastOption.right.value.value shouldBe ((1000, "1000"))
+      //
+      //      db.close().get
 
-      db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))
-      db.headOption.right.value.value shouldBe ((1, "1"))
-      db.lastOption.right.value.value shouldBe ((1000, "1000"))
-
-      db.close().get
+      (1 to 10) foreach {
+        i =>
+          println(db.getKeyValue(i).right.value)
+      }
     }
 
     "update only key-values that are not removed" in {
       val db = newDB()
 
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+      db match {
+        case db @ Map(core, from, reverseIteration) =>
+          (1 to 100) foreach {
+            i =>
+              db.put(i, i.toString).right.value
+          }
+
+          (2 to 99) foreach {
+            i =>
+              db.remove(i).right.value
+          }
+
+          db.update(1, 100, value = "updated").right.value
+
+          db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
+          db.headOption.right.value.value shouldBe ((1, "updated"))
+          db.lastOption.right.value.value shouldBe ((100, "updated"))
+
+          db.close().get
+
+        case MapSet(set) =>
+        //todo
       }
 
-      (2 to 99) foreach {
-        i =>
-          db.remove(i).right.value
-      }
-
-      db.update(1, 100, value = "updated").right.value
-
-      db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
-      db.headOption.right.value.value shouldBe ((1, "updated"))
-      db.lastOption.right.value.value shouldBe ((100, "updated"))
-
-      db.close().get
     }
 
     "update only key-values that are not removed by remove range" in {
       val db = newDB()
 
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+      db match {
+        case db @ Map(core, from, reverseIteration) =>
+          (1 to 100) foreach {
+            i =>
+              db.put(i, i.toString).right.value
+          }
+
+          db.remove(2, 99).right.value
+
+          db.update(1, 100, value = "updated").right.value
+
+          db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
+          db.headOption.right.value.value shouldBe ((1, "updated"))
+          db.lastOption.right.value.value shouldBe ((100, "updated"))
+
+          db.close().get
+
+        case MapSet(set) =>
+        //todo
       }
-
-      db.remove(2, 99).right.value
-
-      db.update(1, 100, value = "updated").right.value
-
-      db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
-      db.headOption.right.value.value shouldBe ((1, "updated"))
-      db.lastOption.right.value.value shouldBe ((100, "updated"))
-
-      db.close().get
     }
 
     "return only key-values that were not removed from remove range" in {
       val db = newDB()
 
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+      db match {
+        case db @ Map(core, from, reverseIteration) =>
+          (1 to 100) foreach {
+            i =>
+              db.put(i, i.toString).right.value
+          }
+
+          db.update(10, 90, value = "updated").right.value
+
+          db.remove(50, 99).right.value
+
+          val expectedUnchanged =
+            (1 to 9) map {
+              i =>
+                (i, i.toString)
+            }
+
+          val expectedUpdated =
+            (10 to 49) map {
+              i =>
+                (i, "updated")
+            }
+
+          val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
+
+          db.stream.materialize.runRandomIO.right.value shouldBe expected
+          db.headOption.right.value.value shouldBe ((1, "1"))
+          db.lastOption.right.value.value shouldBe ((100, "100"))
+
+        case MapSet(set) =>
+        //todo
       }
-
-      db.update(10, 90, value = "updated").right.value
-
-      db.remove(50, 99).right.value
-
-      val expectedUnchanged =
-        (1 to 9) map {
-          i =>
-            (i, i.toString)
-        }
-
-      val expectedUpdated =
-        (10 to 49) map {
-          i =>
-            (i, "updated")
-        }
-
-      val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
-
-      db.stream.materialize.runRandomIO.right.value shouldBe expected
-      db.headOption.right.value.value shouldBe ((1, "1"))
-      db.lastOption.right.value.value shouldBe ((100, "100"))
 
       db.close().get
     }
 
     "return empty for an empty database with update range" in {
       val db = newDB()
-      db.update(1, Int.MaxValue, value = "updated").right.value
+      db match {
+        case db @ Map(core, from, reverseIteration) =>
 
-      db.isEmpty.get shouldBe true
+          db.update(1, Int.MaxValue, value = "updated").right.value
 
-      db.stream.materialize.runRandomIO.right.value shouldBe empty
+          db.isEmpty.get shouldBe true
 
-      db.headOption.get shouldBe empty
-      db.lastOption.get shouldBe empty
+          db.stream.materialize.runRandomIO.right.value shouldBe empty
+
+          db.headOption.get shouldBe empty
+          db.lastOption.get shouldBe empty
+
+        case MapSet(set) =>
+        //todo
+      }
 
       db.close().get
     }
@@ -217,31 +224,37 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     "batch put, remove, update & range remove key-values" in {
       val db = newDB()
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).right.value
-      db.get(1).right.value shouldBe empty
+      db match {
+        case db @ Map(core, from, reverseIteration) =>
+          db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).right.value
+          db.get(1).right.value shouldBe empty
 
-      //      remove and then put should return Put's value
-      db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).right.value
-      db.get(1).right.value.value shouldBe "one"
+          //      remove and then put should return Put's value
+          db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).right.value
+          db.get(1).right.value.value shouldBe "one"
 
-      //remove range and put should return Put's value
-      db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).right.value
-      db.get(1).right.value.value shouldBe "one"
+          //remove range and put should return Put's value
+          db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).right.value
+          db.get(1).right.value.value shouldBe "one"
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).right.value
-      db.get(1).right.value shouldBe empty
-      db.isEmpty.get shouldBe true
-      //
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).right.value
-      db.get(1).right.value shouldBe empty
-      db.isEmpty.get shouldBe true
+          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).right.value
+          db.get(1).right.value shouldBe empty
+          db.isEmpty.get shouldBe true
+          //
+          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).right.value
+          db.get(1).right.value shouldBe empty
+          db.isEmpty.get shouldBe true
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).right.value
-      db.get(1).right.value.value shouldBe "updated"
-      db.stream.materialize.map(_.toMap).right.value.values should contain only "updated"
+          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).right.value
+          db.get(1).right.value.value shouldBe "updated"
+          db.stream.materialize.map(_.toMap).right.value.values should contain only "updated"
 
-      db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).right.value
-      db.stream.materialize.runRandomIO.right.value shouldBe empty
+          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).right.value
+          db.stream.materialize.runRandomIO.right.value shouldBe empty
+
+        case MapSet(set) =>
+        //TODO
+      }
 
       db.close().get
     }

@@ -59,7 +59,7 @@ object Map extends LazyLogging {
                              valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                              segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                              fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                             memoryCache: MemoryCache = DefaultConfigs.memoryCache,
+                             memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
                              levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
                              levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
                              levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
