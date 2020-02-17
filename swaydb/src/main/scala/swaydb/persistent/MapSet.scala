@@ -174,7 +174,7 @@ object MapSet extends LazyLogging {
       levelThreeThrottle = levelThreeThrottle,
       levelFourThrottle = levelFourThrottle,
       levelFiveThrottle = levelFiveThrottle,
-      levelSixThrottle = levelSixThrottle,
+      levelSixThrottle = levelSixThrottle
     ) map {
       set =>
         swaydb.MapSet[K, V, F, BAG](set)

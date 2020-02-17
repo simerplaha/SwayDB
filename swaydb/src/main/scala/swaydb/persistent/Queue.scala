@@ -110,7 +110,7 @@ object Queue extends LazyLogging {
       levelThreeThrottle = levelThreeThrottle,
       levelFourThrottle = levelFourThrottle,
       levelFiveThrottle = levelFiveThrottle,
-      levelSixThrottle = levelSixThrottle,
+      levelSixThrottle = levelSixThrottle
     ) map {
       map =>
         val first: Long =
