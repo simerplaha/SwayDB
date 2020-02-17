@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-case class Queue[A](private val map: MapSet[Long, A, Nothing, Bag.Less],
+case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
                     private val pushIds: AtomicLong,
                     private val popIds: AtomicLong) {
 

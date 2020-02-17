@@ -25,10 +25,10 @@ import swaydb.data.compaction.LevelMeter
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
- * A [[MapSet]] is simply a wrapper around [[Set]] to provide
+ * A [[SetMap]] is simply a wrapper around [[Set]] to provide
  * [[Map]] like API on [[Set]] storage format.
  */
-case class MapSet[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
   private final val nullValue: V = nullValue
 
@@ -167,19 +167,19 @@ case class MapSet[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
-  def from(key: K): MapSet[K, V, F, BAG] =
+  def from(key: K): SetMap[K, V, F, BAG] =
     copy(set = set.from((key, nullValue)))
 
-  def before(key: K): MapSet[K, V, F, BAG] =
+  def before(key: K): SetMap[K, V, F, BAG] =
     copy(set = set.before((key, nullValue)))
 
-  def fromOrBefore(key: K): MapSet[K, V, F, BAG] =
+  def fromOrBefore(key: K): SetMap[K, V, F, BAG] =
     copy(set = set.fromOrBefore((key, nullValue)))
 
-  def after(key: K): MapSet[K, V, F, BAG] =
+  def after(key: K): SetMap[K, V, F, BAG] =
     copy(set = set.after((key, nullValue)))
 
-  def fromOrAfter(key: K): MapSet[K, V, F, BAG] =
+  def fromOrAfter(key: K): SetMap[K, V, F, BAG] =
     copy(set = set.fromOrAfter((key, nullValue)))
 
   def headOption: BAG[Option[(K, V)]] =
@@ -203,13 +203,13 @@ case class MapSet[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
   def lastOption: BAG[Option[(K, V)]] =
     set.lastOption
 
-  def reverse: MapSet[K, V, F, BAG] =
+  def reverse: SetMap[K, V, F, BAG] =
     copy(set.reverse)
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.
    */
-  def toBag[X[_]](implicit bag: Bag[X]): MapSet[K, V, F, X] =
+  def toBag[X[_]](implicit bag: Bag[X]): SetMap[K, V, F, X] =
     copy(set = set.toBag[X])
 
   def close(): BAG[Unit] =
@@ -219,6 +219,6 @@ case class MapSet[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
     set.delete()
 
   override def toString(): String =
-    classOf[MapSet[_, _, _, BAG]].getClass.getSimpleName
+    classOf[SetMap[_, _, _, BAG]].getClass.getSimpleName
 
 }

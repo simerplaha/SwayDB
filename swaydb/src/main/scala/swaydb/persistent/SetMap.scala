@@ -36,7 +36,7 @@ import swaydb.{Error, IO}
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
-object MapSet extends LazyLogging {
+object SetMap extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
@@ -70,7 +70,7 @@ object MapSet extends LazyLogging {
                                                                                                          valueSerializer: Serializer[V],
                                                                                                          functionClassTag: ClassTag[F],
                                                                                                          bag: swaydb.Bag[BAG],
-                                                                                                         keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.MapSet[K, V, F, BAG]] = {
+                                                                                                         keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.SetMap[K, V, F, BAG]] = {
 
     implicit val serialiser: Serializer[(K, V)] =
       new Serializer[(K, V)] {
@@ -177,7 +177,7 @@ object MapSet extends LazyLogging {
       levelSixThrottle = levelSixThrottle
     ) map {
       set =>
-        swaydb.MapSet[K, V, F, BAG](set)
+        swaydb.SetMap[K, V, F, BAG](set)
     }
 
   }

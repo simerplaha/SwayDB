@@ -85,7 +85,7 @@ object Queue extends LazyLogging {
         }
       }
 
-    MapSet[Long, A, Nothing, Bag.Less](
+    SetMap[Long, A, Nothing, Bag.Less](
       dir = dir,
       mapSize = mapSize,
       mmapMaps = mmapMaps,

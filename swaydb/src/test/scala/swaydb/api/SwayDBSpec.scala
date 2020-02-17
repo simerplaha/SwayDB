@@ -32,9 +32,9 @@ class SwayDBSpec0 extends SwayDBSpec {
   override val keyValueCount: Int = 100
 }
 
-class SwayDB_MapSet_Spec0 extends SwayDBSpec {
-  override def newDB(): MapSet[Int, String, Nothing, IO.ApiIO] =
-    swaydb.persistent.MapSet[Int, String, Nothing, IO.ApiIO](randomDir).right.value
+class SwayDB_SetMap_Spec0 extends SwayDBSpec {
+  override def newDB(): SetMap[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.SetMap[Int, String, Nothing, IO.ApiIO](randomDir).right.value
 
   override val keyValueCount: Int = 100
 }
@@ -72,7 +72,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     "remove all but first and last" in {
       //      val db = newDB()
 
-      val db = swaydb.persistent.MapSet[Int, Int, Nothing, IO.ApiIO](randomDir).right.value
+      val db = swaydb.persistent.SetMap[Int, Int, Nothing, IO.ApiIO](randomDir).right.value
       (1 to 10) foreach {
         i =>
           db.put(i, i).right.value
@@ -116,7 +116,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
           db.close().get
 
-        case MapSet(set) =>
+        case SetMap(set) =>
         //todo
       }
 
@@ -142,7 +142,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
           db.close().get
 
-        case MapSet(set) =>
+        case SetMap(set) =>
         //todo
       }
     }
@@ -179,7 +179,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.headOption.right.value.value shouldBe ((1, "1"))
           db.lastOption.right.value.value shouldBe ((100, "100"))
 
-        case MapSet(set) =>
+        case SetMap(set) =>
         //todo
       }
 
@@ -200,7 +200,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.headOption.get shouldBe empty
           db.lastOption.get shouldBe empty
 
-        case MapSet(set) =>
+        case SetMap(set) =>
         //todo
       }
 
@@ -252,7 +252,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).right.value
           db.stream.materialize.runRandomIO.right.value shouldBe empty
 
-        case MapSet(set) =>
+        case SetMap(set) =>
         //TODO
       }
 
