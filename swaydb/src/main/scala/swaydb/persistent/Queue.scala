@@ -77,7 +77,7 @@ object Queue extends LazyLogging {
     implicit val keyOrder: Right[Nothing, KeyOrder[Long]] =
       Right {
         new KeyOrder[Long] {
-          override def comparableKey(data: Long): Long =
+          private[swaydb] override def comparableKey(data: Long): Long =
             data
 
           override def compare(x: Long, y: Long): Int =

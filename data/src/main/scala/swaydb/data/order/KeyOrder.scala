@@ -44,7 +44,7 @@ object KeyOrder {
         a.size - b.size
       }
 
-      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
+      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 
@@ -56,7 +56,7 @@ object KeyOrder {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         default.compare(a, b) * -1
 
-      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
+      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 
@@ -65,7 +65,7 @@ object KeyOrder {
       override def compare(x: K, y: K): Int =
         ordering.compare(x, y)
 
-      override def comparableKey(data: K): K =
+      private[swaydb] override def comparableKey(data: K): K =
         data
     }
 
@@ -74,7 +74,7 @@ object KeyOrder {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readInt() compare y.readInt()
 
-      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
+      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 
@@ -83,7 +83,7 @@ object KeyOrder {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readLong() compare y.readLong()
 
-      override def comparableKey(data: Slice[Byte]): Slice[Byte] =
+      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
         data
     }
 }
@@ -106,5 +106,5 @@ trait KeyOrder[K] extends Ordering[K] {
    * This is called partial ordering and full reads on partial keys so you
    * can store extra data with key without having to read the value.
    */
-  def comparableKey(data: K): K
+  private[swaydb] def comparableKey(data: K): K = data
 }

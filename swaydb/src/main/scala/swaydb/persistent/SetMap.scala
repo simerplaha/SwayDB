@@ -116,7 +116,7 @@ object SetMap extends LazyLogging {
               untypedOrdering.compare(leftKey, rightKey)
             }
 
-            override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
+            private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
               val reader = data.createReader()
               val key = reader.read(reader.readUnsignedInt())
               untypedOrdering.comparableKey(key)
@@ -138,7 +138,7 @@ object SetMap extends LazyLogging {
               typedOrdering.compare(leftTypedKey, rightTypedKey)
             }
 
-            override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
+            private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
               val reader = data.createReader()
               val (unsignedInt, byteSize) = reader.readUnsignedIntWithByteSize()
               reader.moveTo(0).read(byteSize + unsignedInt)

@@ -431,17 +431,8 @@ abstract class MapTest extends TestBase implements JavaEventually {
       MapConfig.withoutFunctions(intSerializer(), intSerializer());
 
     KeyComparator<Integer> comparator =
-      new KeyComparator<Integer>() {
-        @Override
-        public int compare(Integer left, Integer right) {
-          return left.compareTo(right) * -1;
-        }
-
-        @Override
-        public Integer comparableKey(Integer data) {
-          return data;
-        }
-      };
+      (left, right) ->
+        left.compareTo(right) * -1;
 
     config.setComparator(IO.rightNeverException(comparator));
 
