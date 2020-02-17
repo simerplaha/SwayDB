@@ -35,15 +35,6 @@ class SwayDBReverse_Persistent_Spec extends SwayDBReverseSpec {
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
 }
 
-//class SwayDBReverse_Persistent_Zero_Spec extends SwayDBReverseSpec {
-//  implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse
-//
-//  val keyValueCount: Int = 10000
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.persistent.zero.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
-//}
-
 class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
   implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse
 
@@ -52,15 +43,6 @@ class SwayDBReverse_Memory_Spec extends SwayDBReverseSpec {
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
-
-//class SwayDBReverse_Memory_Zero_Spec extends SwayDBReverseSpec {
-//  implicit val order: KeyOrder[Slice[Byte]] = KeyOrder.reverse
-//
-//  val keyValueCount: Int = 100000
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
-//}
 
 sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
 
