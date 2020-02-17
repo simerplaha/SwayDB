@@ -23,7 +23,7 @@ import java.util
 import java.util.concurrent.ConcurrentSkipListMap
 
 import swaydb.Bagged
-import swaydb.core.util.Series
+import swaydb.core.util.series.Series
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 
@@ -173,7 +173,7 @@ private[core] object SkipList {
                                                                                      nullValue: OptionValue,
                                                                                      maxLevelItems: Int)(implicit ordering: KeyOrder[Key]): SkipListSeries[OptionKey, OptionValue, Key, Value] =
     new SkipListSeries[OptionKey, OptionValue, Key, Value](
-      series = Series.navigableVolatile(10000),
+      series = Series.navigableVolatile(maxLevelItems),
       nullKey = nullKey,
       nullValue = nullValue
     )

@@ -19,11 +19,11 @@
 
 package swaydb.core.util.skiplist
 
-import swaydb.core.util.Series.NavigableSeries
+import swaydb.core.util.series.SeriesNavigable
 
-private[core] class SkipListSeries[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var series: NavigableSeries[Key, Value],
+private[core] class SkipListSeries[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue](private var series: SeriesNavigable[Key, Value],
                                                                                                    val nullKey: OptionKey,
-                                                                                                   val nullValue: OptionValue) extends SkipListBase[OptionKey, OptionValue, Key, Value, NavigableSeries[Key, Value]](series, series.isVolatile) {
+                                                                                                   val nullValue: OptionValue) extends SkipListBase[OptionKey, OptionValue, Key, Value, SeriesNavigable[Key, Value]](series, series.isVolatile) {
   /**
    * FIXME - [[SkipListBase]] mutates [[skipList]] when batches are submitted. This [[skipper]] is not require after
    * the class is instantiated and should be nulled to save memory. But instead of null there needs to be a better way to of delegating skipList logic
@@ -31,7 +31,7 @@ private[core] class SkipListSeries[OptionKey, OptionValue, Key <: OptionKey, Val
    */
   series = null
 
-  override def cloneInstance(skipList: NavigableSeries[Key, Value]): SkipListBase[OptionKey, OptionValue, Key, Value, NavigableSeries[Key, Value]] =
+  override def cloneInstance(skipList: SeriesNavigable[Key, Value]): SkipListBase[OptionKey, OptionValue, Key, Value, SeriesNavigable[Key, Value]] =
     new SkipListSeries(
       series = skipList.clone(),
       nullKey = nullKey,

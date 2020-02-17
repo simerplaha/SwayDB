@@ -21,6 +21,8 @@ package swaydb.core.util
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import swaydb.core.util.series.Series
+
 import scala.annotation.tailrec
 import scala.util.Random
 
