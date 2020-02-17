@@ -39,32 +39,31 @@ object Queue extends LazyLogging {
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[A, BAG[_]](dir: Path,
-                       mapSize: Int = 4.mb,
-                       mmapMaps: Boolean = true,
-                       recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                       mmapAppendix: Boolean = true,
-                       appendixFlushCheckpointSize: Int = 2.mb,
-                       otherDirs: Seq[Dir] = Seq.empty,
-                       cacheKeyValueIds: Boolean = true,
-                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                       threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                       sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                       randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
-                       binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                       mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
-                       valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
-                       segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                       memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
-                       levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                       levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
-                       levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
-                       levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
-                       levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
-                       levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
-                       levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
-                                                                                                   bag: swaydb.Bag[BAG]): IO[Error.Boot, swaydb.Queue[A, BAG]] = {
+  def apply[A](dir: Path,
+               mapSize: Int = 4.mb,
+               mmapMaps: Boolean = true,
+               recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+               mmapAppendix: Boolean = true,
+               appendixFlushCheckpointSize: Int = 2.mb,
+               otherDirs: Seq[Dir] = Seq.empty,
+               cacheKeyValueIds: Boolean = true,
+               acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+               threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+               sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+               randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+               binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+               mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+               valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
+               segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
+               fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+               memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+               levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+               levelOneThrottle: LevelMeter => Throttle = DefaultConfigs.levelOneThrottle,
+               levelTwoThrottle: LevelMeter => Throttle = DefaultConfigs.levelTwoThrottle,
+               levelThreeThrottle: LevelMeter => Throttle = DefaultConfigs.levelThreeThrottle,
+               levelFourThrottle: LevelMeter => Throttle = DefaultConfigs.levelFourThrottle,
+               levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
+               levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A]): IO[Error.Boot, swaydb.Queue[A]] = {
 
     implicit val longSerializer: Serializer[Long] =
       new Serializer[Long] {
@@ -86,7 +85,7 @@ object Queue extends LazyLogging {
         }
       }
 
-    MapSet[Long, A, Nothing, BAG](
+    MapSet[Long, A, Nothing, Bag.Less](
       dir = dir,
       mapSize = mapSize,
       mmapMaps = mmapMaps,
@@ -115,7 +114,7 @@ object Queue extends LazyLogging {
     ) map {
       map =>
         val first: Long =
-          map.toBag[Bag.Less].headOption match {
+          map.headOption match {
             case Some((first, _)) =>
               first
 
@@ -124,7 +123,7 @@ object Queue extends LazyLogging {
           }
 
         val last: Long =
-          map.toBag[Bag.Less].lastOption match {
+          map.lastOption match {
             case Some((used, _)) =>
               used + 1
 

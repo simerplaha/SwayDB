@@ -21,13 +21,72 @@ package swaydb
 
 import java.util.concurrent.atomic.AtomicLong
 
-case class Queue[A, BAG[_]](private val map: MapSet[Long, A, Nothing, BAG],
-                            private val pushIds: AtomicLong,
-                            private val popIds: AtomicLong)(implicit bag: Bag[BAG]) {
+import scala.annotation.tailrec
+import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-  def push(elem: A): BAG[OK] =
+case class Queue[A](private val map: MapSet[Long, A, Nothing, Bag.Less],
+                    private val pushIds: AtomicLong,
+                    private val popIds: AtomicLong) {
+
+  def push(elem: A): OK =
     map.put(pushIds.getAndIncrement(), elem)
 
-  def pop(): BAG[Option[A]] =
-    ??? //todo
+  def push(elem: A, expireAfter: FiniteDuration): OK =
+    map.put(pushIds.getAndIncrement(), elem, expireAfter.fromNow)
+
+  def push(elem: A, expireAt: Deadline): OK =
+    map.put(pushIds.getAndIncrement(), elem, expireAt)
+
+  def push(keyValues: A*): OK =
+    push(keyValues)
+
+  def push(keyValues: Stream[A]): OK =
+    map.put {
+      keyValues.map {
+        item =>
+          (pushIds.getAndIncrement(), item)
+      }
+    }
+
+  def push(keyValues: Iterable[A]): OK =
+    push(keyValues.iterator)
+
+  def push(keyValues: Iterator[A]): OK =
+    map.put {
+      keyValues.map {
+        item =>
+          (pushIds.getAndIncrement(), item)
+      }
+    }
+
+  final def popOption(): Option[A] =
+    Option(popOrNull(null.asInstanceOf[A]))
+
+  @tailrec
+  final def popOrNull[N <: A](nullValue: N): A =
+    if (popIds.get() < pushIds.get()) {
+      val jobId = popIds.getAndIncrement()
+      map.getKeyValue(jobId) match {
+        case Some((key, value)) =>
+          map.remove(key)
+          value
+
+        case None =>
+          map.headOption match {
+            case Some((key, _)) =>
+              popIds.compareAndSet(jobId, key)
+              popOrNull(nullValue)
+
+            case None =>
+              nullValue
+          }
+      }
+    } else {
+      nullValue
+    }
+
+  def stream: Stream[A] =
+    map
+      .stream
+      .map(_._2)
 }

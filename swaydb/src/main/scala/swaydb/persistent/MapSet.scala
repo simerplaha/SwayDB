@@ -77,8 +77,8 @@ object MapSet extends LazyLogging {
         override def write(data: (K, V)): Slice[Byte] = {
           val keyBytes = keySerializer.write(data._1)
 
-          val valueBytes =
           //value can be null when
+          val valueBytes =
             if (data._2 == null)
               Slice.emptyBytes
             else
@@ -94,6 +94,7 @@ object MapSet extends LazyLogging {
 
         override def read(data: Slice[Byte]): (K, V) = {
           val reader = data.createReader()
+
           val keyBytes = reader.read(reader.readUnsignedInt())
           val valuesBytes = reader.read(reader.readUnsignedInt())
 
@@ -139,10 +140,8 @@ object MapSet extends LazyLogging {
 
             override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
               val reader = data.createReader()
-              val untypedKey = reader.read(reader.readUnsignedInt())
-              val key = keySerializer.read(untypedKey)
-              val comparableKey = typedOrdering.comparableKey(key)
-              keySerializer.write(comparableKey)
+              val (unsignedInt, byteSize) = reader.readUnsignedIntWithByteSize()
+              reader.moveTo(0).read(byteSize + unsignedInt)
             }
           }
       }
