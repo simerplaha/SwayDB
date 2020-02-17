@@ -21,23 +21,27 @@ package swaydb.core.util.series
 
 import java.util.concurrent.atomic.AtomicReferenceArray
 
-import scala.reflect.ClassTag
+class SeriesAtomic[T](array: AtomicReferenceArray[T]) extends Series[T] {
+  override def getOrNull(index: Int): T =
+    array.get(index)
 
-private[swaydb] trait Series[T] extends Iterable[T] {
-  def getOrNull(index: Int): T
-  def set(index: Int, item: T): Unit
-  def length: Int
-  def isConcurrent: Boolean
-}
+  override def set(index: Int, item: T): Unit =
+    array.set(index, item)
 
-private[swaydb] object Series {
+  override def length: Int =
+    array.length()
 
-  def volatile[T >: Null](limit: Int): SeriesVolatile[T] =
-    new SeriesVolatile[T](Array.fill[Item[T]](limit)(new Item[T](null)))
+  override def iterator: Iterator[T] =
+    new Iterator[T] {
+      val innerIterator = (0 until array.length()).iterator
 
-  def atomic[T](limit: Int): SeriesAtomic[T] =
-    new SeriesAtomic[T](new AtomicReferenceArray[T](limit))
+      override def hasNext: Boolean =
+        innerIterator.hasNext
 
-  def basic[T: ClassTag](limit: Int): SeriesBasic[T] =
-    new SeriesBasic[T](new Array[T](limit))
+      override def next(): T =
+        array.get(innerIterator.next())
+    }
+
+  override def isConcurrent: Boolean =
+    true
 }

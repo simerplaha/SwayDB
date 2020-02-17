@@ -40,6 +40,6 @@ class SeriesVolatile[T >: Null](array: Array[Item[T]]) extends Series[T] {
       .iterator
       .map(_.value)
 
-  override def isVolatile: Boolean =
+  override def isConcurrent: Boolean =
     true
 }

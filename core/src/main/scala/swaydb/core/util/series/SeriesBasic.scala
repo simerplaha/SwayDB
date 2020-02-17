@@ -32,6 +32,6 @@ class SeriesBasic[T](array: Array[T]) extends Series[T] {
   override def iterator: Iterator[T] =
     array.iterator
 
-  override def isVolatile: Boolean =
+  override def isConcurrent: Boolean =
     false
 }
