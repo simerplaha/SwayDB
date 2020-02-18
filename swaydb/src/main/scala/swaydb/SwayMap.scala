@@ -22,6 +22,7 @@ package swaydb
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
+import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 trait SwayMap[K, V, F, BAG[_]] {
@@ -67,18 +68,18 @@ trait SwayMap[K, V, F, BAG[_]] {
   def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
 
   def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
-//
-//  def update(key: K, value: V): BAG[OK]
-//
-//  def update(from: K, to: K, value: V): BAG[OK]
-//
-//  def update(keyValues: (K, V)*): BAG[OK]
-//
-//  def update(keyValues: Stream[(K, V)]): BAG[OK]
-//
-//  def update(keyValues: Iterable[(K, V)]): BAG[OK]
-//
-//  def update(keyValues: Iterator[(K, V)]): BAG[OK]
+  //
+  //  def update(key: K, value: V): BAG[OK]
+  //
+  //  def update(from: K, to: K, value: V): BAG[OK]
+  //
+  //  def update(keyValues: (K, V)*): BAG[OK]
+  //
+  //  def update(keyValues: Stream[(K, V)]): BAG[OK]
+  //
+  //  def update(keyValues: Iterable[(K, V)]): BAG[OK]
+  //
+  //  def update(keyValues: Iterator[(K, V)]): BAG[OK]
 
   def clear(): BAG[OK]
 
@@ -108,15 +109,17 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   //  def keys: Set[K, F, BAG]
 
+  private[swaydb] def keySet: mutable.Set[K]
+
   def levelZeroMeter: LevelZeroMeter
 
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 
   def sizeOfSegments: Long
 
-//  def keySize(key: K): Int
+  //  def keySize(key: K): Int
 
-//  def valueSize(value: V): Int
+  //  def valueSize(value: V): Int
 
   def expiration(key: K): BAG[Option[Deadline]]
 
@@ -150,7 +153,7 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def toBag[X[_]](implicit bag: Bag[X]): SwayMap[K, V, F, X]
 
-//  def asScala: scala.collection.mutable.Map[K, V]
+  def asScala: scala.collection.mutable.Map[K, V]
 
   def close(): BAG[Unit]
 

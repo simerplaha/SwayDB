@@ -28,6 +28,7 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.data.util.TupleOrNone
 import swaydb.serializers.{Serializer, _}
 
+import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
@@ -215,6 +216,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
       from = from,
       reverseIteration = reverseIteration
     )(keySerializer, bag)
+
+  private[swaydb] def keySet: mutable.Set[K] =
+    keys.asScala
 
   def levelZeroMeter: LevelZeroMeter =
     core.levelZeroMeter

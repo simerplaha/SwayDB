@@ -26,6 +26,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
+import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object SetMap {
@@ -289,6 +290,12 @@ case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
 
   def reverse: SetMap[K, V, F, BAG] =
     copy(set.reverse)
+
+  override def asScala: mutable.Map[K, V] =
+    ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
+
+  override private[swaydb] def keySet: mutable.Set[K] =
+    ScalaSet[K, V, F](toBag[Bag.Less](Bag.less), nullValue)
 
   /**
    * Returns an Async API of type O where the [[Bag]] is known.

@@ -48,3 +48,31 @@ protected abstract class ScalaSetBase[A, F](db: Set[A, F, Bag.Less]) extends mut
     db.clear()
 
 }
+
+protected abstract class ScalaSetBaseFromMap[A, F](db: SwayMap[A, _, F, Bag.Less]) extends mutable.Set[A] {
+
+  override def contains(elem: A): Boolean =
+    db.contains(elem)
+
+  override def iterator: Iterator[A] =
+    db.iterator(Bag.less).map(_._1)
+
+  override def isEmpty: Boolean =
+    db.isEmpty
+
+  override def headOption: Option[A] =
+    db.headOption.map(_._1)
+
+  override def lastOption: Option[A] =
+    db.lastOption.map(_._1)
+
+  override def last: A =
+    lastOption.get
+
+  override def head: A =
+    headOption.get
+
+  override def clear(): Unit =
+    db.clear()
+
+}

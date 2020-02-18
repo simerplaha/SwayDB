@@ -21,7 +21,7 @@ package swaydb
 
 import scala.collection.mutable
 
-protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, Bag.Less]) extends mutable.Map[K, V] {
+protected abstract class ScalaMapBase[K, V, F](db: SwayMap[K, V, F, Bag.Less]) extends mutable.Map[K, V] {
 
   override def get(key: K): Option[V] =
     db.get(key)
@@ -38,8 +38,8 @@ protected abstract class ScalaMapBase[K, V, F](db: Map[K, V, F, Bag.Less]) exten
   override def lastOption: Option[(K, V)] =
     db.lastOption
 
-  override def keySet: collection.Set[K] =
-    db.keys.asScala
+  override def keySet: mutable.Set[K] =
+    db.keySet
 
   override def contains(key: K): Boolean =
     db.contains(key)
