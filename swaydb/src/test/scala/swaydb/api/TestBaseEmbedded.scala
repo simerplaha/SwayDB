@@ -19,11 +19,11 @@
 
 package swaydb.api
 
-
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.RunThis._
-import swaydb.core.TestBase
+import swaydb.core.{TestBase, map}
+import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
@@ -33,7 +33,7 @@ trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
-  def doAssertEmpty[V](db: Map[Int, V, Nothing, IO.ApiIO]) =
+  def doAssertEmpty[V](db: SwayMap[Int, V, Nothing, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).right.value match {
@@ -50,7 +50,7 @@ trait TestBaseEmbedded extends TestBase {
   //recursively go through all levels and assert they do no have any Segments.
   //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
 
-  def assertLevelsAreEmpty(db: Map[Int, String, Nothing, IO.ApiIO], submitUpdates: Boolean) = {
+  def assertLevelsAreEmpty(db: SwayMap[Int, String, Nothing, IO.ApiIO], submitUpdates: Boolean) = {
     println("Checking levels are empty.")
 
     @tailrec
@@ -73,7 +73,14 @@ trait TestBaseEmbedded extends TestBase {
               println(s"Level $levelNumber. Submitting updated to trigger remove.")
               (1 to 500000) foreach { //submit multiple update range key-values so that a map gets submitted for compaction and to trigger merge on copied Segments in last Level.
                 i =>
-                  db.update(1, 1000000, value = "just triggering update to assert remove").right.value
+                  db match {
+                    case map @ Map(core, from, reverseIteration) =>
+                      map.update(1, 1000000, value = "just triggering update to assert remove").right.value
+
+                    case SetMap(set) =>
+                      set.core.update(fromKey = Slice.writeInt(1), to = Slice.writeInt(1000000), value = Slice.Null).right.value
+                  }
+
                   if (i == 100000) sleep(2.seconds)
               }
             }

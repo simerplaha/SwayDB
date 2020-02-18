@@ -162,42 +162,11 @@ case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
   def expire(key: K, at: Deadline): BAG[OK] =
     set.expire((key, nullValue), at)
 
-  def expire(from: K, to: K, after: FiniteDuration): BAG[OK] =
-    set.expire((from, nullValue), (to, nullValue), after.fromNow)
-
-  def expire(from: K, to: K, at: Deadline): BAG[OK] =
-    set.expire((from, nullValue), (to, nullValue), at)
-
-  def expire(keys: (K, Deadline)*): BAG[OK] =
-    expire(keys)
-
-  def expire(keys: Stream[(K, Deadline)]): BAG[OK] =
-    set.expire {
-      keys.map {
-        case (key, deadline) =>
-          ((key, nullValue), deadline)
-      }
-    }
-
-  def expire(keys: Iterable[(K, Deadline)]): BAG[OK] =
-    expire(keys.iterator)
-
-  def expire(keys: Iterator[(K, Deadline)]): BAG[OK] =
-    set.expire {
-      keys.map {
-        case (key, deadline) =>
-          ((key, nullValue), deadline)
-      }
-    }
-
   def clear(): BAG[OK] =
     set.clear()
 
   def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
     set.registerFunction(function)
-
-  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    set.applyFunction(from = (from, nullValue), to = (to, nullValue), function = function)
 
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
     set.applyFunction((key, nullValue), function)

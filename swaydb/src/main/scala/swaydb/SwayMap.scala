@@ -57,17 +57,17 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def expire(key: K, at: Deadline): BAG[OK]
 
-  def expire(from: K, to: K, after: FiniteDuration): BAG[OK]
+  //  def expire(from: K, to: K, after: FiniteDuration): BAG[OK]
+  //
+  //  def expire(from: K, to: K, at: Deadline): BAG[OK]
 
-  def expire(from: K, to: K, at: Deadline): BAG[OK]
-
-  def expire(keys: (K, Deadline)*): BAG[OK]
-
-  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
-
-  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
-
-  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
+//  def expire(keys: (K, Deadline)*): BAG[OK]
+//
+//  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
+//
+//  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
+//
+//  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
   //
   //  def update(key: K, value: V): BAG[OK]
   //
