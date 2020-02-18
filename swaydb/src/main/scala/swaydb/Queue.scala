@@ -28,6 +28,8 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
                     private val pushIds: AtomicLong,
                     private val popIds: AtomicLong) {
 
+  private val nullA = null.asInstanceOf[A]
+
   def push(elem: A): OK =
     map.put(pushIds.getAndIncrement(), elem)
 
@@ -59,8 +61,8 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
       }
     }
 
-  final def popOption(): Option[A] =
-    Option(popOrNull(null.asInstanceOf[A]))
+  final def pop(): Option[A] =
+    Option(popOrNull(nullA))
 
   @tailrec
   final def popOrNull[N <: A](nullValue: N): A =

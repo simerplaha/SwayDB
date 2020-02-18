@@ -53,7 +53,7 @@ class QueueSpec extends TestBase {
       Benchmark(s"Popping: $maxPushes") {
         popRange.par foreach {
           _ =>
-            queue.popOption() foreach processedQueue.add
+            queue.pop() foreach processedQueue.add
         }
       }
 
