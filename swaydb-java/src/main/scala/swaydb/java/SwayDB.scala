@@ -25,6 +25,8 @@ import swaydb.java.data.slice.ByteSlice
 object SwayDB {
 
   def defaultComparator: KeyComparator[ByteSlice] =
-    (t: ByteSlice, t1: ByteSlice) =>
-      default.compare(t.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]], t1.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]])
+    new KeyComparator[ByteSlice] {
+      override def compare(t: ByteSlice, t1: ByteSlice): Int =
+        default.compare(t.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]], t1.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]])
+    }
 }
