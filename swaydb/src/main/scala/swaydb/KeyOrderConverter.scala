@@ -38,8 +38,8 @@ protected object KeyOrderConverter {
             typedKeyOrder.compare(typedKey1, typedKey2)
           }
 
-          private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
-            val typedData = serializer.read(data)
+          private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
+            val typedData = serializer.read(key)
             val comparableKeyTyped = typedKeyOrder.comparableKey(typedData)
             serializer.write(comparableKeyTyped)
           }

@@ -73,10 +73,10 @@ object SetMap {
             untypedOrdering.compare(leftKey, rightKey)
           }
 
-          private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
-            val reader = data.createReader()
-            val key = reader.read(reader.readUnsignedInt())
-            untypedOrdering.comparableKey(key)
+          private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
+            val reader = key.createReader()
+            val comparableKey = reader.read(reader.readUnsignedInt())
+            untypedOrdering.comparableKey(comparableKey)
           }
         }
 
@@ -95,11 +95,13 @@ object SetMap {
             typedOrdering.compare(leftTypedKey, rightTypedKey)
           }
 
-          private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
-            val reader = data.createReader()
+          private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
+            val reader = key.createReader()
             val untypedKey = reader.read(reader.readUnsignedInt())
-            val key = keySerializer.read(untypedKey)
-            val comparableKey = typedOrdering.comparableKey(key)
+            //TODO - this is be unnecessarily computed if the is not user defined
+            //       comparableKey.
+            val typedKey = keySerializer.read(untypedKey)
+            val comparableKey = typedOrdering.comparableKey(typedKey)
             keySerializer.write(comparableKey)
           }
         }

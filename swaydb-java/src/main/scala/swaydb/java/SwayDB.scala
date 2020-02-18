@@ -29,5 +29,4 @@ object SwayDB {
       override def compare(t: ByteSlice, t1: ByteSlice): Int =
         default.compare(t.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]], t1.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]])
     }
-
 }

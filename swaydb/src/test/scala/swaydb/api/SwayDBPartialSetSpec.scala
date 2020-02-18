@@ -45,8 +45,8 @@ object SwayDBPartialSetSpec {
         override def compare(x: (Int, Option[String]), y: (Int, Option[String])): Int =
           x._1 compare y._1
 
-        private[swaydb] override def comparableKey(data: (Int, Option[String])): (Int, Option[String]) =
-          (data._1, None)
+        private[swaydb] override def comparableKey(key: (Int, Option[String])): (Int, Option[String]) =
+          (key._1, None)
       }
     )
 }

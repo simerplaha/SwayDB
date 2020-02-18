@@ -44,8 +44,8 @@ object KeyOrder {
         a.size - b.size
       }
 
-      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
-        data
+      private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] =
+        key
     }
 
   /**
@@ -56,8 +56,8 @@ object KeyOrder {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         default.compare(a, b) * -1
 
-      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
-        data
+      private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] =
+        key
     }
 
   def apply[K](ordering: Ordering[K]): KeyOrder[K] =
@@ -65,8 +65,8 @@ object KeyOrder {
       override def compare(x: K, y: K): Int =
         ordering.compare(x, y)
 
-      private[swaydb] override def comparableKey(data: K): K =
-        data
+      private[swaydb] override def comparableKey(key: K): K =
+        key
     }
 
   val integer: KeyOrder[Slice[Byte]] =
@@ -74,8 +74,8 @@ object KeyOrder {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readInt() compare y.readInt()
 
-      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
-        data
+      private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] =
+        key
     }
 
   val long: KeyOrder[Slice[Byte]] =
@@ -83,8 +83,8 @@ object KeyOrder {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readLong() compare y.readLong()
 
-      private[swaydb] override def comparableKey(data: Slice[Byte]): Slice[Byte] =
-        data
+      private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] =
+        key
     }
 }
 
@@ -106,5 +106,5 @@ trait KeyOrder[K] extends Ordering[K] {
    * This is called partial ordering and full reads on partial keys so you
    * can store extra data with key without having to read the value.
    */
-  private[swaydb] def comparableKey(data: K): K = data
+  private[swaydb] def comparableKey(key: K): K = key
 }
