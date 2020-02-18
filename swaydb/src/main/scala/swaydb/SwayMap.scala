@@ -43,7 +43,7 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def remove(key: K): BAG[OK]
 
-//  def remove(from: K, to: K): BAG[OK]
+  //  def remove(from: K, to: K): BAG[OK]
 
   def remove(keys: K*): BAG[OK]
 
@@ -61,13 +61,13 @@ trait SwayMap[K, V, F, BAG[_]] {
   //
   //  def expire(from: K, to: K, at: Deadline): BAG[OK]
 
-//  def expire(keys: (K, Deadline)*): BAG[OK]
-//
-//  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
-//
-//  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
-//
-//  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
+  //  def expire(keys: (K, Deadline)*): BAG[OK]
+  //
+  //  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
+  //
+  //  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
+  //
+  //  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
   //
   //  def update(key: K, value: V): BAG[OK]
   //
@@ -136,6 +136,8 @@ trait SwayMap[K, V, F, BAG[_]] {
   def fromOrAfter(key: K): SwayMap[K, V, F, BAG]
 
   def headOption: BAG[Option[(K, V)]]
+
+  def headOrNull: BAG[(K, V)]
 
   def stream: Stream[(K, V)]
 

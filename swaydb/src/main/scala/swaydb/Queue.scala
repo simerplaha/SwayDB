@@ -61,30 +61,33 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
       }
     }
 
-  final def pop(): Option[A] =
-    Option(popOrNull(nullA))
+  def pop(): Option[A] =
+    Option(popOrElse(nullA))
+
+  def popOrNull(): A =
+    popOrElse(nullA)
 
   @tailrec
-  final def popOrNull[N <: A](nullValue: N): A =
+  final def popOrElse[B <: A](other: => B): A =
     if (popIds.get() < pushIds.get()) {
       val jobId = popIds.getAndIncrement()
+      //todo - handle failure if getKeyValue fails.
       map.getKeyValue(jobId) match {
         case Some((key, value)) =>
           map.remove(key)
           value
 
         case None =>
-          map.headOption match {
-            case Some((key, _)) =>
-              popIds.compareAndSet(jobId, key)
-              popOrNull(nullValue)
-
-            case None =>
-              nullValue
+          val headOrNull = map.headOrNull
+          if (headOrNull == null) {
+            other
+          } else {
+            popIds.compareAndSet(jobId, headOrNull._1)
+            popOrElse(other)
           }
       }
     } else {
-      nullValue
+      other
     }
 
   def stream: Stream[A] =

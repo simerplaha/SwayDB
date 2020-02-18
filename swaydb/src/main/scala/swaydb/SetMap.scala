@@ -241,6 +241,9 @@ case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
   def headOption: BAG[Option[(K, V)]] =
     set.headOption
 
+  def headOrNull: BAG[(K, V)] =
+    set.headOrNull
+
   def stream: Stream[(K, V)] =
     set.stream
 

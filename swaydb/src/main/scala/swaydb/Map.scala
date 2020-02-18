@@ -259,6 +259,9 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def headOption: BAG[Option[(K, V)]] =
     bag.transform(headOrNull(readState = core.readStates.get()))(Option(_))
 
+  def headOrNull: BAG[(K, V)] =
+    headOrNull(readState = core.readStates.get())
+
   private def headOrNull[BAG[_]](readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[(K, V)] =
     bag.map(headOptionTupleOrNull(readState)) {
       case TupleOrNone.None =>

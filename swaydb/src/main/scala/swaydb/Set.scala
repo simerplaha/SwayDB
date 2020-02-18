@@ -191,6 +191,9 @@ case class Set[A, F, BAG[_]](private[swaydb] val core: Core[BAG],
   def headOption: BAG[Option[A]] =
     headOption(core.readStates.get())
 
+  def headOrNull: BAG[A] =
+    headOrNull(core.readStates.get())
+
   protected def headOption(readState: ThreadReadState): BAG[Option[A]] =
     bag.transform(headOrNull(readState))(Option(_))
 
