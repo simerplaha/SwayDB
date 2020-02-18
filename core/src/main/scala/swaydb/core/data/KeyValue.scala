@@ -163,6 +163,7 @@ private[core] object KeyValue {
   object Put {
     final case object Null extends PutOption {
       override def getPut: KeyValue.Put = throw new Exception("KeyValue.Put is of type Null")
+
       override def isNoneS: Boolean = true
     }
   }
@@ -780,7 +781,9 @@ private[core] object Persistent {
 
   final case object Null extends PersistentOption with KeyValue.Null {
     override val isNoneS: Boolean = true
+
     override def getS: Persistent = throw new Exception("get on Persistent key-value that is none")
+
     override def getUnsafe: KeyValue = getS
   }
 
@@ -819,8 +822,10 @@ private[core] object Persistent {
     def isPartial: Boolean = true
     def get: Partial = this
 
+    //NOTE: the input key should be full Key and NOT comparable key.
     def matchMutateForBinarySearch(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Persistent.Partial
 
+    //NOTE: the input key should be full Key and NOT comparable key.
     def matchForHashIndex(key: Slice[Byte])(implicit keyOrder: KeyOrder[Slice[Byte]]): Boolean
   }
 
@@ -828,6 +833,7 @@ private[core] object Persistent {
 
     final case object Null extends PartialOption {
       override val isNoneC: Boolean = true
+
       override def getC: Partial = throw new Exception("Partial is of type Null")
     }
 

@@ -20,7 +20,7 @@
 package swaydb
 
 import java.nio.file.Path
-import java.util.concurrent.{ExecutorService, Executors}
+import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.configs.level.SingleThreadFactory
@@ -47,6 +47,7 @@ import scala.reflect.ClassTag
 object SwayDB extends LazyLogging {
 
   private implicit def memoryFunctionStore: FunctionStore = FunctionStore.memory()
+
   private implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   /**
