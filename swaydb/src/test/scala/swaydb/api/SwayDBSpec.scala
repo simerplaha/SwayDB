@@ -70,27 +70,21 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
   "SwayDB" should {
     "remove all but first and last" in {
-      //      val db = newDB()
+      val db = newDB()
 
-      val db = swaydb.persistent.SetMap[Int, Int, Nothing, IO.ApiIO](randomDir).right.value
-      (1 to 10) foreach {
+      (1 to 1000) foreach {
         i =>
-          db.put(i, i).right.value
+          db.put(i, i.toString).right.value
       }
-      //      println("Removing .... ")
-      //      db.remove(2, 999).right.value
-      //      println("Removed .... ")
-      //
-      //      db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))
-      //      db.headOption.right.value.value shouldBe ((1, "1"))
-      //      db.lastOption.right.value.value shouldBe ((1000, "1000"))
-      //
-      //      db.close().get
+      println("Removing .... ")
+      db.remove(2, 999).right.value
+      println("Removed .... ")
 
-      (1 to 10) foreach {
-        i =>
-          println(db.getKeyValue(i).right.value)
-      }
+      db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))
+      db.headOption.right.value.value shouldBe ((1, "1"))
+      db.lastOption.right.value.value shouldBe ((1000, "1000"))
+
+      db.close().get
     }
 
     "update only key-values that are not removed" in {

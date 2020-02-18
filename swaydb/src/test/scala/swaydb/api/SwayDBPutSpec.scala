@@ -35,6 +35,13 @@ class SwayDBPutSpec0 extends SwayDBPutSpec {
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
 }
 
+class SwayDBPut_SetMap_Spec0 extends SwayDBPutSpec {
+  val keyValueCount: Int = 1000
+
+  override def newDB(): SetMap[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.SetMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
+}
+
 class SwayDBPutSpec1 extends SwayDBPutSpec {
 
   val keyValueCount: Int = 10000
@@ -77,9 +84,9 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
+  def newDB(): SwayMap[Int, String, Nothing, IO.ApiIO]
 
-  def doGet(db: Map[Int, String, Nothing, IO.ApiIO]) = {
+  def doGet(db: SwayMap[Int, String, Nothing, IO.ApiIO]) = {
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).right.value shouldBe empty
@@ -106,10 +113,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
         eitherOne(4.seconds.fromNow, expiredDeadline())
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
       doGet(db)
@@ -123,10 +127,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       val db = newDB()
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+      doRemove(from = 1, to = keyValueCount, db = db)
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
       doGet(db)
@@ -138,10 +139,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       val db = newDB()
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
+      doUpdateOrIgnore(1, keyValueCount, "updated", db)
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
       doGet(db)
@@ -152,10 +150,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Remove" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+      doRemove(from = 1, to = keyValueCount, db = db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -167,10 +162,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Remove & Put" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+      doRemove(from = 1, to = keyValueCount, db = db)
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -182,15 +174,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Remove & Update" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
-
+      doRemove(from = 1, to = keyValueCount, db = db)
+      doUpdateOrIgnore(1, keyValueCount, "updated", db)
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
       doGet(db)
@@ -203,14 +188,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
       val deadline = eitherOne(2.seconds.fromNow, expiredDeadline())
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+      doRemove(from = 1, to = keyValueCount, db = db)
+      doExpire(1, keyValueCount, deadline, db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -222,15 +201,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Remove & Remove" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+      doRemove(from = 1, to = keyValueCount, db = db)
+      doRemove(from = 1, to = keyValueCount, db = db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -244,10 +216,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Update" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "old updated").right.value),
-        right = db.update(1, keyValueCount, value = "old updated").right.value
-      )
+      doUpdateOrIgnore(1, keyValueCount, "old updated", db)
+
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
       doGet(db)
@@ -258,10 +228,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Update & Put" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
+      doUpdateOrIgnore(1, keyValueCount, "updated", db)
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
@@ -275,15 +242,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Update & Update" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-        right = db.update(1, keyValueCount, value = "updated 1").right.value
-      )
-
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").right.value),
-        right = db.update(1, keyValueCount, value = "updated 2").right.value
-      )
+      doUpdateOrIgnore(1, keyValueCount, "updated 1", db)
+      doUpdateOrIgnore(1, keyValueCount, "updated 2", db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -297,15 +257,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
       val deadline = eitherOne(2.seconds.fromNow, expiredDeadline())
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-        right = db.update(1, keyValueCount, value = "updated 1").right.value
-      )
-
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+      doUpdateOrIgnore(from = 1, to = keyValueCount, value = "updated 1", db = db)
+      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -317,12 +270,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
     "Update & Remove" in {
       val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-        right = db.update(1, keyValueCount, value = "updated 1").right.value
-      )
-
-      (1 to keyValueCount) foreach { i => db.remove(i).right.value }
+      doUpdateOrIgnore(1, keyValueCount, "updated 1", db)
+      doRemove(from = 1, to = keyValueCount, db = db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
       doGet(db)
@@ -337,10 +286,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -354,14 +300,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+      doRemove(from = 1, to = keyValueCount, db = db)
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
       doGet(db)
@@ -374,15 +314,10 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
+      doUpdateOrIgnore(from = 1, to = keyValueCount, value = "updated", db = db)
+
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
       doGet(db)
@@ -396,15 +331,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
       val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
-
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).right.value),
-        right = db.expire(1, keyValueCount, deadline2).right.value
-      )
+      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+      doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
 
       (1 to keyValueCount) foreach { i => db.put(i, s"$i new").right.value }
 
@@ -418,10 +346,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 

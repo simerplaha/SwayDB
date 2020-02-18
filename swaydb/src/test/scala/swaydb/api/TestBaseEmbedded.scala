@@ -21,6 +21,7 @@ package swaydb.api
 
 import swaydb.IOValues._
 import swaydb._
+import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
 import swaydb.core.{TestBase, map}
 import swaydb.data.slice.Slice
@@ -102,4 +103,40 @@ trait TestBaseEmbedded extends TestBase {
     //this test might take a while depending on the Compaction speed but it should not run for too long hence the timeout.
     Future(checkEmpty(1, false)).await(10.minutes)
   }
+
+  def doExpire(from: Int, to: Int, deadline: Deadline, db: SwayMap[Int, String, Nothing, IO.ApiIO]): Unit =
+    db match {
+      case db @ Map(_, _, _) =>
+        eitherOne(
+          left = (from to to) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(from, to, deadline).right.value
+        )
+
+      case _ =>
+        (from to to) foreach (i => db.expire(i, deadline).right.value)
+    }
+
+  def doRemove(from: Int, to: Int, db: SwayMap[Int, String, Nothing, IO.ApiIO]): Unit =
+    db match {
+      case db @ Map(_, _, _) =>
+        eitherOne(
+          left = (from to to) foreach (i => db.remove(i).right.value),
+          right = db.remove(from = from, to = to).right.value
+        )
+
+      case _ =>
+        (from to to) foreach (i => db.remove(i).right.value)
+    }
+
+  def doUpdateOrIgnore(from: Int, to: Int, value: String, db: SwayMap[Int, String, Nothing, IO.ApiIO]): Unit =
+    db match {
+      case db @ Map(_, _, _) =>
+        eitherOne(
+          left = (from to to) foreach (i => db.update(i, value = value).right.value),
+          right = db.update(from, to, value = value).right.value
+        )
+
+      case _ =>
+        ()
+    }
 }

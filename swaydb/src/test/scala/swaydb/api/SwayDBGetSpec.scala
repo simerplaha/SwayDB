@@ -33,6 +33,11 @@ class SwayDBGetSpec0 extends SwayDBGetSpec {
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir).right.value
 }
 
+class SwayDBGet_SetMap_Spec0 extends SwayDBGetSpec {
+  override def newDB(): SetMap[Int, String, Nothing, IO.ApiIO] =
+    swaydb.persistent.SetMap[Int, String, Nothing, IO.ApiIO](randomDir).right.value
+}
+
 class SwayDBGetSpec1 extends SwayDBGetSpec {
 
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
@@ -61,9 +66,11 @@ class SwayDBGetSpec3 extends SwayDBGetSpec {
 //    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
 //}
 
-sealed trait SwayDBGetSpec extends TestBase {
+sealed trait SwayDBGetSpec extends TestBaseEmbedded {
 
-  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
+  def newDB(): SwayMap[Int, String, Nothing, IO.ApiIO]
+
+  override val keyValueCount: Int = 1000
 
   "SwayDB" should {
     "get" in {
@@ -142,7 +149,7 @@ sealed trait SwayDBGetSpec extends TestBase {
       (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
       (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
-      db.keys.stream.materialize[IO.ApiIO].runRandomIO.right.value shouldBe ((1 to 9) ++ (91 to 100))
+      db.keySet should contain allElementsOf ((1 to 9) ++ (91 to 100))
 
       db.close().get
     }
@@ -157,7 +164,7 @@ sealed trait SwayDBGetSpec extends TestBase {
 
       val expire = 2.second.fromNow
 
-      db.expire(10, 90, expire).right.value
+      doExpire(10, 90, expire, db)
 
       (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 

@@ -30,6 +30,9 @@ import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object SetMap {
+  /**
+   * Combines two serialisers into a single Serialiser.
+   */
   def serialiser[A, B](aSerializer: Serializer[A],
                        bSerializer: Serializer[B]): Serializer[(A, B)] =
     new Serializer[(A, B)] {
@@ -62,6 +65,9 @@ object SetMap {
       }
     }
 
+  /**
+   * Partial ordering based on [[SetMap.serialiser]].
+   */
   def ordering[K](defaultOrdering: Either[KeyOrder[Slice[Byte]], KeyOrder[K]])(implicit keySerializer: Serializer[K]): KeyOrder[Slice[Byte]] =
     defaultOrdering match {
       case Left(untypedOrdering) =>
@@ -72,7 +78,7 @@ object SetMap {
 
             val leftKey = readerLeft.read(readerLeft.readUnsignedInt())
             val rightKey = readerRight.read(readerRight.readUnsignedInt())
-            
+
             untypedOrdering.compare(leftKey, rightKey)
           }
 
@@ -108,6 +114,9 @@ object SetMap {
 /**
  * A [[SetMap]] is simply a wrapper around [[Set]] to provide
  * [[Map]] like API on [[Set]] storage format.
+ *
+ * [[SetMap]] has limited write APIs as compared to [[swaydb.Map]]
+ * range & update operations are not supported.
  */
 case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
@@ -136,9 +145,6 @@ case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
 
   def remove(key: K): BAG[OK] =
     set.remove((key, nullValue))
-
-  def remove(from: K, to: K): BAG[OK] =
-    set.remove((from, nullValue), (to, nullValue))
 
   def remove(keys: K*): BAG[OK] =
     set.remove(keys.map(key => (key, nullValue)))

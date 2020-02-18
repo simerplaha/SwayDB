@@ -43,7 +43,7 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def remove(key: K): BAG[OK]
 
-  def remove(from: K, to: K): BAG[OK]
+//  def remove(from: K, to: K): BAG[OK]
 
   def remove(keys: K*): BAG[OK]
 
