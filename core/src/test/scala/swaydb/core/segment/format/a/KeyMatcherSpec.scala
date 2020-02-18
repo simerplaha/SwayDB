@@ -36,13 +36,9 @@ import scala.util.Random
 
 class KeyMatcherSpec extends TestBase {
 
-  implicit val integer = new KeyOrder[Slice[Byte]] {
-    def compare(a: Slice[Byte], b: Slice[Byte]): Int =
-      IntSerializer.read(a).compareTo(IntSerializer.read(b))
-
-    private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] =
-      key
-  }
+  implicit val integer: KeyOrder[Slice[Byte]] =
+    (a: Slice[Byte], b: Slice[Byte]) =>
+      IntSerializer.read(a) compareTo IntSerializer.read(b)
 
   /**
    * These implicits are just to make it easier to read the test cases.

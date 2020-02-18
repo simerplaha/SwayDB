@@ -38,8 +38,11 @@ protected object KeyOrderConverter {
           comparator.compare(leftKey, rightKey)
         }
 
-        private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] =
-          key
+        override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
+          val typedData = keySerializer.read(data)
+          val comparableKey = comparator.comparableKey(typedData)
+          keySerializer.write(comparableKey)
+        }
       }
     else
       new KeyOrder[Slice[Byte]] {
@@ -47,7 +50,7 @@ protected object KeyOrderConverter {
         override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
           comparator.compare(ByteSlice(x), ByteSlice(y))
 
-        private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] =
-          key
+        override def comparableKey(data: Slice[Byte]): Slice[Byte] =
+          comparator.comparableKey(ByteSlice(data)).asScala.asInstanceOf[Slice[Byte]]
       }
 }

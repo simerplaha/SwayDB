@@ -492,92 +492,92 @@ abstract class SetTest extends TestBase implements JavaEventually {
   /**
    * Tests partially ordered keys.
    */
-//  @Test
-//  void partialKeyOrderingSetTest() throws IOException {
-//
-//    //create a serialiser using ObjectOutputStream
-//    Serializer<MyKey> serializer =
-//      new Serializer<MyKey>() {
-//        @Override
-//        public byte[] write(MyKey data) {
-//          try {
-//            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-//            ObjectOutputStream oos = new ObjectOutputStream(bos);
-//            oos.writeObject(data);
-//            oos.flush();
-//            return bos.toByteArray();
-//          } catch (IOException e) {
-//            throw new RuntimeException(e);
-//          }
-//        }
-//
-//        @Override
-//        public MyKey read(ByteSlice slice) {
-//          ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(slice.toByteBufferWrap().array(), slice.fromOffset(), slice.size());
-//          try {
-//            ObjectInputStream oos = new ObjectInputStream(byteArrayInputStream);
-//            return (MyKey) oos.readObject();
-//          } catch (IOException | ClassNotFoundException e) {
-//            throw new RuntimeException(e);
-//          }
-//        }
-//      };
-//
-//    //partial key comparator
-//    KeyComparator<MyKey> comparator =
-//      new KeyComparator<MyKey>() {
-//        @Override
-//        public int compare(MyKey o1, MyKey o2) {
-//          return Integer.compare(o1.id, o2.id);
-//        }
-//
-//        @Override
-//        public MyKey comparableKey(MyKey data) {
-//          //since above compare is done only on id set the value of string to a static value..
-//          return new MyKey(data.id, "");
-//        }
-//      };
-//
-//    //use a small map size so that Segments file gets generated for this this quickly.
-//    int mapSize = 1000;
-//
-//    //memory set
-//    SetConfig.Config<MyKey, Void> memoryConfig = SetConfig.withoutFunctions(serializer);
-//    memoryConfig.setComparator(IO.rightNeverException(comparator));
-//    memoryConfig.setMapSize(mapSize);
-//    Set<MyKey, Void> memorySet = memoryConfig.init();
-//
-//    //persistent Set
-//    swaydb.java.persistent.SetConfig.Config<MyKey, Void> persistentConfig = swaydb.java.persistent.SetConfig.withoutFunctions(testDir(), serializer);
-//    persistentConfig.setComparator(IO.rightNeverException(comparator));
-//    persistentConfig.setMapSize(mapSize);
-//    Set<MyKey, Void> persistentSet = persistentConfig.init();
-//
-//    //create a slice to test for both maps
-//    Slice<Set<MyKey, Void>> sets = Slice.create(2);
-//    sets.add(memorySet);
-//    sets.add(persistentSet);
-//
-//    sets.forEach(
-//      set -> {
-//        IntStream
-//          .range(1, 2000)
-//          .forEach(
-//            integer ->
-//              set.add(new MyKey(integer, "value" + integer))
-//          );
-//
-//        IntStream
-//          .range(1, 2000)
-//          .forEach(
-//            integer -> {
-//              //here string in Key can be empty (partial key) but on get the entire key with string populated will be fetched.
-//              Optional<MyKey> myKey = set.get(new MyKey(integer, ""));
-//              assertTrue(myKey.isPresent());
-//              assertEquals(new MyKey(integer, "value" + integer), myKey.get());
-//            }
-//          );
-//      }
-//    );
-//  }
+  @Test
+  void partialKeyOrderingSetTest() throws IOException {
+
+    //create a serialiser using ObjectOutputStream
+    Serializer<MyKey> serializer =
+      new Serializer<MyKey>() {
+        @Override
+        public byte[] write(MyKey data) {
+          try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(data);
+            oos.flush();
+            return bos.toByteArray();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        }
+
+        @Override
+        public MyKey read(ByteSlice slice) {
+          ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(slice.toByteBufferWrap().array(), slice.fromOffset(), slice.size());
+          try {
+            ObjectInputStream oos = new ObjectInputStream(byteArrayInputStream);
+            return (MyKey) oos.readObject();
+          } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      };
+
+    //partial key comparator
+    KeyComparator<MyKey> comparator =
+      new KeyComparator<MyKey>() {
+        @Override
+        public int compare(MyKey o1, MyKey o2) {
+          return Integer.compare(o1.id, o2.id);
+        }
+
+        @Override
+        public MyKey comparableKey(MyKey data) {
+          //since above compare is done only on id set the value of string to a static value..
+          return new MyKey(data.id, "");
+        }
+      };
+
+    //use a small map size so that Segments file gets generated for this this quickly.
+    int mapSize = 1000;
+
+    //memory set
+    SetConfig.Config<MyKey, Void> memoryConfig = SetConfig.withoutFunctions(serializer);
+    memoryConfig.setComparator(IO.rightNeverException(comparator));
+    memoryConfig.setMapSize(mapSize);
+    Set<MyKey, Void> memorySet = memoryConfig.init();
+
+    //persistent Set
+    swaydb.java.persistent.SetConfig.Config<MyKey, Void> persistentConfig = swaydb.java.persistent.SetConfig.withoutFunctions(testDir(), serializer);
+    persistentConfig.setComparator(IO.rightNeverException(comparator));
+    persistentConfig.setMapSize(mapSize);
+    Set<MyKey, Void> persistentSet = persistentConfig.init();
+
+    //create a slice to test for both maps
+    Slice<Set<MyKey, Void>> sets = Slice.create(2);
+    sets.add(memorySet);
+    sets.add(persistentSet);
+
+    sets.forEach(
+      set -> {
+        IntStream
+          .range(1, 2000)
+          .forEach(
+            integer ->
+              set.add(new MyKey(integer, "value" + integer))
+          );
+
+        IntStream
+          .range(1, 2000)
+          .forEach(
+            integer -> {
+              //here string in Key can be empty (partial key) but on get the entire key with string populated will be fetched.
+              Optional<MyKey> myKey = set.get(new MyKey(integer, ""));
+              assertTrue(myKey.isPresent());
+              assertEquals(new MyKey(integer, "value" + integer), myKey.get());
+            }
+          );
+      }
+    );
+  }
 }
