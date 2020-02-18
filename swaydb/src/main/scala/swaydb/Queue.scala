@@ -19,16 +19,25 @@
 
 package swaydb
 
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicLong
+
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
                     private val pushIds: AtomicLong,
-                    private val popIds: AtomicLong) {
+                    private val popIds: AtomicLong) extends LazyLogging {
 
   private val nullA = null.asInstanceOf[A]
+
+  /**
+   * Stores all failed items that get processed first before picking
+   * next task in [[map]].
+   */
+  private val retryQueue = new ConcurrentLinkedQueue[java.lang.Long]()
 
   def push(elem: A): OK =
     map.put(pushIds.getAndIncrement(), elem)
@@ -67,24 +76,65 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
   def popOrNull(): A =
     popOrElse(nullA)
 
+  /**
+   * Safely pick the next job.
+   */
+  @inline private def popAndRecover(nextId: Long): Option[(Long, A)] =
+    try
+      map.getKeyValue(nextId) match {
+        case some @ Some(keyValue) =>
+          map.remove(keyValue._1)
+          some
+
+        case None =>
+          None
+      }
+    catch {
+      case throwable: Throwable =>
+        retryQueue add nextId
+        logger.error(s"Failed to process taskId: $nextId", throwable)
+        None
+    }
+
+  /**
+   * If threads were racing forward than there were actual items to process, then reset
+   * [[popIds]] so that the race/overflow is controlled and pushed back to the last
+   * queued job.
+   */
+  @inline private def brakeRecover(nextId: Long): Boolean =
+    try {
+      val headOrNull = map.headOrNull
+      //Only the last thread that accessed popIds can reset the popIds counter and continue
+      //processing to avoid any conflicting updates.
+      headOrNull != null && popIds.compareAndSet(nextId, headOrNull._1)
+    } catch {
+      case throwable: Throwable =>
+        logger.error(s"Failed to brakeRecover taskId: $nextId", throwable)
+        false
+    }
+
   @tailrec
   final def popOrElse[B <: A](other: => B): A =
     if (popIds.get() < pushIds.get()) {
-      val jobId = popIds.getAndIncrement()
-      //todo - handle failure if getKeyValue fails.
-      map.getKeyValue(jobId) match {
-        case Some((key, value)) =>
-          map.remove(key)
+      //check if there is a previously failed job to process
+      val retryId = retryQueue.poll()
+
+      val nextId: Long =
+        if (retryId == null)
+          popIds.getAndIncrement() //pick next job
+        else
+          retryId
+
+      //pop the next job from the map safely.
+      popAndRecover(nextId) match {
+        case Some((_, value)) =>
           value
 
         case None =>
-          val headOrNull = map.headOrNull
-          if (headOrNull == null) {
-            other
-          } else {
-            popIds.compareAndSet(jobId, headOrNull._1)
+          if (brakeRecover(nextId))
             popOrElse(other)
-          }
+          else
+            other
       }
     } else {
       other
