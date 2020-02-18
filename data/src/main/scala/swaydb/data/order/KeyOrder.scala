@@ -43,9 +43,6 @@ object KeyOrder {
         }
         a.size - b.size
       }
-
-      override def comparableKey(key: Slice[Byte]): Slice[Byte] =
-        key
     }
 
   /**
@@ -55,41 +52,31 @@ object KeyOrder {
     new KeyOrder[Slice[Byte]] {
       def compare(a: Slice[Byte], b: Slice[Byte]): Int =
         default.compare(a, b) * -1
-
-      override def comparableKey(key: Slice[Byte]): Slice[Byte] =
-        key
     }
 
   def apply[K](ordering: Ordering[K]): KeyOrder[K] =
     new KeyOrder[K]() {
       override def compare(x: K, y: K): Int =
         ordering.compare(x, y)
-
-      override def comparableKey(key: K): K =
-        key
     }
 
   val integer: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readInt() compare y.readInt()
-
-      override def comparableKey(key: Slice[Byte]): Slice[Byte] =
-        key
     }
 
   val long: KeyOrder[Slice[Byte]] =
     new KeyOrder[Slice[Byte]] {
       override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
         x.readLong() compare y.readLong()
-
-      override def comparableKey(key: Slice[Byte]): Slice[Byte] =
-        key
     }
 }
 
 trait KeyOrder[K] extends Ordering[K] {
   /**
+   * For internal use only.
+   *
    * The key is used to create secondary indexes like HashIndex and BloomFilters.
    *
    * Useful for partially ordered keys.
@@ -106,5 +93,5 @@ trait KeyOrder[K] extends Ordering[K] {
    * This is called partial ordering and full reads on partial keys so you
    * can store extra data with key without having to read the value.
    */
-  def comparableKey(key: K): K = key
+  private[swaydb] def comparableKey(key: K): K = key
 }

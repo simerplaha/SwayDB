@@ -21,25 +21,4 @@ package swaydb.java
 
 import java.util.Comparator
 
-trait KeyComparator[K] extends Comparator[K] {
-  /**
-   * You don't have to implement this if you searches do not use partial key.
-   *
-   * The key is used to create secondary indexes like HashIndex and BloomFilters.
-   *
-   * Used for partially ordered keys.
-   *
-   * For example if your key is
-   * {{{
-   *   class MyData(id: Int, name: Optional[String]))
-   * }}}
-   *
-   * Suppose your key is MyData(1, "John") and your [[KeyComparator]] if on MyData.id
-   * then this [[comparableKey]] should return MyData(1, None) so you can search for
-   * keys like MyData(1, None) and get result MyData(1, "John").
-   *
-   * This is called partial ordering and full reads on partial keys so you
-   * can store extra data with key without having to read the value.
-   */
-  def comparableKey(key: K): K = key
-}
+trait KeyComparator[K] extends Comparator[K]

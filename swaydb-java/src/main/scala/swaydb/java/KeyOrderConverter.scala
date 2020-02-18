@@ -37,20 +37,12 @@ protected object KeyOrderConverter {
           val rightKey = keySerializer.read(right)
           comparator.compare(leftKey, rightKey)
         }
-
-        override def comparableKey(data: Slice[Byte]): Slice[Byte] = {
-          val typedData = keySerializer.read(data)
-          val comparableKey = comparator.comparableKey(typedData)
-          keySerializer.write(comparableKey)
-        }
       }
     else
       new KeyOrder[Slice[Byte]] {
         val comparator = comparatorIO.getLeft
+
         override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
           comparator.compare(ByteSlice(x), ByteSlice(y))
-
-        override def comparableKey(data: Slice[Byte]): Slice[Byte] =
-          comparator.comparableKey(ByteSlice(data)).asScala.asInstanceOf[Slice[Byte]]
       }
 }
