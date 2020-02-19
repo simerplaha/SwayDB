@@ -79,11 +79,11 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
   /**
    * Safely pick the next job.
    */
-  @inline private def popAndRecover(nextId: Long): Option[(Long, A)] =
+  @inline private def popAndRecover(nextId: Long): Option[A] =
     try
-      map.getKeyValue(nextId) match {
-        case some @ Some(keyValue) =>
-          map.remove(keyValue._1)
+      map.get(nextId) match {
+        case some @ Some(_) =>
+          map.remove(nextId)
           some
 
         case None =>
@@ -102,15 +102,17 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
    * queued job.
    */
   @inline private def brakeRecover(nextId: Long): Boolean =
-    try {
-      val headOrNull = map.headOrNull
-      //Only the last thread that accessed popIds can reset the popIds counter and continue
-      //processing to avoid any conflicting updates.
-      headOrNull != null && popIds.compareAndSet(nextId, headOrNull._1)
-    } catch {
-      case throwable: Throwable =>
-        logger.error(s"Failed to brakeRecover taskId: $nextId", throwable)
-        false
+    popIds.get() == nextId && {
+      try {
+        val headOrNull = map.headOrNull
+        //Only the last thread that accessed popIds can reset the popIds counter and continue
+        //processing to avoid any conflicting updates.
+        headOrNull != null && popIds.compareAndSet(nextId, headOrNull._1)
+      } catch {
+        case throwable: Throwable =>
+          logger.error(s"Failed to brakeRecover taskId: $nextId", throwable)
+          false
+      }
     }
 
   @tailrec
@@ -123,11 +125,11 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
         if (retryId == null)
           popIds.getAndIncrement() //pick next job
         else
-          retryId
+        retryId
 
       //pop the next job from the map safely.
       popAndRecover(nextId) match {
-        case Some((_, value)) =>
+        case Some(value) =>
           value
 
         case None =>
