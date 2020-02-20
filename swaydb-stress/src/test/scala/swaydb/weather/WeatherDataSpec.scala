@@ -45,6 +45,10 @@ class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {
   override val db = swaydb.persistent.SetMap[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get
 }
 
+class Memory_SetMap_WeatherDataSpec extends WeatherDataSpec {
+  override val db = swaydb.memory.SetMap[Int, WeatherData, Nothing, IO.ApiIO]().get
+}
+
 class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
   //  override val db = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir, maxOpenSegments = 10, memoryCacheSize = 10.mb, maxMemoryLevelSize = 500.mb).get
   override val db = swaydb.eventually.persistent.Map[Int, WeatherData, Nothing, IO.ApiIO](randomDir).get

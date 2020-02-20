@@ -19,20 +19,19 @@
 
 package swaydb.api.setmap
 
-import java.util.concurrent.ConcurrentLinkedQueue
-
+import org.scalatest.OptionValues._
 import swaydb.Bag
 import swaydb.core.TestBase
-import swaydb.core.util.Benchmark
 import swaydb.serializers.Default._
-
-import scala.collection.parallel.CollectionConverters._
-import scala.jdk.CollectionConverters._
-import org.scalatest.OptionValues._
 
 class SetMapSpec0 extends SetMapSpec {
   override def newDB(): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
     swaydb.persistent.SetMap[Int, String, Nothing, Bag.Less](randomDir).get
+}
+
+class SetMapSpec3 extends SetMapSpec {
+  override def newDB(): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
+    swaydb.memory.SetMap[Int, String, Nothing, Bag.Less]().get
 }
 
 sealed trait SetMapSpec extends TestBase {

@@ -21,6 +21,7 @@ package swaydb.api.queue
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
+import swaydb.Queue
 import swaydb.core.TestBase
 import swaydb.core.util.Benchmark
 import swaydb.serializers.Default._
@@ -28,10 +29,22 @@ import swaydb.serializers.Default._
 import scala.collection.parallel.CollectionConverters._
 import scala.jdk.CollectionConverters._
 
-class QueueSpec extends TestBase {
+class QueueSpec0 extends QueueSpec {
+  override def newQueue(): Queue[Int] =
+    swaydb.persistent.Queue[Int](randomDir).get
+}
+
+class QueueSpec3 extends QueueSpec {
+  override def newQueue(): Queue[Int] =
+    swaydb.memory.Queue[Int]().get
+}
+
+sealed trait QueueSpec extends TestBase {
+
+  def newQueue(): Queue[Int]
 
   "it" in {
-    val queue = swaydb.persistent.Queue[Int](randomDir).get
+    val queue: Queue[Int] = newQueue()
     val processedQueue = new ConcurrentLinkedQueue[Int]()
 
     val maxPushes = 1000000
