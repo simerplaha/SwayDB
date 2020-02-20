@@ -12,8 +12,7 @@
 [build-badge]: https://github.com/simerplaha/SwayDB/workflows/Build/badge.svg
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Fast embeddable **persistent** and **in-memory** database that provides storage 
-as simple data types - `Map` or `Set`.
+Embeddable **persistent** and **in-memory** database - **Simple** data types, **fast** and **resource efficient**.
 
 [Documentation - SwayDB.io](http://swaydb.io).
 
@@ -30,9 +29,9 @@ as simple data types - `Map` or `Set`.
 
 ## Overview
 
+- Simple data types - `Map[K, V]`, `Set[A]` & `Queue[A]`.
 - [Scala](https://github.com/simerplaha/SwayDB.scala.examples), [Java](http://swaydb.io/quick-start/?language=java/) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin).
 - Single or multiple disks persistent, in-memory or periodically persistent.
-- Simple data types - `Map[K, V]` & `Set[T]`.
 - Streaming.
 - Atomic updates and inserts with [transactions](http://swaydb.io/api/write/transaction/?language=scala/).
 - Custom updates using [JVM function](http://www.swaydb.io/api/write/registerFunction/).
