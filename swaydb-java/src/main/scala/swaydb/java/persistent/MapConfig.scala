@@ -76,14 +76,20 @@ object MapConfig {
 
     private val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]()(keySerializer, valueSerializer)
 
-    def registerFunctions(functions: F*): Unit =
+    def registerFunctions(functions: F*): Config[K, V, F] = {
       functions.foreach(registerFunction(_))
+      this
+    }
 
-    def registerFunction(function: F): Unit =
+    def registerFunction(function: F): Config[K, V, F] = {
       functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
+      this
+    }
 
-    def removeFunction(function: F): Unit =
+    def removeFunction(function: F): Config[K, V, F] = {
       functions.core.remove(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]].id.asInstanceOf[Slice[Byte]])
+      this
+    }
 
     def init(): swaydb.java.Map[K, V, F] = {
       val scalaMap =

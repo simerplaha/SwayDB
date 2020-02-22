@@ -75,15 +75,20 @@ object SetConfig {
 
     private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]()(serializer)
 
-    def registerFunctions(functions: F*): Unit =
+    def registerFunctions(functions: F*): Config[A, F] = {
       functions.foreach(registerFunction(_))
+      this
+    }
 
-    def registerFunction(function: F): Unit =
+    def registerFunction(function: F): Config[A, F] = {
       functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
+      this
+    }
 
-    def removeFunction(function: F): Unit = {
+    def removeFunction(function: F): Config[A, F] = {
       val scalaFunction = function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]].id.asInstanceOf[Slice[Byte]]
       functions.core.remove(scalaFunction)
+      this
     }
 
     def init(): swaydb.java.Set[A, F] = {
