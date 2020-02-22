@@ -347,9 +347,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
       (left, right) ->
         left.compareTo(right) * -1;
 
-    config.setComparator(IO.rightNeverException(comparator));
-
-    assertTrue(config.getComparator().isRight());
+    config.setTypedComparator(comparator);
 
     Set<Integer, Void> set =
       config

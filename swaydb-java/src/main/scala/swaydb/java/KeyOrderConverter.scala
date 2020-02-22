@@ -26,23 +26,22 @@ import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {
 
-  def toScalaKeyOrder[K](comparatorIO: IO[KeyComparator[ByteSlice], KeyComparator[K]],
+  def toScalaKeyOrder[K](comparatorEither: Either[KeyComparator[ByteSlice], KeyComparator[K]],
                          keySerializer: Serializer[K]) =
-    if (comparatorIO.isRight)
-      new KeyOrder[Slice[Byte]] {
-        val comparator = comparatorIO.getRight
-
-        override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
-          val leftKey = keySerializer.read(left)
-          val rightKey = keySerializer.read(right)
-          comparator.compare(leftKey, rightKey)
+    comparatorEither match {
+      case Right(comparator) =>
+        new KeyOrder[Slice[Byte]] {
+          override def compare(left: Slice[Byte], right: Slice[Byte]): Int = {
+            val leftKey = keySerializer.read(left)
+            val rightKey = keySerializer.read(right)
+            comparator.compare(leftKey, rightKey)
+          }
         }
-      }
-    else
-      new KeyOrder[Slice[Byte]] {
-        val comparator = comparatorIO.getLeft
 
-        override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
-          comparator.compare(ByteSlice(x), ByteSlice(y))
-      }
+      case Left(comparator) =>
+        new KeyOrder[Slice[Byte]] {
+          override def compare(x: Slice[Byte], y: Slice[Byte]): Int =
+            comparator.compare(ByteSlice(x), ByteSlice(y))
+        }
+    }
 }

@@ -19,6 +19,7 @@
 
 package swaydb.java.memory
 
+import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.order.KeyOrder
@@ -27,7 +28,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{IO, KeyComparator, KeyOrderConverter, PureFunction, Return}
+import swaydb.java.{KeyComparator, KeyOrderConverter, PureFunction, Return}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
@@ -46,10 +47,18 @@ object MapConfig {
                         @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                         @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                        @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[K]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[K]](swaydb.java.SwayDB.defaultComparator),
+                        @BeanProperty var byteComparator: KeyComparator[ByteSlice] = null,
+                        @BeanProperty var typedComparator: KeyComparator[K] = null,
                         keySerializer: Serializer[K],
                         valueSerializer: Serializer[V],
                         functionClassTag: ClassTag[_]) {
+
+    private def comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
+      Eithers.nullCheck(
+        left = byteComparator,
+        right = typedComparator,
+        default = swaydb.java.SwayDB.defaultComparator
+      )
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 

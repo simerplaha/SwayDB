@@ -21,6 +21,7 @@ package swaydb.java.persistent
 
 import java.nio.file.Path
 
+import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -67,9 +68,17 @@ object SetConfig {
                      @BeanProperty var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
                      @BeanProperty var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
                      @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                     @BeanProperty var comparator: IO[KeyComparator[ByteSlice], KeyComparator[A]] = IO.leftNeverException[KeyComparator[ByteSlice], KeyComparator[A]](swaydb.java.SwayDB.defaultComparator),
+                     @BeanProperty var byteComparator: KeyComparator[ByteSlice] = null,
+                     @BeanProperty var typedComparator: KeyComparator[A] = null,
                      serializer: Serializer[A],
                      functionClassTag: ClassTag[_]) {
+
+    private def comparator: Either[KeyComparator[ByteSlice], KeyComparator[A]] =
+      Eithers.nullCheck(
+        left = byteComparator,
+        right = typedComparator,
+        default = swaydb.java.SwayDB.defaultComparator
+      )
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 

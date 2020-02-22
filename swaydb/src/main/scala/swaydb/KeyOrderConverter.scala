@@ -19,11 +19,21 @@
 
 package swaydb
 
+import swaydb.core.util.Eithers
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {
+
+  def typedToBytesNullCheck[K](byteOrdering: KeyOrder[Slice[Byte]], typedOrdering: KeyOrder[K])(implicit serializer: Serializer[K]): KeyOrder[Slice[Byte]] =
+    typedToBytes(
+      Eithers.nullCheck(
+        left = byteOrdering,
+        right = typedOrdering,
+        default = KeyOrder.default
+      )
+    )
 
   def typedToBytes[K](keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]])(implicit serializer: Serializer[K]): KeyOrder[Slice[Byte]] =
     keyOrder match {
