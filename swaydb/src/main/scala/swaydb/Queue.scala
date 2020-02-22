@@ -146,4 +146,10 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
     map
       .stream
       .map(_._2)
+
+  def close(): Unit =
+    map.close()
+
+  def delete(): Unit =
+    map.delete()
 }
