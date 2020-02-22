@@ -115,9 +115,6 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def clear(): swaydb.OK =
     asScala.clear()
 
-  def registerFunction(function: F): swaydb.OK =
-    asScala.registerFunction(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
-
   def applyFunction(key: K, function: F): swaydb.OK =
     asScala.applyFunction(key, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
 

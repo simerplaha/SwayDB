@@ -25,7 +25,6 @@ import java.nio.file.Path
 import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
-
 /**
  * Exception types for all known [[Error]]s that can occur. Each [[Error]] can be converted to
  * Exception which which can then be converted back to [[Error]].
@@ -52,7 +51,7 @@ object Exception {
    *
    * @param functionId the id of the missing function.
    */
-  case class FunctionNotFound(functionId: Slice[Byte]) extends Exception("Function not found for ID.")
+  case class FunctionNotFound(functionId: Slice[Byte]) extends Exception(s"Function not found. functionId byte size = ${functionId.size}. See this exception's functionId value to see the missing function.")
   case class OverlappingFileLock(exception: OverlappingFileLockException) extends Exception("Failed to get directory lock.")
   case class FailedToWriteAllBytes(written: Int, expected: Int, bytesSize: Int) extends Exception(s"Failed to write all bytes written: $written, expected : $expected, bytesSize: $bytesSize")
   case class CannotCopyInMemoryFiles(file: Path) extends Exception(s"Cannot copy in-memory files $file")

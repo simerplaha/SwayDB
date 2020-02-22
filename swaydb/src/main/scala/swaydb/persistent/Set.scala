@@ -40,7 +40,6 @@ import scala.reflect.ClassTag
 object Set extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def functionStore: FunctionStore = FunctionStore.memory()
 
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
@@ -72,8 +71,10 @@ object Set extends LazyLogging {
                           levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A],
                                                                                                       functionClassTag: ClassTag[F],
                                                                                                       bag: swaydb.Bag[BAG],
+                                                                                                      functions: swaydb.Set.Functions[A, F],
                                                                                                       keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
+    implicit val coreFunctions: FunctionStore.Memory = functions.core
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,

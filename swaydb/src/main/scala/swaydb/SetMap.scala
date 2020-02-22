@@ -167,21 +167,6 @@ case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
   def clear(): BAG[OK] =
     set.clear()
 
-  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    set.registerFunction(function)
-
-  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    set.applyFunction((key, nullValue), function)
-
-  def commit[PF <: F](prepare: Prepare[(K, V), Nothing, PF]*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    set.commit(prepare)
-
-  def commit[PF <: F](prepare: Stream[Prepare[(K, V), Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    set.commit(prepare)
-
-  def commit[PF <: F](prepare: Iterable[Prepare[(K, V), Nothing, PF]])(implicit ev: PF <:< swaydb.PureFunction.OnKey[(K, V), Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    set.commit(prepare)
-
   /**
    * Returns target value for the input key.
    */

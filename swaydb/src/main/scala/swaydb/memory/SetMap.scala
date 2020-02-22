@@ -37,8 +37,6 @@ object SetMap extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit def functionStore: FunctionStore = FunctionStore.memory()
-
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
@@ -54,6 +52,7 @@ object SetMap extends LazyLogging {
                                                                                                                                valueSerializer: Serializer[V],
                                                                                                                                functionClassTag: ClassTag[F],
                                                                                                                                bag: swaydb.Bag[BAG],
+                                                                                                                               functions: swaydb.Set.Functions[(K, V), F],
                                                                                                                                keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.SetMap[K, V, F, BAG]] = {
     implicit val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
     implicit val ordering: Left[KeyOrder[Slice[Byte]], Nothing] = Left(swaydb.SetMap.ordering(keyOrder))

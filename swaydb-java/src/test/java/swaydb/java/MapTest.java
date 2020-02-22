@@ -541,9 +541,12 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
+    MapConfig.Config<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
       MapConfig
-        .withFunctions(intSerializer(), intSerializer())
+        .withFunctions(intSerializer(), intSerializer());
+
+    Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
+      config
         .init();
 
     map.put(Stream.range(1, 100).map(KeyVal::create));
@@ -567,11 +570,11 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
     //this will not compile since the return type specified is a Set - expected!
 //    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> set = null;
-//    map.registerFunction(set);
+//    config.registerFunction(set);
 
-    map.registerFunction(updateValueTo10);
-    map.registerFunction(incrementBy1);
-    map.registerFunction(removeMod0OrIncrementBy1);
+    config.registerFunction(updateValueTo10);
+    config.registerFunction(incrementBy1);
+    config.registerFunction(removeMod0OrIncrementBy1);
 
     map.applyFunction(1, updateValueTo10);
     assertEquals(10, map.get(1).get());

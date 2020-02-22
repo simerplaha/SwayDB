@@ -68,22 +68,29 @@ object ProductCommand {
 
 class Memory_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.memory.Map[Long, Domain, Functions, IO.ApiIO]().get
+  override def newDB(implicit functions: swaydb.Map.Functions[Long, Domain, Functions]) =
+    swaydb.memory.Map[Long, Domain, Functions, IO.ApiIO]().get
 }
 
 class Persistent_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, acceleration = Accelerator.brake()).get
+  override def newDB(implicit functions: swaydb.Map.Functions[Long, Domain, Functions]) =
+    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, acceleration = Accelerator.brake()).get
 }
 
 class Memory_Persistent_SimulationSpec extends SimulationSpec {
 
-  override lazy val db = swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = false, mmapMaps = false, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get
+  override def newDB(implicit functions: swaydb.Map.Functions[Long, Domain, Functions]) =
+    swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = false, mmapMaps = false, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get
 }
 
 sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
-  def db: swaydb.Map[Long, Domain, Functions, IO.ApiIO]
+  def newDB(implicit functions: swaydb.Map.Functions[Long, Domain, Functions]): swaydb.Map[Long, Domain, Functions, IO.ApiIO]
+
+  val functions = swaydb.Map.Functions[Long, Domain, Functions]()
+
+  val db = newDB(functions)
 
   val ids = new AtomicInteger(0)
   val functionIDs = new AtomicInteger(0)
@@ -148,7 +155,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             self.send(AssertState(removeAsserted = RemoveAsserted.Remove(10)), 3.seconds)
           //other do not remove any in-memory data.
           else
-            self.send(AssertState(removeAsserted = RemoveAsserted.RemoveNone), 3.seconds)
+          self.send(AssertState(removeAsserted = RemoveAsserted.RemoveNone), 3.seconds)
 
           //also schedule a Create to repeatedly keep creating more Products by this User.
           self.send(Create, 1.second)
@@ -202,7 +209,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             db.update(productId, updatedProduct).get
           else {
             val function = createFunction()
-            db.registerFunction(function)
+            functions.register(function)
             db.applyFunction(productId, function).get
           }
 
@@ -232,7 +239,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             db.expire(productId, newDeadline).get
           else {
             val function = createFunction()
-            db.registerFunction(function)
+            functions.register(function)
             db.applyFunction(productId, function).get
           }
 
@@ -334,7 +341,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             db.update(from, to, updatedProduct).get
           else {
             val function = createFunction()
-            db.registerFunction(function)
+            functions.register(function)
             db.applyFunction(from, to, function).get
           }
 
@@ -376,7 +383,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             db.expire(from, to, newDeadline).get
           else {
             val function = createFunction()
-            db.registerFunction(function)
+            functions.register(function)
             db.applyFunction(from, to, function).get
           }
 
@@ -411,7 +418,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             db.remove(productToRemoveId).get
           else {
             val function = createFunction()
-            db.registerFunction(function)
+            functions.register(function)
             db.applyFunction(productToRemoveId, function).get
           }
 
@@ -464,7 +471,7 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
             db.remove(from, to).get
           else {
             val function = createFunction()
-            db.registerFunction(function)
+            functions.register(function)
             db.applyFunction(from, to, function).get
           }
 

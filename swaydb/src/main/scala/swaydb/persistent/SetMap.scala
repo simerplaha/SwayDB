@@ -39,8 +39,6 @@ object SetMap extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
-  implicit def functionStore: FunctionStore = FunctionStore.memory()
-
   def apply[K, V, F, BAG[_]](dir: Path,
                              mapSize: Int = 4.mb,
                              mmapMaps: Boolean = true,
@@ -69,6 +67,7 @@ object SetMap extends LazyLogging {
                                                                                                          valueSerializer: Serializer[V],
                                                                                                          functionClassTag: ClassTag[F],
                                                                                                          bag: swaydb.Bag[BAG],
+                                                                                                         functions: swaydb.Set.Functions[(K, V), F],
                                                                                                          keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.SetMap[K, V, F, BAG]] = {
 
     implicit val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)

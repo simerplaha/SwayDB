@@ -27,7 +27,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{IO, KeyComparator, KeyOrderConverter, PureFunction, Return}
+import swaydb.java._
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
@@ -50,6 +50,21 @@ object SetConfig {
                      serializer: Serializer[A],
                      functionClassTag: ClassTag[_]) {
 
+    private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]()(serializer)
+
+    def registerFunctions(functions: F*): Unit =
+      functions.foreach(registerFunction(_))
+
+    def registerFunction(function: F): Unit = {
+      val scalaFunction = PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]])
+      functions.register(scalaFunction)
+    }
+
+    def removeFunction(function: F): Unit = {
+      val scalaFunction = function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]].id.asInstanceOf[Slice[Byte]]
+      functions.core.remove(scalaFunction)
+    }
+
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
 
     def init(): swaydb.java.Set[A, F] = {
@@ -65,6 +80,7 @@ object SetConfig {
         )(serializer = serializer,
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
           bag = Bag.less,
+          functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
           keyOrder = Left(scalaKeyOrder)
         ).get
 

@@ -39,7 +39,7 @@
 //object Map extends LazyLogging {
 //
 //  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-//  implicit def functionStore: FunctionStore = FunctionStore.memory()
+//
 //
 //  /**
 //   * A 2 Leveled (Level0 & Level1), in-memory database.

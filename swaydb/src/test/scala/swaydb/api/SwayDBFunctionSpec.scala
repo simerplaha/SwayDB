@@ -67,24 +67,24 @@ protected object Key {
 
 class SwayDBFunctionSpec0 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
+  override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function]): Map[Key, Int, Key.Function, IO.ApiIO] =
     swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir).right.value
 }
 
 class SwayDBFunctionSpec1 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
+  override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function]): Map[Key, Int, Key.Function, IO.ApiIO] =
     swaydb.persistent.Map[Key, Int, Key.Function, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec2 extends SwayDBFunctionSpec {
 
-  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
+  override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function]): Map[Key, Int, Key.Function, IO.ApiIO] =
     swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
-  override def newDB(): Map[Key, Int, Key.Function, IO.ApiIO] =
+  override def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function]): Map[Key, Int, Key.Function, IO.ApiIO] =
     swaydb.memory.Map[Key, Int, Key.Function, IO.ApiIO]().right.value
 }
 
@@ -101,13 +101,15 @@ class SwayDBFunctionSpec3 extends SwayDBFunctionSpec {
 
 sealed trait SwayDBFunctionSpec extends TestBase {
 
-  def newDB(): Map[Key, Int, Key.Function, IO.ApiIO]
+  def newDB()(implicit functionStore: Map.Functions[Key, Int, Key.Function]): Map[Key, Int, Key.Function, IO.ApiIO]
+
+  implicit val functionsMap = swaydb.Map.Functions[Key, Int, Key.Function]()
+  functionsMap.register(Key.IncrementValue, Key.DoNothing)
 
   "SwayDB" should {
     "perform concurrent atomic updates to a single key" in {
 
       val db = newDB()
-      db.registerFunction(Key.IncrementValue)
 
       db.put(Key.Id(1), 0).get
 
@@ -124,7 +126,6 @@ sealed trait SwayDBFunctionSpec extends TestBase {
     "perform concurrent atomic updates to multiple keys" in {
 
       val db = newDB()
-      db.registerFunction(Key.IncrementValue)
 
       (1 to 1000) foreach {
         i =>
@@ -150,7 +151,6 @@ sealed trait SwayDBFunctionSpec extends TestBase {
     "batch commit updates" in {
 
       val db = newDB()
-      db.registerFunction(Key.IncrementValue)
 
       val puts: List[Prepare[Key.Id, Int, Nothing]] =
         (1 to 1000).map(key => Prepare.Put(Key.Id(key), key)).toList
@@ -173,7 +173,6 @@ sealed trait SwayDBFunctionSpec extends TestBase {
     "Nothing should not update data" in {
 
       val db = newDB()
-      db.registerFunction(Key.DoNothing)
 
       (1 to 1000) foreach {
         i =>

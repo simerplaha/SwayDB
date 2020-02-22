@@ -120,9 +120,6 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def clear(): swaydb.OK =
     asScala.clear()
 
-  def registerFunction(function: F): swaydb.OK =
-    asScala.registerFunction(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
-
   def applyFunction(from: A, to: A, function: F): swaydb.OK =
     asScala.applyFunction(from, to, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
 

@@ -30,7 +30,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.java.data.slice.ByteSlice
 import swaydb.java.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
-import swaydb.java.{IO, KeyComparator, KeyOrderConverter, Return}
+import swaydb.java.{IO, KeyComparator, KeyOrderConverter, PureFunction, Return}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
 import swaydb.{Apply, Bag}
@@ -74,6 +74,17 @@ object MapConfig {
 
     implicit def scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, keySerializer)
 
+    private val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]()(keySerializer, valueSerializer)
+
+    def registerFunctions(functions: F*): Unit =
+      functions.foreach(registerFunction(_))
+
+    def registerFunction(function: F): Unit =
+      functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
+
+    def removeFunction(function: F): Unit =
+      functions.core.remove(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]].id.asInstanceOf[Slice[Byte]])
+
     def init(): swaydb.java.Map[K, V, F] = {
       val scalaMap =
         swaydb.persistent.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less](
@@ -104,6 +115,7 @@ object MapConfig {
           memoryCache = memoryCache
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
+          functions = functions.asInstanceOf[swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]],
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
           bag = Bag.less,
           keyOrder = Left(scalaKeyOrder)

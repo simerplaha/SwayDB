@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.data.slice.Slice;
 import swaydb.java.memory.SetConfig;
 import swaydb.java.serializers.Serializer;
 
@@ -422,9 +421,12 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set =
+    SetConfig.Config<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> config =
       SetConfig
-        .withFunctions(intSerializer())
+        .withFunctions(intSerializer());
+
+    Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set =
+      config
         .init();
 
     set.add(Stream.range(1, 100));
@@ -435,17 +437,17 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     //does not compile
 //    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> incrementBy1 = null;
-//    set.registerFunction(incrementBy1);
+//    config.registerFunction(incrementBy1);
 
     //does not compile
 //    PureFunction.OnKeyValue<Integer, Integer, Return.Set<Integer>> removeMod0OrIncrementBy1 = null;
-//    set.registerFunction(removeMod0OrIncrementBy1);
+//    config.registerFunction(removeMod0OrIncrementBy1);
 
     //this will not compile since the return type specified is a Set - expected!
 //    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> set = null;
-//    set.registerFunction(set);
+//    config.registerFunction(set);
 
-    set.registerFunction(expire);
+    config.registerFunction(expire);
 
     set.applyFunction(1, 100, expire);
 

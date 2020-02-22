@@ -28,11 +28,48 @@ import swaydb.data.slice.{Slice, SliceOption}
 import swaydb.serializers.{Serializer, _}
 
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import swaydb.core.function.{FunctionStore => CoreFunctionStore}
 
 object Set {
   def apply[A, F, BAG[_]](api: Core[BAG])(implicit serializer: Serializer[A],
                                           bag: Bag[BAG]): Set[A, F, BAG] =
     new Set(api, None)
+
+  implicit def nothing[A]: Functions[A, Nothing] =
+    new Functions[A, Nothing]()(null)
+
+  implicit def void[A]: Functions[A, Void] =
+    new Functions[A, Void]()(null)
+
+  object Functions {
+    def apply[A, F](functions: F*)(implicit serializer: Serializer[A],
+                                   ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) = {
+      val f = new Functions[A, F]()
+      functions.foreach(f.register(_))
+      f
+    }
+
+    def apply[A, F](functions: Iterable[F])(implicit serializer: Serializer[A],
+                                            ev: F <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) = {
+      val f = new Functions[A, F]()
+      functions.foreach(f.register(_))
+      f
+    }
+  }
+
+  final case class Functions[A, F]()(implicit serializer: Serializer[A]) {
+
+    private[swaydb] val core = CoreFunctionStore.memory()
+
+    def register[PF <: F](functions: PF*)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
+      functions.foreach(register(_))
+
+    def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
+      core.put(function.id, SwayDB.toCoreFunction(function))
+
+    def remove[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): Unit =
+      core.remove(function.id)
+  }
 }
 
 /**
@@ -133,9 +170,6 @@ case class Set[A, F, BAG[_]](private[swaydb] val core: Core[BAG],
 
   def clear(): BAG[OK] =
     bag.suspend(core.clear(core.readStates.get()))
-
-  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
-    core.registerFunction(function.id, SwayDB.toCoreFunction(function))
 
   def applyFunction[PF <: F](from: A, to: A, function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]): BAG[OK] =
     bag.suspend(core.function(from, to, function.id))

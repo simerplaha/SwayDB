@@ -38,7 +38,6 @@ import scala.reflect.ClassTag
 object Map extends LazyLogging {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-  implicit def functionStore: FunctionStore = FunctionStore.memory()
 
   /**
    * A 3 Leveled in-memory database where the 3rd is persistent.
@@ -69,9 +68,11 @@ object Map extends LazyLogging {
                                                                                                                                valueSerializer: Serializer[V],
                                                                                                                                functionClassTag: ClassTag[F],
                                                                                                                                bag: swaydb.Bag[BAG],
+                                                                                                                               functions: swaydb.Map.Functions[K, V, F],
                                                                                                                                keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
 
     implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
+    implicit val coreFunctions: FunctionStore.Memory = functions.core
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
