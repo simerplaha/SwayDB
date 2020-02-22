@@ -28,18 +28,19 @@ import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 
-trait FunctionStore {
+private[swaydb] sealed trait FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
   def put(functionId: Slice[Byte], function: SwayFunction): OK
+  def remove(functionId: Slice[Byte]): Unit
   def exists(functionId: Slice[Byte]): Boolean
   def notExists(functionId: Slice[Byte]): Boolean =
     !exists(functionId)
 }
 
-object FunctionStore {
+private[swaydb] object FunctionStore {
 
-  def memory() =
-    new MemoryStore()
+  def memory(): FunctionStore.Memory =
+    new Memory()
 
   val order: FunctionIdOrder =
     new FunctionIdOrder {
@@ -75,22 +76,26 @@ object FunctionStore {
   }
 
   trait FunctionIdOrder extends Ordering[Slice[Byte]]
-}
 
-class MemoryStore extends FunctionStore {
+  final class Memory extends FunctionStore {
 
-  private val functions = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
+    private val functions = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
 
-  override def get(functionId: Slice[Byte]): Option[SwayFunction] =
-    Option(functions.get(functionId))
+    override def get(functionId: Slice[Byte]): Option[SwayFunction] =
+      Option(functions.get(functionId))
 
-  override def put(functionId: Slice[Byte], function: SwayFunction): OK = {
-    if (functions.putIfAbsent(functionId, function) == null)
-      OK.instance
-    else
-      throw new Exception("Another with the same functionId exists.")
+    override def put(functionId: Slice[Byte], function: SwayFunction): OK = {
+      if (functions.putIfAbsent(functionId, function) == null)
+        OK.instance
+      else
+        throw new Exception("Another with the same functionId exists.")
+    }
+
+    override def exists(functionId: Slice[Byte]): Boolean =
+      get(functionId).isDefined
+
+    override def remove(functionId: Slice[Byte]): Unit =
+      functions.remove(functionId)
   }
-
-  override def exists(functionId: Slice[Byte]): Boolean =
-    get(functionId).isDefined
 }
+
