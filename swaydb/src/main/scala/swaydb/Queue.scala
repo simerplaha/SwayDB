@@ -133,7 +133,7 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
           value
 
         case None =>
-          if (brakeRecover(nextId))
+          if (brakeRecover(nextId + 1))
             popOrElse(other)
           else
             other

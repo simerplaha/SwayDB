@@ -30,6 +30,7 @@ import org.scalatest.OptionValues._
 import scala.collection.parallel.CollectionConverters._
 import scala.jdk.CollectionConverters._
 import scala.util.Random
+import scala.concurrent.duration._
 
 class QueueSpec0 extends QueueSpec {
 
@@ -47,6 +48,39 @@ sealed trait QueueSpec extends TestBase {
   def newQueue(): Queue[Int]
 
   "it" should {
+    "push and pop" in {
+      val queue: Queue[Int] = newQueue()
+
+      queue.push(1)
+      queue.push(2)
+
+      queue.popOrNull() shouldBe 1
+      queue.popOrNull() shouldBe 2
+    }
+
+    "push, expire and pop" in {
+      val queue: Queue[Int] = newQueue()
+
+      queue.push(elem = 1, expireAfter = 1.seconds)
+      queue.push(2)
+
+      Thread.sleep(1000)
+
+      queue.popOrNull() shouldBe 2
+      queue.pop() shouldBe empty
+
+      queue.push(elem = 3, expireAfter = 1.seconds)
+      queue.popOrNull() shouldBe 3
+
+      queue.push(elem = 4, expireAfter = 1.seconds)
+      queue.push(elem = 5)
+      queue.push(elem = 6)
+
+      Thread.sleep(1000)
+      queue.popOrNull() shouldBe 5
+      queue.popOrNull() shouldBe 6
+    }
+
     "concurrently process" in {
       val queue: Queue[Int] = newQueue()
       val processedQueue = new ConcurrentLinkedQueue[Int]()
