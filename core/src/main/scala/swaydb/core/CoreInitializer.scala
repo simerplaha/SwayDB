@@ -325,6 +325,9 @@ private[core] object CoreInitializer extends LazyLogging {
                               (impl, state, actor) =>
                                 impl.terminate(state, actor)
                             }
+                        } flatMapIO {
+                          _ =>
+                            closeLevels(zero)
                         }
 
                       new Core[Bag.Less](
