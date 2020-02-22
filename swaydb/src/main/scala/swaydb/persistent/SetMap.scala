@@ -22,11 +22,11 @@ package swaydb.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
-import swaydb.core.function.FunctionStore
+import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
@@ -36,8 +36,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 object SetMap extends LazyLogging {
-
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
 
   def apply[K, V, F, BAG[_]](dir: Path,
                              mapSize: Int = 4.mb,
@@ -68,10 +66,12 @@ object SetMap extends LazyLogging {
                                                                                                          functionClassTag: ClassTag[F],
                                                                                                          bag: swaydb.Bag[BAG],
                                                                                                          functions: swaydb.Set.Functions[(K, V), F],
-                                                                                                         keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.SetMap[K, V, F, BAG]] = {
+                                                                                                         byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                         typedKeyOrder: KeyOrder[K] = null): IO[Error.Boot, swaydb.SetMap[K, V, F, BAG]] = {
 
-    implicit val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
-    implicit val ordering: Left[KeyOrder[Slice[Byte]], Nothing] = Left(swaydb.SetMap.ordering(keyOrder))
+    val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
+    val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
+    val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(nullCheckedOrder)
 
     Set[(K, V), F, BAG](
       dir = dir,
@@ -99,6 +99,11 @@ object SetMap extends LazyLogging {
       levelFourThrottle = levelFourThrottle,
       levelFiveThrottle = levelFiveThrottle,
       levelSixThrottle = levelSixThrottle
+    )(serializer = serialiser,
+      functionClassTag = functionClassTag,
+      bag = bag,
+      functions = functions,
+      byteKeyOrder = ordering
     ) map {
       set =>
         swaydb.SetMap[K, V, F, BAG](set)

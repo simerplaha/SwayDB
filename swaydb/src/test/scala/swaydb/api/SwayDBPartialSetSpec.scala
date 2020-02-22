@@ -40,15 +40,13 @@ object SwayDBPartialSetSpec {
   }
 
   implicit val ordering =
-    Right(
-      new KeyOrder[(Int, Option[String])] {
-        override def compare(x: (Int, Option[String]), y: (Int, Option[String])): Int =
-          x._1 compare y._1
+    new KeyOrder[(Int, Option[String])] {
+      override def compare(x: (Int, Option[String]), y: (Int, Option[String])): Int =
+        x._1 compare y._1
 
-        private[swaydb] override def comparableKey(key: (Int, Option[String])): (Int, Option[String]) =
-          (key._1, None)
-      }
-    )
+      private[swaydb] override def comparableKey(key: (Int, Option[String])): (Int, Option[String]) =
+        (key._1, None)
+    }
 }
 
 class SwayDBPartialSet_Persistent_Spec extends SwayDBPartialSetSpec {

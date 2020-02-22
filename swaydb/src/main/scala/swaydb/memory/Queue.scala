@@ -57,12 +57,10 @@ object Queue extends LazyLogging {
           data.readUnsignedLong()
       }
 
-    implicit val keyOrder: Right[Nothing, KeyOrder[Long]] =
-      Right {
-        new KeyOrder[Long] {
-          override def compare(x: Long, y: Long): Int =
-            x compareTo y
-        }
+    implicit val keyOrder: KeyOrder[Long] =
+      new KeyOrder[Long] {
+        override def compare(x: Long, y: Long): Int =
+          x compareTo y
       }
 
     SetMap[Long, A, Nothing, Bag.Less](

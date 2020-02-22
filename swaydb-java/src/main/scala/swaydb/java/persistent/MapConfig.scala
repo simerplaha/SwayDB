@@ -133,7 +133,7 @@ object MapConfig {
           functions = functions.asInstanceOf[swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]],
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]],
           bag = Bag.less,
-          keyOrder = Left(scalaKeyOrder)
+          byteKeyOrder = scalaKeyOrder
         ).get
 
       swaydb.java.Map[K, V, F](scalaMap)

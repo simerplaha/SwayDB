@@ -37,8 +37,6 @@ import scala.reflect.ClassTag
 
 object Set extends LazyLogging {
 
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
@@ -54,9 +52,10 @@ object Set extends LazyLogging {
                                                                                                                             functionClassTag: ClassTag[F],
                                                                                                                             bag: swaydb.Bag[BAG],
                                                                                                                             functions: swaydb.Set.Functions[A, F],
-                                                                                                                            keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[A]] = Left(KeyOrder.default)): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {
-    implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
-    implicit val coreFunctions: FunctionStore.Memory = functions.core
+                                                                                                                            byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                            typedKeyOrder: KeyOrder[A] = null): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {
+    val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+    val coreFunctions: FunctionStore.Memory = functions.core
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
@@ -74,6 +73,9 @@ object Set extends LazyLogging {
         ),
       fileCache = fileCache,
       memoryCache = MemoryCache.Disable
+    )(keyOrder = keyOrder,
+      timeOrder = TimeOrder.long,
+      functionStore = coreFunctions
     ) map {
       db =>
         swaydb.Set[A, F, BAG](db.toBag)

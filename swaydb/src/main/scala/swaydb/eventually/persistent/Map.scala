@@ -37,8 +37,6 @@ import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-
   /**
    * A 3 Leveled in-memory database where the 3rd is persistent.
    *
@@ -69,9 +67,10 @@ object Map extends LazyLogging {
                                                                                                                                functionClassTag: ClassTag[F],
                                                                                                                                bag: swaydb.Bag[BAG],
                                                                                                                                functions: swaydb.Map.Functions[K, V, F],
-                                                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
+                                                                                                                               byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                               typedKeyOrder: KeyOrder[K] = null): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
 
-    implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
+    implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
     implicit val coreFunctions: FunctionStore.Memory = functions.core
 
     Core(
@@ -100,6 +99,9 @@ object Map extends LazyLogging {
         ),
       fileCache = fileCache,
       memoryCache = memoryCache
+    )(keyOrder = keyOrder,
+      timeOrder = TimeOrder.long,
+      functionStore = coreFunctions
     ) map {
       db =>
         swaydb.Map[K, V, F, BAG](db.toBag)

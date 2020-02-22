@@ -26,11 +26,11 @@ import swaydb.serializers.Serializer
 
 protected object KeyOrderConverter {
 
-  def typedToBytesNullCheck[K](byteOrdering: KeyOrder[Slice[Byte]], typedOrdering: KeyOrder[K])(implicit serializer: Serializer[K]): KeyOrder[Slice[Byte]] =
+  def typedToBytesNullCheck[K](byteKeyOrder: KeyOrder[Slice[Byte]], typedKeyOrder: KeyOrder[K])(implicit serializer: Serializer[K]): KeyOrder[Slice[Byte]] =
     typedToBytes(
       Eithers.nullCheck(
-        left = byteOrdering,
-        right = typedOrdering,
+        left = byteKeyOrder,
+        right = typedKeyOrder,
         default = KeyOrder.default
       )
     )

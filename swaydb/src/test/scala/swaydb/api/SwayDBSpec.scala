@@ -77,7 +77,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
           db.put(i, i.toString).right.value
       }
       println("Removing .... ")
-      db.remove(2, 999).right.value
+      doRemove(2, 999, db)
       println("Removed .... ")
 
       db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))

@@ -37,8 +37,6 @@ import scala.reflect.ClassTag
 
 object Map extends LazyLogging {
 
-  implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
-
   def apply[K, V, F, BAG[_]](mapSize: Int = 4.mb,
                              minSegmentSize: Int = 2.mb,
                              maxKeyValuesPerSegment: Int = 100000,
@@ -52,9 +50,10 @@ object Map extends LazyLogging {
                                                                                                                                functionClassTag: ClassTag[F],
                                                                                                                                bag: swaydb.Bag[BAG],
                                                                                                                                functions: swaydb.Map.Functions[K, V, F],
-                                                                                                                               keyOrder: Either[KeyOrder[Slice[Byte]], KeyOrder[K]] = Left(KeyOrder.default)): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
-    implicit val bytesKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytes(keyOrder)
-    implicit val coreFunctions: FunctionStore.Memory = functions.core
+                                                                                                                               byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                               typedKeyOrder: KeyOrder[K] = null): IO[swaydb.Error.Boot, swaydb.Map[K, V, F, BAG]] = {
+    val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+    val coreFunctions: FunctionStore.Memory = functions.core
 
     Core(
       enableTimer = functionClassTag != ClassTag.Nothing,
@@ -72,6 +71,9 @@ object Map extends LazyLogging {
         ),
       fileCache = fileCache,
       memoryCache = MemoryCache.Disable
+    )(keyOrder = keyOrder,
+      timeOrder = TimeOrder.long,
+      functionStore = coreFunctions
     ) map {
       db =>
         swaydb.Map[K, V, F, BAG](db.toBag)

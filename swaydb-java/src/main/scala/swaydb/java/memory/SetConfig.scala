@@ -94,7 +94,7 @@ object SetConfig {
           functionClassTag = functionClassTag.asInstanceOf[ClassTag[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
           bag = Bag.less,
           functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
-          keyOrder = Left(scalaKeyOrder)
+          byteKeyOrder = scalaKeyOrder
         ).get
 
       swaydb.java.Set[A, F](scalaMap)
