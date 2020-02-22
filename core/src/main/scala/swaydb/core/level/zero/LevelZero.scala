@@ -221,7 +221,7 @@ private[swaydb] case class LevelZero(path: Path,
     else if (toKey.isEmpty)
       throw new IllegalArgumentException("toKey cannot be empty.")
     else if (fromKey > toKey) //fromKey cannot also be equal to toKey. The invoking this assert should also check for equality and call update on single key-value.
-      throw new IllegalArgumentException("fromKey should be less than toKey.")
+    throw new IllegalArgumentException("fromKey should be less than toKey.")
 
   def put(key: Slice[Byte]): OK = {
     validateInput(key)
@@ -351,7 +351,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notExists(function)) {
-      throw new IllegalArgumentException("Function does not exists in function store.")
+      throw new IllegalArgumentException("Cannot apply unregistered function.")
     } else {
       validateInput(key)
 
@@ -368,7 +368,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notExists(function)) {
-      throw new IllegalArgumentException("Function does not exists in function store.")
+      throw new IllegalArgumentException("Cannot apply unregistered function.")
     } else {
       validateInput(fromKey, toKey)
 
