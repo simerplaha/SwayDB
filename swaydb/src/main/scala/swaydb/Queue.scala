@@ -78,9 +78,9 @@ object Queue {
     }
 }
 
-case class Queue[A](private val set: Set[(Long, A), Nothing, Bag.Less],
-                    private val pushIds: AtomicLong,
-                    private val popIds: AtomicLong) extends LazyLogging {
+case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
+                            private val pushIds: AtomicLong,
+                            private val popIds: AtomicLong) extends LazyLogging {
 
   private val nullA = null.asInstanceOf[A]
 

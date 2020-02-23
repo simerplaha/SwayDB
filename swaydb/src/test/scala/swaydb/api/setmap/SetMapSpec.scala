@@ -50,5 +50,7 @@ sealed trait SetMapSpec extends TestBase {
       i =>
         map.get(i).value shouldBe i.toString
     }
+
+    map.close()
   }
 }

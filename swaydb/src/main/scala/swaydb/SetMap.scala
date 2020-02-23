@@ -43,7 +43,7 @@ object SetMap {
           if (data._2 == null)
             Slice.emptyBytes //value can be null when
           else
-            bSerializer.write(data._2)
+          bSerializer.write(data._2)
 
         Slice
           .create[Byte](Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
@@ -118,7 +118,7 @@ object SetMap {
  * [[SetMap]] has limited write APIs as compared to [[swaydb.Map]]
  * range & update operations are not supported.
  */
-case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
   private final val nullValue: V = nullValue
 
@@ -270,5 +270,4 @@ case class SetMap[K, V, F, BAG[_]](set: Set[(K, V), F, BAG])(implicit bag: Bag[B
 
   override def toString(): String =
     classOf[SetMap[_, _, _, BAG]].getClass.getSimpleName
-
 }

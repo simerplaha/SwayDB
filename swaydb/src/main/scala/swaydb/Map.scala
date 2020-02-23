@@ -88,11 +88,11 @@ object Map {
  *
  * For documentation check - http://swaydb.io/bag/
  */
-case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
-                                private val from: Option[From[K]] = None,
-                                private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
-                                                                                       valueSerializer: Serializer[V],
-                                                                                       bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
+                                        private val from: Option[From[K]] = None,
+                                        private[swaydb] val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
+                                                                                               valueSerializer: Serializer[V],
+                                                                                               bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
   def put(key: K, value: V): BAG[OK] =
     bag.suspend(core.put(key = key, value = value))

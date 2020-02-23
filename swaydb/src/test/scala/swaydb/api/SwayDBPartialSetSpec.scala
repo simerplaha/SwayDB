@@ -96,5 +96,7 @@ trait SwayDBPartialSetSpec extends TestBaseEmbedded {
     assertReads()
     sleep(5.seconds)
     assertReads()
+
+    set.close()
   }
 }

@@ -80,6 +80,8 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
       val db = newDB()
       db.asScala.add(1)
       db.asScala.contains(1) shouldBe true
+
+      db.close().get
     }
 
     "putAll" in {
@@ -89,6 +91,8 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
       db.asScala.contains(1) shouldBe true
       db.asScala.contains(2) shouldBe true
+
+      db.close().get
     }
 
     "remove" in {
@@ -100,6 +104,8 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
       db.asScala.contains(1) shouldBe false
       db.asScala.contains(2) shouldBe true
+
+      db.close().get
     }
 
     "removeAll" in {
@@ -111,6 +117,8 @@ sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
       db.asScala.contains(1) shouldBe false
       db.asScala.contains(2) shouldBe false
+
+      db.close().get
     }
 
     "head, last, contains" in {

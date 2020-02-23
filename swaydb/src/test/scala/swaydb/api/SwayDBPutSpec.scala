@@ -365,6 +365,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       db.isEmpty.get shouldBe true
       db.clear().right.value
       db.isEmpty.get shouldBe true
+
+      db.close().get
     }
 
     "not empty" in {
@@ -375,6 +377,8 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
       db.clear().right.value
       db.isEmpty.get shouldBe true
+
+      db.close().get
     }
   }
 }

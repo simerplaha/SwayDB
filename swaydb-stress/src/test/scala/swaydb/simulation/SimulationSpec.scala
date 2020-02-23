@@ -549,9 +549,9 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
 
   "Users" should {
 
-    "print DB" in {
-      println(db.get(160000000000001887L).get)
-    }
+//    "print DB" in {
+//      println(db.get(160000000000001887L).get)
+//    }
 
     "concurrently Create, Update, Read & Delete (CRUD) Products" in {
       val maxUsers: Int = 30
