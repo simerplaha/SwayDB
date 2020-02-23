@@ -99,23 +99,23 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
   def push(elem: A, expireAt: Deadline): OK =
     set.add((pushIds.getAndIncrement(), elem), expireAt)
 
-  def push(keyValues: A*): OK =
-    push(keyValues)
+  def push(elems: A*): OK =
+    push(elems)
 
-  def push(keyValues: Stream[A]): OK =
+  def push(elems: Stream[A]): OK =
     set.add {
-      keyValues.map {
+      elems.map {
         item =>
           (pushIds.getAndIncrement(), item)
       }
     }
 
-  def push(keyValues: Iterable[A]): OK =
-    push(keyValues.iterator)
+  def push(elems: Iterable[A]): OK =
+    push(elems.iterator)
 
-  def push(keyValues: Iterator[A]): OK =
+  def push(elems: Iterator[A]): OK =
     set.add {
-      keyValues.map {
+      elems.map {
         item =>
           (pushIds.getAndIncrement(), item)
       }
@@ -130,21 +130,21 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
   /**
    * Safely pick the next job.
    */
-  @inline private def popAndRecover(nextId: Long): Option[A] =
+  @inline private def popAndRecoverOrNull(nextId: Long): A =
     try
       set.get((nextId, nullA)) match {
         case Some(keyValue) =>
           set.remove(keyValue)
-          Some(keyValue._2)
+          keyValue._2
 
         case None =>
-          None
+          nullA
       }
     catch {
       case throwable: Throwable =>
         retryQueue add nextId
         logger.error(s"Failed to process taskId: $nextId", throwable)
-        None
+        nullA
     }
 
   /**
@@ -167,7 +167,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
     }
 
   @tailrec
-  final def popOrElse[B <: A](other: => B): A =
+  final def popOrElse[B <: A](orElse: => B): A =
     if (popIds.get() < pushIds.get()) {
       //check if there is a previously failed job to process
       val retryId = retryQueue.poll()
@@ -176,21 +176,20 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
         if (retryId == null)
           popIds.getAndIncrement() //pick next job
         else
-        retryId
+          retryId
 
       //pop the next job from the map safely.
-      popAndRecover(nextId) match {
-        case Some(value) =>
-          value
+      val valueOrNull = popAndRecoverOrNull(nextId)
 
-        case None =>
-          if (brakeRecover(nextId + 1))
-            popOrElse(other)
-          else
-            other
-      }
+      if (valueOrNull == null)
+        if (brakeRecover(nextId + 1))
+          popOrElse(orElse)
+        else
+          orElse
+      else
+        valueOrNull
     } else {
-      other
+      orElse
     }
 
   def stream: Stream[A] =
