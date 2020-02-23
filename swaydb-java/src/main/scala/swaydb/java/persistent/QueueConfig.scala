@@ -103,16 +103,9 @@ object QueueConfig {
     }
   }
 
-  def withFunctions[A](dir: Path,
-                       keySerializer: JavaSerializer[A]): Config[A] =
+  def configure[A](dir: Path,
+                   serializer: JavaSerializer[A]): Config[A] =
     new Config(
-      dir = dir,
-      serializer = SerializerConverter.toScala(keySerializer)
-    )
-
-  def withoutFunctions[A](dir: Path,
-                          serializer: JavaSerializer[A]): Config[A] =
-    new Config[A](
       dir = dir,
       serializer = SerializerConverter.toScala(serializer)
     )

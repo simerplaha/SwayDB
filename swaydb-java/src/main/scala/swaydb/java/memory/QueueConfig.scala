@@ -64,10 +64,6 @@ object QueueConfig {
     }
   }
 
-  def withFunctions[A](serializer: JavaSerializer[A]): Config[A] =
+  def configure[A](serializer: JavaSerializer[A]): Config[A] =
     new Config(serializer = SerializerConverter.toScala(serializer))
-
-  def withoutFunctions[A](serializer: JavaSerializer[A]): Config[A] =
-    new Config[A](serializer = SerializerConverter.toScala(serializer))
-
 }

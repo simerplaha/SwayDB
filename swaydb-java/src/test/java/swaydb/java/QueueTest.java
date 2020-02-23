@@ -19,7 +19,6 @@
 
 package swaydb.java;
 
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import swaydb.data.java.JavaEventually;
@@ -34,13 +33,12 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
-
 class MemoryQueueTest extends QueueTest {
 
   public <K> Queue<K> createQueue(Serializer<K> serialiser) {
     return
       QueueConfig
-        .withoutFunctions(serialiser)
+        .configure(serialiser)
         .init();
   }
 }
@@ -55,7 +53,7 @@ class PersistentQueueTest extends QueueTest {
   public <K> Queue<K> createQueue(Serializer<K> serialiser) throws IOException {
     return
       swaydb.java.persistent.QueueConfig
-        .withoutFunctions(testDir(), serialiser)
+        .configure(testDir(), serialiser)
         .init();
   }
 }
@@ -103,8 +101,6 @@ abstract class QueueTest extends TestBase implements JavaEventually {
         integer ->
           assertEquals(integer, set.popOrNull())
       );
-
-    assertTrue(set.stream().materialize().isEmpty());
 
     assertNull(set.popOrNull());
   }

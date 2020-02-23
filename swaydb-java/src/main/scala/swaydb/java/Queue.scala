@@ -35,14 +35,14 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
   def push(elem: A, expireAfter: java.time.Duration): OK =
     asScala.push(elem, expireAfter.toScala)
 
-  def push(keyValues: Stream[A]): OK =
-    asScala.push(keyValues.asScala)
+  def push(elems: Stream[A]): OK =
+    asScala.push(elems.asScala)
 
-  def push(keyValues: java.util.List[A]): OK =
-    asScala.push(keyValues.asScala)
+  def push(elems: java.util.List[A]): OK =
+    asScala.push(elems.asScala)
 
-  def push(keyValues: java.util.Iterator[A]): OK =
-    asScala.push(keyValues.asScala)
+  def push(elems: java.util.Iterator[A]): OK =
+    asScala.push(elems.asScala)
 
   def pop(): Optional[A] =
     Optional.of(asScala.popOrNull())
