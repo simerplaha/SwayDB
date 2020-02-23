@@ -82,7 +82,7 @@ private[core] object FunctionMerger {
           }
 
         case None =>
-          throw swaydb.Exception.FunctionNotFound(function)
+          throw swaydb.Exception.FunctionNotFound(function.readString())
       }
     }
 
@@ -166,7 +166,7 @@ private[core] object FunctionMerger {
           }
 
         case None =>
-          throw swaydb.Exception.FunctionNotFound(function)
+          throw swaydb.Exception.FunctionNotFound(function.readString())
       }
     }
     else
@@ -224,7 +224,7 @@ private[core] object FunctionMerger {
               }
 
             case None =>
-              throw swaydb.Exception.FunctionNotFound(function)
+              throw swaydb.Exception.FunctionNotFound(function.readString())
           }
       }
     }

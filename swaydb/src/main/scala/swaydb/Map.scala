@@ -69,17 +69,17 @@ object Map {
     def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
       (function: swaydb.PureFunction[K, V, Apply.Map[V]]) match {
         case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
-          core.put(function.id, SwayDB.toCoreFunction(function))
+          core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
 
         case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
-          core.put(function.id, SwayDB.toCoreFunction(function))
+          core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
 
         case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
-          core.put(function.id, SwayDB.toCoreFunction(function))
+          core.put(Slice.writeString(function.id), SwayDB.toCoreFunction(function))
       }
 
     def remove[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
-      core.remove(function.id)
+      core.remove(Slice.writeString(function.id))
   }
 }
 
@@ -204,10 +204,10 @@ case class Map[K, V, F, BAG[_]](private[swaydb] val core: Core[BAG],
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.suspend(core.function(key, function.id))
+    bag.suspend(core.function(key, Slice.writeString(function.id)))
 
   def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    bag.suspend(core.function(from, to, function.id))
+    bag.suspend(core.function(from, to, Slice.writeString(function.id)))
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.suspend(core.put(preparesToUntyped(prepare).iterator))

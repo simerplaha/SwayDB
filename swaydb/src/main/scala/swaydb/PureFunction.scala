@@ -19,8 +19,6 @@
 
 package swaydb
 
-import swaydb.data.slice.Slice
-
 import scala.concurrent.duration.Deadline
 
 sealed trait PureFunction[+K, +V, R <: Apply[V]] {
@@ -32,21 +30,19 @@ sealed trait PureFunction[+K, +V, R <: Apply[V]] {
    * This can simply be the full class name if your application does not
    * have conflict package names and class names.
    *
-   * For example:
-   * {{{
-   *   Slice.writeString(this.getClass.getCanonicalName)
-   * }}}
+   * NOTE - Missing functions are reported/logged along with this [[id]] to
+   * make debugging easier.
    *
    * @return a unique id for each function.
    */
-  def id: Slice[Byte] =
-    Slice.writeString(this.getClass.getName)
+  def id: String =
+    this.getClass.getName
 }
 
 /**
  * Function types for SwayDB.
  *
- * Your registered functions ([[Map.registerFunction]]) should implement one of the these functions that
+ * Your registered functions should implement one of the these functions that
  * informs SwayDB of target data for the on the applied key should be read to execute the function.
  */
 object PureFunction {

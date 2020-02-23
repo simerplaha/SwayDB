@@ -35,7 +35,7 @@ private[swaydb] object PrepareImplicits {
         Prepare.Remove[Slice[Byte]](from, to, deadline)
 
       case Prepare.ApplyFunction(from, to, function) =>
-        Prepare.ApplyFunction[Slice[Byte], Slice[Byte]](from, to, function.id)
+        Prepare.ApplyFunction[Slice[Byte], Slice[Byte]](from, to, Slice.writeString(function.id))
 
       case Prepare.Update(from, to, value) =>
         Prepare.Update[Slice[Byte], SliceOption[Byte]](from, to, value)

@@ -201,8 +201,8 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
                 else
                   Apply.Nothing
 
-              override def id: Slice[Byte] =
-                Slice.writeInt(functionIDs.incrementAndGet())
+              override def id: String =
+                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -231,8 +231,8 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Expire(newDeadline)
 
-              override def id: Slice[Byte] =
-                Slice.writeInt(functionIDs.incrementAndGet())
+              override def id: String =
+                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -333,8 +333,8 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Update(updatedProduct)
 
-              override def id: Slice[Byte] =
-                Slice.writeInt(functionIDs.incrementAndGet())
+              override def id: String =
+                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -375,8 +375,8 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Expire(newDeadline)
 
-              override def id: Slice[Byte] =
-                Slice.writeInt(functionIDs.incrementAndGet())
+              override def id: String =
+                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -410,8 +410,8 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Remove
 
-              override def id: Slice[Byte] =
-                Slice.writeInt(functionIDs.incrementAndGet())
+              override def id: String =
+                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())
@@ -463,8 +463,8 @@ sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
               override def apply(key: Long, deadline: Option[Deadline]): Apply.Map[Domain] =
                 Apply.Remove
 
-              override def id: Slice[Byte] =
-                Slice.writeInt(functionIDs.incrementAndGet())
+              override def id: String =
+                functionIDs.incrementAndGet().toString
             }
 
           if (randomBoolean())

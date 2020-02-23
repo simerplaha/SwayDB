@@ -80,8 +80,8 @@ class ErrorSpec extends FlatSpec with Matchers {
     val readOnlyBufferException = new ReadOnlyBufferException
     Error(readOnlyBufferException) shouldBe Error.ReadOnlyBuffer(readOnlyBufferException)
 
-    Error(Exception.FunctionNotFound(Slice.writeInt(1))) shouldBe
-      Error.FunctionNotFound(Slice.writeInt(1))
+    Error(Exception.FunctionNotFound("1")) shouldBe
+      Error.FunctionNotFound("1")
 
     val overlappingFileLockException = swaydb.Exception.OverlappingFileLock(new OverlappingFileLockException)
     Error(overlappingFileLockException) shouldBe Error.UnableToLockDirectory(overlappingFileLockException)

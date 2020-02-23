@@ -373,7 +373,7 @@ object Error {
 
   case class ReadOnlyBuffer(exception: ReadOnlyBufferException) extends Error.IO
 
-  case class FunctionNotFound(functionId: Slice[Byte]) extends Error.API with Error.Segment {
+  case class FunctionNotFound(functionId: String) extends Error.API with Error.Segment {
     override def exception: Throwable = swaydb.Exception.FunctionNotFound(functionId)
   }
 

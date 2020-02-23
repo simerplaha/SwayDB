@@ -351,7 +351,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def applyFunction(key: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notExists(function)) {
-      throw new IllegalArgumentException("Cannot apply unregistered function.")
+      throw new IllegalArgumentException(s"Cannot apply unregistered function '${function.readString()}'. Please make sure the function is registered. See http://swaydb.io/api/write/registerFunction.")
     } else {
       validateInput(key)
 
@@ -368,7 +368,7 @@ private[swaydb] case class LevelZero(path: Path,
 
   def applyFunction(fromKey: Slice[Byte], toKey: Slice[Byte], function: Slice[Byte]): OK =
     if (functionStore.notExists(function)) {
-      throw new IllegalArgumentException("Cannot apply unregistered function.")
+      throw new IllegalArgumentException(s"Cannot apply unregistered function '${function.readString()}'. Please make sure the function is registered. See http://swaydb.io/api/write/registerFunction.")
     } else {
       validateInput(fromKey, toKey)
 

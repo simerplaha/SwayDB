@@ -42,16 +42,16 @@ protected object Key {
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Update[Int](value + 1)
 
-    override def id: Slice[Byte] =
-      Slice.writeInt(1)
+    override def id: String =
+      "1"
   }
 
   case object DoNothing extends Key.Function with swaydb.PureFunction.OnValue[Int, Apply.Map[Int]] {
     override def apply(value: Int): Apply.Map[Int] =
       Apply.Nothing
 
-    override def id: Slice[Byte] =
-      Slice.writeInt(2)
+    override def id: String =
+      "2"
   }
 
   implicit val deadlinePickler = transformPickler((nano: Long) => Deadline((nano, TimeUnit.NANOSECONDS)))(_.time.toNanos)
