@@ -21,7 +21,7 @@ package swaydb.api.queue
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import swaydb.Queue
+import swaydb.{Bag, Queue}
 import swaydb.core.TestBase
 import swaydb.core.util.Benchmark
 import swaydb.serializers.Default._
@@ -47,132 +47,150 @@ sealed trait QueueSpec extends TestBase {
 
   def newQueue(): Queue[Int]
 
-  "it" should {
-    "push and pop" in {
-      val queue: Queue[Int] = newQueue()
+  "push and pop" in {
+    val queue: Queue[Int] = newQueue()
 
-      queue.push(1)
-      queue.push(2)
+    queue.push(1)
+    queue.push(2)
 
-      queue.popOrNull() shouldBe 1
-      queue.popOrNull() shouldBe 2
-    }
+    queue.popOrNull() shouldBe 1
+    queue.popOrNull() shouldBe 2
+  }
 
-    "push, expire and pop" in {
-      val queue: Queue[Int] = newQueue()
+  "push and pop in FIFO manner" in {
+    val queue: Queue[Int] = newQueue()
 
-      queue.push(elem = 1, expireAfter = 1.seconds)
-      queue.push(2)
+    Benchmark("Push")((1 to 1000000).foreach(queue.push))
+    Benchmark("Pop")((1 to 1000000).foreach(item => queue.popOrNull() shouldBe item))
 
-      Thread.sleep(1000)
+    //all popped out
+    queue.pop() shouldBe empty
+  }
 
-      queue.popOrNull() shouldBe 2
-      queue.pop() shouldBe empty
+  "push, expire, pop & stream" in {
+    val queue: Queue[Int] = newQueue()
 
-      queue.push(elem = 3, expireAfter = 1.seconds)
-      queue.popOrNull() shouldBe 3
+    def assertStreamIsEmpty() = queue.stream.materialize[Bag.Less].toList shouldBe empty
 
-      queue.push(elem = 4, expireAfter = 1.seconds)
-      queue.push(elem = 5)
-      queue.push(elem = 6)
+    queue.push(elem = 1, expireAfter = 1.seconds)
+    queue.push(2)
+    queue.stream.materialize[Bag.Less].toList should contain inOrderOnly(1, 2)
 
-      Thread.sleep(1000)
-      queue.popOrNull() shouldBe 5
-      queue.popOrNull() shouldBe 6
-    }
+    Thread.sleep(1000)
 
-    "concurrently process" in {
-      val queue: Queue[Int] = newQueue()
-      val processedQueue = new ConcurrentLinkedQueue[Int]()
+    queue.stream.materialize[Bag.Less].toList should contain only 2
+    queue.popOrNull() shouldBe 2
+    queue.pop() shouldBe empty
+    assertStreamIsEmpty()
 
-      val maxPushes = 1000000
+    queue.push(elem = 3, expireAfter = 1.seconds)
+    queue.stream.materialize[Bag.Less].toList should contain only 3
+    queue.popOrNull() shouldBe 3
+    assertStreamIsEmpty()
 
-      val pushRange = 0 to maxPushes
-      //give pop extra to test that overflow is handled.
-      val popRange = 0 to (maxPushes + 1000)
+    queue.push(elem = 4, expireAfter = 1.seconds)
+    queue.push(elem = 5)
+    queue.push(elem = 6)
+    queue.stream.materialize[Bag.Less].toList should contain inOrderOnly(4, 5, 6)
 
-      def doAssert() = {
-        //push jobs
-        Benchmark(s"Pushing: $maxPushes") {
-          pushRange foreach {
-            int =>
-              queue.push(int)
-          }
+    Thread.sleep(1000)
+    queue.stream.materialize[Bag.Less].toList should contain inOrderOnly(5, 6)
+    queue.popOrNull() shouldBe 5
+    queue.popOrNull() shouldBe 6
+    assertStreamIsEmpty()
+  }
+
+  "concurrently process" in {
+    val queue: Queue[Int] = newQueue()
+    val processedQueue = new ConcurrentLinkedQueue[Int]()
+
+    val maxPushes = 1000000
+
+    val pushRange = 0 to maxPushes
+    //give pop extra to test that overflow is handled.
+    val popRange = 0 to (maxPushes + 1000)
+
+    def doAssert() = {
+      //push jobs
+      Benchmark(s"Push: $maxPushes") {
+        pushRange foreach {
+          int =>
+            queue.push(int)
         }
+      }
 
-        //concurrently process the queue
-        Benchmark(s"Popping: $maxPushes") {
-          popRange.par foreach {
+      //concurrently process the queue
+      Benchmark(s"Pop: $maxPushes") {
+        popRange.par foreach {
+          _ =>
+            queue.pop() foreach processedQueue.add
+        }
+      }
+
+      //assert that all items in the queue are processed.
+      Benchmark("Assert") {
+        processedQueue.size() shouldBe pushRange.size
+        processedQueue.asScala.toList.distinct.size shouldBe pushRange.size
+        processedQueue.clear()
+      }
+    }
+
+    doAssert()
+    doAssert()
+
+    queue.close()
+  }
+
+  "concurrently process in batches" in {
+    val queue = newQueue()
+    val processedQueue = new ConcurrentLinkedQueue[Int]()
+
+    val items = 1 to 100000
+
+    items.map(queue.push)
+
+    val jobs = items.grouped(items.size / 20).map(_.toList).toList
+    jobs should have size 20
+
+    jobs foreach {
+      job =>
+        Benchmark("Pop") {
+          Random.shuffle(job).par foreach {
             _ =>
               queue.pop() foreach processedQueue.add
           }
         }
 
-        //assert that all items in the queue are processed.
-        Benchmark(s"Asserting") {
-          processedQueue.size() shouldBe pushRange.size
-          processedQueue.asScala.toList.distinct.size shouldBe pushRange.size
-          processedQueue.clear()
+        Benchmark("Assert") {
+          processedQueue.size() shouldBe job.size
+          processedQueue.asScala.toList.distinct should contain allElementsOf job
         }
-      }
 
-      doAssert()
-      doAssert()
-
-      queue.close()
+        processedQueue.clear()
     }
+  }
 
-    "concurrently process in batches" in {
-      val queue = newQueue()
-      val processedQueue = new ConcurrentLinkedQueue[Int]()
+  "continue on restart" in {
+    val path = randomDir
+    val queue = swaydb.persistent.Queue[Int](path).get
 
-      val items = 1 to 100000
+    (1 to 6).map(queue.push)
 
-      items.map(queue.push)
+    queue.pop().value shouldBe 1
+    queue.pop().value shouldBe 2
+    queue.push(1)
 
-      val jobs = items.grouped(items.size / 20).map(_.toList).toList
-      jobs should have size 20
+    queue.close()
 
-      jobs foreach {
-        job =>
-          Benchmark("Pop") {
-            Random.shuffle(job).par foreach {
-              _ =>
-                queue.pop() foreach processedQueue.add
-            }
-          }
+    val reopen = swaydb.persistent.Queue[Int](path).get
+    reopen.pop().value shouldBe 3
+    reopen.pop().value shouldBe 4
+    reopen.close()
 
-          Benchmark("Assert") {
-            processedQueue.size() shouldBe job.size
-            processedQueue.asScala.toList.distinct should contain allElementsOf job
-          }
-
-          processedQueue.clear()
-      }
-    }
-
-    "continue on restart" when {
-      val path = randomDir
-      val queue = swaydb.persistent.Queue[Int](path).get
-
-      (1 to 6).map(queue.push)
-
-      queue.pop().value shouldBe 1
-      queue.pop().value shouldBe 2
-      queue.push(1)
-
-      queue.close()
-
-      val reopen = swaydb.persistent.Queue[Int](path).get
-      reopen.pop().value shouldBe 3
-      reopen.pop().value shouldBe 4
-      reopen.close()
-
-      val reopen2 = swaydb.persistent.Queue[Int](path).get
-      reopen2.pop().value shouldBe 5
-      reopen2.pop().value shouldBe 6
-      reopen2.pop().value shouldBe 1
-      reopen2.close()
-    }
+    val reopen2 = swaydb.persistent.Queue[Int](path).get
+    reopen2.pop().value shouldBe 5
+    reopen2.pop().value shouldBe 6
+    reopen2.pop().value shouldBe 1
+    reopen2.close()
   }
 }

@@ -35,9 +35,6 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
   def push(elem: A, expireAfter: java.time.Duration): OK =
     asScala.push(elem, expireAfter.toScala)
 
-  def push(keyValues: A*): OK =
-    asScala.push(keyValues)
-
   def push(keyValues: Stream[A]): OK =
     asScala.push(keyValues.asScala)
 
@@ -53,8 +50,8 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
   def popOrNull(): A =
     asScala.popOrNull()
 
-  def popOrElse(or: => Supplier[A]): A =
-    asScala.popOrElse(or.get())
+  def popOrElse(orElse: Supplier[A]): A =
+    asScala.popOrElse(orElse.get())
 
   def stream: Stream[A] =
     new Stream(asScala.stream)

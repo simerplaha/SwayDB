@@ -29,21 +29,19 @@ import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static swaydb.java.serializers.Default.intSerializer;
 
 
 class MemoryQueueTest extends QueueTest {
 
   public <K> Queue<K> createQueue(Serializer<K> serialiser) {
-    Queue<K> map =
+    return
       QueueConfig
         .withoutFunctions(serialiser)
         .init();
-
-    return map;
   }
 }
 
@@ -55,12 +53,10 @@ class PersistentQueueTest extends QueueTest {
   }
 
   public <K> Queue<K> createQueue(Serializer<K> serialiser) throws IOException {
-    Queue<K> map =
+    return
       swaydb.java.persistent.QueueConfig
         .withoutFunctions(testDir(), serialiser)
         .init();
-
-    return map;
   }
 }
 
@@ -90,6 +86,26 @@ abstract class QueueTest extends TestBase implements JavaEventually {
     Thread.sleep(1000);
 
     assertEquals(2, set.popOrNull());
+    assertNull(set.popOrNull());
+  }
+
+  @Test
+  void pushManyTest() throws IOException {
+    Queue<Integer> set = createQueue(intSerializer());
+
+    IntStream
+      .range(1, 1000000)
+      .forEach(set::push);
+
+    IntStream
+      .range(1, 1000000)
+      .forEach(
+        integer ->
+          assertEquals(integer, set.popOrNull())
+      );
+
+    assertTrue(set.stream().materialize().isEmpty());
+
     assertNull(set.popOrNull());
   }
 }

@@ -23,11 +23,62 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.core.util.Bytes
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.serializers.Serializer
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
-case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
+object Queue {
+  /**
+   * Combines two serialisers into a single Serialiser.
+   */
+  def serialiser[A](bSerializer: Serializer[A]): Serializer[(Long, A)] =
+    new Serializer[(Long, A)] {
+      override def write(data: (Long, A)): Slice[Byte] = {
+        val valueBytes =
+          if (data._2 == null)
+            Slice.emptyBytes //value can be null when
+          else
+          bSerializer.write(data._2)
+
+        Slice
+          .create[Byte](Bytes.sizeOfUnsignedLong(data._1) + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
+          .addUnsignedLong(data._1)
+          .addUnsignedInt(valueBytes.size)
+          .addAll(valueBytes)
+      }
+
+      override def read(data: Slice[Byte]): (Long, A) = {
+        val reader = data.createReader()
+
+        val key = reader.readUnsignedLong()
+
+        val valuesBytes = reader.read(reader.readUnsignedInt())
+        val value = bSerializer.read(valuesBytes)
+
+        (key, value)
+      }
+    }
+
+  /**
+   * Partial ordering based on [[SetMap.serialiser]].
+   */
+  def ordering: KeyOrder[Slice[Byte]] =
+    new KeyOrder[Slice[Byte]] {
+      override def compare(left: Slice[Byte], right: Slice[Byte]): Int =
+        left.readUnsignedLong() compare right.readUnsignedLong()
+
+      private[swaydb] override def comparableKey(key: Slice[Byte]): Slice[Byte] = {
+        val (_, byteSize) = key.readUnsignedLongWithByteSize()
+        key.take(byteSize)
+      }
+    }
+}
+
+case class Queue[A](private val set: Set[(Long, A), Nothing, Bag.Less],
                     private val pushIds: AtomicLong,
                     private val popIds: AtomicLong) extends LazyLogging {
 
@@ -35,24 +86,24 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
 
   /**
    * Stores all failed items that get processed first before picking
-   * next task in [[map]].
+   * next task in [[set]].
    */
   private val retryQueue = new ConcurrentLinkedQueue[java.lang.Long]()
 
   def push(elem: A): OK =
-    map.put(pushIds.getAndIncrement(), elem)
+    set.add((pushIds.getAndIncrement(), elem))
 
   def push(elem: A, expireAfter: FiniteDuration): OK =
-    map.put(pushIds.getAndIncrement(), elem, expireAfter.fromNow)
+    set.add((pushIds.getAndIncrement(), elem), expireAfter.fromNow)
 
   def push(elem: A, expireAt: Deadline): OK =
-    map.put(pushIds.getAndIncrement(), elem, expireAt)
+    set.add((pushIds.getAndIncrement(), elem), expireAt)
 
   def push(keyValues: A*): OK =
     push(keyValues)
 
   def push(keyValues: Stream[A]): OK =
-    map.put {
+    set.add {
       keyValues.map {
         item =>
           (pushIds.getAndIncrement(), item)
@@ -63,7 +114,7 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
     push(keyValues.iterator)
 
   def push(keyValues: Iterator[A]): OK =
-    map.put {
+    set.add {
       keyValues.map {
         item =>
           (pushIds.getAndIncrement(), item)
@@ -81,10 +132,10 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
    */
   @inline private def popAndRecover(nextId: Long): Option[A] =
     try
-      map.get(nextId) match {
-        case some @ Some(_) =>
-          map.remove(nextId)
-          some
+      set.get((nextId, nullA)) match {
+        case Some(keyValue) =>
+          set.remove(keyValue)
+          Some(keyValue._2)
 
         case None =>
           None
@@ -104,7 +155,7 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
   @inline private def brakeRecover(nextId: Long): Boolean =
     popIds.get() == nextId && {
       try {
-        val headOrNull = map.headOrNull
+        val headOrNull = set.headOrNull
         //Only the last thread that accessed popIds can reset the popIds counter and continue
         //processing to avoid any conflicting updates.
         headOrNull != null && popIds.compareAndSet(nextId, headOrNull._1)
@@ -143,13 +194,13 @@ case class Queue[A](private val map: SetMap[Long, A, Nothing, Bag.Less],
     }
 
   def stream: Stream[A] =
-    map
+    set
       .stream
       .map(_._2)
 
   def close(): Unit =
-    map.close()
+    set.close()
 
   def delete(): Unit =
-    map.delete()
+    set.delete()
 }

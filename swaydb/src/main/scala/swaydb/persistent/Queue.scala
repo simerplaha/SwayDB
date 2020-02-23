@@ -65,22 +65,13 @@ object Queue extends LazyLogging {
                levelFiveThrottle: LevelMeter => Throttle = DefaultConfigs.levelFiveThrottle,
                levelSixThrottle: LevelMeter => Throttle = DefaultConfigs.levelSixThrottle)(implicit serializer: Serializer[A]): IO[Error.Boot, swaydb.Queue[A]] = {
 
-    implicit val longSerializer: Serializer[Long] =
-      new Serializer[Long] {
-        override def write(data: Long): Slice[Byte] =
-          Slice.writeUnsignedLong(data)
+    implicit val queueSerialiser: Serializer[(Long, A)] =
+      swaydb.Queue.serialiser[A](serializer)
 
-        override def read(data: Slice[Byte]): Long =
-          data.readUnsignedLong()
-      }
+    implicit val keyOrder: KeyOrder[Slice[Byte]] =
+      swaydb.Queue.ordering
 
-    implicit val keyOrder: KeyOrder[Long] =
-      new KeyOrder[Long] {
-        override def compare(x: Long, y: Long): Int =
-          x compareTo y
-      }
-
-    SetMap[Long, A, Nothing, Bag.Less](
+    Set[(Long, A), Nothing, Bag.Less](
       dir = dir,
       mapSize = mapSize,
       mmapMaps = mmapMaps,
@@ -107,9 +98,9 @@ object Queue extends LazyLogging {
       levelFiveThrottle = levelFiveThrottle,
       levelSixThrottle = levelSixThrottle
     ) map {
-      map =>
+      set =>
         val first: Long =
-          map.headOption match {
+          set.headOption match {
             case Some((first, _)) =>
               first
 
@@ -118,7 +109,7 @@ object Queue extends LazyLogging {
           }
 
         val last: Long =
-          map.lastOption match {
+          set.lastOption match {
             case Some((used, _)) =>
               used + 1
 
@@ -127,7 +118,7 @@ object Queue extends LazyLogging {
           }
 
         swaydb.Queue(
-          map = map,
+          set = set,
           pushIds = new AtomicLong(last),
           popIds = new AtomicLong(first)
         )
