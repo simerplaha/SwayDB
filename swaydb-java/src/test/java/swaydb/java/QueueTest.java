@@ -64,44 +64,44 @@ abstract class QueueTest extends TestBase implements JavaEventually {
 
   @Test
   void pushTest() throws IOException {
-    Queue<Integer> set = createQueue(intSerializer());
+    Queue<Integer> queue = createQueue(intSerializer());
 
-    set.push(1);
-    set.push(2);
+    queue.push(1);
+    queue.push(2);
 
-    assertEquals(1, set.popOrNull());
-    assertEquals(2, set.popOrNull());
-    assertNull(set.popOrNull());
+    assertEquals(1, queue.popOrNull());
+    assertEquals(2, queue.popOrNull());
+    assertNull(queue.popOrNull());
   }
 
   @Test
   void pushExpireTest() throws IOException, InterruptedException {
-    Queue<Integer> set = createQueue(intSerializer());
+    Queue<Integer> queue = createQueue(intSerializer());
 
-    set.push(1, Duration.ofSeconds(1));
-    set.push(2);
+    queue.push(1, Duration.ofSeconds(1));
+    queue.push(2);
 
     Thread.sleep(1000);
 
-    assertEquals(2, set.popOrNull());
-    assertNull(set.popOrNull());
+    assertEquals(2, queue.popOrNull());
+    assertNull(queue.popOrNull());
   }
 
   @Test
   void pushManyTest() throws IOException {
-    Queue<Integer> set = createQueue(intSerializer());
+    Queue<Integer> queue = createQueue(intSerializer());
 
     IntStream
       .range(1, 1000000)
-      .forEach(set::push);
+      .forEach(queue::push);
 
     IntStream
       .range(1, 1000000)
       .forEach(
         integer ->
-          assertEquals(integer, set.popOrNull())
+          assertEquals(integer, queue.popOrNull())
       );
 
-    assertNull(set.popOrNull());
+    assertNull(queue.popOrNull());
   }
 }

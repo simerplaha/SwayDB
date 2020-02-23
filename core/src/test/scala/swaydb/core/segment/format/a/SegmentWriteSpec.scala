@@ -766,7 +766,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(10.times) {
         implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegmentGroup = Int.MaxValue))
+        val segment = TestSegment(keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 
         val valuesConfig: ValuesBlock.Config = ValuesBlock.Config.random
         val sortedIndexConfig: SortedIndexBlock.Config = SortedIndexBlock.Config.random
@@ -907,7 +907,7 @@ sealed trait SegmentWriteSpec extends TestBase {
       runThis(100.times) {
         implicit val keyValueMemorySweeper: Option[MemorySweeper.KeyValue] = TestSweeper.memorySweeperMax
         val keyValues = randomizedKeyValues(keyValuesCount)
-        val segment = TestSegment(keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegmentGroup = Int.MaxValue))
+        val segment = TestSegment(keyValues, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 
         val memorySize = keyValues.foldLeft(0)(_ + MergeStats.Memory.calculateSize(_))
 
@@ -991,7 +991,7 @@ sealed trait SegmentWriteSpec extends TestBase {
             key
         }
 
-        val segment = TestSegment(keyValuesWithEmptyValues.toSlice, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegmentGroup = Int.MaxValue))
+        val segment = TestSegment(keyValuesWithEmptyValues.toSlice, segmentConfig = SegmentBlock.Config.random(minSegmentSize = Int.MaxValue, maxKeyValuesPerSegment = Int.MaxValue))
 
         def valuesValueShouldBeNone(value: Value): Unit =
           value match {
@@ -1588,7 +1588,7 @@ sealed trait SegmentWriteSpec extends TestBase {
           SegmentBlock.Config.random(
             hasCompression = enableCompression,
             minSegmentSize = Int.MaxValue,
-            maxKeyValuesPerSegmentGroup = if (memory) keyValues.size else randomIntMax(keyValues.size)
+            maxKeyValuesPerSegment = if (memory) keyValues.size else randomIntMax(keyValues.size)
           )
 
         val segment =

@@ -26,6 +26,6 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          pushForward: Boolean,
                          mmap: MMAP,
                          minSegmentSize: Int,
-                         maxKeyValuesPerSegmentGroup: Int,
+                         maxKeyValuesPerSegment: Int,
                          ioStrategy: IOAction => IOStrategy,
                          compression: UncompressedBlockInfo => Seq[Compression])

@@ -103,7 +103,7 @@ object DefaultConfigs {
       pushForward = false,
       mmap = MMAP.Disabled,
       minSegmentSize = 8.mb,
-      maxKeyValuesPerSegmentGroup = Int.MaxValue,
+      maxKeyValuesPerSegment = Int.MaxValue,
       ioStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)

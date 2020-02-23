@@ -84,7 +84,7 @@ private[core] object SegmentBlock extends LazyLogging {
         ioStrategy = config.ioStrategy,
         cacheBlocksOnCreate = config.cacheSegmentBlocksOnCreate,
         minSize = config.minSegmentSize,
-        maxCount = config.maxKeyValuesPerSegmentGroup,
+        maxCount = config.maxKeyValuesPerSegment,
         pushForward = config.pushForward,
         mmapWrites = config.mmap.mmapWrite,
         mmapReads = config.mmap.mmapRead,

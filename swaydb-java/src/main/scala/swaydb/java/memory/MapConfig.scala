@@ -22,6 +22,7 @@ package swaydb.java.memory
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
+import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -42,8 +43,10 @@ object MapConfig {
 
   class Config[K, V, F](@BeanProperty var mapSize: Int = 4.mb,
                         @BeanProperty var minSegmentSize: Int = 2.mb,
-                        @BeanProperty var maxKeyValuesPerSegmentGroup: Int = 10,
+                        @BeanProperty var maxKeyValuesPerSegment: Int = Int.MaxValue,
                         @BooleanBeanProperty var deleteSegmentsEventually: Boolean = true,
+                        @BeanProperty var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                        @BeanProperty var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                         @BeanProperty var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
                         @BeanProperty var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
                         @BeanProperty var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
@@ -86,11 +89,13 @@ object MapConfig {
         swaydb.memory.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
-          maxKeyValuesPerSegment = maxKeyValuesPerSegmentGroup,
+          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+          fileCache = fileCache,
           deleteSegmentsEventually = deleteSegmentsEventually,
           acceleration = acceleration.asScala,
           levelZeroThrottle = levelZeroThrottle.asScala,
-          lastLevelThrottle = lastLevelThrottle.asScala
+          lastLevelThrottle = lastLevelThrottle.asScala,
+          threadStateCache = threadStateCache
         )(keySerializer = keySerializer,
           valueSerializer = valueSerializer,
           functions = functions.asInstanceOf[swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]],

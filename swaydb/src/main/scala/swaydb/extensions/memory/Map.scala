@@ -60,7 +60,7 @@
 //
 //  def apply[K, V, F](mapSize: Int = 4.mb,
 //                     minSegmentSize: Int = 2.mb,
-//                     maxKeyValuesPerSegmentGroup: Int = 200000,
+//                     maxKeyValuesPerSegment: Int = Int.MaxValue,
 //                     memoryCacheSize: Int = 500.mb,
 //                     maxOpenSegments: Int = 100,
 //                     maxCachedKeyValuesPerSegment: Int = 10,
@@ -80,7 +80,7 @@
 //        DefaultMemoryConfig(
 //          mapSize = mapSize,
 //          minSegmentSize = minSegmentSize,
-//          maxKeyValuesPerSegmentGroup = maxKeyValuesPerSegmentGroup,
+//          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
 //          mightContainFalsePositiveRate = mightContainFalsePositiveRate,
 //          deleteSegmentsEventually = deleteSegmentsEventually,
 //          acceleration = acceleration

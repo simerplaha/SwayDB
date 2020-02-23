@@ -81,13 +81,6 @@ object QueueConfig {
           otherDirs = otherDirs,
           cacheKeyValueIds = cacheKeyValueIds,
           acceleration = acceleration.asScala,
-          levelZeroThrottle = levelZeroThrottle.asScala,
-          levelOneThrottle = levelOneThrottle.asScala,
-          levelTwoThrottle = levelTwoThrottle.asScala,
-          levelThreeThrottle = levelThreeThrottle.asScala,
-          levelFourThrottle = levelFourThrottle.asScala,
-          levelFiveThrottle = levelFiveThrottle.asScala,
-          levelSixThrottle = levelSixThrottle.asScala,
           threadStateCache = threadStateCache,
           sortedKeyIndex = sortedKeyIndex,
           randomKeyIndex = randomKeyIndex,
@@ -96,7 +89,14 @@ object QueueConfig {
           valuesConfig = valuesConfig,
           segmentConfig = segmentConfig,
           fileCache = fileCache,
-          memoryCache = memoryCache
+          memoryCache = memoryCache,
+          levelZeroThrottle = levelZeroThrottle.asScala,
+          levelOneThrottle = levelOneThrottle.asScala,
+          levelTwoThrottle = levelTwoThrottle.asScala,
+          levelThreeThrottle = levelThreeThrottle.asScala,
+          levelFourThrottle = levelFourThrottle.asScala,
+          levelFiveThrottle = levelFiveThrottle.asScala,
+          levelSixThrottle = levelSixThrottle.asScala
         )(serializer = serializer).get
 
       swaydb.java.Queue[A](scalaQueue)
