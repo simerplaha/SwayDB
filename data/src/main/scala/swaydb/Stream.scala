@@ -176,6 +176,9 @@ trait Stream[A] { self =>
   def filterNot(f: A => Boolean): Stream[A] =
     filter(!f(_))
 
+  def partition(f: A => Boolean): (Stream[A], Stream[A]) =
+    (filter(f(_)), filterNot(f(_)))
+
   def collect[B](pf: PartialFunction[A, B]): Stream[B] =
     new step.Collect[A, B](
       previousStream = self,

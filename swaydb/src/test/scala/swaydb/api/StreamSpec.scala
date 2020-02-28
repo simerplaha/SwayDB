@@ -281,6 +281,20 @@ sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpe
         .await shouldBe (1 to 10).filter(_ % 2 != 0).take(2)
     }
 
+    "partition" in {
+      Stream[Int](1 to 10)
+        .partition(_ % 2 == 0)
+        ._1
+        .materialize[BAG]
+        .await shouldBe (1 to 10).filter(_ % 2 == 0)
+
+      Stream[Int](1 to 10)
+        .partition(_ % 2 == 0)
+        ._2
+        .materialize[BAG]
+        .await shouldBe (1 to 10).filter(_ % 2 != 0)
+    }
+
     "not stack overflow" in {
       Stream[Int](1 to 1000000)
         .filter(_ % 100000 == 0)
