@@ -19,6 +19,7 @@
 
 package swaydb.java
 
+import java.nio.file.Path
 import java.util
 import java.util.Optional
 
@@ -45,6 +46,9 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
 
   val asScala: swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], Bag.Less] =
     _asScala.asInstanceOf[swaydb.Set[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]], Bag.Less]]
+
+  def path: Path =
+    asScala.path
 
   def get(elem: A): Optional[A] =
     asScala.get(elem).asJava

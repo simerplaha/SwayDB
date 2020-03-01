@@ -19,6 +19,7 @@
 
 package swaydb.java
 
+import java.nio.file.Path
 import java.util.Optional
 import java.util.function.Supplier
 
@@ -28,6 +29,9 @@ import scala.compat.java8.DurationConverters._
 import scala.jdk.CollectionConverters._
 
 case class Queue[A](asScala: swaydb.Queue[A]) {
+
+  def path: Path =
+    asScala.path
 
   def push(elem: A): OK =
     asScala.push(elem)

@@ -19,6 +19,7 @@
 
 package swaydb
 
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicLong
 
@@ -89,6 +90,9 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
    * next task from [[set]].
    */
   private val retryQueue = new ConcurrentLinkedQueue[java.lang.Long]()
+
+  def path: Path =
+    set.path
 
   def push(elem: A): OK =
     set.add((pushIds.getAndIncrement(), elem))

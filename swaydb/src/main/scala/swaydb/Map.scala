@@ -19,6 +19,8 @@
 
 package swaydb
 
+import java.nio.file.Path
+
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.core.function.{FunctionStore => CoreFunctionStore}
@@ -93,6 +95,9 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
                                         private val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
                                                                                        valueSerializer: Serializer[V],
                                                                                        bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+
+  def path: Path =
+    core.zero.path.getParent
 
   def put(key: K, value: V): BAG[OK] =
     bag.suspend(core.put(key = key, value = value))

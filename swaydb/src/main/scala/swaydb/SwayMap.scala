@@ -19,6 +19,8 @@
 
 package swaydb
 
+import java.nio.file.Path
+
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
@@ -26,6 +28,8 @@ import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 trait SwayMap[K, V, F, BAG[_]] {
+
+  def path: Path
 
   def put(key: K, value: V): BAG[OK]
 

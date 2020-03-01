@@ -19,6 +19,8 @@
 
 package swaydb
 
+import java.nio.file.Path
+
 import swaydb.PrepareImplicits._
 import swaydb.core.Core
 import swaydb.core.segment.ThreadReadState
@@ -81,6 +83,9 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
                                      private val from: Option[From[A]],
                                      private val reverseIteration: Boolean = false)(implicit serializer: Serializer[A],
                                                                                     bag: Bag[BAG]) { self =>
+
+  def path: Path =
+    core.zero.path.getParent
 
   def get(elem: A): BAG[Option[A]] =
     bag.map(core.getKey(elem, core.readStates.get()))(_.mapC(_.read[A]))

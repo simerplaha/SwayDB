@@ -19,6 +19,8 @@
 
 package swaydb
 
+import java.nio.file.Path
+
 import swaydb.core.util.Bytes
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
@@ -121,6 +123,9 @@ object SetMap {
 case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
   private final val nullValue: V = nullValue
+
+  def path: Path =
+    set.path
 
   def put(key: K, value: V): BAG[OK] =
     set.add((key, value))

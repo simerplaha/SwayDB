@@ -19,6 +19,7 @@
 
 package swaydb.java
 
+import java.nio.file.Path
 import java.time.Duration
 import java.util.Optional
 
@@ -44,6 +45,9 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
 
   val asScala: swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less] =
     _asScala.asInstanceOf[swaydb.Map[K, V, swaydb.PureFunction[K, V, Apply.Map[V]], Bag.Less]]
+
+  def path: Path =
+    asScala.path
 
   def put(key: K, value: V): swaydb.OK =
     asScala.put(key, value)
