@@ -19,6 +19,7 @@
 
 package swaydb.java
 
+import java.util
 import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
@@ -100,6 +101,9 @@ class Stream[A](val asScala: swaydb.Stream[A]) {
 
   def count(predicate: Predicate[A]): Int =
     asScala.count(predicate.test)(bag)
+
+  def iterator(): util.Iterator[A] =
+    asScala.iterator.asJava
 
   def size: Int =
     asScala.size(bag)
