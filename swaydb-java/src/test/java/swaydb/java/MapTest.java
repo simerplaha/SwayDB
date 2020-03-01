@@ -43,12 +43,10 @@ class MemoryMapTest extends MapTest {
 
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) {
-    Map<K, V, Void> map =
+    return
       MapBuilder
         .createFunctionsDisabled(keySerializer, valueSerializer)
         .build();
-
-    return map;
   }
 }
 
@@ -61,12 +59,10 @@ class PersistentMapTest extends MapTest {
 
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) throws IOException {
-    Map<K, V, Void> map =
+    return
       swaydb.java.persistent.MapBuilder
         .createFunctionsDisabled(testDir(), keySerializer, valueSerializer)
         .build();
-
-    return map;
   }
 }
 

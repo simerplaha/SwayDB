@@ -41,12 +41,10 @@ import static swaydb.java.serializers.Default.intSerializer;
 class MemorySetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
-    Set<K, Void> set =
+    return
       swaydb.java.memory.SetBuilder
         .createFunctionsDisabled(keySerializer)
         .build();
-
-    return set;
   }
 }
 
@@ -58,12 +56,10 @@ class PersistentSetTest extends SetTest {
   }
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
-    Set<K, Void> set =
+    return
       swaydb.java.persistent.SetBuilder
         .createFunctionsDisabled(testDir(), keySerializer)
         .build();
-
-    return set;
   }
 }
 
@@ -428,15 +424,15 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
     //does not compile
 //    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> incrementBy1 = null;
-//    config.registerFunction(incrementBy1);
+//    builder.registerFunction(incrementBy1);
 
     //does not compile
 //    PureFunction.OnKeyValue<Integer, Integer, Return.Set<Integer>> removeMod0OrIncrementBy1 = null;
-//    config.registerFunction(removeMod0OrIncrementBy1);
+//    builder.registerFunction(removeMod0OrIncrementBy1);
 
     //this will not compile since the return type specified is a Set - expected!
-//    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> set = null;
-//    config.registerFunction(set);
+//    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> function = null;
+//    builder.registerFunction(function);
 
     builder.registerFunction(expire);
 
