@@ -33,16 +33,16 @@ import scala.concurrent.duration._
 
 object QueueBuilder {
 
-  class Builder[A](private var mapSize: Int = 4.mb,
-                   private var minSegmentSize: Int = 2.mb,
-                   private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                   private var deleteSegmentsEventually: Boolean = true,
-                   private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                   private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                   private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                   private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                   private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                   serializer: Serializer[A]) {
+  final class Builder[A](private var mapSize: Int = 4.mb,
+                         private var minSegmentSize: Int = 2.mb,
+                         private var maxKeyValuesPerSegment: Int = Int.MaxValue,
+                         private var deleteSegmentsEventually: Boolean = true,
+                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                         private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
+                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                         serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize

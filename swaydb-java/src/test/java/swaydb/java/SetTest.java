@@ -43,7 +43,7 @@ class MemorySetTest extends SetTest {
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
     Set<K, Void> map =
       swaydb.java.memory.SetBuilder
-        .functionsDisabled(keySerializer)
+        .createFunctionsDisabled(keySerializer)
         .build();
 
     return map;
@@ -60,7 +60,7 @@ class PersistentSetTest extends SetTest {
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
     Set<K, Void> map =
       swaydb.java.persistent.SetBuilder
-        .functionsDisabled(testDir(), keySerializer)
+        .createFunctionsDisabled(testDir(), keySerializer)
         .build();
 
     return map;
@@ -342,7 +342,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
   void comparatorTest() {
     Set<Integer, Void> set =
       SetBuilder
-        .functionsDisabled(intSerializer())
+        .createFunctionsDisabled(intSerializer())
         .setTypedComparator((left, right) -> left.compareTo(right) * -1)
         .build();
 
@@ -414,7 +414,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
   void registerAndApplyFunction() {
     SetBuilder.Builder<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> builder =
       SetBuilder
-        .functionsEnabled(intSerializer());
+        .createFunctionsEnabled(intSerializer());
 
     Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set =
       builder

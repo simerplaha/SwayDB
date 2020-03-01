@@ -40,20 +40,20 @@ import scala.reflect.ClassTag
 
 object MapBuilder {
 
-  class Builder[K, V, F](private var mapSize: Int = 4.mb,
-                         private var minSegmentSize: Int = 2.mb,
-                         private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                         private var deleteSegmentsEventually: Boolean = true,
-                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                         private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                         private var byteComparator: KeyComparator[ByteSlice] = null,
-                         private var typedComparator: KeyComparator[K] = null,
-                         keySerializer: Serializer[K],
-                         valueSerializer: Serializer[V],
-                         functionClassTag: ClassTag[_]) {
+  final class Builder[K, V, F](private var mapSize: Int = 4.mb,
+                               private var minSegmentSize: Int = 2.mb,
+                               private var maxKeyValuesPerSegment: Int = Int.MaxValue,
+                               private var deleteSegmentsEventually: Boolean = true,
+                               private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                               private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                               private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
+                               private var byteComparator: KeyComparator[ByteSlice] = null,
+                               private var typedComparator: KeyComparator[K] = null,
+                               keySerializer: Serializer[K],
+                               valueSerializer: Serializer[V],
+                               functionClassTag: ClassTag[_]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -162,16 +162,16 @@ object MapBuilder {
     }
   }
 
-  def functionsEnabled[K, V](keySerializer: JavaSerializer[K],
-                             valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
+  def createFunctionsEnabled[K, V](keySerializer: JavaSerializer[K],
+                                   valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
     new Builder(
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
       functionClassTag = ClassTag(classOf[swaydb.PureFunction[K, V, Apply.Map[V]]])
     )
 
-  def functionsDisabled[K, V](keySerializer: JavaSerializer[K],
-                              valueSerializer: JavaSerializer[V]): Builder[K, V, Void] =
+  def createFunctionsDisabled[K, V](keySerializer: JavaSerializer[K],
+                                    valueSerializer: JavaSerializer[V]): Builder[K, V, Void] =
     new Builder[K, V, Void](
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),

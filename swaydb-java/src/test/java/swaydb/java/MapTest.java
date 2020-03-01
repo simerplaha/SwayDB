@@ -45,7 +45,7 @@ class MemoryMapTest extends MapTest {
                                           Serializer<V> valueSerializer) {
     Map<K, V, Void> map =
       MapBuilder
-        .functionsDisabled(keySerializer, valueSerializer)
+        .createFunctionsDisabled(keySerializer, valueSerializer)
         .build();
 
     return map;
@@ -63,7 +63,7 @@ class PersistentMapTest extends MapTest {
                                           Serializer<V> valueSerializer) throws IOException {
     Map<K, V, Void> map =
       swaydb.java.persistent.MapBuilder
-        .functionsDisabled(testDir(), keySerializer, valueSerializer)
+        .createFunctionsDisabled(testDir(), keySerializer, valueSerializer)
         .build();
 
     return map;
@@ -430,7 +430,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   void comparatorTest() {
     Map<Integer, Integer, Void> map =
       MapBuilder
-        .functionsDisabled(intSerializer(), intSerializer())
+        .createFunctionsDisabled(intSerializer(), intSerializer())
         .setTypedComparator((left, right) -> left.compareTo(right) * -1)
         .build();
 
@@ -535,7 +535,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   void registerAndApplyFunction() {
     MapBuilder.Builder<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
       MapBuilder
-        .functionsEnabled(intSerializer(), intSerializer());
+        .createFunctionsEnabled(intSerializer(), intSerializer());
 
     Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
       config

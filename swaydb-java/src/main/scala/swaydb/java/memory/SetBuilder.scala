@@ -40,19 +40,19 @@ import scala.reflect.ClassTag
 
 object SetBuilder {
 
-  class Builder[A, F](private var mapSize: Int = 4.mb,
-                      private var minSegmentSize: Int = 2.mb,
-                      private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                      private var deleteSegmentsEventually: Boolean = true,
-                      private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                      private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                      private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                      private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                      private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                      private var byteComparator: KeyComparator[ByteSlice] = null,
-                      private var typedComparator: KeyComparator[A] = null,
-                      serializer: Serializer[A],
-                      functionClassTag: ClassTag[_]) {
+  final class Builder[A, F](private var mapSize: Int = 4.mb,
+                            private var minSegmentSize: Int = 2.mb,
+                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
+                            private var deleteSegmentsEventually: Boolean = true,
+                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                            private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
+                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                            private var byteComparator: KeyComparator[ByteSlice] = null,
+                            private var typedComparator: KeyComparator[A] = null,
+                            serializer: Serializer[A],
+                            functionClassTag: ClassTag[_]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -160,13 +160,13 @@ object SetBuilder {
     }
   }
 
-  def functionsEnabled[A](serializer: JavaSerializer[A]): Builder[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
+  def createFunctionsEnabled[A](serializer: JavaSerializer[A]): Builder[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
     new Builder(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])
     )
 
-  def functionsDisabled[A](serializer: JavaSerializer[A]): Builder[A, Void] =
+  def createFunctionsDisabled[A](serializer: JavaSerializer[A]): Builder[A, Void] =
     new Builder[A, Void](
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing
