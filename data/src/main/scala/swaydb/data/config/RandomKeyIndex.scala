@@ -41,7 +41,7 @@ object RandomKeyIndex {
                  indexFormat: IndexFormat,
                  allocateSpace: JavaFunction[RequiredSpace, Int],
                  ioStrategy: JavaFunction[IOAction, IOStrategy],
-                 compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]) =
+                 compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
     Enable(
       maxProbe = maxProbe,
       minimumNumberOfKeys = minimumNumberOfKeys,

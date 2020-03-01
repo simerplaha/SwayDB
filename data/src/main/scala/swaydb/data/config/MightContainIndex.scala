@@ -40,7 +40,7 @@ object MightContainIndex {
                  updateMaxProbe: JavaFunction[Int, Int],
                  minimumNumberOfKeys: Int,
                  ioStrategy: JavaFunction[IOAction, IOStrategy],
-                 compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]) =
+                 compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
     Enable(
       falsePositiveRate = falsePositiveRate,
       updateMaxProbe = updateMaxProbe.apply,

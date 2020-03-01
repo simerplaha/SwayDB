@@ -68,7 +68,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def add(elem: A, expireAfter: java.time.Duration): swaydb.OK =
     asScala.add(elem, expireAfter.toScala)
 
-  def add(elems: java.util.List[A]): swaydb.OK =
+  def add(elems: java.lang.Iterable[A]): swaydb.OK =
     asScala.add(elems.asScala)
 
   def add(elems: Stream[A]): swaydb.OK =
@@ -83,7 +83,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def remove(from: A, to: A): swaydb.OK =
     asScala.remove(from, to)
 
-  def remove(elems: java.util.List[A]): swaydb.OK =
+  def remove(elems: java.lang.Iterable[A]): swaydb.OK =
     asScala.remove(elems.asScala)
 
   def remove(elems: Stream[A]): swaydb.OK =
@@ -98,7 +98,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def expire(from: A, to: A, after: java.time.Duration): swaydb.OK =
     asScala.expire(from, to, after.toScala)
 
-  def expire(elems: java.util.List[Pair[A, java.time.Duration]]): swaydb.OK =
+  def expire(elems: java.lang.Iterable[Pair[A, java.time.Duration]]): swaydb.OK =
     asScala.expire {
       elems.asScala.map {
         pair =>
@@ -131,7 +131,7 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def applyFunction(elem: A, function: F): swaydb.OK =
     asScala.applyFunction(elem, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]]))
 
-  def commit[P <: Prepare.Set[A, F]](prepare: java.util.List[P]): swaydb.OK =
+  def commit[P <: Prepare.Set[A, F]](prepare: java.lang.Iterable[P]): swaydb.OK =
     commit[P](prepare.iterator())
 
   def commit[P <: Prepare.Set[A, F]](prepare: Stream[P]): swaydb.OK =

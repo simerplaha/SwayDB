@@ -31,7 +31,7 @@ object SegmentConfig {
                  minSegmentSize: Int,
                  maxKeyValuesPerSegment: Int,
                  ioStrategy: JavaFunction[IOAction, IOStrategy],
-                 compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]): SegmentConfig =
+                 compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SegmentConfig =
     SegmentConfig(
       cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate,
       deleteSegmentsEventually = deleteSegmentsEventually,

@@ -19,6 +19,8 @@
 
 package swaydb.java
 
+import java.time.Duration
+
 import scala.compat.java8.DurationConverters._
 import scala.concurrent.duration.{Deadline => ScalaDeadline}
 
@@ -29,15 +31,15 @@ object Deadline {
 
 class Deadline(val asScala: ScalaDeadline) {
 
-  def timeLeft =
+  def timeLeft: Duration =
     asScala.timeLeft.toJava
 
-  def time =
+  def time: Duration =
     asScala.time.toJava
 
-  def hasTimeLeft =
+  def hasTimeLeft: Boolean =
     asScala.hasTimeLeft()
 
-  def isOverdue =
+  def isOverdue: Boolean =
     asScala.isOverdue()
 }

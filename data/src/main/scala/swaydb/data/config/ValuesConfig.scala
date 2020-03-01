@@ -27,7 +27,7 @@ object ValuesConfig {
   def createJava(compressDuplicateValues: Boolean,
                  compressDuplicateRangeValues: Boolean,
                  ioStrategy: JavaFunction[IOAction, IOStrategy],
-                 compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]) =
+                 compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
     ValuesConfig(
       compressDuplicateValues = compressDuplicateValues,
       compressDuplicateRangeValues = compressDuplicateRangeValues,

@@ -55,7 +55,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def put(key: K, value: V, expireAfter: java.time.Duration): swaydb.OK =
     asScala.put(key, value, expireAfter.toScala)
 
-  def put(keyValues: java.util.List[KeyVal[K, V]]): swaydb.OK =
+  def put(keyValues: java.lang.Iterable[KeyVal[K, V]]): swaydb.OK =
     asScala.put(keyValues.asScala.map(_.toTuple))
 
   def put(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
@@ -70,7 +70,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def remove(from: K, to: K): swaydb.OK =
     asScala.remove(from, to)
 
-  def remove(keys: java.util.List[K]): swaydb.OK =
+  def remove(keys: java.lang.Iterable[K]): swaydb.OK =
     asScala.remove(keys.asScala)
 
   def remove(keys: Stream[K]): swaydb.OK =
@@ -85,7 +85,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def expire(from: K, to: K, after: java.time.Duration): swaydb.OK =
     asScala.expire(from, to, after.toScala)
 
-  def expire(keys: java.util.List[Pair[K, java.time.Duration]]): swaydb.OK =
+  def expire(keys: java.lang.Iterable[Pair[K, java.time.Duration]]): swaydb.OK =
     asScala.expire(
       keys.asScala map {
         keyValue =>
@@ -108,7 +108,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def update(from: K, to: K, value: V): swaydb.OK =
     asScala.update(from, to, value)
 
-  def update(keyValues: java.util.List[KeyVal[K, V]]): swaydb.OK =
+  def update(keyValues: java.lang.Iterable[KeyVal[K, V]]): swaydb.OK =
     asScala.update(keyValues.asScala.map(_.toTuple))
 
   def update(keyValues: Stream[KeyVal[K, V]]): swaydb.OK =
@@ -126,7 +126,7 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   def applyFunction(from: K, to: K, function: F): swaydb.OK =
     asScala.applyFunction(from, to, PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
 
-  def commit[P <: Prepare.Map[K, V, F]](prepare: java.util.List[P]): swaydb.OK =
+  def commit[P <: Prepare.Map[K, V, F]](prepare: java.lang.Iterable[P]): swaydb.OK =
     commit[P](prepare.iterator())
 
   def commit[P <: Prepare.Map[K, V, F]](prepare: Stream[P]): swaydb.OK =

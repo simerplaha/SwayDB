@@ -42,7 +42,7 @@ object BinarySearchIndex {
                     ioStrategy: JavaFunction[IOAction, IOStrategy],
                     indexFormat: IndexFormat,
                     searchSortedIndexDirectly: Boolean,
-                    compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]): FullIndex =
+                    compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): FullIndex =
     FullIndex(
       minimumNumberOfKeys = minimumNumberOfKeys,
       ioStrategy = ioStrategy.apply,
@@ -61,7 +61,7 @@ object BinarySearchIndex {
                          ioStrategy: JavaFunction[IOAction, IOStrategy],
                          indexFormat: IndexFormat,
                          searchSortedIndexDirectlyIfPreNormalised: Boolean,
-                         compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]): SecondaryIndex =
+                         compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SecondaryIndex =
     SecondaryIndex(
       minimumNumberOfKeys = minimumNumberOfKeys,
       ioStrategy = ioStrategy.apply,

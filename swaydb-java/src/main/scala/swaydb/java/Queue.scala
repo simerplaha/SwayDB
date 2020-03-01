@@ -42,7 +42,7 @@ case class Queue[A](asScala: swaydb.Queue[A]) {
   def push(elems: Stream[A]): OK =
     asScala.push(elems.asScala)
 
-  def push(elems: java.util.List[A]): OK =
+  def push(elems: java.lang.Iterable[A]): OK =
     asScala.push(elems.asScala)
 
   def push(elems: java.util.Iterator[A]): OK =

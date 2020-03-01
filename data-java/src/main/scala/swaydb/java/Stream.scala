@@ -37,10 +37,7 @@ object Stream {
   def create[A](iterator: java.util.Iterator[A]): Stream[A] =
     new Stream[A](swaydb.Stream(iterator.asScala.to(Iterable)))
 
-  def create[A](iterator: java.util.List[A]): Stream[A] =
-    new Stream[A](swaydb.Stream(iterator.asScala))
-
-  def create[A](iterator: java.util.Collection[A]): Stream[A] =
+  def create[A](iterator: java.lang.Iterable[A]): Stream[A] =
     new Stream[A](swaydb.Stream(iterator.asScala))
 
   def range(from: Int, to: Int): Stream[Integer] =
@@ -108,6 +105,6 @@ class Stream[A](val asScala: swaydb.Stream[A]) {
   def size: Int =
     asScala.size(bag)
 
-  def materialize: java.util.List[A] =
+  def materialize: util.List[A] =
     asScala.materialize.asJava
 }

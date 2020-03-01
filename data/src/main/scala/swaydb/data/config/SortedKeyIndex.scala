@@ -29,7 +29,7 @@ object SortedKeyIndex {
   def enableJava(prefixCompression: PrefixCompression,
                  enablePositionIndex: Boolean,
                  ioStrategy: JavaFunction[IOAction, IOStrategy],
-                 compressions: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]) =
+                 compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
     Enable(
       prefixCompression = prefixCompression,
       enablePositionIndex = enablePositionIndex,
