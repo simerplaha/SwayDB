@@ -27,7 +27,7 @@ import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.memory.MapConfig;
+import swaydb.java.memory.MapBuilder;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -44,9 +44,9 @@ class MemoryMapTest extends MapTest {
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) {
     Map<K, V, Void> map =
-      MapConfig
-        .withoutFunctions(keySerializer, valueSerializer)
-        .init();
+      MapBuilder
+        .functionsDisabled(keySerializer, valueSerializer)
+        .build();
 
     return map;
   }
@@ -62,9 +62,9 @@ class PersistentMapTest extends MapTest {
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) throws IOException {
     Map<K, V, Void> map =
-      swaydb.java.persistent.MapConfig
-        .withoutFunctions(testDir(), keySerializer, valueSerializer)
-        .init();
+      swaydb.java.persistent.MapBuilder
+        .functionsDisabled(testDir(), keySerializer, valueSerializer)
+        .build();
 
     return map;
   }
@@ -428,19 +428,11 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void comparatorTest() {
-
-    MapConfig.Config<Integer, Integer, Void> config =
-      MapConfig.withoutFunctions(intSerializer(), intSerializer());
-
-    KeyComparator<Integer> comparator =
-      (left, right) ->
-        left.compareTo(right) * -1;
-
-    config.setTypedComparator(comparator);
-
     Map<Integer, Integer, Void> map =
-      config
-        .init();
+      MapBuilder
+        .functionsDisabled(intSerializer(), intSerializer())
+        .setTypedComparator((left, right) -> left.compareTo(right) * -1)
+        .build();
 
     assertDoesNotThrow(() -> map.put(1, 1));
     assertDoesNotThrow(() -> map.put(2, 2));
@@ -541,13 +533,13 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    MapConfig.Config<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
-      MapConfig
-        .withFunctions(intSerializer(), intSerializer());
+    MapBuilder.Builder<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
+      MapBuilder
+        .functionsEnabled(intSerializer(), intSerializer());
 
     Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
       config
-        .init();
+        .build();
 
     map.put(Stream.range(1, 100).map(KeyVal::create));
 

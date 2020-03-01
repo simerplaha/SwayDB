@@ -23,7 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
-import swaydb.java.memory.QueueConfig;
+import swaydb.java.memory.QueueBuilder;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -37,9 +37,9 @@ class MemoryQueueTest extends QueueTest {
 
   public <K> Queue<K> createQueue(Serializer<K> serialiser) {
     return
-      QueueConfig
-        .configure(serialiser)
-        .init();
+      QueueBuilder
+        .create(serialiser)
+        .build();
   }
 }
 
@@ -52,9 +52,9 @@ class PersistentQueueTest extends QueueTest {
 
   public <K> Queue<K> createQueue(Serializer<K> serialiser) throws IOException {
     return
-      swaydb.java.persistent.QueueConfig
-        .configure(testDir(), serialiser)
-        .init();
+      swaydb.java.persistent.QueueBuilder
+        .create(testDir(), serialiser)
+        .build();
   }
 }
 

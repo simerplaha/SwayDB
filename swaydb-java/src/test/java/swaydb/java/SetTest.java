@@ -26,7 +26,7 @@ import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.memory.SetConfig;
+import swaydb.java.memory.SetBuilder;
 import swaydb.java.serializers.Serializer;
 
 import java.io.*;
@@ -42,9 +42,9 @@ class MemorySetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
     Set<K, Void> map =
-      swaydb.java.memory.SetConfig
-        .withoutFunctions(keySerializer)
-        .init();
+      swaydb.java.memory.SetBuilder
+        .functionsDisabled(keySerializer)
+        .build();
 
     return map;
   }
@@ -59,9 +59,9 @@ class PersistentSetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
     Set<K, Void> map =
-      swaydb.java.persistent.SetConfig
-        .withoutFunctions(testDir(), keySerializer)
-        .init();
+      swaydb.java.persistent.SetBuilder
+        .functionsDisabled(testDir(), keySerializer)
+        .build();
 
     return map;
   }
@@ -340,19 +340,11 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void comparatorTest() {
-
-    SetConfig.Config<Integer, Void> config =
-      SetConfig.withoutFunctions(intSerializer());
-
-    KeyComparator<Integer> comparator =
-      (left, right) ->
-        left.compareTo(right) * -1;
-
-    config.setTypedComparator(comparator);
-
     Set<Integer, Void> set =
-      config
-        .init();
+      SetBuilder
+        .functionsDisabled(intSerializer())
+        .setTypedComparator((left, right) -> left.compareTo(right) * -1)
+        .build();
 
     assertDoesNotThrow(() -> set.add(1));
     assertDoesNotThrow(() -> set.add(2));
@@ -420,13 +412,13 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    SetConfig.Config<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> config =
-      SetConfig
-        .withFunctions(intSerializer());
+    SetBuilder.Builder<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> builder =
+      SetBuilder
+        .functionsEnabled(intSerializer());
 
     Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set =
-      config
-        .init();
+      builder
+        .build();
 
     set.add(Stream.range(1, 100));
 
@@ -446,7 +438,7 @@ abstract class SetTest extends TestBase implements JavaEventually {
 //    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> set = null;
 //    config.registerFunction(set);
 
-    config.registerFunction(expire);
+    builder.registerFunction(expire);
 
     set.applyFunction(1, 100, expire);
 
@@ -543,16 +535,16 @@ abstract class SetTest extends TestBase implements JavaEventually {
 //    int mapSize = 1000;
 //
 //    //memory set
-//    SetConfig.Config<MyKey, Void> memoryConfig = SetConfig.withoutFunctions(serializer);
+//    SetBuilder.Builder<MyKey, Void> memoryConfig = SetBuilder.functionsDisabled(serializer);
 //    memoryConfig.setComparator(IO.rightNeverException(comparator));
 //    memoryConfig.setMapSize(mapSize);
-//    Set<MyKey, Void> memorySet = memoryConfig.init();
+//    Set<MyKey, Void> memorySet = memoryConfig.build();
 //
 //    //persistent Set
-//    swaydb.java.persistent.SetConfig.Config<MyKey, Void> persistentConfig = swaydb.java.persistent.SetConfig.withoutFunctions(testDir(), serializer);
+//    swaydb.java.persistent.SetBuilder.Builder<MyKey, Void> persistentConfig = swaydb.java.persistent.SetBuilder.functionsDisabled(testDir(), serializer);
 //    persistentConfig.setComparator(IO.rightNeverException(comparator));
 //    persistentConfig.setMapSize(mapSize);
-//    Set<MyKey, Void> persistentSet = persistentConfig.init();
+//    Set<MyKey, Void> persistentSet = persistentConfig.build();
 //
 //    //create a slice to test for both maps
 //    Slice<Set<MyKey, Void>> sets = Slice.create(2);
