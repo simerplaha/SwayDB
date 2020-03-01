@@ -43,16 +43,16 @@ object Stream {
   def create[A](iterator: java.util.Collection[A]): Stream[A] =
     new Stream[A](swaydb.Stream(iterator.asScala))
 
-  def range(from: Integer, to: Integer): Stream[Integer] =
+  def range(from: Int, to: Int): Stream[Integer] =
     new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Integer]])
 
-  def rangeUntil(from: Integer, toExclusive: Integer): Stream[Integer] =
+  def rangeUntil(from: Int, toExclusive: Int): Stream[Integer] =
     new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Integer]])
 
-  def range(from: Character, to: Character): Stream[Character] =
+  def range(from: Char, to: Char): Stream[Character] =
     new Stream(swaydb.Stream.range(from, to).asInstanceOf[swaydb.Stream[Character]])
 
-  def rangeUntil(from: Character, toExclusive: Character): Stream[Character] =
+  def rangeUntil(from: Char, toExclusive: Char): Stream[Character] =
     new Stream(swaydb.Stream.range(from, toExclusive).asInstanceOf[swaydb.Stream[Character]])
 
   def tabulate[T](count: Int, function: JavaFunction[Int, T]): Stream[T] =

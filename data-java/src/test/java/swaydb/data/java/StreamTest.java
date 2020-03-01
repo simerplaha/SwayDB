@@ -32,6 +32,19 @@ class StreamTest {
   List<Integer> source = Arrays.asList(1, 2, 3, 4, 5);
 
   @Test
+  void rangeInt() {
+    List<Integer> range = Stream.range(1, 10).materialize();
+    assertEquals(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), range);
+  }
+
+  @Test
+  void rangeChar() {
+    List<Character> range = Stream.range('a', 'd').materialize();
+    assertEquals(Arrays.asList('a', 'b', 'c', 'd'), range);
+  }
+
+
+  @Test
   void mapIO() {
 
     Stream<Integer> stream = Stream.create(source.iterator());
