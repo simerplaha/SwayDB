@@ -469,7 +469,7 @@ object TestData {
 
     def random2(ioStrategy: IOAction => IOStrategy = _ => randomIOStrategy(),
                 cacheBlocksOnCreate: Boolean = randomBoolean(),
-                compressions: UncompressedBlockInfo => Seq[CompressionInternal] = _ => randomCompressionsOrEmpty(),
+                compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = _ => randomCompressionsOrEmpty(),
                 maxKeyValuesPerSegment: Int = randomIntMax(1000000),
                 deleteEventually: Boolean = randomBoolean(),
                 mmapWrites: Boolean = randomBoolean(),
@@ -986,19 +986,19 @@ object TestData {
   def randomCompressionLZ4(minCompressionPercentage: Double = Double.MinValue): CompressionInternal =
     CompressionInternal.randomLZ4(minCompressionPercentage = minCompressionPercentage)
 
-  def randomCompressions(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+  def randomCompressions(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
     (0 to randomIntMax(3) + 1) map (_ => randomCompression(minCompressionPercentage))
 
-  def randomCompressionsOrEmpty(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+  def randomCompressionsOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
     eitherOne(
       Seq.empty,
       randomCompressions(minCompressionPercentage)
     )
 
-  def randomCompressionsLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+  def randomCompressionsLZ4OrSnappy(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
     (0 to randomIntMax(3) + 1) map (_ => randomCompressionLZ4OrSnappy(minCompressionPercentage))
 
-  def randomCompressionsLZ4OrSnappyOrEmpty(minCompressionPercentage: Double = Double.MinValue): Seq[CompressionInternal] =
+  def randomCompressionsLZ4OrSnappyOrEmpty(minCompressionPercentage: Double = Double.MinValue): Iterable[CompressionInternal] =
     eitherOne(
       Seq.empty,
       randomCompressionsLZ4OrSnappy(minCompressionPercentage)

@@ -20,6 +20,8 @@
 package swaydb.data.config
 
 import swaydb.Compression
+import swaydb.data.util.Java.JavaFunction
+import scala.jdk.CollectionConverters._
 
 sealed trait RandomKeyIndex {
   def toOption =
@@ -30,18 +32,37 @@ sealed trait RandomKeyIndex {
 }
 object RandomKeyIndex {
   case object Disable extends RandomKeyIndex
+
+  def enableJava(maxProbe: Int,
+                 minimumNumberOfKeys: Int,
+                 minimumNumberOfHits: Int,
+                 indexFormat: IndexFormat,
+                 allocateSpace: JavaFunction[RequiredSpace, Int],
+                 ioStrategy: JavaFunction[IOAction, IOStrategy],
+                 compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]) =
+    Enable(
+      maxProbe = maxProbe,
+      minimumNumberOfKeys = minimumNumberOfKeys,
+      minimumNumberOfHits = minimumNumberOfHits,
+      indexFormat = indexFormat,
+      allocateSpace = allocateSpace.apply,
+      ioStrategy = ioStrategy.apply,
+      compression = compression.apply(_).asScala
+    )
+
   case class Enable(maxProbe: Int,
                     minimumNumberOfKeys: Int,
                     minimumNumberOfHits: Int,
                     indexFormat: IndexFormat,
                     allocateSpace: RequiredSpace => Int,
                     ioStrategy: IOAction => IOStrategy,
-                    compression: UncompressedBlockInfo => Seq[Compression]) extends RandomKeyIndex
+                    compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomKeyIndex
 
   object RequiredSpace {
     def apply(_requiredSpace: Int, _numberOfKeys: Int): RequiredSpace =
       new RequiredSpace {
         override def requiredSpace: Int = _requiredSpace
+
         override def numberOfKeys: Int = _numberOfKeys
       }
   }

@@ -20,23 +20,43 @@ package swaydb.data.config
 
 sealed trait IOAction {
   def isCompressed: Boolean
+  def isOpenResource: Boolean
+  def isReadDataOverview: Boolean
+  def isReadCompressedData: Boolean
+  def isReadUncompressedData: Boolean
 }
 
 object IOAction {
   case object OpenResource extends IOAction {
     override def isCompressed: Boolean = false
+    override def isOpenResource: Boolean = true
+    override def isReadDataOverview: Boolean = false
+    override def isReadCompressedData: Boolean = false
+    override def isReadUncompressedData: Boolean = false
   }
 
   case object ReadDataOverview extends IOAction {
     override def isCompressed: Boolean = false
+    override def isOpenResource: Boolean = false
+    override def isReadDataOverview: Boolean = true
+    override def isReadCompressedData: Boolean = false
+    override def isReadUncompressedData: Boolean = false
   }
 
   sealed trait DataAction extends IOAction
 
   case class ReadCompressedData(compressedSize: Int, decompressedSize: Int) extends DataAction {
     override def isCompressed: Boolean = true
+    override def isOpenResource: Boolean = false
+    override def isReadDataOverview: Boolean = false
+    override def isReadCompressedData: Boolean = true
+    override def isReadUncompressedData: Boolean = false
   }
   case class ReadUncompressedData(size: Int) extends DataAction {
     override def isCompressed: Boolean = false
+    override def isOpenResource: Boolean = false
+    override def isReadDataOverview: Boolean = false
+    override def isReadCompressedData: Boolean = false
+    override def isReadUncompressedData: Boolean = true
   }
 }

@@ -89,7 +89,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
         enablePrefixCompression = enable.prefixCompression.enabled && !enable.prefixCompression.normaliseIndexForBinarySearch,
         compressions =
           Functions.safe(
-            default = (_: UncompressedBlockInfo) => Seq.empty[CompressionInternal],
+            default = (_: UncompressedBlockInfo) => Iterable.empty[CompressionInternal],
             function = enable.compressions(_: UncompressedBlockInfo) map CompressionInternal.apply
           )
       )
@@ -100,7 +100,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
               prefixCompressKeysOnly: Boolean,
               enableAccessPositionIndex: Boolean,
               normaliseIndex: Boolean,
-              compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
+              compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
       new Config(
         ioStrategy = ioStrategy,
         shouldPrefixCompress = if (normaliseIndex || !enablePrefixCompression) _ => false else shouldPrefixCompress,
@@ -121,14 +121,14 @@ private[core] object SortedIndexBlock extends LazyLogging {
                        val enableAccessPositionIndex: Boolean,
                        val enablePrefixCompression: Boolean,
                        val normaliseIndex: Boolean,
-                       val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+                       val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
     def copy(ioStrategy: IOAction => IOStrategy = ioStrategy,
              shouldPrefixCompress: Int => Boolean = shouldPrefixCompress,
              enableAccessPositionIndex: Boolean = enableAccessPositionIndex,
              normaliseIndex: Boolean = normaliseIndex,
              enablePrefixCompression: Boolean = enablePrefixCompression,
-             compressions: UncompressedBlockInfo => Seq[CompressionInternal] = compressions) =
+             compressions: UncompressedBlockInfo => Iterable[CompressionInternal] = compressions) =
     //do not use new here. Submit this to the apply function to that rules for creating the config gets applied.
       Config(
         ioStrategy = ioStrategy,
@@ -177,7 +177,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
               val enableAccessPositionIndex: Boolean,
               val compressDuplicateRangeValues: Boolean,
               val normaliseIndex: Boolean,
-              val compressions: UncompressedBlockInfo => Seq[CompressionInternal],
+              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
               val secondaryIndexEntries: ListBuffer[SecondaryIndexEntry],
               val indexEntries: ListBuffer[Slice[Byte]],
               val builder: EntryWriter.Builder) {

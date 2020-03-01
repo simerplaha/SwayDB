@@ -25,10 +25,19 @@ import scala.util.Random
 
 sealed trait LZ4Instance
 object LZ4Instance {
+  def fastestInstance: LZ4Instance = Fastest
   case object Fastest extends LZ4Instance
+
+  def fastestJavaInstance: LZ4Instance = FastestJava
   case object FastestJava extends LZ4Instance
+
+  def nativeInstance: LZ4Instance = Native
   case object Native extends LZ4Instance
+
+  def safeInstance: LZ4Instance = Safe
   case object Safe extends LZ4Instance
+
+  def unsafeInstance: LZ4Instance = Unsafe
   case object Unsafe extends LZ4Instance
 
   def instances(): List[LZ4Instance] =

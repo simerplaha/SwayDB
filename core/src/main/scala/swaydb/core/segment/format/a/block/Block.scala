@@ -112,7 +112,7 @@ private[core] object Block extends LazyLogging {
    * NOTE: Always invoke [[CompressionResult.fixHeaderSize()]] when done writing header bytes outside this function.
    */
   def compress(bytes: Slice[Byte],
-               compressions: Seq[CompressionInternal],
+               compressions: Iterable[CompressionInternal],
                blockName: String): CompressionResult =
     compressions.untilSome(_.compressor.compress(bytes)) match {
       case Some((compressedBytes, compression)) =>
@@ -148,7 +148,7 @@ private[core] object Block extends LazyLogging {
     }
 
   def block(blocks: ClosedBlocksWithFooter,
-            compressions: Seq[CompressionInternal],
+            compressions: Iterable[CompressionInternal],
             blockName: String): TransientSegment.One =
     if (compressions.isEmpty) {
       logger.trace(s"No compression strategies provided for Segment level compression for $blockName. Storing ${blocks.segmentSize}.bytes uncompressed.")

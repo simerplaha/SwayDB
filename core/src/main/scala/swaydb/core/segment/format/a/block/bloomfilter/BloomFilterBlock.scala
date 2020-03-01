@@ -72,7 +72,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
                     minimumNumberOfKeys: Int,
                     optimalMaxProbe: Int => Int,
                     ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
 
   case class Offset(start: Int, size: Int) extends BlockOffset
 
@@ -81,7 +81,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
               var compressibleBytes: Slice[Byte],
               val cacheableBytes: Slice[Byte],
               var header: Slice[Byte],
-              val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
     def blockSize: Int =
       header.size + compressibleBytes.size
@@ -125,7 +125,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   private def apply(numberOfKeys: Int,
                     falsePositiveRate: Double,
                     updateMaxProbe: Int => Int,
-                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]): BloomFilterBlock.State = {
+                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): BloomFilterBlock.State = {
     val numberOfBits = optimalNumberOfBits(numberOfKeys, falsePositiveRate)
     val maxProbe = optimalNumberOfProbes(numberOfKeys, numberOfBits, updateMaxProbe) max 1
 
@@ -230,7 +230,7 @@ private[core] object BloomFilterBlock extends LazyLogging {
   def init(numberOfKeys: Int,
            falsePositiveRate: Double,
            updateMaxProbe: Int => Int,
-           compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Option[BloomFilterBlock.State] =
+           compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Option[BloomFilterBlock.State] =
     if (numberOfKeys <= 0 || falsePositiveRate <= 0.0 || falsePositiveRate >= 1)
       None
     else

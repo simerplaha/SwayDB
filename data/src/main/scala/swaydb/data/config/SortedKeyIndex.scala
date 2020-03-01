@@ -20,11 +20,25 @@
 package swaydb.data.config
 
 import swaydb.Compression
+import swaydb.data.util.Java.JavaFunction
+import scala.jdk.CollectionConverters._
 
 sealed trait SortedKeyIndex
 object SortedKeyIndex {
+
+  def enableJava(prefixCompression: PrefixCompression,
+                 enablePositionIndex: Boolean,
+                 ioStrategy: JavaFunction[IOAction, IOStrategy],
+                 compressions: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]) =
+    Enable(
+      prefixCompression = prefixCompression,
+      enablePositionIndex = enablePositionIndex,
+      ioStrategy = ioStrategy.apply,
+      compressions = compressions.apply(_).asScala
+    )
+
   case class Enable(prefixCompression: PrefixCompression,
                     enablePositionIndex: Boolean,
                     ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Seq[Compression]) extends SortedKeyIndex
+                    compressions: UncompressedBlockInfo => Iterable[Compression]) extends SortedKeyIndex
 }

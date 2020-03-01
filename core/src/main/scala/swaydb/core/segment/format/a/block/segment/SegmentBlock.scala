@@ -126,7 +126,7 @@ private[core] object SegmentBlock extends LazyLogging {
                                     mmapWrites: Boolean,
                                     mmapReads: Boolean,
                                     deleteEventually: Boolean,
-                                    compressions: UncompressedBlockInfo => Seq[CompressionInternal]): Config =
+                                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal]): Config =
       new Config(
         ioStrategy = ioStrategy,
         cacheBlocksOnCreate = cacheBlocksOnCreate,
@@ -148,7 +148,7 @@ private[core] object SegmentBlock extends LazyLogging {
                        val mmapWrites: Boolean,
                        val mmapReads: Boolean,
                        val deleteEventually: Boolean,
-                       val compressions: UncompressedBlockInfo => Seq[CompressionInternal]) {
+                       val compressions: UncompressedBlockInfo => Iterable[CompressionInternal]) {
 
     def copy(minSize: Int = minSize, maxCount: Int = maxCount): SegmentBlock.Config =
       SegmentBlock.Config.applyInternal(

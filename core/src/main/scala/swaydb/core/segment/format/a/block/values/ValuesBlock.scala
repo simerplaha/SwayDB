@@ -70,7 +70,7 @@ private[core] object ValuesBlock {
   case class Config(compressDuplicateValues: Boolean,
                     compressDuplicateRangeValues: Boolean,
                     ioStrategy: IOAction => IOStrategy,
-                    compressions: UncompressedBlockInfo => Seq[CompressionInternal])
+                    compressions: UncompressedBlockInfo => Iterable[CompressionInternal])
 
   def valuesBlockNotInitialised: IO.Left[swaydb.Error.Segment, Nothing] =
     IO.Left(swaydb.Error.Fatal("Value block not initialised."))
@@ -78,7 +78,7 @@ private[core] object ValuesBlock {
   class State(var compressibleBytes: Slice[Byte],
               val cacheableBytes: Slice[Byte],
               var header: Slice[Byte],
-              val compressions: UncompressedBlockInfo => Seq[CompressionInternal],
+              val compressions: UncompressedBlockInfo => Iterable[CompressionInternal],
               val builder: EntryWriter.Builder) {
     def blockSize: Int =
       header.size + compressibleBytes.size

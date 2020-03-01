@@ -21,6 +21,9 @@ package swaydb.data.compression
 
 sealed trait LZ4Decompressor
 object LZ4Decompressor {
+  def fastDecompressor: LZ4Decompressor = Fast
   case object Fast extends LZ4Decompressor
+
+  def safeDecompressor: LZ4Decompressor = Safe
   case object Safe extends LZ4Decompressor
 }

@@ -23,7 +23,16 @@ import swaydb.data.compression.{LZ4Compressor, LZ4Decompressor, LZ4Instance}
 
 sealed trait Compression
 object Compression {
+  def lz4Pair(compressor: Pair[LZ4Instance, LZ4Compressor], decompressor: Pair[LZ4Instance, LZ4Decompressor]): Compression.LZ4 =
+    LZ4(
+      compressor = compressor.toTuple,
+      decompressor = decompressor.toTuple
+    )
+
   case class LZ4(compressor: (LZ4Instance, LZ4Compressor), decompressor: (LZ4Instance, LZ4Decompressor)) extends Compression
   case class Snappy(minCompressionPercentage: Double) extends Compression
+
+  def noneCompression: Compression = Compression.None
   case object None extends Compression
+
 }

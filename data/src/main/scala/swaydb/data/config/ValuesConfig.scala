@@ -20,8 +20,23 @@
 package swaydb.data.config
 
 import swaydb.Compression
+import swaydb.data.util.Java.JavaFunction
+import scala.jdk.CollectionConverters._
+
+object ValuesConfig {
+  def createJava(compressDuplicateValues: Boolean,
+                 compressDuplicateRangeValues: Boolean,
+                 ioStrategy: JavaFunction[IOAction, IOStrategy],
+                 compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]) =
+    ValuesConfig(
+      compressDuplicateValues = compressDuplicateValues,
+      compressDuplicateRangeValues = compressDuplicateRangeValues,
+      ioStrategy = ioStrategy.apply,
+      compression = compression.apply(_).asScala
+    )
+}
 
 case class ValuesConfig(compressDuplicateValues: Boolean,
                         compressDuplicateRangeValues: Boolean,
                         ioStrategy: IOAction => IOStrategy,
-                        compression: UncompressedBlockInfo => Seq[Compression])
+                        compression: UncompressedBlockInfo => Iterable[Compression])

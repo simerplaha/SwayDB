@@ -20,6 +20,7 @@
 package swaydb.java.persistent
 
 import java.nio.file.Path
+import java.util.Collections
 
 import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -27,10 +28,10 @@ import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
+import swaydb.data.util.Java.JavaFunction
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
 import swaydb.java.data.slice.ByteSlice
-import swaydb.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer
@@ -39,6 +40,7 @@ import swaydb.{Apply, Bag}
 import scala.beans.{BeanProperty, BooleanBeanProperty}
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 object SetConfig {
@@ -49,7 +51,7 @@ object SetConfig {
                      @BeanProperty var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
                      @BooleanBeanProperty var mmapAppendix: Boolean = true,
                      @BeanProperty var appendixFlushCheckpointSize: Int = 2.mb,
-                     @BeanProperty var otherDirs: Seq[Dir] = Seq.empty,
+                     @BeanProperty var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                      @BooleanBeanProperty var cacheKeyValueIds: Boolean = true,
                      @BeanProperty var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
                      @BeanProperty var sortedKeyIndex: SortedKeyIndex.Enable = DefaultConfigs.sortedKeyIndex(),
@@ -109,7 +111,7 @@ object SetConfig {
           recoveryMode = recoveryMode,
           mmapAppendix = mmapAppendix,
           appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          otherDirs = otherDirs,
+          otherDirs = otherDirs.asScala.toSeq,
           cacheKeyValueIds = cacheKeyValueIds,
           acceleration = acceleration.asScala,
           threadStateCache = threadStateCache,

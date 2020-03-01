@@ -20,6 +20,29 @@
 package swaydb.data.config
 
 import swaydb.Compression
+import swaydb.data.util.Java.JavaFunction
+import scala.jdk.CollectionConverters._
+
+object SegmentConfig {
+  def createJava(cacheSegmentBlocksOnCreate: Boolean,
+                 deleteSegmentsEventually: Boolean,
+                 pushForward: Boolean,
+                 mmap: MMAP,
+                 minSegmentSize: Int,
+                 maxKeyValuesPerSegment: Int,
+                 ioStrategy: JavaFunction[IOAction, IOStrategy],
+                 compression: JavaFunction[UncompressedBlockInfo, java.util.List[Compression]]): SegmentConfig =
+    SegmentConfig(
+      cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate,
+      deleteSegmentsEventually = deleteSegmentsEventually,
+      pushForward = pushForward,
+      mmap = mmap,
+      minSegmentSize = minSegmentSize,
+      maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+      ioStrategy = ioStrategy.apply,
+      compression = compression.apply(_).asScala
+    )
+}
 
 case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          deleteSegmentsEventually: Boolean,
@@ -28,4 +51,4 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          minSegmentSize: Int,
                          maxKeyValuesPerSegment: Int,
                          ioStrategy: IOAction => IOStrategy,
-                         compression: UncompressedBlockInfo => Seq[Compression])
+                         compression: UncompressedBlockInfo => Iterable[Compression])

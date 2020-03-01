@@ -17,6 +17,9 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 package swaydb.data.config
+import swaydb.data.util.Java.JavaFunction
+
+import scala.jdk.FunctionConverters._
 
 sealed trait IOStrategy {
   def cacheOnAccess: Boolean
@@ -28,7 +31,8 @@ object IOStrategy {
    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
    * or [[IOAction.ReadUncompressedData]] blocks.
    */
-  val defaultSynchronised: IOAction => IOStrategy.SynchronisedIO = {
+
+  def defaultSynchronised: IOAction => IOStrategy.SynchronisedIO = {
     case IOAction.OpenResource =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
@@ -39,7 +43,10 @@ object IOStrategy {
       IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
   }
 
-  val defaultConcurrent: IOAction => IOStrategy.ConcurrentIO = {
+  def defaultSynchronisedJava: JavaFunction[IOAction, SynchronisedIO] =
+    defaultSynchronised.asJava
+
+  def defaultConcurrent: IOAction => IOStrategy.ConcurrentIO = {
     case IOAction.OpenResource =>
       IOStrategy.ConcurrentIO(cacheOnAccess = true)
 
@@ -49,6 +56,9 @@ object IOStrategy {
     case action: IOAction.DataAction =>
       IOStrategy.ConcurrentIO(cacheOnAccess = action.isCompressed)
   }
+
+  def defaultConcurrentJava: JavaFunction[IOAction, IOStrategy.ConcurrentIO] =
+    defaultConcurrent.asJava
 
   case class ConcurrentIO(cacheOnAccess: Boolean) extends IOStrategy {
     def forceCacheOnAccess: ConcurrentIO =

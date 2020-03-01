@@ -138,7 +138,8 @@ val commonJavaDependencies =
 def commonDependencies(scalaVersion: String) =
   Seq(
     "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact
+    "org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionsCompact,
+    "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
   ) ++ testDependencies(scalaVersion)
 
 lazy val SwayDB =
@@ -171,9 +172,7 @@ lazy val `data-java` =
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies ++=
-        commonJavaDependencies :+
-          "org.scala-lang.modules" %% "scala-java8-compat" % scalaJava8CompatVersion
+      libraryDependencies ++= commonJavaDependencies
     ).dependsOn(data)
 
 lazy val swaydb =

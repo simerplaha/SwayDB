@@ -28,7 +28,9 @@ sealed trait PrefixCompression {
 object PrefixCompression {
   case class Disable(normaliseIndexForBinarySearch: Boolean) extends PrefixCompression {
     override def keysOnly = false
+
     override def enabled: Boolean = false
+
     private[swaydb] override def shouldCompress(interval: Int): Boolean = false
   }
 
@@ -36,7 +38,14 @@ object PrefixCompression {
     private[swaydb] def shouldCompress(index: Int): Boolean
   }
 
+  def resetCompressionAtJava(indexInterval: Int): Interval =
+    Interval.ResetCompressionAt(indexInterval)
+
+  def compressAtJava(indexInterval: Int): Interval =
+    Interval.CompressAt(indexInterval)
+
   object Interval {
+
     case class ResetCompressionAt(indexInterval: Int) extends Interval {
       private[swaydb] override def shouldCompress(index: Int): Boolean =
         indexInterval != 0 && index % this.indexInterval != 0
@@ -50,6 +59,7 @@ object PrefixCompression {
 
   case class Enable(keysOnly: Boolean, interval: Interval) extends PrefixCompression {
     override def normaliseIndexForBinarySearch: Boolean = false
+
     override def enabled: Boolean = true
 
     private[swaydb] override def shouldCompress(interval: Int): Boolean =
