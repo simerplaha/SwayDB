@@ -21,13 +21,11 @@ package swaydb.data.config
 
 import swaydb.Bagged
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-
 sealed trait FileCache extends Bagged[FileCache.Enable, Option]
 
 object FileCache {
 
+  def disabled: FileCache = Disable
   case object Disable extends FileCache {
     override def get: Option[Enable] = None
   }

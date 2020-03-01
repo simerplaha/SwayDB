@@ -35,6 +35,7 @@ object ThreadStateCache {
   case class Limit(hashMapMaxSize: Int,
                    maxProbe: Int) extends ThreadStateCache
 
+  def noLimit: ThreadStateCache = NoLimit
   case object NoLimit extends ThreadStateCache
 
   /**
@@ -42,5 +43,7 @@ object ThreadStateCache {
    * allows for perfect HashIndexes and if you do not use iterations.
    * Otherwise disabling [[ThreadStateCache]] can have noticable performance impact.
    */
+
+  def disable: ThreadStateCache = Disable
   case object Disable extends ThreadStateCache
 }

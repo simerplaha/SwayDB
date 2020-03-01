@@ -33,6 +33,7 @@ sealed trait MightContainIndex {
 
 object MightContainIndex {
 
+  def disable: MightContainIndex = Disable
   case object Disable extends MightContainIndex
 
   def enableJava(falsePositiveRate: Double,

@@ -31,6 +31,8 @@ sealed trait RandomKeyIndex {
     }
 }
 object RandomKeyIndex {
+  def disable: RandomKeyIndex = Disable
+
   case object Disable extends RandomKeyIndex
 
   def enableJava(maxProbe: Int,

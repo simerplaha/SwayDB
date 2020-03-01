@@ -23,6 +23,7 @@ sealed trait MemoryCache
 
 object MemoryCache {
 
+  def disable: MemoryCache = Disable
   case object Disable extends MemoryCache
 
   sealed trait Enabled extends MemoryCache {

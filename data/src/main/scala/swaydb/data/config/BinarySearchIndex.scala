@@ -26,6 +26,9 @@ import scala.jdk.CollectionConverters._
 sealed trait BinarySearchIndex
 
 object BinarySearchIndex {
+  def disable(searchSortedIndexDirectly: Boolean): BinarySearchIndex.Disable =
+    new Disable(searchSortedIndexDirectly)
+
   case class Disable(searchSortedIndexDirectly: Boolean) extends BinarySearchIndex
 
   sealed trait Enable extends BinarySearchIndex {

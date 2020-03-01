@@ -46,10 +46,10 @@ object QueueBuilder {
                          private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
                          private var cacheKeyValueIds: Boolean = true,
                          private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                         private var sortedKeyIndex: SortedKeyIndex.Enable = DefaultConfigs.sortedKeyIndex(),
-                         private var randomKeyIndex: RandomKeyIndex.Enable = DefaultConfigs.randomKeyIndex(),
-                         private var binarySearchIndex: BinarySearchIndex.FullIndex = DefaultConfigs.binarySearchIndex(),
-                         private var mightContainKeyIndex: MightContainIndex.Enable = DefaultConfigs.mightContainKeyIndex(),
+                         private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                         private var randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                         private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+                         private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                          private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
                          private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
                          private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
@@ -104,22 +104,22 @@ object QueueBuilder {
       this
     }
 
-    def setSortedKeyIndex(sortedKeyIndex: SortedKeyIndex.Enable) = {
+    def setSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) = {
       this.sortedKeyIndex = sortedKeyIndex
       this
     }
 
-    def setRandomKeyIndex(randomKeyIndex: RandomKeyIndex.Enable) = {
+    def setRandomKeyIndex(randomKeyIndex: RandomKeyIndex) = {
       this.randomKeyIndex = randomKeyIndex
       this
     }
 
-    def setBinarySearchIndex(binarySearchIndex: BinarySearchIndex.FullIndex) = {
+    def setBinarySearchIndex(binarySearchIndex: BinarySearchIndex) = {
       this.binarySearchIndex = binarySearchIndex
       this
     }
 
-    def setMightContainKeyIndex(mightContainKeyIndex: MightContainIndex.Enable) = {
+    def setMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
       this.mightContainKeyIndex = mightContainKeyIndex
       this
     }
