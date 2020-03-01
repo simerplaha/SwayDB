@@ -225,7 +225,7 @@ private[core] class SegmentBlockCache(path: Path,
        */
       //      initial = if (areBlocksCacheableOnCreate && initial.isEmpty) Some(null) else initial,
       initial = initial,
-      strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.defaultBlockReadersStored,
+      strategy = _.map(reader => blockIO(reader.block.dataType).forceCacheOnAccess) getOrElse IOStrategy.ConcurrentIO(true),
       reserveError = swaydb.Error.ReservedResource(Reserve.free(name = s"$path: $resourceName"))
     ) {
       (initial, self) => //initial set clean up.

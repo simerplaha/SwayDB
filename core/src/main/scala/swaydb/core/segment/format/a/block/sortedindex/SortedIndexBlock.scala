@@ -81,7 +81,7 @@ private[core] object SortedIndexBlock extends LazyLogging {
 
     def apply(enable: swaydb.data.config.SortedKeyIndex.Enable): Config =
       Config(
-        ioStrategy = Functions.safe(IOStrategy.synchronisedStoredIfCompressed, enable.ioStrategy),
+        ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.ioStrategy),
         shouldPrefixCompress = enable.prefixCompression.shouldCompress,
         prefixCompressKeysOnly = enable.prefixCompression.enabled && enable.prefixCompression.keysOnly,
         enableAccessPositionIndex = enable.enablePositionIndex,

@@ -28,35 +28,27 @@ object IOStrategy {
    * The default [[IOStrategy]] strategy used for all [[IOAction.ReadCompressedData]]
    * or [[IOAction.ReadUncompressedData]] blocks.
    */
-  val synchronisedStoredIfCompressed: IOAction => IOStrategy.SynchronisedIO =
-    (dataType: IOAction) =>
-      IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed)
-
-  val synchronisedStored: IOAction => IOStrategy.SynchronisedIO =
-    (_: IOAction) =>
+  val defaultSynchronised: IOAction => IOStrategy.SynchronisedIO = {
+    case IOAction.OpenResource =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-  val concurrentStoredIfCompressed: IOAction => IOStrategy.SynchronisedIO =
-    (dataType: IOAction) =>
-      IOStrategy.SynchronisedIO(cacheOnAccess = dataType.isCompressed)
-
-  val concurrentStored: IOAction => IOStrategy.SynchronisedIO =
-    (_: IOAction) =>
+    case IOAction.ReadDataOverview =>
       IOStrategy.SynchronisedIO(cacheOnAccess = true)
 
-  val reserved: IOAction => IOStrategy.AsyncIO =
-    (_: IOAction) =>
-      IOStrategy.AsyncIO(cacheOnAccess = true)
+    case action: IOAction.DataAction =>
+      IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed)
+  }
 
-  /**
-   * The default [[IOStrategy]] strategy used for all [[IOAction.ReadDataOverview]].
-   * BlockInfos are never individually unless the entire Segment is compressed.
-   */
-  val defaultBlockInfoStored =
-    IOStrategy.ConcurrentIO(true)
+  val defaultConcurrent: IOAction => IOStrategy.ConcurrentIO = {
+    case IOAction.OpenResource =>
+      IOStrategy.ConcurrentIO(cacheOnAccess = true)
 
-  val defaultBlockReadersStored =
-    IOStrategy.ConcurrentIO(true)
+    case IOAction.ReadDataOverview =>
+      IOStrategy.ConcurrentIO(cacheOnAccess = true)
+
+    case action: IOAction.DataAction =>
+      IOStrategy.ConcurrentIO(cacheOnAccess = action.isCompressed)
+  }
 
   case class ConcurrentIO(cacheOnAccess: Boolean) extends IOStrategy {
     def forceCacheOnAccess: ConcurrentIO =

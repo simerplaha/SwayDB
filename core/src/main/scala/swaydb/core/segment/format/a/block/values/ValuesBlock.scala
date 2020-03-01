@@ -58,7 +58,7 @@ private[core] object ValuesBlock {
       Config(
         compressDuplicateValues = enable.compressDuplicateValues,
         compressDuplicateRangeValues = enable.compressDuplicateRangeValues,
-        ioStrategy = Functions.safe(IOStrategy.concurrentStoredIfCompressed, enable.ioStrategy),
+        ioStrategy = Functions.safe(IOStrategy.defaultSynchronised, enable.ioStrategy),
         compressions =
           Functions.safe(
             default = _ => Seq.empty[CompressionInternal],

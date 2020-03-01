@@ -71,7 +71,7 @@ class SegmentBlockInitialisationSpec extends TestBase {
                   minimumNumberOfKeys = 0,
                   fullIndex = randomBoolean(),
                   searchSortedIndexDirectlyIfPossible = randomBoolean(),
-                  ioStrategy = _ => IOStrategy.defaultBlockReadersStored,
+                  ioStrategy = _ => IOStrategy.ConcurrentIO(true),
                   compressions = _ => randomCompressionsOrEmpty()
                 )
             )

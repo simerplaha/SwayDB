@@ -31,46 +31,13 @@ private[core] object SegmentIO {
 
   def defaultSynchronisedStoredIfCompressed =
     new SegmentIO(
-      segmentBlockIO = IOStrategy.synchronisedStoredIfCompressed,
-      hashIndexBlockIO = IOStrategy.synchronisedStoredIfCompressed,
-      bloomFilterBlockIO = IOStrategy.synchronisedStoredIfCompressed,
-      binarySearchIndexBlockIO = IOStrategy.synchronisedStoredIfCompressed,
-      sortedIndexBlockIO = IOStrategy.synchronisedStoredIfCompressed,
-      valuesBlockIO = IOStrategy.synchronisedStoredIfCompressed,
-      segmentFooterBlockIO = IOStrategy.synchronisedStoredIfCompressed
-    )
-
-  def defaultConcurrentStoredIfCompressed =
-    new SegmentIO(
-      segmentBlockIO = IOStrategy.concurrentStoredIfCompressed,
-      hashIndexBlockIO = IOStrategy.concurrentStoredIfCompressed,
-      bloomFilterBlockIO = IOStrategy.concurrentStoredIfCompressed,
-      binarySearchIndexBlockIO = IOStrategy.concurrentStoredIfCompressed,
-      sortedIndexBlockIO = IOStrategy.concurrentStoredIfCompressed,
-      valuesBlockIO = IOStrategy.concurrentStoredIfCompressed,
-      segmentFooterBlockIO = IOStrategy.concurrentStoredIfCompressed
-    )
-
-  def defaultConcurrentStored =
-    new SegmentIO(
-      segmentBlockIO = IOStrategy.concurrentStored,
-      hashIndexBlockIO = IOStrategy.concurrentStored,
-      bloomFilterBlockIO = IOStrategy.concurrentStored,
-      binarySearchIndexBlockIO = IOStrategy.concurrentStored,
-      sortedIndexBlockIO = IOStrategy.concurrentStored,
-      valuesBlockIO = IOStrategy.concurrentStored,
-      segmentFooterBlockIO = IOStrategy.concurrentStored
-    )
-
-  def defaultSynchronisedStored =
-    new SegmentIO(
-      segmentBlockIO = IOStrategy.synchronisedStored,
-      hashIndexBlockIO = IOStrategy.synchronisedStored,
-      bloomFilterBlockIO = IOStrategy.synchronisedStored,
-      binarySearchIndexBlockIO = IOStrategy.synchronisedStored,
-      sortedIndexBlockIO = IOStrategy.synchronisedStored,
-      valuesBlockIO = IOStrategy.synchronisedStored,
-      segmentFooterBlockIO = IOStrategy.synchronisedStored
+      segmentBlockIO = IOStrategy.defaultSynchronised,
+      hashIndexBlockIO = IOStrategy.defaultSynchronised,
+      bloomFilterBlockIO = IOStrategy.defaultSynchronised,
+      binarySearchIndexBlockIO = IOStrategy.defaultSynchronised,
+      sortedIndexBlockIO = IOStrategy.defaultSynchronised,
+      valuesBlockIO = IOStrategy.defaultSynchronised,
+      segmentFooterBlockIO = IOStrategy.defaultSynchronised
     )
 
   def apply(bloomFilterConfig: BloomFilterBlock.Config,
