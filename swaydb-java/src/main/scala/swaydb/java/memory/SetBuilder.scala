@@ -160,13 +160,13 @@ object SetBuilder {
     }
   }
 
-  def createFunctionsEnabled[A](serializer: JavaSerializer[A]): Builder[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
+  def functionsBuilder[A](serializer: JavaSerializer[A]): Builder[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
     new Builder(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])
     )
 
-  def createFunctionsDisabled[A](serializer: JavaSerializer[A]): Builder[A, Void] =
+  def builder[A](serializer: JavaSerializer[A]): Builder[A, Void] =
     new Builder[A, Void](
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing

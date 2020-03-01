@@ -107,6 +107,6 @@ object QueueBuilder {
     }
   }
 
-  def create[A](serializer: JavaSerializer[A]): Builder[A] =
+  def builder[A](serializer: JavaSerializer[A]): Builder[A] =
     new Builder(serializer = SerializerConverter.toScala(serializer))
 }

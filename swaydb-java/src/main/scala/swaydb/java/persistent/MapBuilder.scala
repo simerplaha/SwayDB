@@ -271,9 +271,9 @@ object MapBuilder {
     }
   }
 
-  def createFunctionsEnabled[K, V](dir: Path,
-                                   keySerializer: JavaSerializer[K],
-                                   valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
+  def functionsBuilder[K, V](dir: Path,
+                             keySerializer: JavaSerializer[K],
+                             valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
     new Builder(
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
@@ -281,9 +281,9 @@ object MapBuilder {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
     )
 
-  def createFunctionsDisabled[K, V](dir: Path,
-                                    keySerializer: JavaSerializer[K],
-                                    valueSerializer: JavaSerializer[V]): Builder[K, V, Void] =
+  def builder[K, V](dir: Path,
+                    keySerializer: JavaSerializer[K],
+                    valueSerializer: JavaSerializer[V]): Builder[K, V, Void] =
     new Builder[K, V, Void](
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),

@@ -38,7 +38,7 @@ class MemoryQueueTest extends QueueTest {
   public <K> Queue<K> createQueue(Serializer<K> serialiser) {
     return
       QueueBuilder
-        .create(serialiser)
+        .builder(serialiser)
         .build();
   }
 }
@@ -53,7 +53,7 @@ class PersistentQueueTest extends QueueTest {
   public <K> Queue<K> createQueue(Serializer<K> serialiser) throws IOException {
     return
       swaydb.java.persistent.QueueBuilder
-        .create(testDir(), serialiser)
+        .builder(testDir(), serialiser)
         .build();
   }
 }

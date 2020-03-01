@@ -218,8 +218,8 @@ object QueueBuilder {
     }
   }
 
-  def create[A](dir: Path,
-                serializer: JavaSerializer[A]): Builder[A] =
+  def builder[A](dir: Path,
+                 serializer: JavaSerializer[A]): Builder[A] =
     new Builder(
       dir = dir,
       serializer = SerializerConverter.toScala(serializer)

@@ -24,9 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import swaydb.KeyVal;
 import swaydb.Pair;
-import swaydb.data.config.BinarySearchIndex;
-import swaydb.data.config.MightContainIndex;
-import swaydb.data.config.RandomKeyIndex;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
@@ -48,7 +45,7 @@ class MemoryMapTest extends MapTest {
                                           Serializer<V> valueSerializer) {
     return
       MapBuilder
-        .createFunctionsDisabled(keySerializer, valueSerializer)
+        .builder(keySerializer, valueSerializer)
         .build();
   }
 }
@@ -62,9 +59,10 @@ class PersistentMapTest extends MapTest {
 
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) throws IOException {
+
     return
       swaydb.java.persistent.MapBuilder
-        .createFunctionsDisabled(testDir(), keySerializer, valueSerializer)
+        .builder(testDir(), keySerializer, valueSerializer)
         .build();
   }
 }
@@ -429,7 +427,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   void comparatorTest() {
     Map<Integer, Integer, Void> map =
       MapBuilder
-        .createFunctionsDisabled(intSerializer(), intSerializer())
+        .builder(intSerializer(), intSerializer())
         .setTypedComparator((left, right) -> left.compareTo(right) * -1)
         .build();
 
@@ -534,7 +532,7 @@ abstract class MapTest extends TestBase implements JavaEventually {
   void registerAndApplyFunction() {
     MapBuilder.Builder<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
       MapBuilder
-        .createFunctionsEnabled(intSerializer(), intSerializer());
+        .functionsBuilder(intSerializer(), intSerializer());
 
     Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
       config
