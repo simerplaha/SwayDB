@@ -243,5 +243,5 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
   private def copy(): Unit = ()
 
   override def toString(): String =
-    classOf[Map[_, _, _]].getClass.getSimpleName
+    asScala.toString()
 }
