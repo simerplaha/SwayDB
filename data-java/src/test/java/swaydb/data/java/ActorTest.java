@@ -39,13 +39,14 @@ class ActorTest {
 
     ConcurrentLinkedDeque<String> messages = new ConcurrentLinkedDeque<>();
 
-    BiConsumer<String, Actor.ActorInstance<String, Void>> execution =
+    BiConsumer<String, Actor.Instance<String, Void>> execution =
       (message, actor) -> {
         assertNull(actor.state());
         messages.add(message);
       };
 
-    Actor.ActorRef<String, Void> statelessFIFO = Actor.createStatelessFIFO(execution, executorService);
+    Actor.Ref<String, Void> statelessFIFO =
+      Actor.fifo(execution, executorService);
 
     for (int i = 0; i < 100; i++) {
       statelessFIFO.send("test" + i);
@@ -74,7 +75,7 @@ class ActorTest {
 
     RuntimeException failedMessageException = new RuntimeException("Failed messages");
 
-    BiConsumer<String, Actor.ActorInstance<String, Void>> execution =
+    BiConsumer<String, Actor.Instance<String, Void>> execution =
       (message, actor) -> {
         assertNull(actor.state());
         if (message.contains("10")) { //on the 10th message throw Exception.
@@ -87,9 +88,9 @@ class ActorTest {
 
     ConcurrentLinkedDeque<String> failedMessages = new ConcurrentLinkedDeque<>();
 
-    Actor.ActorRef<String, Void> statelessFIFO =
+    Actor.Ref<String, Void> statelessFIFO =
       Actor
-        .createStatelessFIFO(execution, executorService)
+        .fifo(execution, executorService)
         .recover((message, error, actor) -> {
           failedMessages.add(message); //recover from messages
           assertEquals(error, failedMessageException);
