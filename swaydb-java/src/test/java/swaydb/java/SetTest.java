@@ -41,12 +41,12 @@ import static swaydb.java.serializers.Default.intSerializer;
 class MemorySetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
-    Set<K, Void> map =
+    Set<K, Void> set =
       swaydb.java.memory.SetBuilder
         .createFunctionsDisabled(keySerializer)
         .build();
 
-    return map;
+    return set;
   }
 }
 
@@ -58,12 +58,12 @@ class PersistentSetTest extends SetTest {
   }
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
-    Set<K, Void> map =
+    Set<K, Void> set =
       swaydb.java.persistent.SetBuilder
         .createFunctionsDisabled(testDir(), keySerializer)
         .build();
 
-    return map;
+    return set;
   }
 }
 

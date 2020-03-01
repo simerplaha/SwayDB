@@ -222,6 +222,8 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def delete(): Unit =
     asScala.delete()
 
+  private def copy(): Unit = ()
+
   override def toString(): String =
     asScala.toString()
 }

@@ -86,7 +86,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
 
   /**
    * Stores all failed items that get processed first before picking
-   * next task in [[set]].
+   * next task from [[set]].
    */
   private val retryQueue = new ConcurrentLinkedQueue[java.lang.Long]()
 
@@ -176,7 +176,7 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
         if (retryId == null)
           popIds.getAndIncrement() //pick next job
         else
-          retryId
+        retryId
 
       //pop the next job from the map safely.
       val valueOrNull = popAndRecoverOrNull(nextId)
@@ -191,6 +191,8 @@ case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
     } else {
       orElse
     }
+
+  private def copy(): Unit = ()
 
   def stream: Stream[A] =
     set

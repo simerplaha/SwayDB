@@ -209,19 +209,19 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
     bag.map(expiration(key))(_.map(_.timeLeft))
 
   def from(key: K): SetMap[K, V, F, BAG] =
-    copy(set = set.from((key, nullValue)))
+    SetMap(set = set.from((key, nullValue)))
 
   def before(key: K): SetMap[K, V, F, BAG] =
-    copy(set = set.before((key, nullValue)))
+    SetMap(set = set.before((key, nullValue)))
 
   def fromOrBefore(key: K): SetMap[K, V, F, BAG] =
-    copy(set = set.fromOrBefore((key, nullValue)))
+    SetMap(set = set.fromOrBefore((key, nullValue)))
 
   def after(key: K): SetMap[K, V, F, BAG] =
-    copy(set = set.after((key, nullValue)))
+    SetMap(set = set.after((key, nullValue)))
 
   def fromOrAfter(key: K): SetMap[K, V, F, BAG] =
-    copy(set = set.fromOrAfter((key, nullValue)))
+    SetMap(set = set.fromOrAfter((key, nullValue)))
 
   def headOption: BAG[Option[(K, V)]] =
     set.headOption
@@ -248,7 +248,9 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
     set.lastOption
 
   def reverse: SetMap[K, V, F, BAG] =
-    copy(set.reverse)
+    SetMap(set.reverse)
+
+  private def copy(): Unit = ()
 
   override def asScala: mutable.Map[K, V] =
     ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
@@ -260,7 +262,7 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
    * Returns an Async API of type O where the [[Bag]] is known.
    */
   def toBag[X[_]](implicit bag: Bag[X]): SetMap[K, V, F, X] =
-    copy(set = set.toBag[X])
+    SetMap(set = set.toBag[X])
 
   def close(): BAG[Unit] =
     set.close()

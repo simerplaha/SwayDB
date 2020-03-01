@@ -189,19 +189,19 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     asScala.timeLeft(key).asJavaMap(_.toJava)
 
   def from(key: K): Map[K, V, F] =
-    copy(asScala.from(key))
+    Map(asScala.from(key))
 
   def before(key: K): Map[K, V, F] =
-    copy(asScala.before(key))
+    Map(asScala.before(key))
 
   def fromOrBefore(key: K): Map[K, V, F] =
-    copy(asScala.fromOrBefore(key))
+    Map(asScala.fromOrBefore(key))
 
   def after(key: K): Map[K, V, F] =
-    copy(asScala.after(key))
+    Map(asScala.after(key))
 
   def fromOrAfter(key: K): Map[K, V, F] =
-    copy(asScala.fromOrAfter(key))
+    Map(asScala.fromOrAfter(key))
 
   def headOptional: Optional[KeyVal[K, V]] =
     asScala.headOption.asJavaMap(KeyVal(_))
@@ -228,13 +228,15 @@ case class Map[K, V, F](private val _asScala: swaydb.Map[K, V, _, Bag.Less]) {
     asScala.lastOption.asJavaMap(KeyVal(_))
 
   def reverse: Map[K, V, F] =
-    copy(asScala.reverse)
+    Map(asScala.reverse)
 
   def close(): Unit =
     asScala.close()
 
   def delete(): Unit =
     asScala.delete()
+
+  private def copy(): Unit = ()
 
   override def toString(): String =
     classOf[Map[_, _, _]].getClass.getSimpleName
