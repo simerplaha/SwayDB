@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.java
+package swaydb
 
 object KeyVal {
   def apply[K, V](keyVal: (K, V)): KeyVal[K, V] =

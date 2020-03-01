@@ -22,7 +22,7 @@ package swaydb.java
 import java.util.Optional
 
 import swaydb.Apply
-import swaydb.java.data.slice.Slice
+import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 
 import scala.concurrent.duration

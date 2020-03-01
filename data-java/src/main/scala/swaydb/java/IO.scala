@@ -23,7 +23,7 @@ import java.util.Optional
 import java.util.concurrent.CompletionStage
 import java.util.function.{Consumer, Predicate, Supplier}
 
-import swaydb.java.data.util.Java._
+import swaydb.data.util.Java._
 
 import scala.compat.java8.FutureConverters._
 

@@ -30,7 +30,7 @@ import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.java._
 import swaydb.java.data.slice.ByteSlice
-import swaydb.java.data.util.Java.JavaFunction
+import swaydb.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.persistent.DefaultConfigs
 import swaydb.serializers.Serializer

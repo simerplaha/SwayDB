@@ -23,7 +23,7 @@ import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
 import swaydb.data.util.StorageUnits._
-import swaydb.java.data.util.Java.JavaFunction
+import swaydb.data.util.Java.JavaFunction
 import swaydb.java.serializers.{SerializerConverter, Serializer => JavaSerializer}
 import swaydb.memory.DefaultConfigs
 import swaydb.serializers.Serializer

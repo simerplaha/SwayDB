@@ -25,7 +25,7 @@ import java.util.{Comparator, TimerTask}
 
 import swaydb.data.config.ActorConfig.QueueOrder
 import swaydb.java.data.TriFunctionVoid
-import swaydb.java.data.util.Java.JavaFunction
+import swaydb.data.util.Java.JavaFunction
 import swaydb.{Scheduler, Bag}
 
 import scala.compat.java8.DurationConverters._

@@ -24,8 +24,9 @@ import java.util.Optional
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
-import swaydb.{Apply, Bag}
+import swaydb.{Apply, Bag, KeyVal, Pair}
 
 import scala.collection.mutable.ListBuffer
 import scala.compat.java8.DurationConverters._

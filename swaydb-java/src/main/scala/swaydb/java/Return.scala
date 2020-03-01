@@ -23,7 +23,7 @@ import java.time.Duration
 import java.util.Optional
 
 import swaydb.Apply
-import swaydb.java.data.util.Java._
+import swaydb.data.util.Java._
 
 import scala.compat.java8.DurationConverters._
 

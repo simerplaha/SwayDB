@@ -23,7 +23,7 @@ import java.util.Optional
 import java.util.function.{BiFunction, Consumer, Predicate}
 
 import swaydb.Bag
-import swaydb.java.data.util.Java._
+import swaydb.data.util.Java._
 
 import scala.compat.java8.FunctionConverters._
 import scala.jdk.CollectionConverters._

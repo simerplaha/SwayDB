@@ -24,9 +24,9 @@ import java.util.function.{BiFunction, Predicate}
 import java.util.{Comparator, Optional}
 import java.{lang, util}
 
+import swaydb.Pair
 import swaydb.data.slice.{Slice => ScalaSlice}
-import swaydb.java.Pair
-import swaydb.java.data.util.Java._
+import swaydb.data.util.Java._
 
 import scala.jdk.CollectionConverters._
 
