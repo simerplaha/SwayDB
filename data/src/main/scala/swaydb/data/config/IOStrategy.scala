@@ -19,7 +19,7 @@
 package swaydb.data.config
 import swaydb.data.util.Java.JavaFunction
 
-import scala.jdk.FunctionConverters._
+import scala.compat.java8.FunctionConverters._
 
 sealed trait IOStrategy {
   def cacheOnAccess: Boolean
