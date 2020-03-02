@@ -163,7 +163,11 @@ object Actor {
               executorService: ExecutorService): Actor.Ref[T, Void] =
     fifo[T, Void](
       initialState = null,
-      consumer = (t: T, u: Instance[T, Void]) => consumer.accept(t),
+      consumer =
+        new BiConsumer[T, Instance[T, Void]] {
+          override def accept(t: T, u: Instance[T, Void]): Unit =
+            consumer.accept(t)
+        },
       executorService = executorService
     )
 
@@ -204,7 +208,11 @@ object Actor {
                  comparator: Comparator[T]): Actor.Ref[T, Void] =
     ordered[T, Void](
       initialState = null,
-      consumer = (t: T, _: Instance[T, Void]) => consumer.accept(t),
+      consumer =
+        new BiConsumer[T, Instance[T, Void]] {
+          override def accept(t: T, u: Instance[T, Void]): Unit =
+            consumer.accept(t)
+        },
       executorService = executorService,
       comparator = comparator
     )
