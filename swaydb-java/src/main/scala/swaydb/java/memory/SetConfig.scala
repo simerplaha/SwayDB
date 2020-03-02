@@ -38,21 +38,21 @@ import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 
-object SetBuilder {
+object SetConfig {
 
-  final class Builder[A, F](private var mapSize: Int = 4.mb,
-                            private var minSegmentSize: Int = 2.mb,
-                            private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                            private var deleteSegmentsEventually: Boolean = true,
-                            private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                            private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                            private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                            private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                            private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                            private var byteComparator: KeyComparator[ByteSlice] = null,
-                            private var typedComparator: KeyComparator[A] = null,
-                            serializer: Serializer[A],
-                            functionClassTag: ClassTag[_]) {
+  final class Config[A, F](private var mapSize: Int = 4.mb,
+                           private var minSegmentSize: Int = 2.mb,
+                           private var maxKeyValuesPerSegment: Int = Int.MaxValue,
+                           private var deleteSegmentsEventually: Boolean = true,
+                           private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                           private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                           private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                           private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
+                           private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                           private var byteComparator: KeyComparator[ByteSlice] = null,
+                           private var typedComparator: KeyComparator[A] = null,
+                           serializer: Serializer[A],
+                           functionClassTag: ClassTag[_]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -111,24 +111,24 @@ object SetBuilder {
 
     private val functions = swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]]()(serializer)
 
-    def registerFunctions(functions: F*): Builder[A, F] = {
+    def registerFunctions(functions: F*): Config[A, F] = {
       functions.foreach(registerFunction(_))
       this
     }
 
-    def registerFunction(function: F): Builder[A, F] = {
+    def registerFunction(function: F): Config[A, F] = {
       val scalaFunction = PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]])
       functions.register(scalaFunction)
       this
     }
 
-    def removeFunction(function: F): Builder[A, F] = {
+    def removeFunction(function: F): Config[A, F] = {
       val scalaFunction = function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]].id.asInstanceOf[Slice[Byte]]
       functions.core.remove(scalaFunction)
       this
     }
 
-    def build(): swaydb.java.Set[A, F] = {
+    def get(): swaydb.java.Set[A, F] = {
       val comparator: Either[KeyComparator[ByteSlice], KeyComparator[A]] =
         Eithers.nullCheck(
           left = byteComparator,
@@ -160,16 +160,15 @@ object SetBuilder {
     }
   }
 
-  def functionsBuilder[A](serializer: JavaSerializer[A]): Builder[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
-    new Builder(
+  def functionsOn[A](serializer: JavaSerializer[A]): Config[A, swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]] =
+    new Config(
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag(classOf[swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]])
     )
 
-  def builder[A](serializer: JavaSerializer[A]): Builder[A, Void] =
-    new Builder[A, Void](
+  def functionsOff[A](serializer: JavaSerializer[A]): Config[A, Void] =
+    new Config[A, Void](
       serializer = SerializerConverter.toScala(serializer),
       functionClassTag = ClassTag.Nothing
     )
-
 }

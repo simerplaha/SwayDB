@@ -27,7 +27,7 @@ import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.memory.MapBuilder;
+import swaydb.java.memory.MapConfig;
 import swaydb.java.serializers.Serializer;
 
 import java.io.IOException;
@@ -44,9 +44,9 @@ class MemoryMapTest extends MapTest {
   public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
                                           Serializer<V> valueSerializer) {
     return
-      MapBuilder
-        .builder(keySerializer, valueSerializer)
-        .build();
+      MapConfig
+        .functionsOff(keySerializer, valueSerializer)
+        .get();
   }
 }
 
@@ -61,9 +61,9 @@ class PersistentMapTest extends MapTest {
                                           Serializer<V> valueSerializer) throws IOException {
 
     return
-      swaydb.java.persistent.MapBuilder
-        .builder(testDir(), keySerializer, valueSerializer)
-        .build();
+      swaydb.java.persistent.MapConfig
+        .functionOff(testDir(), keySerializer, valueSerializer)
+        .get();
   }
 }
 
@@ -426,10 +426,10 @@ abstract class MapTest extends TestBase implements JavaEventually {
   @Test
   void comparatorTest() {
     Map<Integer, Integer, Void> map =
-      MapBuilder
-        .builder(intSerializer(), intSerializer())
+      MapConfig
+        .functionsOff(intSerializer(), intSerializer())
         .setTypedComparator((left, right) -> left.compareTo(right) * -1)
-        .build();
+        .get();
 
     assertDoesNotThrow(() -> map.put(1, 1));
     assertDoesNotThrow(() -> map.put(2, 2));
@@ -530,13 +530,13 @@ abstract class MapTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    MapBuilder.Builder<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
-      MapBuilder
-        .functionsBuilder(intSerializer(), intSerializer());
+    MapConfig.Config<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> config =
+      MapConfig
+        .functionsOn(intSerializer(), intSerializer());
 
     Map<Integer, Integer, PureFunction<Integer, Integer, Return.Map<Integer>>> map =
       config
-        .build();
+        .get();
 
     map.put(Stream.range(1, 100).map(KeyVal::create));
 

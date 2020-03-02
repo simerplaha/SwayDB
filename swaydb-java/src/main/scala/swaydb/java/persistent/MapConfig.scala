@@ -42,38 +42,38 @@ import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-object MapBuilder {
+object MapConfig {
 
-  final class Builder[K, V, F](dir: Path,
-                               private var mapSize: Int = 4.mb,
-                               private var mmapMaps: Boolean = true,
-                               private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
-                               private var mmapAppendix: Boolean = true,
-                               private var appendixFlushCheckpointSize: Int = 2.mb,
-                               private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
-                               private var cacheKeyValueIds: Boolean = true,
-                               private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                               private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                               private var randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
-                               private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
-                               private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
-                               private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
-                               private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
-                               private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                               private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
-                               private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                               private var levelOneThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelOneThrottle _).asJava,
-                               private var levelTwoThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelTwoThrottle _).asJava,
-                               private var levelThreeThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelThreeThrottle _).asJava,
-                               private var levelFourThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFourThrottle _).asJava,
-                               private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
-                               private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
-                               private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                               private var byteComparator: KeyComparator[ByteSlice] = null,
-                               private var typedComparator: KeyComparator[K] = null,
-                               keySerializer: Serializer[K],
-                               valueSerializer: Serializer[V],
-                               functionClassTag: ClassTag[_]) {
+  final class Config[K, V, F](dir: Path,
+                              private var mapSize: Int = 4.mb,
+                              private var mmapMaps: Boolean = true,
+                              private var recoveryMode: RecoveryMode = RecoveryMode.ReportFailure,
+                              private var mmapAppendix: Boolean = true,
+                              private var appendixFlushCheckpointSize: Int = 2.mb,
+                              private var otherDirs: java.util.Collection[Dir] = Collections.emptyList(),
+                              private var cacheKeyValueIds: Boolean = true,
+                              private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                              private var sortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                              private var randomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                              private var binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
+                              private var mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
+                              private var valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
+                              private var segmentConfig: SegmentConfig = DefaultConfigs.segmentConfig(),
+                              private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                              private var memoryCache: MemoryCache = DefaultConfigs.memoryCache(),
+                              private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                              private var levelOneThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelOneThrottle _).asJava,
+                              private var levelTwoThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelTwoThrottle _).asJava,
+                              private var levelThreeThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelThreeThrottle _).asJava,
+                              private var levelFourThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFourThrottle _).asJava,
+                              private var levelFiveThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelFiveThrottle _).asJava,
+                              private var levelSixThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.levelSixThrottle _).asJava,
+                              private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                              private var byteComparator: KeyComparator[ByteSlice] = null,
+                              private var typedComparator: KeyComparator[K] = null,
+                              keySerializer: Serializer[K],
+                              valueSerializer: Serializer[V],
+                              functionClassTag: ClassTag[_]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -207,22 +207,22 @@ object MapBuilder {
 
     private val functions = swaydb.Map.Functions[K, V, swaydb.PureFunction[K, V, Apply.Map[V]]]()(keySerializer, valueSerializer)
 
-    def registerFunctions(functions: F*): Builder[K, V, F] = {
+    def registerFunctions(functions: F*): Config[K, V, F] = {
       functions.foreach(registerFunction(_))
       this
     }
 
-    def registerFunction(function: F): Builder[K, V, F] = {
+    def registerFunction(function: F): Config[K, V, F] = {
       functions.register(PureFunction.asScala(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]]))
       this
     }
 
-    def removeFunction(function: F): Builder[K, V, F] = {
+    def removeFunction(function: F): Config[K, V, F] = {
       functions.core.remove(function.asInstanceOf[swaydb.java.PureFunction[K, V, Return.Map[V]]].id.asInstanceOf[Slice[Byte]])
       this
     }
 
-    def build(): swaydb.java.Map[K, V, F] = {
+    def get(): swaydb.java.Map[K, V, F] = {
       val comparator: Either[KeyComparator[ByteSlice], KeyComparator[K]] =
         Eithers.nullCheck(
           left = byteComparator,
@@ -271,20 +271,20 @@ object MapBuilder {
     }
   }
 
-  def functionsBuilder[K, V](dir: Path,
-                             keySerializer: JavaSerializer[K],
-                             valueSerializer: JavaSerializer[V]): Builder[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
-    new Builder(
+  def functionsOn[K, V](dir: Path,
+                        keySerializer: JavaSerializer[K],
+                        valueSerializer: JavaSerializer[V]): Config[K, V, swaydb.java.PureFunction[K, V, Return.Map[V]]] =
+    new Config(
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
     )
 
-  def builder[K, V](dir: Path,
-                    keySerializer: JavaSerializer[K],
-                    valueSerializer: JavaSerializer[V]): Builder[K, V, Void] =
-    new Builder[K, V, Void](
+  def functionOff[K, V](dir: Path,
+                        keySerializer: JavaSerializer[K],
+                        valueSerializer: JavaSerializer[V]): Config[K, V, Void] =
+    new Config[K, V, Void](
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
       valueSerializer = SerializerConverter.toScala(valueSerializer),

@@ -31,18 +31,18 @@ import swaydb.serializers.Serializer
 import scala.compat.java8.FunctionConverters._
 import scala.concurrent.duration._
 
-object QueueBuilder {
+object QueueConfig {
 
-  final class Builder[A](private var mapSize: Int = 4.mb,
-                         private var minSegmentSize: Int = 2.mb,
-                         private var maxKeyValuesPerSegment: Int = Int.MaxValue,
-                         private var deleteSegmentsEventually: Boolean = true,
-                         private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                         private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
-                         private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
-                         private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
-                         private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
-                         serializer: Serializer[A]) {
+  final class Config[A](private var mapSize: Int = 4.mb,
+                        private var minSegmentSize: Int = 2.mb,
+                        private var maxKeyValuesPerSegment: Int = Int.MaxValue,
+                        private var deleteSegmentsEventually: Boolean = true,
+                        private var fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                        private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = (Accelerator.noBrakes() _).asJava,
+                        private var levelZeroThrottle: JavaFunction[LevelZeroMeter, FiniteDuration] = (DefaultConfigs.levelZeroThrottle _).asJava,
+                        private var lastLevelThrottle: JavaFunction[LevelMeter, Throttle] = (DefaultConfigs.lastLevelThrottle _).asJava,
+                        private var threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10),
+                        serializer: Serializer[A]) {
 
     def setMapSize(mapSize: Int) = {
       this.mapSize = mapSize
@@ -89,7 +89,7 @@ object QueueBuilder {
       this
     }
 
-    def build(): swaydb.java.Queue[A] = {
+    def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
         swaydb.memory.Queue[A](
           mapSize = mapSize,
@@ -107,6 +107,6 @@ object QueueBuilder {
     }
   }
 
-  def builder[A](serializer: JavaSerializer[A]): Builder[A] =
-    new Builder(serializer = SerializerConverter.toScala(serializer))
+  def config[A](serializer: JavaSerializer[A]): Config[A] =
+    new Config(serializer = SerializerConverter.toScala(serializer))
 }

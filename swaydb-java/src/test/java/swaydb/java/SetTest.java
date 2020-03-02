@@ -26,7 +26,7 @@ import swaydb.Pair;
 import swaydb.data.java.JavaEventually;
 import swaydb.data.java.TestBase;
 import swaydb.java.data.slice.ByteSlice;
-import swaydb.java.memory.SetBuilder;
+import swaydb.java.memory.SetConfig;
 import swaydb.java.serializers.Serializer;
 
 import java.io.*;
@@ -42,9 +42,9 @@ class MemorySetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) {
     return
-      swaydb.java.memory.SetBuilder
-        .builder(keySerializer)
-        .build();
+      swaydb.java.memory.SetConfig
+        .functionsOff(keySerializer)
+        .get();
   }
 }
 
@@ -57,9 +57,9 @@ class PersistentSetTest extends SetTest {
 
   public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
     return
-      swaydb.java.persistent.SetBuilder
-        .builder(testDir(), keySerializer)
-        .build();
+      swaydb.java.persistent.SetConfig
+        .functionsOff(testDir(), keySerializer)
+        .get();
   }
 }
 
@@ -337,10 +337,10 @@ abstract class SetTest extends TestBase implements JavaEventually {
   @Test
   void comparatorTest() {
     Set<Integer, Void> set =
-      SetBuilder
-        .builder(intSerializer())
+      SetConfig
+        .functionsOff(intSerializer())
         .setTypedComparator((left, right) -> left.compareTo(right) * -1)
-        .build();
+        .get();
 
     assertDoesNotThrow(() -> set.add(1));
     assertDoesNotThrow(() -> set.add(2));
@@ -408,38 +408,33 @@ abstract class SetTest extends TestBase implements JavaEventually {
 
   @Test
   void registerAndApplyFunction() {
-    SetBuilder.Builder<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> builder =
-      SetBuilder
-        .functionsBuilder(intSerializer());
+    SetConfig.Config<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> config =
+      SetConfig.functionsOn(intSerializer());
 
-    Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set =
-      builder
-        .build();
+    Set<Integer, PureFunction.OnKey<Integer, Void, Return.Set<Void>>> set = config.get();
 
     set.add(Stream.range(1, 100));
 
     PureFunction.OnKey<Integer, Void, Return.Set<Void>> expire =
-      (key, deadline) ->
-        Return.expire(Duration.ZERO);
+      (key, deadline) -> Return.expire(Duration.ZERO);
 
     //does not compile
 //    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> incrementBy1 = null;
-//    builder.registerFunction(incrementBy1);
+//    config.registerFunction(incrementBy1);
 
     //does not compile
 //    PureFunction.OnKeyValue<Integer, Integer, Return.Set<Integer>> removeMod0OrIncrementBy1 = null;
-//    builder.registerFunction(removeMod0OrIncrementBy1);
+//    config.registerFunction(removeMod0OrIncrementBy1);
 
     //this will not compile since the return type specified is a Set - expected!
 //    PureFunction.OnValue<Integer, Integer, Return.Set<Integer>> function = null;
-//    builder.registerFunction(function);
+//    config.registerFunction(function);
 
-    builder.registerFunction(expire);
+    config.registerFunction(expire);
 
     set.applyFunction(1, 100, expire);
 
     assertTrue(set.isEmpty());
-
   }
 
   /**
