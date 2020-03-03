@@ -38,10 +38,10 @@ object PrefixCompression {
     private[swaydb] def shouldCompress(index: Int): Boolean
   }
 
-  def resetCompressionAtJava(indexInterval: Int): Interval =
+  def resetCompressionAt(indexInterval: Int): Interval =
     Interval.ResetCompressionAt(indexInterval)
 
-  def compressAtJava(indexInterval: Int): Interval =
+  def compressAt(indexInterval: Int): Interval =
     Interval.CompressAt(indexInterval)
 
   object Interval {
