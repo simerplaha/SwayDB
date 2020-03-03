@@ -34,5 +34,4 @@ object Compression {
 
   def noneCompression: Compression = Compression.None
   case object None extends Compression
-
 }
