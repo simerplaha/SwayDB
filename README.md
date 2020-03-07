@@ -14,9 +14,7 @@
 
 Embeddable **persistent** and **in-memory** database - **Simple** data types, **fast** and **resource efficient**.
 
-[Documentation - SwayDB.io](http://swaydb.io).
-
-[Project status](#Project-status).
+[Documentation](http://swaydb.io) | [License summary](#license-summary) | [Project status](#Project-status)
 
 ## Performance
 
@@ -34,7 +32,7 @@ Embeddable **persistent** and **in-memory** database - **Simple** data types, **
 - Single or multiple disks persistent, in-memory or periodically persistent.
 - Streaming.
 - Atomic updates and inserts with [transactions](http://swaydb.io/api/write/transaction/?language=scala/).
-- Custom updates using [JVM function](http://www.swaydb.io/api/write/registerFunction/).
+- Custom updates using any [JVM function](http://www.swaydb.io/api/write/registerFunction/).
 - TTL - auto [expiring](http://www.swaydb.io/api/write/expire/) key-values.
 - Range [update, remove & expire](http://www.swaydb.io/api/write/update-range/).
 - Non-blocking with customisable non-blocking or blocking APIs.
@@ -69,6 +67,19 @@ required before becoming production ready.
 
 ## Contribution
 Contributions are welcomed following the [Scala code of conduct](https://www.scala-lang.org/conduct/).
+
+## License summary
+
+I don't want to restrict SwayDB's usage in any way and would like to see others find SwayDB 
+useful in their own projects, companies and other open-source projects for both personal or commercial 
+reasons, the license **only** asks for your modifications (e.g bug-fixes) to SwayDB's source code to 
+be shared so that SwayDB remains a free software and supports the contributors by not duplicating efforts. 
+You **do not have to** share your program's code or are bounded by AGPLv3 as long as you share your modifications. 
+
+If you have any questions or think that the current license restricts you in any way please contact me.
+
+The language in the [LICENSE](/LICENSE.md) file follows [GNU's FAQ](https://www.gnu.org/licenses/gpl-faq.en.html#GPLIncompatibleLibs)
+so that it is correct in legal terms.
 
 # Sponsors
 Thank you Jetbrains for providing an open-source licence for their awesome development tools. 

@@ -15,6 +15,11 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Additional permission under the GNU Affero GPL version 3 section 7:
+ * If you modify this Program or any covered work, only by linking or
+ * combining it with separate works, the licensors of this Program grant
+ * you additional permission to convey the resulting work.
  */
 
 package swaydb.java.serializers
