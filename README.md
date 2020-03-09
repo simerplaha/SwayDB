@@ -12,7 +12,19 @@
 [build-badge]: https://github.com/simerplaha/SwayDB/workflows/Build/badge.svg
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Embeddable **persistent** and **in-memory** database - **Simple** data types, **fast** and **resource efficient**.
+Fast embeddable **persistent** and **in-memory** key-value storage engine that provides storage 
+as simple data structures - `Map`, `Set` & `Queue`.
+
+Conditional updates/data modifications can be performed by simply submitting any **Java**, **Scala**, **Kotlin** or any 
+**native JVM** code. 
+
+SwayDB's configurations can be tuned for **various workloads**. Some use-cases are:
+- General key-value storage
+- Message queues
+- Time-series or Events data
+- Archiving data or cold storage with high file level compression
+
+See [RocksDB comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/).   
 
 [Documentation](http://swaydb.io) | [License summary](#license-summary) | [Project status](#Project-status)
 
@@ -23,7 +35,6 @@ Embeddable **persistent** and **in-memory** database - **Simple** data types, **
 | Persistent     | up to `863,000` reads/sec & `482,000` writes/sec                 
 | Memory         | TODO                
 
-[RocksDB comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/). 
 
 ## Overview
 
