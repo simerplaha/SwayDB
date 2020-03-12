@@ -39,7 +39,7 @@ See [RocksDB comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?languag
 ## Overview
 
 - Simple data types - `Map[K, V]`, `Set[A]` & `Queue[A]`.
-- [Scala](https://github.com/simerplaha/SwayDB.scala.examples), [Java](http://swaydb.io/quick-start/?language=java/) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin).
+- [Java](http://swaydb.io/quick-start/?language=java&starter=functionsOff), [Scala](http://swaydb.io/quick-start/?language=scala&starter=functionsOff) & [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples).
 - Single or multiple disks persistent, in-memory or periodically persistent.
 - Streaming.
 - Atomic updates and inserts with [transactions](http://swaydb.io/api/write/transaction/?language=scala/).
@@ -57,7 +57,8 @@ See [RocksDB comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?languag
 [Read more](http://swaydb.io/).
 
 ## Quick start
-[Quick start App](http://swaydb.io/quick-start/?language=scala/).
+- [Java - Quick start](http://swaydb.io/quick-start/?language=java&starter=functionsOff).
+- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&starter=functionsOff).
 
 ## Project status 
 Your feedback and review is very important to get to production. Please get involved via
