@@ -44,6 +44,8 @@ object Set extends LazyLogging {
 
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
+   *
+   *
    */
   def apply[A, F, BAG[_]](dir: Path,
                           mapSize: Int = 4.mb,
@@ -57,8 +59,8 @@ object Set extends LazyLogging {
                           mmapPersistentLevelAppendix: Boolean = true,
                           deleteMemorySegmentsEventually: Boolean = true,
                           acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                          persitentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
-                          persitentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
+                          persistentLevelSortedKeyIndex: SortedKeyIndex = DefaultConfigs.sortedKeyIndex(),
+                          persistentLevelRandomKeyIndex: RandomKeyIndex = DefaultConfigs.randomKeyIndex(),
                           binarySearchIndex: BinarySearchIndex = DefaultConfigs.binarySearchIndex(),
                           mightContainKeyIndex: MightContainIndex = DefaultConfigs.mightContainKeyIndex(),
                           valuesConfig: ValuesConfig = DefaultConfigs.valuesConfig(),
@@ -90,8 +92,8 @@ object Set extends LazyLogging {
           deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
           persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
           mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-          persistentLevelSortedKeyIndex = persitentLevelSortedKeyIndex,
-          persistentLevelRandomKeyIndex = persitentLevelRandomKeyIndex,
+          persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
+          persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,
           persistentLevelBinarySearchIndex = binarySearchIndex,
           persistentLevelMightContainKeyIndex = mightContainKeyIndex,
           persistentLevelValuesConfig = valuesConfig,

@@ -72,6 +72,23 @@ class PersistentMapTest extends MapTest {
   }
 }
 
+class EventuallyPersistentMapTest extends MapTest {
+
+  @AfterEach
+  void deleteDir() throws IOException {
+    deleteTestDir();
+  }
+
+  public <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,
+                                          Serializer<V> valueSerializer) throws IOException {
+
+    return
+      swaydb.java.eventually.persistent.MapConfig
+        .functionOff(testDir(), keySerializer, valueSerializer)
+        .get();
+  }
+}
+
 abstract class MapTest extends TestBase implements JavaEventually {
 
   public abstract <K, V> Map<K, V, Void> createMap(Serializer<K> keySerializer,

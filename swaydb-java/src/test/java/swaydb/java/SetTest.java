@@ -68,6 +68,21 @@ class PersistentSetTest extends SetTest {
   }
 }
 
+class EventuallyPersistentSetTest extends SetTest {
+
+  @AfterEach
+  void deleteDir() throws IOException {
+    deleteTestDir();
+  }
+
+  public <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException {
+    return
+      swaydb.java.eventually.persistent.SetConfig
+        .functionsOff(testDir(), keySerializer)
+        .get();
+  }
+}
+
 abstract class SetTest extends TestBase implements JavaEventually {
 
   public abstract <K> Set<K, Void> createSet(Serializer<K> keySerializer) throws IOException;
