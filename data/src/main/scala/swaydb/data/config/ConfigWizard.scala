@@ -138,6 +138,13 @@ case class PersistentLevelZeroConfig(mapSize: Long,
         ),
       otherLevels = List.empty
     )
+
+  def addMemoryLevel1(config: MemoryLevelConfig) =
+    SwayDBPersistentConfig(
+      level0 = this,
+      level1 = config,
+      otherLevels = List.empty
+    )
 }
 
 case class MemoryLevelZeroConfig(mapSize: Long,
@@ -178,12 +185,19 @@ case class MemoryLevelZeroConfig(mapSize: Long,
       otherLevels = List.empty
     )
 
+  def addPersistentLevel1(config: PersistentLevelConfig): SwayDBPersistentConfig =
+    SwayDBPersistentConfig(
+      level0 = this,
+      level1 = config,
+      otherLevels = List.empty
+    )
+
   def addMemoryLevel1(minSegmentSize: Int,
                       maxKeyValuesPerSegment: Int,
                       copyForward: Boolean,
                       deleteSegmentsEventually: Boolean,
                       compactionExecutionContext: CompactionExecutionContext,
-                      throttle: LevelMeter => Throttle) =
+                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
     SwayDBMemoryConfig(
       level0 = this,
       level1 =
@@ -195,6 +209,13 @@ case class MemoryLevelZeroConfig(mapSize: Long,
           compactionExecutionContext = compactionExecutionContext,
           throttle = throttle
         ),
+      otherLevels = List.empty
+    )
+
+  def addMemoryLevel1(config: MemoryLevelConfig): SwayDBMemoryConfig =
+    SwayDBMemoryConfig(
+      level0 = this,
+      level1 = config,
       otherLevels = List.empty
     )
 }
@@ -235,7 +256,8 @@ sealed trait SwayDBConfig {
     levelConfig match {
       case TrashLevelConfig =>
         false
-      case config: MemoryLevelConfig =>
+
+      case _: MemoryLevelConfig =>
         false
 
       case config: PersistentLevelConfig =>

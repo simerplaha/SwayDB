@@ -24,10 +24,20 @@
 
 package swaydb.data.compaction
 
+import java.util.concurrent.ExecutorService
+
 import scala.concurrent.ExecutionContext
 
 sealed trait CompactionExecutionContext
 object CompactionExecutionContext {
+  def create(service: ExecutorService): Create =
+    Create(ExecutionContext.fromExecutorService(service))
+
   case class Create(executionContext: ExecutionContext) extends CompactionExecutionContext
-  case object Shared extends CompactionExecutionContext
+
+  def shared(): CompactionExecutionContext.Shared =
+    Shared
+
+  sealed trait Shared extends CompactionExecutionContext
+  case object Shared extends Shared
 }
