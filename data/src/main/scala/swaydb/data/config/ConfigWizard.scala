@@ -28,7 +28,9 @@ import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
+import swaydb.data.config.builder.{MemoryLevelConfigBuilder, MemoryLevelZeroConfigBuilder, PersistentLevelConfigBuilder, PersistentLevelZeroConfigBuilder}
 import swaydb.data.storage.Level0Storage
+import swaydb.data.util.Java.JavaFunction
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -38,6 +40,10 @@ sealed trait PersistentConfig
  * http://swaydb.io#configuring-levels
  */
 object ConfigWizard {
+
+  def withPersistentLevel0(): PersistentLevelZeroConfigBuilder.Step0 =
+    PersistentLevelZeroConfigBuilder.builder()
+
   def addPersistentLevel0(dir: Path,
                           mapSize: Long,
                           mmap: Boolean,
@@ -52,6 +58,9 @@ object ConfigWizard {
       acceleration = acceleration,
       throttle = throttle
     )
+
+  def withMemoryLevelZero(): PersistentLevelZeroConfigBuilder.Step0 =
+    PersistentLevelZeroConfigBuilder.builder()
 
   def addMemoryLevel0(mapSize: Long,
                       compactionExecutionContext: CompactionExecutionContext.Create,
@@ -75,11 +84,16 @@ sealed trait LevelZeroConfig {
   def throttle: LevelZeroMeter => FiniteDuration
 }
 
-case class PersistentLevelZeroConfig(mapSize: Long,
-                                     storage: Level0Storage,
-                                     compactionExecutionContext: CompactionExecutionContext.Create,
-                                     acceleration: LevelZeroMeter => Accelerator,
-                                     throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
+object PersistentLevelZeroConfig {
+  def builder(): PersistentLevelZeroConfigBuilder.Step0 =
+    PersistentLevelZeroConfigBuilder.builder()
+}
+
+case class PersistentLevelZeroConfig private(mapSize: Long,
+                                             storage: Level0Storage,
+                                             compactionExecutionContext: CompactionExecutionContext.Create,
+                                             acceleration: LevelZeroMeter => Accelerator,
+                                             throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
   def addPersistentLevel1(dir: Path,
                           otherDirs: Seq[Dir],
                           mmapAppendix: Boolean,
@@ -145,6 +159,11 @@ case class PersistentLevelZeroConfig(mapSize: Long,
       level1 = config,
       otherLevels = List.empty
     )
+}
+
+object MemoryLevelZeroConfig {
+  def builder(): MemoryLevelZeroConfigBuilder.Step0 =
+    MemoryLevelZeroConfigBuilder.builder()
 }
 
 case class MemoryLevelZeroConfig(mapSize: Long,
@@ -224,12 +243,57 @@ sealed trait LevelConfig
 
 case object TrashLevelConfig extends LevelConfig
 
+object MemoryLevelConfig {
+  def builder(): MemoryLevelConfigBuilder.Step0 =
+    MemoryLevelConfigBuilder.builder()
+}
+
 case class MemoryLevelConfig(minSegmentSize: Int,
                              maxKeyValuesPerSegment: Int,
                              copyForward: Boolean,
                              deleteSegmentsEventually: Boolean,
                              compactionExecutionContext: CompactionExecutionContext,
-                             throttle: LevelMeter => Throttle) extends LevelConfig
+                             throttle: LevelMeter => Throttle) extends LevelConfig {
+  def copyWithMinSegmentSize(minSegmentSize: Int) = {
+    this.copy(minSegmentSize = minSegmentSize)
+    this
+  }
+
+  def copyWithMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) = {
+    this.copy(maxKeyValuesPerSegment = maxKeyValuesPerSegment)
+    this
+  }
+
+  def copyWithCopyForward(copyForward: Boolean) = {
+    this.copy(copyForward = copyForward)
+    this
+  }
+
+  def copyWithDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
+    this.copy(deleteSegmentsEventually = deleteSegmentsEventually)
+    this
+  }
+
+  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
+    this.copy(compactionExecutionContext = compactionExecutionContext)
+    this
+  }
+
+  def copyWithThrottle(throttle: LevelMeter => Throttle) = {
+    this.copy(throttle = throttle)
+    this
+  }
+
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) = {
+    this.copy(throttle = throttle.apply)
+    this
+  }
+}
+
+object PersistentLevelConfig {
+  def builder(): PersistentLevelConfigBuilder.Step0 =
+    PersistentLevelConfigBuilder.builder()
+}
 
 case class PersistentLevelConfig(dir: Path,
                                  otherDirs: Seq[Dir],
@@ -242,7 +306,72 @@ case class PersistentLevelConfig(dir: Path,
                                  valuesConfig: ValuesConfig,
                                  segmentConfig: SegmentConfig,
                                  compactionExecutionContext: CompactionExecutionContext,
-                                 throttle: LevelMeter => Throttle) extends LevelConfig
+                                 throttle: LevelMeter => Throttle) extends LevelConfig {
+  def copyWithDir(dir: Path) = {
+    this.copy(dir = dir)
+    this
+  }
+
+  def copyWithOtherDirs(otherDirs: Seq[Dir]) = {
+    this.copy(otherDirs = otherDirs)
+    this
+  }
+
+  def copyWithMmapAppendix(mmapAppendix: Boolean) = {
+    this.copy(mmapAppendix = mmapAppendix)
+    this
+  }
+
+  def copyWithAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) = {
+    this.copy(appendixFlushCheckpointSize = appendixFlushCheckpointSize)
+    this
+  }
+
+  def copyWithSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) = {
+    this.copy(sortedKeyIndex = sortedKeyIndex)
+    this
+  }
+
+  def copyWithRandomKeyIndex(randomKeyIndex: RandomKeyIndex) = {
+    this.copy(randomKeyIndex = randomKeyIndex)
+    this
+  }
+
+  def copyWithBinarySearchIndex(binarySearchIndex: BinarySearchIndex) = {
+    this.copy(binarySearchIndex = binarySearchIndex)
+    this
+  }
+
+  def copyWithMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
+    this.copy(mightContainKeyIndex = mightContainKeyIndex)
+    this
+  }
+
+  def copyWithValuesConfig(valuesConfig: ValuesConfig) = {
+    this.copy(valuesConfig = valuesConfig)
+    this
+  }
+
+  def copyWithSegmentConfig(segmentConfig: SegmentConfig) = {
+    this.copy(segmentConfig = segmentConfig)
+    this
+  }
+
+  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
+    this.copy(compactionExecutionContext = compactionExecutionContext)
+    this
+  }
+
+  def copyWithThrottle(throttle: LevelMeter => Throttle) = {
+    this.copy(throttle = throttle)
+    this
+  }
+
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) = {
+    this.copy(throttle = throttle.apply)
+    this
+  }
+}
 
 sealed trait SwayDBConfig {
   val level0: LevelZeroConfig
