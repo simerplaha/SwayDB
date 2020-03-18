@@ -25,14 +25,12 @@
 package swaydb.data.config
 
 import swaydb.Compression
-import swaydb.data.util.Java.JavaFunction
-import scala.jdk.CollectionConverters._
 
 sealed trait BinarySearchIndex
 
 object BinarySearchIndex {
   def disable(searchSortedIndexDirectly: Boolean): BinarySearchIndex.Disable =
-    new Disable(searchSortedIndexDirectly)
+    Disable(searchSortedIndexDirectly)
 
   case class Disable(searchSortedIndexDirectly: Boolean) extends BinarySearchIndex
 
@@ -43,18 +41,8 @@ object BinarySearchIndex {
     def indexFormat: IndexFormat
   }
 
-  def fullIndexJava(minimumNumberOfKeys: Int,
-                    ioStrategy: JavaFunction[IOAction, IOStrategy],
-                    indexFormat: IndexFormat,
-                    searchSortedIndexDirectly: Boolean,
-                    compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): FullIndex =
-    FullIndex(
-      minimumNumberOfKeys = minimumNumberOfKeys,
-      ioStrategy = ioStrategy.apply,
-      indexFormat = indexFormat,
-      searchSortedIndexDirectly = searchSortedIndexDirectly,
-      compression = compression.apply(_).asScala
-    )
+  def fullIndexBuilder(): BinarySearchIndexFullIndexBuilder.Step0 =
+    BinarySearchIndexFullIndexBuilder.builder()
 
   case class FullIndex(minimumNumberOfKeys: Int,
                        ioStrategy: IOAction => IOStrategy,
@@ -62,18 +50,8 @@ object BinarySearchIndex {
                        searchSortedIndexDirectly: Boolean,
                        compression: UncompressedBlockInfo => Iterable[Compression]) extends Enable
 
-  def secondaryIndexJava(minimumNumberOfKeys: Int,
-                         ioStrategy: JavaFunction[IOAction, IOStrategy],
-                         indexFormat: IndexFormat,
-                         searchSortedIndexDirectlyIfPreNormalised: Boolean,
-                         compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SecondaryIndex =
-    SecondaryIndex(
-      minimumNumberOfKeys = minimumNumberOfKeys,
-      ioStrategy = ioStrategy.apply,
-      indexFormat = indexFormat,
-      searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectlyIfPreNormalised,
-      compression = compression.apply(_).asScala
-    )
+  def secondaryIndexBuilder(): BinarySearchIndexSecondaryIndexBuilder.Step0 =
+    BinarySearchIndexSecondaryIndexBuilder.builder()
 
   case class SecondaryIndex(minimumNumberOfKeys: Int,
                             ioStrategy: IOAction => IOStrategy,

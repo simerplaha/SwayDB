@@ -25,8 +25,6 @@
 package swaydb.data.config
 
 import swaydb.Compression
-import swaydb.data.util.Java.JavaFunction
-import scala.jdk.CollectionConverters._
 
 sealed trait MightContainIndex {
   def toOption: Option[MightContainIndex.Enable] =
@@ -38,21 +36,12 @@ sealed trait MightContainIndex {
 
 object MightContainIndex {
 
-  def disable: MightContainIndex = Disable
-  case object Disable extends MightContainIndex
+  def disable: MightContainIndex.Disable = Disable
+  sealed trait Disable extends MightContainIndex
+  case object Disable extends Disable
 
-  def enableJava(falsePositiveRate: Double,
-                 updateMaxProbe: JavaFunction[Int, Int],
-                 minimumNumberOfKeys: Int,
-                 ioStrategy: JavaFunction[IOAction, IOStrategy],
-                 compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-    Enable(
-      falsePositiveRate = falsePositiveRate,
-      updateMaxProbe = updateMaxProbe.apply,
-      minimumNumberOfKeys = minimumNumberOfKeys,
-      ioStrategy = ioStrategy.apply,
-      compression = compression.apply(_).asScala
-    )
+  def builder(): MightContainIndexBuilder.Step0 =
+    MightContainIndexBuilder.builder()
 
   case class Enable(falsePositiveRate: Double,
                     updateMaxProbe: Int => Int,

@@ -32,7 +32,9 @@ object IndexFormat {
    * This configuration requires a maximum of 1 to 5 bytes and is space efficient but might be
    * slower then [[ReferenceKey]] and [[CopyKey]].
    */
-  object Reference extends IndexFormat
+  def reference: IndexFormat.Reference = Reference
+  sealed trait Reference extends IndexFormat
+  object Reference extends Reference
 
   /**
    * In addition to information stored by [[Reference]] this also stores a copy of the key within the index itself.
@@ -43,5 +45,7 @@ object IndexFormat {
    *
    * Fastest config.
    */
-  object CopyKey extends IndexFormat
+  def copyKey: IndexFormat.CopyKey = CopyKey
+  sealed trait CopyKey extends IndexFormat
+  object CopyKey extends CopyKey
 }

@@ -40,8 +40,9 @@ object ThreadStateCache {
   case class Limit(hashMapMaxSize: Int,
                    maxProbe: Int) extends ThreadStateCache
 
-  def noLimit: ThreadStateCache = NoLimit
-  case object NoLimit extends ThreadStateCache
+  def noLimit: ThreadStateCache.NoLimit = NoLimit
+  sealed trait NoLimit extends ThreadStateCache
+  case object NoLimit extends NoLimit
 
   /**
    * Disabling ThreadState can be used if your database configuration
@@ -49,6 +50,7 @@ object ThreadStateCache {
    * Otherwise disabling [[ThreadStateCache]] can have noticable performance impact.
    */
 
-  def disable: ThreadStateCache = Disable
-  case object Disable extends ThreadStateCache
+  def disable: ThreadStateCache.Disable = Disable
+  sealed trait Disable extends ThreadStateCache
+  case object Disable extends Disable
 }

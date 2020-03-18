@@ -30,8 +30,9 @@ sealed trait FileCache extends Bagged[FileCache.Enable, Option]
 
 object FileCache {
 
-  def disabled: FileCache = Disable
-  case object Disable extends FileCache {
+  def disabled: FileCache.Disable = Disable
+  sealed trait Disable extends FileCache
+  case object Disable extends Disable {
     override def get: Option[Enable] = None
   }
 
