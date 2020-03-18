@@ -44,7 +44,7 @@ private[core] object FixedMerger {
   def apply(newer: KeyValue.Fixed,
             oldApplies: Slice[Value.Apply])(implicit timeOrder: TimeOrder[Slice[Byte]],
                                             functionStore: FunctionStore): KeyValue.Fixed =
-    oldApplies.reverse.to(Iterable).foldLeft((newer, 0)) {
+    oldApplies.reverse.foldLeft((newer, 0)) {
       case ((newerMerged, count), olderApply) =>
         newerMerged match {
           case newer: KeyValue.Put =>
