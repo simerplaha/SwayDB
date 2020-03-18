@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - run: sbt '++ 2.12.10 clean; compile'
+      - run: sbt '++ 2.12.11 clean; compile'
 
   build_213:
     runs-on: ubuntu-latest
