@@ -24,7 +24,9 @@ SwayDB's configurations can be tuned for **various workloads**. Some use-cases a
 - Time-series or Events data
 - Archiving data or cold storage with high file level compression
 
-See [RocksDB comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/).   
+See [comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/) with RocksDB or QuickStart in 
+[Java](http://swaydb.io/quick-start/?language=java&starter=functionsOff), [Scala](http://swaydb.io/quick-start/?language=scala&starter=functionsOff) 
+or [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStart.kt).
 
 [Documentation](http://swaydb.io) | [License summary](#license-summary) | [Project status](#Project-status)
 
@@ -57,8 +59,7 @@ See [RocksDB comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?languag
 [Read more](http://swaydb.io/).
 
 ## Quick start
-- [Java - Quick start](http://swaydb.io/quick-start/?language=java&starter=functionsOff).
-- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&starter=functionsOff).
+ 
 
 ## Project status 
 Your feedback and review is very important to get to production. Please get involved via
