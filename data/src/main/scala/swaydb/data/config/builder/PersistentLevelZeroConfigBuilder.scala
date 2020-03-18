@@ -42,7 +42,8 @@ class PersistentLevelZeroConfigBuilder {
   private var mmap: Boolean = _
   private var recoveryMode: RecoveryMode = _
   private var compactionExecutionContext: CompactionExecutionContext.Create = _
-  private var acceleration: JavaFunction[LevelZeroMeter, Accelerator] = _
+  private var acceleration: LevelZeroMeter => Accelerator = _
+  private var throttle: LevelZeroMeter => FiniteDuration = _
 }
 
 object PersistentLevelZeroConfigBuilder {
@@ -84,21 +85,28 @@ object PersistentLevelZeroConfigBuilder {
 
   class Step5(builder: PersistentLevelZeroConfigBuilder) {
     def withAcceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
-      builder.acceleration = acceleration
+      builder.acceleration = acceleration.apply
       new Step6(builder)
     }
   }
 
   class Step6(builder: PersistentLevelZeroConfigBuilder) {
-    def withThrottle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]): PersistentLevelZeroConfig =
-      ConfigWizard.addPersistentLevel0(
+    def withThrottle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) = {
+      builder.throttle = throttle.apply
+      new Step7(builder)
+    }
+  }
+
+  class Step7(builder: PersistentLevelZeroConfigBuilder) {
+    def build(): PersistentLevelZeroConfig =
+      ConfigWizard.withPersistentLevel0(
         dir = builder.dir,
         mapSize = builder.mapSize,
         mmap = builder.mmap,
         recoveryMode = builder.recoveryMode,
         compactionExecutionContext = builder.compactionExecutionContext,
-        acceleration = builder.acceleration.apply,
-        throttle = throttle.apply
+        acceleration = builder.acceleration,
+        throttle = builder.throttle
       )
   }
 

@@ -72,13 +72,13 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
             persistentLevelSegmentConfig: SegmentConfig,
             acceleration: LevelZeroMeter => Accelerator): SwayDBPersistentConfig =
     ConfigWizard
-      .addMemoryLevel0(
+      .withMemoryLevel0(
         mapSize = mapSize,
         acceleration = acceleration,
         throttle = _ => Duration.Zero,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext)
       )
-      .addMemoryLevel1(
+      .withMemoryLevel1(
         minSegmentSize = memoryLevelMinSegmentSize,
         maxKeyValuesPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
         copyForward = false,
@@ -92,7 +92,7 @@ object DefaultEventuallyPersistentConfig extends LazyLogging {
               Throttle(Duration.Zero, 0)
           }
       )
-      .addPersistentLevel(
+      .withPersistentLevel(
         dir = dir,
         otherDirs = otherDirs,
         mmapAppendix = mmapPersistentLevelAppendix,

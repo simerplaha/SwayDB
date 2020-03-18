@@ -102,7 +102,7 @@ object DefaultPersistentConfig extends LazyLogging {
      * Each level is simply copying [[level1Config]] and adjusting the throttle.
      */
     ConfigWizard
-      .addPersistentLevel0( //level0
+      .withPersistentLevel0( //level0
         dir = dir,
         mapSize = mapSize,
         mmap = mmapMaps,
@@ -111,11 +111,11 @@ object DefaultPersistentConfig extends LazyLogging {
         acceleration = acceleration,
         throttle = levelZeroThrottle
       )
-      .addPersistentLevel1(level1Config)
-      .addPersistentLevel(level1Config.copy(throttle = levelTwoThrottle)) //level2
-      .addPersistentLevel(level1Config.copy(throttle = levelThreeThrottle)) //level3
-      .addPersistentLevel(level1Config.copy(throttle = levelFourThrottle)) //level4
-      .addPersistentLevel(level1Config.copy(throttle = levelFiveThrottle)) //level5
-      .addPersistentLevel(level1Config.copy(throttle = levelSixThrottle)) //level6
+      .withPersistentLevel1(level1Config)
+      .withPersistentLevel(level1Config.copy(throttle = levelTwoThrottle)) //level2
+      .withPersistentLevel(level1Config.copy(throttle = levelThreeThrottle)) //level3
+      .withPersistentLevel(level1Config.copy(throttle = levelFourThrottle)) //level4
+      .withPersistentLevel(level1Config.copy(throttle = levelFiveThrottle)) //level5
+      .withPersistentLevel(level1Config.copy(throttle = levelSixThrottle)) //level6
   }
 }

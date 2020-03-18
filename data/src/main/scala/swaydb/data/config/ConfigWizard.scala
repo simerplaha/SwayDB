@@ -31,6 +31,7 @@ import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config.builder.{MemoryLevelConfigBuilder, MemoryLevelZeroConfigBuilder, PersistentLevelConfigBuilder, PersistentLevelZeroConfigBuilder}
 import swaydb.data.storage.Level0Storage
 import swaydb.data.util.Java.JavaFunction
+import scala.jdk.CollectionConverters._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -44,13 +45,13 @@ object ConfigWizard {
   def withPersistentLevel0(): PersistentLevelZeroConfigBuilder.Step0 =
     PersistentLevelZeroConfigBuilder.builder()
 
-  def addPersistentLevel0(dir: Path,
-                          mapSize: Long,
-                          mmap: Boolean,
-                          recoveryMode: RecoveryMode,
-                          compactionExecutionContext: CompactionExecutionContext.Create,
-                          acceleration: LevelZeroMeter => Accelerator,
-                          throttle: LevelZeroMeter => FiniteDuration): PersistentLevelZeroConfig =
+  def withPersistentLevel0(dir: Path,
+                           mapSize: Long,
+                           mmap: Boolean,
+                           recoveryMode: RecoveryMode,
+                           compactionExecutionContext: CompactionExecutionContext.Create,
+                           acceleration: LevelZeroMeter => Accelerator,
+                           throttle: LevelZeroMeter => FiniteDuration): PersistentLevelZeroConfig =
     PersistentLevelZeroConfig(
       mapSize = mapSize,
       storage = Level0Storage.Persistent(mmap, dir, recoveryMode),
@@ -62,10 +63,10 @@ object ConfigWizard {
   def withMemoryLevelZero(): PersistentLevelZeroConfigBuilder.Step0 =
     PersistentLevelZeroConfigBuilder.builder()
 
-  def addMemoryLevel0(mapSize: Long,
-                      compactionExecutionContext: CompactionExecutionContext.Create,
-                      acceleration: LevelZeroMeter => Accelerator,
-                      throttle: LevelZeroMeter => FiniteDuration): MemoryLevelZeroConfig =
+  def withMemoryLevel0(mapSize: Long,
+                       compactionExecutionContext: CompactionExecutionContext.Create,
+                       acceleration: LevelZeroMeter => Accelerator,
+                       throttle: LevelZeroMeter => FiniteDuration): MemoryLevelZeroConfig =
     MemoryLevelZeroConfig(
       mapSize = mapSize,
       storage = Level0Storage.Memory,
@@ -94,18 +95,18 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
                                              compactionExecutionContext: CompactionExecutionContext.Create,
                                              acceleration: LevelZeroMeter => Accelerator,
                                              throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
-  def addPersistentLevel1(dir: Path,
-                          otherDirs: Seq[Dir],
-                          mmapAppendix: Boolean,
-                          appendixFlushCheckpointSize: Long,
-                          sortedKeyIndex: SortedKeyIndex,
-                          randomKeyIndex: RandomKeyIndex,
-                          binarySearchIndex: BinarySearchIndex,
-                          mightContainKeyIndex: MightContainIndex,
-                          valuesConfig: ValuesConfig,
-                          segmentConfig: SegmentConfig,
-                          compactionExecutionContext: CompactionExecutionContext,
-                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+  def withPersistentLevel1(dir: Path,
+                           otherDirs: Seq[Dir],
+                           mmapAppendix: Boolean,
+                           appendixFlushCheckpointSize: Long,
+                           sortedKeyIndex: SortedKeyIndex,
+                           randomKeyIndex: RandomKeyIndex,
+                           binarySearchIndex: BinarySearchIndex,
+                           mightContainKeyIndex: MightContainIndex,
+                           valuesConfig: ValuesConfig,
+                           segmentConfig: SegmentConfig,
+                           compactionExecutionContext: CompactionExecutionContext,
+                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
       level1 =
@@ -126,19 +127,19 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
       otherLevels = List.empty
     )
 
-  def addPersistentLevel1(config: PersistentLevelConfig): SwayDBPersistentConfig =
+  def withPersistentLevel1(config: PersistentLevelConfig): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
       level1 = config,
       otherLevels = List.empty
     )
 
-  def addMemoryLevel1(minSegmentSize: Int,
-                      maxKeyValuesPerSegment: Int,
-                      copyForward: Boolean,
-                      deleteSegmentsEventually: Boolean,
-                      compactionExecutionContext: CompactionExecutionContext,
-                      throttle: LevelMeter => Throttle) =
+  def withMemoryLevel1(minSegmentSize: Int,
+                       maxKeyValuesPerSegment: Int,
+                       copyForward: Boolean,
+                       deleteSegmentsEventually: Boolean,
+                       compactionExecutionContext: CompactionExecutionContext,
+                       throttle: LevelMeter => Throttle) =
     SwayDBPersistentConfig(
       level0 = this,
       level1 =
@@ -153,7 +154,7 @@ case class PersistentLevelZeroConfig private(mapSize: Long,
       otherLevels = List.empty
     )
 
-  def addMemoryLevel1(config: MemoryLevelConfig) =
+  def withMemoryLevel1(config: MemoryLevelConfig) =
     SwayDBPersistentConfig(
       level0 = this,
       level1 = config,
@@ -172,18 +173,18 @@ case class MemoryLevelZeroConfig(mapSize: Long,
                                  acceleration: LevelZeroMeter => Accelerator,
                                  throttle: LevelZeroMeter => FiniteDuration) extends LevelZeroConfig {
 
-  def addPersistentLevel1(dir: Path,
-                          otherDirs: Seq[Dir],
-                          mmapAppendix: Boolean,
-                          appendixFlushCheckpointSize: Long,
-                          sortedKeyIndex: SortedKeyIndex,
-                          randomKeyIndex: RandomKeyIndex,
-                          binarySearchIndex: BinarySearchIndex,
-                          mightContainKey: MightContainIndex,
-                          valuesConfig: ValuesConfig,
-                          segmentConfig: SegmentConfig,
-                          compactionExecutionContext: CompactionExecutionContext,
-                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+  def withPersistentLevel1(dir: Path,
+                           otherDirs: Seq[Dir],
+                           mmapAppendix: Boolean,
+                           appendixFlushCheckpointSize: Long,
+                           sortedKeyIndex: SortedKeyIndex,
+                           randomKeyIndex: RandomKeyIndex,
+                           binarySearchIndex: BinarySearchIndex,
+                           mightContainKey: MightContainIndex,
+                           valuesConfig: ValuesConfig,
+                           segmentConfig: SegmentConfig,
+                           compactionExecutionContext: CompactionExecutionContext,
+                           throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
       level1 =
@@ -204,19 +205,19 @@ case class MemoryLevelZeroConfig(mapSize: Long,
       otherLevels = List.empty
     )
 
-  def addPersistentLevel1(config: PersistentLevelConfig): SwayDBPersistentConfig =
+  def withPersistentLevel1(config: PersistentLevelConfig): SwayDBPersistentConfig =
     SwayDBPersistentConfig(
       level0 = this,
       level1 = config,
       otherLevels = List.empty
     )
 
-  def addMemoryLevel1(minSegmentSize: Int,
-                      maxKeyValuesPerSegment: Int,
-                      copyForward: Boolean,
-                      deleteSegmentsEventually: Boolean,
-                      compactionExecutionContext: CompactionExecutionContext,
-                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
+  def withMemoryLevel1(minSegmentSize: Int,
+                       maxKeyValuesPerSegment: Int,
+                       copyForward: Boolean,
+                       deleteSegmentsEventually: Boolean,
+                       compactionExecutionContext: CompactionExecutionContext,
+                       throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
     SwayDBMemoryConfig(
       level0 = this,
       level1 =
@@ -231,7 +232,7 @@ case class MemoryLevelZeroConfig(mapSize: Long,
       otherLevels = List.empty
     )
 
-  def addMemoryLevel1(config: MemoryLevelConfig): SwayDBMemoryConfig =
+  def withMemoryLevel1(config: MemoryLevelConfig): SwayDBMemoryConfig =
     SwayDBMemoryConfig(
       level0 = this,
       level1 = config,
@@ -314,6 +315,11 @@ case class PersistentLevelConfig(dir: Path,
 
   def copyWithOtherDirs(otherDirs: Seq[Dir]) = {
     this.copy(otherDirs = otherDirs)
+    this
+  }
+
+  def copyWithOtherDirs(otherDirs: java.util.Collection[Dir]) = {
+    this.copy(otherDirs = otherDirs.asScala.toList)
     this
   }
 
@@ -401,26 +407,26 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
                               level1: LevelConfig,
                               otherLevels: List[LevelConfig]) extends SwayDBConfig {
 
-  def addPersistentLevel(config: PersistentLevelConfig) =
+  def withPersistentLevel(config: PersistentLevelConfig) =
     SwayDBPersistentConfig(
       level0 = level0,
       level1 = level1,
       otherLevels = otherLevels :+ config
     )
 
-  def addPersistentLevel(dir: Path,
-                         otherDirs: Seq[Dir],
-                         mmapAppendix: Boolean,
-                         appendixFlushCheckpointSize: Long,
-                         sortedKeyIndex: SortedKeyIndex,
-                         randomKeyIndex: RandomKeyIndex,
-                         binarySearchIndex: BinarySearchIndex,
-                         mightContainKey: MightContainIndex,
-                         valuesConfig: ValuesConfig,
-                         segmentConfig: SegmentConfig,
-                         compactionExecutionContext: CompactionExecutionContext,
-                         throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
-    addPersistentLevel(
+  def withPersistentLevel(dir: Path,
+                          otherDirs: Seq[Dir],
+                          mmapAppendix: Boolean,
+                          appendixFlushCheckpointSize: Long,
+                          sortedKeyIndex: SortedKeyIndex,
+                          randomKeyIndex: RandomKeyIndex,
+                          binarySearchIndex: BinarySearchIndex,
+                          mightContainKey: MightContainIndex,
+                          valuesConfig: ValuesConfig,
+                          segmentConfig: SegmentConfig,
+                          compactionExecutionContext: CompactionExecutionContext,
+                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+    withPersistentLevel(
       PersistentLevelConfig(
         dir = dir,
         otherDirs = otherDirs,
@@ -437,18 +443,18 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
       )
     )
 
-  def addMemoryLevel(config: MemoryLevelConfig): SwayDBMemoryConfig =
+  def withMemoryLevel(config: MemoryLevelConfig): SwayDBMemoryConfig =
 
     copy(otherLevels = otherLevels :+ config)
 
-  def addMemoryLevel(minSegmentSize: Int,
-                     maxKeyValuesPerSegment: Int,
-                     copyForward: Boolean,
-                     deleteSegmentsEventually: Boolean,
-                     compactionExecutionContext: CompactionExecutionContext,
-                     throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
+  def withMemoryLevel(minSegmentSize: Int,
+                      maxKeyValuesPerSegment: Int,
+                      copyForward: Boolean,
+                      deleteSegmentsEventually: Boolean,
+                      compactionExecutionContext: CompactionExecutionContext,
+                      throttle: LevelMeter => Throttle): SwayDBMemoryConfig =
 
-    addMemoryLevel(
+    withMemoryLevel(
       MemoryLevelConfig(
         minSegmentSize = minSegmentSize,
         maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -459,7 +465,7 @@ case class SwayDBMemoryConfig(level0: MemoryLevelZeroConfig,
       )
     )
 
-  def addTrashLevel(): SwayDBMemoryConfig =
+  def withTrashLevel(): SwayDBMemoryConfig =
     copy(otherLevels = otherLevels :+ TrashLevelConfig)
 
   override def persistent: Boolean = false
@@ -469,21 +475,21 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
                                   level1: LevelConfig,
                                   otherLevels: List[LevelConfig]) extends SwayDBConfig {
 
-  def addPersistentLevel(config: PersistentLevelConfig): SwayDBPersistentConfig =
+  def withPersistentLevel(config: PersistentLevelConfig): SwayDBPersistentConfig =
     copy(otherLevels = otherLevels :+ config)
 
-  def addPersistentLevel(dir: Path,
-                         otherDirs: Seq[Dir],
-                         mmapAppendix: Boolean,
-                         appendixFlushCheckpointSize: Long,
-                         sortedKeyIndex: SortedKeyIndex,
-                         randomKeyIndex: RandomKeyIndex,
-                         binarySearchIndex: BinarySearchIndex,
-                         mightContainKeyIndex: MightContainIndex,
-                         valuesConfig: ValuesConfig,
-                         segmentConfig: SegmentConfig,
-                         compactionExecutionContext: CompactionExecutionContext,
-                         throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+  def withPersistentLevel(dir: Path,
+                          otherDirs: Seq[Dir],
+                          mmapAppendix: Boolean,
+                          appendixFlushCheckpointSize: Long,
+                          sortedKeyIndex: SortedKeyIndex,
+                          randomKeyIndex: RandomKeyIndex,
+                          binarySearchIndex: BinarySearchIndex,
+                          mightContainKeyIndex: MightContainIndex,
+                          valuesConfig: ValuesConfig,
+                          segmentConfig: SegmentConfig,
+                          compactionExecutionContext: CompactionExecutionContext,
+                          throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
     copy(
       otherLevels = otherLevels :+
         PersistentLevelConfig(
@@ -502,15 +508,15 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
         )
     )
 
-  def addMemoryLevel(config: MemoryLevelConfig): SwayDBPersistentConfig =
+  def withMemoryLevel(config: MemoryLevelConfig): SwayDBPersistentConfig =
     copy(otherLevels = otherLevels :+ config)
 
-  def addMemoryLevel(minSegmentSize: Int,
-                     maxKeyValuesPerSegment: Int,
-                     copyForward: Boolean,
-                     deleteSegmentsEventually: Boolean,
-                     compactionExecutionContext: CompactionExecutionContext,
-                     throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
+  def withMemoryLevel(minSegmentSize: Int,
+                      maxKeyValuesPerSegment: Int,
+                      copyForward: Boolean,
+                      deleteSegmentsEventually: Boolean,
+                      compactionExecutionContext: CompactionExecutionContext,
+                      throttle: LevelMeter => Throttle): SwayDBPersistentConfig =
 
     copy(
       otherLevels = otherLevels :+
@@ -524,7 +530,7 @@ case class SwayDBPersistentConfig(level0: LevelZeroConfig,
         )
     )
 
-  def addTrashLevel(): SwayDBPersistentConfig =
+  def withTrashLevel(): SwayDBPersistentConfig =
     copy(otherLevels = otherLevels :+ TrashLevelConfig)
 
   override def persistent: Boolean = true

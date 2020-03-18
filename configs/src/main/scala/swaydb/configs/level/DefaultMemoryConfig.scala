@@ -61,13 +61,13 @@ object DefaultMemoryConfig extends LazyLogging {
             levelZeroThrottle: LevelZeroMeter => FiniteDuration,
             lastLevelThrottle: LevelMeter => Throttle): SwayDBMemoryConfig =
     ConfigWizard
-      .addMemoryLevel0(
+      .withMemoryLevel0(
         mapSize = mapSize,
         compactionExecutionContext = CompactionExecutionContext.Create(compactionExecutionContext),
         acceleration = acceleration,
         throttle = levelZeroThrottle
       )
-      .addMemoryLevel1(
+      .withMemoryLevel1(
         minSegmentSize = minSegmentSize,
         maxKeyValuesPerSegment = maxKeyValuesPerSegment,
         copyForward = false,

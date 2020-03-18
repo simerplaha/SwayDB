@@ -29,6 +29,7 @@ import java.nio.file.Path
 import swaydb.data.compaction.{CompactionExecutionContext, LevelMeter, Throttle}
 import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
+
 import scala.jdk.CollectionConverters._
 
 /**
@@ -36,7 +37,7 @@ import scala.jdk.CollectionConverters._
  */
 class PersistentLevelConfigBuilder {
   private var dir: Path = _
-  private var otherDirs: java.util.Collection[Dir] = _
+  private var otherDirs: Seq[Dir] = _
   private var mmapAppendix: Boolean = _
   private var appendixFlushCheckpointSize: Long = _
   private var sortedKeyIndex: SortedKeyIndex = _
@@ -46,7 +47,7 @@ class PersistentLevelConfigBuilder {
   private var valuesConfig: ValuesConfig = _
   private var segmentConfig: SegmentConfig = _
   private var compactionExecutionContext: CompactionExecutionContext = _
-  private var throttle: JavaFunction[LevelMeter, Throttle] = _
+  private var throttle: LevelMeter => Throttle = _
 }
 
 object PersistentLevelConfigBuilder {
@@ -59,8 +60,16 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step1(builder: PersistentLevelConfigBuilder) {
-    def withOtherDirs(otherDirs: java.util.Collection[Dir]) = {
+    def withOtherDirs(otherDirs: Seq[Dir]) = {
       builder.otherDirs = otherDirs
+      new Step2(builder)
+    }
+
+    def withOtherDirs(otherDirs: java.util.Collection[Dir]) = {
+      if (otherDirs == null)
+        builder.otherDirs = Seq.empty
+      else
+        builder.otherDirs = otherDirs.asScala.toList
       new Step2(builder)
     }
   }
@@ -130,16 +139,16 @@ object PersistentLevelConfigBuilder {
 
   class Step11(builder: PersistentLevelConfigBuilder) {
     def withThrottle(throttle: JavaFunction[LevelMeter, Throttle]) = {
-      builder.throttle = throttle
+      builder.throttle = throttle.apply
       new Step12(builder)
     }
   }
 
   class Step12(builder: PersistentLevelConfigBuilder) {
-    def build(): PersistentLevelConfig =
-      PersistentLevelConfig(
+    def build() =
+      new PersistentLevelConfig(
         dir = builder.dir,
-        otherDirs = builder.otherDirs.asScala.toList,
+        otherDirs = builder.otherDirs,
         mmapAppendix = builder.mmapAppendix,
         appendixFlushCheckpointSize = builder.appendixFlushCheckpointSize,
         sortedKeyIndex = builder.sortedKeyIndex,
@@ -149,7 +158,7 @@ object PersistentLevelConfigBuilder {
         valuesConfig = builder.valuesConfig,
         segmentConfig = builder.segmentConfig,
         compactionExecutionContext = builder.compactionExecutionContext,
-        throttle = builder.throttle.apply
+        throttle = builder.throttle
       )
   }
 
