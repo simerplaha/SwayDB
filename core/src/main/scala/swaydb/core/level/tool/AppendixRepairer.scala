@@ -51,11 +51,6 @@ private[swaydb] object AppendixRepairer extends LazyLogging {
                                               fileSweeper: FileSweeper.Enabled,
                                               timeOrder: TimeOrder[Slice[Byte]],
                                               functionStore: FunctionStore): IO[swaydb.Error.Level, Unit] = {
-    val reader =
-      AppendixMapEntryReader(
-        mmapSegmentsOnRead = false,
-        mmapSegmentsOnWrite = false
-      )(keyOrder, timeOrder, functionStore, None, fileSweeper, None, SegmentIO.defaultSynchronisedStoredIfCompressed)
 
     import swaydb.core.map.serializer.AppendixMapEntryWriter._
     implicit val merger = AppendixSkipListMerger

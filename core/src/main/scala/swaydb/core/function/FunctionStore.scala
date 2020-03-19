@@ -64,10 +64,7 @@ private[swaydb] object FunctionStore {
               false
 
             case Value.Function(function, _) =>
-              if (order.equiv(function, functionId))
-                true
-              else
-                checkContains(values.dropHead())
+              order.equiv(function, functionId) || checkContains(values.dropHead())
 
             case Value.PendingApply(applies) =>
               checkContains(applies)
