@@ -26,7 +26,12 @@ package swaydb.data.repairAppendix
 
 sealed trait AppendixRepairStrategy
 object AppendixRepairStrategy {
-  object KeepNew extends AppendixRepairStrategy
-  object KeepOld extends AppendixRepairStrategy
-  object ReportFailure extends AppendixRepairStrategy
+  sealed trait KeepNew extends AppendixRepairStrategy
+  object KeepNew extends KeepNew
+
+  sealed trait KeepOld extends AppendixRepairStrategy
+  object KeepOld extends KeepOld
+
+  sealed trait ReportFailure extends AppendixRepairStrategy
+  object ReportFailure extends ReportFailure
 }

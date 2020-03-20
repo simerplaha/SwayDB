@@ -27,7 +27,9 @@ package swaydb.data.repairAppendix
 sealed trait RepairResult[+T]
 
 object RepairResult {
-  case object Repaired extends RepairResult[Nothing]
+  sealed trait Repaired extends RepairResult[Nothing]
+  case object Repaired extends Repaired
+
   case class OverlappingSegments[K](segmentInfo: SegmentInfo[K],
                                     overlappingSegmentInfo: SegmentInfo[K]) extends RepairResult[K]
 }
