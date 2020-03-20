@@ -44,7 +44,7 @@ object SerializerConverter {
       override def write(data: T): Array[Byte] =
         scalaSerializer.write(data).toArray
 
-      override def read(slice: ByteSlice): T =
-        scalaSerializer.read(slice.innerSlice.asScala.asInstanceOf[swaydb.data.slice.Slice[Byte]])
+      override def read(byteSlice: ByteSlice): T =
+        scalaSerializer.read(byteSlice.slice.asScala)
     }
 }

@@ -24,7 +24,6 @@
 
 package swaydb.java.data.slice
 
-import java.lang
 import java.nio.ByteBuffer
 import java.nio.charset.{Charset, StandardCharsets}
 
@@ -39,10 +38,7 @@ object ByteSlice {
     new ByteSlice(Slice(slice))
 }
 
-class ByteSlice(slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.asInstanceOf[swaydb.data.slice.Slice[java.lang.Byte]]) {
-
-  def innerSlice: Slice[lang.Byte] =
-    this.slice.asInstanceOf[Slice[java.lang.Byte]]
+class ByteSlice(val slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.asInstanceOf[swaydb.data.slice.Slice[java.lang.Byte]]) {
 
   @inline final def addByte(value: Byte): ByteSlice = {
     slice.asScala add value
@@ -154,5 +150,4 @@ class ByteSlice(slice: Slice[Byte]) extends Slice[java.lang.Byte](slice.asScala.
 
   override def hashCode(): Int =
     super.hashCode()
-
 }

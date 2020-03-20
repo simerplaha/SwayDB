@@ -26,4 +26,15 @@ package swaydb.java
 
 import java.util.Comparator
 
+import swaydb.data.order.KeyOrder
+import swaydb.java.data.slice.ByteSlice
+
+object KeyComparator {
+  final val lexicographic: KeyComparator[ByteSlice] =
+    new KeyComparator[ByteSlice] {
+      override def compare(o1: ByteSlice, o2: ByteSlice): Int =
+        KeyOrder.default.compare(o1.slice.asScala, o2.slice.asScala)
+    }
+}
+
 trait KeyComparator[K] extends Comparator[K]

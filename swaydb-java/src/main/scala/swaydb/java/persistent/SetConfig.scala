@@ -232,7 +232,7 @@ object SetConfig {
         Eithers.nullCheck(
           left = byteComparator,
           right = typedComparator,
-          default = swaydb.java.SwayDB.defaultComparator
+          default = KeyComparator.lexicographic
         )
 
       val scalaKeyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.toScalaKeyOrder(comparator, serializer)
