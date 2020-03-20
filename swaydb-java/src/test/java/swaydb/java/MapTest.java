@@ -67,7 +67,7 @@ class PersistentMapTest extends MapTest {
 
     return
       swaydb.java.persistent.MapConfig
-        .functionOff(testDir(), keySerializer, valueSerializer)
+        .functionsOff(testDir(), keySerializer, valueSerializer)
         .get();
   }
 }
@@ -84,7 +84,7 @@ class EventuallyPersistentMapTest extends MapTest {
 
     return
       swaydb.java.eventually.persistent.MapConfig
-        .functionOff(testDir(), keySerializer, valueSerializer)
+        .functionsOff(testDir(), keySerializer, valueSerializer)
         .get();
   }
 }

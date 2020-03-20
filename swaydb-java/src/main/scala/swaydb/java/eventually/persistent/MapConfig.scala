@@ -256,9 +256,9 @@ object MapConfig {
       functionClassTag = ClassTag.Any.asInstanceOf[ClassTag[swaydb.PureFunction[K, V, Apply.Map[V]]]]
     )
 
-  def functionOff[K, V](dir: Path,
-                        keySerializer: JavaSerializer[K],
-                        valueSerializer: JavaSerializer[V]): Config[K, V, Void] =
+  def functionsOff[K, V](dir: Path,
+                         keySerializer: JavaSerializer[K],
+                         valueSerializer: JavaSerializer[V]): Config[K, V, Void] =
     new Config[K, V, Void](
       dir = dir,
       keySerializer = SerializerConverter.toScala(keySerializer),
