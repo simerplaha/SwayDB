@@ -38,7 +38,6 @@ class MemoryLevelZeroConfigBuilder {
   private var mapSize: Long = _
   private var compactionExecutionContext: CompactionExecutionContext.Create = _
   private var acceleration: LevelZeroMeter => Accelerator = _
-  private var throttle: LevelZeroMeter => FiniteDuration = _
 }
 
 object MemoryLevelZeroConfigBuilder {
@@ -65,19 +64,12 @@ object MemoryLevelZeroConfigBuilder {
   }
 
   class Step3(builder: MemoryLevelZeroConfigBuilder) {
-    def withThrottle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) = {
-      builder.throttle = throttle.apply
-      new Step4(builder)
-    }
-  }
-
-  class Step4(builder: MemoryLevelZeroConfigBuilder) {
-    def build(): MemoryLevelZeroConfig =
+    def withThrottle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
       ConfigWizard.withMemoryLevel0(
         mapSize = builder.mapSize,
         compactionExecutionContext = builder.compactionExecutionContext,
         acceleration = builder.acceleration,
-        throttle = builder.throttle
+        throttle = throttle.apply
       )
   }
 

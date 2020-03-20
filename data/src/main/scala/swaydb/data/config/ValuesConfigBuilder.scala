@@ -33,7 +33,6 @@ class ValuesConfigBuilder {
   private var compressDuplicateValues: Boolean = _
   private var compressDuplicateRangeValues: Boolean = _
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
-  private var compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]] = _
 }
 
 object ValuesConfigBuilder {
@@ -60,19 +59,12 @@ object ValuesConfigBuilder {
   }
 
   class Step3(builder: ValuesConfigBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) = {
-      builder.compression = compression
-      new Step4(builder)
-    }
-  }
-
-  class Step4(builder: ValuesConfigBuilder) {
-    def build() =
+    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       ValuesConfig(
         compressDuplicateValues = builder.compressDuplicateValues,
         compressDuplicateRangeValues = builder.compressDuplicateRangeValues,
         ioStrategy = builder.ioStrategy.apply,
-        compression = builder.compression.apply(_).asScala
+        compression = compression.apply(_).asScala
       )
   }
 

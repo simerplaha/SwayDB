@@ -33,7 +33,6 @@ class SortedKeyIndexBuilder {
   private var prefixCompression: PrefixCompression = _
   private var enablePositionIndex: Boolean = _
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
-  private var compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]] = _
 }
 
 object SortedKeyIndexBuilder {
@@ -60,19 +59,12 @@ object SortedKeyIndexBuilder {
   }
 
   class Step3(builder: SortedKeyIndexBuilder) {
-    def withCompressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) = {
-      builder.compressions = compressions
-      new Step4(builder)
-    }
-  }
-
-  class Step4(builder: SortedKeyIndexBuilder) {
-    def build() =
+    def withCompressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       SortedKeyIndex.Enable(
         prefixCompression = builder.prefixCompression,
         enablePositionIndex = builder.enablePositionIndex,
         ioStrategy = builder.ioStrategy.apply,
-        compressions = builder.compressions.apply(_).asScala
+        compressions = compressions.apply(_).asScala
       )
   }
 

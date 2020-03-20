@@ -36,7 +36,6 @@ class RandomKeyIndexBuilder {
   private var indexFormat: IndexFormat = _
   private var allocateSpace: JavaFunction[RequiredSpace, Int] = _
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
-  private var compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]] = _
 }
 
 object RandomKeyIndexBuilder {
@@ -84,14 +83,7 @@ object RandomKeyIndexBuilder {
   }
 
   class Step6(builder: RandomKeyIndexBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) = {
-      builder.compression = compression
-      new Step7(builder)
-    }
-  }
-
-  class Step7(builder: RandomKeyIndexBuilder) {
-    def build() =
+    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       RandomKeyIndex.Enable(
         maxProbe = builder.maxProbe,
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
@@ -99,7 +91,7 @@ object RandomKeyIndexBuilder {
         indexFormat = builder.indexFormat,
         allocateSpace = builder.allocateSpace.apply,
         ioStrategy = builder.ioStrategy.apply,
-        compression = builder.compression.apply(_).asScala
+        compression = compression.apply(_).asScala
       )
   }
 

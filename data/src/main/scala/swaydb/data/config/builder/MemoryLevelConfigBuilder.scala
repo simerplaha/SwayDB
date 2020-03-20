@@ -37,7 +37,6 @@ class MemoryLevelConfigBuilder {
   private var copyForward: Boolean = _
   private var deleteSegmentsEventually: Boolean = _
   private var compactionExecutionContext: CompactionExecutionContext = _
-  private var throttle: LevelMeter => Throttle = _
 }
 
 object MemoryLevelConfigBuilder {
@@ -78,21 +77,14 @@ object MemoryLevelConfigBuilder {
   }
 
   class Step5(builder: MemoryLevelConfigBuilder) {
-    def withThrottle(throttle: JavaFunction[LevelMeter, Throttle]) = {
-      builder.throttle = throttle.apply
-      new Step6(builder)
-    }
-  }
-
-  class Step6(builder: MemoryLevelConfigBuilder) {
-    def build() =
+    def withThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
       new MemoryLevelConfig(
         minSegmentSize = builder.minSegmentSize,
         maxKeyValuesPerSegment = builder.maxKeyValuesPerSegment,
         copyForward = builder.copyForward,
         deleteSegmentsEventually = builder.deleteSegmentsEventually,
         compactionExecutionContext = builder.compactionExecutionContext,
-        throttle = builder.throttle
+        throttle = throttle.apply
       )
   }
 

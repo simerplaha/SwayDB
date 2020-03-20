@@ -26,6 +26,7 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.util.Java.JavaFunction
+
 import scala.jdk.CollectionConverters._
 
 class SegmentConfigBuilder {
@@ -36,7 +37,6 @@ class SegmentConfigBuilder {
   private var minSegmentSize: Int = _
   private var maxKeyValuesPerSegment: Int = _
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
-  private var compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]] = _
 }
 
 object SegmentConfigBuilder {
@@ -91,16 +91,7 @@ object SegmentConfigBuilder {
   }
 
   class Step7(builder: SegmentConfigBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) = {
-      builder.compression = compression
-      new Step8(builder)
-    }
-  }
-
-
-
-  class Step8(builder: SegmentConfigBuilder) {
-    def build() =
+    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       new SegmentConfig(
         cacheSegmentBlocksOnCreate = builder.cacheSegmentBlocksOnCreate,
         deleteSegmentsEventually = builder.deleteSegmentsEventually,
@@ -109,10 +100,9 @@ object SegmentConfigBuilder {
         minSegmentSize = builder.minSegmentSize,
         maxKeyValuesPerSegment = builder.maxKeyValuesPerSegment,
         ioStrategy = builder.ioStrategy.apply,
-        compression = builder.compression.apply(_).asScala
+        compression = compression.apply(_).asScala
       )
   }
-
 
   def builder() = new Step0(new SegmentConfigBuilder())
 }

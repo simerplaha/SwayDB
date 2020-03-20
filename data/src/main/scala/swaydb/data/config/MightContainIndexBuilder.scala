@@ -33,7 +33,6 @@ class MightContainIndexBuilder {
   private var updateMaxProbe: JavaFunction[Int, Int] = _
   private var minimumNumberOfKeys: Int = _
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
-  private var compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]] = _
 }
 
 object MightContainIndexBuilder {
@@ -67,20 +66,13 @@ object MightContainIndexBuilder {
   }
 
   class Step4(builder: MightContainIndexBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) = {
-      builder.compression = compression
-      new Step5(builder)
-    }
-  }
-
-  class Step5(builder: MightContainIndexBuilder) {
-    def build() =
+    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       MightContainIndex.Enable(
         falsePositiveRate = builder.falsePositiveRate,
         updateMaxProbe = builder.updateMaxProbe.apply,
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
         ioStrategy = builder.ioStrategy.apply,
-        compression = builder.compression.apply(_).asScala
+        compression = compression.apply(_).asScala
       )
   }
 

@@ -47,7 +47,6 @@ class PersistentLevelConfigBuilder {
   private var valuesConfig: ValuesConfig = _
   private var segmentConfig: SegmentConfig = _
   private var compactionExecutionContext: CompactionExecutionContext = _
-  private var throttle: LevelMeter => Throttle = _
 }
 
 object PersistentLevelConfigBuilder {
@@ -138,14 +137,7 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step11(builder: PersistentLevelConfigBuilder) {
-    def withThrottle(throttle: JavaFunction[LevelMeter, Throttle]) = {
-      builder.throttle = throttle.apply
-      new Step12(builder)
-    }
-  }
-
-  class Step12(builder: PersistentLevelConfigBuilder) {
-    def build() =
+    def withThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
       new PersistentLevelConfig(
         dir = builder.dir,
         otherDirs = builder.otherDirs,
@@ -158,7 +150,7 @@ object PersistentLevelConfigBuilder {
         valuesConfig = builder.valuesConfig,
         segmentConfig = builder.segmentConfig,
         compactionExecutionContext = builder.compactionExecutionContext,
-        throttle = builder.throttle
+        throttle = throttle.apply
       )
   }
 

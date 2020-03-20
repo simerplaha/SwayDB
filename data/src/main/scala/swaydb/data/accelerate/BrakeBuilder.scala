@@ -9,7 +9,6 @@ class BrakeBuilder {
   private var brakeOnMapCount: Int = _
   private var brakeFor: FiniteDuration = _
   private var releaseRate: FiniteDuration = _
-  private var levelZeroMeter: LevelZeroMeter = _
 }
 
 object BrakeBuilder {
@@ -57,14 +56,7 @@ object BrakeBuilder {
   }
 
   class Step6(builder: BrakeBuilder) {
-    def withLevelZeroMeter(levelZeroMeter: LevelZeroMeter) = {
-      builder.levelZeroMeter = levelZeroMeter
-      new Step7(builder)
-    }
-  }
-
-  class Step7(builder: BrakeBuilder) {
-    def build(): Accelerator =
+    def withLevelZeroMeter(levelZeroMeter: LevelZeroMeter) =
       Accelerator.brake(
         increaseMapSizeOnMapCount = builder.increaseMapSizeOnMapCount,
         increaseMapSizeBy = builder.increaseMapSizeBy,
@@ -72,7 +64,7 @@ object BrakeBuilder {
         brakeOnMapCount = builder.brakeOnMapCount,
         brakeFor = builder.brakeFor,
         releaseRate = builder.releaseRate
-      )(builder.levelZeroMeter)
+      )(levelZeroMeter)
   }
 
   def builder() = new Step0(new BrakeBuilder())

@@ -28,7 +28,6 @@ class NoBrakesBuilder {
   private var onMapCount: Int = _
   private var increaseMapSizeBy: Int = _
   private var maxMapSize: Long = _
-  private var level0Meter: LevelZeroMeter = _
 }
 
 object NoBrakesBuilder {
@@ -55,19 +54,12 @@ object NoBrakesBuilder {
   }
 
   class Step3(builder: NoBrakesBuilder) {
-    def withLevel0Meter(level0Meter: LevelZeroMeter) = {
-      builder.level0Meter = level0Meter
-      new Step4(builder)
-    }
-  }
-
-  class Step4(builder: NoBrakesBuilder) {
-    def build(): Accelerator =
+    def withLevel0Meter(level0Meter: LevelZeroMeter) =
       Accelerator.noBrakes(
         onMapCount = builder.onMapCount,
         increaseMapSizeBy = builder.increaseMapSizeBy,
         maxMapSize = builder.maxMapSize
-      )(builder.level0Meter)
+      )(level0Meter)
   }
 
   def builder() = new Step0(new NoBrakesBuilder())

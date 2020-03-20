@@ -34,7 +34,6 @@ class BinarySearchIndexSecondaryIndexBuilder {
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
   private var indexFormat: IndexFormat = _
   private var searchSortedIndexDirectlyIfPreNormalised: Boolean = _
-  private var compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]] = _
 }
 
 object BinarySearchIndexSecondaryIndexBuilder {
@@ -68,20 +67,13 @@ object BinarySearchIndexSecondaryIndexBuilder {
   }
 
   class Step4(builder: BinarySearchIndexSecondaryIndexBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) = {
-      builder.compression = compression
-      new Step5(builder)
-    }
-  }
-
-  class Step5(builder: BinarySearchIndexSecondaryIndexBuilder) {
-    def build(): BinarySearchIndex.SecondaryIndex =
+    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       BinarySearchIndex.SecondaryIndex(
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
         ioStrategy = builder.ioStrategy.apply,
         indexFormat = builder.indexFormat,
         searchSortedIndexDirectlyIfPreNormalised = builder.searchSortedIndexDirectlyIfPreNormalised,
-        compression = builder.compression.apply(_).asScala
+        compression = compression.apply(_).asScala
       )
   }
 

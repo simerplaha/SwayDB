@@ -33,7 +33,6 @@ class BinarySearchIndexFullIndexBuilder {
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
   private var indexFormat: IndexFormat = _
   private var searchSortedIndexDirectly: Boolean = _
-  private var compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]] = _
 }
 
 object BinarySearchIndexFullIndexBuilder {
@@ -67,20 +66,13 @@ object BinarySearchIndexFullIndexBuilder {
   }
 
   class Step4(builder: BinarySearchIndexFullIndexBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) = {
-      builder.compression = compression
-      new Step5(builder)
-    }
-  }
-
-  class Step5(builder: BinarySearchIndexFullIndexBuilder) {
-    def build(): BinarySearchIndex.FullIndex =
+    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       BinarySearchIndex.FullIndex(
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
         ioStrategy = builder.ioStrategy.apply,
         indexFormat = builder.indexFormat,
         searchSortedIndexDirectly = builder.searchSortedIndexDirectly,
-        compression = builder.compression.apply(_).asScala
+        compression = compression.apply(_).asScala
       )
   }
 
