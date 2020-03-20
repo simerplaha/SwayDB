@@ -24,9 +24,9 @@
 
 package swaydb.data.config
 
-import swaydb.data.util.Java.JavaFunction
 import swaydb.Compression
 import swaydb.data.util.Java.JavaFunction
+
 import scala.jdk.CollectionConverters._
 
 class SortedKeyIndexBuilder {
