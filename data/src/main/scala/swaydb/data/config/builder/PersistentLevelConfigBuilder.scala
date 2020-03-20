@@ -69,6 +69,7 @@ object PersistentLevelConfigBuilder {
         builder.otherDirs = Seq.empty
       else
         builder.otherDirs = otherDirs.asScala.toList
+
       new Step2(builder)
     }
   }
@@ -156,4 +157,3 @@ object PersistentLevelConfigBuilder {
 
   def builder() = new Step0(new PersistentLevelConfigBuilder())
 }
-

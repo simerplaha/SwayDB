@@ -22,7 +22,9 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.accelerate
+package swaydb.data.accelerate.builder
+
+import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 
 class NoBrakesBuilder {
   private var onMapCount: Int = _
