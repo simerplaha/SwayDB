@@ -24,7 +24,10 @@
 
 package swaydb.data.accelerate
 
+import java.util.Optional
+
 import swaydb.data.util.StorageUnits._
+import swaydb.data.util.Java._
 
 import scala.concurrent.duration._
 
@@ -32,6 +35,12 @@ import scala.concurrent.duration._
  * Default Accelerator implementation.
  */
 object Accelerator {
+
+  def apply(nextMapSize: Long, brake: Optional[Brake]): Accelerator =
+    new Accelerator(
+      nextMapSize = nextMapSize,
+      brake = brake.asScala
+    )
 
   /**
    * http://swaydb.io/configuring-levels/acceleration
@@ -69,6 +78,9 @@ object Accelerator {
           )
     )
 
+  def brakeBuilder(): BrakeBuilder.Step0 =
+    BrakeBuilder.builder()
+
   /**
    * http://swaydb.io/configuring-levels/acceleration/noBrakes
    */
@@ -78,17 +90,20 @@ object Accelerator {
                maxMapSize: Long = 24.mb)(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(
       nextMapSize =
-        nextMapSize(onMapCount, increaseMapSizeBy, maxMapSize, level0Meter),
+        nextMapSize(
+          mapCount = onMapCount,
+          increaseMapSizeBy = increaseMapSizeBy,
+          maxMapSize = maxMapSize,
+          level0Meter = level0Meter
+        ),
       brake =
         None
     )
 
   def cruise(level0Meter: LevelZeroMeter): Accelerator =
     Accelerator(
-      nextMapSize =
-        level0Meter.defaultMapSize,
-      brake =
-        None
+      nextMapSize = level0Meter.defaultMapSize,
+      brake = None
     )
 }
 
