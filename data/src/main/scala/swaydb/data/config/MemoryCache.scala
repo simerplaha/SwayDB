@@ -41,6 +41,15 @@ object MemoryCache {
     val actorConfig: ActorConfig
   }
 
+  def byteCacheOnlyBuilder(): ByteCacheOnlyBuilder.Step0 =
+    ByteCacheOnlyBuilder.builder()
+
+  def keyValueCacheOnlyBuilder(): KeyValueCacheOnlyBuilder.Step0 =
+    KeyValueCacheOnlyBuilder.builder()
+
+  def allBuilder(): MemoryCacheAllBuilder.Step0 =
+    MemoryCacheAllBuilder.builder()
+
   case class ByteCacheOnly(minIOSeekSize: Int,
                            skipBlockCacheSeekSize: Int,
                            cacheCapacity: Int,
