@@ -270,9 +270,6 @@ case class MemoryLevelConfig(minSegmentSize: Int,
   def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
     this.copy(compactionExecutionContext = compactionExecutionContext)
 
-  def copyWithThrottle(throttle: LevelMeter => Throttle) =
-    this.copy(throttle = throttle)
-
   def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
     this.copy(throttle = throttle.apply)
 }
@@ -329,9 +326,6 @@ case class PersistentLevelConfig(dir: Path,
 
   def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
     this.copy(compactionExecutionContext = compactionExecutionContext)
-
-  def copyWithThrottle(throttle: LevelMeter => Throttle) =
-    this.copy(throttle = throttle)
 
   def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
     this.copy(throttle = throttle.apply)
