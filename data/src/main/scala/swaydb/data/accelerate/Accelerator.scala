@@ -81,6 +81,9 @@ object Accelerator {
   def brakeBuilder(): BrakeBuilder.Step0 =
     BrakeBuilder.builder()
 
+  def noBrakesBuilder(): NoBrakesBuilder.Step0 =
+    NoBrakesBuilder.builder()
+
   /**
    * http://swaydb.io/configuring-levels/acceleration/noBrakes
    */
