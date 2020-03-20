@@ -42,42 +42,42 @@ class MemoryLevelConfigBuilder {
 object MemoryLevelConfigBuilder {
 
   class Step0(builder: MemoryLevelConfigBuilder) {
-    def withMinSegmentSize(minSegmentSize: Int) = {
+    def minSegmentSize(minSegmentSize: Int) = {
       builder.minSegmentSize = minSegmentSize
       new Step1(builder)
     }
   }
 
   class Step1(builder: MemoryLevelConfigBuilder) {
-    def withMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) = {
+    def maxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) = {
       builder.maxKeyValuesPerSegment = maxKeyValuesPerSegment
       new Step2(builder)
     }
   }
 
   class Step2(builder: MemoryLevelConfigBuilder) {
-    def withCopyForward(copyForward: Boolean) = {
+    def copyForward(copyForward: Boolean) = {
       builder.copyForward = copyForward
       new Step3(builder)
     }
   }
 
   class Step3(builder: MemoryLevelConfigBuilder) {
-    def withDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
+    def deleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
       builder.deleteSegmentsEventually = deleteSegmentsEventually
       new Step4(builder)
     }
   }
 
   class Step4(builder: MemoryLevelConfigBuilder) {
-    def withCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
+    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
       builder.compactionExecutionContext = compactionExecutionContext
       new Step5(builder)
     }
   }
 
   class Step5(builder: MemoryLevelConfigBuilder) {
-    def withThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
+    def throttle(throttle: JavaFunction[LevelMeter, Throttle]) =
       new MemoryLevelConfig(
         minSegmentSize = builder.minSegmentSize,
         maxKeyValuesPerSegment = builder.maxKeyValuesPerSegment,

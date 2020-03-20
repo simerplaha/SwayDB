@@ -22,9 +22,11 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
 import java.util.Optional
+
+import swaydb.data.config.{ActorConfig, MemoryCache}
 import swaydb.data.util.Java._
 
 class KeyValueCacheOnlyBuilder {

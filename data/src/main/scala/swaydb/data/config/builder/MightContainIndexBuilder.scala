@@ -22,10 +22,12 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
 import swaydb.Compression
+import swaydb.data.config.{IOAction, IOStrategy, MightContainIndex, UncompressedBlockInfo}
 import swaydb.data.util.Java.JavaFunction
+
 import scala.jdk.CollectionConverters._
 
 class MightContainIndexBuilder {
@@ -38,35 +40,35 @@ class MightContainIndexBuilder {
 object MightContainIndexBuilder {
 
   class Step0(builder: MightContainIndexBuilder) {
-    def withFalsePositiveRate(falsePositiveRate: Double) = {
+    def falsePositiveRate(falsePositiveRate: Double) = {
       builder.falsePositiveRate = falsePositiveRate
       new Step1(builder)
     }
   }
 
   class Step1(builder: MightContainIndexBuilder) {
-    def withUpdateMaxProbe(updateMaxProbe: JavaFunction[Int, Int]) = {
+    def updateMaxProbe(updateMaxProbe: JavaFunction[Int, Int]) = {
       builder.updateMaxProbe = updateMaxProbe
       new Step2(builder)
     }
   }
 
   class Step2(builder: MightContainIndexBuilder) {
-    def withMinimumNumberOfKeys(minimumNumberOfKeys: Int) = {
+    def minimumNumberOfKeys(minimumNumberOfKeys: Int) = {
       builder.minimumNumberOfKeys = minimumNumberOfKeys
       new Step3(builder)
     }
   }
 
   class Step3(builder: MightContainIndexBuilder) {
-    def withIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.ioStrategy = ioStrategy
       new Step4(builder)
     }
   }
 
   class Step4(builder: MightContainIndexBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+    def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       MightContainIndex.Enable(
         falsePositiveRate = builder.falsePositiveRate,
         updateMaxProbe = builder.updateMaxProbe.apply,

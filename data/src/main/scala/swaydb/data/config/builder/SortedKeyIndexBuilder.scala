@@ -22,9 +22,10 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
 import swaydb.Compression
+import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
@@ -38,28 +39,28 @@ class SortedKeyIndexBuilder {
 object SortedKeyIndexBuilder {
 
   class Step0(builder: SortedKeyIndexBuilder) {
-    def withPrefixCompression(prefixCompression: PrefixCompression) = {
+    def prefixCompression(prefixCompression: PrefixCompression) = {
       builder.prefixCompression = prefixCompression
       new Step1(builder)
     }
   }
 
   class Step1(builder: SortedKeyIndexBuilder) {
-    def withEnablePositionIndex(enablePositionIndex: Boolean) = {
+    def enablePositionIndex(enablePositionIndex: Boolean) = {
       builder.enablePositionIndex = enablePositionIndex
       new Step2(builder)
     }
   }
 
   class Step2(builder: SortedKeyIndexBuilder) {
-    def withIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.ioStrategy = ioStrategy
       new Step3(builder)
     }
   }
 
   class Step3(builder: SortedKeyIndexBuilder) {
-    def withCompressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+    def compressions(compressions: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       SortedKeyIndex.Enable(
         prefixCompression = builder.prefixCompression,
         enablePositionIndex = builder.enablePositionIndex,

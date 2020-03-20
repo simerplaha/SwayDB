@@ -22,9 +22,10 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
 import swaydb.Compression
+import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
@@ -42,56 +43,56 @@ class SegmentConfigBuilder {
 object SegmentConfigBuilder {
 
   class Step0(builder: SegmentConfigBuilder) {
-    def withCacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean) = {
+    def cacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean) = {
       builder.cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate
       new Step1(builder)
     }
   }
 
   class Step1(builder: SegmentConfigBuilder) {
-    def withDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
+    def deleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
       builder.deleteSegmentsEventually = deleteSegmentsEventually
       new Step2(builder)
     }
   }
 
   class Step2(builder: SegmentConfigBuilder) {
-    def withPushForward(pushForward: Boolean) = {
+    def pushForward(pushForward: Boolean) = {
       builder.pushForward = pushForward
       new Step3(builder)
     }
   }
 
   class Step3(builder: SegmentConfigBuilder) {
-    def withMmap(mmap: MMAP) = {
+    def mmap(mmap: MMAP) = {
       builder.mmap = mmap
       new Step4(builder)
     }
   }
 
   class Step4(builder: SegmentConfigBuilder) {
-    def withMinSegmentSize(minSegmentSize: Int) = {
+    def minSegmentSize(minSegmentSize: Int) = {
       builder.minSegmentSize = minSegmentSize
       new Step5(builder)
     }
   }
 
   class Step5(builder: SegmentConfigBuilder) {
-    def withMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) = {
+    def maxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) = {
       builder.maxKeyValuesPerSegment = maxKeyValuesPerSegment
       new Step6(builder)
     }
   }
 
   class Step6(builder: SegmentConfigBuilder) {
-    def withIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.ioStrategy = ioStrategy
       new Step7(builder)
     }
   }
 
   class Step7(builder: SegmentConfigBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+    def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       new SegmentConfig(
         cacheSegmentBlocksOnCreate = builder.cacheSegmentBlocksOnCreate,
         deleteSegmentsEventually = builder.deleteSegmentsEventually,

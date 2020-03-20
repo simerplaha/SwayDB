@@ -48,49 +48,49 @@ class PersistentLevelZeroConfigBuilder {
 object PersistentLevelZeroConfigBuilder {
 
   class Step0(builder: PersistentLevelZeroConfigBuilder) {
-    def withDir(dir: Path) = {
+    def dir(dir: Path) = {
       builder.dir = dir
       new Step1(builder)
     }
   }
 
   class Step1(builder: PersistentLevelZeroConfigBuilder) {
-    def withMapSize(mapSize: Long) = {
+    def mapSize(mapSize: Long) = {
       builder.mapSize = mapSize
       new Step2(builder)
     }
   }
 
   class Step2(builder: PersistentLevelZeroConfigBuilder) {
-    def withMmap(mmap: Boolean) = {
+    def mmap(mmap: Boolean) = {
       builder.mmap = mmap
       new Step3(builder)
     }
   }
 
   class Step3(builder: PersistentLevelZeroConfigBuilder) {
-    def withRecoveryMode(recoveryMode: RecoveryMode) = {
+    def recoveryMode(recoveryMode: RecoveryMode) = {
       builder.recoveryMode = recoveryMode
       new Step4(builder)
     }
   }
 
   class Step4(builder: PersistentLevelZeroConfigBuilder) {
-    def withCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
+    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext.Create) = {
       builder.compactionExecutionContext = compactionExecutionContext
       new Step5(builder)
     }
   }
 
   class Step5(builder: PersistentLevelZeroConfigBuilder) {
-    def withAcceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
+    def acceleration(acceleration: JavaFunction[LevelZeroMeter, Accelerator]) = {
       builder.acceleration = acceleration.apply
       new Step6(builder)
     }
   }
 
   class Step6(builder: PersistentLevelZeroConfigBuilder) {
-    def withThrottle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
+    def throttle(throttle: JavaFunction[LevelZeroMeter, FiniteDuration]) =
       ConfigWizard.withPersistentLevel0(
         dir = builder.dir,
         mapSize = builder.mapSize,

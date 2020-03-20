@@ -25,6 +25,7 @@
 package swaydb.data.config
 
 import swaydb.Compression
+import swaydb.data.config.builder.SegmentConfigBuilder
 
 object SegmentConfig {
   def builder(): SegmentConfigBuilder.Step0 =

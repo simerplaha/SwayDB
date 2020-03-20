@@ -22,59 +22,61 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
 import swaydb.Compression
+import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
+
 import scala.jdk.CollectionConverters._
 
-class BinarySearchIndexFullIndexBuilder {
+class BinarySearchIndexSecondaryIndexBuilder {
   private var minimumNumberOfKeys: Int = _
   private var ioStrategy: JavaFunction[IOAction, IOStrategy] = _
   private var indexFormat: IndexFormat = _
-  private var searchSortedIndexDirectly: Boolean = _
+  private var searchSortedIndexDirectlyIfPreNormalised: Boolean = _
 }
 
-object BinarySearchIndexFullIndexBuilder {
+object BinarySearchIndexSecondaryIndexBuilder {
 
-  class Step0(builder: BinarySearchIndexFullIndexBuilder) {
-    def withMinimumNumberOfKeys(minimumNumberOfKeys: Int) = {
+  class Step0(builder: BinarySearchIndexSecondaryIndexBuilder) {
+    def minimumNumberOfKeys(minimumNumberOfKeys: Int) = {
       builder.minimumNumberOfKeys = minimumNumberOfKeys
       new Step1(builder)
     }
   }
 
-  class Step1(builder: BinarySearchIndexFullIndexBuilder) {
-    def withIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+  class Step1(builder: BinarySearchIndexSecondaryIndexBuilder) {
+    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.ioStrategy = ioStrategy
       new Step2(builder)
     }
   }
 
-  class Step2(builder: BinarySearchIndexFullIndexBuilder) {
-    def withIndexFormat(indexFormat: IndexFormat) = {
+  class Step2(builder: BinarySearchIndexSecondaryIndexBuilder) {
+    def indexFormat(indexFormat: IndexFormat) = {
       builder.indexFormat = indexFormat
       new Step3(builder)
     }
   }
 
-  class Step3(builder: BinarySearchIndexFullIndexBuilder) {
-    def withSearchSortedIndexDirectly(searchSortedIndexDirectly: Boolean) = {
-      builder.searchSortedIndexDirectly = searchSortedIndexDirectly
+  class Step3(builder: BinarySearchIndexSecondaryIndexBuilder) {
+    def searchSortedIndexDirectlyIfPreNormalised(searchSortedIndexDirectlyIfPreNormalised: Boolean) = {
+      builder.searchSortedIndexDirectlyIfPreNormalised = searchSortedIndexDirectlyIfPreNormalised
       new Step4(builder)
     }
   }
 
-  class Step4(builder: BinarySearchIndexFullIndexBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
-      BinarySearchIndex.FullIndex(
+  class Step4(builder: BinarySearchIndexSecondaryIndexBuilder) {
+    def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+      BinarySearchIndex.SecondaryIndex(
         minimumNumberOfKeys = builder.minimumNumberOfKeys,
         ioStrategy = builder.ioStrategy.apply,
         indexFormat = builder.indexFormat,
-        searchSortedIndexDirectly = builder.searchSortedIndexDirectly,
+        searchSortedIndexDirectlyIfPreNormalised = builder.searchSortedIndexDirectlyIfPreNormalised,
         compression = compression.apply(_).asScala
       )
   }
 
-  def builder() = new Step0(new BinarySearchIndexFullIndexBuilder())
+  def builder() = new Step0(new BinarySearchIndexSecondaryIndexBuilder())
 }

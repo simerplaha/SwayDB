@@ -22,72 +22,48 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
-import java.util.Optional
-import swaydb.data.util.Java._
+import swaydb.data.config.{ActorConfig, MemoryCache}
 
-class MemoryCacheAllBuilder {
+class ByteCacheOnlyBuilder {
   private var minIOSeekSize: Int = _
   private var skipBlockCacheSeekSize: Int = _
   private var cacheCapacity: Int = _
-  private var maxCachedKeyValueCountPerSegment: Option[Int] = _
-  private var sweepCachedKeyValues: Boolean = _
 }
 
-object MemoryCacheAllBuilder {
+object ByteCacheOnlyBuilder {
 
-  class Step0(builder: MemoryCacheAllBuilder) {
+  class Step0(builder: ByteCacheOnlyBuilder) {
     def minIOSeekSize(minIOSeekSize: Int) = {
       builder.minIOSeekSize = minIOSeekSize
       new Step1(builder)
     }
   }
 
-  class Step1(builder: MemoryCacheAllBuilder) {
+  class Step1(builder: ByteCacheOnlyBuilder) {
     def skipBlockCacheSeekSize(skipBlockCacheSeekSize: Int) = {
       builder.skipBlockCacheSeekSize = skipBlockCacheSeekSize
       new Step2(builder)
     }
   }
 
-  class Step2(builder: MemoryCacheAllBuilder) {
+  class Step2(builder: ByteCacheOnlyBuilder) {
     def cacheCapacity(cacheCapacity: Int) = {
       builder.cacheCapacity = cacheCapacity
       new Step3(builder)
     }
   }
 
-  class Step3(builder: MemoryCacheAllBuilder) {
-    def maxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Option[Int]) = {
-      builder.maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment
-      new Step4(builder)
-    }
-
-    def maxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Int]) = {
-      builder.maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment.asScala
-      new Step4(builder)
-    }
-  }
-
-  class Step4(builder: MemoryCacheAllBuilder) {
-    def sweepCachedKeyValues(sweepCachedKeyValues: Boolean) = {
-      builder.sweepCachedKeyValues = sweepCachedKeyValues
-      new Step5(builder)
-    }
-  }
-
-  class Step5(builder: MemoryCacheAllBuilder) {
+  class Step3(builder: ByteCacheOnlyBuilder) {
     def actorConfig(actorConfig: ActorConfig) =
-      MemoryCache.All(
+      MemoryCache.ByteCacheOnly(
         minIOSeekSize = builder.minIOSeekSize,
         skipBlockCacheSeekSize = builder.skipBlockCacheSeekSize,
         cacheCapacity = builder.cacheCapacity,
-        maxCachedKeyValueCountPerSegment = builder.maxCachedKeyValueCountPerSegment,
-        sweepCachedKeyValues = builder.sweepCachedKeyValues,
         actorConfig = actorConfig
       )
   }
 
-  def builder() = new Step0(new MemoryCacheAllBuilder())
+  def builder() = new Step0(new ByteCacheOnlyBuilder())
 }

@@ -52,19 +52,19 @@ class PersistentLevelConfigBuilder {
 object PersistentLevelConfigBuilder {
 
   class Step0(builder: PersistentLevelConfigBuilder) {
-    def withDir(dir: Path) = {
+    def dir(dir: Path) = {
       builder.dir = dir
       new Step1(builder)
     }
   }
 
   class Step1(builder: PersistentLevelConfigBuilder) {
-    def withOtherDirs(otherDirs: Seq[Dir]) = {
+    def otherDirs(otherDirs: Seq[Dir]) = {
       builder.otherDirs = otherDirs
       new Step2(builder)
     }
 
-    def withOtherDirs(otherDirs: java.util.Collection[Dir]) = {
+    def otherDirs(otherDirs: java.util.Collection[Dir]) = {
       if (otherDirs == null)
         builder.otherDirs = Seq.empty
       else
@@ -74,70 +74,70 @@ object PersistentLevelConfigBuilder {
   }
 
   class Step2(builder: PersistentLevelConfigBuilder) {
-    def withMmapAppendix(mmapAppendix: Boolean) = {
+    def mmapAppendix(mmapAppendix: Boolean) = {
       builder.mmapAppendix = mmapAppendix
       new Step3(builder)
     }
   }
 
   class Step3(builder: PersistentLevelConfigBuilder) {
-    def withAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) = {
+    def appendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) = {
       builder.appendixFlushCheckpointSize = appendixFlushCheckpointSize
       new Step4(builder)
     }
   }
 
   class Step4(builder: PersistentLevelConfigBuilder) {
-    def withSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) = {
+    def sortedKeyIndex(sortedKeyIndex: SortedKeyIndex) = {
       builder.sortedKeyIndex = sortedKeyIndex
       new Step5(builder)
     }
   }
 
   class Step5(builder: PersistentLevelConfigBuilder) {
-    def withRandomKeyIndex(randomKeyIndex: RandomKeyIndex) = {
+    def randomKeyIndex(randomKeyIndex: RandomKeyIndex) = {
       builder.randomKeyIndex = randomKeyIndex
       new Step6(builder)
     }
   }
 
   class Step6(builder: PersistentLevelConfigBuilder) {
-    def withBinarySearchIndex(binarySearchIndex: BinarySearchIndex) = {
+    def binarySearchIndex(binarySearchIndex: BinarySearchIndex) = {
       builder.binarySearchIndex = binarySearchIndex
       new Step7(builder)
     }
   }
 
   class Step7(builder: PersistentLevelConfigBuilder) {
-    def withMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
+    def mightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
       builder.mightContainKeyIndex = mightContainKeyIndex
       new Step8(builder)
     }
   }
 
   class Step8(builder: PersistentLevelConfigBuilder) {
-    def withValuesConfig(valuesConfig: ValuesConfig) = {
+    def valuesConfig(valuesConfig: ValuesConfig) = {
       builder.valuesConfig = valuesConfig
       new Step9(builder)
     }
   }
 
   class Step9(builder: PersistentLevelConfigBuilder) {
-    def withSegmentConfig(segmentConfig: SegmentConfig) = {
+    def segmentConfig(segmentConfig: SegmentConfig) = {
       builder.segmentConfig = segmentConfig
       new Step10(builder)
     }
   }
 
   class Step10(builder: PersistentLevelConfigBuilder) {
-    def withCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
+    def compactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
       builder.compactionExecutionContext = compactionExecutionContext
       new Step11(builder)
     }
   }
 
   class Step11(builder: PersistentLevelConfigBuilder) {
-    def withThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
+    def throttle(throttle: JavaFunction[LevelMeter, Throttle]) =
       new PersistentLevelConfig(
         dir = builder.dir,
         otherDirs = builder.otherDirs,

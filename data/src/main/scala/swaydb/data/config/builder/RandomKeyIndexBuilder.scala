@@ -22,11 +22,13 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
 import swaydb.Compression
 import swaydb.data.config.RandomKeyIndex.RequiredSpace
+import swaydb.data.config._
 import swaydb.data.util.Java.JavaFunction
+
 import scala.jdk.CollectionConverters._
 
 class RandomKeyIndexBuilder {
@@ -41,49 +43,49 @@ class RandomKeyIndexBuilder {
 object RandomKeyIndexBuilder {
 
   class Step0(builder: RandomKeyIndexBuilder) {
-    def withMaxProbe(maxProbe: Int) = {
+    def maxProbe(maxProbe: Int) = {
       builder.maxProbe = maxProbe
       new Step1(builder)
     }
   }
 
   class Step1(builder: RandomKeyIndexBuilder) {
-    def withMinimumNumberOfKeys(minimumNumberOfKeys: Int) = {
+    def minimumNumberOfKeys(minimumNumberOfKeys: Int) = {
       builder.minimumNumberOfKeys = minimumNumberOfKeys
       new Step2(builder)
     }
   }
 
   class Step2(builder: RandomKeyIndexBuilder) {
-    def withMinimumNumberOfHits(minimumNumberOfHits: Int) = {
+    def minimumNumberOfHits(minimumNumberOfHits: Int) = {
       builder.minimumNumberOfHits = minimumNumberOfHits
       new Step3(builder)
     }
   }
 
   class Step3(builder: RandomKeyIndexBuilder) {
-    def withIndexFormat(indexFormat: IndexFormat) = {
+    def indexFormat(indexFormat: IndexFormat) = {
       builder.indexFormat = indexFormat
       new Step4(builder)
     }
   }
 
   class Step4(builder: RandomKeyIndexBuilder) {
-    def withAllocateSpace(allocateSpace: JavaFunction[RequiredSpace, Int]) = {
+    def allocateSpace(allocateSpace: JavaFunction[RequiredSpace, Int]) = {
       builder.allocateSpace = allocateSpace
       new Step5(builder)
     }
   }
 
   class Step5(builder: RandomKeyIndexBuilder) {
-    def withIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.ioStrategy = ioStrategy
       new Step6(builder)
     }
   }
 
   class Step6(builder: RandomKeyIndexBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+    def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       RandomKeyIndex.Enable(
         maxProbe = builder.maxProbe,
         minimumNumberOfKeys = builder.minimumNumberOfKeys,

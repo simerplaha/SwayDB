@@ -255,40 +255,26 @@ case class MemoryLevelConfig(minSegmentSize: Int,
                              deleteSegmentsEventually: Boolean,
                              compactionExecutionContext: CompactionExecutionContext,
                              throttle: LevelMeter => Throttle) extends LevelConfig {
-  def copyWithMinSegmentSize(minSegmentSize: Int) = {
+  def copyWithMinSegmentSize(minSegmentSize: Int) =
     this.copy(minSegmentSize = minSegmentSize)
-    this
-  }
 
-  def copyWithMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) = {
+  def copyWithMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) =
     this.copy(maxKeyValuesPerSegment = maxKeyValuesPerSegment)
-    this
-  }
 
-  def copyWithCopyForward(copyForward: Boolean) = {
+  def copyWithCopyForward(copyForward: Boolean) =
     this.copy(copyForward = copyForward)
-    this
-  }
 
-  def copyWithDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) = {
+  def copyWithDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) =
     this.copy(deleteSegmentsEventually = deleteSegmentsEventually)
-    this
-  }
 
-  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
+  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
     this.copy(compactionExecutionContext = compactionExecutionContext)
-    this
-  }
 
-  def copyWithThrottle(throttle: LevelMeter => Throttle) = {
+  def copyWithThrottle(throttle: LevelMeter => Throttle) =
     this.copy(throttle = throttle)
-    this
-  }
 
-  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) = {
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
     this.copy(throttle = throttle.apply)
-    this
-  }
 }
 
 object PersistentLevelConfig {
@@ -308,75 +294,47 @@ case class PersistentLevelConfig(dir: Path,
                                  segmentConfig: SegmentConfig,
                                  compactionExecutionContext: CompactionExecutionContext,
                                  throttle: LevelMeter => Throttle) extends LevelConfig {
-  def copyWithDir(dir: Path) = {
+  def copyWithDir(dir: Path) =
     this.copy(dir = dir)
-    this
-  }
 
-  def copyWithOtherDirs(otherDirs: Seq[Dir]) = {
+  def copyWithOtherDirs(otherDirs: Seq[Dir]) =
     this.copy(otherDirs = otherDirs)
-    this
-  }
 
-  def copyWithOtherDirs(otherDirs: java.util.Collection[Dir]) = {
+  def copyWithOtherDirs(otherDirs: java.util.Collection[Dir]) =
     this.copy(otherDirs = otherDirs.asScala.toList)
-    this
-  }
 
-  def copyWithMmapAppendix(mmapAppendix: Boolean) = {
+  def copyWithMmapAppendix(mmapAppendix: Boolean) =
     this.copy(mmapAppendix = mmapAppendix)
-    this
-  }
 
-  def copyWithAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) = {
+  def copyWithAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) =
     this.copy(appendixFlushCheckpointSize = appendixFlushCheckpointSize)
-    this
-  }
 
-  def copyWithSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) = {
+  def copyWithSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) =
     this.copy(sortedKeyIndex = sortedKeyIndex)
-    this
-  }
 
-  def copyWithRandomKeyIndex(randomKeyIndex: RandomKeyIndex) = {
+  def copyWithRandomKeyIndex(randomKeyIndex: RandomKeyIndex) =
     this.copy(randomKeyIndex = randomKeyIndex)
-    this
-  }
 
-  def copyWithBinarySearchIndex(binarySearchIndex: BinarySearchIndex) = {
+  def copyWithBinarySearchIndex(binarySearchIndex: BinarySearchIndex) =
     this.copy(binarySearchIndex = binarySearchIndex)
-    this
-  }
 
-  def copyWithMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) = {
+  def copyWithMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) =
     this.copy(mightContainKeyIndex = mightContainKeyIndex)
-    this
-  }
 
-  def copyWithValuesConfig(valuesConfig: ValuesConfig) = {
+  def copyWithValuesConfig(valuesConfig: ValuesConfig) =
     this.copy(valuesConfig = valuesConfig)
-    this
-  }
 
-  def copyWithSegmentConfig(segmentConfig: SegmentConfig) = {
+  def copyWithSegmentConfig(segmentConfig: SegmentConfig) =
     this.copy(segmentConfig = segmentConfig)
-    this
-  }
 
-  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) = {
+  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
     this.copy(compactionExecutionContext = compactionExecutionContext)
-    this
-  }
 
-  def copyWithThrottle(throttle: LevelMeter => Throttle) = {
+  def copyWithThrottle(throttle: LevelMeter => Throttle) =
     this.copy(throttle = throttle)
-    this
-  }
 
-  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) = {
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
     this.copy(throttle = throttle.apply)
-    this
-  }
 }
 
 sealed trait SwayDBConfig {

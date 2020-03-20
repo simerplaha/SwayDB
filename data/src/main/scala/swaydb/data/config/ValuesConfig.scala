@@ -25,6 +25,7 @@
 package swaydb.data.config
 
 import swaydb.Compression
+import swaydb.data.config.builder.ValuesConfigBuilder
 
 object ValuesConfig {
   def builder(): ValuesConfigBuilder.Step0 =

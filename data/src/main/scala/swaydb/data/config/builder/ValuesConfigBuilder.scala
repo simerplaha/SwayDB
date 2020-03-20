@@ -22,9 +22,10 @@
  * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.data.config
+package swaydb.data.config.builder
 
 import swaydb.Compression
+import swaydb.data.config.{IOAction, IOStrategy, UncompressedBlockInfo, ValuesConfig}
 import swaydb.data.util.Java.JavaFunction
 
 import scala.jdk.CollectionConverters._
@@ -38,28 +39,28 @@ class ValuesConfigBuilder {
 object ValuesConfigBuilder {
 
   class Step0(builder: ValuesConfigBuilder) {
-    def withCompressDuplicateValues(compressDuplicateValues: Boolean) = {
+    def compressDuplicateValues(compressDuplicateValues: Boolean) = {
       builder.compressDuplicateValues = compressDuplicateValues
       new Step1(builder)
     }
   }
 
   class Step1(builder: ValuesConfigBuilder) {
-    def withCompressDuplicateRangeValues(compressDuplicateRangeValues: Boolean) = {
+    def compressDuplicateRangeValues(compressDuplicateRangeValues: Boolean) = {
       builder.compressDuplicateRangeValues = compressDuplicateRangeValues
       new Step2(builder)
     }
   }
 
   class Step2(builder: ValuesConfigBuilder) {
-    def withIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
+    def ioStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) = {
       builder.ioStrategy = ioStrategy
       new Step3(builder)
     }
   }
 
   class Step3(builder: ValuesConfigBuilder) {
-    def withCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+    def compression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
       ValuesConfig(
         compressDuplicateValues = builder.compressDuplicateValues,
         compressDuplicateRangeValues = builder.compressDuplicateRangeValues,

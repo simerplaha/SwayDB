@@ -24,6 +24,8 @@
 
 package swaydb.data.config
 
+import swaydb.data.config.builder.{ByteCacheOnlyBuilder, KeyValueCacheOnlyBuilder, MemoryCacheAllBuilder}
+
 sealed trait MemoryCache
 
 object MemoryCache {
