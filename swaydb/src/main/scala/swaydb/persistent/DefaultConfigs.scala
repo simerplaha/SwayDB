@@ -36,7 +36,7 @@ import scala.concurrent.duration._
 
 object DefaultConfigs {
 
-  implicit lazy val sweeperEC = SwayDB.sweeperExecutionContext
+  implicit lazy val sweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext
 
   def sortedKeyIndex(cacheOnAccess: Boolean = true): SortedKeyIndex.Enable =
     SortedKeyIndex.Enable(

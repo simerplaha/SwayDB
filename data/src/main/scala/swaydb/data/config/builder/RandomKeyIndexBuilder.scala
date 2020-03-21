@@ -71,8 +71,13 @@ object RandomKeyIndexBuilder {
   }
 
   class Step4(builder: RandomKeyIndexBuilder) {
-    def allocateSpace(allocateSpace: JavaFunction[RequiredSpace, Int]) = {
-      builder.allocateSpace = allocateSpace
+    def allocateSpace(allocateSpace: JavaFunction[RequiredSpace, Integer]) = {
+      builder.allocateSpace =
+        new JavaFunction[RequiredSpace, Int] {
+          override def apply(requiredSpace: RequiredSpace): Int =
+            allocateSpace.apply(requiredSpace)
+        }
+
       new Step5(builder)
     }
   }

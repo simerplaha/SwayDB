@@ -47,8 +47,8 @@ object MightContainIndexBuilder {
   }
 
   class Step1(builder: MightContainIndexBuilder) {
-    def updateMaxProbe(updateMaxProbe: JavaFunction[Int, Int]) = {
-      builder.updateMaxProbe = updateMaxProbe
+    def updateMaxProbe(updateMaxProbe: JavaFunction[java.lang.Integer, java.lang.Integer]) = {
+      builder.updateMaxProbe = updateMaxProbe.asInstanceOf[JavaFunction[Int, Int]]
       new Step2(builder)
     }
   }

@@ -37,7 +37,7 @@ import scala.concurrent.duration._
 
 object DefaultEventuallyPersistentConfig extends LazyLogging {
 
-  private lazy val compactionExecutionContext =
+  private lazy val compactionExecutionContext: ExecutionContext =
     new ExecutionContext {
       val threadPool = new ForkJoinPool(2)
 

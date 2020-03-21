@@ -61,13 +61,8 @@ object MemoryCacheAllBuilder {
   }
 
   class Step3(builder: MemoryCacheAllBuilder) {
-    def maxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Option[Int]) = {
-      builder.maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment
-      new Step4(builder)
-    }
-
-    def maxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Int]) = {
-      builder.maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment.asScala
+    def maxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Integer]) = {
+      builder.maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment.asScala.asInstanceOf[Option[Int]]
       new Step4(builder)
     }
   }
