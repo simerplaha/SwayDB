@@ -15,7 +15,7 @@ val monixVersion = "3.1.0"
 val zioVersion = "1.0.0-RC17"
 val catsEffectVersion = "2.0.0"
 val scalaJava8CompatVersion = "0.9.1"
-val junitJupiterVersion = "5.6.0"
+val junitJupiterVersion = "5.6.1"
 val scalaParallelCollectionsVersion = "0.2.0"
 val scalaCollectionsCompact = "2.1.4"
 
