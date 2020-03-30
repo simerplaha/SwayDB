@@ -93,7 +93,7 @@ object Map {
 /**
  * Map database API.
  *
- * For documentation check - http://swaydb.io/bag/
+ * For documentation check - http://swaydb.io/
  */
 case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
                                         private val from: Option[From[K]] = None,

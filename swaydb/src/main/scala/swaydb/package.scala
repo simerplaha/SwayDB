@@ -26,6 +26,9 @@ import java.nio.file.{Path, Paths}
 
 import swaydb.data.config.Dir
 
+/**
+ * Package object contains convenience functions - syntax sugar.
+ */
 package object swaydb {
 
   implicit def stringToPath(path: String): Path =

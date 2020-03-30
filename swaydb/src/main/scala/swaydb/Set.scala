@@ -82,7 +82,7 @@ object Set {
 /**
  * Set database API.
  *
- * For documentation check - http://swaydb.io/api/
+ * For documentation check - http://swaydb.io/
  */
 case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
                                      private val from: Option[From[A]],

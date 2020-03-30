@@ -27,7 +27,7 @@ package swaydb
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
- * Output of functions
+ * Output for [[PureFunction]] instances.
  */
 sealed trait Apply[+V]
 object Apply {

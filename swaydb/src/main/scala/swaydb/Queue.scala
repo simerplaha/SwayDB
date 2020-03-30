@@ -84,6 +84,9 @@ object Queue {
     }
 }
 
+/**
+ * Provides a [[Set]] instance the ability to be used as a queue.
+ */
 case class Queue[A] private(private val set: Set[(Long, A), Nothing, Bag.Less],
                             private val pushIds: AtomicLong,
                             private val popIds: AtomicLong) extends LazyLogging {

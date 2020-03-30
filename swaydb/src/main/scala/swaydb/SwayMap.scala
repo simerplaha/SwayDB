@@ -32,6 +32,9 @@ import swaydb.data.compaction.LevelMeter
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
+/**
+ * Base type with common Map function.
+ */
 trait SwayMap[K, V, F, BAG[_]] {
 
   def path: Path
