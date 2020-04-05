@@ -22,6 +22,7 @@ SwayDB's configurations can be tuned for **various workloads**. Some use-cases a
 - General key-value storage
 - Message queues
 - Time-series or Events data
+- Application logs
 - Archiving data or cold storage with high file level compression
 
 See [comparable benchmarks](http://swaydb.io/benchmarks/rocksdb/?language=scala/) with RocksDB or QuickStart in 
@@ -59,14 +60,14 @@ or [Kotlin](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src
 [Read more](http://swaydb.io/).
 
 ## Quick start
- 
+
+- [Java - Quick start](http://swaydb.io/quick-start/?language=java&starter=functionsOff).
+- [Scala - Quick start](http://swaydb.io/quick-start/?language=scala&starter=functionsOff).
+- [Kotlin - Quick start](https://github.com/simerplaha/SwayDB.kotlin.examples/blob/master/src/main/kotlin/quickstart/QuickStartMapSimple.kt).
 
 ## Project status 
 Your feedback and review is very important to get to production. Please get involved via
 chat, issues or email which is on my [profile](https://github.com/simerplaha). 
-
-Undergoing beta & performance testing. Backward binary compatibility is not yet a priority for minor releases 
-unless it's requested.
 
 See tasks labelled [Production release](https://github.com/simerplaha/SwayDB/labels/Production%20release) that are 
 required before becoming production ready. 
