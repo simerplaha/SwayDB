@@ -18,6 +18,9 @@ as simple data structures - `Map`, `Set` & `Queue`.
 Conditional updates/data modifications can be performed by simply submitting any **Java**, **Scala**, **Kotlin** or any 
 **native JVM** code. 
 
+__Scalable on a single machine__ - Data can be stored on multiple local __HDD/SSD__ and, single or multiple __Threads__ 
+can be allocated for reads, caching & compaction.
+
 SwayDB's configurations can be tuned for **various workloads**. Some use-cases are:
 - General key-value storage
 - Message queues
