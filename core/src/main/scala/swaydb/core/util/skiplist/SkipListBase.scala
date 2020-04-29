@@ -34,7 +34,7 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
 
-protected abstract class SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]](@volatile var skipList: SL,
+protected abstract class SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]](@volatile private[skiplist] var skipList: SL,
                                                                                                                                            val isConcurrent: Boolean) extends SkipList[OptionKey, OptionValue, Key, Value] {
 
   def cloneInstance(skipList: SL): SkipListBase[OptionKey, OptionValue, Key, Value, SL]
