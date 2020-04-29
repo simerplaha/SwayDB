@@ -25,13 +25,14 @@
 package swaydb.core.map
 
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.IO
 import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
-import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
+import swaydb.core.util.skiplist.{SkipList, SkipListBase}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
@@ -89,17 +90,15 @@ private[core] object Map extends LazyLogging {
                                                                         functionStore: FunctionStore,
                                                                         skipListMerge: SkipListMerger[OK, OV, K, V]): MemoryMap[OK, OV, K, V] =
     new MemoryMap[OK, OV, K, V](
-      skipList = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder),
+      _skipList = SkipList.concurrent[OK, OV, K, V](nullKey, nullValue)(keyOrder),
       flushOnOverflow = flushOnOverflow,
       fileSize = fileSize
     )
 }
 
-private[core] trait Map[OK, OV, K <: OK, V <: OV] {
+private[core] trait Map[OK, OV, K <: OK, V <: OV] extends SkipListBase[OK, OV, K, V, ConcurrentSkipListMap[K, V]] {
 
   def hasRange: Boolean
-
-  val skipList: SkipListConcurrent[OK, OV, K, V]
 
   def skipListKeyValuesMaxCount: Int
 
@@ -113,12 +112,6 @@ private[core] trait Map[OK, OV, K <: OK, V <: OV] {
     IO[E, Boolean](writeSync(mapEntry))
 
   def delete: Unit
-
-  def size: Int =
-    skipList.size
-
-  def isEmpty: Boolean =
-    skipList.isEmpty
 
   def exists =
     true

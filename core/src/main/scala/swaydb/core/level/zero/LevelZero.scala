@@ -395,7 +395,7 @@ private[swaydb] case class LevelZero(path: Path,
   private def getFromMap(key: Slice[Byte],
                          currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
-      currentMap.skipList.floor(key) match {
+      currentMap.floor(key) match {
         case floor: Memory.Fixed if floor.key equiv key =>
           floor
 
@@ -406,9 +406,7 @@ private[swaydb] case class LevelZero(path: Path,
           Memory.Null
       }
     else
-      currentMap
-        .skipList
-        .get(key)
+      currentMap.get(key)
 
   private def getFromNextLevel(key: Slice[Byte],
                                readState: ThreadReadState,
@@ -473,7 +471,7 @@ private[swaydb] case class LevelZero(path: Path,
   def firstKeyFromMaps: SliceOption[Byte] =
     maps.reduce[SliceOption[Byte]](
       nullValue = Slice.Null,
-      applier = _.skipList.headKey,
+      applier = _.headKey,
       reduce = MinMax.minFavourLeftC[SliceOption[Byte], Slice[Byte]](_, _)(keyOrder)
     )
 
@@ -483,7 +481,6 @@ private[swaydb] case class LevelZero(path: Path,
       applier =
         map =>
           map
-            .skipList
             .last()
             .flatMapSomeS(Slice.Null: SliceOption[Byte]) {
               case fixed: KeyValue.Fixed =>
@@ -596,19 +593,15 @@ private[swaydb] case class LevelZero(path: Path,
   private def higherFromMap(key: Slice[Byte],
                             currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
-      currentMap.skipList.floor(key) match {
+      currentMap.floor(key) match {
         case floorRange: Memory.Range if key >= floorRange.fromKey && key < floorRange.toKey =>
           floorRange
 
         case _ =>
-          currentMap
-            .skipList
-            .higher(key)
+          currentMap.higher(key)
       }
     else
-      currentMap
-        .skipList
-        .higher(key)
+      currentMap.higher(key)
 
   def findHigherInNextLevel(key: Slice[Byte],
                             readState: ThreadReadState,
@@ -712,15 +705,15 @@ private[swaydb] case class LevelZero(path: Path,
   private def lowerFromMap(key: Slice[Byte],
                            currentMap: map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): MemoryOption =
     if (currentMap.hasRange)
-      currentMap.skipList.floor(key) match {
+      currentMap.floor(key) match {
         case floorRange: Memory.Range if key > floorRange.fromKey && key <= floorRange.toKey =>
           floorRange
 
         case _ =>
-          currentMap.skipList.lower(key)
+          currentMap.lower(key)
       }
     else
-      currentMap.skipList.lower(key)
+      currentMap.lower(key)
 
   def findLowerInNextLevel(key: Slice[Byte],
                            readState: ThreadReadState,
@@ -850,7 +843,7 @@ private[swaydb] case class LevelZero(path: Path,
       nullResult = false,
       matcher =
         map =>
-          map.skipList.values().asScala exists {
+          map.values().asScala exists {
             case _: Memory.Put | _: Memory.Remove | _: Memory.Update =>
               false
 

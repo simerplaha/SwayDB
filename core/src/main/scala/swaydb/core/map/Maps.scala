@@ -285,14 +285,14 @@ private[core] object Maps extends LazyLogging {
           mmap = currentMap.mmap,
           flushOnOverflow = false,
           fileSize = nextMapSize,
-          nullKey = currentMap.skipList.nullKey,
-          nullValue = currentMap.skipList.nullValue
+          nullKey = currentMap.nullKey,
+          nullValue = currentMap.nullValue
         )
 
       case _ =>
         Map.memory[OK, OV, K, V](
-          nullKey = currentMap.skipList.nullKey,
-          nullValue = currentMap.skipList.nullValue,
+          nullKey = currentMap.nullKey,
+          nullValue = currentMap.nullValue,
           fileSize = nextMapSize,
           flushOnOverflow = false
         )
@@ -315,8 +315,8 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   // This is crucial for write performance use null instead of Option.
   private var brakePedal: BrakePedal = _
 
-  val nullValue: OV = currentMap.skipList.nullValue
-  val nullKey: OK = currentMap.skipList.nullKey
+  val nullValue: OV = currentMap.nullValue
+  val nullKey: OK = currentMap.nullKey
 
   @volatile private var totalMapsCount: Int = maps.size() + 1
   @volatile private var currentMapsCount: Int = maps.size() + 1
@@ -470,7 +470,7 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
     get(key) != nullValue
 
   def get(key: K): OV =
-    find(nullValue, _.skipList.get(key))
+    find(nullValue, _.get(key))
 
   def reduce[R](nullValue: R,
                 applier: Map[OK, OV, K, V] => R,

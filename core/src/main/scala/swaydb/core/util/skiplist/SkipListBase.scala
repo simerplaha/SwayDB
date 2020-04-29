@@ -25,67 +25,26 @@
 package swaydb.core.util.skiplist
 
 import java.util
+import java.util.Map
 import java.util.function.{BiConsumer, Consumer}
 
+import swaydb.core.util.NullOps
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.reflect.ClassTag
 import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 
-protected abstract class SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]](@volatile private[skiplist] var skipList: SL,
-                                                                                                                                           val isConcurrent: Boolean) extends SkipList[OptionKey, OptionValue, Key, Value] {
+private[core] trait SkipListBase[OptionKey, OptionValue, Key <: OptionKey, Value <: OptionValue, SL <: util.NavigableMap[Key, Value]] extends SkipList[OptionKey, OptionValue, Key, Value] {
 
-  def cloneInstance(skipList: SL): SkipListBase[OptionKey, OptionValue, Key, Value, SL]
+  protected def skipList: SL
 
   override def get(key: Key): OptionValue =
     toOptionValue(skipList.get(key))
 
   override def remove(key: Key): Unit =
     skipList.remove(key)
-
-  /**
-   * Does not support concurrent batch writes since it's only being used by [[swaydb.core.level.Level]] which
-   * write to appendix concurrently.
-   */
-  def batch(batches: Iterable[SkipList.Batch[Key, Value]]): Unit = {
-    var cloned = false
-    val targetSkipList =
-      if (batches.size > 1) {
-        cloned = true
-        this.cloneInstance(skipList)
-      } else {
-        this
-      }
-
-    batches foreach {
-      batch =>
-        batch apply targetSkipList
-    }
-
-    if (cloned)
-      this.skipList = targetSkipList.skipList
-  }
-
-  def put(keyValues: Iterable[(Key, Value)]): Unit = {
-    var cloned = false
-    val targetSkipList =
-      if (keyValues.size > 1) {
-        cloned = true
-        this.cloneInstance(skipList).skipList
-      } else {
-        skipList
-      }
-
-    keyValues foreach {
-      case (key, value) =>
-        targetSkipList.put(key, value)
-    }
-
-    if (cloned)
-      this.skipList = targetSkipList
-  }
 
   override def put(key: Key, value: Value): Unit =
     skipList.put(key, value)
@@ -135,6 +94,15 @@ protected abstract class SkipListBase[OptionKey, OptionValue, Key <: OptionKey, 
   def headKey: OptionKey =
     tryOptionKey(skipList.firstKey())
 
+  def headKeyOrNull: Key =
+    NullOps.tryOrNull(skipList.firstKey()).asInstanceOf[Key]
+
+  def pollLastEntry(): Map.Entry[Key, Value] =
+    skipList.pollLastEntry()
+
+  def pollFirstEntry(): Map.Entry[Key, Value] =
+    skipList.pollFirstEntry()
+
   def headKeyValue: Option[(Key, Value)] =
     tryOptionKeyValue(skipList.firstEntry())
 
@@ -143,6 +111,9 @@ protected abstract class SkipListBase[OptionKey, OptionValue, Key <: OptionKey, 
 
   def lastKey: OptionKey =
     tryOptionKey(skipList.lastKey())
+
+  def lastKeyOrNull: Key =
+    NullOps.tryOrNull(skipList.lastKey()).asInstanceOf[Key]
 
   def ceilingKey(key: Key): OptionKey =
     toOptionKey(skipList.ceilingKey(key))

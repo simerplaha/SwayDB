@@ -60,7 +60,7 @@
 //      def testRead(map: Map[SliceOption[Byte], MemoryOptional, Slice[Byte], Memory]) =
 //        keyValues foreach {
 //          keyValue =>
-//            map.skipList.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
+//            map.get(keyValue.key).value shouldBe Memory.put(keyValue.key, keyValue.getOrFetchValue)
 //        }
 //
 //      val dir1 = createRandomDir

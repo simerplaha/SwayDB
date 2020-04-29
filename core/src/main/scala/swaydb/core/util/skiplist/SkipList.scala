@@ -75,7 +75,6 @@ private[core] trait SkipList[OptionKey, OptionValue, Key <: OptionKey, Value <: 
   def subMap(from: Key, to: Key): util.NavigableMap[Key, Value]
   def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): util.NavigableMap[Key, Value]
   def asScala: mutable.Map[Key, Value]
-  def isConcurrent: Boolean
 
   @inline final def toOptionValue(entry: java.util.Map.Entry[Key, Value]): OptionValue =
     if (entry == null)

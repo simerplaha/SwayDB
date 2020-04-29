@@ -25,6 +25,7 @@
 package swaydb.core.map
 
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentSkipListMap
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
@@ -36,7 +37,7 @@ import swaydb.core.io.file.Effect._
 import swaydb.core.io.file.{DBFile, Effect}
 import swaydb.core.map.serializer.{MapCodec, MapEntryReader, MapEntryWriter}
 import swaydb.core.util.Extension
-import swaydb.core.util.skiplist.{SkipListConcurrent, SkipList}
+import swaydb.core.util.skiplist.{SkipList, SkipListConcurrent}
 import swaydb.data.config.IOStrategy
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
@@ -68,7 +69,7 @@ private[map] object PersistentMap extends LazyLogging {
         mmap = mmap,
         fileSize = fileSize,
         flushOnOverflow = flushOnOverflow,
-        skipList = skipList,
+        _skipList = skipList,
         currentFile = fileRecoveryResult.item,
         hasRangeInitial = hasRange
       ),
@@ -96,7 +97,7 @@ private[map] object PersistentMap extends LazyLogging {
       fileSize = fileSize,
       flushOnOverflow = flushOnOverflow,
       currentFile = file,
-      skipList = skipList,
+      _skipList = skipList,
       hasRangeInitial = false
     )
   }
@@ -232,7 +233,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
                                                              mmap: Boolean,
                                                              fileSize: Long,
                                                              flushOnOverflow: Boolean,
-                                                             skipList: SkipListConcurrent[OK, OV, K, V],
+                                                             private val _skipList: SkipListConcurrent[OK, OV, K, V],
                                                              private var currentFile: DBFile,
                                                              private val hasRangeInitial: Boolean)(implicit keyOrder: KeyOrder[K],
                                                                                                    timeOrder: TimeOrder[Slice[Byte]],
@@ -254,6 +255,15 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   @volatile private var _hasRange: Boolean = hasRangeInitial
 
   override def hasRange: Boolean = _hasRange
+
+  override protected def skipList: ConcurrentSkipListMap[K, V] =
+    _skipList.skipList
+
+  override def nullKey: OK =
+    _skipList.nullKey
+
+  override def nullValue: OV =
+    _skipList.nullValue
 
   def currentFilePath =
     currentFile.path
@@ -280,11 +290,11 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
       //if this main contains range then use skipListMerge.
       if (entry.hasRange) {
         _hasRange = true //set hasRange to true before inserting so that reads start looking for floor key-values as the inserts are occurring.
-        skipListMerger.insert(entry, skipList)
+        skipListMerger.insert(entry, _skipList)
       } else if (entry.hasUpdate || entry.hasRemoveDeadline || _hasRange) {
-        skipListMerger.insert(entry, skipList)
+        skipListMerger.insert(entry, _skipList)
       } else {
-        entry applyTo skipList
+        entry applyTo _skipList
       }
       skipListKeyValuesMaxCount += entry.entriesCount
       bytesWritten += entryTotalByteSize
@@ -297,7 +307,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
     } else {
       val nextFilesSize = entryTotalByteSize.toLong max fileSize
       try {
-        val newFile = PersistentMap.nextFile(currentFile, mmap, nextFilesSize, skipList)
+        val newFile = PersistentMap.nextFile(currentFile, mmap, nextFilesSize, _skipList)
         currentFile = newFile
         actualFileSize = nextFilesSize
         bytesWritten = 0
@@ -327,4 +337,5 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
 
   override def fileId: Long =
     path.fileId._1
+
 }

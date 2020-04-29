@@ -84,22 +84,22 @@ class MapSpec extends TestBase {
 
       map.writeSync(MapEntry.Put(1, Memory.put(1, 1))) shouldBe true
       map.writeSync(MapEntry.Put(2, Memory.put(2, 2))) shouldBe true
-      map.skipList.get(1) shouldBe Memory.put(1, 1)
-      map.skipList.get(2) shouldBe Memory.put(2, 2)
+      map.get(1) shouldBe Memory.put(1, 1)
+      map.get(2) shouldBe Memory.put(2, 2)
 
       map.hasRange shouldBe false
 
       map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](1, Memory.remove(1))) shouldBe true
       map.writeSync(MapEntry.Put[Slice[Byte], Memory.Remove](2, Memory.remove(2))) shouldBe true
-      map.skipList.get(1) shouldBe Memory.remove(1)
-      map.skipList.get(2) shouldBe Memory.remove(2)
+      map.get(1) shouldBe Memory.remove(1)
+      map.get(2) shouldBe Memory.remove(2)
 
       map.hasRange shouldBe false
 
       map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](1, Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None)))) shouldBe true
       map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](11, Memory.Range(11, 20, Value.put(20), Value.update(20)))) shouldBe true
-      map.skipList.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
-      map.skipList.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
+      map.get(1) shouldBe Memory.Range(1, 10, Value.FromValue.Null, Value.remove(None))
+      map.get(11) shouldBe Memory.Range(11, 20, Value.put(20), Value.update(20))
 
       map.hasRange shouldBe true
     }
@@ -122,15 +122,15 @@ class MapSpec extends TestBase {
 
       map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
       map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
-      map.skipList.get(1) shouldBe segment1
-      map.skipList.get(2) shouldBe segment2
+      map.get(1) shouldBe segment1
+      map.get(2) shouldBe segment2
 
       map.hasRange shouldBe false
 
       map.writeSync(MapEntry.Remove[Slice[Byte]](1)) shouldBe true
       map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
-      map.skipList.get(1).toOptionS shouldBe empty
-      map.skipList.get(2).toOptionS shouldBe empty
+      map.get(1).toOptionS shouldBe empty
+      map.get(2).toOptionS shouldBe empty
     }
 
     "initialise a persistent Level0 map and recover from it when it's empty" in {
@@ -219,10 +219,10 @@ class MapSpec extends TestBase {
       map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 20, Value.FromValue.Null, Value.update(20)))) shouldBe true
       map.writeSync(MapEntry.Put[Slice[Byte], Memory.Range](10, Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None)))) shouldBe true
 
-      map.skipList.get(1) shouldBe Memory.put(1, 1)
-      map.skipList.get(2) shouldBe Memory.remove(2)
-      map.skipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-      map.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+      map.get(1) shouldBe Memory.put(1, 1)
+      map.get(2) shouldBe Memory.remove(2)
+      map.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+      map.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
       def doRecover(path: Path): PersistentMap[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] = {
         val recovered =
@@ -236,10 +236,10 @@ class MapSpec extends TestBase {
             dropCorruptedTailEntries = false
           ).item
 
-        recovered.skipList.get(1) shouldBe Memory.put(1, 1)
-        recovered.skipList.get(2) shouldBe Memory.remove(2)
-        recovered.skipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-        recovered.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+        recovered.get(1) shouldBe Memory.put(1, 1)
+        recovered.get(2) shouldBe Memory.remove(2)
+        recovered.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+        recovered.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
         recovered.hasRange shouldBe true
         recovered.close()
         recovered
@@ -274,8 +274,8 @@ class MapSpec extends TestBase {
       map.writeSync(MapEntry.Put[Slice[Byte], Segment](1, segment1)) shouldBe true
       map.writeSync(MapEntry.Put[Slice[Byte], Segment](2, segment2)) shouldBe true
       map.writeSync(MapEntry.Remove[Slice[Byte]](2)) shouldBe true
-      map.skipList.get(1) shouldBe segment1
-      map.skipList.get(2).toOptionS shouldBe empty
+      map.get(1) shouldBe segment1
+      map.get(2).toOptionS shouldBe empty
 
       def doRecover(path: Path): PersistentMap[SliceOption[Byte], SegmentOption, Slice[Byte], Segment] = {
         val recovered =
@@ -289,8 +289,8 @@ class MapSpec extends TestBase {
             dropCorruptedTailEntries = false
           ).item
 
-        recovered.skipList.get(1).getS shouldBe segment1
-        recovered.skipList.get(2).toOptionS shouldBe empty
+        recovered.get(1).getS shouldBe segment1
+        recovered.get(2).toOptionS shouldBe empty
         recovered.close()
         recovered
       }
@@ -355,14 +355,14 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map1Recovered.skipList.get(1) shouldBe Memory.put(1, 1)
-      map1Recovered.skipList.get(2) shouldBe Memory.put(2, 22) //second file overrides 2's value to be 22
-      map1Recovered.skipList.get(3) shouldBe Memory.put(3, 3)
-      map1Recovered.skipList.get(4) shouldBe Memory.put(4, 4)
-      map1Recovered.skipList.get(5) shouldBe Memory.put(5, 5)
-      map1Recovered.skipList.get(6).toOptionS shouldBe empty
-      map1Recovered.skipList.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
-      map1Recovered.skipList.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
+      map1Recovered.get(1) shouldBe Memory.put(1, 1)
+      map1Recovered.get(2) shouldBe Memory.put(2, 22) //second file overrides 2's value to be 22
+      map1Recovered.get(3) shouldBe Memory.put(3, 3)
+      map1Recovered.get(4) shouldBe Memory.put(4, 4)
+      map1Recovered.get(5) shouldBe Memory.put(5, 5)
+      map1Recovered.get(6).toOptionS shouldBe empty
+      map1Recovered.get(10) shouldBe Memory.Range(10, 15, Value.FromValue.Null, Value.remove(None))
+      map1Recovered.get(15) shouldBe Memory.Range(15, 20, Value.FromValue.Null, Value.update(20))
 
       //recovered file's id is 2.log
       map1Recovered.path.files(Extension.Log).map(_.fileId) should contain only ((2, Extension.Log))
@@ -429,12 +429,12 @@ class MapSpec extends TestBase {
           dropCorruptedTailEntries = false
         ).item
 
-      map1Recovered.skipList.get(1).getS shouldBe segment1
-      map1Recovered.skipList.get(2).getS shouldBe segment2Updated //second file overrides 2's value to be segment2Updated
-      map1Recovered.skipList.get(3).getS shouldBe segment3
-      map1Recovered.skipList.get(4).getS shouldBe segment4
-      map1Recovered.skipList.get(5).getS shouldBe segment5
-      map1Recovered.skipList.get(6).toOptionS shouldBe empty
+      map1Recovered.get(1).getS shouldBe segment1
+      map1Recovered.get(2).getS shouldBe segment2Updated //second file overrides 2's value to be segment2Updated
+      map1Recovered.get(3).getS shouldBe segment3
+      map1Recovered.get(4).getS shouldBe segment4
+      map1Recovered.get(5).getS shouldBe segment5
+      map1Recovered.get(6).toOptionS shouldBe empty
 
       //recovered file's id is 2.log
       map1Recovered.path.files(Extension.Log).map(_.fileId) should contain only ((2, Extension.Log))
@@ -784,9 +784,9 @@ class MapSpec extends TestBase {
 
       (1 to 99) foreach {
         i =>
-          recoveredMap.skipList.get(i) shouldBe Memory.put(i, i)
+          recoveredMap.get(i) shouldBe Memory.put(i, i)
       }
-      recoveredMap.skipList.contains(100) shouldBe false
+      recoveredMap.contains(100) shouldBe false
 
       //if the top entry is corrupted.
       Files.write(recoveredMap.currentFilePath, allBytes.drop(1))
@@ -885,15 +885,15 @@ class MapSpec extends TestBase {
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
       //count instead of size because skipList's actual size can be higher.
-      recoveredMapWith0LogCorrupted.item.skipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
+      recoveredMapWith0LogCorrupted.item.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 0.log is corrupted
 
       //checking the recovered entries
-      recoveredMapWith0LogCorrupted.item.skipList.get(1) shouldBe Memory.put(1, 1)
-      recoveredMapWith0LogCorrupted.item.skipList.get(2) shouldBe Memory.put(2, 2)
-      recoveredMapWith0LogCorrupted.item.skipList.get(3).toOptionS shouldBe empty //since the last byte of 0.log file is corrupted, the last entry is missing
-      recoveredMapWith0LogCorrupted.item.skipList.get(4) shouldBe Memory.put(4, 4)
-      recoveredMapWith0LogCorrupted.item.skipList.get(5) shouldBe Memory.put(5, 5)
-      recoveredMapWith0LogCorrupted.item.skipList.get(6) shouldBe Memory.put(6, 6)
+      recoveredMapWith0LogCorrupted.item.get(1) shouldBe Memory.put(1, 1)
+      recoveredMapWith0LogCorrupted.item.get(2) shouldBe Memory.put(2, 2)
+      recoveredMapWith0LogCorrupted.item.get(3).toOptionS shouldBe empty //since the last byte of 0.log file is corrupted, the last entry is missing
+      recoveredMapWith0LogCorrupted.item.get(4) shouldBe Memory.put(4, 4)
+      recoveredMapWith0LogCorrupted.item.get(5) shouldBe Memory.put(5, 5)
+      recoveredMapWith0LogCorrupted.item.get(6) shouldBe Memory.put(6, 6)
     }
   }
 
@@ -975,15 +975,15 @@ class MapSpec extends TestBase {
       //recovery state contains failure because the WAL file is partially recovered.
       recoveredMapWith0LogCorrupted.result.left.value.exception shouldBe a[IllegalStateException]
       //count instead of size because skipList's actual size can be higher.
-      recoveredMapWith0LogCorrupted.item.skipList.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
+      recoveredMapWith0LogCorrupted.item.asScala.count(_ => true) shouldBe 5 //5 because the 3rd entry in 1.log is corrupted
 
       //checking the recovered entries
-      recoveredMapWith0LogCorrupted.item.skipList.get(1) shouldBe Memory.put(1, 1)
-      recoveredMapWith0LogCorrupted.item.skipList.get(2) shouldBe Memory.put(2)
-      recoveredMapWith0LogCorrupted.item.skipList.get(3) shouldBe Memory.put(3, 3)
-      recoveredMapWith0LogCorrupted.item.skipList.get(4) shouldBe Memory.put(4, 4)
-      recoveredMapWith0LogCorrupted.item.skipList.get(5) shouldBe Memory.put(5, 5)
-      recoveredMapWith0LogCorrupted.item.skipList.get(6).toOptionS shouldBe empty
+      recoveredMapWith0LogCorrupted.item.get(1) shouldBe Memory.put(1, 1)
+      recoveredMapWith0LogCorrupted.item.get(2) shouldBe Memory.put(2)
+      recoveredMapWith0LogCorrupted.item.get(3) shouldBe Memory.put(3, 3)
+      recoveredMapWith0LogCorrupted.item.get(4) shouldBe Memory.put(4, 4)
+      recoveredMapWith0LogCorrupted.item.get(5) shouldBe Memory.put(5, 5)
+      recoveredMapWith0LogCorrupted.item.get(6).toOptionS shouldBe empty
     }
   }
 
@@ -1015,7 +1015,7 @@ class MapSpec extends TestBase {
             keyValues =>
               map.writeSync(keyValues.toMapEntry.value) shouldBe true
           }
-          map.skipList.values().asScala shouldBe keyValues
+          map.values().asScala shouldBe keyValues
 
           //write overlapping key-values to the same map which are randomly selected and may or may not contain range, update, or key-values deadlines.
           val updatedValues = randomizedKeyValues(1000, startId = Some(keyValues.head.key.readInt()), addPut = true)
@@ -1024,8 +1024,8 @@ class MapSpec extends TestBase {
 
           //reopening the map should return in the original skipList.
           val reopened = map.reopen
-          reopened.skipList.size shouldBe map.skipList.size
-          reopened.skipList.asScala shouldBe map.skipList.asScala
+          reopened.size shouldBe map.size
+          reopened.asScala shouldBe map.asScala
           reopened.delete
       }
     }

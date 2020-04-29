@@ -286,9 +286,9 @@ class MapsSpec extends TestBase {
       recoveredMaps should have size 3
       recoveredMaps.map(_.pathOption.value.folderId) shouldBe List(2, 1, 0)
 
-      recoveredMaps.head.skipList.get(1) shouldBe Memory.remove(1)
-      recoveredMaps.tail.head.skipList.get(2) shouldBe Memory.put(2)
-      recoveredMaps.last.skipList.get(1) shouldBe Memory.put(1)
+      recoveredMaps.head.get(1) shouldBe Memory.remove(1)
+      recoveredMaps.tail.head.get(2) shouldBe Memory.put(2)
+      recoveredMaps.last.get(1) shouldBe Memory.put(1)
     }
 
     "fail recovery if one of the map is corrupted and recovery mode is ReportFailure" in {
@@ -324,16 +324,16 @@ class MapsSpec extends TestBase {
       recoveredMaps should have size 3
 
       //newest map contains all key-values
-      recoveredMaps.head.skipList.get(5) shouldBe Memory.put(5)
-      recoveredMaps.head.skipList.get(6) shouldBe Memory.put(6, 6)
+      recoveredMaps.head.get(5) shouldBe Memory.put(5)
+      recoveredMaps.head.get(6) shouldBe Memory.put(6, 6)
 
       //second map is the corrupted map and will have the 2nd entry missing
-      recoveredMaps.tail.head.skipList.get(3) shouldBe Memory.put(3, 3)
-      recoveredMaps.tail.head.skipList.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
+      recoveredMaps.tail.head.get(3) shouldBe Memory.put(3, 3)
+      recoveredMaps.tail.head.get(4).toOptionS shouldBe empty //4th entry is corrupted, it will not exist the Map
 
       //oldest map contains all key-values
-      recoveredMaps.last.skipList.get(1) shouldBe Memory.put(1)
-      recoveredMaps.last.skipList.get(2) shouldBe Memory.put(2)
+      recoveredMaps.last.get(1) shouldBe Memory.put(1)
+      recoveredMaps.last.get(2) shouldBe Memory.put(2)
     }
 
     "continue recovery if one of the map is corrupted and recovery mode is DropCorruptedTailEntriesAndMaps" in {

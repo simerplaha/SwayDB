@@ -42,17 +42,17 @@ private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: Optio
   def dropOverflow(key: Key): Unit =
     while (skipListSize.get() > limit)
       try {
-        val firstKey = skipList.skipList.firstKey()
+        val firstKey = skipList.headKeyOrNull
         val poll =
           if (ordering.lteq(key, firstKey)) {
-            skipList.skipList.pollLastEntry()
+            skipList.pollLastEntry()
           } else {
-            val lastKey = skipList.skipList.lastKey()
+            val lastKey = skipList.lastKeyOrNull
             if (lastKey != null)
               if (ordering.gteq(key, lastKey) || Random.nextBoolean())
-                skipList.skipList.pollLastEntry()
+                skipList.pollLastEntry()
               else
-                skipList.skipList.pollFirstEntry()
+                skipList.pollFirstEntry()
             else
               null
           }
@@ -137,6 +137,4 @@ private[core] class SkipListConcurrentLimit[OptionKey, OptionValue, Key <: Optio
   override def subMap(from: Key, fromInclusive: Boolean, to: Key, toInclusive: Boolean): util.NavigableMap[Key, Value] = skipList.subMap(from, fromInclusive, to, toInclusive)
 
   override def asScala: mutable.Map[Key, Value] = skipList.asScala
-
-  override def isConcurrent: Boolean = skipList.isConcurrent
 }
