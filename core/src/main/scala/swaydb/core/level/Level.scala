@@ -278,8 +278,9 @@ private[core] object Level extends LazyLogging {
           if (ReserveRange.isUnreserved(segment) && nextLevel.isUnreserved(segment))
             if (!Segment.overlaps(segment, nextLevel.segmentsInLevel()))
               segmentsToCopy += segment
-            else if (segmentsToMerge.size < take) //only cache enough Segments to merge.
-            segmentsToMerge += segment
+            //only cache enough Segments to merge.
+            else if (segmentsToMerge.size < take)
+              segmentsToMerge += segment
 
           segmentsToCopy.size >= take
       }
@@ -622,40 +623,42 @@ private[core] case class Level(dirs: Seq[Dir],
     if (segmentsToCopy.nonEmpty)
       copyForwardOrCopyLocal(segmentsToCopy) flatMap {
         newlyCopiedSegments =>
-          if (newlyCopiedSegments.value.nonEmpty) //Segments were copied into this Level.
-          buildNewMapEntry(newlyCopiedSegments.value, Segment.Null, None) flatMap {
-            copiedSegmentsEntry =>
-              val putResult: IO[swaydb.Error.Level, _] =
-                if (segmentsToMerge.nonEmpty)
-                  merge(
-                    segments = segmentsToMerge,
-                    targetSegments = targetSegments,
-                    appendEntry = Some(copiedSegmentsEntry)
-                  )
-                else
-                  appendix.writeSafe(copiedSegmentsEntry)
+          //Segments were copied into this Level.
+          if (newlyCopiedSegments.value.nonEmpty)
+            buildNewMapEntry(newlyCopiedSegments.value, Segment.Null, None) flatMap {
+              copiedSegmentsEntry =>
+                val putResult: IO[swaydb.Error.Level, _] =
+                  if (segmentsToMerge.nonEmpty)
+                    merge(
+                      segments = segmentsToMerge,
+                      targetSegments = targetSegments,
+                      appendEntry = Some(copiedSegmentsEntry)
+                    )
+                  else
+                    appendix.writeSafe(copiedSegmentsEntry)
 
-              putResult
-                .transform {
-                  _ =>
-                    newlyCopiedSegments.levelsUpdated + levelNumber
-                }
-                .onLeftSideEffect {
-                  failure =>
-                    logFailure(s"${pathDistributor.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.value.size} copied segments", failure)
-                    deleteCopiedSegments(newlyCopiedSegments.value)
-                }
-          }
-            else if (segmentsToMerge.nonEmpty) //check if there are Segments to merge.
-          merge( //no segments were copied. Do merge!
-            segments = segmentsToMerge,
-            targetSegments = targetSegments,
-            appendEntry = None
-          ) transform {
-            _ =>
-              newlyCopiedSegments.levelsUpdated + levelNumber
-          }
-            else
+                putResult
+                  .transform {
+                    _ =>
+                      newlyCopiedSegments.levelsUpdated + levelNumber
+                  }
+                  .onLeftSideEffect {
+                    failure =>
+                      logFailure(s"${pathDistributor.head}: Failed to create a log entry. Deleting ${newlyCopiedSegments.value.size} copied segments", failure)
+                      deleteCopiedSegments(newlyCopiedSegments.value)
+                  }
+            }
+          //check if there are Segments to merge.
+          else if (segmentsToMerge.nonEmpty)
+            merge( //no segments were copied. Do merge!
+              segments = segmentsToMerge,
+              targetSegments = targetSegments,
+              appendEntry = None
+            ) transform {
+              _ =>
+                newlyCopiedSegments.levelsUpdated + levelNumber
+            }
+          else
             IO.Right(newlyCopiedSegments.levelsUpdated)
       }
     else
