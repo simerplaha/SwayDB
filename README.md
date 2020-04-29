@@ -87,10 +87,11 @@ Contributions are welcomed following the [Scala code of conduct](https://www.sca
 
 ## License summary
 
-Would like to see others find SwayDB useful in their **own projects**, **companies** and other **open-source projects** 
-for both **personal** or **commercial** reasons, the license **only** asks for your modifications (e.g bug-fixes) 
-to SwayDB's source code to be shared so that it supports the contributors by not duplicating efforts. 
-You **do not have to** share your program's code or are bounded by AGPLv3 as long as you share your modifications. 
+We would like to see others find SwayDB useful in their **own projects**, **companies** and other **open-source projects** 
+for both **personal** and **commercial** reasons, the license **only** asks for your modifications (e.g bug-fixes) 
+to SwayDB's source code to be shared so that it supports the contributors by not duplicating efforts and shares knowledge on
+this project's subject. You **do not have to** share your program's code or are bounded by AGPLv3 as long as you share 
+your modifications. 
 
 If you have any questions or think that the current license restricts you in any way please get in touch.
 
