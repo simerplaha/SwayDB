@@ -111,9 +111,10 @@ object MultiMap {
 
 case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
                                              mapKey: Seq[K],
-                                             private val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
-                                                                                            valueSerializer: Serializer[V],
-                                                                                            bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+                                             private val reverseIteration: Boolean = false,
+                                             private val defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
+                                                                                                     valueSerializer: Serializer[V],
+                                                                                                     bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
   private def failure(expected: Class[_], actual: Class[_]) = throw new IllegalStateException(s"Internal error: ${expected.getName} expected but found ${actual.getName}.")
 
@@ -122,19 +123,30 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   override def path: Path =
     map.path
 
-  def putMap(key: K): BAG[MultiMap[K, V, F, BAG]] = {
+  def putMap(key: K): BAG[MultiMap[K, V, F, BAG]] =
+    putMap(key, None)
+
+  def putMap(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
+    putMap(key, Some(expireAfter.fromNow))
+
+  def putMap(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
+    putMap(key, Some(expireAt))
+
+  def putMap(key: K, expireAt: Option[Deadline]): BAG[MultiMap[K, V, F, BAG]] = {
     val childMapKey = mapKey :+ key
+
+    val expiry = expireAt.orElse(defaultExpiration)
 
     val prepare: Seq[Prepare[MultiMapKey[K], Option[V], Nothing]] =
       Seq(
         Prepare.Remove(MapStart(childMapKey), MapEnd(childMapKey)),
-        Prepare.Put(SubMap(mapKey, key), None),
-        Prepare.Put(MultiMapKey.MapStart(childMapKey), None),
-        Prepare.Put(MultiMapKey.MapEntriesStart(childMapKey), None),
-        Prepare.Put(MultiMapKey.MapEntriesEnd(childMapKey), None),
-        Prepare.Put(MultiMapKey.SubMapsStart(childMapKey), None),
-        Prepare.Put(MultiMapKey.SubMapsEnd(childMapKey), None),
-        Prepare.Put(MultiMapKey.MapEnd(childMapKey), None)
+        Prepare.Put(SubMap(mapKey, key), None, expiry),
+        Prepare.Put(MultiMapKey.MapStart(childMapKey), None, expiry),
+        Prepare.Put(MultiMapKey.MapEntriesStart(childMapKey), None, expiry),
+        Prepare.Put(MultiMapKey.MapEntriesEnd(childMapKey), None, expiry),
+        Prepare.Put(MultiMapKey.SubMapsStart(childMapKey), None, expiry),
+        Prepare.Put(MultiMapKey.SubMapsEnd(childMapKey), None, expiry),
+        Prepare.Put(MultiMapKey.MapEnd(childMapKey), None, expiry)
       )
 
     bag.map(map.commit(prepare)) {
@@ -194,41 +206,34 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     val innerKeyValues =
       keyValues map {
         case (key, value) =>
-          (MapEntry(mapKey, key), Some(value))
+          Prepare.Put(MapEntry(mapKey, key), Some(value), defaultExpiration)
       }
 
-    map.put(innerKeyValues)
+    map.commit(innerKeyValues)
   }
 
   override def put(keyValues: Stream[(K, V)]): BAG[OK] = {
-    val stream: Stream[(MultiMapKey[K], Option[V])] =
+    val stream: Stream[Prepare[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]] =
       keyValues.map {
         case (key, value) =>
-          (MapEntry(mapKey, key), Some(value))
+          Prepare.Put(MapEntry(mapKey, key), Some(value), defaultExpiration)
       }
 
-    map.put(stream)
+    map.commit(stream)
   }
 
   override def put(keyValues: Iterable[(K, V)]): BAG[OK] = {
     val stream =
       keyValues.map {
         case (key, value) =>
-          (MapEntry(mapKey, key), Some(value))
+          Prepare.Put(MapEntry(mapKey, key), Some(value), defaultExpiration)
       }
 
-    map.put(stream)
+    map.commit(stream)
   }
 
-  override def put(keyValues: Iterator[(K, V)]): BAG[OK] = {
-    val stream =
-      keyValues.map {
-        case (key, value) =>
-          (MapEntry(mapKey, key), Some(value))
-      }
-
-    map.put(stream)
-  }
+  override def put(keyValues: Iterator[(K, V)]): BAG[OK] =
+    put(keyValues.to(Iterable))
 
   override def remove(key: K): BAG[OK] =
     map.remove(MapEntry(mapKey, key))
@@ -258,6 +263,19 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
 
   override def expire(key: K, at: Deadline): BAG[OK] =
     map.expire(MapEntry(mapKey, key), at)
+
+  //updates expiration
+  def expire(after: FiniteDuration): BAG[OK] =
+    map.expire(MapStart(mapKey), MapEnd(mapKey), after)
+
+  def expire(at: Deadline): BAG[OK] =
+    map.expire(MapStart(mapKey), MapEnd(mapKey), at)
+
+  def expire(from: K, to: K, after: FiniteDuration): BAG[OK] =
+    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), after)
+
+  def expire(from: K, to: K, at: Deadline): BAG[OK] =
+    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), at)
 
   override def clear(): BAG[OK] = {
     val entriesStart = MapEntriesStart(mapKey)

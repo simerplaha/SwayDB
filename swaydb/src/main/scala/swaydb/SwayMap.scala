@@ -41,6 +41,15 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def put(key: K, value: V): BAG[OK]
 
+  def put(key: K, value: V, expireAt: Option[Deadline]): BAG[OK] =
+    expireAt match {
+      case Some(expireAt) =>
+        put(key, value, expireAt)
+
+      case None =>
+        put(key, value)
+    }
+
   def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK]
 
   def put(key: K, value: V, expireAt: Deadline): BAG[OK]
