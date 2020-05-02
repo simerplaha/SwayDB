@@ -31,7 +31,7 @@ import swaydb.data.slice.{ReaderBase, Slice}
 import swaydb.serializers.Serializer
 
 protected sealed trait MultiMapKey[+K] {
-  def parentMapKeys: Seq[K]
+  def parentKey: Seq[K]
 }
 
 protected object MultiMapKey {
@@ -41,17 +41,17 @@ protected object MultiMapKey {
   }
 
   //map start
-  case class MapStart[+K](parentMapKeys: Seq[K]) extends MultiMapKey[K]
+  case class MapStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
 
-  case class MapEntriesStart[+K](parentMapKeys: Seq[K]) extends MultiMapKey[K]
-  case class MapEntry[+K](parentMapKeys: Seq[K], dataKey: K) extends UserEntry[K]
-  case class MapEntriesEnd[+K](parentMapKeys: Seq[K]) extends MultiMapKey[K]
+  case class MapEntriesStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
+  case class MapEntry[+K](parentKey: Seq[K], dataKey: K) extends UserEntry[K]
+  case class MapEntriesEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
 
-  case class SubMapsStart[+K](parentMapKeys: Seq[K]) extends MultiMapKey[K]
-  case class SubMap[+K](parentMapKeys: Seq[K], dataKey: K) extends UserEntry[K]
-  case class SubMapsEnd[+K](parentMapKeys: Seq[K]) extends MultiMapKey[K]
+  case class SubMapsStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
+  case class SubMap[+K](parentKey: Seq[K], dataKey: K) extends UserEntry[K]
+  case class SubMapsEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
 
-  case class MapEnd[+K](parentMapKeys: Seq[K]) extends MultiMapKey[K]
+  case class MapEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
 
   //formatId for the serializers. Each key is prepended with this formatId.
   private val formatId: Byte = 0
@@ -238,7 +238,7 @@ protected object MultiMapKey {
    * Implements un-typed ordering for performance. This ordering can also be implemented using types.
    * See documentation at http://www.swaydb.io/custom-key-ordering/
    *
-   * Creates dual ordering on [[MultiMapKey.parentMapKeys]]. Orders mapKey using the [[KeyOrder.default]] order
+   * Creates dual ordering on [[MultiMapKey.parentKey]]. Orders mapKey using the [[KeyOrder.default]] order
    * and applies custom ordering on the user provided keys.
    */
   def ordering(customOrder: KeyOrder[Slice[Byte]]) =

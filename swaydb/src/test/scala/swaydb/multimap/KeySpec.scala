@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extensions
+package swaydb.multimap
 
 import org.scalatest.{Matchers, WordSpec}
 import swaydb.MultiMapKey

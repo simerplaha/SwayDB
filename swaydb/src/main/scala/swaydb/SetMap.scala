@@ -127,7 +127,7 @@ object SetMap {
  */
 case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
-  private final val nullValue: V = nullValue
+  private final val nullValue: V = null.asInstanceOf[V]
 
   def path: Path =
     set.path

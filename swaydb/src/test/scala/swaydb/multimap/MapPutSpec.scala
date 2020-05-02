@@ -17,7 +17,7 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package swaydb.extensions
+package swaydb.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.Bag
@@ -26,6 +26,7 @@ import swaydb.api.TestBaseEmbedded
 import swaydb.core.RunThis._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
+import swaydb.MultiMap
 
 class MapPutSpec0 extends MapPutSpec {
   val keyValueCount: Int = 1000
@@ -99,34 +100,38 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       root.delete()
     }
 
-    //    "Initialise a RootMap & 2 SubMaps from Root" in {
-    //      val db = newDB()
-    //
-    //      def insert(firstMap: Map[Int, String]) = {
-    //        firstMap.put(3, "three").right.value
-    //        firstMap.put(4, "four").right.value
-    //        firstMap.put(5, "five").right.value
-    //        firstMap.put(4, "four again").right.value
-    //      }
-    //
-    //      val firstMap = db.maps.put(1, "first map").right.value
-    //
-    //      val secondMap = firstMap.maps.put(2, "second map").right.value
-    //      insert(secondMap)
-    //
-    //      val thirdMap = firstMap.maps.put(3, "third map").right.value
-    //      insert(thirdMap)
-    //
-    //      secondMap
-    //        .stream
-    //        .materialize.runRandomIO.right.value should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-    //
-    //      thirdMap
-    //        .stream
-    //        .materialize.runRandomIO.right.value should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
-    //
-    //      db.closeDatabase().right.value
-    //    }
+    "Initialise a RootMap & 2 SubMaps from Root" in {
+      val db = newDB()
+
+      def insert(firstMap: MultiMap[Int, String, Nothing, Bag.Less]) = {
+        firstMap.put(3, "three")
+        firstMap.put(4, "four")
+        firstMap.put(5, "five")
+        firstMap.put(4, "four again")
+      }
+
+      val child1 = db.putMap(1)
+
+      val child2 = child1.putMap(2)
+      insert(child2)
+
+      val child3 = child1.putMap(3)
+      insert(child3)
+
+      child1.isEmpty shouldBe true
+
+      child2
+        .stream
+        .materialize[Bag.Less]
+        .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+
+      child3
+        .stream
+        .materialize[Bag.Less]
+        .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
+
+      db.close()
+    }
 
     //    "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
     //      val db = newDB()

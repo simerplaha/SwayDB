@@ -88,7 +88,7 @@ object MultiMap {
           case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
             new swaydb.PureFunction.OnKey[MultiMapKey[K], Option[V], Apply.Map[Option[V]]] {
               override def apply(key: MultiMapKey[K], deadline: Option[Deadline]): Apply.Map[Option[V]] =
-                Apply.Map.toOption(function.apply(key.parentMapKeys.last, deadline))
+                Apply.Map.toOption(function.apply(key.parentKey.last, deadline))
             }
 
           case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
@@ -96,7 +96,7 @@ object MultiMap {
               override def apply(key: MultiMapKey[K], value: Option[V], deadline: Option[Deadline]): Apply.Map[Option[V]] =
                 value match {
                   case Some(userValue) =>
-                    Apply.Map.toOption(function.apply(key.parentMapKeys.last, userValue, deadline))
+                    Apply.Map.toOption(function.apply(key.parentKey.last, userValue, deadline))
 
                   case None =>
                     throw new Exception("Function applied to None user value")
@@ -110,11 +110,14 @@ object MultiMap {
 }
 
 case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
-                                             mapKey: Seq[K])(implicit keySerializer: Serializer[K],
-                                                             valueSerializer: Serializer[V],
-                                                             bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+                                             mapKey: Seq[K],
+                                             private val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
+                                                                                            valueSerializer: Serializer[V],
+                                                                                            bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
-  private def noneValueFailure() = throw new IllegalStateException("Internal error: Value expected but found None.")
+  private def failure(expected: Class[_], actual: Class[_]) = throw new IllegalStateException(s"Internal error: ${expected.getName} expected but found ${actual.getName}.")
+
+  private def failure(expected: String, actual: String) = throw new IllegalStateException(s"Internal error: $expected expected but found $actual.")
 
   override def path: Path =
     map.path
@@ -163,8 +166,8 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
             case MapEntry(_, _) =>
               false
 
-            case SubMap(parentMapKeys, _) =>
-              parentMapKeys == mapKey
+            case SubMap(parentKey, _) =>
+              parentKey == mapKey
           }
 
         case _ =>
@@ -174,8 +177,8 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
         case SubMap(key, dataKey) =>
           MultiMap(map, key :+ dataKey)
 
-        case _ =>
-          noneValueFailure()
+        case entry =>
+          failure(classOf[SubMap[_]], entry.getClass)
       }
 
   override def put(key: K, value: V): BAG[OK] =
@@ -250,11 +253,25 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
       keys.map(key => MapEntry(mapKey, key): MultiMapKey[K])
     }
 
-  override def expire(key: K, after: FiniteDuration): BAG[OK] = ???
+  override def expire(key: K, after: FiniteDuration): BAG[OK] =
+    map.expire(MapEntry(mapKey, key), after)
 
-  override def expire(key: K, at: Deadline): BAG[OK] = ???
+  override def expire(key: K, at: Deadline): BAG[OK] =
+    map.expire(MapEntry(mapKey, key), at)
 
-  override def clear(): BAG[OK] = ???
+  override def clear(): BAG[OK] = {
+    val entriesStart = MapEntriesStart(mapKey)
+    val entriesEnd = MapEntriesEnd(mapKey)
+
+    val entries =
+      Seq(
+        Prepare.Remove(entriesStart, entriesEnd),
+        Prepare.Put(entriesStart, None),
+        Prepare.Put(entriesEnd, None)
+      )
+
+    map.commit(entries)
+  }
 
   override def get(key: K): BAG[Option[V]] =
     bag.flatMap(map.get(MultiMapKey.MapEntry(mapKey, key))) {
@@ -264,64 +281,120 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
             bag.success(some)
 
           case None =>
-            bag.failure(noneValueFailure())
+            bag.failure(failure(classOf[MapEntry[_]], None.getClass))
         }
 
       case None =>
         bag.none
     }
 
-  override def getKey(key: K): BAG[Option[K]] = ???
+  override def getKey(key: K): BAG[Option[K]] =
+    bag.map(map.getKey(MapEntry(mapKey, key))) {
+      case Some(MapEntry(_, key)) =>
+        Some(key)
 
-  override def getKeyValue(key: K): BAG[Option[(K, V)]] = ???
+      case Some(entry) =>
+        failure(MapEntry.getClass, entry.getClass)
 
-  override def contains(key: K): BAG[Boolean] = ???
+      case None =>
+        None
+    }
 
-  override def mightContain(key: K): BAG[Boolean] = ???
+  override def getKeyValue(key: K): BAG[Option[(K, V)]] =
+    bag.map(map.getKeyValue(MapEntry(mapKey, key))) {
+      case Some((MapEntry(_, key), Some(value))) =>
+        Some((key, value))
 
-  override def mightContainFunction(functionId: K): BAG[Boolean] = ???
+      case Some((MapEntry(_, _), None)) =>
+        failure("Value", "None")
 
-  override private[swaydb] def keySet = ???
+      case Some(entry) =>
+        failure(MapEntry.getClass, entry.getClass)
 
-  override def levelZeroMeter: LevelZeroMeter = ???
+      case None =>
+        None
+    }
 
-  override def levelMeter(levelNumber: Int): Option[LevelMeter] = ???
+  override def contains(key: K): BAG[Boolean] =
+    map.contains(MapEntry(mapKey, key))
 
-  override def sizeOfSegments: Long = ???
+  override def mightContain(key: K): BAG[Boolean] =
+    map.mightContain(MapEntry(mapKey, key))
 
-  override def expiration(key: K): BAG[Option[Deadline]] = ???
+  override def mightContainFunction(functionId: K): BAG[Boolean] =
+    map.mightContainFunction(MapEntry(mapKey, functionId))
 
-  override def timeLeft(key: K): BAG[Option[FiniteDuration]] = ???
+  override private[swaydb] def keySet: mutable.Set[K] =
+    ???
 
-  override def from(key: K): SwayMap[K, V, F, BAG] = ???
+  override def levelZeroMeter: LevelZeroMeter =
+    map.levelZeroMeter
 
-  override def before(key: K): SwayMap[K, V, F, BAG] = ???
+  override def levelMeter(levelNumber: Int): Option[LevelMeter] =
+    map.levelMeter(levelNumber)
 
-  override def fromOrBefore(key: K): SwayMap[K, V, F, BAG] = ???
+  override def sizeOfSegments: Long =
+    map.sizeOfSegments
 
-  override def after(key: K): SwayMap[K, V, F, BAG] = ???
+  override def expiration(key: K): BAG[Option[Deadline]] =
+    map.expiration(MapEntry(mapKey, key))
 
-  override def fromOrAfter(key: K): SwayMap[K, V, F, BAG] = ???
+  override def timeLeft(key: K): BAG[Option[FiniteDuration]] =
+    map.timeLeft(MapEntry(mapKey, key))
 
-  override def headOption: BAG[Option[(K, V)]] = ???
+  override def from(key: K): SwayMap[K, V, F, BAG] =
+    copy(map.from(MapEntry(mapKey, key)), mapKey)
 
-  override def headOrNull: BAG[(K, V)] = ???
+  override def before(key: K): SwayMap[K, V, F, BAG] =
+    copy(map.before(MapEntry(mapKey, key)), mapKey)
+
+  override def fromOrBefore(key: K): SwayMap[K, V, F, BAG] =
+    copy(map.fromOrBefore(MapEntry(mapKey, key)), mapKey)
+
+  override def after(key: K): SwayMap[K, V, F, BAG] =
+    copy(map.after(MapEntry(mapKey, key)), mapKey)
+
+  override def fromOrAfter(key: K): SwayMap[K, V, F, BAG] =
+    copy(map.fromOrAfter(MapEntry(mapKey, key)), mapKey)
+
+  override def headOption: BAG[Option[(K, V)]] =
+    stream.headOption
+
+  override def headOrNull: BAG[(K, V)] =
+    stream.headOrNull
 
   override def stream: Stream[(K, V)] =
-    map
-      .after(MapEntriesStart(mapKey))
-      .stream
-      .takeWhile {
-        case (MapEntry(parent, _), _) =>
-          parent == mapKey
+    if (reverseIteration)
+      map
+        .before(MapEntriesEnd(mapKey))
+        .reverse
+        .stream
+        .takeWhile {
+          case (MapEntry(parent, _), _) =>
+            parent == mapKey
 
-        case _ =>
-          false
-      }
-      .collect {
-        case (MapEntry(_, key), Some(value)) =>
-          (key, value)
-      }
+          case _ =>
+            false
+        }
+        .collect {
+          case (MapEntry(_, key), Some(value)) =>
+            (key, value)
+        }
+    else
+      map
+        .after(MapEntriesStart(mapKey))
+        .stream
+        .takeWhile {
+          case (MapEntry(parent, _), _) =>
+            parent == mapKey
+
+          case _ =>
+            false
+        }
+        .collect {
+          case (MapEntry(_, key), Some(value)) =>
+            (key, value)
+        }
 
   override def iterator[BAG[_]](implicit bag: Bag.Sync[BAG]): Iterator[BAG[(K, V)]] =
     stream.iterator
@@ -330,18 +403,22 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     map.sizeOfBloomFilterEntries
 
   override def isEmpty: BAG[Boolean] =
-    map.isEmpty
+    bag.map(stream.headOption)(_.isEmpty)
 
   override def nonEmpty: BAG[Boolean] =
-    map.nonEmpty
+    bag.map(stream.headOption)(_.nonEmpty)
 
-  override def lastOption: BAG[Option[(K, V)]] = ???
+  override def lastOption: BAG[Option[(K, V)]] =
+    stream.lastOption
 
-  override def reverse: SwayMap[K, V, F, BAG] = ???
+  override def reverse: MultiMap[K, V, F, BAG] =
+    copy(map = map, mapKey = mapKey, reverseIteration = true)
 
-  override def toBag[X[_]](implicit bag: Bag[X]): SwayMap[K, V, F, X] = ???
+  override def toBag[X[_]](implicit bag: Bag[X]): SwayMap[K, V, F, X] =
+    MultiMap[K, V, F, X](map.toBag, mapKey)
 
-  override def asScala: mutable.Map[K, V] = ???
+  override def asScala: mutable.Map[K, V] =
+    ScalaMap(this.toBag[Bag.Less])
 
   override def close(): BAG[Unit] =
     map.close()
