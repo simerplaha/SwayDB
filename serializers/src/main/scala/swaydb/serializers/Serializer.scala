@@ -26,6 +26,26 @@ package swaydb.serializers
 
 import swaydb.data.slice.Slice
 
+object Serializer {
+  def toOption[A](serializer: Serializer[A]) =
+    new Serializer[Option[A]] {
+      override def write(data: Option[A]): Slice[Byte] =
+        data match {
+          case Some(value) =>
+            serializer.write(value)
+
+          case None =>
+            Slice.emptyBytes
+        }
+
+      override def read(data: Slice[Byte]): Option[A] =
+        if (data.isEmpty)
+          None
+        else
+          Some(serializer.read(data))
+    }
+}
+
 trait Serializer[A] {
   def write(data: A): Slice[Byte]
 

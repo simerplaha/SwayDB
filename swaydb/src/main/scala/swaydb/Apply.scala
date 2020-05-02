@@ -35,6 +35,22 @@ object Apply {
   /**
    * Function outputs for Map
    */
+  object Map {
+    def toOption[V](value: Map[V]): Map[Option[V]] =
+      value match {
+        case Apply.Nothing =>
+          Apply.Nothing
+
+        case Apply.Remove =>
+          Apply.Remove
+
+        case expire @ Apply.Expire(_) =>
+          expire
+
+        case Apply.Update(value, deadline) =>
+          Apply.Update(Some(value), deadline)
+      }
+  }
   sealed trait Map[+V] extends Apply[V]
 
   /**

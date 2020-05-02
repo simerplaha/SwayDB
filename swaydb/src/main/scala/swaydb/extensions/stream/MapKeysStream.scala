@@ -19,6 +19,7 @@
 //
 //package swaydb.extensions.stream
 //
+//import org.omg.CORBA.portable.Streamable
 //import swaydb.Error.API.ExceptionHandler
 //import swaydb.data.slice.Slice
 //import swaydb.extensions.Key

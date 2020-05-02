@@ -81,13 +81,13 @@ private[swaydb] object FunctionStore {
 
   final class Memory extends FunctionStore {
 
-    private val functions = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
+    val hashMap = new ConcurrentHashMap[Slice[Byte], SwayFunction]()
 
     override def get(functionId: Slice[Byte]): Option[SwayFunction] =
-      Option(functions.get(functionId))
+      Option(hashMap.get(functionId))
 
     override def put(functionId: Slice[Byte], function: SwayFunction): OK = {
-      if (functions.putIfAbsent(functionId, function) == null)
+      if (hashMap.putIfAbsent(functionId, function) == null)
         OK.instance
       else
         throw new Exception("Another with the same functionId exists.")
@@ -97,7 +97,7 @@ private[swaydb] object FunctionStore {
       get(functionId).isDefined
 
     override def remove(functionId: Slice[Byte]): Unit =
-      functions.remove(functionId)
+      hashMap.remove(functionId)
   }
 }
 

@@ -396,15 +396,16 @@
 //    }
 //
 //  def keys: MapKeysStream[K] =
-//    MapKeysStream[K](
-//      mapKey = mapKey,
-//      set =
-//        new swaydb.Set[Key[K], Nothing, IO.ApiIO](
-//          core = map.core,
-//          from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)),
-//          reverseIteration = isReverse
-//        )
-//    )
+////    MapKeysStream[K](
+////      mapKey = mapKey,
+////      set =
+////        new swaydb.Set[Key[K], Nothing, IO.ApiIO](
+////          core = map.core,
+////          from = Some(From(Key.MapStart(mapKey), orAfter = false, orBefore = false, before = false, after = true)),
+////          reverseIteration = isReverse
+////        )
+////    )
+//  ???
 //
 //  def contains(key: K): IO.ApiIO[Boolean] =
 //    map contains Key.MapEntry(mapKey, key)

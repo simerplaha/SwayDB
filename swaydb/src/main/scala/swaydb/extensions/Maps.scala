@@ -123,13 +123,14 @@
 //    map.get(Key.MapStart(mapKey :+ key)).map(_.flatten)
 //
 //  def keys: MapKeysStream[K] =
-//    MapKeysStream[K](
-//      mapKey = mapKey,
-//      mapsOnly = true,
-//      set =
-//        new swaydb.Set[Key[K], Nothing, IO.ApiIO](
-//          core = map.core,
-//          from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
-//        )
-//    )
+//  //    MapKeysStream[K](
+//  //      mapKey = mapKey,
+//  //      mapsOnly = true,
+//  //      set =
+//  //        new swaydb.Set[Key[K], Nothing, IO.ApiIO](
+//  //          core = map.core,
+//  //          from = Some(From(Key.SubMapsStart(mapKey), orAfter = false, orBefore = false, before = false, after = true))
+//  //        )
+//  //    )
+//    ???
 //}
