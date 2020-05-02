@@ -33,6 +33,7 @@ import swaydb.serializers.Serializer
 
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
+import scala.collection.compat._
 
 object MultiMap {
 
