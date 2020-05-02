@@ -207,8 +207,7 @@ protected object MultiMapKey {
         }
 
       override def read(data: Slice[Byte]): MultiMapKey[K] = {
-        val reader = data.createReader()
-        reader.skip(1) //skip formatId
+        val reader = Reader(slice = data, position = 1)
         val keyBytes = reader.read(reader.readUnsignedInt())
         val keys = readKeys(keyBytes, keySerializer).get
         val dataType = reader.get()

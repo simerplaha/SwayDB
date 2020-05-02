@@ -113,9 +113,9 @@ object MultiMap {
 case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
                                              mapKey: Seq[K],
                                              private val reverseIteration: Boolean = false,
-                                             private val defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
-                                                                                                     valueSerializer: Serializer[V],
-                                                                                                     bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+                                             defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
+                                                                                         valueSerializer: Serializer[V],
+                                                                                         bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
   private def failure(expected: Class[_], actual: Class[_]) = throw new IllegalStateException(s"Internal error: ${expected.getName} expected but found ${actual.getName}.")
 
@@ -152,7 +152,11 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
 
     bag.map(map.commit(prepare)) {
       _ =>
-        this.copy(map, childMapKey)
+        MultiMap(
+          map = map,
+          mapKey = childMapKey,
+          defaultExpiration = expireAt orElse defaultExpiration
+        )
     }
   }
 
