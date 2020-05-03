@@ -13,7 +13,7 @@
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
 Fast embeddable **persistent** and **in-memory** key-value storage engine that provides storage 
-as simple data structures - `Map`, `Set`, `Queue`. [MultiMap](https://github.com/simerplaha/SwayDB/issues/227) is WIP.  
+as simple data structures - `Map`, `Set` & `Queue`. [MultiMap](https://github.com/simerplaha/SwayDB/issues/227) is WIP.  
 
 Conditional updates/data modifications can be performed by simply submitting any **Java**, **Scala**, **Kotlin** or any 
 **native JVM** code.
