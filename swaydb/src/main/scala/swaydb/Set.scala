@@ -101,8 +101,8 @@ case class Set[A, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
   def mightContain(elem: A): BAG[Boolean] =
     bag.suspend(core mightContainKey elem)
 
-  def mightContainFunction(functionId: A): BAG[Boolean] =
-    bag.suspend(core mightContainFunction functionId)
+  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction.OnKey[A, Nothing, Apply.Set[Nothing]]) =
+    bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def add(elem: A): BAG[OK] =
     bag.suspend(core.put(key = elem))

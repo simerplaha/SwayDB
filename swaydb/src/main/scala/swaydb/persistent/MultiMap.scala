@@ -34,8 +34,9 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, IO, KeyOrderConverter, MultiMap, MultiMapKey, Prepare, PureFunction}
+import swaydb.{Apply, IO, KeyOrderConverter, Map, MultiMap, MultiMapKey, Prepare, PureFunction}
 
+import scala.collection.compat._
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
@@ -75,10 +76,10 @@ object MultiMap extends LazyLogging {
 
     implicit val mapKeySerializer: Serializer[MultiMapKey[K]] = MultiMapKey.serializer(keySerializer)
     implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toOption(valueSerializer)
+    implicit val innerFunctions: Map.Functions[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]] = functions.innerFunctions
 
     val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-
-    val internalKeyOrder = MultiMapKey.ordering(keyOrder)
+    val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiMapKey.ordering(keyOrder)
 
     swaydb.persistent.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG](
       dir = dir,

@@ -30,6 +30,7 @@ import java.util.Optional
 
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
+import swaydb.data.slice.Slice
 import swaydb.data.util.Java._
 import swaydb.java.data.util.Java._
 import swaydb.{Apply, Bag, Pair}
@@ -64,8 +65,11 @@ case class Set[A, F](private val _asScala: swaydb.Set[A, _, Bag.Less]) {
   def mightContain(elem: A): Boolean =
     asScala.mightContain(elem)
 
-  def mightContainFunction(function: A): Boolean =
-    (asScala mightContainFunction function)
+  def mightContainFunction(function: F): Boolean = {
+    val functionId = function.asInstanceOf[swaydb.java.PureFunction.OnKey[A, Void, Return.Set[Void]]].id
+    val functionBytes = Slice.writeString(functionId)
+    asScala.core.mightContainFunction(functionBytes)
+  }
 
   def add(elem: A): swaydb.OK =
     asScala add elem

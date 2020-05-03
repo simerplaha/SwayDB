@@ -97,9 +97,9 @@ object Map {
  */
 case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
                                         private val from: Option[From[K]] = None,
-                                        private val reverseIteration: Boolean = false)(implicit keySerializer: Serializer[K],
-                                                                                       valueSerializer: Serializer[V],
-                                                                                       bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+                                        private val reverseIteration: Boolean = false)(implicit val keySerializer: Serializer[K],
+                                                                                       val valueSerializer: Serializer[V],
+                                                                                       val bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
 
   def path: Path =
     core.zero.path.getParent
@@ -257,8 +257,8 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
   def mightContain(key: K): BAG[Boolean] =
     bag.suspend(core mightContainKey key)
 
-  def mightContainFunction(functionId: K): BAG[Boolean] =
-    bag.suspend(core mightContainFunction functionId)
+  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Boolean] =
+    bag.suspend(core mightContainFunction Slice.writeString(function.id))
 
   def keys: Set[K, F, BAG] =
     Set[K, F, BAG](

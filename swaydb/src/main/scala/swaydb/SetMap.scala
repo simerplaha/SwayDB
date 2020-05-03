@@ -50,7 +50,7 @@ object SetMap {
           if (data._2 == null)
             Slice.emptyBytes //value can be null when
           else
-          bSerializer.write(data._2)
+            bSerializer.write(data._2)
 
         Slice
           .create[Byte](Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + Bytes.sizeOfUnsignedInt(valueBytes.size) + valueBytes.size)
@@ -200,9 +200,6 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
   def mightContain(key: K): BAG[Boolean] =
     set.mightContain((key, nullValue))
 
-  def mightContainFunction(functionId: K): BAG[Boolean] =
-    set.mightContainFunction((functionId, nullValue))
-
   def levelZeroMeter: LevelZeroMeter =
     set.levelZeroMeter
 
@@ -282,4 +279,5 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
 
   override def toString(): String =
     classOf[SetMap[_, _, _, BAG]].getClass.getSimpleName
+
 }

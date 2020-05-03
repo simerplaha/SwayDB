@@ -126,8 +126,6 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def mightContain(key: K): BAG[Boolean]
 
-  def mightContainFunction(functionId: K): BAG[Boolean]
-
   //  def keys: Set[K, F, BAG]
 
   private[swaydb] def keySet: mutable.Set[K]
