@@ -76,7 +76,7 @@ object MultiMap extends LazyLogging {
 
     implicit val mapKeySerializer: Serializer[MultiMapKey[K]] = MultiMapKey.serializer(keySerializer)
     implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toOption(valueSerializer)
-    implicit val innerFunctions: Map.Functions[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]] = functions.innerFunctions
+    implicit val innerFunctions: swaydb.Map.Functions[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]] = functions.innerFunctions
 
     val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
     val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiMapKey.ordering(keyOrder)

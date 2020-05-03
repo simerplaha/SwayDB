@@ -250,16 +250,6 @@ lazy val `swaydb-java` =
     )
     .dependsOn(swaydb, `data-java`)
 
-lazy val benchmark =
-  project
-    .settings(commonSettings)
-    .settings(
-      libraryDependencies ++=
-        commonDependencies(scalaVersion.value) :+
-          "ch.qos.logback" % "logback-classic" % logbackClassicVersion
-    ).dependsOn(core, configs)
-    .dependsOn(swaydb, core % "test->test")
-
 /**
  * Support modules.
  */
