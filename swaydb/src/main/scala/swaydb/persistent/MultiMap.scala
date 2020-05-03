@@ -34,7 +34,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, IO, KeyOrderConverter, Map, MultiMap, MultiMapKey, Prepare, PureFunction}
+import swaydb.{Apply, IO, KeyOrderConverter, MultiMap, MultiMapKey, OK, Prepare, PureFunction}
 
 import scala.collection.compat._
 import scala.concurrent.duration.FiniteDuration
@@ -42,6 +42,10 @@ import scala.reflect.ClassTag
 
 object MultiMap extends LazyLogging {
 
+  /**
+   * MultiMap is not a new Core type but is just a wrapper implementation on [[swaydb.Map]] type
+   * with custom key-ordering to support nested Map.
+   */
   def apply[K, V, F, BAG[_]](dir: Path,
                              mapSize: Int = 4.mb,
                              mmapMaps: Boolean = true,
@@ -81,6 +85,7 @@ object MultiMap extends LazyLogging {
     val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
     val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiMapKey.ordering(keyOrder)
 
+    //the inner map with custom keyOrder and custom key-value types to support nested Maps.
     swaydb.persistent.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG](
       dir = dir,
       mapSize = mapSize,
@@ -122,6 +127,9 @@ object MultiMap extends LazyLogging {
     }
   }
 
+  /**
+   * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap]] instance.
+   */
   private def initMultiMap[K, V, F, BAG[_]](rootMap: swaydb.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
                                                                                                                                                                 keySerializer: Serializer[K],
                                                                                                                                                                 valueSerializer: Serializer[V]): BAG[MultiMap[K, V, F, BAG]] =
@@ -129,19 +137,21 @@ object MultiMap extends LazyLogging {
       isEmpty =>
         val rootMapKey = Seq.empty[K]
 
-        if (isEmpty)
-          bag.map {
-            rootMap.commit(
-              Seq(
-                Prepare.Put(MultiMapKey.MapStart(rootMapKey), None),
-                Prepare.Put(MultiMapKey.MapEntriesStart(rootMapKey), None),
-                Prepare.Put(MultiMapKey.MapEntriesEnd(rootMapKey), None),
-                Prepare.Put(MultiMapKey.SubMapsStart(rootMapKey), None),
-                Prepare.Put(MultiMapKey.SubMapsEnd(rootMapKey), None),
-                Prepare.Put(MultiMapKey.MapEnd(rootMapKey), None)
-              )
+        def initialEntries: BAG[OK] =
+          rootMap.commit(
+            Seq(
+              Prepare.Put(MultiMapKey.MapStart(rootMapKey), None),
+              Prepare.Put(MultiMapKey.MapEntriesStart(rootMapKey), None),
+              Prepare.Put(MultiMapKey.MapEntriesEnd(rootMapKey), None),
+              Prepare.Put(MultiMapKey.SubMapsStart(rootMapKey), None),
+              Prepare.Put(MultiMapKey.SubMapsEnd(rootMapKey), None),
+              Prepare.Put(MultiMapKey.MapEnd(rootMapKey), None)
             )
-          } {
+          )
+
+        //Root Map has empty keys so if this database is new commit initial entries.
+        if (isEmpty)
+          bag.transform(initialEntries) {
             _ =>
               swaydb.MultiMap[K, V, F, BAG](
                 map = rootMap,

@@ -134,9 +134,10 @@ object MultiMap {
 }
 
 /**
- * Map database API.
+ * [[MultiMap]] extends [[swaydb.Map]]'s API to allow storing multiple Maps withing a single Map.
  *
- * For documentation check - http://swaydb.io/
+ * [[MultiMap]] is just a simple extension that uses custom data types ([[MultiMapKey]]) and
+ * KeyOrder ([[MultiMapKey.ordering]]) for it's API.
  */
 case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
                                              mapKey: Seq[K],
@@ -150,7 +151,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
 
   private def failure(expected: String, actual: String) = throw exception(expected, actual)
 
-  private def exception(expected: String, actual: String): IllegalStateException = new IllegalStateException(s"Internal error: $expected expected but found $actual.")
+  private def exception(expected: String, actual: String) = new IllegalStateException(s"Internal error: $expected expected but found $actual.")
 
   override def path: Path =
     map.path
@@ -166,7 +167,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
 
   /**
    * Inserts a child map to this [[MultiMap]]. If the Map already exists, it will get replaced
-   * with a new Map.
+   * with a new Map i.e. it will remove all existing entries and child Maps within this Map.
    */
   def putMap(key: K, expireAt: Option[Deadline]): BAG[MultiMap[K, V, F, BAG]] = {
     val childMapKey = mapKey :+ key
@@ -554,7 +555,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   def headOrNull: BAG[(K, V)] =
     stream.headOrNull
 
-  //restricts this Stream to fetch entires of this Map only.
+  //restricts this Stream to fetch entries of this Map only.
   private def boundStreamToMap(stream: Stream[(MultiMapKey[K], Option[V])]): Stream[(K, V)] =
     stream
       .takeWhile {
