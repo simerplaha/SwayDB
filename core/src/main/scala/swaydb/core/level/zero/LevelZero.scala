@@ -436,7 +436,7 @@ private[swaydb] case class LevelZero(path: Path,
         getFromMap(key, currentMap)
     }
 
-  def nextGetter(readState: ThreadReadState, otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
+  def nextGetter(otherMaps: Slice[map.Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]) =
     new NextGetter {
       override def get(key: Slice[Byte], readState: ThreadReadState): KeyValue.PutOption =
         getFromNextLevel(key, readState, otherMaps)
@@ -450,7 +450,7 @@ private[swaydb] case class LevelZero(path: Path,
       key = key,
       readState = readState,
       currentGetter = currentGetter(currentMap),
-      nextGetter = nextGetter(readState, otherMaps)
+      nextGetter = nextGetter(otherMaps)
     )
 
   def get(key: Slice[Byte],
@@ -943,11 +943,9 @@ private[swaydb] case class LevelZero(path: Path,
 
       override def hasNext: Boolean =
         if (nextKeyValue == null) {
-          //          nextKeyValue = run(_.head(state))(Bag.less)
           nextKeyValue = head(state)
           nextKeyValue.isSome
         } else {
-          //          nextKeyValue = run(_.higher(nextKeyValue.getKey.getC, state))(Bag.less)
           nextKeyValue = higher(nextKeyValue.getKey.getC, state)
           nextKeyValue.isSome
         }
@@ -962,11 +960,9 @@ private[swaydb] case class LevelZero(path: Path,
 
       override def hasNext: Boolean =
         if (nextKeyValue == null) {
-          //          nextKeyValue = run(_.last(state))(Bag.less)
           nextKeyValue = last(state)
           nextKeyValue.isSome
         } else {
-          //          nextKeyValue = run(_.lower(nextKeyValue.getKey.getC, state))(Bag.less)
           nextKeyValue = lower(nextKeyValue.getKey.getC, state)
           nextKeyValue.isSome
         }

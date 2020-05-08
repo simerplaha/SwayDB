@@ -271,9 +271,7 @@ private[core] object Block extends LazyLogging {
                                                readAllIfUncompressed: Boolean)(implicit blockOps: BlockOps[O, B]): UnblockedReader[O, B] =
     reader.block.compressionInfo match {
       case Some(compressionInfo) =>
-        val compressedBytes =
-          reader
-            .readFullBlock()
+        val compressedBytes = reader.readFullBlock()
 
         val decompressedBytes =
           compressionInfo.decompressor.decompress(
