@@ -43,6 +43,10 @@ object Error {
   sealed trait Level extends Error
   sealed trait Map extends Level
   sealed trait Segment extends Level
+
+  /**
+   * Errors types for all possible known errors that can occurs on databases start-up.
+   */
   sealed trait Boot extends Error
   sealed trait Delete extends Level
   sealed trait Close extends Delete

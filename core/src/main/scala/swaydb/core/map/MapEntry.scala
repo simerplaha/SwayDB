@@ -184,6 +184,9 @@ private[swaydb] object MapEntry {
         case _ => false
       }
 
+    /**
+     * This function can be called multiple time. Store the calculation internally to save compute.
+     */
     override def entryBytesSize: Int = {
       if (calculatedEntriesByteSize == -1)
         calculatedEntriesByteSize = serializer bytesRequired this
@@ -213,6 +216,9 @@ private[swaydb] object MapEntry {
     def hasUpdate: Boolean = serializer.isUpdate
     def hasRemoveDeadline: Boolean = false
 
+    /**
+     * This function can be called multiple time. Store the calculation internally to save compute.
+     */
     override def entryBytesSize: Int = {
       if (calculatedEntriesByteSize == -1)
         calculatedEntriesByteSize = serializer bytesRequired this

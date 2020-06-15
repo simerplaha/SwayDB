@@ -51,8 +51,17 @@ import swaydb.{ActorWire, Bag, Error, IO, Scheduler}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
+/**
+ * Creates all configured Levels via [[ConfigWizard]] instances and starts compaction.
+ */
 private[core] object CoreInitializer extends LazyLogging {
 
+  /**
+   * This does the final clean up on all Levels.
+   *
+   * - Releases all locks on all system folders
+   * - Flushes all files and persists them to disk for persistent databases.
+   */
   private def closeLevels(zero: LevelZero) = {
     logger.info("Closing files.")
     zero.close onLeftSideEffect {
@@ -157,6 +166,9 @@ private[core] object CoreInitializer extends LazyLogging {
         IO.failed[swaydb.Error.Boot, Core[Bag.Less]](error.exception)
     }
 
+  /**
+   * Based on the configuration returns execution context for the Level.
+   */
   def executionContext(levelConfig: LevelConfig): Option[CompactionExecutionContext] =
     levelConfig match {
       case TrashLevelConfig =>
@@ -174,6 +186,9 @@ private[core] object CoreInitializer extends LazyLogging {
       executionContext(config.level1).toList ++
       config.otherLevels.flatMap(executionContext)
 
+  /**
+   * Boots up compaction Actor and start listening to changes in levels.
+   */
   def initialiseCompaction(zero: LevelZero,
                            executionContexts: List[CompactionExecutionContext])(implicit compactionStrategy: Compactor[ThrottleState]): IO[Error.Level, ActorWire[Compactor[ThrottleState], ThrottleState]] =
     compactionStrategy.createAndListen(
@@ -191,6 +206,22 @@ private[core] object CoreInitializer extends LazyLogging {
         )
     }
 
+  /**
+   * Initialises Core/Levels. To see full documentation for each input parameter see the website - http://swaydb.io/configurations/.
+   *
+   * @param config           configuration used for initialisations which is created via [[ConfigWizard]]
+   * @param enableTimer      if true initialises the timer folder. This is only required if the database has functions enabled.
+   * @param cacheKeyValueIds if true, will cache the 3000+ key-values in-memory instead of performing binary search for each search key-value id.
+   *                         Set this to true to boost performance and reduce IOps.
+   * @param fileCache        Controls when files are closed & deleted. See the configuration documentation - http://swaydb.io/configurations/fileCache/
+   * @param threadStateCache Each thread is assigned a small cache to boost read performance. This can be optionally enabled. See
+   *                         http://swaydb.io/configurations/threadStateCache/
+   * @param memoryCache      Configures how in-memory caches should process read bytes and parsed key-values. See - http://swaydb.io/configurations/memoryCache/
+   * @param keyOrder         Defines the sort order for keys. See documentation on website.
+   * @param timeOrder        Defines the order in which a single key-value's updates are applied.
+   * @param functionStore    Stores all registered functions.
+   * @return
+   */
   def apply(config: SwayDBConfig,
             enableTimer: Boolean,
             cacheKeyValueIds: Boolean,

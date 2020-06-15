@@ -33,8 +33,11 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
 /**
- * [[Bag]]s are used to tag databases operations (side-effects) into types that can be
- * used to build custom Sync and Async wrappers.
+ * [[Bag]]s implement functions for managing side-effect. You can use any external effect type like Try, Future etc.
+ *
+ * Popular effect libraries in Scala like Cats, ZIO and Monix are supported internally. See examples repo for samples.
+ *
+ * [[Bag.Less]] can be used to disable effect types.
  */
 sealed trait Bag[BAG[_]] {
   def unit: BAG[Unit]

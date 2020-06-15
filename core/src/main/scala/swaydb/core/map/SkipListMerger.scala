@@ -31,6 +31,9 @@ import swaydb.data.slice.Slice
 
 import scala.annotation.implicitNotFound
 
+/**
+ * Implements logic on how to mutate the state of input [[skipList]].
+ */
 @implicitNotFound("Type class implementation not found for SkipListMerge of type [${K}, ${V}]")
 trait SkipListMerger[OK, OV, K <: OK, V <: OV] {
 

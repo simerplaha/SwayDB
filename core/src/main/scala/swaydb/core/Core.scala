@@ -44,6 +44,10 @@ import swaydb.{Bag, IO, OK, Prepare}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Deadline
 
+/**
+ * Core defines the interface to SwayDB's internals. User level APIs interact with SwayDB via this instance only
+ * and do directly invoke any function on [[LevelZero]] or any other [[swaydb.core.level.Level]].
+ */
 private[swaydb] object Core {
 
   def apply(config: SwayDBPersistentConfig,
@@ -99,6 +103,9 @@ private[swaydb] object Core {
       enableTimer = enableTimer
     )
 
+  /**
+   * Converts all prepare statement to a single transactional commit entry ([[MapEntry]]).
+   */
   private def prepareToMapEntry(entries: Iterator[Prepare[Slice[Byte], SliceOption[Byte], Slice[Byte]]])(timer: Timer): Option[MapEntry[Slice[Byte], Memory]] =
     entries.foldLeft(Option.empty[MapEntry[Slice[Byte], Memory]]) {
       case (mapEntry, prepare) =>

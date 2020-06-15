@@ -42,13 +42,23 @@ private[core] trait FileSweeperItem {
 private[swaydb] trait FileSweeper {
   def close(file: FileSweeperItem): Unit
 }
-
+/**
+ * Actor that manages closing and delete files that are overdue.
+ */
 private[swaydb] object FileSweeper extends LazyLogging {
 
+  /**
+   * Disables File management. This is generally enabled for in-memory databases
+   * where closing or deleting files is not really required since GC cleans up these
+   * files.
+   */
   case object Disabled extends FileSweeper {
     def close(file: FileSweeperItem): Unit = ()
   }
 
+  /**
+   * Enables file management.
+   */
   sealed trait Enabled extends FileSweeper {
     def ec: ExecutionContext
     def close(file: FileSweeperItem): Unit

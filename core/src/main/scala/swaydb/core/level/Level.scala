@@ -464,6 +464,12 @@ private[core] case class Level(dirs: Seq[Dir],
     (throttle(stats).segmentsToPush, stats.segmentsCount)
   }
 
+  /**
+   * Tries to reserve input [[Segment]]s for merge.
+   *
+   * @return Either a Promise indicating that there is an overlapping Segment in this Level currently being merged.
+   *         The Promise is used run compaction asynchronously. This can also return the ID indicating reserve successful.
+   */
   private[level] implicit def reserve(segments: Iterable[Segment]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
@@ -489,6 +495,13 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
+  /**
+   * Tries to reserve input [[Map]]s for merge.
+   *
+   * @return Either a Promise indicating that there is an overlapping [[Map]] in this Level currently being merged or
+   *         The Promise is used run compaction asynchronously. This can also return the ID indicating reserve successful.
+   *
+   */
   private[level] implicit def reserve(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): IO[Error.Level, IO[Promise[Unit], Slice[Byte]]] =
     IO {
       SegmentAssigner.assignMinMaxOnlyUnsafe(
@@ -514,6 +527,9 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
+  /**
+   * Partitions [[Segment]]s that can be copied into this Segment without requiring merge.
+   */
   def partitionUnreservedCopyable(segments: Iterable[Segment]): (Iterable[Segment], Iterable[Segment]) =
     segments partition {
       segment =>
@@ -529,6 +545,9 @@ private[core] case class Level(dirs: Seq[Dir],
         }
     }
 
+  /**
+   * Quick lookup to check if the keys are copyable.
+   */
   def isCopyable(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     ReserveRange.isUnreserved(
       from = minKey,
@@ -543,6 +562,9 @@ private[core] case class Level(dirs: Seq[Dir],
       )
     }
 
+  /**
+   * Quick lookup to check if the [[Map]] can be copied without merge.
+   */
   def isCopyable(map: Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]): Boolean =
     Segment
       .minMaxKey(map)
@@ -555,6 +577,9 @@ private[core] case class Level(dirs: Seq[Dir],
           )
       }
 
+  /**
+   * Are the keys available for compaction into this Level.
+   */
   def isUnreserved(minKey: Slice[Byte], maxKey: Slice[Byte], maxKeyInclusive: Boolean): Boolean =
     ReserveRange.isUnreserved(
       from = minKey,
@@ -562,6 +587,9 @@ private[core] case class Level(dirs: Seq[Dir],
       toInclusive = maxKeyInclusive
     )
 
+  /**
+   * Is the input [[Segment]]'s keys available for compaction into this Level.
+   */
   def isUnreserved(segment: Segment): Boolean =
     isUnreserved(
       minKey = segment.minKey,
@@ -569,6 +597,9 @@ private[core] case class Level(dirs: Seq[Dir],
       maxKeyInclusive = segment.maxKey.inclusive
     )
 
+  /**
+   * Ensures registration and release of [[Segment]] after merge.
+   */
   def reserveAndRelease[I, T](segments: I)(f: => IO[swaydb.Error.Level, T])(implicit tryReserve: I => IO[swaydb.Error.Level, IO[Promise[Unit], Slice[Byte]]]): IO[Promise[Unit], IO[swaydb.Error.Level, T]] =
     tryReserve(segments) map {
       reserveOutcome =>
@@ -587,9 +618,19 @@ private[core] case class Level(dirs: Seq[Dir],
         IO.Right(IO.Left[swaydb.Error.Level, T](error))(IO.ExceptionHandler.PromiseUnit)
     }
 
+  /**
+   * Persists a [[Segment]] to this Level.
+   *
+   * @returns A Set of persisted Segment ID's
+   */
   def put(segment: Segment): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] =
     put(Seq(segment))
 
+  /**
+   * Persists multiple [[Segment]] to this Level.
+   *
+   * @returns A Set of persisted [[Segment]] ID's
+   */
   def put(segments: Iterable[Segment]): IO[Promise[Unit], IO[swaydb.Error.Level, Set[Int]]] = {
     logger.trace(s"{}: Putting segments '{}' segments.", pathDistributor.head, segments.map(_.path.toString).toList)
     reserveAndRelease(segments) {
@@ -603,7 +644,7 @@ private[core] case class Level(dirs: Seq[Dir],
     }
   }
 
-  private def deleteCopiedSegments(copiedSegments: Iterable[Segment]) =
+  private def deleteCopiedSegments(copiedSegments: Iterable[Segment]): Unit =
     if (segmentConfig.deleteEventually)
       copiedSegments foreach (_.deleteSegmentsEventually)
     else
@@ -617,6 +658,14 @@ private[core] case class Level(dirs: Seq[Dir],
               }
         }
 
+  /**
+   * Persistent [[Segment]]'s into this Level.
+   *
+   * @param segmentsToMerge [[Segment]]s that require merge.
+   * @param segmentsToCopy  [[Segment]]s that do not require merge and can be copied directly.
+   * @param targetSegments  Existing [[Segment]]s within this [[Level]] thats should be used for merge.
+   * @return A Set of persisted [[Segment]] ID's
+   */
   private[level] def put(segmentsToMerge: Iterable[Segment],
                          segmentsToCopy: Iterable[Segment],
                          targetSegments: Iterable[Segment]): IO[swaydb.Error.Level, Set[Int]] =
