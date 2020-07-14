@@ -26,6 +26,9 @@ package swaydb.core.level
 
 import swaydb.IO
 
+/**
+ * Search result of a [[Level]].
+ */
 private[level] sealed trait LevelSeek[+A] {
   def isDefined: Boolean
   def isEmpty: Boolean

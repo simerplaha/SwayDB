@@ -64,6 +64,9 @@ object Set {
     }
   }
 
+  /**
+   * Registered functions for [[Set]]
+   */
   final case class Functions[A, F]()(implicit serializer: Serializer[A]) {
 
     private[swaydb] val core = CoreFunctionStore.memory()

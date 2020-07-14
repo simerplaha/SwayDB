@@ -38,6 +38,9 @@ import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 
+/**
+ * Maintains the distribution of [[Segment]]s to the configured directories ratios.
+ */
 private[core] case class Distribution(path: Path,
                                       distributionRatio: Int,
                                       var actualSize: Int,

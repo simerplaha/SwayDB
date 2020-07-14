@@ -29,6 +29,9 @@ import swaydb.Compression
 
 import scala.util.Random
 
+/**
+ * Internal types that have 1 to 1 mapping with the more configurable [[Compression]] type.
+ */
 private[swaydb] sealed trait CompressionInternal {
 
   val compressor: CompressorInternal

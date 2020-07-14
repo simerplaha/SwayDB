@@ -29,6 +29,9 @@ import org.xerial.snappy
 import swaydb.data.compression.{DecompressorId, LZ4Decompressor, LZ4Instance}
 import swaydb.data.slice.Slice
 
+/**
+ * Internal types that have 1 to 1 mapping with the more configurable swaydb.Decompressor types.
+ */
 private[swaydb] sealed trait DecompressorInternal {
 
   val id: Int

@@ -33,6 +33,12 @@ import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 
+/**
+ * Stores all functions currently registered. This should always contain
+ * all functions currently applied or being applied during compaction.
+ *
+ * Missing functions will be reported with their functionId.
+ */
 private[swaydb] sealed trait FunctionStore {
   def get(functionId: Slice[Byte]): Option[SwayFunction]
   def put(functionId: Slice[Byte], function: SwayFunction): OK

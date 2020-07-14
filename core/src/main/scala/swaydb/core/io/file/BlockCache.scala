@@ -30,6 +30,9 @@ import swaydb.data.slice.{Slice, SliceOption}
 
 import scala.annotation.tailrec
 
+/**
+ * Stores all the read bytes given the configured disk blockSize.
+ */
 private[core] object BlockCache {
 
   //  var diskSeeks = 0
