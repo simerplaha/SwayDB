@@ -91,7 +91,7 @@ object MultiMap {
                     Apply.Map.toOption(function.apply(userValue))
 
                   case None =>
-                    //UserEntries are never None for innertMap.
+                    //UserEntries are never None for innerMap.
                     throw new Exception("Function applied to None user value")
                 }
 
@@ -131,6 +131,7 @@ object MultiMap {
       innerFunctions.register(innerFunction)
     }
   }
+
 }
 
 /**
@@ -141,7 +142,7 @@ object MultiMap {
  */
 case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
                                              mapKey: Seq[K],
-                                             private val from: Option[From[MultiMapKey[K]]] = None,
+                                             private val from: Option[From[MultiMapKey.MapEntry[K]]] = None,
                                              private val reverseIteration: Boolean = false,
                                              defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                          valueSerializer: Serializer[V],
@@ -220,20 +221,14 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   /**
    * Streams all child Maps.
    */
-  def streamMaps: Stream[MultiMap[K, V, F, BAG]] =
+  def streamChildMaps: Stream[MultiMap[K, V, F, BAG]] =
     map
       .after(MultiMapKey.SubMapsStart(mapKey))
       .keys
       .stream
       .takeWhile {
-        case user: UserEntry[K] =>
-          user match {
-            case MapEntry(_, _) =>
-              false
-
-            case SubMap(parentKey, _) =>
-              parentKey == mapKey
-          }
+        case SubMap(parentKey, _) =>
+          parentKey == mapKey
 
         case _ =>
           false
@@ -398,48 +393,51 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     map.core.function(fromKey, toKey, functionId)
   }
 
-  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] = {
-    val prepares =
-      prepare.map {
-        case Prepare.Put(key, value, deadline) =>
-          Prepare.Put(MapEntry(mapKey, key), Some(value), deadline)
+  /**
+   * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
+   */
+  private def toInnerMapPrepare(prepare: Iterable[Prepare[K, V, _]]): Iterable[Prepare[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]] =
+    prepare.map {
+      case Prepare.Put(key, value, deadline) =>
+        Prepare.Put(MapEntry(mapKey, key), Some(value), deadline)
 
-        case Prepare.Remove(from, to, deadline) =>
-          to match {
-            case Some(to) =>
-              Prepare.Remove(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), deadline)
+      case Prepare.Remove(from, to, deadline) =>
+        to match {
+          case Some(to) =>
+            Prepare.Remove(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), deadline)
 
-            case None =>
-              Prepare.Remove(MapEntry(mapKey, from), deadline)
-          }
+          case None =>
+            Prepare.Remove[MultiMapKey[K]](from = MapEntry(mapKey, from), to = None, deadline = deadline)
+        }
 
-        case Prepare.Update(from, to, value) =>
-          to match {
-            case Some(to) =>
-              Prepare.Update(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), value)
+      case Prepare.Update(from, to, value) =>
+        to match {
+          case Some(to) =>
+            Prepare.Update[MultiMapKey[K], Option[V]](MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), value = Some(value))
 
-            case None =>
-              Prepare.Update(MapEntry(mapKey, from), value)
-          }
+          case None =>
+            Prepare.Update[MultiMapKey[K], Option[V]](key = MapEntry(mapKey, from), value = Some(value))
+        }
 
-        case Prepare.ApplyFunction(from, to, function) =>
-          //          to match {
-          //            case Some(to) =>
-          //              Prepare.ApplyFunction(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), value)
-          //
-          //            case None =>
-          //              Prepare.Update(MapEntry(mapKey, from), value)
-          //          }
-          ???
+      case Prepare.ApplyFunction(from, to, function) =>
+        // Temporary solution: casted because the actual instance itself not used internally.
+        // Core only uses the String value of function.id which is searched in functionStore to validate function.
+        val castFunction = function.asInstanceOf[PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]
 
-        case Prepare.Add(elem, deadline) =>
-          //          Prepare.Put(MapEntry(mapKey, key), Some(value), deadline)
-          ???
-      }
+        to match {
+          case Some(to) =>
+            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = Some(MapEntry(mapKey, to)), function = castFunction)
 
-    //    map.commit(prepares)
-    ???
-  }
+          case None =>
+            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = None, function = castFunction)
+        }
+
+      case Prepare.Add(elem, deadline) =>
+        Prepare.Put(MapEntry(mapKey, elem), None, deadline)
+    }
+
+  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
+    map.commit(toInnerMapPrepare(prepare))
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -448,8 +446,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-  //    bag.suspend(core.put(preparesToUntyped(prepare).iterator))
-    ???
+    map.commit(toInnerMapPrepare(prepare))
 
   def get(key: K): BAG[Option[V]] =
     bag.flatMap(map.get(MultiMapKey.MapEntry(mapKey, key))) {
@@ -502,16 +499,22 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Boolean] =
     map.core.mightContainFunction(Slice.writeString(function.id))
 
-  def keys: Set[K, F, BAG] =
+  /**
+   * TODO keys function.
+   */
+  //  def keys: Set[K, F, BAG] =
   //    Set[K, F, BAG](
-  //      core = core,
-  //      from = from,
+  //      core = map.core,
+  //      from =
+  //        from map {
+  //          from =>
+  //            from.copy(key = from.key.dataKey)
+  //        },
   //      reverseIteration = reverseIteration
   //    )(keySerializer, bag)
-    ???
 
   private[swaydb] def keySet: mutable.Set[K] =
-    keys.asScala
+    throw new NotImplementedError("KeySet function is not yet implement. Please request for this on GitHub")
 
   def levelZeroMeter: LevelZeroMeter =
     map.levelZeroMeter
@@ -596,7 +599,6 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
               .reverse
               .stream
           }
-
         else
           boundStreamToMap {
             map

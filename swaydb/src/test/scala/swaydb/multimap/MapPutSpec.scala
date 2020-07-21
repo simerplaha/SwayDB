@@ -81,7 +81,7 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
       println(child2.get(5))
 
       root
-        .streamMaps
+        .streamChildMaps
         .foreach[Bag.Less](
           map =>
             println(map.mapKey)
