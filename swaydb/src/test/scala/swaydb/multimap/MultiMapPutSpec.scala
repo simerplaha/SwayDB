@@ -123,7 +123,6 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
       if (randomBoolean()) sub11 = root1.getMap(1).value
       if (randomBoolean()) sub12 = root1.getMap(2).value
 
-
       var sub21 = root2.putMap(1)
       var sub22 = root2.putMap(2)
       if (randomBoolean()) sub21 = root2.getMap(1).value

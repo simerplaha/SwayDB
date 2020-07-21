@@ -38,18 +38,12 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 object MultiMap {
 
-  implicit def nothing[K, V]: Functions[K, V, Nothing] =
-    new Functions[K, V, Nothing]()(null, null)
-
-  implicit def void[K, V]: Functions[K, V, Void] =
-    new Functions[K, V, Void]()(null, null)
-
   /**
    * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap]] instance.
    */
-  private[swaydb] def initMultiMap[K, V, F, BAG[_]](rootMap: swaydb.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
-                                                                                                                                                                        keySerializer: Serializer[K],
-                                                                                                                                                                        valueSerializer: Serializer[V]): BAG[MultiMap[K, V, F, BAG]] =
+  private[swaydb] def apply[K, V, F, BAG[_]](rootMap: swaydb.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
+                                                                                                                                                                 keySerializer: Serializer[K],
+                                                                                                                                                                 valueSerializer: Serializer[V]): BAG[MultiMap[K, V, F, BAG]] =
     bag.flatMap(rootMap.isEmpty) {
       isEmpty =>
         val rootMapKey = Seq.empty[K]
@@ -83,6 +77,12 @@ object MultiMap {
             )
           )
     }
+
+  implicit def nothing[K, V]: Functions[K, V, Nothing] =
+    new Functions[K, V, Nothing]()(null, null)
+
+  implicit def void[K, V]: Functions[K, V, Void] =
+    new Functions[K, V, Void]()(null, null)
 
   object Functions {
     def apply[K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
@@ -186,7 +186,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
                                              private val reverseIteration: Boolean = false,
                                              defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                          valueSerializer: Serializer[V],
-                                                                                         bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+                                                                                         bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   private def failure(expected: Class[_], actual: Class[_]) = throw new IllegalStateException(s"Internal error: ${expected.getName} expected but found ${actual.getName}.")
 
@@ -240,7 +240,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   /**
    * Returns the child Map
    */
-  def getMap(key: K): BAG[Option[MultiMap[K, V, F, BAG]]] = {
+  def getMap[K2 <: K](key: K2): BAG[Option[MultiMap[K2, V, F, BAG]]] = {
     val mapPrefix = mapKey :+ key
 
     bag.map(map.contains(MapStart(mapPrefix))) {
@@ -251,7 +251,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
               map = map,
               mapKey = mapPrefix,
               defaultExpiration = defaultExpiration
-            )
+            ).asInstanceOf[MultiMap[K2, V, F, BAG]]
           )
         else
           None

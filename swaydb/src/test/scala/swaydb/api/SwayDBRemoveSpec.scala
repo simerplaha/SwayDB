@@ -57,26 +57,26 @@ class SwayDBRemoveSpec3 extends SwayDBRemoveSpec {
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
-//class SwayDBRemoveSpec4 extends SwayDBRemoveSpec {
-//
-//  val keyValueCount: Int = 10000
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
-//}
-//
-//class SwayDBRemoveSpec5 extends SwayDBRemoveSpec {
-//  val keyValueCount: Int = 10000
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
-//}
+
+class MultiMapRemoveSpec4 extends SwayDBRemoveSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): MapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value)
+}
+
+class MultiMapRemoveSpec5 extends SwayDBRemoveSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): MapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().right.value)
+}
 
 sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
+  def newDB(): MapT[Int, String, Nothing, IO.ApiIO]
 
   "Remove" when {
     "Put" in {
@@ -171,7 +171,7 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   "Remove" when {
     "Update" in {
-      val db: Map[Int, String, Nothing, IO.ApiIO] = newDB()
+      val db: MapT[Int, String, Nothing, IO.ApiIO] = newDB()
 
       eitherOne(
         left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),

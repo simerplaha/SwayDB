@@ -64,9 +64,24 @@ class SwayDBSpec3 extends SwayDBSpec {
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
+
+class MultiMapSwayDBSpec4 extends SwayDBSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): MapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value)
+}
+
+class MultiMapSwayDBSpec5 extends SwayDBSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): MapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().right.value)
+}
+
 sealed trait SwayDBSpec extends TestBaseEmbedded {
 
-  def newDB(): SwayMap[Int, String, Nothing, IO.ApiIO]
+  def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 
@@ -93,7 +108,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           (1 to 100) foreach {
             i =>
               db.put(i, i.toString).right.value
@@ -122,7 +137,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           (1 to 100) foreach {
             i =>
               db.put(i, i.toString).right.value
@@ -147,7 +162,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           (1 to 100) foreach {
             i =>
               db.put(i, i.toString).right.value
@@ -185,7 +200,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
     "return empty for an empty database with update range" in {
       val db = newDB()
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
 
           db.update(1, Int.MaxValue, value = "updated").right.value
 
@@ -221,7 +236,7 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).right.value
           db.get(1).right.value shouldBe empty
 
@@ -304,20 +319,23 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 100000) foreach {
         i =>
-          db.put(i, i.toString).right.value
+          if (i % 10000 == 0)
+            println(s"I: $i")
+
+          db.put(i, i.toString).value
       }
 
-      (1 to 100000) foreach {
-        i =>
-          db.remove(i).right.value
-      }
+      //      (1 to 100000) foreach {
+      //        i =>
+      //          db.remove(i).right.value
+      //      }
 
-      (1 to 100000) foreach {
-        i =>
-          db.contains(i).right.value shouldBe false
-      }
-
-      db.contains(100001).right.value shouldBe false
+      //      (1 to 100000) foreach {
+      //        i =>
+      //          db.contains(i).right.value shouldBe false
+      //      }
+      //
+      //      db.contains(100001).right.value shouldBe false
 
       db.close().get
     }

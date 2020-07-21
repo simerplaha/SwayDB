@@ -38,13 +38,27 @@ class SwayDBSize_Memory_Spec extends SwayDBSizeSpec {
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
+class MultiMapSizeSpec4 extends SwayDBSizeSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): MapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value)
+}
+
+class MultiMapSizeSpec5 extends SwayDBSizeSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): MapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().right.value)
+}
+
 sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
   override def deleteFiles = false
 
-  def newDB(): Map[Int, String, Nothing, IO.ApiIO]
+  def newDB(): MapT[Int, String, Nothing, IO.ApiIO]
 
   "return the size of key-values" in {
     val db = newDB()

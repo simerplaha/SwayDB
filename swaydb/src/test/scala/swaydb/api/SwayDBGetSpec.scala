@@ -39,13 +39,11 @@ class SwayDBGet_SetMap_Spec0 extends SwayDBGetSpec {
 }
 
 class SwayDBGetSpec1 extends SwayDBGetSpec {
-
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte).right.value
 }
 
 class SwayDBGetSpec2 extends SwayDBGetSpec {
-
   override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
@@ -55,20 +53,19 @@ class SwayDBGetSpec3 extends SwayDBGetSpec {
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
-//class SwayDBGetSpec4 extends SwayDBGetSpec {
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
-//}
-//
-//class SwayDBGetSpec5 extends SwayDBGetSpec {
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
-//}
+class MultiMapGetSpec4 extends SwayDBGetSpec {
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value)
+}
+
+class MultiMapGetSpec5 extends SwayDBGetSpec {
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().right.value)
+}
 
 sealed trait SwayDBGetSpec extends TestBaseEmbedded {
 
-  def newDB(): SwayMap[Int, String, Nothing, IO.ApiIO]
+  def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 
   override val keyValueCount: Int = 1000
 
@@ -149,7 +146,13 @@ sealed trait SwayDBGetSpec extends TestBaseEmbedded {
       (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
       (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
 
-      db.keySet should contain allElementsOf ((1 to 9) ++ (91 to 100))
+      db match {
+        case _: MultiMap[Int, String, Nothing, IO.ApiIO] =>
+          assertThrows[NotImplementedError](db.keySet)
+
+        case _ =>
+          db.keySet should contain allElementsOf ((1 to 9) ++ (91 to 100))
+      }
 
       db.close().get
     }

@@ -99,7 +99,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
                                         private val from: Option[From[K]] = None,
                                         private val reverseIteration: Boolean = false)(implicit val keySerializer: Serializer[K],
                                                                                        val valueSerializer: Serializer[V],
-                                                                                       val bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+                                                                                       val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   def path: Path =
     core.zero.path.getParent

@@ -125,7 +125,7 @@ object SetMap {
  * [[SetMap]] has limited write APIs as compared to [[swaydb.Map]]
  * range & update operations are not supported.
  */
-case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SwayMap[K, V, F, BAG] { self =>
+case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SetMapT[K, V, F, BAG] { self =>
 
   private final val nullValue: V = null.asInstanceOf[V]
 

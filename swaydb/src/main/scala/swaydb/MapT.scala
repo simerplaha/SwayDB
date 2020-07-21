@@ -29,26 +29,16 @@ import java.nio.file.Path
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 
-import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
- * Base type with common Map function.
+ * Base trait for a basic SwayDB Map type.
  */
-trait SwayMap[K, V, F, BAG[_]] {
+trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def path: Path
 
   def put(key: K, value: V): BAG[OK]
-
-  def put(key: K, value: V, expireAt: Option[Deadline]): BAG[OK] =
-    expireAt match {
-      case Some(expireAt) =>
-        put(key, value, expireAt)
-
-      case None =>
-        put(key, value)
-    }
 
   def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK]
 
@@ -64,7 +54,7 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def remove(key: K): BAG[OK]
 
-  //  def remove(from: K, to: K): BAG[OK]
+  def remove(from: K, to: K): BAG[OK]
 
   def remove(keys: K*): BAG[OK]
 
@@ -78,46 +68,52 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def expire(key: K, at: Deadline): BAG[OK]
 
-  //  def expire(from: K, to: K, after: FiniteDuration): BAG[OK]
-  //
-  //  def expire(from: K, to: K, at: Deadline): BAG[OK]
+  def expire(from: K, to: K, after: FiniteDuration): BAG[OK]
 
-  //  def expire(keys: (K, Deadline)*): BAG[OK]
-  //
-  //  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
-  //
-  //  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
-  //
-  //  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
-  //
-  //  def update(key: K, value: V): BAG[OK]
-  //
-  //  def update(from: K, to: K, value: V): BAG[OK]
-  //
-  //  def update(keyValues: (K, V)*): BAG[OK]
-  //
-  //  def update(keyValues: Stream[(K, V)]): BAG[OK]
-  //
-  //  def update(keyValues: Iterable[(K, V)]): BAG[OK]
-  //
-  //  def update(keyValues: Iterator[(K, V)]): BAG[OK]
+  def expire(from: K, to: K, at: Deadline): BAG[OK]
+
+  def expire(keys: (K, Deadline)*): BAG[OK]
+
+  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
+
+  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
+
+  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
+
+  def update(key: K, value: V): BAG[OK]
+
+  def update(from: K, to: K, value: V): BAG[OK]
+
+  def update(keyValues: (K, V)*): BAG[OK]
+
+  def update(keyValues: Stream[(K, V)]): BAG[OK]
+
+  def update(keyValues: Iterable[(K, V)]): BAG[OK]
+
+  def update(keyValues: Iterator[(K, V)]): BAG[OK]
 
   def clear(): BAG[OK]
 
-  //  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
 
+  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+
+  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+
+  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+
+  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+
+  /**
+   * Returns target value for the input key.
+   */
   def get(key: K): BAG[Option[V]]
 
+  /**
+   * Returns target full key for the input partial key.
+   *
+   * This function is mostly used for Set databases where partial ordering on the Key is provided.
+   */
   def getKey(key: K): BAG[Option[K]]
 
   def getKeyValue(key: K): BAG[Option[(K, V)]]
@@ -126,9 +122,7 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def mightContain(key: K): BAG[Boolean]
 
-  //  def keys: Set[K, F, BAG]
-
-  private[swaydb] def keySet: mutable.Set[K]
+  def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Boolean]
 
   def levelZeroMeter: LevelZeroMeter
 
@@ -136,23 +130,23 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def sizeOfSegments: Long
 
-  //  def keySize(key: K): Int
+  def keySize(key: K): Int
 
-  //  def valueSize(value: V): Int
+  def valueSize(value: V): Int
 
   def expiration(key: K): BAG[Option[Deadline]]
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]]
 
-  def from(key: K): SwayMap[K, V, F, BAG]
+  def from(key: K): MapT[K, V, F, BAG]
 
-  def before(key: K): SwayMap[K, V, F, BAG]
+  def before(key: K): MapT[K, V, F, BAG]
 
-  def fromOrBefore(key: K): SwayMap[K, V, F, BAG]
+  def fromOrBefore(key: K): MapT[K, V, F, BAG]
 
-  def after(key: K): SwayMap[K, V, F, BAG]
+  def after(key: K): MapT[K, V, F, BAG]
 
-  def fromOrAfter(key: K): SwayMap[K, V, F, BAG]
+  def fromOrAfter(key: K): MapT[K, V, F, BAG]
 
   def headOption: BAG[Option[(K, V)]]
 
@@ -170,16 +164,16 @@ trait SwayMap[K, V, F, BAG[_]] {
 
   def lastOption: BAG[Option[(K, V)]]
 
-  def reverse: SwayMap[K, V, F, BAG]
+  def reverse: MapT[K, V, F, BAG]
 
-  def toBag[X[_]](implicit bag: Bag[X]): SwayMap[K, V, F, X]
+  /**
+   * Returns an Async API of type O where the [[Bag]] is known.
+   */
+  def toBag[X[_]](implicit bag: Bag[X]): MapT[K, V, F, X]
 
   def asScala: scala.collection.mutable.Map[K, V]
 
   def close(): BAG[Unit]
 
   def delete(): BAG[Unit]
-
-  override def toString(): String =
-    classOf[SwayMap[_, _, _, BAG]].getClass.getSimpleName
 }

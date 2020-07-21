@@ -19,22 +19,50 @@
 
 package swaydb.api
 
+import swaydb.IO.ApiIO
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
-import swaydb.core.{TestBase, map}
+import swaydb.core.TestBase
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.Random
 
 trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
-  def doAssertEmpty[V](db: SwayMap[Int, V, Nothing, IO.ApiIO]) =
+  /**
+   * Randomly adds child Maps to [[MultiMap]] and returns the last added Map.
+   */
+  def generateRandomNestedMaps(root: MultiMap[Int, String, Nothing, IO.ApiIO]): MultiMap[Int, String, Nothing, ApiIO] = {
+    //    val range = 1 to Random.nextInt(10)
+
+    val range = 1 to 10
+
+    val sub =
+      range.foldLeft(root) {
+        case (root, id) =>
+          val sub =
+            if (Random.nextBoolean())
+              root.putMap(id).value
+            else
+              root
+
+          if (Random.nextBoolean())
+            root
+          else
+            sub
+      }
+
+    sub
+  }
+
+  def doAssertEmpty[V](db: SetMapT[Int, V, Nothing, IO.ApiIO]) =
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).right.value match {
@@ -51,7 +79,7 @@ trait TestBaseEmbedded extends TestBase {
   //recursively go through all levels and assert they do no have any Segments.
   //Note: Could change this test to use Future with delays instead of blocking but the blocking code is probably more easier to read.
 
-  def assertLevelsAreEmpty(db: SwayMap[Int, String, Nothing, IO.ApiIO], submitUpdates: Boolean) = {
+  def assertLevelsAreEmpty(db: SetMapT[Int, String, Nothing, IO.ApiIO], submitUpdates: Boolean) = {
     println("Checking levels are empty.")
 
     @tailrec
@@ -104,7 +132,7 @@ trait TestBaseEmbedded extends TestBase {
     Future(checkEmpty(1, false)).await(10.minutes)
   }
 
-  def doExpire(from: Int, to: Int, deadline: Deadline, db: SwayMap[Int, String, Nothing, IO.ApiIO]): Unit =
+  def doExpire(from: Int, to: Int, deadline: Deadline, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
     db match {
       case db @ Map(_, _, _) =>
         eitherOne(
@@ -116,7 +144,7 @@ trait TestBaseEmbedded extends TestBase {
         (from to to) foreach (i => db.expire(i, deadline).right.value)
     }
 
-  def doRemove(from: Int, to: Int, db: SwayMap[Int, String, Nothing, IO.ApiIO]): Unit =
+  def doRemove(from: Int, to: Int, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
     db match {
       case db @ Map(_, _, _) =>
         eitherOne(
@@ -128,7 +156,7 @@ trait TestBaseEmbedded extends TestBase {
         (from to to) foreach (i => db.remove(i).right.value)
     }
 
-  def doUpdateOrIgnore(from: Int, to: Int, value: String, db: SwayMap[Int, String, Nothing, IO.ApiIO]): Unit =
+  def doUpdateOrIgnore(from: Int, to: Int, value: String, db: SetMapT[Int, String, Nothing, IO.ApiIO]): Unit =
     db match {
       case db @ Map(_, _, _) =>
         eitherOne(

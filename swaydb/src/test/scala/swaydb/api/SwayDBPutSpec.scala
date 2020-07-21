@@ -21,7 +21,7 @@ package swaydb
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.{SwayDBGetSpec, TestBaseEmbedded}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
@@ -65,6 +65,21 @@ class SwayDBPutSpec3 extends SwayDBPutSpec {
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
+class MultiMapPutSpec4 extends SwayDBPutSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value)
+}
+
+class MultiMapPutSpec5 extends SwayDBPutSpec {
+  val keyValueCount: Int = 10000
+
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().right.value)
+}
+
+
 //class SwayDBPutSpec4 extends SwayDBPutSpec {
 //
 //  val keyValueCount: Int = 10000
@@ -84,9 +99,9 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): SwayMap[Int, String, Nothing, IO.ApiIO]
+  def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 
-  def doGet(db: SwayMap[Int, String, Nothing, IO.ApiIO]) = {
+  def doGet(db: SetMapT[Int, String, Nothing, IO.ApiIO]) = {
     (1 to keyValueCount) foreach {
       i =>
         db.expiration(i).right.value shouldBe empty

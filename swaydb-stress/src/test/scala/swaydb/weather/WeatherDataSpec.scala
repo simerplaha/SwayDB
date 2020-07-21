@@ -61,7 +61,7 @@ class EventuallyPersistent_WeatherDataSpec extends WeatherDataSpec {
 
 sealed trait WeatherDataSpec extends TestBase with LazyLogging with BeforeAndAfterAll {
 
-  val db: swaydb.SwayMap[Int, WeatherData, Nothing, IO.ApiIO]
+  val db: swaydb.SetMapT[Int, WeatherData, Nothing, IO.ApiIO]
 
   implicit val bag = Bag.apiIO
 

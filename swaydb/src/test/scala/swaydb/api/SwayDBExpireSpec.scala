@@ -21,7 +21,7 @@ package swaydb
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.{ScalaMapSpec, TestBaseEmbedded}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
@@ -31,14 +31,14 @@ import scala.concurrent.duration._
 class SwayDBExpireSpec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
 }
 
 class SwayDBExpire_SetMap_Spec0 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): SetMap[Int, String, Nothing, IO.ApiIO] =
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.SetMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value
 }
 
@@ -46,7 +46,7 @@ class SwayDBExpireSpec1 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 1000
 
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
     swaydb.persistent.Map[Int, String, Nothing, IO.ApiIO](randomDir, mapSize = 1.byte, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(minSegmentSize = 10.bytes)).right.value
 }
 
@@ -54,37 +54,37 @@ class SwayDBExpireSpec2 extends SwayDBExpireSpec {
 
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
 }
 
 class SwayDBExpireSpec3 extends SwayDBExpireSpec {
   val keyValueCount: Int = 10000
 
-  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
     swaydb.memory.Map[Int, String, Nothing, IO.ApiIO]().right.value
 }
 
-//class SwayDBExpireSpec4 extends SwayDBExpireSpec {
-//
-//  val keyValueCount: Int = 10000
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO](mapSize = 1.byte).right.value
-//}
-//
-//class SwayDBExpireSpec5 extends SwayDBExpireSpec {
-//  val keyValueCount: Int = 10000
-//
-//  override def newDB(): Map[Int, String, Nothing, IO.ApiIO] =
-//    swaydb.memory.zero.Map[Int, String, Nothing, IO.ApiIO]().right.value
-//}
+class MultiMapExpireSpec4 extends SwayDBExpireSpec {
+  val keyValueCount: Int = 1000
+
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value)
+}
+
+class MultiMapExpireSpec5 extends SwayDBExpireSpec {
+  val keyValueCount: Int = 1000
+
+  override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().right.value)
+}
+
 
 sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): SwayMap[Int, String, Nothing, IO.ApiIO]
+  def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 
   "Expire" when {
     "Put" in {
@@ -128,7 +128,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
           (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
@@ -161,7 +161,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
     }
 
     "Put & Expire" in {
-      runThis(100.times) {
+      runThis(10.times, log = true) {
         val db = newDB()
 
         val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
@@ -180,7 +180,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
               value shouldBe i.toString
           }
 
-        sleep(deadline)
+        sleep(deadline2 + 1.second)
 
         doAssertEmpty(db)
 
@@ -220,7 +220,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       db match {
-        case db @ Map(_, _, _) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
             right = db.update(1, keyValueCount, value = "updated").right.value
@@ -245,7 +245,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
       db match {
-        case db @ Map(_, _, _) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
             right = db.update(1, keyValueCount, value = "updated").right.value
@@ -273,7 +273,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
           eitherOne(
@@ -304,7 +304,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
 
           val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
           val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
@@ -340,7 +340,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db :MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
             right = db.update(1, keyValueCount, value = "updated 1").right.value
@@ -422,7 +422,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       )
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db :MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
             right = db.update(1, keyValueCount, value = "updated").right.value
@@ -536,11 +536,12 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
       db match {
-        case db @ Map(core, from, reverseIteration) =>
+        case db :MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
             right = db.update(1, keyValueCount, value = "updated").right.value
           )
+
         case SetMap(set) =>
 
       }
