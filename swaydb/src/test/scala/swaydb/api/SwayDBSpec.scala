@@ -24,7 +24,6 @@ import java.nio.file.Files
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
-import swaydb.core.RunThis._
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
