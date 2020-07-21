@@ -44,11 +44,15 @@ protected object MultiMapKey {
   case class MapStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
 
   case class MapEntriesStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
+
   case class MapEntry[+K](parentKey: Seq[K], dataKey: K) extends UserEntry[K]
+
   case class MapEntriesEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
 
   case class SubMapsStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
+
   case class SubMap[+K](parentKey: Seq[K], dataKey: K) extends UserEntry[K]
+
   case class SubMapsEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
 
   case class MapEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
@@ -92,27 +96,15 @@ protected object MultiMapKey {
       slice
     }
 
-  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): IO[swaydb.Error.Segment, Seq[K]] = {
-    def readOne(reader: ReaderBase): IO[Error.Segment, Option[K]] =
-      IO[swaydb.Error.Segment, Option[K]] {
+  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): Seq[K] =
+    Reader(keys).foldLeft(Seq.empty[K]) {
+      case (keys, reader) =>
         val bytes = reader.read(reader.readUnsignedInt())
         if (bytes.isEmpty)
-          None
+          keys
         else
-          Some(keySerializer.read(bytes))
-      }
-
-    Reader(keys).foldLeftIO(Seq.empty[K]) {
-      case (keys, reader) =>
-        readOne(reader) map {
-          case Some(key) =>
-            keys :+ key
-
-          case None =>
-            keys
-        }
+          keys :+ keySerializer.read(bytes)
     }
-  }
 
   /**
    * Serializer implementation for [[MultiMapKey]] types.
@@ -210,7 +202,7 @@ protected object MultiMapKey {
       override def read(data: Slice[Byte]): MultiMapKey[K] = {
         val reader = Reader(slice = data, position = 1)
         val keyBytes = reader.read(reader.readUnsignedInt())
-        val keys = readKeys(keyBytes, keySerializer).get
+        val keys = readKeys(keyBytes, keySerializer)
         val dataType = reader.get()
         if (dataType == MultiMapKey.mapStart)
           MultiMapKey.MapStart(keys)
