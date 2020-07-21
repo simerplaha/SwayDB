@@ -105,7 +105,7 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
     val buffer = Slice.create[Prepare[MultiMapKey[K], Option[V], Nothing]](8)
 
     if (clear)
-      buffer add Prepare.Put(MultiMapKey.SubMap(mapKey, key), None, expiry)
+      buffer add Prepare.Remove(MapStart(childMapKey), MapEnd(childMapKey))
 
     buffer add Prepare.Put(MultiMapKey.SubMap(mapKey, key), None, expiry)
     buffer add Prepare.Put(MultiMapKey.MapStart(childMapKey), None, expiry)
