@@ -24,10 +24,11 @@
 
 package swaydb.core.segment.format.a.block.reader
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.slice.Slice
 
-class BlockReaderCacheSpec extends WordSpec with Matchers {
+class BlockReaderCacheSpec extends AnyWordSpec with Matchers {
 
   "set & read" when {
     "set position is 0" in {

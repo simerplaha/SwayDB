@@ -24,11 +24,12 @@
 
 package swaydb.core.brake
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.duration._
 
-class BrakePedalSpec extends WordSpec with Matchers {
+class BrakePedalSpec extends AnyWordSpec with Matchers {
 
   "BrakePedal" should {
     "continue applying brakes and release brakes until complete" in {

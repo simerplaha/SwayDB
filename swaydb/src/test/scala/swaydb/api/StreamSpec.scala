@@ -19,7 +19,8 @@
 
 package swaydb.api
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Bag._
 import swaydb.IO.ApiIO
 import swaydb.core.RunThis._
@@ -61,7 +62,7 @@ class StreamTrySpec extends StreamSpec[Try] {
     a.failed.get
 }
 
-sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends WordSpec with Matchers {
+sealed abstract class StreamSpec[BAG[_]](implicit bag: Bag[BAG]) extends AnyWordSpec with Matchers {
 
   def get[A](a: BAG[A]): A
 

@@ -24,10 +24,11 @@
 
 package swaydb.core.util
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import scala.collection.parallel.CollectionConverters._
 
-class IDGeneratorSpec extends FlatSpec with Matchers {
+class IDGeneratorSpec extends AnyFlatSpec with Matchers {
 
   it should "always return new incremental ids when access concurrently" in {
 

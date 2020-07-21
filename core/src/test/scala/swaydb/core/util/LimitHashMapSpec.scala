@@ -1,6 +1,7 @@
 package swaydb.core.util
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 
@@ -30,7 +31,7 @@ class NoProbeLimitConcurrentHashMap extends LimitHashMapSpec {
     )
 }
 
-sealed trait LimitHashMapSpec extends FlatSpec with Matchers {
+sealed trait LimitHashMapSpec extends AnyFlatSpec with Matchers {
 
   def createMap[K, V >: Null](limit: Integer): LimitHashMap[K, V]
 

@@ -30,7 +30,9 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec, path}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterEach}
 import swaydb.ActorWire
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
@@ -67,7 +69,7 @@ import swaydb.data.util.StorageUnits._
 import scala.concurrent.duration._
 import scala.util.Random
 
-trait TestBase extends WordSpec with Matchers with BeforeAndAfterEach with Eventually {
+trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Eventually {
 
   BufferCleaner.initialiseCleaner(TestData.scheduler)
 

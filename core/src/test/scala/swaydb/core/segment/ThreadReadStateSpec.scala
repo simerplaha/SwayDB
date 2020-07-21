@@ -2,10 +2,11 @@ package swaydb.core.segment
 
 import java.nio.file.Paths
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestData._
 
-class ThreadReadStateSpec extends WordSpec with Matchers {
+class ThreadReadStateSpec extends AnyWordSpec with Matchers {
 
   "it" should {
     "return Null" when {

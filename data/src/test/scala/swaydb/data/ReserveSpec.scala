@@ -24,14 +24,15 @@
 
 package swaydb.data
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import swaydb.data.Base._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
-class ReserveSpec extends FlatSpec with Matchers {
+class ReserveSpec extends AnyFlatSpec with Matchers {
 
   it should "complete futures if not already busy" in {
     val busy = Reserve.free[Unit](name = "test")

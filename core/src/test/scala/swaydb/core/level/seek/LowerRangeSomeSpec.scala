@@ -26,7 +26,8 @@ package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OptionValues._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.IOValues._
@@ -42,7 +43,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class LowerRangeSomeSpec extends WordSpec with Matchers with MockFactory {
+class LowerRangeSomeSpec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long

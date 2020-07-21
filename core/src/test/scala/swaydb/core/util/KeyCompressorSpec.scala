@@ -24,7 +24,8 @@
 
 package swaydb.core.util
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -34,7 +35,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class KeyCompressorSpec extends WordSpec with Matchers {
+class KeyCompressorSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
 

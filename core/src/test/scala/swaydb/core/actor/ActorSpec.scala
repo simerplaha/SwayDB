@@ -26,7 +26,8 @@ package swaydb.core.actor
 
 import java.util.concurrent.ConcurrentSkipListSet
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb._
 import swaydb.core.RunThis._
@@ -37,7 +38,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.collection.parallel.CollectionConverters._
 
-class ActorSpec extends WordSpec with Matchers {
+class ActorSpec extends AnyWordSpec with Matchers {
 
   import swaydb.core.TestData._
 

@@ -24,12 +24,13 @@
 
 package swaydb.data.slice
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.order.KeyOrder
 
 import scala.util.Random
 
-class SliceOptionSpec extends WordSpec with Matchers {
+class SliceOptionSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
 

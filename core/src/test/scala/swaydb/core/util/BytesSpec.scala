@@ -25,7 +25,8 @@
 package swaydb.core.util
 
 import org.scalatest.OptionValues._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.OK
 import swaydb.IOValues._
 import swaydb.core.RunThis._
@@ -36,7 +37,7 @@ import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class BytesSpec extends WordSpec with Matchers {
+class BytesSpec extends AnyWordSpec with Matchers {
 
   "compress, decompress & commonPrefixBytes" should {
     "return common bytes" in {

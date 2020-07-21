@@ -24,9 +24,10 @@
 
 package swaydb.core.segment.format.a.entry.id
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class BaseEntryIdFormatASpec extends FlatSpec with Matchers {
+class BaseEntryIdFormatASpec extends AnyFlatSpec with Matchers {
 
   it should "contain unique ids" in {
     val baseIds = BaseEntryIdFormatA.baseIds

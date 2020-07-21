@@ -24,11 +24,12 @@
 
 package swaydb.data
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import swaydb.IO.ExceptionHandler.Throwable
 import swaydb._
 
-class ExceptionHandlerSpec extends FlatSpec with Matchers {
+class ExceptionHandlerSpec extends AnyFlatSpec with Matchers {
 
   it should "Exceptions to Throwable" in {
     val exception = Exception.FailedToWriteAllBytes(0, 10, 10)

@@ -27,10 +27,9 @@ package swaydb.core
 import java.nio.file.Paths
 
 import org.scalactic.Equality
-import org.scalatest.Matchers._
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.OptionValues._
 import org.scalatest.exceptions.TestFailedException
-import org.scalatest.words.EmptyWord
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IOValues._
 import swaydb.core.RunThis._

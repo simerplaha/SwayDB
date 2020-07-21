@@ -27,7 +27,7 @@ package swaydb.core
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 
-import org.scalatest.Matchers._
+import org.scalatest.matchers.should.Matchers._
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.ExceptionHandler.Nothing
 import swaydb.IOValues._

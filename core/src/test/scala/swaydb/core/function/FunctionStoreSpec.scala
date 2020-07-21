@@ -24,12 +24,13 @@
 
 package swaydb.core.function
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import swaydb.core.data.{SwayFunction, SwayFunctionOutput}
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class FunctionStoreSpec extends FlatSpec with Matchers {
+class FunctionStoreSpec extends AnyFlatSpec with Matchers {
 
   val store = FunctionStore.memory()
 

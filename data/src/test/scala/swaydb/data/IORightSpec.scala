@@ -24,14 +24,15 @@
 
 package swaydb.data
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.data.Base._
 
 import scala.util.Try
 
-class IORightSpec extends WordSpec with Matchers {
+class IORightSpec extends AnyWordSpec with Matchers {
 
   val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
 

@@ -24,7 +24,8 @@
 
 package swaydb.core.cache
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
@@ -34,7 +35,7 @@ import swaydb.data.Reserve
 
 import scala.collection.parallel.CollectionConverters._
 
-class CachePerformanceSpec extends WordSpec with Matchers {
+class CachePerformanceSpec extends AnyWordSpec with Matchers {
 
   val range = 1 to 1000000
 

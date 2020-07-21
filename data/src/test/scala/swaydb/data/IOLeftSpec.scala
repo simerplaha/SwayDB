@@ -26,12 +26,13 @@ package swaydb.data
 
 import java.io.FileNotFoundException
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.data.Base._
 
-class IOLeftSpec extends WordSpec with Matchers {
+class IOLeftSpec extends AnyWordSpec with Matchers {
 
   val error = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
   val otherError = swaydb.Error.FileNotFound(new FileNotFoundException())

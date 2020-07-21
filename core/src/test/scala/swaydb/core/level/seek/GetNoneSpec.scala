@@ -25,24 +25,21 @@
 package swaydb.core.level.seek
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, OptionValues, WordSpec}
-import swaydb.Error.Segment.ExceptionHandler
-import swaydb.IO
-import swaydb.IOValues._
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
-import swaydb.core.data.KeyValue
-import swaydb.core.data.{SwayFunctionOutput, Value}
+import swaydb.core.data.{KeyValue, SwayFunctionOutput, Value}
 import swaydb.core.segment.ThreadReadState
 import swaydb.core.{TestData, TestTimer}
-import swaydb.data.Reserve
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class GetNoneSpec extends WordSpec with Matchers with MockFactory with OptionValues {
+class GetNoneSpec extends AnyWordSpec with Matchers with MockFactory with OptionValues {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder = TimeOrder.long

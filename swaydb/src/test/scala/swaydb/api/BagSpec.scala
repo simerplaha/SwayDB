@@ -19,10 +19,11 @@
 
 package swaydb.api
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Bag
 
-class BagSpec extends WordSpec with Matchers {
+class BagSpec extends AnyWordSpec with Matchers {
 
   "tryMap" should {
     "" in {

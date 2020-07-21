@@ -24,7 +24,8 @@
 
 package swaydb.core.actor
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.core.TestData._
@@ -34,7 +35,7 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class ActorWireSpec extends WordSpec with Matchers with TestBase {
+class ActorWireSpec extends AnyWordSpec with Matchers with TestBase {
 
   "ActorWire" should {
 

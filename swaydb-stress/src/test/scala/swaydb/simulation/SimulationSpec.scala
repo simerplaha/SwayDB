@@ -27,7 +27,7 @@ package swaydb.simulation
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.scalalogging.LazyLogging
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestBase
 import swaydb.core.TestData._
 import swaydb.data.accelerate.Accelerator
@@ -38,7 +38,7 @@ import swaydb.serializers.Default._
 import swaydb.simulation.Domain._
 import swaydb.simulation.ProductCommand._
 import swaydb.simulation.RemoveAsserted._
-import swaydb.{Actor, ActorRef, Apply, PureFunction, IO}
+import swaydb.{Actor, ActorRef, Apply, IO, PureFunction}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -89,7 +89,7 @@ class Memory_Persistent_SimulationSpec extends SimulationSpec {
     swaydb.persistent.Map[Long, Domain, Functions, IO.ApiIO](randomDir, mmapAppendix = false, mmapMaps = false, segmentConfig = swaydb.persistent.DefaultConfigs.segmentConfig().copy(mmap = MMAP.Disabled)).get
 }
 
-sealed trait SimulationSpec extends WordSpec with TestBase with LazyLogging {
+sealed trait SimulationSpec extends AnyWordSpec with TestBase with LazyLogging {
 
   def newDB(implicit functions: swaydb.Map.Functions[Long, Domain, Functions]): swaydb.Map[Long, Domain, Functions, IO.ApiIO]
 

@@ -25,7 +25,8 @@
 package swaydb.core.util
 
 import org.scalatest.OptionValues._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Time, Value}
@@ -37,7 +38,7 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class MinMaxSpec extends WordSpec with Matchers {
+class MinMaxSpec extends AnyWordSpec with Matchers {
 
   "min" should {
     "return minimum of two" in {

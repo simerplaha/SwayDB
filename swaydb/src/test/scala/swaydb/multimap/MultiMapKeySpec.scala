@@ -19,7 +19,8 @@
 
 package swaydb.multimap
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.MultiMapKey
 import swaydb.core.TestData._
 import swaydb.data.order.KeyOrder
@@ -30,7 +31,7 @@ import swaydb.serializers.Serializer
 import scala.collection.SortedSet
 import scala.util.Random
 
-class MultiMapKeySpec extends WordSpec with Matchers {
+class MultiMapKeySpec extends AnyWordSpec with Matchers {
 
   "mapKeySerializer" should {
     def doAssert[T](key: MultiMapKey[T])(implicit serializer: Serializer[T]) = {

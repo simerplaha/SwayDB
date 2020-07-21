@@ -26,16 +26,17 @@ package swaydb.core.segment
 
 import java.nio.file.Paths
 
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.TestData._
 import swaydb.core.RunThis._
-import org.scalatest.{FlatSpec, Matchers, WordSpec}
 import swaydb.core.data.{Persistent, Time}
 import swaydb.data.slice.Slice
 import swaydb.serializers._
 import swaydb.serializers.Default._
 
-class SegmentReadStateSpec extends WordSpec with Matchers {
+class SegmentReadStateSpec extends AnyWordSpec with Matchers {
 
   def previousKeyValue =
     Persistent.Put(

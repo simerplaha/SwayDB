@@ -24,7 +24,8 @@
 
 package swaydb.core.merge
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -34,7 +35,7 @@ import swaydb.core.data.Memory
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
-class FunctionMerger_PendingApply_Spec extends WordSpec with Matchers {
+class FunctionMerger_PendingApply_Spec extends AnyWordSpec with Matchers {
 
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default

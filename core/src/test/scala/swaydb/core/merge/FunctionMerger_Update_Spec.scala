@@ -25,7 +25,8 @@
 package swaydb.core.merge
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IOValues._
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -37,7 +38,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class FunctionMerger_Update_Spec extends WordSpec with Matchers with MockFactory {
+class FunctionMerger_Update_Spec extends AnyWordSpec with Matchers with MockFactory {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

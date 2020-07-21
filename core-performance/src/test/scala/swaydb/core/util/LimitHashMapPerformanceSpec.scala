@@ -26,9 +26,10 @@ package swaydb.core.util
 
 import java.util.concurrent.ConcurrentHashMap
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class LimitHashMapPerformanceSpec extends FlatSpec with Matchers {
+class LimitHashMapPerformanceSpec extends AnyFlatSpec with Matchers {
 
   it should "perform" in {
 

@@ -24,7 +24,8 @@
 
 package swaydb.data
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.IO
 import swaydb.IO.ExceptionHandler.Throwable
 import swaydb.IO._
@@ -32,7 +33,7 @@ import swaydb.data.slice.Slice
 
 import scala.collection.mutable.ListBuffer
 
-class IOSpec extends WordSpec with Matchers {
+class IOSpec extends AnyWordSpec with Matchers {
 
   "CatchLeak" when {
     "exception" in {

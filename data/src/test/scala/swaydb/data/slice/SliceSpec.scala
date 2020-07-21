@@ -25,14 +25,15 @@
 package swaydb.data.slice
 
 import org.scalatest.OptionValues._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.MaxKey
 import swaydb.data.order.KeyOrder
 import swaydb.data.util.ByteSizeOf
 
 import scala.util.Random
 
-class SliceSpec extends WordSpec with Matchers {
+class SliceSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder = KeyOrder.default
 

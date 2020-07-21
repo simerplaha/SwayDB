@@ -2,7 +2,8 @@ package swaydb.core.util
 
 import java.nio.charset.StandardCharsets
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.io.reader.Reader
@@ -11,7 +12,7 @@ import swaydb.data.util.ByteSizeOf
 
 import scala.util.Random
 
-class BytezSpec extends WordSpec with Matchers {
+class BytezSpec extends AnyWordSpec with Matchers {
 
   val intRanges =
     Seq(

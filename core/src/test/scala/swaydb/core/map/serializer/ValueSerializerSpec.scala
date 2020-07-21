@@ -24,7 +24,8 @@
 
 package swaydb.core.map.serializer
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.compression.CompressionInternal
 import swaydb.core.TestData._
 import swaydb.core.map.serializer.ValueSerializer.IntMapListBufferSerializer
@@ -33,7 +34,7 @@ import swaydb.data.slice.Slice
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-class ValueSerializerSpec extends WordSpec with Matchers {
+class ValueSerializerSpec extends AnyWordSpec with Matchers {
 
   "IntMapListBufferSerializer" in {
 

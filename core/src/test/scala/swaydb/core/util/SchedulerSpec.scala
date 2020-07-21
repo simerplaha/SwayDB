@@ -25,14 +25,15 @@
 package swaydb.core.util
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.{IO, Scheduler}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class SchedulerSpec extends WordSpec with Matchers with Eventually {
+class SchedulerSpec extends AnyWordSpec with Matchers with Eventually {
 
   //  "Delay.cancelTimer" should {
   //    "cancel all existing scheduled tasks" in {

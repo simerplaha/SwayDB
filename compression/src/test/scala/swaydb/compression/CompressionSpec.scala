@@ -24,8 +24,8 @@
 
 package swaydb.compression
 
-import org.scalatest.Matchers._
-import org.scalatest.WordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.data.slice.Slice
 import swaydb.data.util.ByteSizeOf
 import swaydb.serializers.Default._
@@ -33,7 +33,7 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class CompressionSpec extends WordSpec {
+class CompressionSpec extends AnyWordSpec with Matchers {
 
   private def assertSuccessfulCompression(compression: CompressionInternal) = {
     val string = "12345-12345-12345-12345" * Math.abs(Random.nextInt(99) + 1)

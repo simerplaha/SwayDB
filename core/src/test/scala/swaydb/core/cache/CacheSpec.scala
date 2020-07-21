@@ -25,7 +25,8 @@
 package swaydb.core.cache
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO
 import swaydb.core.CommonAssertions._
@@ -39,7 +40,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 import scala.collection.parallel.CollectionConverters._
 
-class CacheSpec extends WordSpec with Matchers with MockFactory {
+class CacheSpec extends AnyWordSpec with Matchers with MockFactory {
 
   //run all possible combinations of Cache tests on different cache types.
   def runTestForAllCombinations(test: (Boolean, Boolean, Boolean, Boolean) => Unit) = {

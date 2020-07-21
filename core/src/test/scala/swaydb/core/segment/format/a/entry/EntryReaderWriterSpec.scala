@@ -24,7 +24,8 @@
 
 package swaydb.core.segment.format.a.entry
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -41,7 +42,7 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class EntryReaderWriterSpec extends WordSpec with Matchers {
+class EntryReaderWriterSpec extends AnyWordSpec with Matchers {
 
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
   implicit val timeWriter: TimeWriter = TimeWriter

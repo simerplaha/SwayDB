@@ -19,7 +19,8 @@
 //
 //package swaydb.core.segment.format.a.entry.writer
 //
-//import org.scalatest.{Matchers, WordSpec}
+//import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 //import swaydb.core.CommonAssertions._
 //import swaydb.core.TestData._
 //import swaydb.core.TestTimer
@@ -31,7 +32,7 @@
 //import swaydb.serializers.Default._
 //import swaydb.serializers._
 //
-//class TimeReaderWriterSpec extends WordSpec with Matchers {
+//class TimeReaderWriterSpec extends AnyWordSpec with Matchers {
 //
 //  val keyIds =
 //    allBaseEntryIds collect {

@@ -26,7 +26,8 @@ package swaydb.core.actor
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.TestExecutionContext
 import swaydb.core.util.Benchmark
 import swaydb.data.config.ActorConfig.QueueOrder
@@ -35,7 +36,7 @@ import swaydb.{Actor, ActorRef, Scheduler}
 import scala.collection.parallel.CollectionConverters._
 import scala.concurrent.duration._
 
-class ActorPerformanceSpec extends WordSpec with Matchers {
+class ActorPerformanceSpec extends AnyWordSpec with Matchers {
 
   implicit val ec = TestExecutionContext.executionContext
   implicit val ordering = QueueOrder.FIFO

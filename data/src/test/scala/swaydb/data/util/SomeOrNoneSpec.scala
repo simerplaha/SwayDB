@@ -24,11 +24,12 @@
 
 package swaydb.data.util
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.Random
 
-class SomeOrNoneSpec extends WordSpec with Matchers {
+class SomeOrNoneSpec extends AnyWordSpec with Matchers {
 
   private sealed trait Option extends SomeOrNone[Option, Option.Some] {
     override def noneS: Option = Option.None

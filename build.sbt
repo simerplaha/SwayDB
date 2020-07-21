@@ -4,24 +4,24 @@ import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import xerial.sbt.Sonatype._
 
 val lz4Version = "1.7.1"
-val snappyVersion = "1.1.7.3"
+val snappyVersion = "1.1.7.6"
 val logbackClassicVersion = "1.2.3"
 val scalaLoggingVersion = "3.9.2"
-val scalaMockVersion = "4.4.0"
-val scalaTestVersion = "3.0.8"
+val scalaMockVersion = "5.0.0"
+val scalaTestVersion = "3.2.0"
 val reactiveStreamsVersion = "1.0.2"
 val boopickleVersion = "1.3.1"
-val monixVersion = "3.1.0"
-val zioVersion = "1.0.0-RC17"
+val monixVersion = "3.2.2"
+val zioVersion = "1.0.0-RC21-2"
 val catsEffectVersion = "2.0.0"
 val scalaJava8CompatVersion = "0.9.1"
-val junitJupiterVersion = "5.6.1"
+val junitJupiterVersion = "5.6.2"
 val scalaParallelCollectionsVersion = "0.2.0"
-val scalaCollectionsCompact = "2.1.4"
+val scalaCollectionsCompact = "2.1.6"
 
 val scala211 = "2.11.12"
-val scala212 = "2.12.11"
-val scala213 = "2.13.1"
+val scala212 = "2.12.12"
+val scala213 = "2.13.3"
 
 val commonScalaOptions =
   Seq(
@@ -86,7 +86,7 @@ val publishSettings = Seq[Setting[_]](
   crossScalaVersions := Seq(scala211, scala212, scala213),
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
-  licenses := Seq("LAGPL3" -> url("https://github.com/simerplaha/SwayDB/blob/master/LICENSE")),
+  licenses := Seq("LAGPL3" -> url("https://github.com/simerplaha/SwayDB/blob/master/LICENSE.md")),
   publish := {},
   publishLocal := {},
   sonatypeProjectHosting := Some(GitHubHosting("simerplaha", "SwayDB", "simer.j@gmail.com")),
@@ -182,7 +182,7 @@ lazy val swaydb =
     .settings(
       libraryDependencies ++=
         commonDependencies(scalaVersion.value)
-          :+ "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion
+          :+ "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion % Optional
 
     ).dependsOn(core % "test->test;compile->compile", serializers, configs)
 

@@ -24,7 +24,8 @@
 
 package swaydb.core.map.serializer
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.TestTimer
@@ -32,7 +33,7 @@ import swaydb.core.data.Value
 import swaydb.core.data.Value.{FromValue, FromValueOption, RangeValue}
 import swaydb.data.slice.Slice
 
-class RangeValueSerializerSpec extends WordSpec with Matchers {
+class RangeValueSerializerSpec extends AnyWordSpec with Matchers {
 
   def doAssert[R <: RangeValue](rangeValue: R)(implicit serializer: RangeValueSerializer[Unit, R]) = {
     val bytesRequired = RangeValueSerializer.bytesRequired((), rangeValue)

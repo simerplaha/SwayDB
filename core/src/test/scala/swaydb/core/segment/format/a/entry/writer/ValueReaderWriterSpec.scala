@@ -24,7 +24,8 @@
 
 package swaydb.core.segment.format.a.entry.writer
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
 import swaydb.core.data.{Memory, Time}
@@ -34,7 +35,7 @@ import swaydb.serializers.Default._
 import swaydb.core.CommonAssertions._
 import swaydb.data.slice.Slice
 
-class ValueReaderWriterSpec extends WordSpec with Matchers {
+class ValueReaderWriterSpec extends AnyWordSpec with Matchers {
 
   val timeIds: Seq[BaseEntryId.Time] =
     allBaseEntryIds collect {

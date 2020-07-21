@@ -24,7 +24,7 @@
 
 package swaydb.core.segment.merge
 
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.core.TestData._
@@ -38,7 +38,7 @@ import swaydb.serializers._
 
 import scala.util.Random
 
-class SegmentMerger_Range_Into_Fixed extends WordSpec {
+class SegmentMerger_Range_Into_Fixed extends AnyWordSpec {
 
   implicit val keyOrder = KeyOrder.default
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long

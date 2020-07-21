@@ -28,7 +28,8 @@ import java.io.FileNotFoundException
 
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{Eventually, Futures}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import swaydb.Error.Segment.ExceptionHandler
 import swaydb.IO.Defer
 import swaydb.IOValues._
@@ -39,7 +40,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Random
 
-class IODeferSpec extends WordSpec with Matchers with Eventually with MockFactory with Futures {
+class IODeferSpec extends AnyWordSpec with Matchers with Eventually with MockFactory with Futures {
 
   val unknownError = swaydb.Error.Fatal(this.getClass.getSimpleName + " test exception.")
   val recoverableError = swaydb.Error.FileNotFound(new FileNotFoundException())
