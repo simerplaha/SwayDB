@@ -34,7 +34,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
  * Provides APIs to manage children/nested maps/child maps of [[MultiMap]].
  */
 class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
-                                mapKey: Seq[K],
+                                mapKey: Iterable[K],
                                 defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
                                                                      valueSerializer: Serializer[V],
                                                                      bag: Bag[BAG]) {
@@ -98,7 +98,7 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
    *                 using clear.
    */
   def initOrPut(key: K, expireAt: Option[Deadline], clear: Boolean = false): BAG[MultiMap[K, V, F, BAG]] = {
-    val childMapKey = mapKey :+ key
+    val childMapKey = mapKey.toBuffer += key
 
     val expiry = expireAt.orElse(defaultExpiration)
 
@@ -126,7 +126,7 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
   }
 
   def remove(key: K): BAG[OK] = {
-    val childMapKey = mapKey :+ key
+    val childMapKey = mapKey.toBuffer += key
     map.remove(MapStart(childMapKey), MapEnd(childMapKey))
   }
 
@@ -134,7 +134,7 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
    * Returns the child Map
    */
   def get[K2 <: K](key: K2): BAG[Option[MultiMap[K2, V, F, BAG]]] = {
-    val mapPrefix = mapKey :+ key
+    val mapPrefix = mapKey.toBuffer += key
 
     bag.map(map.contains(MapStart(mapPrefix))) {
       contains =>
@@ -168,7 +168,8 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
       }
       .map {
         case MultiMapKey.SubMap(key, dataKey) =>
-          MultiMap(map, key :+ dataKey)
+          val mapKey = key.toBuffer += dataKey
+          MultiMap(map, mapKey)
 
         case entry =>
           MultiMap.failure(classOf[MultiMapKey.SubMap[_]], entry.getClass)

@@ -20,10 +20,10 @@
 package swaydb.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.{Bag, MultiMap}
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.TestData._
 import swaydb.serializers.Default._
+import swaydb.{Bag, MultiMap}
 
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
