@@ -40,16 +40,14 @@ trait TestBaseEmbedded extends TestBase {
    * Randomly adds child Maps to [[MultiMap]] and returns the last added Map.
    */
   def generateRandomNestedMaps(root: MultiMap[Int, String, Nothing, IO.ApiIO]): MultiMap[Int, String, Nothing, ApiIO] = {
-    //    val range = 1 to Random.nextInt(10)
-
-    val range = 1 to 10
+    val range = 1 to Random.nextInt(10)
 
     val sub =
       range.foldLeft(root) {
         case (root, id) =>
           val sub =
             if (Random.nextBoolean())
-              root.putMap(id).value
+              root.children.init(id).value
             else
               root
 

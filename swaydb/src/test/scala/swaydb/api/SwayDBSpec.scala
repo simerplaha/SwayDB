@@ -319,23 +319,20 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
       (1 to 100000) foreach {
         i =>
-          if (i % 10000 == 0)
-            println(s"I: $i")
-
           db.put(i, i.toString).value
       }
 
-      //      (1 to 100000) foreach {
-      //        i =>
-      //          db.remove(i).right.value
-      //      }
+      (1 to 100000) foreach {
+        i =>
+          db.remove(i).right.value
+      }
 
-      //      (1 to 100000) foreach {
-      //        i =>
-      //          db.contains(i).right.value shouldBe false
-      //      }
-      //
-      //      db.contains(100001).right.value shouldBe false
+      (1 to 100000) foreach {
+        i =>
+          db.contains(i).right.value shouldBe false
+      }
+
+      db.contains(100001).right.value shouldBe false
 
       db.close().get
     }

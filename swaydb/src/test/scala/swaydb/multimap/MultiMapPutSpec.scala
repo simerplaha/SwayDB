@@ -49,11 +49,11 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
     "Initialise a RootMap & SubMap from Root" in {
       val root = newDB()
 
-      var child1 = root.putMap(1)
-      var child2 = root.putMap(2)
+      var child1 = root.children.init(1)
+      var child2 = root.children.init(2)
 
-      if (randomBoolean()) child1 = root.getMap(1).value
-      if (randomBoolean()) child2 = root.getMap(2).value
+      if (randomBoolean()) child1 = root.children.get(1).value
+      if (randomBoolean()) child2 = root.children.get(2).value
 
       child1.put(3, "three")
       child1.put(4, "four")
@@ -74,7 +74,7 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
     }
 
     "Initialise a RootMap & 2 SubMaps from Root" in {
-      val db = newDB()
+      val root = newDB()
 
       def insert(firstMap: MultiMap[Int, String, Nothing, Bag.Less]) = {
         firstMap.put(3, "three")
@@ -83,12 +83,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
         firstMap.put(4, "four again")
       }
 
-      val child1 = db.putMap(1)
+      val child1 = root.children.init(1)
 
-      val child2 = child1.putMap(2)
+      val child2 = child1.children.init(2)
       insert(child2)
 
-      val child3 = child1.putMap(3)
+      val child3 = child1.children.init(3)
       insert(child3)
 
       child1.isEmpty shouldBe true
@@ -103,34 +103,34 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
         .materialize[Bag.Less]
         .toList should contain inOrderOnly((3, "three"), (4, "four again"), (5, "five"))
 
-      db.close()
+      root.close()
     }
 
     "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
       val root = newDB()
 
-      var root1 = root.putMap(1)
-      var root2 = root.putMap(2)
-      if (randomBoolean()) root1 = root.getMap(1).value
-      if (randomBoolean()) root2 = root.getMap(2).value
+      var root1 = root.children.init(1)
+      var root2 = root.children.init(2)
+      if (randomBoolean()) root1 = root.children.get(1).value
+      if (randomBoolean()) root2 = root.children.get(2).value
 
-      var sub11 = root1.putMap(1)
-      var sub12 = root1.putMap(2)
-      if (randomBoolean()) sub11 = root1.getMap(1).value
-      if (randomBoolean()) sub12 = root1.getMap(2).value
+      var sub11 = root1.children.init(1)
+      var sub12 = root1.children.init(2)
+      if (randomBoolean()) sub11 = root1.children.get(1).value
+      if (randomBoolean()) sub12 = root1.children.get(2).value
       sub11.put(1, "one")
       sub12.put(2, "two")
-      if (randomBoolean()) sub11 = root1.getMap(1).value
-      if (randomBoolean()) sub12 = root1.getMap(2).value
+      if (randomBoolean()) sub11 = root1.children.get(1).value
+      if (randomBoolean()) sub12 = root1.children.get(2).value
 
-      var sub21 = root2.putMap(1)
-      var sub22 = root2.putMap(2)
-      if (randomBoolean()) sub21 = root2.getMap(1).value
-      if (randomBoolean()) sub22 = root2.getMap(2).value
+      var sub21 = root2.children.init(1)
+      var sub22 = root2.children.init(2)
+      if (randomBoolean()) sub21 = root2.children.get(1).value
+      if (randomBoolean()) sub22 = root2.children.get(2).value
       sub21.put(1, "1")
       sub22.put(2, "2")
-      if (randomBoolean()) sub21 = root2.getMap(1).value
-      if (randomBoolean()) sub22 = root2.getMap(2).value
+      if (randomBoolean()) sub21 = root2.children.get(1).value
+      if (randomBoolean()) sub22 = root2.children.get(2).value
 
       sub11.get(1).value shouldBe "one"
       sub12.get(2).value shouldBe "two"
@@ -139,12 +139,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
       sub22.get(2).value shouldBe "2"
 
 
-      root.subMaps.materialize[Bag.Less].toList should have size 2
+      root.children.stream.materialize[Bag.Less].toList should have size 2
 
-      val rootSubMaps = root.subMaps.materialize[Bag.Less].toList
+      val rootSubMaps = root.children.stream.materialize[Bag.Less].toList
       rootSubMaps.foreach(_.isEmpty shouldBe true) //has no map entries
 
-      val subMaps = rootSubMaps.flatMap(_.subMaps.materialize[Bag.Less].toList)
+      val subMaps = rootSubMaps.flatMap(_.children.stream.materialize[Bag.Less].toList)
       subMaps should have size 4
 
       subMaps(0).get(1).value shouldBe "one"

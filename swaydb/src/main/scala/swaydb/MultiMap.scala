@@ -26,7 +26,7 @@ package swaydb
 
 import java.nio.file.Path
 
-import swaydb.MultiMapKey.{MapEnd, MapEntriesEnd, MapEntriesStart, MapEntry, MapStart, SubMap}
+import swaydb.MultiMapKey.{MapEntriesEnd, MapEntriesStart, MapEntry}
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -77,6 +77,12 @@ object MultiMap {
             )
           )
     }
+
+  private[swaydb] def failure(expected: Class[_], actual: Class[_]) = throw new IllegalStateException(s"Internal error: ${expected.getName} expected but found ${actual.getName}.")
+
+  private[swaydb] def failure(expected: String, actual: String) = throw exception(expected, actual)
+
+  private[swaydb] def exception(expected: String, actual: String) = new IllegalStateException(s"Internal error: $expected expected but found $actual.")
 
   implicit def nothing[K, V]: Functions[K, V, Nothing] =
     new Functions[K, V, Nothing]()(null, null)
@@ -180,106 +186,26 @@ object MultiMap {
  * [[MultiMap]] is just a simple extension that uses custom data types ([[MultiMapKey]]) and
  * KeyOrder ([[MultiMapKey.ordering]]) for it's API.
  */
-case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
+case class MultiMap[K, V, F, BAG[_]] private(private val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
                                              mapKey: Seq[K],
                                              private val from: Option[From[MultiMapKey.MapEntry[K]]] = None,
                                              private val reverseIteration: Boolean = false,
                                              defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
                                                                                          valueSerializer: Serializer[V],
-                                                                                         bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
-
-  private def failure(expected: Class[_], actual: Class[_]) = throw new IllegalStateException(s"Internal error: ${expected.getName} expected but found ${actual.getName}.")
-
-  private def failure(expected: String, actual: String) = throw exception(expected, actual)
-
-  private def exception(expected: String, actual: String) = new IllegalStateException(s"Internal error: $expected expected but found $actual.")
+                                                                                         val bag: Bag[BAG]) extends MapT[K, V, F, BAG] { self =>
 
   override def path: Path =
     map.path
 
-  def putMap(key: K): BAG[MultiMap[K, V, F, BAG]] =
-    putMap(key, None)
-
-  def putMap(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
-    putMap(key, Some(expireAfter.fromNow))
-
-  def putMap(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
-    putMap(key, Some(expireAt))
-
   /**
-   * Inserts a child map to this [[MultiMap]]. If the Map already exists, it will get replaced
-   * with a new Map i.e. it will remove all existing entries and child Maps within this Map.
+   * APIs for managing child map of this [[MultiMap]].
    */
-  def putMap(key: K, expireAt: Option[Deadline]): BAG[MultiMap[K, V, F, BAG]] = {
-    val childMapKey = mapKey :+ key
-
-    val expiry = expireAt.orElse(defaultExpiration)
-
-    val prepare: Seq[Prepare[MultiMapKey[K], Option[V], Nothing]] =
-      Seq(
-        Prepare.Remove(MapStart(childMapKey), MapEnd(childMapKey)),
-        Prepare.Put(SubMap(mapKey, key), None, expiry),
-        Prepare.Put(MultiMapKey.MapStart(childMapKey), None, expiry),
-        Prepare.Put(MultiMapKey.MapEntriesStart(childMapKey), None, expiry),
-        Prepare.Put(MultiMapKey.MapEntriesEnd(childMapKey), None, expiry),
-        Prepare.Put(MultiMapKey.SubMapsStart(childMapKey), None, expiry),
-        Prepare.Put(MultiMapKey.SubMapsEnd(childMapKey), None, expiry),
-        Prepare.Put(MultiMapKey.MapEnd(childMapKey), None, expiry)
-      )
-
-    bag.map(map.commit(prepare)) {
-      _ =>
-        MultiMap(
-          map = map,
-          mapKey = childMapKey,
-          defaultExpiration = expireAt orElse defaultExpiration
-        )
-    }
-  }
-
-  /**
-   * Returns the child Map
-   */
-  def getMap[K2 <: K](key: K2): BAG[Option[MultiMap[K2, V, F, BAG]]] = {
-    val mapPrefix = mapKey :+ key
-
-    bag.map(map.contains(MapStart(mapPrefix))) {
-      contains =>
-        if (contains)
-          Some(
-            MultiMap(
-              map = map,
-              mapKey = mapPrefix,
-              defaultExpiration = defaultExpiration
-            ).asInstanceOf[MultiMap[K2, V, F, BAG]]
-          )
-        else
-          None
-    }
-  }
-
-  /**
-   * Streams all child Maps.
-   */
-  def subMaps: Stream[MultiMap[K, V, F, BAG]] =
-    map
-      .after(MultiMapKey.SubMapsStart(mapKey))
-      .keys
-      .stream
-      .takeWhile {
-        case SubMap(parentKey, _) =>
-          parentKey == mapKey
-
-        case _ =>
-          false
-      }
-      .map {
-        case SubMap(key, dataKey) =>
-          MultiMap(map, key :+ dataKey)
-
-        case entry =>
-          failure(classOf[SubMap[_]], entry.getClass)
-      }
+  def children: Children[K, V, F, BAG] =
+    new swaydb.Children(
+      map = map,
+      mapKey = mapKey,
+      defaultExpiration = defaultExpiration
+    )
 
   def put(key: K, value: V): BAG[OK] =
     map.put(MapEntry(mapKey, key), Some(value))
@@ -439,15 +365,15 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   private def toInnerMapPrepare(prepare: Iterable[Prepare[K, V, _]]): Iterable[Prepare[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]] =
     prepare.map {
       case Prepare.Put(key, value, deadline) =>
-        Prepare.Put(MapEntry(mapKey, key), Some(value), deadline)
+        Prepare.Put(MapEntry(mapKey, key), Some(value), deadline orElse defaultExpiration)
 
       case Prepare.Remove(from, to, deadline) =>
         to match {
           case Some(to) =>
-            Prepare.Remove(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), deadline)
+            Prepare.Remove(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), deadline orElse defaultExpiration)
 
           case None =>
-            Prepare.Remove[MultiMapKey[K]](from = MapEntry(mapKey, from), to = None, deadline = deadline)
+            Prepare.Remove[MultiMapKey[K]](from = MapEntry(mapKey, from), to = None, deadline = deadline orElse defaultExpiration)
         }
 
       case Prepare.Update(from, to, value) =>
@@ -473,7 +399,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
         }
 
       case Prepare.Add(elem, deadline) =>
-        Prepare.Put(MapEntry(mapKey, elem), None, deadline)
+        Prepare.Put(MapEntry(mapKey, elem), None, deadline orElse defaultExpiration)
     }
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
@@ -496,7 +422,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
             bag.success(some)
 
           case None =>
-            bag.failure(failure(classOf[MapEntry[_]], None.getClass))
+            bag.failure(MultiMap.failure(classOf[MapEntry[_]], None.getClass))
         }
 
       case None =>
@@ -509,7 +435,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
         Some(key)
 
       case Some(entry) =>
-        failure(MapEntry.getClass, entry.getClass)
+        MultiMap.failure(MapEntry.getClass, entry.getClass)
 
       case None =>
         None
@@ -521,10 +447,10 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
         Some((key, value))
 
       case Some((MapEntry(_, _), None)) =>
-        failure("Value", "None")
+        MultiMap.failure("Value", "None")
 
       case Some(entry) =>
-        failure(MapEntry.getClass, entry.getClass)
+        MultiMap.failure(MapEntry.getClass, entry.getClass)
 
       case None =>
         None

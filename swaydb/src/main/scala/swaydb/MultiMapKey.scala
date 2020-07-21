@@ -76,16 +76,19 @@ protected object MultiMapKey {
       Slice.emptyBytes
     else {
       val slices = keys map keySerializer.write
+
       val size = slices.foldLeft(0) {
         case (size, bytes) =>
           size + Bytes.sizeOfUnsignedInt(bytes.size) + bytes.size
       }
+
       val slice = Slice.create[Byte](size)
       slices foreach {
         keySlice =>
           slice addUnsignedInt keySlice.size
           slice addAll keySlice
       }
+
       slice
     }
 
@@ -102,13 +105,11 @@ protected object MultiMapKey {
     Reader(keys).foldLeftIO(Seq.empty[K]) {
       case (keys, reader) =>
         readOne(reader) map {
-          key =>
-            key map {
-              key =>
-                keys :+ key
-            } getOrElse {
-              keys
-            }
+          case Some(key) =>
+            keys :+ key
+
+          case None =>
+            keys
         }
     }
   }
