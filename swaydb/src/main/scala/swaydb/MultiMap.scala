@@ -187,7 +187,7 @@ object MultiMap {
  * KeyOrder ([[MultiMapKey.ordering]]) for it's API.
  */
 case class MultiMap[K, V, F, BAG[_]] private(private val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
-                                             mapKey: Seq[K],
+                                             mapKey: Iterable[K],
                                              private val from: Option[From[MultiMapKey.MapEntry[K]]] = None,
                                              private val reverseIteration: Boolean = false,
                                              defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],

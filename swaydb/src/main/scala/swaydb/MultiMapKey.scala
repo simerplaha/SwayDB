@@ -27,11 +27,13 @@ package swaydb
 import swaydb.core.io.reader.Reader
 import swaydb.core.util.Bytes
 import swaydb.data.order.KeyOrder
-import swaydb.data.slice.{ReaderBase, Slice}
+import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
+import scala.collection.mutable.ListBuffer
+
 protected sealed trait MultiMapKey[+K] {
-  def parentKey: Seq[K]
+  def parentKey: Iterable[K]
 }
 
 protected object MultiMapKey {
@@ -41,21 +43,17 @@ protected object MultiMapKey {
   }
 
   //map start
-  case class MapStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
+  case class MapStart[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
 
-  case class MapEntriesStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
+  case class MapEntriesStart[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
+  case class MapEntry[+K](parentKey: Iterable[K], dataKey: K) extends UserEntry[K]
+  case class MapEntriesEnd[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
 
-  case class MapEntry[+K](parentKey: Seq[K], dataKey: K) extends UserEntry[K]
+  case class SubMapsStart[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
+  case class SubMap[+K](parentKey: Iterable[K], dataKey: K) extends UserEntry[K]
+  case class SubMapsEnd[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
 
-  case class MapEntriesEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
-
-  case class SubMapsStart[+K](parentKey: Seq[K]) extends MultiMapKey[K]
-
-  case class SubMap[+K](parentKey: Seq[K], dataKey: K) extends UserEntry[K]
-
-  case class SubMapsEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
-
-  case class MapEnd[+K](parentKey: Seq[K]) extends MultiMapKey[K]
+  case class MapEnd[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
 
   //formatId for the serializers. Each key is prepended with this formatId.
   private val formatId: Byte = 0
@@ -74,7 +72,7 @@ protected object MultiMapKey {
   private val mapEnd: Byte = 127 //keep this to map so that there is enough space in the map to add more data types.
   //actual queues's data is outside the map
 
-  protected def writeKeys[K](keys: Seq[K],
+  protected def writeKeys[K](keys: Iterable[K],
                              keySerializer: Serializer[K]): Slice[Byte] =
     if (keys.isEmpty)
       Slice.emptyBytes
@@ -96,14 +94,11 @@ protected object MultiMapKey {
       slice
     }
 
-  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): Seq[K] =
-    Reader(keys).foldLeft(Seq.empty[K]) {
+  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): Iterable[K] =
+    Reader(keys).foldLeft(ListBuffer.empty[K]) {
       case (keys, reader) =>
-        val bytes = reader.read(reader.readUnsignedInt())
-        if (bytes.isEmpty)
-          keys
-        else
-          keys :+ keySerializer.read(bytes)
+        val tailKeyBytes = reader.read(reader.readUnsignedInt())
+        keys :+ keySerializer.read(tailKeyBytes)
     }
 
   /**
