@@ -19,6 +19,8 @@
 
 package swaydb.api
 
+import java.nio.file.Files
+
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
@@ -318,6 +320,19 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
       db.contains(100001).right.value shouldBe false
 
       db.close().get
+    }
+
+    "delete" in {
+      val db = newDB()
+
+      (1 to 100000) foreach {
+        i =>
+          db.put(i, i.toString).right.value
+      }
+
+      db.delete().value
+
+      Files.exists(db.path) shouldBe false
     }
 
     "return valueSize" in {

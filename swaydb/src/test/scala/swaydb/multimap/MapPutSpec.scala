@@ -19,6 +19,8 @@
 
 package swaydb.multimap
 
+import java.nio.file.Files
+
 import org.scalatest.OptionValues._
 import swaydb.Bag
 import swaydb.IOValues._
@@ -27,6 +29,7 @@ import swaydb.core.RunThis._
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.MultiMap
+import swaydb.core.TestData._
 
 class MapPutSpec0 extends MapPutSpec {
   val keyValueCount: Int = 1000
@@ -68,8 +71,11 @@ sealed trait MapPutSpec extends TestBaseEmbedded {
     "Initialise a RootMap & SubMap from Root" in {
       val root = newDB()
 
-      val child1 = root.putMap(1)
-      val child2 = root.putMap(2)
+      var child1 = root.putMap(1)
+      var child2 = root.putMap(2)
+
+      if(randomBoolean()) child1 = root.getMap(1).value
+      if(randomBoolean()) child2 = root.getMap(2).value
 
       child1.put(3, "three")
       child1.put(4, "four")

@@ -89,7 +89,7 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
 
       db.asScala.get(1) should contain("one")
 
-      db.close().get
+      db.delete().get
     }
 
     "putAll" in {

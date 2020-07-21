@@ -184,7 +184,8 @@ private[core] object LevelZero extends LazyLogging {
           zero
             .nextLevel
             .map(_.delete)
-            .getOrElse(IO[swaydb.Error.Delete, Unit](Effect.walkDelete(zero.path.getParent)))
+            .getOrElse(IO.unit)
+            .and(IO[swaydb.Error.Delete, Unit](Effect.walkDelete(zero.path.getParent)))
       }
 }
 

@@ -422,14 +422,14 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
       case Prepare.ApplyFunction(from, to, function) =>
         // Temporary solution: casted because the actual instance itself not used internally.
         // Core only uses the String value of function.id which is searched in functionStore to validate function.
-        val castFunction = function.asInstanceOf[PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]
+        val castedFunction = function.asInstanceOf[PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]
 
         to match {
           case Some(to) =>
-            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = Some(MapEntry(mapKey, to)), function = castFunction)
+            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = Some(MapEntry(mapKey, to)), function = castedFunction)
 
           case None =>
-            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = None, function = castFunction)
+            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = None, function = castedFunction)
         }
 
       case Prepare.Add(elem, deadline) =>
@@ -514,7 +514,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   //    )(keySerializer, bag)
 
   private[swaydb] def keySet: mutable.Set[K] =
-    throw new NotImplementedError("KeySet function is not yet implement. Please request for this on GitHub")
+    throw new NotImplementedError("KeySet function is not yet implemented. Please request for this on GitHub - https://github.com/simerplaha/SwayDB/issues.")
 
   def levelZeroMeter: LevelZeroMeter =
     map.levelZeroMeter

@@ -327,7 +327,8 @@ private[core] object Level extends LazyLogging {
           level
             .nextLevel
             .map(_.delete)
-            .getOrElse {
+            .getOrElse(IO.unit)
+            .and {
               level
                 .pathDistributor
                 .dirs
