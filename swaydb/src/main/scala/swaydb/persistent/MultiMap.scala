@@ -34,9 +34,8 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, IO, KeyOrderConverter, MultiMap, MultiMapKey, OK, Prepare, PureFunction}
+import swaydb.{Apply, IO, KeyOrderConverter, MultiMapKey, PureFunction}
 
-import scala.collection.compat._
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
@@ -120,50 +119,10 @@ object MultiMap extends LazyLogging {
       byteKeyOrder = internalKeyOrder
     ) match {
       case IO.Right(rootMap) =>
-        initMultiMap(rootMap)
+        swaydb.MultiMap.initMultiMap(rootMap)
 
       case IO.Left(error) =>
         bag.failure(error.exception)
     }
   }
-
-  /**
-   * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap]] instance.
-   */
-  private def initMultiMap[K, V, F, BAG[_]](rootMap: swaydb.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
-                                                                                                                                                                keySerializer: Serializer[K],
-                                                                                                                                                                valueSerializer: Serializer[V]): BAG[MultiMap[K, V, F, BAG]] =
-    bag.flatMap(rootMap.isEmpty) {
-      isEmpty =>
-        val rootMapKey = Seq.empty[K]
-
-        def initialEntries: BAG[OK] =
-          rootMap.commit(
-            Seq(
-              Prepare.Put(MultiMapKey.MapStart(rootMapKey), None),
-              Prepare.Put(MultiMapKey.MapEntriesStart(rootMapKey), None),
-              Prepare.Put(MultiMapKey.MapEntriesEnd(rootMapKey), None),
-              Prepare.Put(MultiMapKey.SubMapsStart(rootMapKey), None),
-              Prepare.Put(MultiMapKey.SubMapsEnd(rootMapKey), None),
-              Prepare.Put(MultiMapKey.MapEnd(rootMapKey), None)
-            )
-          )
-
-        //Root Map has empty keys so if this database is new commit initial entries.
-        if (isEmpty)
-          bag.transform(initialEntries) {
-            _ =>
-              swaydb.MultiMap[K, V, F, BAG](
-                map = rootMap,
-                mapKey = rootMapKey
-              )
-          }
-        else
-          bag.success(
-            swaydb.MultiMap[K, V, F, BAG](
-              map = rootMap,
-              mapKey = rootMapKey
-            )
-          )
-    }
 }

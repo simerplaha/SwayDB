@@ -26,7 +26,7 @@ package swaydb
 
 import java.nio.file.Path
 
-import swaydb.MultiMapKey.{MapEnd, MapEntriesEnd, MapEntriesStart, MapEntry, MapStart, SubMap, UserEntry}
+import swaydb.MultiMapKey.{MapEnd, MapEntriesEnd, MapEntriesStart, MapEntry, MapStart, SubMap}
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
@@ -43,6 +43,46 @@ object MultiMap {
 
   implicit def void[K, V]: Functions[K, V, Void] =
     new Functions[K, V, Void]()(null, null)
+
+  /**
+   * Given the inner [[swaydb.Map]] instance this creates a parent [[MultiMap]] instance.
+   */
+  private[swaydb] def initMultiMap[K, V, F, BAG[_]](rootMap: swaydb.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG])(implicit bag: swaydb.Bag[BAG],
+                                                                                                                                                                        keySerializer: Serializer[K],
+                                                                                                                                                                        valueSerializer: Serializer[V]): BAG[MultiMap[K, V, F, BAG]] =
+    bag.flatMap(rootMap.isEmpty) {
+      isEmpty =>
+        val rootMapKey = Seq.empty[K]
+
+        def initialEntries: BAG[OK] =
+          rootMap.commit(
+            Seq(
+              Prepare.Put(MultiMapKey.MapStart(rootMapKey), None),
+              Prepare.Put(MultiMapKey.MapEntriesStart(rootMapKey), None),
+              Prepare.Put(MultiMapKey.MapEntriesEnd(rootMapKey), None),
+              Prepare.Put(MultiMapKey.SubMapsStart(rootMapKey), None),
+              Prepare.Put(MultiMapKey.SubMapsEnd(rootMapKey), None),
+              Prepare.Put(MultiMapKey.MapEnd(rootMapKey), None)
+            )
+          )
+
+        //Root Map has empty keys so if this database is new commit initial entries.
+        if (isEmpty)
+          bag.transform(initialEntries) {
+            _ =>
+              swaydb.MultiMap[K, V, F, BAG](
+                map = rootMap,
+                mapKey = rootMapKey
+              )
+          }
+        else
+          bag.success(
+            swaydb.MultiMap[K, V, F, BAG](
+              map = rootMap,
+              mapKey = rootMapKey
+            )
+          )
+    }
 
   object Functions {
     def apply[K, V, F](functions: F*)(implicit keySerializer: Serializer[K],
@@ -221,7 +261,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   /**
    * Streams all child Maps.
    */
-  def streamChildMaps: Stream[MultiMap[K, V, F, BAG]] =
+  def subMaps: Stream[MultiMap[K, V, F, BAG]] =
     map
       .after(MultiMapKey.SubMapsStart(mapKey))
       .keys
