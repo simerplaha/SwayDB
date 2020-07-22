@@ -93,6 +93,7 @@ protected object SegmentReadState {
     //mutate segmentState for next sequential read
     state.forKey = forKey
     state.foundKeyValue = found
+    state.foundLowerKeyValue = Persistent.Null
     state.isSequential = true
   }
 
@@ -158,8 +159,11 @@ protected object SegmentReadState {
       segmentState.forKey = forKey
       segmentState.isSequential = foundKeyValue.indexOffset == segmentState.foundKeyValue.nextIndexOffset
       segmentState.foundKeyValue = foundKeyValue
+      //randomRead means that current lower search for
+      segmentState.foundLowerKeyValue = Persistent.Null
     } else {
       segmentState.isSequential = false
+      segmentState.foundLowerKeyValue = Persistent.Null
     }
 }
 

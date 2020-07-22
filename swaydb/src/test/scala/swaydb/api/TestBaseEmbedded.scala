@@ -47,7 +47,7 @@ trait TestBaseEmbedded extends TestBase {
         case (root, id) =>
           val sub =
             if (Random.nextBoolean())
-              root.children.getOrPut(id).value
+              root.children.init(id).value
             else
               root
 

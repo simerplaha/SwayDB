@@ -58,6 +58,7 @@ private[core] object SegmentRef {
 
   final case object Null extends SegmentRefOption {
     override def isNoneS: Boolean = true
+
     override def getS: SegmentRef = throw new Exception("SegmentRef is of type Null")
   }
 
@@ -527,8 +528,8 @@ private[core] object SegmentRef {
             val footer = blockCache.getFooter()
             val lowerFromState =
               if (segmentStateOption.isSomeS)
-              //using foundKeyValue here instead of foundLowerKeyValue because foundKeyValue is always == foundLowerKeyValue if previous seek was lower
-              //if not then foundKeyValue gives a higher chance of being lower for cases with random reads were performed.
+                //using foundKeyValue here instead of foundLowerKeyValue because foundKeyValue is always == foundLowerKeyValue if previous seek was lower
+                //if not then foundKeyValue gives a higher chance of being lower for cases with random reads were performed.
                 segmentStateOption.getS.foundKeyValue match {
                   case range: Persistent.Range if KeyValue.Range.containsLower(range, key) =>
                     range

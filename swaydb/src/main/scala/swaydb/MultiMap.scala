@@ -200,7 +200,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private val map: Map[MultiMapKey[K]
   /**
    * APIs for managing child map of this [[MultiMap]].
    */
-  def children: Children[K, V, F, BAG] =
+  val children: Children[K, V, F, BAG] =
     new swaydb.Children(
       map = map,
       mapKey = mapKey,
@@ -561,8 +561,10 @@ case class MultiMap[K, V, F, BAG[_]] private(private val map: Map[MultiMapKey[K]
             map.after(from.key)
           else if (from.orBefore)
             map.fromOrBefore(from.key)
-          else
+          else if (from.orAfter)
             map.fromOrAfter(from.key)
+          else
+            map.from(from.key)
 
         if (reverseIteration)
           boundStreamToMap(start.reverse.stream)

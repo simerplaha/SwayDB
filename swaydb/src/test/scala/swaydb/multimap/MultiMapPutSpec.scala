@@ -49,8 +49,8 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
     "Initialise a RootMap & SubMap from Root" in {
       val root = newDB()
 
-      var child1 = root.children.getOrPut(1)
-      var child2 = root.children.getOrPut(2)
+      var child1 = root.children.init(1)
+      var child2 = root.children.init(2)
 
       if (randomBoolean()) child1 = root.children.get(1).value
       if (randomBoolean()) child2 = root.children.get(2).value
@@ -83,12 +83,12 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
         firstMap.put(4, "four again")
       }
 
-      val child1 = root.children.getOrPut(1)
+      val child1 = root.children.init(1)
 
-      val child2 = child1.children.getOrPut(2)
+      val child2 = child1.children.init(2)
       insert(child2)
 
-      val child3 = child1.children.getOrPut(3)
+      val child3 = child1.children.init(3)
       insert(child3)
 
       child1.isEmpty shouldBe true
@@ -109,13 +109,13 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
     "Initialise 2 RootMaps & 2 SubMaps under each SubMap" in {
       val root = newDB()
 
-      var root1 = root.children.getOrPut(1)
-      var root2 = root.children.getOrPut(2)
+      var root1 = root.children.init(1)
+      var root2 = root.children.init(2)
       if (randomBoolean()) root1 = root.children.get(1).value
       if (randomBoolean()) root2 = root.children.get(2).value
 
-      var sub11 = root1.children.getOrPut(1)
-      var sub12 = root1.children.getOrPut(2)
+      var sub11 = root1.children.init(1)
+      var sub12 = root1.children.init(2)
       if (randomBoolean()) sub11 = root1.children.get(1).value
       if (randomBoolean()) sub12 = root1.children.get(2).value
       sub11.put(1, "one")
@@ -123,8 +123,8 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
       if (randomBoolean()) sub11 = root1.children.get(1).value
       if (randomBoolean()) sub12 = root1.children.get(2).value
 
-      var sub21 = root2.children.getOrPut(1)
-      var sub22 = root2.children.getOrPut(2)
+      var sub21 = root2.children.init(1)
+      var sub22 = root2.children.init(2)
       if (randomBoolean()) sub21 = root2.children.get(1).value
       if (randomBoolean()) sub22 = root2.children.get(2).value
       sub21.put(1, "1")

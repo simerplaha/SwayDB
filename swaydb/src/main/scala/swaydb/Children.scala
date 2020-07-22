@@ -25,11 +25,10 @@
 package swaydb
 
 import swaydb.MultiMapKey.{MapEnd, MapStart}
+import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
 import swaydb.serializers._
-import swaydb.core.util.Times._
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
@@ -44,47 +43,47 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
   /**
    * Creates new or initialises the existing map.
    */
-  def getOrPut(key: K): BAG[MultiMap[K, V, F, BAG]] =
+  def init(key: K): BAG[MultiMap[K, V, F, BAG]] =
     getOrPut(key = key, expireAt = None, clear = false)
 
   /**
    * Clears existing entries before creating the Map.
    *
    * @note Put has slower immediate write performance for preceding key-value entries.
-   *       Always use [[getOrPut]] if clearing existing entries is not required.
+   *       Always use [[init]] if clearing existing entries is not required.
    */
-  def put(key: K): BAG[MultiMap[K, V, F, BAG]] =
+  def replace(key: K): BAG[MultiMap[K, V, F, BAG]] =
     getOrPut(key, None, clear = true)
 
   /**
    * Creates new or initialises the existing map.
    */
-  def getOrPut(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
+  def init(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), clear = false)
 
   /**
    * Clears existing entries before creating the Map.
    *
    * @note Put has slower immediate write performance for preceding key-value entries.
-   *       Always use [[getOrPut]] if clearing existing entries is not required.
+   *       Always use [[init]] if clearing existing entries is not required.
    */
-  def put(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
+  def replace(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), clear = true)
 
   /**
    * Creates new or initialises the existing map.
    */
 
-  def getOrPut(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
+  def init(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
     getOrPut(key, Some(expireAt), clear = false)
 
   /**
    * Clears existing entries before creating the Map.
    *
    * @note Put has slower immediate write performance for preceding key-value entries.
-   *       Always use [[getOrPut]] if clearing existing entries is not required.
+   *       Always use [[init]] if clearing existing entries is not required.
    */
-  def put(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
+  def replace(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
     getOrPut(key = key, expireAt = Some(expireAt), clear = true)
 
   /**
