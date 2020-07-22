@@ -118,6 +118,8 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def getKeyValue(key: K): BAG[Option[(K, V)]]
 
+  def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]]
+
   def contains(key: K): BAG[Boolean]
 
   def mightContain(key: K): BAG[Boolean]

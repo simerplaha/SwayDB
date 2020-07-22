@@ -80,6 +80,16 @@ object Bag extends LazyLogging {
   }
 
   object Transfer {
+
+    implicit def sameBag[A[_], B[_]](implicit evd: A[_] =:= B[_]) =
+      new Transfer[A, B] {
+        override def to[T](a: A[T]): B[T] =
+          a.asInstanceOf[B[T]]
+
+        override def from[T](b: B[T]): A[T] =
+          b.asInstanceOf[A[T]]
+      }
+
     implicit val optionToTry = new Transfer[Option, Try] {
       override def to[T](a: Option[T]): Try[T] =
         tryBag(a.get)

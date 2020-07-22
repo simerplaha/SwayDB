@@ -66,4 +66,17 @@ class TimesSpec extends AnyWordSpec with Matchers {
       0L.toDeadlineOption shouldBe empty
     }
   }
+
+  "earlier" should {
+    "return the earliest deadline" in {
+      val deadline1 = 10.seconds.fromNow
+      val deadline2 = 20.seconds.fromNow
+
+      deadline1.earlier(Some(deadline2)) shouldBe deadline1
+      deadline2.earlier(Some(deadline1)) shouldBe deadline1
+
+      deadline1.earlier(None) shouldBe deadline1
+      deadline2.earlier(None) shouldBe deadline2
+    }
+  }
 }

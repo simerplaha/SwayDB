@@ -251,6 +251,15 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
         (keyValue.left.read[K], keyValue.right.read[V])
     })
 
+  def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]] =
+    bag.flatMap(core.getKeyDeadline(key, core.readStates.get())) {
+      case TupleOrNone.None =>
+        bag.none[(K, Option[Deadline])]
+
+      case TupleOrNone.Some(left, right) =>
+        bag.success(Some((left.read[K], right)))
+    }
+
   def contains(key: K): BAG[Boolean] =
     bag.suspend(core.contains(key, core.readStates.get()))
 

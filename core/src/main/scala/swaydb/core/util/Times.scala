@@ -41,6 +41,24 @@ private[swaydb] object Times {
         case None =>
           0L
       }
+
+    def earlier(other: Option[Deadline]): Option[Deadline] =
+      (deadline, other) match {
+        case (left @ Some(leftExpiration), right @ Some(rightExpiration)) =>
+          if(leftExpiration.timeLeft <= rightExpiration.timeLeft)
+            left
+          else
+            right
+
+        case (some @ Some(_), None) =>
+          some
+
+        case (None, right @ Some(_)) =>
+          right
+
+        case (None, None) =>
+          None
+      }
   }
 
   implicit class DeadlineImplicits(deadline: Deadline) {
@@ -52,6 +70,18 @@ private[swaydb] object Times {
 
     @inline final def toBytes: Slice[Byte] =
       Slice.writeLong(toNanos)
+
+    def earlier(other: Option[Deadline]): Deadline =
+      other match {
+        case Some(other) =>
+          if(deadline.timeLeft <= other.timeLeft)
+            deadline
+          else
+            other
+
+        case None =>
+          deadline
+      }
   }
 
   implicit class LongImplicits(deadline: Long) {

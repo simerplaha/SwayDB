@@ -456,6 +456,18 @@ case class MultiMap[K, V, F, BAG[_]] private(private val map: Map[MultiMapKey[K]
         None
     }
 
+  override def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]] =
+    bag.map(map.getKeyDeadline(MapEntry(mapKey, key))) {
+      case Some((MapEntry(_, key), deadline)) =>
+        Some((key, deadline))
+
+      case Some(entry) =>
+        MultiMap.failure(MapEntry.getClass, entry.getClass)
+
+      case None =>
+        None
+    }
+
   def contains(key: K): BAG[Boolean] =
     map.contains(MapEntry(mapKey, key))
 
@@ -608,4 +620,6 @@ case class MultiMap[K, V, F, BAG[_]] private(private val map: Map[MultiMapKey[K]
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getClass.getSimpleName
+
+
 }

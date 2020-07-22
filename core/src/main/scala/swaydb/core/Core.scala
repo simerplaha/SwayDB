@@ -294,6 +294,10 @@ private[swaydb] class Core[BAG[_]](val zero: LevelZero,
                           readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     zero.run(_.get(key, readState).toTupleOrNone)
 
+  def getKeyDeadline[BAG[_]](key: Slice[Byte],
+                             readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], Option[Deadline]]] =
+    zero.run(_.get(key, readState).toDeadlineOrNone)
+
   def before[BAG[_]](key: Slice[Byte],
                      readState: ThreadReadState)(implicit bag: Bag[BAG]): BAG[TupleOrNone[Slice[Byte], SliceOption[Byte]]] =
     zero.run(_.lower(key, readState).toTupleOrNone)
