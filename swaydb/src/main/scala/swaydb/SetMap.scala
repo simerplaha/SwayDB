@@ -119,11 +119,11 @@ object SetMap {
 }
 
 /**
- * A [[SetMap]] is simply a wrapper around [[Set]] to provide
+ * A [[SetMap]] is a simple wrapper around [[Set]] to provide
  * [[Map]] like API on [[Set]] storage format.
  *
  * [[SetMap]] has limited write APIs as compared to [[swaydb.Map]]
- * range & update operations are not supported.
+ * and range & update operations are not supported.
  */
 case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit bag: Bag[BAG]) extends SetMapT[K, V, F, BAG] { self =>
 

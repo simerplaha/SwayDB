@@ -160,6 +160,9 @@ protected object SegmentReadState {
 }
 
 /**
+ * Stores read state of each accessed Segment.
+ * This cache is currently managed in [[swaydb.core.Core.readStates]].
+ *
  * Both Get and Higher functions mutate [[keyValue]]. But lower
  * can only mutate [[lower]] as it depends on get to fetch
  * the end key-value for faster lower search and should not mutate
