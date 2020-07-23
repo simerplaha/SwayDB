@@ -19,44 +19,46 @@
 
 package swaydb.multimap
 
+import swaydb.Bag.Less
 import swaydb.api.TestBaseEmbedded
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
 import swaydb.{Bag, MultiMap}
 import swaydb.core.RunThis._
 import swaydb.core.CommonAssertions._
+import org.scalatest.OptionValues._
 
 import scala.util.Random
 
-class FromMapSpec0 extends FromMapSpec {
+class FromMultiMapSpec0 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
     swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir)
 }
 
-class FromMapSpec1 extends FromMapSpec {
+class FromMultiMapSpec1 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
     swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
 }
 
-class FromMapSpec2 extends FromMapSpec {
+class FromMultiMapSpec2 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
     swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]()
 }
 
-class FromMapSpec3 extends FromMapSpec {
+class FromMultiMapSpec3 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
     swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less](mapSize = 1.byte)
 }
 
-sealed trait FromMapSpec extends TestBaseEmbedded {
+sealed trait FromMultiMapSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
@@ -69,13 +71,169 @@ sealed trait FromMapSpec extends TestBaseEmbedded {
     "return empty on an empty Map" in {
       val root = newDB()
 
-      val rootMap = root.children.init(1)
+      val child1 = root.children.init(1)
+      root.children.init(1) //for testing that initialising an existing map does not create a new map
+      val child2 = root.children.init(2)
 
-      rootMap.stream.materialize.toList shouldBe empty
-      rootMap.from(1).stream.materialize.toList shouldBe empty
-      rootMap.children.keys.materialize.toList shouldBe empty
+      Seq(root, child1, child2) foreach {
+        map =>
+          map.get(1) shouldBe empty
+          map.stream.materialize.toList shouldBe empty
+          map.from(1).stream.materialize.toList shouldBe empty
+          map.from(1).reverse.stream.materialize.toList shouldBe empty
+      }
+
+      root.children.keys.materialize.toList should contain only(1, 2)
+      child1.children.keys.materialize.toList shouldBe empty
 
       root.delete()
+    }
+
+    "if the map contains only 1 element" in {
+      val db = newDB()
+
+      val rootMap = db.children.init(1)
+      val firstMap = rootMap.children.init(2)
+
+      firstMap.put(1, "one")
+
+      firstMap
+        .from(2)
+        .stream
+        .materialize
+        .toList shouldBe empty
+
+      firstMap
+        .after(1)
+        .stream
+        .materialize
+        .toList shouldBe empty
+
+      firstMap
+        .from(1)
+        .stream
+        .materialize
+        .toList should contain only ((1, "one"))
+
+      firstMap
+        .fromOrBefore(2)
+        .stream
+        .materialize
+        .toList should contain only ((1, "one"))
+
+      firstMap
+        .fromOrBefore(1)
+        .stream
+        .materialize
+        .toList should contain only ((1, "one"))
+
+      firstMap
+        .after(0)
+        .stream
+        .materialize
+        .toList should contain only ((1, "one"))
+
+      firstMap
+        .fromOrAfter(0)
+        .stream
+        .materialize
+        .toList should contain only ((1, "one"))
+
+      firstMap
+        .stream
+        .materialize
+        .size shouldBe 1
+
+      firstMap.headOption.value shouldBe ((1, "one"))
+      firstMap.lastOption.value shouldBe ((1, "one"))
+
+      db.delete()
+    }
+
+    "Sibling maps" in {
+      val db = newDB()
+
+      val rootMap = db.children.init(1)
+
+      val subMap1: Less[MultiMap[Int, String, Nothing, Less]] = rootMap.children.init(2)
+      subMap1.put(1, "one")
+      subMap1.put(2, "two")
+
+      val subMap2 = rootMap.children.init(3)
+      subMap2.put(3, "three")
+      subMap2.put(4, "four")
+
+      runThisParallel(20.times) {
+        Seq(
+          () => subMap1.from(3).stream.materialize shouldBe empty,
+          () => subMap1.after(2).stream.materialize shouldBe empty,
+          () => subMap1.from(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.fromOrBefore(2).stream.materialize.toList should contain only ((2, "two")),
+          () => subMap1.fromOrBefore(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.after(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.fromOrAfter(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.stream.size shouldBe 2,
+          () => subMap1.headOption.value shouldBe ((1, "one")),
+          () => subMap1.lastOption.value shouldBe ((2, "two")),
+
+          () => subMap2.from(5).stream.materialize shouldBe empty,
+          () => subMap2.after(4).stream.materialize shouldBe empty,
+          () => subMap2.from(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.fromOrBefore(5).stream.materialize.toList should contain only ((4, "four")),
+          () => subMap2.fromOrBefore(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.after(0).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.fromOrAfter(1).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.stream.size shouldBe 2,
+          () => subMap2.headOption.value shouldBe ((3, "three")),
+          () => subMap2.lastOption.value shouldBe ((4, "four"))
+        ).runThisRandomly
+      }
+
+      db.delete()
+    }
+
+    "nested maps" in {
+      val db = newDB()
+
+      val rootMap = db.children.init(1)
+
+      val subMap1 = rootMap.children.init(2)
+      subMap1.put(1, "one")
+      subMap1.put(2, "two")
+
+      val subMap2 = subMap1.children.init(3)
+      subMap2.put(3, "three")
+      subMap2.put(4, "four")
+
+      runThisParallel(20.times) {
+        Seq(
+          () => subMap1.from(4).stream.materialize.toList shouldBe empty,
+          () => subMap1.after(3).stream.materialize.toList shouldBe empty,
+          () => subMap1.from(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.children.keys.materialize.toList should contain only 3,
+          () => subMap1.fromOrBefore(2).stream.materialize.toList should contain only ((2, "two")),
+
+          () => subMap1.fromOrBefore(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.after(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.fromOrAfter(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
+          () => subMap1.stream.size shouldBe 2,
+          () => subMap1.headOption.value shouldBe ((1, "one")),
+          () => subMap1.children.keys.lastOption.value shouldBe 3,
+
+          () => subMap2.from(5).stream.materialize.toList shouldBe empty,
+          () => subMap2.after(4).stream.materialize.toList shouldBe empty,
+          () => subMap2.from(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.fromOrBefore(5).stream.materialize.toList should contain only ((4, "four")),
+          () => subMap2.fromOrBefore(3).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.after(0).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.fromOrAfter(1).stream.materialize.toList should contain inOrderOnly((3, "three"), (4, "four")),
+          () => subMap2.stream.size shouldBe 2,
+          () => subMap2.headOption.value shouldBe ((3, "three")),
+          () => subMap2.lastOption.value shouldBe ((4, "four"))
+        ).runThisRandomly
+      }
+
+      db.delete()
     }
 
     "if the map contains multiple non empty subMap" in {
