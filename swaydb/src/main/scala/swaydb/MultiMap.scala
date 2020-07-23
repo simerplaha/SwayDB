@@ -114,7 +114,7 @@ object MultiMap {
   final case class Functions[K, V, F]()(implicit keySerializer: Serializer[K],
                                         valueSerializer: Serializer[V]) {
 
-    private implicit val optionalSerialiser = Serializer.toOption(valueSerializer)
+    private implicit val optionalSerialiser = Serializer.toNestedOption(valueSerializer)
 
     private[swaydb] val innerFunctions = swaydb.Map.Functions[MultiMapKey[K], Option[V], swaydb.PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]()
 

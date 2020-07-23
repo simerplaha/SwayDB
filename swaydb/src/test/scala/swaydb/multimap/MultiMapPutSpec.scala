@@ -29,14 +29,14 @@ class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): swaydb.MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir)
+    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir).get
 }
 
 class MultiMapPutSpec1 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): swaydb.MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]()
+    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]().get
 }
 
 sealed trait MultiMapPutSpec extends TestBaseEmbedded {

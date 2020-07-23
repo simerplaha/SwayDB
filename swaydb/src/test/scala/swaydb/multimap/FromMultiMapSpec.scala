@@ -34,28 +34,28 @@ class FromMultiMapSpec0 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir)
+    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir).get
 }
 
 class FromMultiMapSpec1 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
+    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte).get
 }
 
 class FromMultiMapSpec2 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]()
+    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]().get
 }
 
 class FromMultiMapSpec3 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less](mapSize = 1.byte)
+    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less](mapSize = 1.byte).get
 }
 
 sealed trait FromMultiMapSpec extends TestBaseEmbedded {

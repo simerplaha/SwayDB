@@ -69,14 +69,14 @@ class MultiMapExpireSpec4 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).right.value)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).value.get)
 }
 
 class MultiMapExpireSpec5 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().right.value)
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().value.get)
 }
 
 

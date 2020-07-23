@@ -32,7 +32,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, IO, KeyOrderConverter, MultiMapKey, PureFunction}
+import swaydb.{Apply, Error, IO, KeyOrderConverter, MultiMap, MultiMapKey, PureFunction}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -57,10 +57,10 @@ object MultiMap extends LazyLogging {
                                                                                                                                bag: swaydb.Bag[BAG],
                                                                                                                                functions: swaydb.MultiMap.Functions[K, V, F],
                                                                                                                                byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                               typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.MultiMap[K, V, F, BAG]] = {
+                                                                                                                               typedKeyOrder: KeyOrder[K] = null): IO[Error.Boot, BAG[MultiMap[K, V, Nothing, BAG]]] = {
 
     implicit val mapKeySerializer: Serializer[MultiMapKey[K]] = MultiMapKey.serializer(keySerializer)
-    implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toOption(valueSerializer)
+    implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toNestedOption(valueSerializer)
 
     val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
     val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiMapKey.ordering(keyOrder)
@@ -82,12 +82,9 @@ object MultiMap extends LazyLogging {
       bag = bag,
       functions = functions.innerFunctions,
       byteKeyOrder = internalKeyOrder
-    ) match {
-      case IO.Right(rootMap) =>
-        swaydb.MultiMap(rootMap)
-
-      case IO.Left(error) =>
-        bag.failure(error.exception)
+    ) map {
+      map =>
+        swaydb.MultiMap(map)
     }
   }
 
