@@ -33,7 +33,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
 
     import swaydb.serializers.Default._
 
-    val rootMap = swaydb.memory.MultiMap[Int, Option[String], Nothing, Bag.Less]().get
+    val rootMap = swaydb.memory.MultiMap[Int, Option[String], Nothing, Bag.Less]()
 
     rootMap.put(1, None)
     rootMap.contains(1) shouldBe true
@@ -85,7 +85,7 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
           Some(Value.NonEmpty(StringSerializer.read(data)))
     }
 
-    val rootMap = swaydb.memory.MultiMap[Int, Option[Value], Nothing, Bag.Less]().get
+    val rootMap = swaydb.memory.MultiMap[Int, Option[Value], Nothing, Bag.Less]()
 
     rootMap.put(1, Some(Value.Empty))
     rootMap.put(2, Some(Value.NonEmpty("two")))

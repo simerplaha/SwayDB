@@ -55,12 +55,12 @@ class SwayDBGetSpec3 extends SwayDBGetSpec {
 
 class MultiMapGetSpec4 extends SwayDBGetSpec {
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).value.get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).get)
 }
 
 class MultiMapGetSpec5 extends SwayDBGetSpec {
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().value.get)
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().get)
 }
 
 sealed trait SwayDBGetSpec extends TestBaseEmbedded {

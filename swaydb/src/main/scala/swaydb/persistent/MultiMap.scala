@@ -75,7 +75,7 @@ object MultiMap extends LazyLogging {
                                                                                                          bag: swaydb.Bag[BAG],
                                                                                                          functions: swaydb.MultiMap.Functions[K, V, F],
                                                                                                          byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                         typedKeyOrder: KeyOrder[K] = null): IO[Error.Boot, BAG[MultiMap[K, V, Nothing, BAG]]] = {
+                                                                                                         typedKeyOrder: KeyOrder[K] = null): BAG[MultiMap[K, V, F, BAG]] = {
 
     implicit val mapKeySerializer: Serializer[MultiMapKey[K]] = MultiMapKey.serializer(keySerializer)
     implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toNestedOption(valueSerializer)
@@ -84,41 +84,44 @@ object MultiMap extends LazyLogging {
     val internalKeyOrder: KeyOrder[Slice[Byte]] = MultiMapKey.ordering(keyOrder)
 
     //the inner map with custom keyOrder and custom key-value types to support nested Maps.
-    swaydb.persistent.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG](
-      dir = dir,
-      mapSize = mapSize,
-      mmapMaps = mmapMaps,
-      recoveryMode = recoveryMode,
-      mmapAppendix = mmapAppendix,
-      appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-      otherDirs = otherDirs,
-      cacheKeyValueIds = cacheKeyValueIds,
-      acceleration = acceleration,
-      threadStateCache = threadStateCache,
-      sortedKeyIndex = sortedKeyIndex,
-      randomKeyIndex = randomKeyIndex,
-      binarySearchIndex = binarySearchIndex,
-      mightContainKeyIndex = mightContainKeyIndex,
-      valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig,
-      fileCache = fileCache,
-      memoryCache = memoryCache,
-      levelZeroThrottle = levelZeroThrottle,
-      levelOneThrottle = levelOneThrottle,
-      levelTwoThrottle = levelTwoThrottle,
-      levelThreeThrottle = levelThreeThrottle,
-      levelFourThrottle = levelFourThrottle,
-      levelFiveThrottle = levelFiveThrottle,
-      levelSixThrottle = levelSixThrottle
-    )(keySerializer = mapKeySerializer,
-      valueSerializer = optionValueSerializer,
-      functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]],
-      bag = bag,
-      functions = functions.innerFunctions,
-      byteKeyOrder = internalKeyOrder
-    ) map {
-      rootMap =>
-        swaydb.MultiMap(rootMap)
+    val map =
+      swaydb.persistent.Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG](
+        dir = dir,
+        mapSize = mapSize,
+        mmapMaps = mmapMaps,
+        recoveryMode = recoveryMode,
+        mmapAppendix = mmapAppendix,
+        appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+        otherDirs = otherDirs,
+        cacheKeyValueIds = cacheKeyValueIds,
+        acceleration = acceleration,
+        threadStateCache = threadStateCache,
+        sortedKeyIndex = sortedKeyIndex,
+        randomKeyIndex = randomKeyIndex,
+        binarySearchIndex = binarySearchIndex,
+        mightContainKeyIndex = mightContainKeyIndex,
+        valuesConfig = valuesConfig,
+        segmentConfig = segmentConfig,
+        fileCache = fileCache,
+        memoryCache = memoryCache,
+        levelZeroThrottle = levelZeroThrottle,
+        levelOneThrottle = levelOneThrottle,
+        levelTwoThrottle = levelTwoThrottle,
+        levelThreeThrottle = levelThreeThrottle,
+        levelFourThrottle = levelFourThrottle,
+        levelFiveThrottle = levelFiveThrottle,
+        levelSixThrottle = levelSixThrottle
+      )(keySerializer = mapKeySerializer,
+        valueSerializer = optionValueSerializer,
+        functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]],
+        bag = bag,
+        functions = functions.innerFunctions,
+        byteKeyOrder = internalKeyOrder
+      ).toBag[BAG]
+
+    bag.flatMap(map) {
+      map =>
+        swaydb.MultiMap[K, V, F, BAG](map)
     }
   }
 }

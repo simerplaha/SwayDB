@@ -29,6 +29,7 @@ import swaydb.data.Reserve
 import swaydb.data.slice.Slice
 
 import scala.annotation.tailrec
+import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -114,6 +115,16 @@ sealed trait IO[+L, +R] {
   def toTry: scala.util.Try[R]
   def toDefer[L2 >: L : IO.ExceptionHandler]: IO.Defer[L2, R] =
     IO.Defer.io[L2, R](io = this)
+
+  def toBag[BAG[_]](implicit bag: Bag[BAG]): BAG[R]@uncheckedVariance =
+    this match {
+      case IO.Right(value) =>
+        bag.success(value)
+
+      case IO.Left(value) =>
+        val exception = exceptionHandler.asInstanceOf[IO.ExceptionHandler[L]].toException(value)
+        bag.failure(exception)
+    }
 }
 
 object IO {
@@ -432,6 +443,7 @@ object IO {
     def neverException[T] =
       new ExceptionHandler[T] {
         override def toException(f: T): Throwable = new Exception("neverException: Cannot convert to Exception.")
+
         override def toError(e: Throwable): T = throw new Exception("neverException: Cannot convert Exception to Error.", e)
       }
 
@@ -917,8 +929,8 @@ object IO {
               case IO.Left(error) =>
                 logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                  doRun(recovery.get.asInstanceOf[E => IO.Defer[E, A]](error), 0)
-                else
+                doRun(recovery.get.asInstanceOf[E => IO.Defer[E, A]](error), 0)
+                  else
                   io
             }
 
@@ -963,8 +975,8 @@ object IO {
               case IO.Left(error) =>
                 logger.trace(s"Run! isCached: ${getValue.isDefined}. ${io.getClass.getSimpleName}")
                 if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                  doRun(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
-                else
+                doRun(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
+                  else
                   bag.fromIO(io)
             }
 
@@ -1031,8 +1043,8 @@ object IO {
 
                   case IO.Left(error) =>
                     if (recovery.isDefined) //pattern matching is not allowing @tailrec. So .get is required here.
-                      runNow(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
-                    else
+                    runNow(recovery.get.asInstanceOf[E => IO.Defer[E, B]](error), 0)
+                      else
                       bag.fromIO(io)
                 }
 

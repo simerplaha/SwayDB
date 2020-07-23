@@ -64,16 +64,15 @@ class MultiMapSpec4 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).value.get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).get)
 }
 
 class MultiMapSpec5 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().value.get)
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().get)
 }
-
 
 //class ScalaMapSpec4 extends ScalaMapSpec {
 //
