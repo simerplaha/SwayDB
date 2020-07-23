@@ -24,7 +24,7 @@
 
 package swaydb
 
-import swaydb.MultiMapKey.{MapEnd, MapStart}
+import swaydb.MultiMapKey.{MapEnd, MapStart, SubMap}
 import swaydb.core.util.Times._
 import swaydb.data.slice.Slice
 import swaydb.serializers._
@@ -101,17 +101,20 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
   private def getOrPut(key: K, expireAt: Option[Deadline], clear: Boolean): BAG[MultiMap[K, V, F, BAG]] =
     bag.flatMap(get(key)) {
       case Some(map) =>
-        expireAt match {
-          case Some(existing) =>
-            val newExpiration = existing.earlier(expireAt)
-            if (newExpiration == existing)
-              bag.success(map)
-            else
-              create(key = key, expireAt = Some(newExpiration), clear = clear, expire = true)
+        if (clear)
+          create(key = key, expireAt = expireAt, clear = clear, expire = false)
+        else
+          expireAt match {
+            case Some(existing) =>
+              val newExpiration = existing.earlier(expireAt)
+              if (newExpiration == existing)
+                bag.success(map)
+              else
+                create(key = key, expireAt = Some(newExpiration), clear = false, expire = true)
 
-          case None =>
-            bag.success(map)
-        }
+            case None =>
+              bag.success(map)
+          }
 
       case None =>
         create(key = key, expireAt = expireAt, clear = false, expire = false)
@@ -148,9 +151,16 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
     }
   }
 
-  def remove(key: K): BAG[OK] = {
+  def remove(key: K): BAG[OK] =
+    map.commit(prepareRemove(key))
+
+  private def prepareRemove(key: K): Seq[Prepare.Remove[MultiMapKey[K]]] = {
     val childMapKey = mapKey.toBuffer += key
-    map.remove(MapStart(childMapKey), MapEnd(childMapKey))
+
+    Seq(
+      Prepare.Remove(key = SubMap(mapKey, key)),
+      Prepare.Remove(MapStart(childMapKey), MapEnd(childMapKey))
+    )
   }
 
   /**

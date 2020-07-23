@@ -186,7 +186,7 @@ object MultiMap {
  * [[MultiMap]] is just a simple extension that uses custom data types ([[MultiMapKey]]) and
  * KeyOrder ([[MultiMapKey.ordering]]) for it's API.
  */
-case class MultiMap[K, V, F, BAG[_]] private(private val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
+case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
                                              mapKey: Iterable[K],
                                              private val from: Option[From[MultiMapKey.MapEntry[K]]] = None,
                                              private val reverseIteration: Boolean = false,

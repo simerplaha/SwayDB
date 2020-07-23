@@ -27,12 +27,10 @@ package swaydb.serializers
 import swaydb.data.slice.Slice
 
 object Serializer {
-  private val zero = Slice(0.toByte)
   private val one = Slice(1.toByte)
 
-
   /**
-   * Converts the serialiser to prefix None values 0.byte and Some values with 1.byte.
+   * Converts the serialiser to prefix Some values with 1 byte.
    *
    * SwayDB does not stores empty bytes. But for cases where there are nested null values
    * like Some(None) a marker is required to indicate the value is Some(None) instead of None.
@@ -54,15 +52,12 @@ object Serializer {
             }
 
           case None =>
-            //value does not exist.
-            zero
+            Slice.emptyBytes
         }
 
       override def read(data: Slice[Byte]): Option[A] =
         if (data.isEmpty)
           None
-        else if (data.head == 0)
-          Some(serializer.read(Slice.emptyBytes))
         else
           Some(serializer.read(data.dropHead()))
     }
