@@ -45,7 +45,7 @@ import swaydb.core.util.skiplist.SkipList
 import swaydb.data.MaxKey
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.{Slice, SliceOption}
-import swaydb.data.util.SomeOrNone
+import swaydb.data.util.{SomeOrNone, TupleOrNone}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.compat._
@@ -123,7 +123,7 @@ private[core] object SegmentRef {
     if (segmentState.isSomeS)
       SegmentRef.bestStartForGetOrHigherSearch(
         key = key,
-        keyValueFromState = segmentState.getS.foundKeyValue,
+        keyValueFromState = segmentState.getS.keyValue._2,
         floorFromSkipList = floorFromSkipList
       )
     else
@@ -159,10 +159,10 @@ private[core] object SegmentRef {
                             segmentState: SegmentReadStateOption,
                             ceilingFromSkipList: PersistentOption)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                                                    persistentKeyOrder: KeyOrder[Persistent]): PersistentOption =
-    if (segmentState.isSomeS && segmentState.getS.foundLowerKeyValue.isSomeS)
+    if (segmentState.isSomeS && segmentState.getS.lower.isSomeC)
       SegmentRef.bestEndForLowerSearch(
         key = key,
-        lowerKeyValueFromState = segmentState.getS.foundLowerKeyValue.getS,
+        lowerKeyValueFromState = segmentState.getS.lower.getC.right,
         ceilingFromSkipList = ceilingFromSkipList
       )
     else
@@ -206,7 +206,7 @@ private[core] object SegmentRef {
         val segmentStateOptional = threadState.getSegmentState(segmentRef.path)
         val getFromState =
           if (segmentStateOptional.isSomeS)
-            segmentStateOptional.getS.foundKeyValue match {
+            segmentStateOptional.getS.keyValue._2 match {
               case fixed: Persistent if keyOrder.equiv(fixed.key, key) =>
                 fixed
 
@@ -322,8 +322,8 @@ private[core] object SegmentRef {
           //check for cases where the segment has gaped key-values.
           //key = 5, keys = {1, 2, 3, 4, 5, 10, 11, 12}
           //here higher for 5 will return 10, if 6 is provided then no IO is required and 10 is returned immediately.
-          if (segmentStateOptional.isSomeS && keyOrder.lteq(segmentStateOptional.getS.forKey, key) && keyOrder.gt(segmentStateOptional.getS.foundKeyValue.key, key)) {
-            segmentStateOptional.getS.foundKeyValue
+          if (segmentStateOptional.isSomeS && keyOrder.lteq(segmentStateOptional.getS.keyValue._1, key) && keyOrder.gt(segmentStateOptional.getS.keyValue._2.key, key)) {
+            segmentStateOptional.getS.keyValue._2
           } else {
             val blockCache = segmentRef.segmentBlockCache
             val footer = blockCache.getFooter()
@@ -331,7 +331,7 @@ private[core] object SegmentRef {
             //check if range matches the higher condition without IO.
             val higherFromState =
               if (footer.hasRange && segmentStateOptional.isSomeS)
-                segmentStateOptional.getS.foundKeyValue match {
+                segmentStateOptional.getS.keyValue._2 match {
                   case range: Persistent.Range if KeyValue.Range.contains(range, key) =>
                     range
 
@@ -466,22 +466,23 @@ private[core] object SegmentRef {
       optional =>
         optional foreachS {
           found =>
+            found.unsliceKeys
+            val unslicedKey = key.unslice()
+
             segmentStateOptional match {
               case SegmentReadState.Null =>
                 threadState.setSegmentState(
                   path = path,
                   nextIndexOffset =
                     new SegmentReadState(
-                      forKey = key,
-                      foundKeyValue = found,
-                      foundLowerKeyValue = found,
+                      keyValue = (unslicedKey, found),
+                      lower = TupleOrNone.Some(unslicedKey, found),
                       isSequential = true
                     )
                 )
 
               case state: SegmentReadState =>
-                state.forKey = key
-                state.foundLowerKeyValue = found
+                state.lower = TupleOrNone.Some(unslicedKey, found)
             }
             segmentRef addToSkipList found
         }
@@ -521,8 +522,8 @@ private[core] object SegmentRef {
           //check for cases where the segment has gaped key-values.
           //key = 5, keys = {1, 2, 3, 4, 5, 10, 11, 12}
           //here lower for 9 will return 5, if 8 is provided then no IO is required and 5 is returned immediately.
-          if (segmentStateOption.isSomeS && segmentStateOption.getS.foundLowerKeyValue.isSomeS && keyOrder.gteq(segmentStateOption.getS.forKey, key) && keyOrder.lt(segmentStateOption.getS.foundLowerKeyValue.getS.key, key)) {
-            segmentStateOption.getS.foundLowerKeyValue
+          if (segmentStateOption.isSomeS && segmentStateOption.getS.lower.isSomeC && keyOrder.gteq(segmentStateOption.getS.lower.getC.left, key) && keyOrder.lt(segmentStateOption.getS.lower.getC.right.key, key)) {
+            segmentStateOption.getS.lower.getC.right
           } else {
             val blockCache = segmentRef.segmentBlockCache
             val footer = blockCache.getFooter()
@@ -530,7 +531,7 @@ private[core] object SegmentRef {
               if (segmentStateOption.isSomeS)
                 //using foundKeyValue here instead of foundLowerKeyValue because foundKeyValue is always == foundLowerKeyValue if previous seek was lower
                 //if not then foundKeyValue gives a higher chance of being lower for cases with random reads were performed.
-                segmentStateOption.getS.foundKeyValue match {
+                segmentStateOption.getS.keyValue._2 match {
                   case range: Persistent.Range if KeyValue.Range.containsLower(range, key) =>
                     range
 

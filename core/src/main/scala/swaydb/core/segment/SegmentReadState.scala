@@ -29,7 +29,7 @@ import java.nio.file.Path
 import swaydb.core
 import swaydb.core.data.{Persistent, PersistentOption}
 import swaydb.data.slice.Slice
-import swaydb.data.util.SomeOrNone
+import swaydb.data.util.{SomeOrNone, TupleOrNone}
 
 protected sealed trait SegmentReadStateOption extends SomeOrNone[SegmentReadStateOption, SegmentReadState] {
   override def noneS: SegmentReadStateOption = SegmentReadState.Null
@@ -74,9 +74,8 @@ protected object SegmentReadState {
 
     val segmentState =
       new SegmentReadState(
-        foundKeyValue = found,
-        forKey = forKey,
-        foundLowerKeyValue = Persistent.Null,
+        keyValue = (forKey.unslice(), found),
+        lower = TupleOrNone.None,
         isSequential = true
       )
 
@@ -91,9 +90,7 @@ protected object SegmentReadState {
     found.unsliceKeys
     val state = segmentState.getS
     //mutate segmentState for next sequential read
-    state.forKey = forKey
-    state.foundKeyValue = found
-    state.foundLowerKeyValue = Persistent.Null
+    state.keyValue = (forKey.unslice(), found)
     state.isSequential = true
   }
 
@@ -136,9 +133,8 @@ protected object SegmentReadState {
 
       val segmentState =
         new core.segment.SegmentReadState(
-          foundKeyValue = foundKeyValue,
-          forKey = forKey,
-          foundLowerKeyValue = Persistent.Null,
+          keyValue = (forKey.unslice(), foundKeyValue),
+          lower = TupleOrNone.None,
           isSequential = start.isSomeS && foundKeyValue.indexOffset == start.getS.nextIndexOffset
         )
 
@@ -156,26 +152,21 @@ protected object SegmentReadState {
     if (foundOption.isSomeS) {
       val foundKeyValue = foundOption.getS
       foundKeyValue.unsliceKeys
-      segmentState.forKey = forKey
-      segmentState.isSequential = foundKeyValue.indexOffset == segmentState.foundKeyValue.nextIndexOffset
-      segmentState.foundKeyValue = foundKeyValue
-      //randomRead means that current lower search for
-      segmentState.foundLowerKeyValue = Persistent.Null
+      segmentState.isSequential = foundKeyValue.indexOffset == segmentState.keyValue._2.nextIndexOffset
+      segmentState.keyValue = (forKey.unslice(), foundKeyValue)
     } else {
       segmentState.isSequential = false
-      segmentState.foundLowerKeyValue = Persistent.Null
     }
 }
 
 /**
- * Both Get and Higher functions mutate [[foundKeyValue]]. But lower
- * can only mutate [[foundLowerKeyValue]] as it depends on get to fetch
+ * Both Get and Higher functions mutate [[keyValue]]. But lower
+ * can only mutate [[lower]] as it depends on get to fetch
  * the end key-value for faster lower search and should not mutate
- * get's set [[foundKeyValue]].
+ * get's set [[keyValue]].
  */
-protected class SegmentReadState(var forKey: Slice[Byte],
-                                 var foundKeyValue: Persistent,
-                                 var foundLowerKeyValue: PersistentOption,
+protected class SegmentReadState(var keyValue: (Slice[Byte], Persistent),
+                                 var lower: TupleOrNone[Slice[Byte], Persistent],
                                  var isSequential: Boolean) extends SegmentReadStateOption {
   override def isNoneS: Boolean = false
   override def getS: SegmentReadState = this
