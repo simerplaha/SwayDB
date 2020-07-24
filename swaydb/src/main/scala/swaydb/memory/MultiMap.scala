@@ -32,7 +32,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Apply, Error, IO, KeyOrderConverter, MultiMap, MultiMapKey, PureFunction}
+import swaydb.{Apply, KeyOrderConverter, MultiMap, MultiMapKey, PureFunction}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -90,6 +90,4 @@ object MultiMap extends LazyLogging {
         swaydb.MultiMap[K, V, F, BAG](map)
     }
   }
-
-
 }

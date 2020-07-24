@@ -56,6 +56,6 @@ protected abstract class ScalaMapBase[K, V, F](db: SetMapT[K, V, F, Bag.Less]) e
     db.headOption.get
 
   override def clear(): Unit =
-    db.clear()
+    db.clearKeyValues()
 
 }

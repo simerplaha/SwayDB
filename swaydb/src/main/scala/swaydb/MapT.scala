@@ -92,7 +92,7 @@ trait MapT[K, V, F, BAG[_]] extends SetMapT[K, V, F, BAG] { self =>
 
   def update(keyValues: Iterator[(K, V)]): BAG[OK]
 
-  def clear(): BAG[OK]
+  def clearKeyValues(): BAG[OK]
 
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
 

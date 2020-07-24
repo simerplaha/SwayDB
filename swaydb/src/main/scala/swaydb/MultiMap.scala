@@ -33,6 +33,7 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.compat._
+import swaydb.core.util.Times._
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -208,10 +209,10 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     )
 
   def put(key: K, value: V): BAG[OK] =
-    map.put(MapEntry(mapKey, key), Some(value))
+    map.put(MapEntry(mapKey, key), Some(value), defaultExpiration)
 
   def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK] =
-    map.put(MapEntry(mapKey, key), Some(value), expireAfter)
+    map.put(MapEntry(mapKey, key), Some(value), defaultExpiration.earlier(expireAfter.fromNow))
 
   def put(key: K, value: V, expireAt: Deadline): BAG[OK] =
     map.put(MapEntry(mapKey, key), Some(value), expireAt)
@@ -270,16 +271,16 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     map.remove(keys.map(key => MapEntry(mapKey, key)))
 
   def expire(key: K, after: FiniteDuration): BAG[OK] =
-    map.expire(MapEntry(mapKey, key), after)
+    map.expire(MapEntry(mapKey, key), defaultExpiration.earlier(after.fromNow))
 
   def expire(key: K, at: Deadline): BAG[OK] =
-    map.expire(MapEntry(mapKey, key), at)
+    map.expire(MapEntry(mapKey, key), defaultExpiration.earlier(at))
 
   def expire(from: K, to: K, after: FiniteDuration): BAG[OK] =
-    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), after)
+    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), defaultExpiration.earlier(after.fromNow))
 
   def expire(from: K, to: K, at: Deadline): BAG[OK] =
-    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), at)
+    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), defaultExpiration.earlier(at))
 
   def expire(keys: (K, Deadline)*): BAG[OK] =
     bag.suspend(expire(keys))
@@ -294,7 +295,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     val iterable: Iterable[Prepare[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]] =
       keys.map {
         case (key, deadline) =>
-          Prepare.Expire(MapEntry(mapKey, key), deadline)
+          Prepare.Expire(MapEntry(mapKey, key), deadline.earlier(defaultExpiration))
       }.to(Iterable)
 
     map.commit(iterable)
@@ -332,7 +333,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   def update(keyValues: Iterator[(K, V)]): BAG[OK] =
     update(keyValues.to(Iterable))
 
-  def clear(): BAG[OK] = {
+  def clearKeyValues(): BAG[OK] = {
     val entriesStart = MapEntriesStart(mapKey)
     val entriesEnd = MapEntriesEnd(mapKey)
 
@@ -346,12 +347,22 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     map.commit(entries)
   }
 
+  /**
+   * @note In other operations like [[expire]], [[remove]], [[put]] the input expiration value is compared with [[defaultExpiration]]
+   *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
+   *       key-values earlier than [[defaultExpiration]].
+   */
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] = {
     val innerKey = map.keySerializer.write(MapEntry(mapKey, key))
     val functionId = Slice.writeString(function.id)
     map.core.function(innerKey, functionId)
   }
 
+  /**
+   * @note In other operations like [[expire]], [[remove]], [[put]] the input expiration value is compared with [[defaultExpiration]]
+   *       to get the nearest expiration. But functions does not check if the custom logic within the function expires
+   *       key-values earlier than [[defaultExpiration]].
+   */
   def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] = {
     val fromKey = map.keySerializer.write(MapEntry(mapKey, from))
     val toKey = map.keySerializer.write(MapEntry(mapKey, to))
@@ -365,15 +376,15 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   private def toInnerMapPrepare(prepare: Iterable[Prepare[K, V, _]]): Iterable[Prepare[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]]]] =
     prepare.map {
       case Prepare.Put(key, value, deadline) =>
-        Prepare.Put(MapEntry(mapKey, key), Some(value), deadline orElse defaultExpiration)
+        Prepare.Put(MapEntry(mapKey, key), Some(value), deadline earlier defaultExpiration)
 
       case Prepare.Remove(from, to, deadline) =>
         to match {
           case Some(to) =>
-            Prepare.Remove(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), deadline orElse defaultExpiration)
+            Prepare.Remove(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), deadline earlier defaultExpiration)
 
           case None =>
-            Prepare.Remove[MultiMapKey[K]](from = MapEntry(mapKey, from), to = None, deadline = deadline orElse defaultExpiration)
+            Prepare.Remove[MultiMapKey[K]](from = MapEntry(mapKey, from), to = None, deadline = deadline earlier defaultExpiration)
         }
 
       case Prepare.Update(from, to, value) =>
@@ -399,7 +410,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
         }
 
       case Prepare.Add(elem, deadline) =>
-        Prepare.Put(MapEntry(mapKey, elem), None, deadline orElse defaultExpiration)
+        Prepare.Put(MapEntry(mapKey, elem), None, deadline earlier defaultExpiration)
     }
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =

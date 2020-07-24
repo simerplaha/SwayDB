@@ -44,7 +44,7 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
    * Creates new or initialises the existing map.
    */
   def init(key: K): BAG[MultiMap[K, V, F, BAG]] =
-    getOrPut(key = key, expireAt = None, clear = false)
+    getOrPut(key = key, expireAt = None, forceClear = false)
 
   /**
    * Clears existing entries before creating the Map.
@@ -53,13 +53,13 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
    *       Always use [[init]] if clearing existing entries is not required.
    */
   def replace(key: K): BAG[MultiMap[K, V, F, BAG]] =
-    getOrPut(key, None, clear = true)
+    getOrPut(key, None, forceClear = true)
 
   /**
    * Creates new or initialises the existing map.
    */
   def init(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
-    getOrPut(key, Some(expireAfter.fromNow), clear = false)
+    getOrPut(key, Some(expireAfter.fromNow), forceClear = false)
 
   /**
    * Clears existing entries before creating the Map.
@@ -68,14 +68,13 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
    *       Always use [[init]] if clearing existing entries is not required.
    */
   def replace(key: K, expireAfter: FiniteDuration): BAG[MultiMap[K, V, F, BAG]] =
-    getOrPut(key, Some(expireAfter.fromNow), clear = true)
+    getOrPut(key, Some(expireAfter.fromNow), forceClear = true)
 
   /**
    * Creates new or initialises the existing map.
    */
-
   def init(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
-    getOrPut(key, Some(expireAt), clear = false)
+    getOrPut(key, Some(expireAt), forceClear = false)
 
   /**
    * Clears existing entries before creating the Map.
@@ -84,43 +83,43 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
    *       Always use [[init]] if clearing existing entries is not required.
    */
   def replace(key: K, expireAt: Deadline): BAG[MultiMap[K, V, F, BAG]] =
-    getOrPut(key = key, expireAt = Some(expireAt), clear = true)
+    getOrPut(key = key, expireAt = Some(expireAt), forceClear = true)
 
   /**
    * Inserts a child map to this [[MultiMap]].
    *
    * @param key      key assign to the child
    * @param expireAt expiration
-   * @param clear    if true, removes all existing entries before initialising the child Map.
+   * @param forceClear    if true, removes all existing entries before initialising the child Map.
    *                 Clear uses a range entry to clear existing key-values and inserts to [[Range]]
    *                 in [[swaydb.core.level.zero.LevelZero]]'s [[Map]] entries can be slower because it
    *                 requires skipList to be cloned on each insert. As the compaction progresses the
    *                 range entries will get applied the performance goes back to normal. But try to avoid
    *                 using clear.
    */
-  private def getOrPut(key: K, expireAt: Option[Deadline], clear: Boolean): BAG[MultiMap[K, V, F, BAG]] =
+  private def getOrPut(key: K, expireAt: Option[Deadline], forceClear: Boolean): BAG[MultiMap[K, V, F, BAG]] =
     bag.flatMap(get(key)) {
       case Some(map) =>
-        if (clear)
-          create(key = key, expireAt = expireAt, clear = clear, expire = false)
+        if (forceClear)
+          create(key = key, expireAt = expireAt, forceClear = forceClear, expire = false)
         else
           expireAt match {
-            case Some(existing) =>
-              val newExpiration = existing.earlier(expireAt)
-              if (newExpiration == existing)
+            case Some(updatedExpiration) =>
+              val newExpiration = defaultExpiration.earlier(updatedExpiration)
+              if (defaultExpiration contains newExpiration)
                 bag.success(map)
               else
-                create(key = key, expireAt = Some(newExpiration), clear = false, expire = true)
+                create(key = key, expireAt = Some(newExpiration), forceClear = false, expire = true)
 
             case None =>
               bag.success(map)
           }
 
       case None =>
-        create(key = key, expireAt = expireAt, clear = false, expire = false)
+        create(key = key, expireAt = expireAt, forceClear = false, expire = false)
     }
 
-  private def create(key: K, expireAt: Option[Deadline], clear: Boolean, expire: Boolean): BAG[MultiMap[K, V, F, BAG]] = {
+  private def create(key: K, expireAt: Option[Deadline], forceClear: Boolean, expire: Boolean): BAG[MultiMap[K, V, F, BAG]] = {
 
     val childMapKey = mapKey.toBuffer += key
 
@@ -128,7 +127,7 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
 
     val buffer = Slice.create[Prepare[MultiMapKey[K], Option[V], Nothing]](9)
 
-    if (clear)
+    if (forceClear)
       buffer add Prepare.Remove(MapStart(childMapKey), MapEnd(childMapKey))
     else if (expire)
       buffer add Prepare.Remove(from = MapStart(childMapKey), to = Some(MapEnd(childMapKey)), deadline = expiry)

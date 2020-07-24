@@ -64,8 +64,6 @@ trait SetMapT[K, V, F, BAG[_]] {
 
   def remove(key: K): BAG[OK]
 
-  //  def remove(from: K, to: K): BAG[OK]
-
   def remove(keys: K*): BAG[OK]
 
   def remove(keys: Stream[K]): BAG[OK]
@@ -78,43 +76,7 @@ trait SetMapT[K, V, F, BAG[_]] {
 
   def expire(key: K, at: Deadline): BAG[OK]
 
-  //  def expire(from: K, to: K, after: FiniteDuration): BAG[OK]
-  //
-  //  def expire(from: K, to: K, at: Deadline): BAG[OK]
-
-  //  def expire(keys: (K, Deadline)*): BAG[OK]
-  //
-  //  def expire(keys: Stream[(K, Deadline)]): BAG[OK]
-  //
-  //  def expire(keys: Iterable[(K, Deadline)]): BAG[OK]
-  //
-  //  def expire(keys: Iterator[(K, Deadline)]): BAG[OK]
-  //
-  //  def update(key: K, value: V): BAG[OK]
-  //
-  //  def update(from: K, to: K, value: V): BAG[OK]
-  //
-  //  def update(keyValues: (K, V)*): BAG[OK]
-  //
-  //  def update(keyValues: Stream[(K, V)]): BAG[OK]
-  //
-  //  def update(keyValues: Iterable[(K, V)]): BAG[OK]
-  //
-  //  def update(keyValues: Iterator[(K, V)]): BAG[OK]
-
-  def clear(): BAG[OK]
-
-  //  def registerFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
-  //
-  //  def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK]
+  def clearKeyValues(): BAG[OK]
 
   def get(key: K): BAG[Option[V]]
 
@@ -126,8 +88,6 @@ trait SetMapT[K, V, F, BAG[_]] {
 
   def mightContain(key: K): BAG[Boolean]
 
-  //  def keys: Set[K, F, BAG]
-
   private[swaydb] def keySet: mutable.Set[K]
 
   def levelZeroMeter: LevelZeroMeter
@@ -135,10 +95,6 @@ trait SetMapT[K, V, F, BAG[_]] {
   def levelMeter(levelNumber: Int): Option[LevelMeter]
 
   def sizeOfSegments: Long
-
-  //  def keySize(key: K): Int
-
-  //  def valueSize(value: V): Int
 
   def expiration(key: K): BAG[Option[Deadline]]
 

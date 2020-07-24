@@ -210,7 +210,7 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
       }
     }
 
-  def clear(): BAG[OK] =
+  def clearKeyValues(): BAG[OK] =
     bag.suspend(core.clear(core.readStates.get()))
 
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =

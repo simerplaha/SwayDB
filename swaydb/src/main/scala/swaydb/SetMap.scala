@@ -174,7 +174,7 @@ case class SetMap[K, V, F, BAG[_]] private(set: Set[(K, V), F, BAG])(implicit ba
   def expire(key: K, at: Deadline): BAG[OK] =
     set.expire((key, nullValue), at)
 
-  def clear(): BAG[OK] =
+  def clearKeyValues(): BAG[OK] =
     set.clear()
 
   /**

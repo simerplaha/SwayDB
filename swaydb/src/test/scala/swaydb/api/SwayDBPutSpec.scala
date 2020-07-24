@@ -378,7 +378,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       val db = newDB()
 
       db.isEmpty.get shouldBe true
-      db.clear().right.value
+      db.clearKeyValues().right.value
       db.isEmpty.get shouldBe true
 
       db.close().get
@@ -390,7 +390,7 @@ sealed trait SwayDBPutSpec extends TestBaseEmbedded {
       (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
       db.isEmpty.get shouldBe false
 
-      db.clear().right.value
+      db.clearKeyValues().right.value
       db.isEmpty.get shouldBe true
 
       db.close().get
