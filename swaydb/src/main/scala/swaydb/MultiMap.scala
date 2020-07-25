@@ -123,6 +123,44 @@ object MultiMap {
       functions.foreach(register(_))
 
     /**
+     * Validates [[MultiMapKey]] supplied to the function. Only [[MultiMapKey.MapEntry]] is accepted
+     * since functions are applied to Map's key-values only.
+     */
+    @inline def validate[O](key: MultiMapKey[K])(f: K => O): O =
+      key match {
+        case MultiMapKey.MapEntry(_, dataKey) =>
+          f(dataKey)
+
+        case entry: MultiMapKey[_] =>
+          throw new Exception(s"MapEntry expected but got ${entry.getClass.getName}")
+      }
+
+    /**
+     * User values for inner map cannot be None.
+     */
+    @inline def validate[O](value: Option[V])(f: V => O): O =
+      value match {
+        case Some(userValue) =>
+          f(userValue)
+
+        case None =>
+          //UserEntries are never None for innertMap.
+          throw new Exception("Function applied to None user value")
+      }
+
+    /**
+     * Vaidates both key and value before applying the function.
+     */
+    @inline def validate[O](key: MultiMapKey[K], value: Option[V])(f: (K, V) => O): O =
+      validate(key) {
+        dataKey =>
+          validate(value) {
+            userValue =>
+              f(dataKey, userValue)
+          }
+      }
+
+    /**
      * Register the function converting it to [[MultiMap.map]]'s function type.
      */
     def register[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit = {
@@ -133,13 +171,9 @@ object MultiMap {
           case function: swaydb.PureFunction.OnValue[V, Apply.Map[V]] =>
             new swaydb.PureFunction.OnValue[Option[V], Apply.Map[Option[V]]] {
               override def apply(value: Option[V]): Apply.Map[Option[V]] =
-                value match {
-                  case Some(userValue) =>
-                    Apply.Map.toOption(function.apply(userValue))
-
-                  case None =>
-                    //UserEntries are never None for innerMap.
-                    throw new Exception("Function applied to None user value")
+                validate(value) {
+                  value =>
+                    Apply.Map.toOption(function.apply(value))
                 }
 
               //use user function's functionId
@@ -150,7 +184,10 @@ object MultiMap {
           case function: swaydb.PureFunction.OnKey[K, V, Apply.Map[V]] =>
             new swaydb.PureFunction.OnKey[MultiMapKey[K], Option[V], Apply.Map[Option[V]]] {
               override def apply(key: MultiMapKey[K], deadline: Option[Deadline]): Apply.Map[Option[V]] =
-                Apply.Map.toOption(function.apply(key.parentKey.last, deadline))
+                validate(key) {
+                  dataKey =>
+                    Apply.Map.toOption(function.apply(dataKey, deadline))
+                }
 
               //use user function's functionId
               override def id: String =
@@ -160,13 +197,9 @@ object MultiMap {
           case function: swaydb.PureFunction.OnKeyValue[K, V, Apply.Map[V]] =>
             new swaydb.PureFunction.OnKeyValue[MultiMapKey[K], Option[V], Apply.Map[Option[V]]] {
               override def apply(key: MultiMapKey[K], value: Option[V], deadline: Option[Deadline]): Apply.Map[Option[V]] =
-                value match {
-                  case Some(userValue) =>
-                    Apply.Map.toOption(function.apply(key.parentKey.last, userValue, deadline))
-
-                  case None =>
-                    //UserEntries are never None for innertMap.
-                    throw new Exception("Function applied to None user value")
+                validate(key, value) {
+                  (dataKey, userValue) =>
+                    Apply.Map.toOption(function.apply(dataKey, userValue, deadline))
                 }
 
               //use user function's functionId

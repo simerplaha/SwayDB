@@ -91,6 +91,13 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
     rootMap.put(2, Some(Value.NonEmpty("two")))
     rootMap.put(3, None)
 
+    rootMap.getKeyValue(1).value shouldBe (1, Some(Value.Empty))
+    rootMap.getKeyValue(3).value shouldBe (3, None)
+
+    rootMap.getKeyDeadline(1).value shouldBe (1, None)
+    rootMap.getKeyDeadline(2).value shouldBe (2, None)
+    rootMap.getKeyDeadline(3).value shouldBe (3, None)
+
     rootMap.get(1).value.value shouldBe Value.Empty
     rootMap.get(3).value shouldBe None
     rootMap.get(2).value.value shouldBe Value.NonEmpty("two")
