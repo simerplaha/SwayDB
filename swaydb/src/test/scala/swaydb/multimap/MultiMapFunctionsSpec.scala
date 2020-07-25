@@ -92,8 +92,10 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
 
       //apply functions individually
       map.applyFunction(1, 10, onKeyValueFunction)
-      map.applyFunction(11, 20, onValueFunction)
-      map.applyFunction(21, 30, onKeyFunction)
+      map.applyFunction(11, 19, onValueFunction)
+      map.applyFunction(20, onValueFunction)
+      map.applyFunction(21, 29, onKeyFunction)
+      map.applyFunction(30, onKeyFunction)
 
       //assert
       (1 to 10).foreach(i => map.get(i).value shouldBe "updated1")
