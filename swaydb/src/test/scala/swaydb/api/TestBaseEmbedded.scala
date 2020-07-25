@@ -36,7 +36,7 @@ trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
-  def printMap[BAG[_]](root: MultiMap[_, _, _, BAG]): Unit =
+  def printMap[BAG[_]](root: MultiMap[_, _, _, BAG]): Unit = {
     root.map.stream.materialize[Bag.Less].foreach {
       map =>
         println(map)
@@ -45,6 +45,9 @@ trait TestBaseEmbedded extends TestBase {
           case _ =>
         }
     }
+
+    println("-" * 100)
+  }
 
   /**
    * Randomly adds child Maps to [[MultiMap]] and returns the last added Map.

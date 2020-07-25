@@ -82,7 +82,7 @@ private[swaydb] object Times {
       else
         other
 
-    def earlier(other: Option[Deadline]): Deadline =
+    @inline def earlier(other: Option[Deadline]): Deadline =
       other match {
         case Some(other) =>
           other.earlier(deadline)

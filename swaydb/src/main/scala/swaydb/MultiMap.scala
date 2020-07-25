@@ -204,7 +204,6 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   val children: Children[K, V, F, BAG] =
     new swaydb.Children(
       map = map,
-      multiMap = this,
       mapKey = mapKey,
       defaultExpiration = defaultExpiration
     )
@@ -213,10 +212,10 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     map.put(MapEntry(mapKey, key), Some(value), defaultExpiration)
 
   def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK] =
-    map.put(MapEntry(mapKey, key), Some(value), defaultExpiration.earlier(expireAfter.fromNow))
+    put(key, value, expireAfter.fromNow)
 
   def put(key: K, value: V, expireAt: Deadline): BAG[OK] =
-    map.put(MapEntry(mapKey, key), Some(value), expireAt)
+    map.put(MapEntry(mapKey, key), Some(value), defaultExpiration earlier expireAt)
 
   override def put(keyValues: (K, V)*): BAG[OK] = {
     val innerKeyValues =
@@ -637,6 +636,4 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
 
   override def toString(): String =
     classOf[Map[_, _, _, BAG]].getClass.getSimpleName
-
-
 }
