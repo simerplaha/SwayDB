@@ -88,6 +88,7 @@ object Map {
     def remove[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Unit =
       core.remove(Slice.writeString(function.id))
   }
+
 }
 
 /**
@@ -252,7 +253,10 @@ case class Map[K, V, F, BAG[_]] private(private[swaydb] val core: Core[BAG],
     })
 
   def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]] =
-    bag.flatMap(core.getKeyDeadline(key, core.readStates.get())) {
+    getKeyDeadline(key, bag)
+
+  def getKeyDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[(K, Option[Deadline])]] =
+    bag.flatMap(core.getKeyDeadline[BAG](key, core.readStates.get())(bag)) {
       case TupleOrNone.None =>
         bag.none[(K, Option[Deadline])]
 

@@ -26,15 +26,16 @@ package swaydb
 
 import swaydb.MultiMapKey.{MapEnd, MapStart, SubMap}
 import swaydb.core.util.Times._
-import swaydb.data.slice.Slice
 import swaydb.serializers._
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
 /**
  * Provides APIs to manage children/nested maps/child maps of [[MultiMap]].
  */
 class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction[MultiMapKey[K], Option[V], Apply.Map[Option[V]]], BAG],
+                                multiMap: MultiMap[K, V, F, BAG],
                                 mapKey: Iterable[K],
                                 defaultExpiration: Option[Deadline])(implicit keySerializer: Serializer[K],
                                                                      valueSerializer: Serializer[V],
@@ -88,14 +89,14 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
   /**
    * Inserts a child map to this [[MultiMap]].
    *
-   * @param key      key assign to the child
-   * @param expireAt expiration
-   * @param forceClear    if true, removes all existing entries before initialising the child Map.
-   *                 Clear uses a range entry to clear existing key-values and inserts to [[Range]]
-   *                 in [[swaydb.core.level.zero.LevelZero]]'s [[Map]] entries can be slower because it
-   *                 requires skipList to be cloned on each insert. As the compaction progresses the
-   *                 range entries will get applied the performance goes back to normal. But try to avoid
-   *                 using clear.
+   * @param key        key assign to the child
+   * @param expireAt   expiration
+   * @param forceClear if true, removes all existing entries before initialising the child Map.
+   *                   Clear uses a range entry to clear existing key-values and inserts to [[Range]]
+   *                   in [[swaydb.core.level.zero.LevelZero]]'s [[Map]] entries can be slower because it
+   *                   requires skipList to be cloned on each insert. As the compaction progresses the
+   *                   range entries will get applied the performance goes back to normal. But try to avoid
+   *                   using clear.
    */
   private def getOrPut(key: K, expireAt: Option[Deadline], forceClear: Boolean): BAG[MultiMap[K, V, F, BAG]] =
     bag.flatMap(get(key)) {
@@ -105,10 +106,11 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
         else
           expireAt match {
             case Some(updatedExpiration) =>
-              val newExpiration = defaultExpiration.earlier(updatedExpiration)
+              val newExpiration = defaultExpiration earlier updatedExpiration
+              //if the expiration is not updated return the map.
               if (defaultExpiration contains newExpiration)
                 bag.success(map)
-              else
+              else // expiration is updated perform create.
                 create(key = key, expireAt = Some(newExpiration), forceClear = false, expire = true)
 
             case None =>
@@ -119,60 +121,134 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
         create(key = key, expireAt = expireAt, forceClear = false, expire = false)
     }
 
-  private def create(key: K, expireAt: Option[Deadline], forceClear: Boolean, expire: Boolean): BAG[MultiMap[K, V, F, BAG]] = {
+  /**
+   * Flatten all nest children of this map.
+   *
+   * Requires a [[Bag.Sync]] instead of [[Bag.Async]].
+   */
+  def flatten[BAG[_]](implicit bag: Bag.Sync[BAG]): BAG[ListBuffer[MultiMap[K, V, F, BAG]]] =
+    stream(bag).foldLeft(ListBuffer[MultiMap[K, V, F, BAG]]()) {
+      case (buffer, childBag) =>
+        val child = bag.getUnsafe(childBag)
 
+        child foreach {
+          child =>
+            buffer += child
+            val children = bag.getUnsafe(child.children.flatten[BAG])
+            buffer ++= children
+        }
+
+        buffer
+    }
+
+
+  private def create(key: K, expireAt: Option[Deadline], forceClear: Boolean, expire: Boolean): BAG[MultiMap[K, V, F, BAG]] = {
     val childMapKey = mapKey.toBuffer += key
 
-    val expiry = expireAt.earlier(defaultExpiration)
+    val expiration = expireAt earlier defaultExpiration
 
-    val buffer = Slice.create[Prepare[MultiMapKey[K], Option[V], Nothing]](9)
+    val buffer = prepareRemove(expiration = expiration, forceClear = forceClear, expire = expire)
 
-    if (forceClear)
-      buffer add Prepare.Remove(MapStart(childMapKey), MapEnd(childMapKey))
-    else if (expire)
-      buffer add Prepare.Remove(from = MapStart(childMapKey), to = Some(MapEnd(childMapKey)), deadline = expiry)
-
-    buffer add Prepare.Put(MultiMapKey.SubMap(mapKey, key), None, expiry)
-    buffer add Prepare.Put(MultiMapKey.MapStart(childMapKey), None, expiry)
-    buffer add Prepare.Put(MultiMapKey.MapEntriesStart(childMapKey), None, expiry)
-    buffer add Prepare.Put(MultiMapKey.MapEntriesEnd(childMapKey), None, expiry)
-    buffer add Prepare.Put(MultiMapKey.SubMapsStart(childMapKey), None, expiry)
-    buffer add Prepare.Put(MultiMapKey.SubMapsEnd(childMapKey), None, expiry)
-    buffer add Prepare.Put(MultiMapKey.MapEnd(childMapKey), None, expiry)
+    buffer += Prepare.Put(MultiMapKey.SubMap(mapKey, key), None, expiration)
+    buffer += Prepare.Put(MultiMapKey.MapStart(childMapKey), None, expiration)
+    buffer += Prepare.Put(MultiMapKey.MapEntriesStart(childMapKey), None, expiration)
+    buffer += Prepare.Put(MultiMapKey.MapEntriesEnd(childMapKey), None, expiration)
+    buffer += Prepare.Put(MultiMapKey.SubMapsStart(childMapKey), None, expiration)
+    buffer += Prepare.Put(MultiMapKey.SubMapsEnd(childMapKey), None, expiration)
+    buffer += Prepare.Put(MultiMapKey.MapEnd(childMapKey), None, expiration)
 
     bag.transform(map.commit(buffer)) {
       _ =>
         MultiMap(
           map = map,
           mapKey = childMapKey,
-          defaultExpiration = expiry
+          defaultExpiration = expiration
         )
     }
   }
 
-  def remove(key: K): BAG[OK] =
-    map.commit(prepareRemove(key))
+  /**
+   * Returns a list of [[Prepare.Remove]] statements.
+   *
+   * @param expiration default expiration to set
+   * @param forceClear remove the map
+   * @param expire     updates the expiration only. If forceClear is true then this is ignored.
+   * @return a list of [[Prepare.Remove]] statements.
+   */
+  private def prepareRemove(expiration: Option[Deadline],
+                            forceClear: Boolean,
+                            expire: Boolean): ListBuffer[Prepare[MultiMapKey[K], Option[V], Nothing]] = {
+    val buffer = ListBuffer.empty[Prepare[MultiMapKey[K], Option[V], Nothing]]
 
-  private def prepareRemove(key: K): Seq[Prepare.Remove[MultiMapKey[K]]] = {
+    //todo - use the map level BAG instead synchronous IO.ApiIO.
+    if (forceClear || expire) {
+      //ignore expiry if forceClear is set to true. ForceClear should remove instead of just setting a new expiry.
+      val prepareRemoveExpiry =
+        if (!forceClear && expire)
+          expiration
+        else
+          None
+
+      prepareRemove[IO.ApiIO](prepareRemoveExpiry) match {
+        case IO.Right(removes) =>
+          buffer ++= removes
+
+        case IO.Left(value) =>
+          bag.failure(value.exception)
+      }
+    }
+
+    buffer
+  }
+
+  def remove(key: K): BAG[OK] =
+    map.commit(prepareRemove(key, None))
+
+  /**
+   * Builds [[Prepare.Remove]] statements for a child with the key.
+   */
+  private def prepareRemove(key: K, expire: Option[Deadline]): Seq[Prepare.Remove[MultiMapKey[K]]] = {
     val childMapKey = mapKey.toBuffer += key
 
     Seq(
-      Prepare.Remove(key = SubMap(mapKey, key)),
-      Prepare.Remove(MapStart(childMapKey), MapEnd(childMapKey))
+      Prepare.Remove(SubMap(mapKey, key), None, expire),
+      Prepare.Remove(MapStart(childMapKey), Some(MapEnd(childMapKey)), expire)
     )
   }
 
   /**
+   * Builds [[Prepare.Remove]] statements for all children.
+   */
+  private def prepareRemove[BAG[_]](expire: Option[Deadline])(implicit bag: Bag.Sync[BAG]): BAG[ListBuffer[Prepare.Remove[MultiMapKey[K]]]] =
+    stream(bag).foldLeft(ListBuffer.empty[Prepare.Remove[MultiMapKey[K]]]) {
+      case (buffer, childBag) =>
+        val child = bag.getUnsafe(childBag)
+
+        child foreach {
+          child =>
+            buffer ++= prepareRemove(child.mapKey.last, expire)
+            val children = bag.getUnsafe(child.children.prepareRemove(expire))
+            buffer ++= children
+        }
+
+        buffer
+    }
+
+  /**
    * Returns the child Map
    */
-  def get[K2 <: K](key: K2): BAG[Option[MultiMap[K2, V, F, BAG]]] = {
-    val mapPrefix = mapKey.toBuffer += key
+  def get[K2 <: K](key: K2): BAG[Option[MultiMap[K2, V, F, BAG]]] =
+    get(key, bag)
 
-    bag.map(map.getKeyDeadline(MapStart(mapPrefix))) {
+  protected def get[K2 <: K, BAG[_]](key: K2, bag: Bag[BAG]): BAG[Option[MultiMap[K2, V, F, BAG]]] = {
+    val mapPrefix = mapKey.toBuffer += key
+    implicit val b: Bag[BAG] = bag
+
+    bag.map(map.getKeyDeadline(MapStart(mapPrefix), bag)) {
       case Some((_, deadline)) =>
         Some(
-          MultiMap(
-            map = map,
+          MultiMap[K, V, F, BAG](
+            map = map.toBag[BAG],
             mapKey = mapPrefix,
             defaultExpiration = deadline
           ).asInstanceOf[MultiMap[K2, V, F, BAG]]
@@ -205,7 +281,10 @@ class Children[K, V, F, BAG[_]](map: Map[MultiMapKey[K], Option[V], PureFunction
 
   //todo - flatten Options and BAG.
   def stream: Stream[BAG[Option[MultiMap[K, V, F, BAG]]]] =
-    keys.map(get)
+    keys.map(key => get(key))
+
+  protected def stream[BAG[_]](bag: Bag[BAG]): Stream[BAG[Option[MultiMap[K, V, F, BAG]]]] =
+    keys.map(key => get(key, bag))
 
   def isEmpty: BAG[Boolean] =
     bag.transform(keys.headOrNull) {

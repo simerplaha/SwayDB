@@ -27,13 +27,13 @@ package swaydb
 import java.nio.file.Path
 
 import swaydb.MultiMapKey.{MapEntriesEnd, MapEntriesStart, MapEntry}
+import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.compat._
-import swaydb.core.util.Times._
 import scala.collection.mutable
 import scala.concurrent.duration.{Deadline, FiniteDuration}
 
@@ -204,6 +204,7 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
   val children: Children[K, V, F, BAG] =
     new swaydb.Children(
       map = map,
+      multiMap = this,
       mapKey = mapKey,
       defaultExpiration = defaultExpiration
     )
@@ -468,7 +469,10 @@ case class MultiMap[K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiM
     }
 
   override def getKeyDeadline(key: K): BAG[Option[(K, Option[Deadline])]] =
-    bag.map(map.getKeyDeadline(MapEntry(mapKey, key))) {
+    getKeyDeadline(key, bag)
+
+  def getKeyDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[(K, Option[Deadline])]] =
+    bag.map(map.getKeyDeadline(MapEntry(mapKey, key), bag)) {
       case Some((MapEntry(_, key), deadline)) =>
         Some((key, deadline))
 

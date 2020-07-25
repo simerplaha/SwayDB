@@ -20,8 +20,6 @@
 package swaydb.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.IOValues._
-import swaydb.{Bag, MultiMap, Prepare, MultiMapKey => Key}
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
@@ -29,8 +27,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import Key._
-import swaydb.Bag.Less
+import swaydb.{Bag, MultiMap, MultiMapKey, Prepare}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
@@ -75,7 +72,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
   implicit val bag = Bag.less
 
-  //  implicit val mapKeySerializer = Key.serializer(IntSerializer)
+  //  implicit val mapKeySerializer = MultiMapKey.serializer(IntSerializer)
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
 
@@ -88,12 +85,12 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       //assert
       rootMap.map.stream.materialize.toList shouldBe
         List(
-          (Key.MapStart(Iterable.empty), None),
-          (Key.MapEntriesStart(Iterable.empty), None),
-          (Key.MapEntriesEnd(Iterable.empty), None),
-          (Key.SubMapsStart(Iterable.empty), None),
-          (Key.SubMapsEnd(Iterable.empty), None),
-          (Key.MapEnd(Iterable.empty), None)
+          (MultiMapKey.MapStart(Iterable.empty), None),
+          (MultiMapKey.MapEntriesStart(Iterable.empty), None),
+          (MultiMapKey.MapEntriesEnd(Iterable.empty), None),
+          (MultiMapKey.SubMapsStart(Iterable.empty), None),
+          (MultiMapKey.SubMapsEnd(Iterable.empty), None),
+          (MultiMapKey.MapEnd(Iterable.empty), None)
         )
 
       rootMap.delete()
@@ -112,14 +109,14 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       //assert
       rootMap.map.stream.materialize.toList shouldBe
         List(
-          (Key.MapStart(Seq.empty), None),
-          (Key.MapEntriesStart(Seq.empty), None),
-          (Key.MapEntry(Seq.empty, 1), Some("one")),
-          (Key.MapEntry(Seq.empty, 2), Some("two")),
-          (Key.MapEntriesEnd(Seq.empty), None),
-          (Key.SubMapsStart(Seq.empty), None),
-          (Key.SubMapsEnd(Seq.empty), None),
-          (Key.MapEnd(Seq.empty), None)
+          (MultiMapKey.MapStart(Seq.empty), None),
+          (MultiMapKey.MapEntriesStart(Seq.empty), None),
+          (MultiMapKey.MapEntry(Seq.empty, 1), Some("one")),
+          (MultiMapKey.MapEntry(Seq.empty, 2), Some("two")),
+          (MultiMapKey.MapEntriesEnd(Seq.empty), None),
+          (MultiMapKey.SubMapsStart(Seq.empty), None),
+          (MultiMapKey.SubMapsEnd(Seq.empty), None),
+          (MultiMapKey.MapEnd(Seq.empty), None)
         )
 
       rootMap.delete()
@@ -145,25 +142,25 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       //assert
       rootMap.map.stream.materialize.toList shouldBe
         List(
-          (Key.MapStart(Seq.empty), None),
-          (Key.MapEntriesStart(Seq.empty), None),
-          (Key.MapEntry(Seq.empty, 1), Some("one")),
-          (Key.MapEntry(Seq.empty, 2), Some("two")),
-          (Key.MapEntriesEnd(Seq.empty), None),
-          (Key.SubMapsStart(Seq.empty), None),
-          (Key.SubMap(Seq.empty, 1), None),
-          (Key.SubMapsEnd(Seq.empty), None),
-          (Key.MapEnd(Seq.empty), None),
+          (MultiMapKey.MapStart(Seq.empty), None),
+          (MultiMapKey.MapEntriesStart(Seq.empty), None),
+          (MultiMapKey.MapEntry(Seq.empty, 1), Some("one")),
+          (MultiMapKey.MapEntry(Seq.empty, 2), Some("two")),
+          (MultiMapKey.MapEntriesEnd(Seq.empty), None),
+          (MultiMapKey.SubMapsStart(Seq.empty), None),
+          (MultiMapKey.SubMap(Seq.empty, 1), None),
+          (MultiMapKey.SubMapsEnd(Seq.empty), None),
+          (MultiMapKey.MapEnd(Seq.empty), None),
 
           //childMaps entries
-          (Key.MapStart(Seq(1)), None),
-          (Key.MapEntriesStart(Seq(1)), None),
-          (Key.MapEntry(Seq(1), 1), Some("childMap one")),
-          (Key.MapEntry(Seq(1), 2), Some("childMap two")),
-          (Key.MapEntriesEnd(Seq(1)), None),
-          (Key.SubMapsStart(Seq(1)), None),
-          (Key.SubMapsEnd(Seq(1)), None),
-          (Key.MapEnd(Seq(1)), None)
+          (MultiMapKey.MapStart(Seq(1)), None),
+          (MultiMapKey.MapEntriesStart(Seq(1)), None),
+          (MultiMapKey.MapEntry(Seq(1), 1), Some("childMap one")),
+          (MultiMapKey.MapEntry(Seq(1), 2), Some("childMap two")),
+          (MultiMapKey.MapEntriesEnd(Seq(1)), None),
+          (MultiMapKey.SubMapsStart(Seq(1)), None),
+          (MultiMapKey.SubMapsEnd(Seq(1)), None),
+          (MultiMapKey.MapEnd(Seq(1)), None)
         )
 
       rootMap.delete()
@@ -245,25 +242,25 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       //assert
       //      rootMap.baseMap().toList shouldBe
       //        List(
-      //          (Key.Start(Seq.empty), None),
-      //          (Key.EntriesStart(Seq.empty), None),
-      //          //          (Key.Entry(Seq.empty, 1), Some("one")),//expired
-      //          (Key.Entry(Seq.empty, 2), Some("two")),
-      //          (Key.EntriesEnd(Seq.empty), None),
-      //          (Key.SubMapsStart(Seq.empty), None),
-      //          (Key.SubMap(Seq.empty, 1), Some("sub map")),
-      //          (Key.SubMapsEnd(Seq.empty), None),
-      //          (Key.End(Seq.empty), None),
+      //          (MultiMapKey.Start(Seq.empty), None),
+      //          (MultiMapKey.EntriesStart(Seq.empty), None),
+      //          //          (MultiMapKey.Entry(Seq.empty, 1), Some("one")),//expired
+      //          (MultiMapKey.Entry(Seq.empty, 2), Some("two")),
+      //          (MultiMapKey.EntriesEnd(Seq.empty), None),
+      //          (MultiMapKey.SubMapsStart(Seq.empty), None),
+      //          (MultiMapKey.SubMap(Seq.empty, 1), Some("sub map")),
+      //          (MultiMapKey.SubMapsEnd(Seq.empty), None),
+      //          (MultiMapKey.End(Seq.empty), None),
       //
       //          //childMaps entries
-      //          (Key.Start(Seq(1)), Some("sub map")),
-      //          (Key.EntriesStart(Seq(1)), None),
-      //          //          (Key.Entry(Seq(1), 1), Some("childMap one")), //expired
-      //          (Key.Entry(Seq(1), 2), Some("childMap two")),
-      //          (Key.EntriesEnd(Seq(1)), None),
-      //          (Key.SubMapsStart(Seq(1)), None),
-      //          (Key.SubMapsEnd(Seq(1)), None),
-      //          (Key.End(Seq(1)), None)
+      //          (MultiMapKey.Start(Seq(1)), Some("sub map")),
+      //          (MultiMapKey.EntriesStart(Seq(1)), None),
+      //          //          (MultiMapKey.Entry(Seq(1), 1), Some("childMap one")), //expired
+      //          (MultiMapKey.Entry(Seq(1), 2), Some("childMap two")),
+      //          (MultiMapKey.EntriesEnd(Seq(1)), None),
+      //          (MultiMapKey.SubMapsStart(Seq(1)), None),
+      //          (MultiMapKey.SubMapsEnd(Seq(1)), None),
+      //          (MultiMapKey.End(Seq(1)), None)
       //        )
 
       rootMap.delete()
@@ -296,23 +293,23 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       //assert
       //      rootMap.baseMap().toList shouldBe
       //        List(
-      //          (Key.Start(Seq.empty), None),
-      //          (Key.EntriesStart(Seq.empty), None),
-      //          (Key.EntriesEnd(Seq.empty), None),
-      //          (Key.SubMapsStart(Seq.empty), None),
-      //          (Key.SubMap(Seq.empty, 1), Some("sub map")),
-      //          (Key.SubMapsEnd(Seq.empty), None),
-      //          (Key.End(Seq.empty), None),
+      //          (MultiMapKey.Start(Seq.empty), None),
+      //          (MultiMapKey.EntriesStart(Seq.empty), None),
+      //          (MultiMapKey.EntriesEnd(Seq.empty), None),
+      //          (MultiMapKey.SubMapsStart(Seq.empty), None),
+      //          (MultiMapKey.SubMap(Seq.empty, 1), Some("sub map")),
+      //          (MultiMapKey.SubMapsEnd(Seq.empty), None),
+      //          (MultiMapKey.End(Seq.empty), None),
       //
       //          //childMaps entries
-      //          (Key.Start(Seq(1)), Some("sub map")),
-      //          (Key.EntriesStart(Seq(1)), None),
-      //          (Key.Entry(Seq(1), 1), Some("childMap two")),
-      //          (Key.Entry(Seq(1), 4), Some("childMap two")),
-      //          (Key.EntriesEnd(Seq(1)), None),
-      //          (Key.SubMapsStart(Seq(1)), None),
-      //          (Key.SubMapsEnd(Seq(1)), None),
-      //          (Key.End(Seq(1)), None)
+      //          (MultiMapKey.Start(Seq(1)), Some("sub map")),
+      //          (MultiMapKey.EntriesStart(Seq(1)), None),
+      //          (MultiMapKey.Entry(Seq(1), 1), Some("childMap two")),
+      //          (MultiMapKey.Entry(Seq(1), 4), Some("childMap two")),
+      //          (MultiMapKey.EntriesEnd(Seq(1)), None),
+      //          (MultiMapKey.SubMapsStart(Seq(1)), None),
+      //          (MultiMapKey.SubMapsEnd(Seq(1)), None),
+      //          (MultiMapKey.End(Seq(1)), None)
       //        )
 
       rootMap.delete()
@@ -604,7 +601,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //  "Map" should {
   //
   //    "return entries ranges" in {
-  //      Map.entriesRangeKeys(Seq(1, 2, 3)) shouldBe ((Key.MapEntriesStart(Seq(1, 2, 3)), Key.MapEntriesEnd(Seq(1, 2, 3))))
+  //      Map.entriesRangeKeys(Seq(1, 2, 3)) shouldBe ((MultiMapKey.MapEntriesStart(Seq(1, 2, 3)), MultiMapKey.MapEntriesEnd(Seq(1, 2, 3))))
   //    }
   //
   //    "return empty childMap range keys for a empty SubMap" in {
@@ -622,7 +619,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //      val firstMap = rootMap.children.init(1, "rootMap")
   //      val secondMap = firstMap.children.init(2, "second map")
   //
-  //      Map.childSubMapRanges(firstMap).get should contain only ((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))))
+  //      Map.childSubMapRanges(firstMap).get should contain only ((MultiMapKey.SubMap(Seq(1), 2), MultiMapKey.MapStart(Seq(1, 2)), MultiMapKey.MapEnd(Seq(1, 2))))
   //      Map.childSubMapRanges(secondMap).get shouldBe empty
   //
   //      rootMap.delete()
@@ -635,8 +632,8 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //      val secondMap = firstMap.children.init(2, "second")
   //      val thirdMap = secondMap.children.init(2, "third")
   //
-  //      Map.childSubMapRanges(firstMap).get should contain inOrderOnly((Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))), (Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
-  //      Map.childSubMapRanges(secondMap).get should contain only ((Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))))
+  //      Map.childSubMapRanges(firstMap).get should contain inOrderOnly((MultiMapKey.SubMap(Seq(1), 2), MultiMapKey.MapStart(Seq(1, 2)), MultiMapKey.MapEnd(Seq(1, 2))), (MultiMapKey.SubMap(Seq(1, 2), 2), MultiMapKey.MapStart(Seq(1, 2, 2)), MultiMapKey.MapEnd(Seq(1, 2, 2))))
+  //      Map.childSubMapRanges(secondMap).get should contain only ((MultiMapKey.SubMap(Seq(1, 2), 2), MultiMapKey.MapStart(Seq(1, 2, 2)), MultiMapKey.MapEnd(Seq(1, 2, 2))))
   //      Map.childSubMapRanges(thirdMap).get shouldBe empty
   //
   //      db.delete()
@@ -660,16 +657,16 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
   //
   //      val mapHierarchy =
   //        List(
-  //          (Key.SubMap(Seq(1), 2), Key.MapStart(Seq(1, 2)), Key.MapEnd(Seq(1, 2))),
-  //          (Key.SubMap(Seq(1, 2), 2), Key.MapStart(Seq(1, 2, 2)), Key.MapEnd(Seq(1, 2, 2))),
-  //          (Key.SubMap(Seq(1, 2), 3), Key.MapStart(Seq(1, 2, 3)), Key.MapEnd(Seq(1, 2, 3))),
-  //          (Key.SubMap(Seq(1, 2), 4), Key.MapStart(Seq(1, 2, 4)), Key.MapEnd(Seq(1, 2, 4))),
-  //          (Key.SubMap(Seq(1, 2, 4), 44), Key.MapStart(Seq(1, 2, 4, 44)), Key.MapEnd(Seq(1, 2, 4, 44))),
-  //          (Key.SubMap(Seq(1, 2), 5), Key.MapStart(Seq(1, 2, 5)), Key.MapEnd(Seq(1, 2, 5))),
-  //          (Key.SubMap(Seq(1, 2, 5), 55), Key.MapStart(Seq(1, 2, 5, 55)), Key.MapEnd(Seq(1, 2, 5, 55))),
-  //          (Key.SubMap(Seq(1, 2, 5, 55), 5555), Key.MapStart(Seq(1, 2, 5, 55, 5555)), Key.MapEnd(Seq(1, 2, 5, 55, 5555))),
-  //          (Key.SubMap(Seq(1, 2, 5, 55), 6666), Key.MapStart(Seq(1, 2, 5, 55, 6666)), Key.MapEnd(Seq(1, 2, 5, 55, 6666))),
-  //          (Key.SubMap(Seq(1, 2, 5), 555), Key.MapStart(Seq(1, 2, 5, 555)), Key.MapEnd(Seq(1, 2, 5, 555)))
+  //          (MultiMapKey.SubMap(Seq(1), 2), MultiMapKey.MapStart(Seq(1, 2)), MultiMapKey.MapEnd(Seq(1, 2))),
+  //          (MultiMapKey.SubMap(Seq(1, 2), 2), MultiMapKey.MapStart(Seq(1, 2, 2)), MultiMapKey.MapEnd(Seq(1, 2, 2))),
+  //          (MultiMapKey.SubMap(Seq(1, 2), 3), MultiMapKey.MapStart(Seq(1, 2, 3)), MultiMapKey.MapEnd(Seq(1, 2, 3))),
+  //          (MultiMapKey.SubMap(Seq(1, 2), 4), MultiMapKey.MapStart(Seq(1, 2, 4)), MultiMapKey.MapEnd(Seq(1, 2, 4))),
+  //          (MultiMapKey.SubMap(Seq(1, 2, 4), 44), MultiMapKey.MapStart(Seq(1, 2, 4, 44)), MultiMapKey.MapEnd(Seq(1, 2, 4, 44))),
+  //          (MultiMapKey.SubMap(Seq(1, 2), 5), MultiMapKey.MapStart(Seq(1, 2, 5)), MultiMapKey.MapEnd(Seq(1, 2, 5))),
+  //          (MultiMapKey.SubMap(Seq(1, 2, 5), 55), MultiMapKey.MapStart(Seq(1, 2, 5, 55)), MultiMapKey.MapEnd(Seq(1, 2, 5, 55))),
+  //          (MultiMapKey.SubMap(Seq(1, 2, 5, 55), 5555), MultiMapKey.MapStart(Seq(1, 2, 5, 55, 5555)), MultiMapKey.MapEnd(Seq(1, 2, 5, 55, 5555))),
+  //          (MultiMapKey.SubMap(Seq(1, 2, 5, 55), 6666), MultiMapKey.MapStart(Seq(1, 2, 5, 55, 6666)), MultiMapKey.MapEnd(Seq(1, 2, 5, 55, 6666))),
+  //          (MultiMapKey.SubMap(Seq(1, 2, 5), 555), MultiMapKey.MapStart(Seq(1, 2, 5, 555)), MultiMapKey.MapEnd(Seq(1, 2, 5, 555)))
   //        )
   //
   //      Map.childSubMapRanges(firstMap).get shouldBe mapHierarchy
@@ -743,6 +740,10 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         val third = second.children.init(3)
         val fourth = third.children.init(4)
 
+        first.put(1, "first one")
+        first.put(2, "first two")
+        first.put(3, "first three")
+
         second.put(1, "second one")
         second.put(2, "second two")
         second.put(3, "second three")
@@ -758,6 +759,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         /**
          * Assert that the all maps' content is accurate
          */
+        first.stream.materialize shouldBe List((1, "first one"), (2, "first two"), (3, "first three"))
         second.stream.materialize shouldBe List((1, "second one"), (2, "second two"), (3, "second three"))
         third.stream.materialize shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
         fourth.stream.materialize shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
@@ -770,17 +772,21 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
         //submit put on second map and assert that all it's contents are replaced.
         first.children.replace(2)
-        first.children.keys.materialize.toList shouldBe empty
+        first.children.get(2).value.stream.materialize.toList shouldBe empty
+        first.children.get(2).value.children.stream.materialize.toList shouldBe empty
 
-//        //map value value updated
-//        first.children.get(2) shouldBe defined
-//        //all the old entries are removed
-//        second.stream.materialize shouldBe empty
-//        third.stream.materialize shouldBe empty
-//        fourth.stream.materialize shouldBe empty
-//
-//        second.children.get(3) shouldBe empty
-//        second.children.get(4) shouldBe empty
+        //map value value updated
+        first.children.get(2) shouldBe defined
+        //all the old entries are removed
+        second.stream.materialize shouldBe empty
+        third.stream.materialize shouldBe empty
+        fourth.stream.materialize shouldBe empty
+
+        //second has no children anymore.
+        second.children.get(3) shouldBe empty
+        second.children.get(4) shouldBe empty
+
+        first.stream.materialize shouldBe List((1, "first one"), (2, "first two"), (3, "first three"))
 
         root.delete()
       }

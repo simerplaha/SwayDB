@@ -36,6 +36,16 @@ trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
+  def printMap[BAG[_]](root: MultiMap[_, _, _, BAG]): Unit =
+    root.map.stream.materialize[Bag.Less].foreach {
+      map =>
+        println(map)
+        map._1 match {
+          case MultiMapKey.MapEnd(_) => println //new line
+          case _ =>
+        }
+    }
+
   /**
    * Randomly adds child Maps to [[MultiMap]] and returns the last added Map.
    */

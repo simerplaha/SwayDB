@@ -20,12 +20,13 @@
 package swaydb.multimap
 
 import org.scalatest.OptionValues._
+import swaydb.Bag.Less
 import swaydb.api.TestBaseEmbedded
 import swaydb.core.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap}
+import swaydb.{Bag, MultiMap, MultiMapKey}
 import swaydb.data.util.StorageUnits._
 
 import scala.concurrent.duration._
@@ -276,7 +277,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
   "children" should {
     "replace" in {
-      //hierarchy - root --> child1 --> child2
+      //hierarchy - root --> child1 --> child2 --> child3
+      //                                       --> child4
       val root = newDB()
       root.put(1, "one")
       root.put(2, "two")
@@ -285,28 +287,40 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       child1.put(1, "one")
       child1.put(2, "two")
 
-      var child11 = child1.children.init(11)
-      child11.put(1, "one")
-      child11.put(2, "two")
+      var child2 = child1.children.init(2)
+      child2.put(1, "one")
+      child2.put(2, "two")
 
-      var child12 = child11.children.init(12)
-      child11.put(1, "one")
-      child11.put(2, "two")
+      val child3 = child2.children.init(3)
+      child3.put(1, "one")
+      child3.put(2, "two")
+
+      val child4 = child2.children.init(4)
+      child4.put(1, "one")
+      child4.put(2, "two")
+
+      child1.get(1).value shouldBe "one"
+      child1.get(2).value shouldBe "two"
 
       //replace last with expiration
-      child11 = child1.children.replace(11, 3.second)
-      child11.isEmpty shouldBe true //last has no key-values
-      child11.put(1, "one") //add a key-value
-      child11.isEmpty shouldBe false //has a key-value now
-      eventual(4.seconds)(child11.isEmpty shouldBe true) //which eventually expires
+      child2 = child1.children.replace(2, 3.second)
+      child1.children.keys.materialize.toList should contain only 2
 
+      child2.isEmpty shouldBe true //last has no key-values
+      child2.put(1, "one") //add a key-value
+      child2.isEmpty shouldBe false //has a key-value now
+
+      child3.isEmpty shouldBe true
+      child4.isEmpty shouldBe true
+
+      eventual(4.seconds)(child2.isEmpty shouldBe true) //which eventually expires
       child1.children.keys.materialize.toList shouldBe empty
     }
 
     "init" when {
       "updated expiration" in {
         //hierarchy - root --> child1 --> child2
-        val root = newDB()
+        val root: MultiMap[Int, String, Nothing, Less] = newDB()
         root.put(1, "one")
         root.put(2, "two")
 
