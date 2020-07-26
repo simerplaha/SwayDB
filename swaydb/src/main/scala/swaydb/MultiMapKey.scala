@@ -32,28 +32,24 @@ import swaydb.serializers.Serializer
 
 import scala.collection.mutable.ListBuffer
 
-protected sealed trait MultiMapKey[+K] {
-  def parentKey: Iterable[K]
+protected sealed trait MultiMapKey[+T, +K] {
+  def parentKey: Iterable[T]
 }
 
 protected object MultiMapKey {
 
-  sealed trait UserEntry[+K] extends MultiMapKey[K] {
-    def dataKey: K
-  }
-
   //map start
-  case class MapStart[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
+  case class MapStart[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
 
-  case class MapEntriesStart[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
-  case class MapEntry[+K](parentKey: Iterable[K], dataKey: K) extends UserEntry[K]
-  case class MapEntriesEnd[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
+  case class MapEntriesStart[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
+  case class MapEntry[+T, +K](parentKey: Iterable[T], dataKey: K) extends MultiMapKey[T, K]
+  case class MapEntriesEnd[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
 
-  case class SubMapsStart[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
-  case class SubMap[+K](parentKey: Iterable[K], dataKey: K) extends UserEntry[K]
-  case class SubMapsEnd[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
+  case class SubMapsStart[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
+  case class SubMap[+T](parentKey: Iterable[T], subMapKey: T) extends MultiMapKey[T, Nothing]
+  case class SubMapsEnd[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
 
-  case class MapEnd[+K](parentKey: Iterable[K]) extends MultiMapKey[K]
+  case class MapEnd[+T](parentKey: Iterable[T]) extends MultiMapKey[T, Nothing]
 
   //formatId for the serializers. Each key is prepended with this formatId.
   private val formatId: Byte = 0
@@ -72,8 +68,8 @@ protected object MultiMapKey {
   private val mapEnd: Byte = 127 //keep this to map so that there is enough space in the map to add more data types.
   //actual queues's data is outside the map
 
-  protected def writeKeys[K](keys: Iterable[K],
-                             keySerializer: Serializer[K]): Slice[Byte] =
+  protected def writeKeys[T](keys: Iterable[T],
+                             keySerializer: Serializer[T]): Slice[Byte] =
     if (keys.isEmpty)
       Slice.emptyBytes
     else {
@@ -94,8 +90,8 @@ protected object MultiMapKey {
       slice
     }
 
-  private def readKeys[K](keys: Slice[Byte], keySerializer: Serializer[K]): Iterable[K] =
-    Reader(keys).foldLeft(ListBuffer.empty[K]) {
+  private def readKeys[T](keys: Slice[Byte], keySerializer: Serializer[T]): Iterable[T] =
+    Reader(keys).foldLeft(ListBuffer.empty[T]) {
       case (keys, reader) =>
         val tailKeyBytes = reader.read(reader.readUnsignedInt())
         keys :+ keySerializer.read(tailKeyBytes)
@@ -113,12 +109,13 @@ protected object MultiMapKey {
    * dataType - the type of [[MultiMapKey]] which can be either one of [[mapStart]], [[mapEntry]] or [[mapEnd]]
    * dataKey  - the entry key for the Map.
    */
-  implicit def serializer[K](implicit keySerializer: Serializer[K]): Serializer[MultiMapKey[K]] =
-    new Serializer[MultiMapKey[K]] {
-      override def write(data: MultiMapKey[K]): Slice[Byte] =
+  implicit def serializer[T, K](implicit keySerializer: Serializer[K],
+                                tableSerializer: Serializer[T]): Serializer[MultiMapKey[T, K]] =
+    new Serializer[MultiMapKey[T, K]] {
+      override def write(data: MultiMapKey[T, K]): Slice[Byte] =
         data match {
           case MultiMapKey.MapStart(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, keySerializer)
+            val keyBytes = writeKeys(mapKeys, tableSerializer)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
@@ -127,7 +124,7 @@ protected object MultiMapKey {
               .add(MultiMapKey.mapStart)
 
           case MultiMapKey.MapEntriesStart(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, keySerializer)
+            val keyBytes = writeKeys(mapKeys, tableSerializer)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
@@ -136,7 +133,7 @@ protected object MultiMapKey {
               .add(MultiMapKey.mapEntriesStart)
 
           case MultiMapKey.MapEntry(mapKeys, dataKey) =>
-            val mapKeyBytes = writeKeys(mapKeys, keySerializer)
+            val mapKeyBytes = writeKeys(mapKeys, tableSerializer)
             val dataKeyBytes = keySerializer.write(dataKey)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
@@ -147,7 +144,7 @@ protected object MultiMapKey {
               .addAll(dataKeyBytes)
 
           case MultiMapKey.MapEntriesEnd(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, keySerializer)
+            val keyBytes = writeKeys(mapKeys, tableSerializer)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
@@ -156,7 +153,7 @@ protected object MultiMapKey {
               .add(MultiMapKey.mapEntriesEnd)
 
           case MultiMapKey.SubMapsStart(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, keySerializer)
+            val keyBytes = writeKeys(mapKeys, tableSerializer)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
@@ -165,8 +162,8 @@ protected object MultiMapKey {
               .add(MultiMapKey.subMapsStart)
 
           case MultiMapKey.SubMap(mapKeys, subMapKey) =>
-            val mapKeyBytes = writeKeys(mapKeys, keySerializer)
-            val dataKeyBytes = keySerializer.write(subMapKey)
+            val mapKeyBytes = writeKeys(mapKeys, tableSerializer)
+            val dataKeyBytes = tableSerializer.write(subMapKey)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(mapKeyBytes.size) + mapKeyBytes.size + 1 + dataKeyBytes.size)
               .add(formatId)
@@ -176,7 +173,7 @@ protected object MultiMapKey {
               .addAll(dataKeyBytes)
 
           case MultiMapKey.SubMapsEnd(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, keySerializer)
+            val keyBytes = writeKeys(mapKeys, tableSerializer)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
@@ -185,7 +182,7 @@ protected object MultiMapKey {
               .add(MultiMapKey.subMapsEnd)
 
           case MultiMapKey.MapEnd(mapKeys) =>
-            val keyBytes = writeKeys(mapKeys, keySerializer)
+            val keyBytes = writeKeys(mapKeys, tableSerializer)
 
             Slice.create[Byte](1 + Bytes.sizeOfUnsignedInt(keyBytes.size) + keyBytes.size + 1)
               .add(formatId)
@@ -194,10 +191,10 @@ protected object MultiMapKey {
               .add(MultiMapKey.mapEnd)
         }
 
-      override def read(data: Slice[Byte]): MultiMapKey[K] = {
+      override def read(data: Slice[Byte]): MultiMapKey[T, K] = {
         val reader = Reader(slice = data, position = 1)
         val keyBytes = reader.read(reader.readUnsignedInt())
-        val keys = readKeys(keyBytes, keySerializer)
+        val keys = readKeys(keyBytes, tableSerializer)
         val dataType = reader.get()
         if (dataType == MultiMapKey.mapStart)
           MultiMapKey.MapStart(keys)
@@ -210,7 +207,7 @@ protected object MultiMapKey {
         else if (dataType == MultiMapKey.subMapsStart)
           MultiMapKey.SubMapsStart(keys)
         else if (dataType == MultiMapKey.subMap)
-          MultiMapKey.SubMap(keys, keySerializer.read(reader.readRemaining()))
+          MultiMapKey.SubMap(keys, tableSerializer.read(reader.readRemaining()))
         else if (dataType == MultiMapKey.subMapsEnd)
           MultiMapKey.SubMapsEnd(keys)
         else if (dataType == MultiMapKey.mapEnd)

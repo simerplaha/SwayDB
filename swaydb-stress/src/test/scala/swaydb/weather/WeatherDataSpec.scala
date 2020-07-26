@@ -43,7 +43,7 @@ class Memory_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Memory_MultiMap_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.memory.MultiMap[Int, WeatherData, Nothing, IO.ApiIO]().get
+  override val db = swaydb.memory.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO]().get
 }
 
 class Persistent_WeatherDataSpec extends WeatherDataSpec {
@@ -51,7 +51,7 @@ class Persistent_WeatherDataSpec extends WeatherDataSpec {
 }
 
 class Persistent_MultiMap_WeatherDataSpec extends WeatherDataSpec {
-  override val db = swaydb.persistent.MultiMap[Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get
+  override val db = swaydb.persistent.MultiMap[Int, Int, WeatherData, Nothing, IO.ApiIO](randomDir, memoryCache = swaydb.persistent.DefaultConfigs.memoryCache.copy(cacheCapacity = 10.mb), acceleration = Accelerator.brake()).get
 }
 
 class Persistent_SetMap_WeatherDataSpec extends WeatherDataSpec {

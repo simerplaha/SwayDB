@@ -36,7 +36,7 @@ trait TestBaseEmbedded extends TestBase {
 
   val keyValueCount: Int
 
-  def printMap[BAG[_]](root: MultiMap[_, _, _, BAG]): Unit = {
+  def printMap[BAG[_]](root: MultiMap[_, _, _, _, BAG]): Unit = {
     root.map.stream.materialize[Bag.Less].foreach {
       map =>
         println(map)
@@ -52,7 +52,7 @@ trait TestBaseEmbedded extends TestBase {
   /**
    * Randomly adds child Maps to [[MultiMap]] and returns the last added Map.
    */
-  def generateRandomNestedMaps(root: MultiMap[Int, String, Nothing, IO.ApiIO]): MultiMap[Int, String, Nothing, ApiIO] = {
+  def generateRandomNestedMaps(root: MultiMap[Int, Int, String, Nothing, IO.ApiIO]): MultiMap[Int, Int, String, Nothing, ApiIO] = {
     val range = 1 to Random.nextInt(10)
 
     val sub =

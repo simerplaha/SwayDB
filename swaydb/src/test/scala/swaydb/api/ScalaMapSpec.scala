@@ -64,14 +64,14 @@ class MultiMapSpec4 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get)
 }
 
 class MultiMapSpec5 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().get)
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get)
 }
 
 //class ScalaMapSpec4 extends ScalaMapSpec {
@@ -148,7 +148,7 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
 
       db.asScala ++= Seq((1, "one"), (2, "two"))
 
-      if (db.isInstanceOf[swaydb.MultiMap[_, _, _, IO.ApiIO]])
+      if (db.isInstanceOf[swaydb.MultiMap[_, _, _, _, IO.ApiIO]])
         assertThrows[NotImplementedError](db.asScala.keySet)
       else
         db.asScala.keySet should contain only(1, 2)

@@ -69,14 +69,14 @@ class MultiMapExpireSpec4 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, String, Nothing, IO.ApiIO](dir = randomDir).get)
+    generateRandomNestedMaps(swaydb.persistent.MultiMap[Int, Int, String, Nothing, IO.ApiIO](dir = randomDir).get)
 }
 
 class MultiMapExpireSpec5 extends SwayDBExpireSpec {
   val keyValueCount: Int = 1000
 
   override def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO] =
-    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, String, Nothing, IO.ApiIO]().get)
+    generateRandomNestedMaps(swaydb.memory.MultiMap[Int, Int, String, Nothing, IO.ApiIO]().get)
 }
 
 
@@ -340,7 +340,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
       db match {
-        case db :MapT[Int, String, Nothing, IO.ApiIO] =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
             right = db.update(1, keyValueCount, value = "updated 1").right.value
@@ -422,7 +422,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       )
 
       db match {
-        case db :MapT[Int, String, Nothing, IO.ApiIO] =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
             right = db.update(1, keyValueCount, value = "updated").right.value
@@ -536,7 +536,7 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
       doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
       db match {
-        case db :MapT[Int, String, Nothing, IO.ApiIO] =>
+        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
           eitherOne(
             left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
             right = db.update(1, keyValueCount, value = "updated").right.value

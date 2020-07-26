@@ -33,36 +33,36 @@ import scala.util.Random
 class FromMultiMapSpec0 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir)
 }
 
 class FromMultiMapSpec1 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
 }
 
 class FromMultiMapSpec2 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]()
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]()
 }
 
 class FromMultiMapSpec3 extends FromMultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less](mapSize = 1.byte)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte)
 }
 
 sealed trait FromMultiMapSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): MultiMap[Int, String, Nothing, Bag.Less]
+  def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -155,7 +155,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
 
       val rootMap = db.children.init(1)
 
-      val subMap1: Less[MultiMap[Int, String, Nothing, Less]] = rootMap.children.init(2)
+      val subMap1: Less[MultiMap[Int, Int, String, Nothing, Less]] = rootMap.children.init(2)
       subMap1.put(1, "one")
       subMap1.put(2, "two")
 

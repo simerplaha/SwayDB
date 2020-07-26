@@ -37,36 +37,36 @@ import scala.util.Random
 class MultiMapSpec0 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir)
 }
 
 class MultiMapSpec1 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
 }
 
 class MultiMapSpec2 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]()
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]()
 }
 
 class MultiMapSpec3 extends MultiMapSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less](mapSize = 1.byte)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte)
 }
 
 sealed trait MultiMapSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): MultiMap[Int, String, Nothing, Bag.Less]
+  def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -74,7 +74,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
   implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrder.default
 
   /**
-   * The following displays the MultiMap hierarchy existing for the Map. 
+   * The following displays the MultiMap hierarchy existing for the Map.
    */
   //root                          - (0, "zero")
   //  |______ child1              - (1, "one"), (2, "two")
@@ -85,7 +85,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
   //  |          |_______ child21 - (9, "nine"), (10, "ten")
   //  |          |_______ child22 - (11, "eleven"), (12, "twelve")
 
-  def buildRootMap(): MultiMap[Int, String, Nothing, Bag.Less] = {
+  def buildRootMap(): MultiMap[Int, Int, String, Nothing, Bag.Less] = {
     val root = newDB()
     root.put(0, "zero")
 
@@ -509,7 +509,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     "init" when {
       "updated expiration" in {
         //hierarchy - root --> child1 --> child2
-        val root: MultiMap[Int, String, Nothing, Less] = newDB()
+        val root: MultiMap[Int, Int, String, Nothing, Less] = newDB()
         root.put(1, "one")
         root.put(2, "two")
 

@@ -30,30 +30,30 @@ import swaydb.{Apply, Bag, MultiMap, Prepare, PureFunction}
 import scala.concurrent.duration._
 
 class MultiMapFunctionsSpec0 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.persistent.MultiMap[Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir)
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir)
 }
 
 class MultiMapFunctionsSpec1 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.persistent.MultiMap[Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir, mapSize = 1.byte)
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
+    swaydb.persistent.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](dir = randomDir, mapSize = 1.byte)
 }
 
 class MultiMapFunctionsSpec2 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.memory.MultiMap[Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]()
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]()
 }
 
 class MultiMapFunctionsSpec3 extends MultiMapFunctionsSpec {
-  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
-    swaydb.memory.MultiMap[Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](mapSize = 1.byte)
+  override def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]) =
+    swaydb.memory.MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less](mapSize = 1.byte)
 }
 
 sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int = 30
 
-  def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, String, PureFunction[Int, String, Apply.Map[String]]]): MultiMap[Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]
+  def newDB()(implicit functions: swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]]): MultiMap[Int, Int, String, PureFunction[Int, String, Apply.Map[String]], Bag.Less]
 
   implicit val bag = Bag.less
 
@@ -82,7 +82,7 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
       }
 
     //register all types of functions
-    implicit val functions = swaydb.MultiMap.Functions[Int, String, PureFunction[Int, String, Apply.Map[String]]](onKeyValueFunction, onValueFunction, onKeyFunction)
+    implicit val functions = swaydb.MultiMap.Functions[Int, Int, String, PureFunction[Int, String, Apply.Map[String]]](onKeyValueFunction, onValueFunction, onKeyFunction)
 
     "single" in {
       val map = newDB()

@@ -35,29 +35,29 @@ import scala.concurrent.duration._
 class MultiMapSpecOLD0 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir)
 }
 
 class MultiMapSpecOLD1 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir, mapSize = 1.byte)
 }
 
 class MultiMapSpecOLD2 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]()
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]()
 }
 
 class MultiMapSpecOLD3 extends MultiMapSpec_OLD {
   val keyValueCount: Int = 1000
 
-  override def newDB(): MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less](mapSize = 1.byte)
+  override def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less](mapSize = 1.byte)
 }
 
 /**
@@ -68,7 +68,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): MultiMap[Int, String, Nothing, Bag.Less]
+  def newDB(): MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   implicit val bag = Bag.less
 

@@ -28,22 +28,22 @@ import swaydb.{Bag, MultiMap}
 class MultiMapPutSpec0 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): swaydb.MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.MultiMap[Int, String, Nothing, Bag.Less](dir = randomDir)
+  override def newDB(): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.persistent.MultiMap[Int, Int, String, Nothing, Bag.Less](dir = randomDir)
 }
 
 class MultiMapPutSpec1 extends MultiMapPutSpec {
   val keyValueCount: Int = 1000
 
-  override def newDB(): swaydb.MultiMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.MultiMap[Int, String, Nothing, Bag.Less]()
+  override def newDB(): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less] =
+    swaydb.memory.MultiMap[Int, Int, String, Nothing, Bag.Less]()
 }
 
 sealed trait MultiMapPutSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
 
-  def newDB(): swaydb.MultiMap[Int, String, Nothing, Bag.Less]
+  def newDB(): swaydb.MultiMap[Int, Int, String, Nothing, Bag.Less]
 
   "Root" should {
     "Initialise a RootMap & SubMap from Root" in {
@@ -76,7 +76,7 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
     "Initialise a RootMap & 2 SubMaps from Root" in {
       val root = newDB()
 
-      def insert(firstMap: MultiMap[Int, String, Nothing, Bag.Less]) = {
+      def insert(firstMap: MultiMap[Int, Int, String, Nothing, Bag.Less]) = {
         firstMap.put(3, "three")
         firstMap.put(4, "four")
         firstMap.put(5, "five")
