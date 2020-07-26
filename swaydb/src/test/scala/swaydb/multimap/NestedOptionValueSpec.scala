@@ -33,17 +33,19 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
 
     import swaydb.serializers.Default._
 
-    val rootMap = swaydb.memory.MultiMap[Int, Option[String], Nothing, Bag.Less]()
+    val root = swaydb.memory.MultiMap[Int, Option[String], Nothing, Bag.Less]()
 
-    rootMap.put(1, None)
-    rootMap.contains(1) shouldBe true
-    rootMap.get(1).value shouldBe None
+    root.put(1, None)
+    root.contains(1) shouldBe true
+    root.get(1).value shouldBe None
 
-    rootMap.put(2, None)
-    rootMap.contains(2) shouldBe true
-    rootMap.get(2).value shouldBe None
+    root.put(2, None)
+    root.contains(2) shouldBe true
+    root.get(2).value shouldBe None
 
-    rootMap.stream.materialize.toList should contain only((1, None), (2, None))
+    root.stream.materialize.toList should contain only((1, None), (2, None))
+
+    root.close()
   }
 
   "Option[Empty[V]]" in {
@@ -85,23 +87,25 @@ class NestedOptionValueSpec extends TestBaseEmbedded {
           Some(Value.NonEmpty(StringSerializer.read(data)))
     }
 
-    val rootMap = swaydb.memory.MultiMap[Int, Option[Value], Nothing, Bag.Less]()
+    val root = swaydb.memory.MultiMap[Int, Option[Value], Nothing, Bag.Less]()
 
-    rootMap.put(1, Some(Value.Empty))
-    rootMap.put(2, Some(Value.NonEmpty("two")))
-    rootMap.put(3, None)
+    root.put(1, Some(Value.Empty))
+    root.put(2, Some(Value.NonEmpty("two")))
+    root.put(3, None)
 
-    rootMap.getKeyValue(1).value shouldBe (1, Some(Value.Empty))
-    rootMap.getKeyValue(3).value shouldBe (3, None)
+    root.getKeyValue(1).value shouldBe (1, Some(Value.Empty))
+    root.getKeyValue(3).value shouldBe (3, None)
 
-    rootMap.getKeyDeadline(1).value shouldBe (1, None)
-    rootMap.getKeyDeadline(2).value shouldBe (2, None)
-    rootMap.getKeyDeadline(3).value shouldBe (3, None)
+    root.getKeyDeadline(1).value shouldBe (1, None)
+    root.getKeyDeadline(2).value shouldBe (2, None)
+    root.getKeyDeadline(3).value shouldBe (3, None)
 
-    rootMap.get(1).value.value shouldBe Value.Empty
-    rootMap.get(3).value shouldBe None
-    rootMap.get(2).value.value shouldBe Value.NonEmpty("two")
+    root.get(1).value.value shouldBe Value.Empty
+    root.get(3).value shouldBe None
+    root.get(2).value.value shouldBe Value.NonEmpty("two")
 
-    rootMap.stream.materialize[Bag.Less].toList shouldBe List((1, Some(Value.Empty)), (2, Some(Value.NonEmpty("two"))), (3, None))
+    root.stream.materialize[Bag.Less].toList shouldBe List((1, Some(Value.Empty)), (2, Some(Value.NonEmpty("two"))), (3, None))
+
+    root.close()
   }
 }

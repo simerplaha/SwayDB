@@ -86,13 +86,13 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
   //  |          |_______ child22 - (11, "eleven"), (12, "twelve")
 
   def buildRootMap(): MultiMap[Int, String, Nothing, Bag.Less] = {
-    val rootMap = newDB()
-    rootMap.put(0, "zero")
+    val root = newDB()
+    root.put(0, "zero")
 
     /**
      * Child1 hierarchy
      */
-    val child1 = rootMap.children.init(1)
+    val child1 = root.children.init(1)
     child1.put(1, "one")
     child1.put(2, "two")
 
@@ -107,7 +107,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     /**
      * Child2 hierarchy
      */
-    val child2 = rootMap.children.init(2)
+    val child2 = root.children.init(2)
     child2.put(7, "seven")
     child2.put(8, "eight")
 
@@ -119,8 +119,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     child22.put(11, "eleven")
     child22.put(12, "twelve")
 
-    rootMap.get(0).value shouldBe "zero"
-    rootMap.children.keys.materialize.toList shouldBe List(1, 2)
+    root.get(0).value shouldBe "zero"
+    root.children.keys.materialize.toList shouldBe List(1, 2)
 
     child1.get(1).value shouldBe "one"
     child1.get(2).value shouldBe "two"
@@ -130,7 +130,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     child12.get(5).value shouldBe "five"
     child12.get(6).value shouldBe "six"
 
-    rootMap
+    root
   }
 
   "put" should {
@@ -162,6 +162,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       child2.get(8).value shouldBe "eight"
       child21.get(9).value shouldBe "nine"
       child21.get(10).value shouldBe "ten"
+
+      root.close()
     }
 
     "stream" in {
@@ -171,6 +173,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       root.put(stream)
 
       root.stream.materialize.toList shouldBe (1 to 10).map(int => (int, int.toString)).toList
+
+      root.close()
     }
 
     "put a stream to an expired map and also submit key-values with deadline later than map's deadline" in {
@@ -201,6 +205,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         child.isEmpty shouldBe true
         child.children.isEmpty shouldBe true
       }
+
+      root.close()
     }
 
     "put a stream to an expired map and also submit key-values with deadline earlier than map's deadline" in {
@@ -235,6 +241,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       }
       //root has only 1 child
       root.children.keys.materialize.toList should contain only 1
+
+      root.close()
     }
 
     "put & expire" in {
@@ -260,6 +268,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       }
 
       child1.isEmpty shouldBe true
+
+      root.close()
     }
   }
 
@@ -303,6 +313,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       root.children.keys.materialize.toList shouldBe empty
       child1.stream.materialize.toList shouldBe empty
       child2.stream.materialize.toList shouldBe empty
+
+      root.close()
     }
 
     "remove sibling map" in {
@@ -334,6 +346,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       root.children.keys.materialize.toList shouldBe List(1)
       child1.children.keys.materialize.toList shouldBe List(2)
       child2.children.keys.materialize.toList shouldBe List(3)
+
+      root.close()
     }
   }
 
@@ -366,6 +380,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     child1.stream.materialize.toList should not be empty
     //parent child of last child has no child maps.
     child1.children.keys.materialize.toList shouldBe empty
+
+    root.close()
   }
 
   "update & clearKeyValues" in {
@@ -394,6 +410,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     root.isEmpty shouldBe true
 
     child11.stream.materialize.toList shouldBe List((1, "one"), (2, "two"))
+
+    root.close()
   }
 
   "children" should {
@@ -437,6 +455,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
       eventual(4.seconds)(child2.isEmpty shouldBe true) //which eventually expires
       child1.children.keys.materialize.toList shouldBe empty
+
+      root.close()
     }
 
     "replace removes all child maps" in {
@@ -481,6 +501,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
             //deadline is set
             child.defaultExpiration shouldBe deadline
         }
+
+        root.close()
       }
     }
 
@@ -518,6 +540,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         child1.put(1, "one")
         child1.get(1).value shouldBe "one"
         child1.expiration(1) shouldBe empty
+
+        root.close()
       }
     }
   }

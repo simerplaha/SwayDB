@@ -150,6 +150,8 @@ sealed trait MultiMapPutSpec extends TestBaseEmbedded {
       subMaps(1).get(2).value shouldBe "two"
       subMaps(2).get(1).value shouldBe "1"
       subMaps(3).get(2).value shouldBe "2"
+
+      root.close()
     }
   }
 }
