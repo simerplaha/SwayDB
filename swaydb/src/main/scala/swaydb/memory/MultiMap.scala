@@ -42,25 +42,31 @@ object MultiMap extends LazyLogging {
   /**
    * MultiMap is not a new Core type but is just a wrapper implementation on [[swaydb.Map]] type
    * with custom key-ordering to support nested Map.
+   *
+   * @tparam M   Map's key type.
+   * @tparam K   Key-values key type
+   * @tparam V   Values type
+   * @tparam F   Function type
+   * @tparam BAG Effect type
    */
-  def apply[T, K, V, F, BAG[_]](mapSize: Int = 4.mb,
-                             minSegmentSize: Int = 2.mb,
-                             maxKeyValuesPerSegment: Int = Int.MaxValue,
-                             fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-                             deleteSegmentsEventually: Boolean = true,
-                             acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-                             levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-                             lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
-                             threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
-                                                                                                                               tableSerializer: Serializer[T],
-                                                                                                                               valueSerializer: Serializer[V],
-                                                                                                                               functionClassTag: ClassTag[F],
-                                                                                                                               bag: swaydb.Bag[BAG],
-                                                                                                                               functions: swaydb.MultiMap.Functions[T, K, V, F],
-                                                                                                                               byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                               typedKeyOrder: KeyOrder[K] = null): BAG[MultiMap[T, K, V, F, BAG]] = {
+  def apply[M, K, V, F, BAG[_]](mapSize: Int = 4.mb,
+                                minSegmentSize: Int = 2.mb,
+                                maxKeyValuesPerSegment: Int = Int.MaxValue,
+                                fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                                deleteSegmentsEventually: Boolean = true,
+                                acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                                levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+                                lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                                threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit keySerializer: Serializer[K],
+                                                                                                                                  tableSerializer: Serializer[M],
+                                                                                                                                  valueSerializer: Serializer[V],
+                                                                                                                                  functionClassTag: ClassTag[F],
+                                                                                                                                  bag: swaydb.Bag[BAG],
+                                                                                                                                  functions: swaydb.MultiMap.Functions[M, K, V, F],
+                                                                                                                                  byteKeyOrder: KeyOrder[Slice[Byte]] = null,
+                                                                                                                                  typedKeyOrder: KeyOrder[K] = null): BAG[MultiMap[M, K, V, F, BAG]] = {
 
-    implicit val mapKeySerializer: Serializer[MultiMapKey[T, K]] = MultiMapKey.serializer(keySerializer, tableSerializer)
+    implicit val mapKeySerializer: Serializer[MultiMapKey[M, K]] = MultiMapKey.serializer(keySerializer, tableSerializer)
     implicit val optionValueSerializer: Serializer[Option[V]] = Serializer.toNestedOption(valueSerializer)
 
     val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
@@ -68,7 +74,7 @@ object MultiMap extends LazyLogging {
 
     //the inner map with custom keyOrder and custom key-value types to support nested Maps.
     val map =
-      swaydb.memory.Map[MultiMapKey[T, K], Option[V], PureFunction[MultiMapKey[T, K], Option[V], Apply.Map[Option[V]]], BAG](
+      swaydb.memory.Map[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]], BAG](
         mapSize = mapSize,
         minSegmentSize = minSegmentSize,
         maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -80,7 +86,7 @@ object MultiMap extends LazyLogging {
         threadStateCache = threadStateCache
       )(keySerializer = mapKeySerializer,
         valueSerializer = optionValueSerializer,
-        functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[T, K], Option[V], Apply.Map[Option[V]]]]],
+        functionClassTag = functionClassTag.asInstanceOf[ClassTag[PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]],
         bag = bag,
         functions = functions.innerFunctions,
         byteKeyOrder = internalKeyOrder
@@ -88,7 +94,7 @@ object MultiMap extends LazyLogging {
 
     bag.flatMap(map) {
       map =>
-        swaydb.MultiMap[T, K, V, F, BAG](map)
+        swaydb.MultiMap[M, K, V, F, BAG](map)
     }
   }
 }
