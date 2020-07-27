@@ -92,16 +92,16 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
   def init[M2](key: M2, expireAfter: FiniteDuration)(implicit evT: M2 <:< M): BAG[MultiMap[M2, K, V, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), forceClear = false)
 
-  def init[M2, K2](key: M2, expireAfter: FiniteDuration, keyType: Class[K2])(implicit evT: M2 <:< M,
+  def init[M2, K2](key: M2, keyType: Class[K2], expireAfter: FiniteDuration)(implicit evT: M2 <:< M,
                                                                              evK: K2 <:< K): BAG[MultiMap[M2, K2, V, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), forceClear = false)
 
-  def init[M2, K2, V2](key: M2, expireAfter: FiniteDuration, keyType: Class[K2], valueType: Class[V2])(implicit evT: M2 <:< M,
+  def init[M2, K2, V2](key: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: FiniteDuration)(implicit evT: M2 <:< M,
                                                                                                        evK: K2 <:< K,
                                                                                                        evV: V2 <:< V): BAG[MultiMap[M2, K2, V2, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), forceClear = false)
 
-  def init[M2, K2, V2, F2](key: M2, expireAfter: FiniteDuration, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2])(implicit evT: M2 <:< M,
+  def init[M2, K2, V2, F2](key: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2], expireAfter: FiniteDuration)(implicit evT: M2 <:< M,
                                                                                                                                     evK: K2 <:< K,
                                                                                                                                     evV: V2 <:< V,
                                                                                                                                     evF: F2 <:< F): BAG[MultiMap[M2, K2, V2, F2, BAG]] =
@@ -116,16 +116,16 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
   def replace[M2](key: M2, expireAfter: FiniteDuration)(implicit evT: M2 <:< M): BAG[MultiMap[M2, K, V, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), forceClear = true)
 
-  def replace[M2, K2](key: M2, expireAfter: FiniteDuration, keyType: Class[K2])(implicit evT: M2 <:< M,
+  def replace[M2, K2](key: M2, keyType: Class[K2], expireAfter: FiniteDuration)(implicit evT: M2 <:< M,
                                                                                 evK: K2 <:< K): BAG[MultiMap[M2, K2, V, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), forceClear = true)
 
-  def replace[M2, K2, V2](key: M2, expireAfter: FiniteDuration, keyType: Class[K2], valueType: Class[V2])(implicit evT: M2 <:< M,
+  def replace[M2, K2, V2](key: M2, keyType: Class[K2], valueType: Class[V2], expireAfter: FiniteDuration)(implicit evT: M2 <:< M,
                                                                                                           evK: K2 <:< K,
                                                                                                           evV: V2 <:< V): BAG[MultiMap[M2, K2, V2, F, BAG]] =
     getOrPut(key, Some(expireAfter.fromNow), forceClear = true)
 
-  def replace[M2, K2, V2, F2](key: M2, expireAfter: FiniteDuration, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2])(implicit evT: M2 <:< M,
+  def replace[M2, K2, V2, F2](key: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2], expireAfter: FiniteDuration)(implicit evT: M2 <:< M,
                                                                                                                                        evK: K2 <:< K,
                                                                                                                                        evV: V2 <:< V,
                                                                                                                                        evF: F2 <:< F): BAG[MultiMap[M2, K2, V2, F2, BAG]] =
@@ -138,16 +138,16 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
     getOrPut(key, Some(expireAt), forceClear = false)
 
 
-  def init[M2, K2](key: M2, expireAt: Deadline, keyType: Class[K2])(implicit evT: M2 <:< M,
+  def init[M2, K2](key: M2, keyType: Class[K2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                     evK: K2 <:< K): BAG[MultiMap[M2, K2, V, F, BAG]] =
     getOrPut(key, Some(expireAt), forceClear = false)
 
-  def init[M2, K2, V2](key: M2, expireAt: Deadline, keyType: Class[K2], valueType: Class[V2])(implicit evT: M2 <:< M,
+  def init[M2, K2, V2](key: M2, keyType: Class[K2], valueType: Class[V2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                                               evK: K2 <:< K,
                                                                                               evV: V2 <:< V): BAG[MultiMap[M2, K2, V2, F, BAG]] =
     getOrPut(key, Some(expireAt), forceClear = false)
 
-  def init[M2, K2, V2, F2](key: M2, expireAt: Deadline, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2])(implicit evT: M2 <:< M,
+  def init[M2, K2, V2, F2](key: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                                                                            evK: K2 <:< K,
                                                                                                                            evV: V2 <:< V,
                                                                                                                            evF: F2 <:< F): BAG[MultiMap[M2, K2, V2, F2, BAG]] =
@@ -162,16 +162,16 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
   def replace[M2](key: M2, expireAt: Deadline)(implicit evT: M2 <:< M): BAG[MultiMap[M2, K, V, F, BAG]] =
     getOrPut(key = key, expireAt = Some(expireAt), forceClear = true)
 
-  def replace[M2, K2](key: M2, expireAt: Deadline, keyType: Class[K2])(implicit evT: M2 <:< M,
+  def replace[M2, K2](key: M2, keyType: Class[K2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                        evK: K2 <:< K): BAG[MultiMap[M2, K2, V, F, BAG]] =
     getOrPut(key = key, expireAt = Some(expireAt), forceClear = true)
 
-  def replace[M2, K2, V2](key: M2, expireAt: Deadline, keyType: Class[K2], valueType: Class[V2])(implicit evT: M2 <:< M,
+  def replace[M2, K2, V2](key: M2, keyType: Class[K2], valueType: Class[V2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                                                  evK: K2 <:< K,
                                                                                                  evV: V2 <:< V): BAG[MultiMap[M2, K2, V2, F, BAG]] =
     getOrPut(key = key, expireAt = Some(expireAt), forceClear = true)
 
-  def replace[M2, K2, V2, F2](key: M2, expireAt: Deadline, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2])(implicit evT: M2 <:< M,
+  def replace[M2, K2, V2, F2](key: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2], expireAt: Deadline)(implicit evT: M2 <:< M,
                                                                                                                               evK: K2 <:< K,
                                                                                                                               evV: V2 <:< V,
                                                                                                                               evF: F2 <:< F): BAG[MultiMap[M2, K2, V2, F2, BAG]] =
@@ -187,16 +187,16 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
   def replace[M2](key: M2, expireAt: Option[Deadline])(implicit evT: M2 <:< M): BAG[MultiMap[M2, K, V, F, BAG]] =
     getOrPut(key = key, expireAt = expireAt, forceClear = true)
 
-  def replace[M2, K2](key: M2, expireAt: Option[Deadline], keyType: Class[K2])(implicit evT: M2 <:< M,
+  def replace[M2, K2](key: M2, keyType: Class[K2], expireAt: Option[Deadline])(implicit evT: M2 <:< M,
                                                                                evK: K2 <:< K): BAG[MultiMap[M2, K2, V, F, BAG]] =
     getOrPut(key = key, expireAt = expireAt, forceClear = true)
 
-  def replace[M2, K2, V2](key: M2, expireAt: Option[Deadline], keyType: Class[K2], valueType: Class[V2])(implicit evT: M2 <:< M,
+  def replace[M2, K2, V2](key: M2, keyType: Class[K2], valueType: Class[V2], expireAt: Option[Deadline])(implicit evT: M2 <:< M,
                                                                                                          evK: K2 <:< K,
                                                                                                          evV: V2 <:< V): BAG[MultiMap[M2, K2, V2, F, BAG]] =
     getOrPut(key = key, expireAt = expireAt, forceClear = true)
 
-  def replace[M2, K2, V2, F2](key: M2, expireAt: Option[Deadline], keyType: Class[K2], valueType: Class[V2], functionType: Class[F2])(implicit evT: M2 <:< M,
+  def replace[M2, K2, V2, F2](key: M2, keyType: Class[K2], valueType: Class[V2], functionType: Class[F2], expireAt: Option[Deadline])(implicit evT: M2 <:< M,
                                                                                                                                       evK: K2 <:< K,
                                                                                                                                       evV: V2 <:< V,
                                                                                                                                       evF: F2 <:< F): BAG[MultiMap[M2, K2, V2, F2, BAG]] =
