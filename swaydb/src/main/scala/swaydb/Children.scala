@@ -203,6 +203,18 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
     getOrPut(key = key, expireAt = expireAt, forceClear = true)
 
 
+  def remove(key: M): BAG[Boolean] =
+    bag.flatMap(prepareRemove(key = key, expiration = None, forceClear = true, expire = false)) {
+      buffer =>
+        if (buffer.isEmpty)
+          bag.success(false)
+        else
+          bag.transform(map.commit(buffer)) {
+            _ =>
+              true
+          }
+    }
+
   /**
    * Inserts a child map to this [[MultiMap]].
    *
@@ -272,7 +284,7 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
 
     val expiration = expireAt earlier defaultExpiration
 
-    val buffer = prepareRemove(expiration = expiration, forceClear = forceClear, expire = expire)
+    val buffer = prepareRemove(key = key, expiration = expiration, forceClear = forceClear, expire = expire)
 
     bag.flatMap(buffer) {
       buffer =>
@@ -330,29 +342,27 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
       bag.success(buffer)
   }
 
-  def remove(key: M): BAG[Boolean] =
-    bag.flatMap(prepareRemove(key)) {
-      buffer =>
-        if (buffer.isEmpty)
-          bag.success(false)
-        else
-          bag.transform(map.commit(buffer)) {
-            _ =>
-              true
-          }
-    }
 
   /**
    * Builds [[Prepare.Remove]] statements to remove the key's map and all that key's children.
    */
-  private def prepareRemove(key: M): BAG[ListBuffer[Prepare[MultiMapKey[M, K], Option[V], Nothing]]] =
+  private def prepareRemove(key: M,
+                            expiration: Option[Deadline],
+                            forceClear: Boolean,
+                            expire: Boolean): BAG[ListBuffer[Prepare[MultiMapKey[M, K], Option[V], Nothing]]] =
     bag.flatMap(get(key)) {
       case Some(child) =>
-        val buffer = child.children.prepareRemove(expiration = None, forceClear = true, expire = false)
+        val buffer = child.children.prepareRemove(expiration = expiration, forceClear = forceClear, expire = expire)
 
         bag.transform(buffer) {
           buffer =>
-            buffer ++= prepareRemoveSubMap(key, None)
+            val deadline =
+              if (!forceClear && expire)
+                expiration
+              else
+                None
+
+            buffer ++= buildPrepareRemove(key, deadline)
         }
 
       case None =>
@@ -362,7 +372,7 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
   /**
    * Builds [[Prepare.Remove]] statements for a child with the key.
    */
-  private def prepareRemoveSubMap(key: M, expire: Option[Deadline]): Seq[Prepare.Remove[MultiMapKey[M, K]]] = {
+  private def buildPrepareRemove(key: M, expire: Option[Deadline]): Seq[Prepare.Remove[MultiMapKey[M, K]]] = {
     val childMapKey = mapKey.toBuffer += key
 
     Seq(
@@ -381,7 +391,7 @@ class Children[M, K, V, F, BAG[_]](map: Map[MultiMapKey[M, K], Option[V], PureFu
 
         child foreach {
           child =>
-            buffer ++= prepareRemoveSubMap(child.mapKey.last, expire)
+            buffer ++= buildPrepareRemove(child.mapKey.last, expire)
             val childPrepares = bag.getUnsafe(child.children.prepareRemove(expire))
             buffer ++= childPrepares
         }

@@ -53,7 +53,7 @@ trait TestBaseEmbedded extends TestBase {
    * Randomly adds child Maps to [[MultiMap]] and returns the last added Map.
    */
   def generateRandomNestedMaps(root: MultiMap[Int, Int, String, Nothing, IO.ApiIO]): MultiMap[Int, Int, String, Nothing, ApiIO] = {
-    val range = 1 to Random.nextInt(10)
+    val range = 1 to Random.nextInt(100)
 
     val sub =
       range.foldLeft(root) {

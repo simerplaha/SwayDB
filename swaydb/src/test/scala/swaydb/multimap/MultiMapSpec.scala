@@ -27,7 +27,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.{Bag, MultiMap}
+import swaydb.{Bag, IO, MultiMap}
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 
@@ -459,6 +459,35 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       root.close()
     }
 
+    "replace sibling" in {
+      //root --> child1 (replace this)
+      //     --> child2
+      val root = newDB()
+      root.put(1, "one")
+      root.put(2, "two")
+
+      val child1 = root.children.init(1)
+      child1.put(1, "one")
+      child1.put(2, "two")
+      generateRandomNestedMaps(child1.toBag[IO.ApiIO])
+
+      val child2 = root.children.init(2)
+      child2.put(1, "one")
+      child2.put(2, "two")
+
+      root.children.replace(1)
+
+      //child1 is replaced and is removed
+      child1.isEmpty shouldBe true
+
+      //child2 is untouched.
+      child2.isEmpty shouldBe false
+
+      child1.children.isEmpty shouldBe true
+      child1.get(1) shouldBe empty
+      child1.get(2) shouldBe empty
+    }
+
     "replace removes all child maps" in {
       runThis(10.times) {
         val root = newDB()
@@ -519,16 +548,16 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         child1.put(1, "one")
         child1.put(2, "two")
 
-        val child11 = child1.children.init(11)
-        child11.put(1, "one")
-        child11.put(2, "two")
+        val child2 = child1.children.init(2)
+        child2.put(1, "one")
+        child2.put(2, "two")
 
         //re-init child1 with the same expiration has no effect.
         child1 = root.children.init(1, deadline)
         child1.get(1).value shouldBe "one"
         child1.get(2).value shouldBe "two"
-        child11.get(1).value shouldBe "one"
-        child11.get(2).value shouldBe "two"
+        child2.get(1).value shouldBe "one"
+        child2.get(2).value shouldBe "two"
 
         //re-init with updated expiration should expire everything.
         child1 = root.children.init(1, 0.second)
