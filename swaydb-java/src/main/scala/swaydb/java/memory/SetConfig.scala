@@ -159,7 +159,7 @@ object SetConfig {
           bag = Bag.less,
           functions = functions.asInstanceOf[swaydb.Set.Functions[A, swaydb.PureFunction.OnKey[A, Void, Apply.Set[Void]]]],
           byteKeyOrder = scalaKeyOrder
-        ).get
+        )
 
       swaydb.java.Set[A, F](scalaMap)
     }

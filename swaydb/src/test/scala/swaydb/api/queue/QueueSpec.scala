@@ -40,12 +40,12 @@ import scala.concurrent.duration._
 class QueueSpec0 extends QueueSpec {
 
   override def newQueue(): Queue[Int] =
-    swaydb.persistent.Queue[Int](randomDir).get
+    swaydb.persistent.Queue[Int, Bag.Less](randomDir)
 }
 
 class QueueSpec3 extends QueueSpec {
   override def newQueue(): Queue[Int] =
-    swaydb.memory.Queue[Int]().get
+    swaydb.memory.Queue[Int, Bag.Less]()
 }
 
 sealed trait QueueSpec extends TestBase {
@@ -177,7 +177,7 @@ sealed trait QueueSpec extends TestBase {
 
   "continue on restart" in {
     val path = randomDir
-    val queue = swaydb.persistent.Queue[Int](path).get
+    val queue = swaydb.persistent.Queue[Int, Bag.Less](path)
 
     (1 to 6).map(queue.push)
 
@@ -187,12 +187,12 @@ sealed trait QueueSpec extends TestBase {
 
     queue.close()
 
-    val reopen = swaydb.persistent.Queue[Int](path).get
+    val reopen = swaydb.persistent.Queue[Int, Bag.Less](path)
     reopen.pop().value shouldBe 3
     reopen.pop().value shouldBe 4
     reopen.close()
 
-    val reopen2 = swaydb.persistent.Queue[Int](path).get
+    val reopen2 = swaydb.persistent.Queue[Int, Bag.Less](path)
     reopen2.pop().value shouldBe 5
     reopen2.pop().value shouldBe 6
     reopen2.pop().value shouldBe 1

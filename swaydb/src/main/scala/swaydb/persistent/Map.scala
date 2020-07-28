@@ -27,6 +27,7 @@ package swaydb.persistent
 import java.nio.file.Path
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.KeyOrderConverter
 import swaydb.configs.level.DefaultPersistentConfig
 import swaydb.core.Core
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
@@ -36,7 +37,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO, KeyOrderConverter}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -73,47 +73,50 @@ object Map extends LazyLogging {
                                                                                                          bag: swaydb.Bag[BAG],
                                                                                                          functions: swaydb.Map.Functions[K, V, F],
                                                                                                          byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                         typedKeyOrder: KeyOrder[K] = null): IO[Error.Boot, swaydb.Map[K, V, F, BAG]] = {
+                                                                                                         typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.Map[K, V, F, BAG]] =
+    bag.suspend {
+      val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+      val coreFunctions: swaydb.core.function.FunctionStore = functions.core
 
-    val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-    val coreFunctions: swaydb.core.function.FunctionStore = functions.core
+      val coreIO =
+        Core(
+          enableTimer = functionClassTag != ClassTag.Nothing,
+          cacheKeyValueIds = cacheKeyValueIds,
+          threadStateCache = threadStateCache,
+          config =
+            DefaultPersistentConfig(
+              dir = dir,
+              otherDirs = otherDirs,
+              mapSize = mapSize,
+              mmapMaps = mmapMaps,
+              recoveryMode = recoveryMode,
+              mmapAppendix = mmapAppendix,
+              appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+              sortedKeyIndex = sortedKeyIndex,
+              randomKeyIndex = randomKeyIndex,
+              binarySearchIndex = binarySearchIndex,
+              mightContainKeyIndex = mightContainKeyIndex,
+              valuesConfig = valuesConfig,
+              segmentConfig = segmentConfig,
+              acceleration = acceleration,
+              levelZeroThrottle = levelZeroThrottle,
+              levelOneThrottle = levelOneThrottle,
+              levelTwoThrottle = levelTwoThrottle,
+              levelThreeThrottle = levelThreeThrottle,
+              levelFourThrottle = levelFourThrottle,
+              levelFiveThrottle = levelFiveThrottle,
+              levelSixThrottle = levelSixThrottle
+            ),
+          fileCache = fileCache,
+          memoryCache = memoryCache
+        )(keyOrder = keyOrder,
+          timeOrder = TimeOrder.long,
+          functionStore = coreFunctions
+        ) map {
+          db =>
+            swaydb.Map[K, V, F, BAG](db.toBag)
+        }
 
-    Core(
-      enableTimer = functionClassTag != ClassTag.Nothing,
-      cacheKeyValueIds = cacheKeyValueIds,
-      threadStateCache = threadStateCache,
-      config =
-        DefaultPersistentConfig(
-          dir = dir,
-          otherDirs = otherDirs,
-          mapSize = mapSize,
-          mmapMaps = mmapMaps,
-          recoveryMode = recoveryMode,
-          mmapAppendix = mmapAppendix,
-          appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-          sortedKeyIndex = sortedKeyIndex,
-          randomKeyIndex = randomKeyIndex,
-          binarySearchIndex = binarySearchIndex,
-          mightContainKeyIndex = mightContainKeyIndex,
-          valuesConfig = valuesConfig,
-          segmentConfig = segmentConfig,
-          acceleration = acceleration,
-          levelZeroThrottle = levelZeroThrottle,
-          levelOneThrottle = levelOneThrottle,
-          levelTwoThrottle = levelTwoThrottle,
-          levelThreeThrottle = levelThreeThrottle,
-          levelFourThrottle = levelFourThrottle,
-          levelFiveThrottle = levelFiveThrottle,
-          levelSixThrottle = levelSixThrottle
-        ),
-      fileCache = fileCache,
-      memoryCache = memoryCache
-    )(keyOrder = keyOrder,
-      timeOrder = TimeOrder.long,
-      functionStore = coreFunctions
-    ) map {
-      db =>
-        swaydb.Map[K, V, F, BAG](db.toBag)
+      coreIO.toBag[BAG]
     }
-  }
 }

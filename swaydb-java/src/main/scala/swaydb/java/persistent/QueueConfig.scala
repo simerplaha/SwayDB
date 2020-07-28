@@ -27,6 +27,7 @@ package swaydb.java.persistent
 import java.nio.file.Path
 import java.util.Collections
 
+import swaydb.Bag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -191,7 +192,7 @@ object QueueConfig {
 
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
-        swaydb.persistent.Queue[A](
+        swaydb.persistent.Queue[A, Bag.Less](
           dir = dir,
           mapSize = mapSize,
           mmapMaps = mmapMaps,
@@ -217,7 +218,7 @@ object QueueConfig {
           levelFourThrottle = levelFourThrottle.asScala,
           levelFiveThrottle = levelFiveThrottle.asScala,
           levelSixThrottle = levelSixThrottle.asScala
-        )(serializer = serializer).get
+        )(serializer = serializer, bag = Bag.less)
 
       swaydb.java.Queue[A](scalaQueue)
     }

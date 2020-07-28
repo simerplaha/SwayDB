@@ -25,6 +25,7 @@
 package swaydb.memory
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.KeyOrderConverter
 import swaydb.configs.level.DefaultMemoryConfig
 import swaydb.core.Core
 import swaydb.core.function.FunctionStore
@@ -35,7 +36,6 @@ import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO, KeyOrderConverter}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -58,32 +58,36 @@ object Set extends LazyLogging {
                                                                                                                             bag: swaydb.Bag[BAG],
                                                                                                                             functions: swaydb.Set.Functions[A, F],
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                            typedKeyOrder: KeyOrder[A] = null): IO[Error.Boot, swaydb.Set[A, F, BAG]] = {
-    val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
-    val coreFunctions: FunctionStore.Memory = functions.core
+                                                                                                                            typedKeyOrder: KeyOrder[A] = null): BAG[swaydb.Set[A, F, BAG]] =
+    bag.suspend {
+      val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
+      val coreFunctions: FunctionStore.Memory = functions.core
 
-    Core(
-      enableTimer = functionClassTag != ClassTag.Nothing,
-      cacheKeyValueIds = false,
-      threadStateCache = threadStateCache,
-      config =
-        DefaultMemoryConfig(
-          mapSize = mapSize,
-          minSegmentSize = minSegmentSize,
-          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-          deleteSegmentsEventually = deleteSegmentsEventually,
-          levelZeroThrottle = levelZeroThrottle,
-          lastLevelThrottle = lastLevelThrottle,
-          acceleration = acceleration
-        ),
-      fileCache = fileCache,
-      memoryCache = MemoryCache.Disable
-    )(keyOrder = keyOrder,
-      timeOrder = TimeOrder.long,
-      functionStore = coreFunctions
-    ) map {
-      db =>
-        swaydb.Set[A, F, BAG](db.toBag)
+      val set =
+        Core(
+          enableTimer = functionClassTag != ClassTag.Nothing,
+          cacheKeyValueIds = false,
+          threadStateCache = threadStateCache,
+          config =
+            DefaultMemoryConfig(
+              mapSize = mapSize,
+              minSegmentSize = minSegmentSize,
+              maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+              deleteSegmentsEventually = deleteSegmentsEventually,
+              levelZeroThrottle = levelZeroThrottle,
+              lastLevelThrottle = lastLevelThrottle,
+              acceleration = acceleration
+            ),
+          fileCache = fileCache,
+          memoryCache = MemoryCache.Disable
+        )(keyOrder = keyOrder,
+          timeOrder = TimeOrder.long,
+          functionStore = coreFunctions
+        ) map {
+          db =>
+            swaydb.Set[A, F, BAG](db.toBag)
+        }
+
+      set.toBag[BAG]
     }
-  }
 }

@@ -24,6 +24,7 @@
 
 package swaydb.java.memory
 
+import swaydb.Bag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
@@ -96,7 +97,7 @@ object QueueConfig {
 
     def get(): swaydb.java.Queue[A] = {
       val scalaQueue =
-        swaydb.memory.Queue[A](
+        swaydb.memory.Queue[A, Bag.Less](
           mapSize = mapSize,
           minSegmentSize = minSegmentSize,
           maxKeyValuesPerSegment = maxKeyValuesPerSegment,
@@ -106,7 +107,7 @@ object QueueConfig {
           levelZeroThrottle = levelZeroThrottle.asScala,
           lastLevelThrottle = lastLevelThrottle.asScala,
           threadStateCache = threadStateCache
-        )(serializer = serializer).get
+        )(serializer = serializer, bag = Bag.less)
 
       swaydb.java.Queue[A](scalaQueue)
     }

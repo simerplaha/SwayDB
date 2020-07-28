@@ -31,12 +31,12 @@ import swaydb.serializers.Default._
 
 class SetMapSpec0 extends SetMapSpec {
   override def newDB(): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
-    swaydb.persistent.SetMap[Int, String, Nothing, Bag.Less](randomDir).get
+    swaydb.persistent.SetMap[Int, String, Nothing, Bag.Less](randomDir)
 }
 
 class SetMapSpec3 extends SetMapSpec {
   override def newDB(): swaydb.SetMap[Int, String, Nothing, Bag.Less] =
-    swaydb.memory.SetMap[Int, String, Nothing, Bag.Less]().get
+    swaydb.memory.SetMap[Int, String, Nothing, Bag.Less]()
 }
 
 sealed trait SetMapSpec extends TestBase {

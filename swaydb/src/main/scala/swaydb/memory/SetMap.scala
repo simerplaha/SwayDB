@@ -29,11 +29,10 @@ import swaydb.core.util.Eithers
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config.{FileCache, ThreadStateCache}
-import swaydb.data.order.{KeyOrder, TimeOrder}
+import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -57,29 +56,33 @@ object SetMap extends LazyLogging {
                                                                                                                                bag: swaydb.Bag[BAG],
                                                                                                                                functions: swaydb.Set.Functions[(K, V), F],
                                                                                                                                byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                               typedKeyOrder: KeyOrder[K] = null): IO[Error.Boot, swaydb.SetMap[K, V, F, BAG]] = {
-    val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
-    val keyOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
-    val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(keyOrder)
+                                                                                                                               typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.SetMap[K, V, F, BAG]] =
+    bag.suspend {
+      val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
+      val keyOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
+      val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(keyOrder)
 
-    Set[(K, V), F, BAG](
-      mapSize = mapSize,
-      minSegmentSize = minSegmentSize,
-      maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-      fileCache = fileCache,
-      deleteSegmentsEventually = deleteSegmentsEventually,
-      acceleration = acceleration,
-      levelZeroThrottle = levelZeroThrottle,
-      lastLevelThrottle = lastLevelThrottle,
-      threadStateCache = threadStateCache
-    )(serializer = serialiser,
-      functionClassTag = functionClassTag,
-      bag = bag,
-      functions = functions,
-      byteKeyOrder = ordering
-    ) map {
-      set =>
-        swaydb.SetMap[K, V, F, BAG](set)
+      val set =
+        Set[(K, V), F, BAG](
+          mapSize = mapSize,
+          minSegmentSize = minSegmentSize,
+          maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+          fileCache = fileCache,
+          deleteSegmentsEventually = deleteSegmentsEventually,
+          acceleration = acceleration,
+          levelZeroThrottle = levelZeroThrottle,
+          lastLevelThrottle = lastLevelThrottle,
+          threadStateCache = threadStateCache
+        )(serializer = serialiser,
+          functionClassTag = functionClassTag,
+          bag = bag,
+          functions = functions,
+          byteKeyOrder = ordering
+        )
+
+      bag.transform(set) {
+        set =>
+          swaydb.SetMap[K, V, F, BAG](set)
+      }
     }
-  }
 }

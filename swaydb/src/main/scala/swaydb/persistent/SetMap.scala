@@ -35,7 +35,6 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Error, IO}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
@@ -72,47 +71,49 @@ object SetMap extends LazyLogging {
                                                                                                          bag: swaydb.Bag[BAG],
                                                                                                          functions: swaydb.Set.Functions[(K, V), F],
                                                                                                          byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                         typedKeyOrder: KeyOrder[K] = null): IO[Error.Boot, swaydb.SetMap[K, V, F, BAG]] = {
+                                                                                                         typedKeyOrder: KeyOrder[K] = null): BAG[swaydb.SetMap[K, V, F, BAG]] =
+    bag.suspend {
+      val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
+      val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
+      val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(nullCheckedOrder)
 
-    val serialiser: Serializer[(K, V)] = swaydb.SetMap.serialiser(keySerializer, valueSerializer)
-    val nullCheckedOrder = Eithers.nullCheck(byteKeyOrder, typedKeyOrder, KeyOrder.default)
-    val ordering: KeyOrder[Slice[Byte]] = swaydb.SetMap.ordering(nullCheckedOrder)
+      val set =
+        Set[(K, V), F, BAG](
+          dir = dir,
+          mapSize = mapSize,
+          mmapMaps = mmapMaps,
+          recoveryMode = recoveryMode,
+          mmapAppendix = mmapAppendix,
+          appendixFlushCheckpointSize = appendixFlushCheckpointSize,
+          otherDirs = otherDirs,
+          cacheKeyValueIds = cacheKeyValueIds,
+          acceleration = acceleration,
+          threadStateCache = threadStateCache,
+          sortedKeyIndex = sortedKeyIndex,
+          randomKeyIndex = randomKeyIndex,
+          binarySearchIndex = binarySearchIndex,
+          mightContainKeyIndex = mightContainKeyIndex,
+          valuesConfig = valuesConfig,
+          segmentConfig = segmentConfig,
+          fileCache = fileCache,
+          memoryCache = memoryCache,
+          levelZeroThrottle = levelZeroThrottle,
+          levelOneThrottle = levelOneThrottle,
+          levelTwoThrottle = levelTwoThrottle,
+          levelThreeThrottle = levelThreeThrottle,
+          levelFourThrottle = levelFourThrottle,
+          levelFiveThrottle = levelFiveThrottle,
+          levelSixThrottle = levelSixThrottle
+        )(serializer = serialiser,
+          functionClassTag = functionClassTag,
+          bag = bag,
+          functions = functions,
+          byteKeyOrder = ordering
+        )
 
-    Set[(K, V), F, BAG](
-      dir = dir,
-      mapSize = mapSize,
-      mmapMaps = mmapMaps,
-      recoveryMode = recoveryMode,
-      mmapAppendix = mmapAppendix,
-      appendixFlushCheckpointSize = appendixFlushCheckpointSize,
-      otherDirs = otherDirs,
-      cacheKeyValueIds = cacheKeyValueIds,
-      acceleration = acceleration,
-      threadStateCache = threadStateCache,
-      sortedKeyIndex = sortedKeyIndex,
-      randomKeyIndex = randomKeyIndex,
-      binarySearchIndex = binarySearchIndex,
-      mightContainKeyIndex = mightContainKeyIndex,
-      valuesConfig = valuesConfig,
-      segmentConfig = segmentConfig,
-      fileCache = fileCache,
-      memoryCache = memoryCache,
-      levelZeroThrottle = levelZeroThrottle,
-      levelOneThrottle = levelOneThrottle,
-      levelTwoThrottle = levelTwoThrottle,
-      levelThreeThrottle = levelThreeThrottle,
-      levelFourThrottle = levelFourThrottle,
-      levelFiveThrottle = levelFiveThrottle,
-      levelSixThrottle = levelSixThrottle
-    )(serializer = serialiser,
-      functionClassTag = functionClassTag,
-      bag = bag,
-      functions = functions,
-      byteKeyOrder = ordering
-    ) map {
-      set =>
-        swaydb.SetMap[K, V, F, BAG](set)
+      bag.transform(set) {
+        set =>
+          swaydb.SetMap[K, V, F, BAG](set)
+      }
     }
-
-  }
 }

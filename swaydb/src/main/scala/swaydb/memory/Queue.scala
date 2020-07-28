@@ -27,6 +27,7 @@ package swaydb.memory
 import java.util.concurrent.atomic.AtomicLong
 
 import com.typesafe.scalalogging.LazyLogging
+import swaydb.Bag
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.{LevelMeter, Throttle}
 import swaydb.data.config._
@@ -34,66 +35,78 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Serializer
-import swaydb.{Bag, Error, IO}
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success, Try}
 
 object Queue extends LazyLogging {
 
   /**
    * For custom configurations read documentation on website: http://www.swaydb.io/configuring-levels
    */
-  def apply[A](mapSize: Int = 4.mb,
-               minSegmentSize: Int = 2.mb,
-               maxKeyValuesPerSegment: Int = Int.MaxValue,
-               fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
-               deleteSegmentsEventually: Boolean = true,
-               acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
-               levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
-               lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
-               threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A]): IO[Error.Boot, swaydb.Queue[A]] = {
+  def apply[A, BAG[_]](mapSize: Int = 4.mb,
+                       minSegmentSize: Int = 2.mb,
+                       maxKeyValuesPerSegment: Int = Int.MaxValue,
+                       fileCache: FileCache.Enable = DefaultConfigs.fileCache(),
+                       deleteSegmentsEventually: Boolean = true,
+                       acceleration: LevelZeroMeter => Accelerator = Accelerator.noBrakes(),
+                       levelZeroThrottle: LevelZeroMeter => FiniteDuration = DefaultConfigs.levelZeroThrottle,
+                       lastLevelThrottle: LevelMeter => Throttle = DefaultConfigs.lastLevelThrottle,
+                       threadStateCache: ThreadStateCache = ThreadStateCache.Limit(hashMapMaxSize = 100, maxProbe = 10))(implicit serializer: Serializer[A],
+                                                                                                                         bag: Bag[BAG]): BAG[swaydb.Queue[A]] =
+    bag.suspend {
+      implicit val queueSerialiser: Serializer[(Long, A)] =
+        swaydb.Queue.serialiser[A](serializer)
 
-    implicit val queueSerialiser: Serializer[(Long, A)] =
-      swaydb.Queue.serialiser[A](serializer)
+      implicit val keyOrder: KeyOrder[Slice[Byte]] =
+        swaydb.Queue.ordering
 
-    implicit val keyOrder: KeyOrder[Slice[Byte]] =
-      swaydb.Queue.ordering
+      val set =
+        Try {
+          Set[(Long, A), Nothing, Bag.Less](
+            mapSize = mapSize,
+            minSegmentSize = minSegmentSize,
+            maxKeyValuesPerSegment = maxKeyValuesPerSegment,
+            fileCache = fileCache,
+            deleteSegmentsEventually = deleteSegmentsEventually,
+            acceleration = acceleration,
+            levelZeroThrottle = levelZeroThrottle,
+            lastLevelThrottle = lastLevelThrottle,
+            threadStateCache = threadStateCache
+          )
+        }
 
-    Set[(Long, A), Nothing, Bag.Less](
-      mapSize = mapSize,
-      minSegmentSize = minSegmentSize,
-      maxKeyValuesPerSegment = maxKeyValuesPerSegment,
-      fileCache = fileCache,
-      deleteSegmentsEventually = deleteSegmentsEventually,
-      acceleration = acceleration,
-      levelZeroThrottle = levelZeroThrottle,
-      lastLevelThrottle = lastLevelThrottle,
-      threadStateCache = threadStateCache
-    ) map {
-      set =>
-        val first: Long =
-          set.headOption match {
-            case Some((first, _)) =>
-              first
+      set match {
+        case Success(set) =>
+          val first: Long =
+            set.headOption match {
+              case Some((first, _)) =>
+                first
 
-            case None =>
-              0
-          }
+              case None =>
+                0
+            }
 
-        val last: Long =
-          set.lastOption match {
-            case Some((used, _)) =>
-              used + 1
+          val last: Long =
+            set.lastOption match {
+              case Some((used, _)) =>
+                used + 1
 
-            case None =>
-              0
-          }
+              case None =>
+                0
+            }
 
-        swaydb.Queue(
-          set = set,
-          pushIds = new AtomicLong(last),
-          popIds = new AtomicLong(first)
-        )
+          val queue =
+            swaydb.Queue(
+              set = set,
+              pushIds = new AtomicLong(last),
+              popIds = new AtomicLong(first)
+            )
+
+          bag.success(queue)
+
+        case Failure(exception) =>
+          bag.failure(exception)
+      }
     }
-  }
 }
