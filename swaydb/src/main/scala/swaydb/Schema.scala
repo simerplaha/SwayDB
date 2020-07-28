@@ -301,7 +301,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
         bag.transform(innerMap.commit(buffer)) {
           _ =>
             MultiMap(
-              map = innerMap,
+              innerMap = innerMap,
               thisMapKey = childMapKey,
               defaultExpiration = expiration
             ).asInstanceOf[MultiMap[M2, K2, V2, F2, BAG]]
@@ -434,7 +434,7 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
       case Some((_, deadline)) =>
         Some(
           MultiMap[M, K, V, F, BAG](
-            map = innerMap.toBag[BAG],
+            innerMap = innerMap.toBag[BAG],
             thisMapKey = mapPrefix,
             defaultExpiration = deadline
           ).asInstanceOf[MultiMap[M2, K2, V2, F2, BAG]]
