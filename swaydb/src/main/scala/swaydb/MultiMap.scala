@@ -216,6 +216,50 @@ object MultiMap {
     }
   }
 
+
+  /**
+   * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
+   */
+  private def globalPrepare[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG], prepare: Iterable[Prepare[K, V, F]]): Iterable[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]] =
+    prepare.map {
+      case Prepare.Put(key, value, deadline) =>
+        Prepare.Put(MapEntry(map.thisMapKey, key), Some(value), deadline earlier map.defaultExpiration)
+
+      case Prepare.Remove(from, to, deadline) =>
+        to match {
+          case Some(to) =>
+            Prepare.Remove(MapEntry(map.thisMapKey, from), Some(MapEntry(map.thisMapKey, to)), deadline earlier map.defaultExpiration)
+
+          case None =>
+            Prepare.Remove[MultiMapKey[M, K]](from = MapEntry(map.thisMapKey, from), to = None, deadline = deadline earlier map.defaultExpiration)
+        }
+
+      case Prepare.Update(from, to, value) =>
+        to match {
+          case Some(to) =>
+            Prepare.Update[MultiMapKey[M, K], Option[V]](MapEntry(map.thisMapKey, from), Some(MapEntry(map.thisMapKey, to)), value = Some(value))
+
+          case None =>
+            Prepare.Update[MultiMapKey[M, K], Option[V]](key = MapEntry(map.thisMapKey, from), value = Some(value))
+        }
+
+      case Prepare.ApplyFunction(from, to, function) =>
+        // Temporary solution: casted because the actual instance itself not used internally.
+        // Core only uses the String value of function.id which is searched in functionStore to validate function.
+        val castedFunction = function.asInstanceOf[PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]
+
+        to match {
+          case Some(to) =>
+            Prepare.ApplyFunction(from = MapEntry(map.thisMapKey, from), to = Some(MapEntry(map.thisMapKey, to)), function = castedFunction)
+
+          case None =>
+            Prepare.ApplyFunction(from = MapEntry(map.thisMapKey, from), to = None, function = castedFunction)
+        }
+
+      case Prepare.Add(elem, deadline) =>
+        Prepare.Put(MapEntry(map.thisMapKey, elem), None, deadline earlier map.defaultExpiration)
+    }
+
 }
 
 /**
@@ -240,7 +284,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
    * APIs for managing child map of this [[MultiMap]].
    */
   val schema: Schema[M, K, V, F, BAG] =
-    new swaydb.Schema(
+    new Schema(
       innerMap = map,
       thisMapKey = thisMapKey,
       defaultExpiration = defaultExpiration
@@ -444,51 +488,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     map.core.function(fromKey, toKey, functionId)
   }
 
-  /**
-   * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
-   */
-  private def toInnerMapPrepare(prepare: Iterable[Prepare[K, V, _]]): Iterable[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]] =
-    prepare.map {
-      case Prepare.Put(key, value, deadline) =>
-        Prepare.Put(MapEntry(thisMapKey, key), Some(value), deadline earlier defaultExpiration)
-
-      case Prepare.Remove(from, to, deadline) =>
-        to match {
-          case Some(to) =>
-            Prepare.Remove(MapEntry(thisMapKey, from), Some(MapEntry(thisMapKey, to)), deadline earlier defaultExpiration)
-
-          case None =>
-            Prepare.Remove[MultiMapKey[M, K]](from = MapEntry(thisMapKey, from), to = None, deadline = deadline earlier defaultExpiration)
-        }
-
-      case Prepare.Update(from, to, value) =>
-        to match {
-          case Some(to) =>
-            Prepare.Update[MultiMapKey[M, K], Option[V]](MapEntry(thisMapKey, from), Some(MapEntry(thisMapKey, to)), value = Some(value))
-
-          case None =>
-            Prepare.Update[MultiMapKey[M, K], Option[V]](key = MapEntry(thisMapKey, from), value = Some(value))
-        }
-
-      case Prepare.ApplyFunction(from, to, function) =>
-        // Temporary solution: casted because the actual instance itself not used internally.
-        // Core only uses the String value of function.id which is searched in functionStore to validate function.
-        val castedFunction = function.asInstanceOf[PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]
-
-        to match {
-          case Some(to) =>
-            Prepare.ApplyFunction(from = MapEntry(thisMapKey, from), to = Some(MapEntry(thisMapKey, to)), function = castedFunction)
-
-          case None =>
-            Prepare.ApplyFunction(from = MapEntry(thisMapKey, from), to = None, function = castedFunction)
-        }
-
-      case Prepare.Add(elem, deadline) =>
-        Prepare.Put(MapEntry(thisMapKey, elem), None, deadline earlier defaultExpiration)
-    }
-
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    map.commit(toInnerMapPrepare(prepare))
+    map.commit(MultiMap.globalPrepare(this, prepare))
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -497,7 +498,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    map.commit(toInnerMapPrepare(prepare))
+    map.commit(MultiMap.globalPrepare(this, prepare))
 
   def get(key: K): BAG[Option[V]] =
     bag.flatMap(map.get(MultiMapKey.MapEntry(thisMapKey, key))) {
