@@ -65,16 +65,16 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
     "exclude & include subMap by default" in {
       val db = newDB()
 
-      val firstMap = db.children.init(1)
-      val secondMap = firstMap.children.init(2)
-      val subMap1 = secondMap.children.init(3)
-      val subMap2 = secondMap.children.init(4)
+      val firstMap = db.schema.init(1)
+      val secondMap = firstMap.schema.init(2)
+      val subMap1 = secondMap.schema.init(3)
+      val subMap2 = secondMap.schema.init(4)
 
       firstMap.stream.materialize.toList shouldBe empty
-      firstMap.children.keys.materialize.toList should contain only 2
+      firstMap.schema.keys.materialize.toList should contain only 2
 
       secondMap.stream.materialize.toList shouldBe empty
-      secondMap.children.keys.materialize.toList should contain only(3, 4)
+      secondMap.schema.keys.materialize.toList should contain only(3, 4)
 
       subMap1.stream.materialize.toList shouldBe empty
       subMap2.stream.materialize.toList shouldBe empty
@@ -87,11 +87,11 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
     "the map contains 1 element" in {
       val db = newDB()
 
-      val firstMap = db.children.init(1)
-      val secondMap = firstMap.children.init(2)
+      val firstMap = db.schema.init(1)
+      val secondMap = firstMap.schema.init(2)
 
       firstMap.stream.materialize.toList shouldBe empty
-      firstMap.children.keys.materialize.toList should contain only 2
+      firstMap.schema.keys.materialize.toList should contain only 2
 
       secondMap.put(1, "one")
       secondMap.stream.size shouldBe 1
@@ -118,8 +118,8 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
     "the map contains 2 elements" in {
       val db = newDB()
 
-      val rootMap = db.children.init(1)
-      val firstMap = rootMap.children.init(2)
+      val rootMap = db.schema.init(1)
+      val firstMap = rootMap.schema.init(2)
 
       firstMap.put(1, "one")
       firstMap.put(2, "two")
@@ -149,18 +149,18 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.children.init(1)
+      val rootMap = db.schema.init(1)
 
-      val subMap1 = rootMap.children.init(2)
+      val subMap1 = rootMap.schema.init(2)
       subMap1.put(1, "one")
       subMap1.put(2, "two")
 
-      val subMap2 = rootMap.children.init(3)
+      val subMap2 = rootMap.schema.init(3)
       subMap2.put(3, "three")
       subMap2.put(4, "four")
 
       rootMap.stream.materialize.toList shouldBe empty
-      rootMap.children.keys.materialize.toList should contain only(2, 3)
+      rootMap.schema.keys.materialize.toList should contain only(2, 3)
 
       //FIRST MAP ITERATIONS
       subMap1.stream.size shouldBe 2
@@ -206,28 +206,28 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.children.init(1)
+      val rootMap = db.schema.init(1)
 
-      val subMap1 = rootMap.children.init(2)
+      val subMap1 = rootMap.schema.init(2)
       subMap1.put(1, "one")
       subMap1.put(2, "two")
 
-      val subMap2 = subMap1.children.init(3)
+      val subMap2 = subMap1.schema.init(3)
       subMap2.put(3, "three")
       subMap2.put(4, "four")
 
       rootMap.stream.materialize.toList shouldBe empty
-      rootMap.children.keys.materialize.toList should contain only 2
+      rootMap.schema.keys.materialize.toList should contain only 2
 
       //FIRST MAP ITERATIONS
       subMap1.stream.size shouldBe 2
       subMap1.headOption.value shouldBe ((1, "one"))
       subMap1.lastOption.value shouldBe ((2, "two"))
-      subMap1.children.keys.lastOption.value shouldBe 3
+      subMap1.schema.keys.lastOption.value shouldBe 3
       subMap1.stream.map(keyValue => (keyValue._1, keyValue._2)).materialize.toList shouldBe List((1, "one"), (2, "two"))
-      subMap1.children.keys.materialize.toList shouldBe List(3)
+      subMap1.schema.keys.materialize.toList shouldBe List(3)
       subMap1.stream.foldLeft(List.empty[(Int, String)]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List((1, "one"), (2, "two"))
-      subMap1.children.keys.foldLeft(List.empty[Int]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List(3)
+      subMap1.schema.keys.foldLeft(List.empty[Int]) { case (previous, keyValue) => previous :+ keyValue } shouldBe List(3)
       subMap1.reverse.stream.foldLeft(List.empty[(Int, String)]) { case (keyValue, previous) => keyValue :+ previous } shouldBe List((2, "two"), (1, "one"))
       subMap1.reverse.stream.map(keyValue => keyValue).materialize.toList shouldBe List((2, "two"), (1, "one"))
       subMap1.reverse.stream.take(100).materialize.toList shouldBe List((2, "two"), (1, "one"))
@@ -237,11 +237,11 @@ sealed trait MultiMapIterationSpec extends TestBaseEmbedded {
       subMap1.stream.take(2).materialize.toList should contain only((1, "one"), (2, "two"))
       subMap1.stream.take(1).materialize.toList should contain only ((1, "one"))
       subMap1.reverse.stream.drop(1).materialize.toList should contain only ((1, "one"))
-      subMap1.children.keys.drop(1).materialize.toList shouldBe empty
+      subMap1.schema.keys.drop(1).materialize.toList shouldBe empty
       subMap1.stream.drop(1).materialize.toList should contain only ((2, "two"))
-      subMap1.children.stream.drop(1).materialize.toList shouldBe empty
+      subMap1.schema.stream.drop(1).materialize.toList shouldBe empty
       subMap1.reverse.stream.drop(0).materialize.toList shouldBe List((2, "two"), (1, "one"))
-      subMap1.children.keys.drop(0).materialize.toList shouldBe List(3)
+      subMap1.schema.keys.drop(0).materialize.toList shouldBe List(3)
       subMap1.stream.drop(0).materialize.toList shouldBe List((1, "one"), (2, "two"))
 
       //KEYS ONLY ITERATIONS - TODO - Key iterations are currently not supported for MultiMap.

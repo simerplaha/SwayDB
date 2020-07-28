@@ -60,7 +60,7 @@ trait TestBaseEmbedded extends TestBase {
         case (root, id) =>
           val sub =
             if (Random.nextBoolean())
-              root.children.init(id).value
+              root.schema.init(id).value
             else
               root
 

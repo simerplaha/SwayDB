@@ -71,9 +71,9 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
     "return empty on an empty Map" in {
       val root = newDB()
 
-      val child1 = root.children.init(1)
-      root.children.init(1) //for testing that initialising an existing map does not create a new map
-      val child2 = root.children.init(2)
+      val child1 = root.schema.init(1)
+      root.schema.init(1) //for testing that initialising an existing map does not create a new map
+      val child2 = root.schema.init(2)
 
       Seq(root, child1, child2) foreach {
         map =>
@@ -83,8 +83,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
           map.from(1).reverse.stream.materialize.toList shouldBe empty
       }
 
-      root.children.keys.materialize.toList should contain only(1, 2)
-      child1.children.keys.materialize.toList shouldBe empty
+      root.schema.keys.materialize.toList should contain only(1, 2)
+      child1.schema.keys.materialize.toList shouldBe empty
 
       root.delete()
     }
@@ -92,8 +92,8 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
     "if the map contains only 1 element" in {
       val db = newDB()
 
-      val rootMap = db.children.init(1)
-      val firstMap = rootMap.children.init(2)
+      val rootMap = db.schema.init(1)
+      val firstMap = rootMap.schema.init(2)
 
       firstMap.put(1, "one")
 
@@ -153,13 +153,13 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
     "Sibling maps" in {
       val db = newDB()
 
-      val rootMap = db.children.init(1)
+      val rootMap = db.schema.init(1)
 
-      val subMap1: Less[MultiMap[Int, Int, String, Nothing, Less]] = rootMap.children.init(2)
+      val subMap1: Less[MultiMap[Int, Int, String, Nothing, Less]] = rootMap.schema.init(2)
       subMap1.put(1, "one")
       subMap1.put(2, "two")
 
-      val subMap2 = rootMap.children.init(3)
+      val subMap2 = rootMap.schema.init(3)
       subMap2.put(3, "three")
       subMap2.put(4, "four")
 
@@ -195,13 +195,13 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
     "nested maps" in {
       val db = newDB()
 
-      val rootMap = db.children.init(1)
+      val rootMap = db.schema.init(1)
 
-      val subMap1 = rootMap.children.init(2)
+      val subMap1 = rootMap.schema.init(2)
       subMap1.put(1, "one")
       subMap1.put(2, "two")
 
-      val subMap2 = subMap1.children.init(3)
+      val subMap2 = subMap1.schema.init(3)
       subMap2.put(3, "three")
       subMap2.put(4, "four")
 
@@ -210,7 +210,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
           () => subMap1.from(4).stream.materialize.toList shouldBe empty,
           () => subMap1.after(3).stream.materialize.toList shouldBe empty,
           () => subMap1.from(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
-          () => subMap1.children.keys.materialize.toList should contain only 3,
+          () => subMap1.schema.keys.materialize.toList should contain only 3,
           () => subMap1.fromOrBefore(2).stream.materialize.toList should contain only ((2, "two")),
 
           () => subMap1.fromOrBefore(1).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
@@ -218,7 +218,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
           () => subMap1.fromOrAfter(0).stream.materialize.toList should contain inOrderOnly((1, "one"), (2, "two")),
           () => subMap1.stream.size shouldBe 2,
           () => subMap1.headOption.value shouldBe ((1, "one")),
-          () => subMap1.children.keys.lastOption.value shouldBe 3,
+          () => subMap1.schema.keys.lastOption.value shouldBe 3,
 
           () => subMap2.from(5).stream.materialize.toList shouldBe empty,
           () => subMap2.after(4).stream.materialize.toList shouldBe empty,
@@ -256,9 +256,9 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
         //                                           (222, "two two two")
         //                                           (333, "three three three")
         //                                           (444, "four four four")
-        val rootMap = root.children.init(1)
-        val childMap1 = rootMap.children.init(2)
-        val childMap2 = rootMap.children.init(3)
+        val rootMap = root.schema.init(1)
+        val childMap1 = rootMap.schema.init(2)
+        val childMap2 = rootMap.schema.init(3)
 
         def doInserts(skipRandomly: Boolean) = {
           //insert entries to rootMap
@@ -298,7 +298,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
             //randomly also perform insert which would just create duplicate data.
             () => eitherOne(doInserts(skipRandomly = true), (), ()),
 
-            () => rootMap.children.keys.materialize.toList should contain only(2, 3),
+            () => rootMap.schema.keys.materialize.toList should contain only(2, 3),
             () => rootMap.from(1).stream.materialize.toList shouldBe List((1, "one"), (2, "two"), (3, "three"), (4, "four")),
             //reverse from the map.
             () => rootMap.before(2).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((1, "one")),
@@ -324,7 +324,7 @@ sealed trait FromMultiMapSpec extends TestBaseEmbedded {
             () => childMap1.from(33).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((33, "three three"), (22, "two two"), (11, "one one")),
             () => childMap1.from(44).reverse.stream.map { case (key, value) => (key, value) }.materialize shouldBe List((44, "four four"), (33, "three three"), (22, "two two"), (11, "one one")),
 
-            () => childMap1.children.stream.materialize shouldBe empty
+            () => childMap1.schema.stream.materialize shouldBe empty
           ).runThisRandomly
         }
 

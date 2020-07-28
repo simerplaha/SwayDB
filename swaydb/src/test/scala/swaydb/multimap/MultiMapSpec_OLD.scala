@@ -127,11 +127,11 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       rootMap.put(1, "one")
       rootMap.put(2, "two")
 
-      rootMap.children.get(1) shouldBe empty
+      rootMap.schema.get(1) shouldBe empty
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
 
-      rootMap.children.get(1) shouldBe defined
+      rootMap.schema.get(1) shouldBe defined
 
       childMap.put(1, "childMap one")
       childMap.put(2, "childMap two")
@@ -174,7 +174,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         rootMap.put(1, "one")
         rootMap.put(2, "two")
 
-        val childMap = rootMap.children.init(1)
+        val childMap = rootMap.schema.init(1)
 
         childMap.put(1, "childMap one")
         childMap.put(2, "childMap two")
@@ -202,23 +202,23 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
     "remove" in {
       val rootMap = newDB()
 
-      val child1 = rootMap.children.init(1)
+      val child1 = rootMap.schema.init(1)
       child1.put(1, "one")
       child1.put(2, "two")
 
-      val child2 = rootMap.children.init(2)
+      val child2 = rootMap.schema.init(2)
 
-      val child1Get = rootMap.children.get(1).value
+      val child1Get = rootMap.schema.get(1).value
       eitherOne(
         child1Get.stream.materialize.toList shouldBe ListBuffer((1, "one"), (2, "two")),
         child1.stream.materialize.toList shouldBe ListBuffer((1, "one"), (2, "two"))
       )
 
-      rootMap.children.keys.materialize.toList shouldBe List(1, 2)
-      rootMap.children.remove(1)
-      rootMap.children.keys.materialize.toList shouldBe List(2)
-      rootMap.children.remove(2)
-      rootMap.children.keys.materialize.toList shouldBe empty
+      rootMap.schema.keys.materialize.toList shouldBe List(1, 2)
+      rootMap.schema.remove(1)
+      rootMap.schema.keys.materialize.toList shouldBe List(2)
+      rootMap.schema.remove(2)
+      rootMap.schema.keys.materialize.toList shouldBe empty
 
       rootMap.delete()
     }
@@ -229,7 +229,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       rootMap.put(1, "one", 500.millisecond)
       rootMap.put(2, "two")
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
 
       childMap.put(1, "childMap one", 500.millisecond)
       childMap.put(2, "childMap two")
@@ -271,7 +271,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       rootMap.put(1, "one")
       rootMap.put(2, "two")
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
 
       childMap.put(1, "childMap two")
       childMap.put(2, "childMap two")
@@ -320,7 +320,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       rootMap.put(1, "one")
       rootMap.put(2, "two")
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
 
       childMap.put(1, "childMap two")
       childMap.put(2, "childMap two")
@@ -355,7 +355,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         Prepare.Put(2, "two")
       )
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.commit(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
@@ -381,7 +381,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         Prepare.Update(2, "two updated")
       )
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.commit(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
@@ -412,7 +412,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         Prepare.Expire(2, 100.millisecond)
       )
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.commit(
         Prepare.Put(1, "one one"),
         Prepare.Put(2, "two two")
@@ -435,7 +435,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       val rootMap = newDB()
       rootMap.put((1, "one"), (2, "two"))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((1, "one one"), (2, "two two"))
 
       rootMap.stream.materialize shouldBe ListBuffer((1, "one"), (2, "two"))
@@ -449,7 +449,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       rootMap.put((1, "one"), (2, "two"))
       rootMap.update((1, "one updated"), (2, "two updated"))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((1, "one one"), (2, "two two"))
       childMap.update((1, "one one updated"), (2, "two two updated"))
 
@@ -464,7 +464,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       rootMap.put((1, "one"), (2, "two"))
       rootMap.remove(1, 2)
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((1, "one one"), (2, "two two"))
       childMap.remove(1, 2)
 
@@ -479,7 +479,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       rootMap.put((1, "one"), (2, "two"))
       rootMap.expire((1, 1.second.fromNow))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((1, "one one"), (2, "two two"))
       childMap.expire((1, 1.second.fromNow), (2, 1.second.fromNow))
 
@@ -495,7 +495,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       val rootMap = newDB()
       rootMap.put((1, "one"), (2, "two"))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((1, "one one"), (2, "two two"))
 
       rootMap.get(1).value shouldBe "one"
@@ -518,7 +518,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       val rootMap = newDB()
       rootMap.put((1, "one"), (2, "two"))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((1, "one one"), (2, "two two"))
 
       rootMap.get(1).value shouldBe "one"
@@ -527,7 +527,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       childMap.get(2).value shouldBe "two two"
 
       rootMap.remove(1, 2)
-      rootMap.children.remove(1)
+      rootMap.schema.remove(1)
 
       rootMap.get(1) shouldBe empty
       rootMap.get(2) shouldBe empty
@@ -541,7 +541,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       val rootMap = newDB()
       rootMap.put((1, "one"), (2, "two"))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((11, "one one"), (22, "two two"))
 
       rootMap.getKey(1).value shouldBe 1
@@ -550,7 +550,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       childMap.getKey(22).value shouldBe 22
 
       rootMap.remove(1, 2)
-      rootMap.children.remove(1)
+      rootMap.schema.remove(1)
 
       rootMap.get(1) shouldBe empty
       rootMap.get(2) shouldBe empty
@@ -564,7 +564,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       val rootMap = newDB()
       rootMap.put((1, "one"), (2, "two"))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((11, "one one"), (22, "two two"))
 
       rootMap.getKeyValue(1).value shouldBe(1, "one")
@@ -573,7 +573,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       childMap.getKeyValue(22).value shouldBe(22, "two two")
 
       rootMap.remove(1, 2)
-      rootMap.children.remove(1)
+      rootMap.schema.remove(1)
 
       rootMap.getKeyValue(1) shouldBe empty
       rootMap.getKeyValue(2) shouldBe empty
@@ -587,7 +587,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       val rootMap = newDB()
       rootMap.put((1, "one"), (2, "two"))
 
-      val childMap = rootMap.children.init(1)
+      val childMap = rootMap.schema.init(1)
       childMap.put((11, "one one"), (22, "two two"))
 
       rootMap.stream.materialize.toList.map(_._1) should contain inOrderOnly(1, 2)
@@ -682,10 +682,10 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       "create a new childMap" in {
         val root = newDB()
 
-        val first = root.children.init(1)
-        val second = first.children.init(2)
-        first.children.get(2) shouldBe defined
-        second.children.get(2) shouldBe empty
+        val first = root.schema.init(1)
+        val second = first.schema.init(2)
+        first.schema.get(2) shouldBe defined
+        second.schema.get(2) shouldBe empty
 
         root.delete()
       }
@@ -695,11 +695,11 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       "replace existing map" in {
         val root = newDB()
 
-        val first = root.children.init(1)
-        val second = first.children.init(2)
-        val secondAgain = first.children.replace(2)
+        val first = root.schema.init(1)
+        val second = first.schema.init(2)
+        val secondAgain = first.schema.replace(2)
 
-        first.children.get(2) shouldBe defined
+        first.schema.get(2) shouldBe defined
 
         root.delete()
       }
@@ -707,8 +707,8 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
       "replace existing map and all it's entries" in {
         val root = newDB()
 
-        val first = root.children.init(1)
-        val second = first.children.init(2)
+        val first = root.schema.init(1)
+        val second = first.schema.init(2)
         //write entries to second map
         second.put(1, "one")
         second.put(2, "two")
@@ -716,10 +716,10 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         //assert second map has these entries
         second.stream.materialize shouldBe List((1, "one"), (2, "two"), (3, "three"))
 
-        val secondAgain = first.children.replace(2)
+        val secondAgain = first.schema.replace(2)
 
         //map value value updated
-        first.children.get(2) shouldBe defined
+        first.schema.get(2) shouldBe defined
         //all the old entries are removed
         second.stream.materialize shouldBe empty
 
@@ -734,11 +734,11 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         //   second
         //       third
         //           fourth
-        val first = root.children.init(1)
-        val second = first.children.init(2)
+        val first = root.schema.init(1)
+        val second = first.schema.init(2)
         //third map that is the child map of second map
-        val third = second.children.init(3)
-        val fourth = third.children.init(4)
+        val third = second.schema.init(3)
+        val fourth = third.schema.init(4)
 
         first.put(1, "first one")
         first.put(2, "first two")
@@ -764,27 +764,27 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
         third.stream.materialize shouldBe List((1, "third one"), (2, "third two"), (3, "third three"))
         fourth.stream.materialize shouldBe List((1, "fourth one"), (2, "fourth two"), (3, "fourth three"))
 
-        root.children.keys.materialize.toList should contain only 1
-        first.children.keys.materialize.toList should contain only 2
-        second.children.keys.materialize.toList should contain only 3
-        third.children.keys.materialize.toList should contain only 4
-        fourth.children.keys.materialize.toList shouldBe empty
+        root.schema.keys.materialize.toList should contain only 1
+        first.schema.keys.materialize.toList should contain only 2
+        second.schema.keys.materialize.toList should contain only 3
+        third.schema.keys.materialize.toList should contain only 4
+        fourth.schema.keys.materialize.toList shouldBe empty
 
         //submit put on second map and assert that all it's contents are replaced.
-        first.children.replace(2)
-        first.children.get(2).value.stream.materialize.toList shouldBe empty
-        first.children.get(2).value.children.stream.materialize.toList shouldBe empty
+        first.schema.replace(2)
+        first.schema.get(2).value.stream.materialize.toList shouldBe empty
+        first.schema.get(2).value.schema.stream.materialize.toList shouldBe empty
 
         //map value value updated
-        first.children.get(2) shouldBe defined
+        first.schema.get(2) shouldBe defined
         //all the old entries are removed
         second.stream.materialize shouldBe empty
         third.stream.materialize shouldBe empty
         fourth.stream.materialize shouldBe empty
 
         //second has no children anymore.
-        second.children.get(3) shouldBe empty
-        second.children.get(4) shouldBe empty
+        second.schema.get(3) shouldBe empty
+        second.schema.get(4) shouldBe empty
 
         first.stream.materialize shouldBe List((1, "first one"), (2, "first two"), (3, "first three"))
 

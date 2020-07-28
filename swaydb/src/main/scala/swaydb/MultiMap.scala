@@ -68,14 +68,14 @@ object MultiMap {
             _ =>
               swaydb.MultiMap[M, K, V, F, BAG](
                 map = rootMap,
-                mapKey = rootMapKey
+                thisMapKey = rootMapKey
               )
           }
         else
           bag.success(
             swaydb.MultiMap[M, K, V, F, BAG](
               map = rootMap,
-              mapKey = rootMapKey
+              thisMapKey = rootMapKey
             )
           )
     }
@@ -225,7 +225,7 @@ object MultiMap {
  * KeyOrder ([[MultiMapKey.ordering]]) for it's API.
  */
 case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]], BAG],
-                                                mapKey: Iterable[M],
+                                                thisMapKey: Iterable[M],
                                                 private val from: Option[From[MultiMapKey.MapEntry[M, K]]] = None,
                                                 private val reverseIteration: Boolean = false,
                                                 defaultExpiration: Option[Deadline] = None)(implicit keySerializer: Serializer[K],
@@ -239,10 +239,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
   /**
    * APIs for managing child map of this [[MultiMap]].
    */
-  val children: Children[M, K, V, F, BAG] =
-    new swaydb.Children(
-      map = map,
-      mapKey = mapKey,
+  val schema: Schema[M, K, V, F, BAG] =
+    new swaydb.Schema(
+      innerMap = map,
+      thisMapKey = thisMapKey,
       defaultExpiration = defaultExpiration
     )
 
@@ -283,19 +283,19 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     this.asInstanceOf[MultiMap[M2, K2, V2, F2, BAG]]
 
   def put(key: K, value: V): BAG[OK] =
-    map.put(MapEntry(mapKey, key), Some(value), defaultExpiration)
+    map.put(MapEntry(thisMapKey, key), Some(value), defaultExpiration)
 
   def put(key: K, value: V, expireAfter: FiniteDuration): BAG[OK] =
     put(key, value, expireAfter.fromNow)
 
   def put(key: K, value: V, expireAt: Deadline): BAG[OK] =
-    map.put(MapEntry(mapKey, key), Some(value), defaultExpiration earlier expireAt)
+    map.put(MapEntry(thisMapKey, key), Some(value), defaultExpiration earlier expireAt)
 
   override def put(keyValues: (K, V)*): BAG[OK] = {
     val innerKeyValues =
       keyValues map {
         case (key, value) =>
-          Prepare.Put(MapEntry(mapKey, key), Some(value), defaultExpiration)
+          Prepare.Put(MapEntry(thisMapKey, key), Some(value), defaultExpiration)
       }
 
     map.commit(innerKeyValues)
@@ -305,7 +305,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     val stream: Stream[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]] =
       keyValues.map {
         case (key, value) =>
-          Prepare.Put(MapEntry(mapKey, key), Some(value), defaultExpiration)
+          Prepare.Put(MapEntry(thisMapKey, key), Some(value), defaultExpiration)
       }
 
     map.commit(stream)
@@ -315,7 +315,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     val stream =
       keyValues.map {
         case (key, value) =>
-          Prepare.Put(MapEntry(mapKey, key), Some(value), defaultExpiration)
+          Prepare.Put(MapEntry(thisMapKey, key), Some(value), defaultExpiration)
       }
 
     map.commit(stream)
@@ -325,14 +325,14 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     put(keyValues.to(Iterable))
 
   def remove(key: K): BAG[OK] =
-    map.remove(MapEntry(mapKey, key))
+    map.remove(MapEntry(thisMapKey, key))
 
   def remove(from: K, to: K): BAG[OK] =
-    map.remove(MapEntry(mapKey, from), MapEntry(mapKey, to))
+    map.remove(MapEntry(thisMapKey, from), MapEntry(thisMapKey, to))
 
   def remove(keys: K*): BAG[OK] =
     map.remove {
-      keys.map(key => MapEntry(mapKey, key))
+      keys.map(key => MapEntry(thisMapKey, key))
     }
 
   def remove(keys: Stream[K]): BAG[OK] =
@@ -342,19 +342,19 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     remove(keys.iterator)
 
   def remove(keys: Iterator[K]): BAG[OK] =
-    map.remove(keys.map(key => MapEntry(mapKey, key)))
+    map.remove(keys.map(key => MapEntry(thisMapKey, key)))
 
   def expire(key: K, after: FiniteDuration): BAG[OK] =
-    map.expire(MapEntry(mapKey, key), defaultExpiration.earlier(after.fromNow))
+    map.expire(MapEntry(thisMapKey, key), defaultExpiration.earlier(after.fromNow))
 
   def expire(key: K, at: Deadline): BAG[OK] =
-    map.expire(MapEntry(mapKey, key), defaultExpiration.earlier(at))
+    map.expire(MapEntry(thisMapKey, key), defaultExpiration.earlier(at))
 
   def expire(from: K, to: K, after: FiniteDuration): BAG[OK] =
-    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), defaultExpiration.earlier(after.fromNow))
+    map.expire(MapEntry(thisMapKey, from), MapEntry(thisMapKey, to), defaultExpiration.earlier(after.fromNow))
 
   def expire(from: K, to: K, at: Deadline): BAG[OK] =
-    map.expire(MapEntry(mapKey, from), MapEntry(mapKey, to), defaultExpiration.earlier(at))
+    map.expire(MapEntry(thisMapKey, from), MapEntry(thisMapKey, to), defaultExpiration.earlier(at))
 
   def expire(keys: (K, Deadline)*): BAG[OK] =
     bag.suspend(expire(keys))
@@ -369,23 +369,23 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     val iterable: Iterable[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]] =
       keys.map {
         case (key, deadline) =>
-          Prepare.Expire(MapEntry(mapKey, key), deadline.earlier(defaultExpiration))
+          Prepare.Expire(MapEntry(thisMapKey, key), deadline.earlier(defaultExpiration))
       }.to(Iterable)
 
     map.commit(iterable)
   }
 
   def update(key: K, value: V): BAG[OK] =
-    map.update(MapEntry(mapKey, key), Some(value))
+    map.update(MapEntry(thisMapKey, key), Some(value))
 
   def update(from: K, to: K, value: V): BAG[OK] =
-    map.update(MapEntry(mapKey, from), MapEntry(mapKey, to), Some(value))
+    map.update(MapEntry(thisMapKey, from), MapEntry(thisMapKey, to), Some(value))
 
   def update(keyValues: (K, V)*): BAG[OK] = {
     val updates =
       keyValues.map {
         case (key, value) =>
-          Prepare.Update(MapEntry(mapKey, key), Some(value))
+          Prepare.Update(MapEntry(thisMapKey, key), Some(value))
       }
 
     map.commit(updates)
@@ -398,7 +398,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     val updates =
       keyValues.map {
         case (key, value) =>
-          Prepare.Update(MapEntry(mapKey, key), Some(value))
+          Prepare.Update(MapEntry(thisMapKey, key), Some(value))
       }
 
     map.commit(updates)
@@ -408,8 +408,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     update(keyValues.to(Iterable))
 
   def clearKeyValues(): BAG[OK] = {
-    val entriesStart = MapEntriesStart(mapKey)
-    val entriesEnd = MapEntriesEnd(mapKey)
+    val entriesStart = MapEntriesStart(thisMapKey)
+    val entriesEnd = MapEntriesEnd(thisMapKey)
 
     val entries =
       Seq(
@@ -427,7 +427,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
    *       key-values earlier than [[defaultExpiration]].
    */
   def applyFunction[PF <: F](key: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] = {
-    val innerKey = map.keySerializer.write(MapEntry(mapKey, key))
+    val innerKey = map.keySerializer.write(MapEntry(thisMapKey, key))
     val functionId = Slice.writeString(function.id)
     map.core.function(innerKey, functionId)
   }
@@ -438,8 +438,8 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
    *       key-values earlier than [[defaultExpiration]].
    */
   def applyFunction[PF <: F](from: K, to: K, function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] = {
-    val fromKey = map.keySerializer.write(MapEntry(mapKey, from))
-    val toKey = map.keySerializer.write(MapEntry(mapKey, to))
+    val fromKey = map.keySerializer.write(MapEntry(thisMapKey, from))
+    val toKey = map.keySerializer.write(MapEntry(thisMapKey, to))
     val functionId = Slice.writeString(function.id)
     map.core.function(fromKey, toKey, functionId)
   }
@@ -450,24 +450,24 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
   private def toInnerMapPrepare(prepare: Iterable[Prepare[K, V, _]]): Iterable[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]] =
     prepare.map {
       case Prepare.Put(key, value, deadline) =>
-        Prepare.Put(MapEntry(mapKey, key), Some(value), deadline earlier defaultExpiration)
+        Prepare.Put(MapEntry(thisMapKey, key), Some(value), deadline earlier defaultExpiration)
 
       case Prepare.Remove(from, to, deadline) =>
         to match {
           case Some(to) =>
-            Prepare.Remove(MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), deadline earlier defaultExpiration)
+            Prepare.Remove(MapEntry(thisMapKey, from), Some(MapEntry(thisMapKey, to)), deadline earlier defaultExpiration)
 
           case None =>
-            Prepare.Remove[MultiMapKey[M, K]](from = MapEntry(mapKey, from), to = None, deadline = deadline earlier defaultExpiration)
+            Prepare.Remove[MultiMapKey[M, K]](from = MapEntry(thisMapKey, from), to = None, deadline = deadline earlier defaultExpiration)
         }
 
       case Prepare.Update(from, to, value) =>
         to match {
           case Some(to) =>
-            Prepare.Update[MultiMapKey[M, K], Option[V]](MapEntry(mapKey, from), Some(MapEntry(mapKey, to)), value = Some(value))
+            Prepare.Update[MultiMapKey[M, K], Option[V]](MapEntry(thisMapKey, from), Some(MapEntry(thisMapKey, to)), value = Some(value))
 
           case None =>
-            Prepare.Update[MultiMapKey[M, K], Option[V]](key = MapEntry(mapKey, from), value = Some(value))
+            Prepare.Update[MultiMapKey[M, K], Option[V]](key = MapEntry(thisMapKey, from), value = Some(value))
         }
 
       case Prepare.ApplyFunction(from, to, function) =>
@@ -477,14 +477,14 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
 
         to match {
           case Some(to) =>
-            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = Some(MapEntry(mapKey, to)), function = castedFunction)
+            Prepare.ApplyFunction(from = MapEntry(thisMapKey, from), to = Some(MapEntry(thisMapKey, to)), function = castedFunction)
 
           case None =>
-            Prepare.ApplyFunction(from = MapEntry(mapKey, from), to = None, function = castedFunction)
+            Prepare.ApplyFunction(from = MapEntry(thisMapKey, from), to = None, function = castedFunction)
         }
 
       case Prepare.Add(elem, deadline) =>
-        Prepare.Put(MapEntry(mapKey, elem), None, deadline earlier defaultExpiration)
+        Prepare.Put(MapEntry(thisMapKey, elem), None, deadline earlier defaultExpiration)
     }
 
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
@@ -500,7 +500,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     map.commit(toInnerMapPrepare(prepare))
 
   def get(key: K): BAG[Option[V]] =
-    bag.flatMap(map.get(MultiMapKey.MapEntry(mapKey, key))) {
+    bag.flatMap(map.get(MultiMapKey.MapEntry(thisMapKey, key))) {
       case Some(value) =>
         value match {
           case some @ Some(_) =>
@@ -515,7 +515,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     }
 
   def getKey(key: K): BAG[Option[K]] =
-    bag.map(map.getKey(MapEntry(mapKey, key))) {
+    bag.map(map.getKey(MapEntry(thisMapKey, key))) {
       case Some(MapEntry(_, key)) =>
         Some(key)
 
@@ -527,7 +527,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     }
 
   def getKeyValue(key: K): BAG[Option[(K, V)]] =
-    bag.map(map.getKeyValue(MapEntry(mapKey, key))) {
+    bag.map(map.getKeyValue(MapEntry(thisMapKey, key))) {
       case Some((MapEntry(_, key), Some(value))) =>
         Some((key, value))
 
@@ -545,7 +545,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     getKeyDeadline(key, bag)
 
   def getKeyDeadline[BAG[_]](key: K, bag: Bag[BAG]): BAG[Option[(K, Option[Deadline])]] =
-    bag.map(map.getKeyDeadline(MapEntry(mapKey, key), bag)) {
+    bag.map(map.getKeyDeadline(MapEntry(thisMapKey, key), bag)) {
       case Some((MapEntry(_, key), deadline)) =>
         Some((key, deadline))
 
@@ -557,10 +557,10 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     }
 
   def contains(key: K): BAG[Boolean] =
-    map.contains(MapEntry(mapKey, key))
+    map.contains(MapEntry(thisMapKey, key))
 
   def mightContain(key: K): BAG[Boolean] =
-    map.mightContain(MapEntry(mapKey, key))
+    map.mightContain(MapEntry(thisMapKey, key))
 
   def mightContainFunction[PF <: F](function: PF)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Boolean] =
     map.core.mightContainFunction(Slice.writeString(function.id))
@@ -598,25 +598,25 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     (value: Slice[Byte]).size
 
   def expiration(key: K): BAG[Option[Deadline]] =
-    map.expiration(MapEntry(mapKey, key))
+    map.expiration(MapEntry(thisMapKey, key))
 
   def timeLeft(key: K): BAG[Option[FiniteDuration]] =
     bag.map(expiration(key))(_.map(_.timeLeft))
 
   def from(key: K): MultiMap[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(mapKey, key), orBefore = false, orAfter = false, before = false, after = false)))
+    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = false, before = false, after = false)))
 
   def before(key: K): MultiMap[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(mapKey, key), orBefore = false, orAfter = false, before = true, after = false)))
+    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = false, before = true, after = false)))
 
   def fromOrBefore(key: K): MultiMap[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(mapKey, key), orBefore = true, orAfter = false, before = false, after = false)))
+    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = true, orAfter = false, before = false, after = false)))
 
   def after(key: K): MultiMap[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(mapKey, key), orBefore = false, orAfter = false, before = false, after = true)))
+    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = false, before = false, after = true)))
 
   def fromOrAfter(key: K): MultiMap[M, K, V, F, BAG] =
-    copy(from = Some(From(key = MapEntry(mapKey, key), orBefore = false, orAfter = true, before = false, after = false)))
+    copy(from = Some(From(key = MapEntry(thisMapKey, key), orBefore = false, orAfter = true, before = false, after = false)))
 
   def headOption: BAG[Option[(K, V)]] =
     stream.headOption
@@ -629,7 +629,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
     stream
       .takeWhile {
         case (MapEntry(parent, _), _) =>
-          parent == mapKey
+          parent == thisMapKey
 
         case _ =>
           false
@@ -663,14 +663,14 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
         if (reverseIteration)
           boundStreamToMap {
             map
-              .before(MapEntriesEnd(mapKey))
+              .before(MapEntriesEnd(thisMapKey))
               .reverse
               .stream
           }
         else
           boundStreamToMap {
             map
-              .after(MapEntriesStart(mapKey))
+              .after(MapEntriesStart(thisMapKey))
               .stream
           }
     }
@@ -697,7 +697,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val map: Map[Mul
    * Returns an Async API of type O where the [[Bag]] is known.
    */
   def toBag[X[_]](implicit bag: Bag[X]): MultiMap[M, K, V, F, X] =
-    MultiMap(map.toBag[X], mapKey, from, reverseIteration, defaultExpiration)
+    MultiMap(map.toBag[X], thisMapKey, from, reverseIteration, defaultExpiration)
 
   def asScala: scala.collection.mutable.Map[K, V] =
     ScalaMap[K, V, F](toBag[Bag.Less](Bag.less))
