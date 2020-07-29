@@ -45,11 +45,11 @@ def publishScalaOptions(scalaVersion: String): Seq[String] = {
     CrossVersion.partialVersion(scalaVersion) match {
       case Some((2, major)) if major >= 13 =>
         Seq(
-//          "-opt:l:inline",
-//          "-opt-warnings",
-//          "-opt-inline-from:swaydb.**",
-//          "-Yopt-log-inline",
-//          "_"
+          //          "-opt:l:inline",
+          //          "-opt-warnings",
+          //          "-opt-inline-from:swaydb.**",
+          //          "-Yopt-log-inline",
+          //          "_"
         )
 
       case Some((2, 12)) =>
@@ -182,8 +182,6 @@ lazy val swaydb =
     .settings(
       libraryDependencies ++=
         commonDependencies(scalaVersion.value)
-          :+ "org.reactivestreams" % "reactive-streams" % reactiveStreamsVersion % Optional
-
     ).dependsOn(core % "test->test;compile->compile", serializers, configs)
 
 lazy val configs =
