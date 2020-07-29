@@ -22,11 +22,12 @@
  * you additional permission to convey the resulting work.
  */
 
-package swaydb
+package swaydb.multimap
 
-import swaydb.MultiMapKey.{MapEnd, MapStart, SubMap}
+import swaydb.MultiMapKey.MapStart
 import swaydb.core.util.Times._
 import swaydb.serializers._
+import swaydb.{Apply, Bag, IO, Map, MultiMap, MultiMapKey, Prepare, PureFunction, Stream}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, FiniteDuration}
@@ -378,8 +379,8 @@ class Schema[M, K, V, F, BAG[_]](innerMap: Map[MultiMapKey[M, K], Option[V], Pur
     val childMapKey = thisMapKey.toBuffer += mapKey
 
     Seq(
-      Prepare.Remove(SubMap(thisMapKey, mapKey), None, expire),
-      Prepare.Remove(MapStart(childMapKey), Some(MapEnd(childMapKey)), expire)
+      Prepare.Remove(MultiMapKey.SubMap(thisMapKey, mapKey), None, expire),
+      Prepare.Remove(MultiMapKey.MapStart(childMapKey), Some(MultiMapKey.MapEnd(childMapKey)), expire)
     )
   }
 

@@ -26,11 +26,13 @@ package swaydb
 
 import java.nio.file.Path
 
+import swaydb.multimap.Transaction
 import swaydb.MultiMapKey.{MapEntriesEnd, MapEntriesStart, MapEntry}
 import swaydb.core.util.Times._
 import swaydb.data.accelerate.LevelZeroMeter
 import swaydb.data.compaction.LevelMeter
 import swaydb.data.slice.Slice
+import swaydb.multimap.Schema
 import swaydb.serializers.{Serializer, _}
 
 import scala.collection.compat._
@@ -220,27 +222,33 @@ object MultiMap {
   /**
    * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
    */
-  private def globalPrepare[M, K, V, F, BAG[_]](map: MultiMap[M, K, V, F, BAG], prepare: Iterable[Prepare[K, V, F]]): Iterable[Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]]] =
-    prepare.map {
+  def toInnerPrepare[M, K, V, F](prepare: Transaction[M, K, V, F]): Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]] =
+    toInnerPrepare(prepare.thisMapKey, prepare.defaultExpiration, prepare.prepare)
+
+  /**
+   * Converts [[Prepare]] statements of this [[MultiMap]] to inner [[Map]]'s statements.
+   */
+  def toInnerPrepare[M, K, V, F](thisMapKey: Iterable[M], defaultExpiration: Option[Deadline], prepare: Prepare[K, V, F]): Prepare[MultiMapKey[M, K], Option[V], PureFunction[MultiMapKey[M, K], Option[V], Apply.Map[Option[V]]]] =
+    prepare match {
       case Prepare.Put(key, value, deadline) =>
-        Prepare.Put(MapEntry(map.thisMapKey, key), Some(value), deadline earlier map.defaultExpiration)
+        Prepare.Put(MapEntry(thisMapKey, key), Some(value), deadline earlier defaultExpiration)
 
       case Prepare.Remove(from, to, deadline) =>
         to match {
           case Some(to) =>
-            Prepare.Remove(MapEntry(map.thisMapKey, from), Some(MapEntry(map.thisMapKey, to)), deadline earlier map.defaultExpiration)
+            Prepare.Remove(MapEntry(thisMapKey, from), Some(MapEntry(thisMapKey, to)), deadline earlier defaultExpiration)
 
           case None =>
-            Prepare.Remove[MultiMapKey[M, K]](from = MapEntry(map.thisMapKey, from), to = None, deadline = deadline earlier map.defaultExpiration)
+            Prepare.Remove[MultiMapKey[M, K]](from = MapEntry(thisMapKey, from), to = None, deadline = deadline earlier defaultExpiration)
         }
 
       case Prepare.Update(from, to, value) =>
         to match {
           case Some(to) =>
-            Prepare.Update[MultiMapKey[M, K], Option[V]](MapEntry(map.thisMapKey, from), Some(MapEntry(map.thisMapKey, to)), value = Some(value))
+            Prepare.Update[MultiMapKey[M, K], Option[V]](MapEntry(thisMapKey, from), Some(MapEntry(thisMapKey, to)), value = Some(value))
 
           case None =>
-            Prepare.Update[MultiMapKey[M, K], Option[V]](key = MapEntry(map.thisMapKey, from), value = Some(value))
+            Prepare.Update[MultiMapKey[M, K], Option[V]](key = MapEntry(thisMapKey, from), value = Some(value))
         }
 
       case Prepare.ApplyFunction(from, to, function) =>
@@ -250,14 +258,14 @@ object MultiMap {
 
         to match {
           case Some(to) =>
-            Prepare.ApplyFunction(from = MapEntry(map.thisMapKey, from), to = Some(MapEntry(map.thisMapKey, to)), function = castedFunction)
+            Prepare.ApplyFunction(from = MapEntry(thisMapKey, from), to = Some(MapEntry(thisMapKey, to)), function = castedFunction)
 
           case None =>
-            Prepare.ApplyFunction(from = MapEntry(map.thisMapKey, from), to = None, function = castedFunction)
+            Prepare.ApplyFunction(from = MapEntry(thisMapKey, from), to = None, function = castedFunction)
         }
 
       case Prepare.Add(elem, deadline) =>
-        Prepare.Put(MapEntry(map.thisMapKey, elem), None, deadline earlier map.defaultExpiration)
+        Prepare.Put(MapEntry(thisMapKey, elem), None, deadline earlier defaultExpiration)
     }
 
 }
@@ -293,37 +301,37 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
   /**
    * Narrows this [[MultiMap]]'s map key type [[M]]
    */
-  private def narrow[M2](mapKeyType: Class[M2])(implicit evT: M2 <:< M): MultiMap[M2, K, V, F, BAG] =
+  def narrow[M2](mapKey: Class[M2])(implicit evT: M2 <:< M): MultiMap[M2, K, V, F, BAG] =
     this.asInstanceOf[MultiMap[M2, K, V, F, BAG]]
 
   /**
    * Narrows this [[MultiMap]]'s map key type [[M]] and key-value key type [[K]]
    */
-  private def narrow[M2, K2](mapKeyType: Class[M2],
-                             keyType: Class[K2])(implicit evT: M2 <:< M,
-                                                 evK: K2 <:< K): MultiMap[M2, K2, V, F, BAG] =
+  def narrow[M2, K2](mapKey: Class[M2],
+                     keyType: Class[K2])(implicit evT: M2 <:< M,
+                                         evK: K2 <:< K): MultiMap[M2, K2, V, F, BAG] =
     this.asInstanceOf[MultiMap[M2, K2, V, F, BAG]]
 
   /**
    * Narrows this [[MultiMap]]'s map key type [[M]], key-value key type [[K]] and value type [[V]]
    */
-  private def narrow[M2, K2, V2](mapKeyType: Class[M2],
-                                 keyType: Class[K2],
-                                 valueType: Class[V2])(implicit evT: M2 <:< M,
-                                                       evK: K2 <:< K,
-                                                       evV: V2 <:< V): MultiMap[M2, K2, V2, F, BAG] =
+  def narrow[M2, K2, V2](mapKey: Class[M2],
+                         keyType: Class[K2],
+                         valueType: Class[V2])(implicit evT: M2 <:< M,
+                                               evK: K2 <:< K,
+                                               evV: V2 <:< V): MultiMap[M2, K2, V2, F, BAG] =
     this.asInstanceOf[MultiMap[M2, K2, V2, F, BAG]]
 
   /**
    * Narrows this [[MultiMap]]'s map key type [[M]], key-value key type [[K]], value type [[V]] and function type [[F]].
    */
-  private def narrow[M2, K2, V2, F2](mapKeyType: Class[M2],
-                                     keyType: Class[K2],
-                                     valueType: Class[V2],
-                                     functionType: Class[F2])(implicit evT: M2 <:< M,
-                                                              evK: K2 <:< K,
-                                                              evV: V2 <:< V,
-                                                              evF: F2 <:< F): MultiMap[M2, K2, V2, F2, BAG] =
+  def narrow[M2, K2, V2, F2](mapKey: Class[M2],
+                             keyType: Class[K2],
+                             valueType: Class[V2],
+                             functionType: Class[F2])(implicit evT: M2 <:< M,
+                                                      evK: K2 <:< K,
+                                                      evV: V2 <:< V,
+                                                      evF: F2 <:< F): MultiMap[M2, K2, V2, F2, BAG] =
     this.asInstanceOf[MultiMap[M2, K2, V2, F2, BAG]]
 
   def put(key: K, value: V): BAG[OK] =
@@ -488,8 +496,52 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     innerMap.core.function(fromKey, toKey, functionId)
   }
 
+  /**
+   * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
+   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
+   *
+   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
+   */
+  def toTransaction[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Seq[Transaction[M, K, V, PF]] =
+    prepare.map(prepare => new Transaction(thisMapKey, defaultExpiration, prepare))
+
+  /**
+   * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
+   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
+   *
+   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
+   */
+  def toTransaction[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[Iterable[Transaction[M, K, V, PF]]] =
+    bag.transform(prepare.materialize) {
+      prepares =>
+        toTransaction(prepares)
+    }
+
+  /**
+   * Converts [[Prepare]] statement for this map into [[Prepare]] statement for this Map's parent Map so that
+   * multiple [[MultiMap]] [[Prepare]] statements can be executed as a single transaction.
+   *
+   * @see [[MultiMap.commit]] to commit [[Transaction]]s.
+   */
+  def toTransaction[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): Iterable[Transaction[M, K, V, PF]] =
+    prepare.map(prepare => new Transaction(thisMapKey, defaultExpiration, prepare))
+
+  /**
+   * Commits transaction to global map.
+   */
+  def commit[M2, K2, V2, PF <: F](transaction: Iterable[Transaction[M, K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]],
+                                                                                   evT: M2 <:< M,
+                                                                                   evK: K2 <:< K,
+                                                                                   evV: V2 <:< V): BAG[OK] =
+    innerMap.commit {
+      transaction map {
+        transaction =>
+          MultiMap.toInnerPrepare(transaction)
+      }
+    }
+
   def commit[PF <: F](prepare: Prepare[K, V, PF]*)(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    innerMap.commit(MultiMap.globalPrepare(this, prepare))
+    innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(thisMapKey, defaultExpiration, prepare)))
 
   def commit[PF <: F](prepare: Stream[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
     bag.flatMap(prepare.materialize) {
@@ -498,7 +550,7 @@ case class MultiMap[M, K, V, F, BAG[_]] private(private[swaydb] val innerMap: Ma
     }
 
   def commit[PF <: F](prepare: Iterable[Prepare[K, V, PF]])(implicit ev: PF <:< swaydb.PureFunction[K, V, Apply.Map[V]]): BAG[OK] =
-    innerMap.commit(MultiMap.globalPrepare(this, prepare))
+    innerMap.commit(prepare.map(prepare => MultiMap.toInnerPrepare(thisMapKey, defaultExpiration, prepare)))
 
   def get(key: K): BAG[Option[V]] =
     bag.flatMap(innerMap.get(MultiMapKey.MapEntry(thisMapKey, key))) {

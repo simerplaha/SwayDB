@@ -21,7 +21,7 @@ package swaydb.api
 
 import swaydb.IO.ApiIO
 import swaydb.IOValues._
-import swaydb._
+import swaydb.{MultiMapKey, _}
 import swaydb.core.CommonAssertions.eitherOne
 import swaydb.core.RunThis._
 import swaydb.core.TestBase

@@ -27,7 +27,7 @@ import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 import swaydb.serializers.Default._
-import swaydb.{Bag, IO, MultiMap}
+import swaydb.{Bag, IO, MultiMap, Prepare}
 import swaydb.core.TestData._
 import swaydb.core.CommonAssertions._
 
@@ -538,7 +538,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     "init" when {
       "updated expiration" in {
         //hierarchy - root --> child1 --> child2
-        val root: MultiMap[Int, Int, String, Nothing, Less] = newDB()
+        val root = newDB()
         root.put(1, "one")
         root.put(2, "two")
 
@@ -573,5 +573,33 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
         root.close()
       }
     }
+  }
+
+  "transaction" in {
+    //hierarchy - root --> child1 --> child2 --> child3
+    val root = newDB()
+    root.put(1, "one")
+    root.put(2, "two")
+
+    val child1 = root.schema.init(1)
+    child1.put(1, "one")
+    child1.put(2, "two")
+
+    val child2 = child1.schema.init(2)
+    child2.put(1, "one")
+    child2.put(2, "two")
+
+    val child3 = child1.schema.init(3)
+    child3.put(1, "one")
+    child3.put(2, "two")
+
+    val transaction =
+      child3.toTransaction(Prepare.Put(3, "three")) ++
+        child2.toTransaction(Prepare.Put(4, "four"))
+
+    child3.commit(transaction)
+
+    child3.get(3).value shouldBe "three"
+    child2.get(4).value shouldBe "four"
   }
 }
