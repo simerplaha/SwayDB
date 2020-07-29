@@ -12,16 +12,19 @@
 [build-badge]: https://github.com/simerplaha/SwayDB/workflows/Build/badge.svg
 [build-link]: https://github.com/simerplaha/SwayDB/actions
 
-Fast embeddable **persistent** and **in-memory** key-value storage engine that provides storage 
-as simple data structures - `Map`, `Set`, `Queue`, `SetMap` & `MultiMap`.  
-
+Embeddable **persistent** and **in-memory** key-value storage engine aimed for **high performance** & **resource efficiency**.
+ 
+Data is managed by creating simple data structures like `Map`, `Set`, `Queue`, `SetMap` & `MultiMap`.
+  
 Conditional updates/data modifications can be performed by simply submitting any **Java**, **Scala**, **Kotlin** or any 
-**native JVM** code.
+**native JVM** code - **No query language**.
 
 __Scalable on a single machine__ - Data can be stored on multiple local __HDD/SSD__ and, single or multiple __Threads__ 
 can be allocated for reads, caching & compaction.
 
-SwayDB's configurations can be tuned for **various workloads**. Some use-cases are:
+SwayDB's core is **non-blocking** but the APIs can be configured to be blocking, non-blocking and/or reactive.   
+
+Configurations can be tuned to suit **different workloads**. Some use-cases are:
 - General key-value storage
 - Message queues
 - Time-series or Events data
