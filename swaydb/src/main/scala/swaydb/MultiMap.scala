@@ -64,7 +64,7 @@ object MultiMap {
             )
           )
 
-        //Root Map has empty keys so if this database is new commit initial entries.
+        //RootMap has empty keys so if this database is new commit initial entries.
         if (isEmpty)
           bag.transform(initialEntries) {
             _ =>

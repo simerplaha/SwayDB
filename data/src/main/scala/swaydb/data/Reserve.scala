@@ -61,7 +61,7 @@ object Reserve {
   def promise[T](reserve: Reserve[T]): Promise[Unit] =
     reserve.synchronized {
       if (reserve.isBusy) {
-        val promise = Promise[Unit]
+        val promise = Promise[Unit]()
         reserve.savePromise(promise)
         promise
       } else {

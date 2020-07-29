@@ -31,8 +31,6 @@ import java.nio.file.{NoSuchFileException, Path}
 
 import swaydb.IO.RecoverableExceptionHandler
 import swaydb.data.Reserve
-import swaydb.data.slice.Slice
-
 
 protected sealed trait Error {
   def exception: Throwable

@@ -52,7 +52,7 @@ object Bag {
           }(ec, QueueOrder.FIFO)
 
           override def execute[F](f: => F): IO[F] = {
-            val promise = Promise[F]
+            val promise = Promise[F]()
             actor.send(() => promise.tryComplete(Try(f)))
             IO.fromFuture(IO(promise.future))
           }

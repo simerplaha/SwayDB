@@ -82,7 +82,7 @@ object Slice extends SliceCompanionBase {
     def clear() =
       slice = Slice.create[A](slice.size)
 
-    def result: Slice[A] =
+    def result(): Slice[A] =
       slice.close()
   }
 

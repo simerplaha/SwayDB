@@ -28,7 +28,6 @@ import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Path
 
 import swaydb.data.Reserve
-import swaydb.data.slice.Slice
 
 /**
  * Exception types for all known [[Error]]s that can occur. Each [[Error]] can be converted to

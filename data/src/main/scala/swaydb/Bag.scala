@@ -555,7 +555,7 @@ object Bag extends LazyLogging {
           }(ec, QueueOrder.FIFO)
 
           override def execute[F](f: => F): Future[F] = {
-            val promise = Promise[F]
+            val promise = Promise[F]()
             actor.send(() => promise.tryComplete(Try(f)))
             promise.future
           }

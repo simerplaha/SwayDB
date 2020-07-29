@@ -147,7 +147,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue1.key, threadState = threadState) shouldBe keyValue1
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue1
+        segmentState.keyValue._2 shouldBe keyValue1
         keyValue1.key.underlyingArraySize shouldBe 4
         segmentState.isSequential shouldBe true
       }
