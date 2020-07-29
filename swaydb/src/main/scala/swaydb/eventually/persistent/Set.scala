@@ -72,42 +72,45 @@ object Set extends LazyLogging {
                                                                                                                             bag: swaydb.Bag[BAG],
                                                                                                                             functions: swaydb.Set.Functions[A, F],
                                                                                                                             byteKeyOrder: KeyOrder[Slice[Byte]] = null,
-                                                                                                                            typedKeyOrder: KeyOrder[A] = null): IO[swaydb.Error.Boot, swaydb.Set[A, F, BAG]] = {
+                                                                                                                            typedKeyOrder: KeyOrder[A] = null): BAG[swaydb.Set[A, F, BAG]] = {
     implicit val keyOrder: KeyOrder[Slice[Byte]] = KeyOrderConverter.typedToBytesNullCheck(byteKeyOrder, typedKeyOrder)
     implicit val coreFunctions: FunctionStore.Memory = functions.core
 
-    Core(
-      enableTimer = functionClassTag != ClassTag.Nothing,
-      cacheKeyValueIds = cacheKeyValueIds,
-      threadStateCache = threadStateCache,
-      config =
-        DefaultEventuallyPersistentConfig(
-          dir = dir,
-          otherDirs = otherDirs,
-          mapSize = mapSize,
-          maxMemoryLevelSize = maxMemoryLevelSize,
-          maxSegmentsToPush = maxSegmentsToPush,
-          memoryLevelMinSegmentSize = memoryLevelSegmentSize,
-          memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
-          deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
-          persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
-          mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
-          persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
-          persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,
-          persistentLevelBinarySearchIndex = binarySearchIndex,
-          persistentLevelMightContainKeyIndex = mightContainKeyIndex,
-          persistentLevelValuesConfig = valuesConfig,
-          persistentLevelSegmentConfig = segmentConfig,
-          acceleration = acceleration
-        ),
-      fileCache = fileCache,
-      memoryCache = memoryCache
-    )(keyOrder = keyOrder,
-      timeOrder = TimeOrder.long,
-      functionStore = coreFunctions
-    ) map {
-      db =>
-        swaydb.Set[A, F, BAG](db.toBag)
-    }
+    val core =
+      Core(
+        enableTimer = functionClassTag != ClassTag.Nothing,
+        cacheKeyValueIds = cacheKeyValueIds,
+        threadStateCache = threadStateCache,
+        config =
+          DefaultEventuallyPersistentConfig(
+            dir = dir,
+            otherDirs = otherDirs,
+            mapSize = mapSize,
+            maxMemoryLevelSize = maxMemoryLevelSize,
+            maxSegmentsToPush = maxSegmentsToPush,
+            memoryLevelMinSegmentSize = memoryLevelSegmentSize,
+            memoryLevelMaxKeyValuesCountPerSegment = memoryLevelMaxKeyValuesCountPerSegment,
+            deleteMemorySegmentsEventually = deleteMemorySegmentsEventually,
+            persistentLevelAppendixFlushCheckpointSize = persistentLevelAppendixFlushCheckpointSize,
+            mmapPersistentLevelAppendix = mmapPersistentLevelAppendix,
+            persistentLevelSortedKeyIndex = persistentLevelSortedKeyIndex,
+            persistentLevelRandomKeyIndex = persistentLevelRandomKeyIndex,
+            persistentLevelBinarySearchIndex = binarySearchIndex,
+            persistentLevelMightContainKeyIndex = mightContainKeyIndex,
+            persistentLevelValuesConfig = valuesConfig,
+            persistentLevelSegmentConfig = segmentConfig,
+            acceleration = acceleration
+          ),
+        fileCache = fileCache,
+        memoryCache = memoryCache
+      )(keyOrder = keyOrder,
+        timeOrder = TimeOrder.long,
+        functionStore = coreFunctions
+      ) map {
+        db =>
+          swaydb.Set[A, F, BAG](db.toBag)
+      }
+
+    core.toBag[BAG]
   }
 }
