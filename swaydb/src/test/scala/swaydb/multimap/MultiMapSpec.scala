@@ -486,6 +486,8 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
       child1.schema.isEmpty shouldBe true
       child1.get(1) shouldBe empty
       child1.get(2) shouldBe empty
+
+      root.close()
     }
 
     "replace removes all child maps" in {
@@ -601,5 +603,7 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
 
     child3.get(3).value shouldBe "three"
     child2.get(4).value shouldBe "four"
+
+    root.close()
   }
 }
