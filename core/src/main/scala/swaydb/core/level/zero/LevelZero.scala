@@ -499,39 +499,47 @@ private[swaydb] case class LevelZero(path: Path,
   override def headKey(readState: ThreadReadState): SliceOption[Byte] =
     head(readState).mapSliceOptional(_.key)
 
-  def head(readState: ThreadReadState): KeyValue.PutOption =
+  def head(readState: ThreadReadState): KeyValue.PutOption = {
+    //read from LevelZero first
+    val mapHead = firstKeyFromMaps
+
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.headKey(readState) match {
           case nextLevelFirstKey: Slice[Byte] =>
             MinMax
-              .minFavourLeftC[SliceOption[Byte], Slice[Byte]](firstKeyFromMaps, nextLevelFirstKey)(keyOrder)
+              .minFavourLeftC[SliceOption[Byte], Slice[Byte]](mapHead, nextLevelFirstKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
 
           case Slice.Null =>
-            firstKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
+            mapHead.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
         }
 
       case None =>
-        firstKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
+        mapHead.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(ceiling(_, readState))
     }
+  }
 
-  def last(readState: ThreadReadState): KeyValue.PutOption =
+  def last(readState: ThreadReadState): KeyValue.PutOption = {
+    //read from LevelZero first
+    val mapLast = lastKeyFromMaps
+
     nextLevel match {
       case Some(nextLevel) =>
         nextLevel.lastKey(readState) match {
           case nextLevelLastKey: Slice[Byte] =>
             MinMax
-              .maxFavourLeftC[SliceOption[Byte], Slice[Byte]](lastKeyFromMaps, nextLevelLastKey)(keyOrder)
+              .maxFavourLeftC[SliceOption[Byte], Slice[Byte]](mapLast, nextLevelLastKey)(keyOrder)
               .flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
 
           case Slice.Null =>
-            lastKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
+            mapLast.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
         }
 
       case None =>
-        lastKeyFromMaps.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
+        mapLast.flatMapSomeC(KeyValue.Put.Null: KeyValue.PutOption)(floor(_, readState))
     }
+  }
 
   def ceiling(key: Slice[Byte],
               readState: ThreadReadState): KeyValue.PutOption = {
