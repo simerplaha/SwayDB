@@ -107,6 +107,8 @@ class MultiMapTransactionSpec extends TestBaseEmbedded {
       eventually(Timeout(2.seconds)) {
         productOrderMap.get(PrimaryKey.Order(2)) shouldBe empty
       }
+
+      root.close()
     }
   }
 }

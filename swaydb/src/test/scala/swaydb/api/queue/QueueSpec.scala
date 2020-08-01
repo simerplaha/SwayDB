@@ -60,6 +60,8 @@ sealed trait QueueSpec extends TestBase {
 
     queue.popOrNull() shouldBe 1
     queue.popOrNull() shouldBe 2
+
+    queue.close()
   }
 
   "push and pop in FIFO manner" in {
@@ -70,6 +72,8 @@ sealed trait QueueSpec extends TestBase {
 
     //all popped out
     queue.pop() shouldBe empty
+
+    queue.close()
   }
 
   "push, expire, pop & stream" in {
@@ -103,6 +107,8 @@ sealed trait QueueSpec extends TestBase {
     queue.popOrNull() shouldBe 5
     queue.popOrNull() shouldBe 6
     assertStreamIsEmpty()
+
+    queue.close()
   }
 
   "concurrently process" in {
@@ -173,6 +179,8 @@ sealed trait QueueSpec extends TestBase {
 
         processedQueue.clear()
     }
+
+    queue.close()
   }
 
   "continue on restart" in {
