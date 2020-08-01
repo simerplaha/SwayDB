@@ -35,8 +35,9 @@ import swaydb.data.config.ActorConfig.QueueOrder
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Future, Promise}
 import scala.collection.parallel.CollectionConverters._
+import scala.util.Try
 
 class ActorSpec extends AnyWordSpec with Matchers {
 
@@ -446,6 +447,43 @@ class ActorSpec extends AnyWordSpec with Matchers {
       }
     }
   }
+
+  "Actor" should {
+
+    def assertActor(actor: ActorRef[() => Any, Unit]) = {
+      (1 to 1000000) foreach {
+        i =>
+          if(i % 100000 == 0) println(s"Message number: $i")
+          val promise = Promise[Unit]()
+          actor.send(() => promise.tryComplete(Try(i)))
+          promise.future.await(2.seconds)
+      }
+
+      actor.totalWeight shouldBe 0
+      actor.messageCount shouldBe 0
+    }
+
+    "process all messages" when {
+      "basic" in {
+        val actor = Actor[() => Any] {
+          (run, _) =>
+            run()
+        }
+
+        assertActor(actor)
+      }
+
+      "timer" in {
+        val actor = Actor.timer[() => Any](0, 1.second) {
+          (run, _) =>
+            run()
+        }
+
+        assertActor(actor)
+      }
+    }
+  }
+
 
   //  "play" in {
   //    implicit val scheduler = Scheduler()

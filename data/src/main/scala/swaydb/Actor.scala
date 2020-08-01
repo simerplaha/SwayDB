@@ -557,15 +557,15 @@ class Actor[-T, S](val state: S,
           }
       }
     finally {
-      val currentStashed =
-        weight updateAndGet {
-          new IntUnaryOperator {
-            override def applyAsInt(currentWeight: Int): Int =
-              currentWeight - processedWeight
-          }
+      weight updateAndGet {
+        new IntUnaryOperator {
+          override def applyAsInt(currentWeight: Int): Int =
+            currentWeight - processedWeight
         }
+      }
       busy.set(false)
-      wakeUp(currentStashed = currentStashed)
+      //after setting busy to false fetch the totalWeight again.
+      wakeUp(currentStashed = totalWeight)
     }
   }
 
