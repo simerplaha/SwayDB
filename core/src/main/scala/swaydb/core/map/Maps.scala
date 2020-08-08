@@ -26,7 +26,6 @@ package swaydb.core.map
 
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.function.Consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import swaydb.Error.Map.ExceptionHandler
@@ -39,6 +38,7 @@ import swaydb.core.io.file.Effect
 import swaydb.core.io.file.Effect._
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
 import swaydb.core.map.timer.Timer
+import swaydb.core.util.DropList
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.config.RecoveryMode
 import swaydb.data.order.{KeyOrder, TimeOrder}
@@ -321,8 +321,6 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   @volatile private var totalMapsCount: Int = maps.size() + 1
   @volatile private var currentMapsCount: Int = maps.size() + 1
 
-  @volatile var currentMapsSlice: Slice[Map[OK, OV, K, V]] = toMapsSlice()
-
   val meter =
     new LevelZeroMeter {
       override def defaultMapSize: Long = fileSize
@@ -335,27 +333,29 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
 
+  /**
+   * Returns a snapshot of [[Maps]] state to execute reads.
+   *
+   * @note The size of [[DropList]] does not matter here because [[DropList.Single]]
+   *       does not use size.
+   *
+   *       There will be rare cases where [[maps]] could contain [[currentMap]]
+   *       which would result in [[currentMap]] being twice but this would only
+   *       happen if [[fileSize]] is too small < 10.bytes otherwise the performance
+   *       cost is negligible.
+   */
+  def snapshot(): DropList.Single[Null, Map[OK, OV, K, V]] =
+    DropList.single(
+      size = currentMapsCount,
+      tailHead = currentMap,
+      keyValues = maps.iterator().asScala
+    )
+
   def write(mapEntry: Timer => MapEntry[K, V]): Unit =
     synchronized {
       if (brakePedal != null && brakePedal.applyBrakes()) brakePedal = null
       persist(mapEntry(timer))
     }
-
-  def toMapsSlice(): Slice[Map[OK, OV, K, V]] = {
-    val slice = Slice.create[Map[OK, OV, K, V]](totalMapsCount)
-
-    slice add currentMap
-    maps forEach {
-      new Consumer[Map[OK, OV, K, V]] {
-        override def accept(map: Map[OK, OV, K, V]): Unit =
-          slice add map
-      }
-    }
-    slice
-  }
-
-  def updateMapsSlice(): Unit =
-    this.currentMapsSlice = toMapsSlice()
 
   private def initNextMap(mapSize: Long) = {
     val nextMap = Maps.nextMapUnsafe(mapSize, currentMap)
@@ -363,7 +363,6 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
     currentMap = nextMap
     totalMapsCount += 1
     currentMapsCount += 1
-    updateMapsSlice()
     onNextMapListener()
   }
 
@@ -491,7 +490,6 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
         IO(removedMap.delete) match {
           case IO.Right(_) =>
             currentMapsCount -= 1
-            updateMapsSlice()
             IO.unit
 
           case IO.Left(error) =>
@@ -499,7 +497,6 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
             val mapPath: String = removedMap.pathOption.map(_.toString).getOrElse("No path")
             logger.error(s"Failed to delete map '$mapPath;. Adding it back to the queue.", error.exception)
             maps.addLast(removedMap)
-            updateMapsSlice()
             IO.Left(error)
         }
     }

@@ -28,6 +28,7 @@ import com.typesafe.scalalogging.LazyLogging
 import swaydb.core.data.{KeyValue, Memory, Value}
 import swaydb.core.function.FunctionStore
 import swaydb.core.merge.{FixedMerger, ValueMerger}
+import swaydb.core.util.DropList
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 
@@ -55,8 +56,8 @@ private[core] object SegmentMerger extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): Unit =
     merge(
-      newKeyValues = MergeList[Memory.Range, KeyValue](newKeyValues),
-      oldKeyValues = MergeList[Memory.Range, KeyValue](oldKeyValues),
+      newKeyValues = DropList[Memory.Range, KeyValue](newKeyValues),
+      oldKeyValues = DropList[Memory.Range, KeyValue](oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
@@ -69,14 +70,14 @@ private[core] object SegmentMerger extends LazyLogging {
                                   timeOrder: TimeOrder[Slice[Byte]],
                                   functionStore: FunctionStore): Unit =
     merge(
-      newKeyValues = MergeList[Memory.Range, KeyValue](newKeyValues),
-      oldKeyValues = MergeList[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
+      newKeyValues = DropList[Memory.Range, KeyValue](newKeyValues),
+      oldKeyValues = DropList[Memory.Range, KeyValue](oldKeyValuesCount, oldKeyValues),
       builder = stats,
       isLastLevel = isLastLevel
     )
 
-  private def merge(newKeyValues: MergeList[Memory.Range, KeyValue],
-                    oldKeyValues: MergeList[Memory.Range, KeyValue],
+  private def merge(newKeyValues: DropList[Memory.Range, KeyValue],
+                    oldKeyValues: DropList[Memory.Range, KeyValue],
                     builder: MergeStats[Memory, Iterable],
                     isLastLevel: Boolean)(implicit keyOrder: KeyOrder[Slice[Byte]],
                                           timeOrder: TimeOrder[Slice[Byte]],
@@ -92,8 +93,8 @@ private[core] object SegmentMerger extends LazyLogging {
       )
 
     @tailrec
-    def doMerge(newKeyValues: MergeList[Memory.Range, KeyValue],
-                oldKeyValues: MergeList[Memory.Range, KeyValue]): Unit =
+    def doMerge(newKeyValues: DropList[Memory.Range, KeyValue],
+                oldKeyValues: DropList[Memory.Range, KeyValue]): Unit =
       newKeyValues.headOrNull match {
         /**
          * FIXED onto OTHERS

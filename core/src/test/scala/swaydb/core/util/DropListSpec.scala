@@ -17,12 +17,12 @@
  * along with SwayDB. If not, see <https://www.gnu.org/licenses/>.
  *
  * Additional permission under the GNU Affero GPL version 3 section 7:
- * If you modify this Program or any covered work, only by linking or
- * combining it with separate works, the licensors of this Program grant
- * you additional permission to convey the resulting work.
+ * If you modify this Program, or any covered work, by linking or combining
+ * it with other code, such other code is not for that reason alone subject
+ * to any of the requirements of the GNU Affero GPL version 3.
  */
 
-package swaydb.core.segment.merge
+package swaydb.core.util
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -35,16 +35,16 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Default._
 import swaydb.serializers._
 
-class MergeListSpec extends AnyWordSpec with Matchers {
+class DropListSpec extends AnyWordSpec with Matchers {
 
   implicit val testTimer: TestTimer = TestTimer.Empty
 
   implicit def toPut(key: Int): Memory.Put =
     Memory.put(key)
 
-  "MergeList" should {
+  "it" should {
     //mutate the state of this List and assert.
-    var list = MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](1, 2, 3))
+    var list = DropList[KeyValue.Range, KeyValue](Slice[KeyValue](1, 2, 3))
     val range = Memory.Range(1, 2, FromValue.Null, Value.update(1))
 
     "store key-values" in {
@@ -59,7 +59,7 @@ class MergeListSpec extends AnyWordSpec with Matchers {
 
       val expect = Slice[KeyValue](2, 3)
       list.iterator.toSeq shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
     }
 
     "dropAppend" in {
@@ -69,17 +69,17 @@ class MergeListSpec extends AnyWordSpec with Matchers {
 
       val expect = Slice[KeyValue](range, 3)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
     }
 
     "merge" in {
-      list = list append MergeList(Slice[KeyValue](4, 5, 6))
+      list = list append DropList(Slice[KeyValue](4, 5, 6))
       list.depth shouldBe 2
       list.size shouldBe 5
 
       val expect = Slice[KeyValue](range, 3, 4, 5, 6)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
     }
 
     "drop range" in {
@@ -89,7 +89,7 @@ class MergeListSpec extends AnyWordSpec with Matchers {
 
       val expect = Slice[KeyValue](3, 4, 5, 6)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
     }
 
     "drop again & depth should be 1 since all the key-values from first list are removed" in {
@@ -98,7 +98,7 @@ class MergeListSpec extends AnyWordSpec with Matchers {
       list.size shouldBe 3
       var expect = Slice[KeyValue](4, 5, 6)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       //drop again, depth goes down to 1
       list = list.dropHead()
@@ -106,7 +106,7 @@ class MergeListSpec extends AnyWordSpec with Matchers {
       list.size shouldBe 2
       expect = Slice[KeyValue](5, 6)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       //drop again
       list = list.dropHead()
@@ -114,7 +114,7 @@ class MergeListSpec extends AnyWordSpec with Matchers {
       list.size shouldBe 1
       expect = Slice[KeyValue](6)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       //drop again
       list = list.dropHead()
@@ -124,13 +124,13 @@ class MergeListSpec extends AnyWordSpec with Matchers {
     }
   }
 
-  "merging multiple MergeLists" should {
+  "merging multiple DropLists" should {
     //mutate the state of this List and assert.
     var list =
-      MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](1, 2)) append
-        MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](3, 4)) append
-        MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](5, 6)) append
-        MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](7, 8))
+      DropList[KeyValue.Range, KeyValue](Slice[KeyValue](1, 2)) append
+        DropList[KeyValue.Range, KeyValue](Slice[KeyValue](3, 4)) append
+        DropList[KeyValue.Range, KeyValue](Slice[KeyValue](5, 6)) append
+        DropList[KeyValue.Range, KeyValue](Slice[KeyValue](7, 8))
 
     val range = Memory.Range(1, 2, FromValue.Null, Value.update(1))
 
@@ -145,7 +145,7 @@ class MergeListSpec extends AnyWordSpec with Matchers {
       list.size shouldBe 7
       val expect = Slice[KeyValue](2, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
     }
 
     "dropAppend" in {
@@ -154,16 +154,16 @@ class MergeListSpec extends AnyWordSpec with Matchers {
       list.size shouldBe 7
       val expect = Slice[KeyValue](range, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
     }
 
     "merge" in {
-      list = MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](9)) append list
+      list = DropList[KeyValue.Range, KeyValue](Slice[KeyValue](9)) append list
       list.depth shouldBe 2
       list.size shouldBe 8
       val expect = Slice[KeyValue](9, range, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
     }
 
     "drop 2" in {
@@ -172,14 +172,14 @@ class MergeListSpec extends AnyWordSpec with Matchers {
       list.size shouldBe 7
       var expect = Slice[KeyValue](range, 3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       list = list.dropHead()
       list.depth shouldBe 1
       list.size shouldBe 6
       expect = Slice[KeyValue](3, 4, 5, 6, 7, 8)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       list = list.dropHead()
       list = list.dropHead()
@@ -187,7 +187,7 @@ class MergeListSpec extends AnyWordSpec with Matchers {
       list.size shouldBe 4
       expect = Slice[KeyValue](5, 6, 7, 8)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       list = list.dropHead()
       list = list.dropHead()
@@ -198,23 +198,23 @@ class MergeListSpec extends AnyWordSpec with Matchers {
     }
 
     "merge when empty" in {
-      list = list append list append list append list append MergeList(Slice[KeyValue](9))
+      list = list append list append list append list append DropList(Slice[KeyValue](9))
       list.depth shouldBe 1
       list.size shouldBe 1
       var expect = Slice[KeyValue](9)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       list.dropHead()
       list.depth shouldBe 1
       list.size shouldBe 0
 
-      list = MergeList[KeyValue.Range, KeyValue](Slice[KeyValue](1)) append list append list append list append list
+      list = DropList[KeyValue.Range, KeyValue](Slice[KeyValue](1)) append list append list append list append list
       list.depth shouldBe 1
       list.size shouldBe 1
       expect = Slice[KeyValue](1)
       list.iterator.toList shouldBe expect
-      list = MergeList(expect)
+      list = DropList(expect)
 
       list.dropHead()
       list.depth shouldBe 1
