@@ -26,6 +26,6 @@ package swaydb
 
 package object api {
 
-  val repeatTest = 100
+  val repeatTest = 1
 
 }

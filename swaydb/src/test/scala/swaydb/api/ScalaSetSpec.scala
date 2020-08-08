@@ -72,7 +72,6 @@ class ScalaSetSpec3 extends ScalaSetSpec {
 sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
-  val repeatTest = 100.times
 
   def newDB(): Set[Int, Nothing, IO.ApiIO]
 

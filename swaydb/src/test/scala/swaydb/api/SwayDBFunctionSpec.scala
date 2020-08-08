@@ -22,6 +22,7 @@ package swaydb
 import java.util.concurrent.TimeUnit
 
 import swaydb.IOValues._
+import swaydb.api.repeatTest
 import swaydb.core.RunThis._
 import swaydb.core.TestBase
 import swaydb.data.slice.Slice
@@ -105,8 +106,6 @@ sealed trait SwayDBFunctionSpec extends TestBase {
 
   implicit val functionsMap = swaydb.Map.Functions[Key, Int, Key.Function]()
   functionsMap.register(Key.IncrementValue, Key.DoNothing)
-
-  val repeatTest = 100.times
 
   "SwayDB" should {
     "perform concurrent atomic updates to a single key" in {

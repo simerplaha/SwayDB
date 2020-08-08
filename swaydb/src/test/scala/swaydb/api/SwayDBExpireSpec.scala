@@ -21,7 +21,7 @@ package swaydb
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
-import swaydb.api.{ScalaMapSpec, TestBaseEmbedded}
+import swaydb.api.{ScalaMapSpec, TestBaseEmbedded, repeatTest}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
@@ -81,10 +81,8 @@ class MultiMapExpireSpec5 extends SwayDBExpireSpec {
 
 
 sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
-  val repeatTest = 100.times
 
   val keyValueCount: Int
-
 
   def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 

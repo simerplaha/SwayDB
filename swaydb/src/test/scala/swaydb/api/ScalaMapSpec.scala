@@ -96,8 +96,6 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
 
   def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 
-  val repeatTest = 100.times
-
   "Expire" when {
     "put" in {
       runThis(times = repeatTest, log = true) {
