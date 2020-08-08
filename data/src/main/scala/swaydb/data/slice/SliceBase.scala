@@ -136,8 +136,7 @@ abstract class SliceBase[+T](array: Array[T],
       if (size <= 1) {
         groups add slice
         groups
-      }
-      else {
+      } else {
         val (slice1, slice2) = slice.splitAt(slice.size / size)
         groups add slice1
         group(groups, slice2, size - 1)

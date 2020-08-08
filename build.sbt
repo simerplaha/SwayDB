@@ -27,7 +27,8 @@ val commonScalaOptions =
   Seq(
     "-language:postfixOps",
     "-deprecation",
-    "-encoding", "UTF-8",
+    "-encoding",
+    "UTF-8",
     "-feature",
     "-unchecked",
     "-language:higherKinds",
@@ -40,29 +41,20 @@ val commonScalaOptions =
     "-Xlint"
   )
 
-def publishScalaOptions(scalaVersion: String): Seq[String] = {
-  val publishOptions: Seq[String] =
-    CrossVersion.partialVersion(scalaVersion) match {
-      case Some((2, major)) if major >= 13 =>
-        Seq(
-//          "-opt:l:inline",
-//          "-opt-warnings",
-//          "-opt-inline-from:swaydb.**",
-//          "-Yopt-log-inline",
-//          "_"
-        )
+def publishScalaOptions(scalaVersion: String): Seq[String] =
+  CrossVersion.partialVersion(scalaVersion) match {
+    case Some((2, major)) if major >= 12 =>
+      Seq(
+//        "-opt:l:inline",
+//        "-opt-warnings",
+//        "-opt-inline-from:swaydb.**",
+//        "-Yopt-log-inline",
+//        "_"
+      )
 
-      case Some((2, 12)) =>
-        //todo
-        Seq.empty
-
-      case Some((2, 11)) =>
-        //todo
-        Seq.empty
-    }
-
-  publishOptions ++ commonScalaOptions
-}
+    case Some((2, 11)) =>
+      Seq.empty
+  }
 
 val commonSettings = Seq(
   organization := "io.swaydb",
@@ -93,24 +85,25 @@ val publishSettings = Seq[Setting[_]](
   developers := List(
     Developer(id = "simerplaha", name = "Simer JS Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
   ),
-  scalacOptions ++= publishScalaOptions(scalaVersion.value),
+  scalacOptions ++= commonScalaOptions ++ publishScalaOptions(scalaVersion.value),
   publishTo := sonatypePublishTo.value,
   releaseCrossBuild := true,
   releaseVersionBump := sbtrelease.Version.Bump.Next,
   publishConfiguration := publishConfiguration.value.withOverwrite(true),
-  releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    runClean,
-    setReleaseVersion,
-    commitReleaseVersion,
-    tagRelease,
-    releaseStepCommandAndRemaining("+publishSigned"),
-    setNextVersion,
-    commitNextVersion,
-    releaseStepCommand("sonatypeReleaseAll"),
-    pushChanges
-  )
+  releaseProcess :=
+    Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      releaseStepCommandAndRemaining("+publishSigned"),
+      setNextVersion,
+      commitNextVersion,
+      releaseStepCommand("sonatypeReleaseAll"),
+      pushChanges
+    )
 )
 
 def scalaParallelCollections(scalaVersion: String) =

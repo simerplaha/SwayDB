@@ -112,16 +112,13 @@ sealed trait MultiMapFunctionsSpec extends TestBaseEmbedded {
       (1 to 30).foreach(i => map.get(i).value shouldBe i.toString)
 
       //apply functions as batch
-      val prepare =
-        Seq(
-          Prepare.ApplyFunction(1, 9, onKeyValueFunction),
-          Prepare.ApplyFunction(10, onKeyValueFunction), //non range commit
-          Prepare.ApplyFunction(11, 20, onValueFunction),
-          Prepare.ApplyFunction(21, 29, onKeyFunction),
-          Prepare.ApplyFunction(30, onKeyFunction) //non range
-        )
-
-      map.commit(prepare)
+      map.commit(
+        Prepare.ApplyFunction(1, 9, onKeyValueFunction),
+        Prepare.ApplyFunction(10, onKeyValueFunction), //non range commit
+        Prepare.ApplyFunction(11, 20, onValueFunction),
+        Prepare.ApplyFunction(21, 29, onKeyFunction),
+        Prepare.ApplyFunction(30, onKeyFunction) //non range
+      )
 
       (1 to 10).foreach(i => map.get(i).value shouldBe "updated1")
       (11 to 20).foreach(i => map.get(i).value shouldBe "updated2")

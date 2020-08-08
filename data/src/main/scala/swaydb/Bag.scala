@@ -549,7 +549,7 @@ object Bag extends LazyLogging {
       override def createSerial(): Serial[Future] =
         new Serial[Future] {
 
-          val actor = Actor[() => Any] {
+          val actor = Actor[() => Unit] {
             (run, _) =>
               run()
           }(ec, QueueOrder.FIFO)

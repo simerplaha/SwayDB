@@ -26,13 +26,13 @@ package swaydb.data.config.builder
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.data.config.{ConfigWizard, MemoryLevelZeroConfig}
+import swaydb.data.config.ConfigWizard
 import swaydb.data.util.Java.JavaFunction
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
- * Java Builder class for [[MemoryLevelZeroConfig]]
+ * Java Builder class for [[swaydb.data.config.MemoryLevelZeroConfig]]
  */
 class MemoryLevelZeroConfigBuilder {
   private var mapSize: Long = _

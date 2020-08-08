@@ -590,10 +590,10 @@ class Actor[-T, S](val state: S,
           case (message: M@unchecked, error, actor) =>
             error match {
               case IO.Right(actorError) =>
-                Some(f(message, IO.Right(actorError), actor))
+                f(message, IO.Right(actorError), actor)
 
               case IO.Left(throwable) =>
-                Some(f(message, IO.Left(ExceptionHandler.toError(throwable)), actor))
+                f(message, IO.Left(ExceptionHandler.toError(throwable)), actor)
             }
 
           case (_, error, _) =>

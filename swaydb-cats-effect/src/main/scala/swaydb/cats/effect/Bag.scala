@@ -46,7 +46,7 @@ object Bag {
 
       override def createSerial(): Serial[IO] =
         new Serial[IO] {
-          val actor = Actor[() => Any] {
+          val actor = Actor[() => Unit] {
             (run, _) =>
               run()
           }(ec, QueueOrder.FIFO)

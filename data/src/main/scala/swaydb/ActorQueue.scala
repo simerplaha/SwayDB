@@ -29,7 +29,7 @@ import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentSkipListSet}
 import swaydb.data.config.ActorConfig.QueueOrder
 
 protected sealed trait ActorQueue[T] {
-  def add(item: T): Unit
+  def add(item: T): Boolean
   def poll(): T
   def peek(): T
   def clear(): Unit
@@ -46,7 +46,7 @@ protected object ActorQueue {
       case QueueOrder.FIFO =>
         new ActorQueue[(T, Int)] {
           val queue = new ConcurrentLinkedQueue[(T, Int)]()
-          override def add(item: (T, Int)): Unit =
+          override def add(item: (T, Int)): Boolean =
             queue add item
 
           override def poll(): (T, Int) =
@@ -66,7 +66,7 @@ protected object ActorQueue {
         new ActorQueue[(T, Int)] {
           val skipList: ConcurrentSkipListSet[(T, Int)] = new ConcurrentSkipListSet[(T, Int)](ordered.ordering.on[(T, Int)](_._1))
 
-          override def add(item: (T, Int)): Unit =
+          override def add(item: (T, Int)): Boolean =
             skipList add item
 
           override def poll(): (T, Int) =

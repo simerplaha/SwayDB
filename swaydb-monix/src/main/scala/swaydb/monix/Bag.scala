@@ -47,7 +47,7 @@ object Bag {
            * If there another preferred way to execute tasks serially in Monix instead of using an Actor
            * that should be used here.
            */
-          val actor = Actor[() => Any] {
+          val actor = Actor[() => Unit] {
             (run, _) =>
               run()
           }(scheduler, QueueOrder.FIFO)

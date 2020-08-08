@@ -28,13 +28,13 @@ import java.nio.file.Path
 
 import swaydb.data.accelerate.{Accelerator, LevelZeroMeter}
 import swaydb.data.compaction.CompactionExecutionContext
-import swaydb.data.config.{ConfigWizard, PersistentLevelZeroConfig, RecoveryMode}
+import swaydb.data.config.{ConfigWizard, RecoveryMode}
 import swaydb.data.util.Java.JavaFunction
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
- * Java Builder class for [[PersistentLevelZeroConfig]]
+ * Java Builder class for [[swaydb.data.config.PersistentLevelZeroConfig]]
  */
 class PersistentLevelZeroConfigBuilder {
   private var dir: Path = _
