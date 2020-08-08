@@ -106,93 +106,99 @@ sealed trait SwayDBFunctionSpec extends TestBase {
   implicit val functionsMap = swaydb.Map.Functions[Key, Int, Key.Function]()
   functionsMap.register(Key.IncrementValue, Key.DoNothing)
 
+  val repeatTest = 100.times
+
   "SwayDB" should {
     "perform concurrent atomic updates to a single key" in {
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val db = newDB()
+        db.put(Key.Id(1), 0).get
 
-      db.put(Key.Id(1), 0).get
+        (1 to 1000).par foreach {
+          _ =>
+            db.applyFunction(Key.Id(1), Key.IncrementValue).get
+        }
 
-      (1 to 1000).par foreach {
-        _ =>
-          db.applyFunction(Key.Id(1), Key.IncrementValue).get
+        db.get(Key.Id(1)).get should contain(1000)
+
+        db.close().get
       }
-
-      db.get(Key.Id(1)).get should contain(1000)
-
-      db.close().get
     }
 
     "perform concurrent atomic updates to multiple keys" in {
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val db = newDB()
+        (1 to 1000) foreach {
+          i =>
+            db.put(Key.Id(i), 0).get
+        }
 
-      (1 to 1000) foreach {
-        i =>
-          db.put(Key.Id(i), 0).get
+        (1 to 100).par foreach {
+          _ =>
+            (1 to 1000).par foreach {
+              i =>
+                db.applyFunction(Key.Id(i), Key.IncrementValue).get
+            }
+        }
+
+        (1 to 1000).par foreach {
+          i =>
+            db.get(Key.Id(i)).get should contain(100)
+        }
+
+        db.close().get
       }
-
-      (1 to 100).par foreach {
-        _ =>
-          (1 to 1000).par foreach {
-            i =>
-              db.applyFunction(Key.Id(i), Key.IncrementValue).get
-          }
-      }
-
-      (1 to 1000).par foreach {
-        i =>
-          db.get(Key.Id(i)).get should contain(100)
-      }
-
-      db.close().get
     }
 
     "batch commit updates" in {
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val db = newDB()
+        val puts: List[Prepare[Key.Id, Int, Nothing]] =
+          (1 to 1000).map(key => Prepare.Put(Key.Id(key), key)).toList
 
-      val puts: List[Prepare[Key.Id, Int, Nothing]] =
-        (1 to 1000).map(key => Prepare.Put(Key.Id(key), key)).toList
+        db.commit(puts).get
 
-      db.commit(puts).get
+        val prepareApplyFunction: List[Prepare[Key.Id, Nothing, Key.IncrementValue.type]] =
+          (1 to 1000).map(key => Prepare.ApplyFunction(Key.Id(key), Key.IncrementValue)).toList
 
-      val prepareApplyFunction: List[Prepare[Key.Id, Nothing, Key.IncrementValue.type]] =
-        (1 to 1000).map(key => Prepare.ApplyFunction(Key.Id(key), Key.IncrementValue)).toList
+        db.commit(prepareApplyFunction).get
 
-      db.commit(prepareApplyFunction).get
+        (1 to 1000) foreach {
+          key =>
+            db.get(Key.Id(key)).get should contain(key + 1)
+        }
 
-      (1 to 1000) foreach {
-        key =>
-          db.get(Key.Id(key)).get should contain(key + 1)
+        db.close().get
       }
-
-      db.close().get
     }
 
     "Nothing should not update data" in {
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val db = newDB()
+        (1 to 1000) foreach {
+          i =>
+            db.put(Key.Id(i), 0).get
+        }
 
-      (1 to 1000) foreach {
-        i =>
-          db.put(Key.Id(i), 0).get
+        (1 to 100).par foreach {
+          _ =>
+            (1 to 1000).par foreach {
+              i =>
+                db.applyFunction(Key.Id(i), Key.DoNothing).get
+            }
+        }
+
+        (1 to 1000).par foreach {
+          i =>
+            db.get(Key.Id(i)).get should contain(0)
+        }
+
+        db.close().get
       }
-
-      (1 to 100).par foreach {
-        _ =>
-          (1 to 1000).par foreach {
-            i =>
-              db.applyFunction(Key.Id(i), Key.DoNothing).get
-          }
-      }
-
-      (1 to 1000).par foreach {
-        i =>
-          db.get(Key.Id(i)).get should contain(0)
-      }
-
-      db.close().get
     }
   }
 }

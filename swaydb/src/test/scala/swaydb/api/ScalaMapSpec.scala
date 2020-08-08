@@ -22,6 +22,7 @@ package swaydb.api
 import swaydb.IOValues._
 import swaydb._
 import swaydb.serializers.Default._
+import swaydb.core.RunThis._
 
 class ScalaMapSpec0 extends ScalaMapSpec {
   val keyValueCount: Int = 1000
@@ -95,72 +96,84 @@ sealed trait ScalaMapSpec extends TestBaseEmbedded {
 
   def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 
+  val repeatTest = 100.times
+
   "Expire" when {
     "put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala.put(1, "one")
+        db.asScala.put(1, "one")
 
-      db.asScala.get(1) should contain("one")
+        db.asScala.get(1) should contain("one")
 
-      db.delete().get
+        db.delete().get
+      }
     }
 
     "putAll" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq((1, "one"), (2, "two"))
+        db.asScala ++= Seq((1, "one"), (2, "two"))
 
-      db.asScala.get(1) should contain("one")
-      db.asScala.get(2) should contain("two")
+        db.asScala.get(1) should contain("one")
+        db.asScala.get(2) should contain("two")
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "remove" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq((1, "one"), (2, "two"))
+        db.asScala ++= Seq((1, "one"), (2, "two"))
 
-      db.asScala.remove(1)
+        db.asScala.remove(1)
 
-      db.asScala.get(1) shouldBe empty
-      db.asScala.get(2) should contain("two")
+        db.asScala.get(1) shouldBe empty
+        db.asScala.get(2) should contain("two")
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "removeAll" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq((1, "one"), (2, "two"))
+        db.asScala ++= Seq((1, "one"), (2, "two"))
 
-      db.asScala.clear()
+        db.asScala.clear()
 
-      db.asScala.get(1) shouldBe empty
-      db.asScala.get(2) shouldBe empty
+        db.asScala.get(1) shouldBe empty
+        db.asScala.get(2) shouldBe empty
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "keySet, head, last, contains" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq((1, "one"), (2, "two"))
+        db.asScala ++= Seq((1, "one"), (2, "two"))
 
-      if (db.isInstanceOf[swaydb.MultiMap[_, _, _, _, IO.ApiIO]])
-        assertThrows[NotImplementedError](db.asScala.keySet)
-      else
-        db.asScala.keySet should contain only(1, 2)
+        if (db.isInstanceOf[swaydb.MultiMap[_, _, _, _, IO.ApiIO]])
+          assertThrows[NotImplementedError](db.asScala.keySet)
+        else
+          db.asScala.keySet should contain only(1, 2)
 
-      db.asScala.head shouldBe ((1, "one"))
-      db.asScala.last shouldBe ((2, "two"))
+        db.asScala.head shouldBe ((1, "one"))
+        db.asScala.last shouldBe ((2, "two"))
 
-      db.asScala.contains(1) shouldBe true
-      db.asScala.contains(2) shouldBe true
-      db.asScala.contains(3) shouldBe false
+        db.asScala.contains(1) shouldBe true
+        db.asScala.contains(2) shouldBe true
+        db.asScala.contains(3) shouldBe false
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 }

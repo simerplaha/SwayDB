@@ -71,113 +71,120 @@ sealed trait SwayDBGetSpec extends TestBaseEmbedded {
 
   "SwayDB" should {
     "get" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (1 to 100) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+
+        (1 to 100) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+
+        (1 to 100) foreach {
+          i =>
+            db.get(i).right.value.value shouldBe i.toString
+        }
+
+        db.close().get
       }
-
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
-      }
-
-      (1 to 100) foreach {
-        i =>
-          db.get(i).right.value.value shouldBe i.toString
-      }
-
-      db.close().get
     }
 
     "return empty for removed key-value" in {
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val db = newDB()
+        (1 to 100) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
 
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (10 to 90) foreach {
+          i =>
+            db.remove(i).right.value
+        }
+
+        (1 to 9) foreach {
+          i =>
+            db.get(i).right.value.value shouldBe i.toString
+        }
+
+        (10 to 90) foreach {
+          i =>
+            db.get(i).right.value shouldBe empty
+        }
+
+        (91 to 100) foreach {
+          i =>
+            db.get(i).right.value.value shouldBe i.toString
+        }
+
+        db.close().get
       }
-
-      (10 to 90) foreach {
-        i =>
-          db.remove(i).right.value
-      }
-
-      (1 to 9) foreach {
-        i =>
-          db.get(i).right.value.value shouldBe i.toString
-      }
-
-      (10 to 90) foreach {
-        i =>
-          db.get(i).right.value shouldBe empty
-      }
-
-      (91 to 100) foreach {
-        i =>
-          db.get(i).right.value.value shouldBe i.toString
-      }
-
-      db.close().get
     }
 
     "return empty for expired key-value" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (1 to 100) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+
+        val expire = 2.second.fromNow
+
+        (10 to 90) foreach {
+          i =>
+            db.expire(i, expire).right.value
+        }
+
+        (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+
+        sleep(expire.timeLeft + 10.millisecond)
+
+        (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
+        (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+        (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+
+        db match {
+          case _: MultiMap[Int, Int, String, Nothing, IO.ApiIO] =>
+            assertThrows[NotImplementedError](db.keySet)
+
+          case _ =>
+            db.keySet should contain allElementsOf ((1 to 9) ++ (91 to 100))
+        }
+
+        db.close().get
       }
-
-      val expire = 2.second.fromNow
-
-      (10 to 90) foreach {
-        i =>
-          db.expire(i, expire).right.value
-      }
-
-      (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
-
-      sleep(expire.timeLeft + 10.millisecond)
-
-      (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
-
-      db match {
-        case _: MultiMap[Int, Int, String, Nothing, IO.ApiIO] =>
-          assertThrows[NotImplementedError](db.keySet)
-
-        case _ =>
-          db.keySet should contain allElementsOf ((1 to 9) ++ (91 to 100))
-      }
-
-      db.close().get
     }
 
     "return empty for range expired key-value" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 100) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (1 to 100) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+
+        val expire = 2.second.fromNow
+
+        doExpire(10, 90, expire, db)
+
+        (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+
+        sleep(expire.timeLeft + 10.millisecond)
+
+        (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
+        (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+        (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
+
+        db.close().get
       }
-
-      val expire = 2.second.fromNow
-
-      doExpire(10, 90, expire, db)
-
-      (1 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
-
-      sleep(expire.timeLeft + 10.millisecond)
-
-      (10 to 90) foreach { i => db.get(i).right.value shouldBe empty }
-      (1 to 9) foreach { i => db.get(i).right.value.value shouldBe i.toString }
-      (91 to 100) foreach { i => db.get(i).right.value.value shouldBe i.toString }
-
-      db.close().get
     }
   }
 }

@@ -20,7 +20,7 @@
 package swaydb.multimap
 
 import org.scalatest.OptionValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.data.order.KeyOrder
@@ -123,47 +123,80 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
     }
 
     "create with childMap" in {
-      val rootMap = newDB()
-      rootMap.put(1, "one")
-      rootMap.put(2, "two")
+      runThis(times = 1000.times, log = true) {
+        val rootMap = newDB()
+        rootMap.put(1, "one")
+        rootMap.put(2, "two")
 
-      rootMap.schema.get(1) shouldBe empty
+        rootMap.schema.get(1) shouldBe empty
 
-      val childMap = rootMap.schema.init(1)
+        val childMap = rootMap.schema.init(1)
 
-      rootMap.schema.get(1) shouldBe defined
+        try
+          rootMap.schema.get(1) shouldBe defined
+        catch {
+          case exception: Exception =>
+            throw exception
+        }
 
-      childMap.put(1, "childMap one")
-      childMap.put(2, "childMap two")
+        childMap.put(1, "childMap one")
+        childMap.put(2, "childMap two")
 
-      rootMap.stream.materialize shouldBe ListBuffer((1, "one"), (2, "two"))
-      childMap.stream.materialize shouldBe ListBuffer((1, "childMap one"), (2, "childMap two"))
+        try
+          childMap.get(1).value shouldBe "childMap one"
+        catch {
+          case exception: Exception =>
+            throw exception
+        }
 
-      //assert
-      rootMap.innerMap.stream.materialize.toList shouldBe
-        List(
-          (MultiMapKey.MapStart(Seq.empty), None),
-          (MultiMapKey.MapEntriesStart(Seq.empty), None),
-          (MultiMapKey.MapEntry(Seq.empty, 1), Some("one")),
-          (MultiMapKey.MapEntry(Seq.empty, 2), Some("two")),
-          (MultiMapKey.MapEntriesEnd(Seq.empty), None),
-          (MultiMapKey.SubMapsStart(Seq.empty), None),
-          (MultiMapKey.SubMap(Seq.empty, 1), None),
-          (MultiMapKey.SubMapsEnd(Seq.empty), None),
-          (MultiMapKey.MapEnd(Seq.empty), None),
+        try
+          childMap.get(2).value shouldBe "childMap two"
+        catch {
+          case exception: Exception =>
+            val value = childMap.get(2)
+            throw exception
+        }
 
-          //childMaps entries
-          (MultiMapKey.MapStart(Seq(1)), None),
-          (MultiMapKey.MapEntriesStart(Seq(1)), None),
-          (MultiMapKey.MapEntry(Seq(1), 1), Some("childMap one")),
-          (MultiMapKey.MapEntry(Seq(1), 2), Some("childMap two")),
-          (MultiMapKey.MapEntriesEnd(Seq(1)), None),
-          (MultiMapKey.SubMapsStart(Seq(1)), None),
-          (MultiMapKey.SubMapsEnd(Seq(1)), None),
-          (MultiMapKey.MapEnd(Seq(1)), None)
-        )
+        try
+          rootMap.stream.materialize shouldBe ListBuffer((1, "one"), (2, "two"))
+        catch {
+          case exception: Exception =>
+            throw exception
+        }
 
-      rootMap.delete()
+        try
+          childMap.stream.materialize shouldBe ListBuffer((1, "childMap one"), (2, "childMap two"))
+        catch {
+          case exception: Exception =>
+            throw exception
+        }
+
+        //assert
+        rootMap.innerMap.stream.materialize.toList shouldBe
+          List(
+            (MultiMapKey.MapStart(Seq.empty), None),
+            (MultiMapKey.MapEntriesStart(Seq.empty), None),
+            (MultiMapKey.MapEntry(Seq.empty, 1), Some("one")),
+            (MultiMapKey.MapEntry(Seq.empty, 2), Some("two")),
+            (MultiMapKey.MapEntriesEnd(Seq.empty), None),
+            (MultiMapKey.SubMapsStart(Seq.empty), None),
+            (MultiMapKey.SubMap(Seq.empty, 1), None),
+            (MultiMapKey.SubMapsEnd(Seq.empty), None),
+            (MultiMapKey.MapEnd(Seq.empty), None),
+
+            //childMaps entries
+            (MultiMapKey.MapStart(Seq(1)), None),
+            (MultiMapKey.MapEntriesStart(Seq(1)), None),
+            (MultiMapKey.MapEntry(Seq(1), 1), Some("childMap one")),
+            (MultiMapKey.MapEntry(Seq(1), 2), Some("childMap two")),
+            (MultiMapKey.MapEntriesEnd(Seq(1)), None),
+            (MultiMapKey.SubMapsStart(Seq(1)), None),
+            (MultiMapKey.SubMapsEnd(Seq(1)), None),
+            (MultiMapKey.MapEnd(Seq(1)), None)
+          )
+
+        rootMap.delete()
+      }
     }
   }
 

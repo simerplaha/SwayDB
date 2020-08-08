@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.IOValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.core.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -53,22 +53,24 @@ sealed trait SwayDBReverseSpec extends TestBaseEmbedded {
   implicit val bag = Bag.apiIO
 
   "Do reverse ordering" in {
-    val db = newDB()
+    runThis(times = repeatTest, log = true) {
+      val db = newDB()
 
-    (1 to keyValueCount) foreach {
-      i =>
-        db.put(i, i.toString).right.value
-    }
-
-    db
-      .keys
-      .stream
-      .foldLeft(keyValueCount + 1) {
-        case (expected, actual) =>
-          actual shouldBe expected - 1
-          actual
+      (1 to keyValueCount) foreach {
+        i =>
+          db.put(i, i.toString).right.value
       }
 
-    db.close().get
+      db
+        .keys
+        .stream
+        .foldLeft(keyValueCount + 1) {
+          case (expected, actual) =>
+            actual shouldBe expected - 1
+            actual
+        }
+
+      db.close().get
+    }
   }
 }

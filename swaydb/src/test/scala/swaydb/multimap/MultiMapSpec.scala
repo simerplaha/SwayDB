@@ -21,7 +21,7 @@ package swaydb.multimap
 
 import org.scalatest.OptionValues._
 import swaydb.Bag.Less
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.core.RunThis._
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.Slice
@@ -246,30 +246,32 @@ sealed trait MultiMapSpec extends TestBaseEmbedded {
     }
 
     "put & expire" in {
-      val root = newDB()
-      root.put(1, "one", 2.second)
-      root.get(1).value shouldBe "one"
+      runThis(times = repeatTest, log = true) {
+        val root = newDB()
+        root.put(1, "one", 2.second)
+        root.get(1).value shouldBe "one"
 
-      //childMap with default expiration set expiration
-      val child1 = root.schema.init(2, 2.second)
-      child1.put(1, "one") //inserting key-value without expiration uses default expiration.
-      child1.get(1).value shouldBe "one"
-      child1.expiration(1) shouldBe defined
+        //childMap with default expiration set expiration
+        val child1 = root.schema.init(2, 2.second)
+        child1.put(1, "one") //inserting key-value without expiration uses default expiration.
+        child1.get(1).value shouldBe "one"
+        child1.expiration(1) shouldBe defined
 
-      child1.put((1, "one"), (2, "two"), (3, "three"))
+        child1.put((1, "one"), (2, "two"), (3, "three"))
 
-      eventual(3.seconds) {
-        root.get(1) shouldBe empty
+        eventual(3.seconds) {
+          root.get(1) shouldBe empty
+        }
+
+        //child map is expired
+        eventual(2.seconds) {
+          root.schema.keys.materialize.toList shouldBe empty
+        }
+
+        child1.isEmpty shouldBe true
+
+        root.close()
       }
-
-      //child map is expired
-      eventual(2.seconds) {
-        root.schema.keys.materialize.toList shouldBe empty
-      }
-
-      child1.isEmpty shouldBe true
-
-      root.close()
     }
   }
 

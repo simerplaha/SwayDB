@@ -99,7 +99,7 @@ object RunThis extends Eventually {
 
   def sleep(time: FiniteDuration): Unit = {
     println(s"Sleeping for: ${time.asString}")
-    Thread.sleep(time.toMillis)
+    if (time.fromNow.hasTimeLeft()) Thread.sleep(time.toMillis)
     println(s"Up from sleep: ${time.asString}")
   }
 

@@ -81,87 +81,95 @@ class MultiMapExpireSpec5 extends SwayDBExpireSpec {
 
 
 sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
+  val repeatTest = 100.times
 
   val keyValueCount: Int
+
 
   def newDB(): SetMapT[Int, String, Nothing, IO.ApiIO]
 
   "Expire" when {
     "Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      sleep(deadline)
+        sleep(deadline.timeLeft)
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Put & Remove" in {
-      val db = newDB()
-      //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
-      val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
+        val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Put & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-          (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+            (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-            right = db.update(1, keyValueCount, value = "updated").right.value
-          )
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-            right = db.expire(1, keyValueCount, deadline).right.value
-          )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+              right = db.update(1, keyValueCount, value = "updated").right.value
+            )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+              right = db.expire(1, keyValueCount, deadline).right.value
+            )
 
-          if (deadline.hasTimeLeft())
-            (1 to keyValueCount) foreach {
-              i =>
-                db.expiration(i).right.value.value shouldBe deadline
-                db.get(i).right.value.value shouldBe "updated"
-            }
+            if (deadline.hasTimeLeft())
+              (1 to keyValueCount) foreach {
+                i =>
+                  db.expiration(i).right.value.value shouldBe deadline
+                  db.get(i).right.value.value shouldBe "updated"
+              }
 
-          sleep(deadline)
+            sleep(deadline)
 
-          doAssertEmpty(db)
+            doAssertEmpty(db)
 
-        case SetMap(set) =>
-        //no update in SetMap
+          case SetMap(set) =>
+          //no update in SetMap
+        }
+
+        db.close().get
       }
-
-      db.close().get
     }
 
     "Put & Expire" in {
-      runThis(10.times, log = true) {
+      runThis(times = repeatTest, log = true) {
         val db = newDB()
 
         val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
@@ -189,413 +197,445 @@ sealed trait SwayDBExpireSpec extends TestBaseEmbedded {
     }
 
     "Put & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString + " replaced").right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString + " replaced").right.value }
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      if (deadline.hasTimeLeft())
-        (1 to keyValueCount) foreach {
-          i =>
-            db.expiration(i).right.value.value shouldBe deadline
-            db.get(i).right.value.value shouldBe (i.toString + " replaced")
-        }
+        if (deadline.hasTimeLeft())
+          (1 to keyValueCount) foreach {
+            i =>
+              db.expiration(i).right.value.value shouldBe deadline
+              db.get(i).right.value.value shouldBe (i.toString + " replaced")
+          }
 
-      sleep(deadline)
+        sleep(deadline)
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 
   "Expire" when {
     "Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-            right = db.update(1, keyValueCount, value = "updated").right.value
-          )
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+              right = db.update(1, keyValueCount, value = "updated").right.value
+            )
 
-        case SetMap(_) =>
-        //no update
+          case SetMap(_) =>
+          //no update
+        }
+
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
+
+        db.close().get
       }
-
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
-
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
-
-      db.close().get
     }
 
     "Update & Remove" in {
-      val db = newDB()
-      //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
-      val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
+        val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-            right = db.update(1, keyValueCount, value = "updated").right.value
-          )
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+              right = db.update(1, keyValueCount, value = "updated").right.value
+            )
 
-        case SetMap(_) =>
-        //no update
+          case SetMap(_) =>
+          //no update
+        }
+
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
+
+        db.close().get
       }
-
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
-
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
-
-      db.close().get
     }
 
     "Update & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-            right = db.update(1, keyValueCount, value = "updated 1").right.value
-          )
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").right.value),
-            right = db.update(1, keyValueCount, value = "updated 2").right.value
-          )
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-            right = db.expire(1, keyValueCount, deadline).right.value
-          )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+              right = db.update(1, keyValueCount, value = "updated 1").right.value
+            )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").right.value),
+              right = db.update(1, keyValueCount, value = "updated 2").right.value
+            )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+              right = db.expire(1, keyValueCount, deadline).right.value
+            )
 
-          doAssertEmpty(db)
-          sleep(deadline)
-          doAssertEmpty(db)
+            doAssertEmpty(db)
+            sleep(deadline)
+            doAssertEmpty(db)
 
-        case SetMap(set) =>
-        //nothing
+          case SetMap(set) =>
+          //nothing
+        }
+
+        db.close().get
       }
-
-      db.close().get
     }
 
     "Update & Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
 
-          val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
-          val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
+            val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+            val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-            right = db.update(1, keyValueCount, value = "updated 1").right.value
-          )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+              right = db.update(1, keyValueCount, value = "updated 1").right.value
+            )
 
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-            right = db.expire(1, keyValueCount, deadline).right.value
-          )
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).right.value),
-            right = db.expire(1, keyValueCount, deadline2).right.value
-          )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+              right = db.expire(1, keyValueCount, deadline).right.value
+            )
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).right.value),
+              right = db.expire(1, keyValueCount, deadline2).right.value
+            )
 
-          doAssertEmpty(db)
-          sleep(deadline2)
-          doAssertEmpty(db)
+            doAssertEmpty(db)
+            sleep(deadline2)
+            doAssertEmpty(db)
 
-        case SetMap(set) =>
-        //nothing
+          case SetMap(set) =>
+          //nothing
+        }
+
+        db.close().get
       }
-
-      db.close().get
     }
 
     "Update & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-            right = db.update(1, keyValueCount, value = "updated 1").right.value
-          )
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+              right = db.update(1, keyValueCount, value = "updated 1").right.value
+            )
 
-        case SetMap(set) =>
-        //nothing
-      }
-
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
-
-      if (deadline.hasTimeLeft())
-        (1 to keyValueCount) foreach {
-          i =>
-            db.expiration(i).right.value.value shouldBe deadline
-            db.get(i).right.value.value shouldBe i.toString
+          case SetMap(set) =>
+          //nothing
         }
 
-      sleep(deadline)
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      doAssertEmpty(db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      db.close().get
+        if (deadline.hasTimeLeft())
+          (1 to keyValueCount) foreach {
+            i =>
+              db.expiration(i).right.value.value shouldBe deadline
+              db.get(i).right.value.value shouldBe i.toString
+          }
+
+        sleep(deadline)
+
+        doAssertEmpty(db)
+
+        db.close().get
+      }
     }
   }
 
   "Expire" when {
     "Remove" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Remove & Remove" in {
-      val db = newDB()
-      //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
-      val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
+        val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Remove & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-            right = db.update(1, keyValueCount, value = "updated").right.value
-          )
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+              right = db.update(1, keyValueCount, value = "updated").right.value
+            )
 
-        case SetMap(set) =>
-        //no update
+          case SetMap(set) =>
+          //no update
+        }
+
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
+
+        db.close().get
       }
-
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
-
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
-
-      db.close().get
     }
 
     "Remove & Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
-      doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Remove & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      if (deadline.hasTimeLeft())
-        (1 to keyValueCount) foreach {
-          i =>
-            db.expiration(i).right.value.value shouldBe deadline
-            db.get(i).right.value.value shouldBe i.toString
-        }
+        if (deadline.hasTimeLeft())
+          (1 to keyValueCount) foreach {
+            i =>
+              db.expiration(i).right.value.value shouldBe deadline
+              db.get(i).right.value.value shouldBe i.toString
+          }
 
-      sleep(deadline)
-      doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 
   "Expire" when {
     "Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
-
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
       db.close().get
+
+      }
     }
 
     "Expire & Remove" in {
-      val db = newDB()
-      //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Expire & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          eitherOne(
-            left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-            right = db.update(1, keyValueCount, value = "updated").right.value
-          )
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            eitherOne(
+              left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+              right = db.update(1, keyValueCount, value = "updated").right.value
+            )
 
-        case SetMap(set) =>
+          case SetMap(set) =>
 
+        }
+
+        doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
+
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
+
+        db.close().get
       }
-
-      doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
-
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
-
-      db.close().get
     }
 
     "Expire & Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
-      val deadline3 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline3 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
-      doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
-      doExpire(from = 1, to = keyValueCount, deadline = deadline3, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline3, db = db)
 
-      doAssertEmpty(db)
-      sleep(deadline3)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline3)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Expire & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline, db = db)
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
+        doExpire(from = 1, to = keyValueCount, deadline = deadline2, db = db)
 
-      if (deadline2.hasTimeLeft())
-        (1 to keyValueCount) foreach {
-          i =>
-            db.expiration(i).right.value.value shouldBe deadline2
-            db.get(i).right.value.value shouldBe i.toString
-        }
+        if (deadline2.hasTimeLeft())
+          (1 to keyValueCount) foreach {
+            i =>
+              db.expiration(i).right.value.value shouldBe deadline2
+              db.get(i).right.value.value shouldBe i.toString
+          }
 
-      sleep(deadline2)
-      doAssertEmpty(db)
+        sleep(deadline2)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 }

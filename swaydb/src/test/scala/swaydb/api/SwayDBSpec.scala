@@ -24,6 +24,7 @@ import java.nio.file.Files
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
 import swaydb._
+import swaydb.core.RunThis.runThis
 import swaydb.serializers.Default._
 
 class SwayDBSpec0 extends SwayDBSpec {
@@ -86,267 +87,289 @@ sealed trait SwayDBSpec extends TestBaseEmbedded {
 
   "SwayDB" should {
     "remove all but first and last" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 1000) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (1 to 1000) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+        println("Removing .... ")
+        doRemove(2, 999, db)
+        println("Removed .... ")
+
+        db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))
+        db.headOption.right.value.value shouldBe ((1, "1"))
+        db.lastOption.right.value.value shouldBe ((1000, "1000"))
+
+        db.close().get
       }
-      println("Removing .... ")
-      doRemove(2, 999, db)
-      println("Removed .... ")
-
-      db.stream.materialize.runRandomIO.right.value should contain only((1, "1"), (1000, "1000"))
-      db.headOption.right.value.value shouldBe ((1, "1"))
-      db.lastOption.right.value.value shouldBe ((1000, "1000"))
-
-      db.close().get
     }
 
     "update only key-values that are not removed" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          (1 to 100) foreach {
-            i =>
-              db.put(i, i.toString).right.value
-          }
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            (1 to 100) foreach {
+              i =>
+                db.put(i, i.toString).right.value
+            }
 
-          (2 to 99) foreach {
-            i =>
-              db.remove(i).right.value
-          }
+            (2 to 99) foreach {
+              i =>
+                db.remove(i).right.value
+            }
 
-          db.update(1, 100, value = "updated").right.value
+            db.update(1, 100, value = "updated").right.value
 
-          db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
-          db.headOption.right.value.value shouldBe ((1, "updated"))
-          db.lastOption.right.value.value shouldBe ((100, "updated"))
+            db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
+            db.headOption.right.value.value shouldBe ((1, "updated"))
+            db.lastOption.right.value.value shouldBe ((100, "updated"))
 
-          db.close().get
+            db.close().get
 
-        case SetMap(set) =>
-        //todo
+          case SetMap(set) =>
+          //todo
+        }
+
       }
-
     }
 
     "update only key-values that are not removed by remove range" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          (1 to 100) foreach {
-            i =>
-              db.put(i, i.toString).right.value
-          }
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            (1 to 100) foreach {
+              i =>
+                db.put(i, i.toString).right.value
+            }
 
-          db.remove(2, 99).right.value
+            db.remove(2, 99).right.value
 
-          db.update(1, 100, value = "updated").right.value
+            db.update(1, 100, value = "updated").right.value
 
-          db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
-          db.headOption.right.value.value shouldBe ((1, "updated"))
-          db.lastOption.right.value.value shouldBe ((100, "updated"))
+            db.stream.materialize.runRandomIO.right.value should contain only((1, "updated"), (100, "updated"))
+            db.headOption.right.value.value shouldBe ((1, "updated"))
+            db.lastOption.right.value.value shouldBe ((100, "updated"))
 
-          db.close().get
+            db.close().get
 
-        case SetMap(set) =>
-        //todo
+          case SetMap(set) =>
+          //todo
+        }
       }
     }
 
     "return only key-values that were not removed from remove range" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          (1 to 100) foreach {
-            i =>
-              db.put(i, i.toString).right.value
-          }
-
-          db.update(10, 90, value = "updated").right.value
-
-          db.remove(50, 99).right.value
-
-          val expectedUnchanged =
-            (1 to 9) map {
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            (1 to 100) foreach {
               i =>
-                (i, i.toString)
+                db.put(i, i.toString).right.value
             }
 
-          val expectedUpdated =
-            (10 to 49) map {
-              i =>
-                (i, "updated")
-            }
+            db.update(10, 90, value = "updated").right.value
 
-          val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
+            db.remove(50, 99).right.value
 
-          db.stream.materialize.runRandomIO.right.value shouldBe expected
-          db.headOption.right.value.value shouldBe ((1, "1"))
-          db.lastOption.right.value.value shouldBe ((100, "100"))
+            val expectedUnchanged =
+              (1 to 9) map {
+                i =>
+                  (i, i.toString)
+              }
 
-        case SetMap(set) =>
-        //todo
+            val expectedUpdated =
+              (10 to 49) map {
+                i =>
+                  (i, "updated")
+              }
+
+            val expected = expectedUnchanged ++ expectedUpdated :+ (100, "100")
+
+            db.stream.materialize.runRandomIO.right.value shouldBe expected
+            db.headOption.right.value.value shouldBe ((1, "1"))
+            db.lastOption.right.value.value shouldBe ((100, "100"))
+
+          case SetMap(set) =>
+          //todo
+        }
+
+        db.close().get
       }
-
-      db.close().get
     }
 
     "return empty for an empty database with update range" in {
-      val db = newDB()
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
 
-          db.update(1, Int.MaxValue, value = "updated").right.value
+            db.update(1, Int.MaxValue, value = "updated").right.value
 
-          db.isEmpty.get shouldBe true
+            db.isEmpty.get shouldBe true
 
-          db.stream.materialize.runRandomIO.right.value shouldBe empty
+            db.stream.materialize.runRandomIO.right.value shouldBe empty
 
-          db.headOption.get shouldBe empty
-          db.lastOption.get shouldBe empty
+            db.headOption.get shouldBe empty
+            db.lastOption.get shouldBe empty
 
-        case SetMap(set) =>
-        //todo
+          case SetMap(set) =>
+          //todo
+        }
+
+        db.close().get
       }
-
-      db.close().get
     }
 
     "return empty for an empty database with remove range" in {
-      val db = newDB()
-      db.remove(1, Int.MaxValue).right.value
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        db.remove(1, Int.MaxValue).right.value
 
-      db.isEmpty.get shouldBe true
+        db.isEmpty.get shouldBe true
 
-      db.stream.materialize.runRandomIO.right.value shouldBe empty
+        db.stream.materialize.runRandomIO.right.value shouldBe empty
 
-      db.headOption.get shouldBe empty
-      db.lastOption.get shouldBe empty
+        db.headOption.get shouldBe empty
+        db.lastOption.get shouldBe empty
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "batch put, remove, update & range remove key-values" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db match {
-        case db: MapT[Int, String, Nothing, IO.ApiIO] =>
-          db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).right.value
-          db.get(1).right.value shouldBe empty
+        db match {
+          case db: MapT[Int, String, Nothing, IO.ApiIO] =>
+            db.commit(Prepare.Put(1, "one"), Prepare.Remove(1)).right.value
+            db.get(1).right.value shouldBe empty
 
-          //      remove and then put should return Put's value
-          db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).right.value
-          db.get(1).right.value.value shouldBe "one"
+            //      remove and then put should return Put's value
+            db.commit(Prepare.Remove(1), Prepare.Put(1, "one")).right.value
+            db.get(1).right.value.value shouldBe "one"
 
-          //remove range and put should return Put's value
-          db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).right.value
-          db.get(1).right.value.value shouldBe "one"
+            //remove range and put should return Put's value
+            db.commit(Prepare.Remove(1, 100), Prepare.Put(1, "one")).right.value
+            db.get(1).right.value.value shouldBe "one"
 
-          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).right.value
-          db.get(1).right.value shouldBe empty
-          db.isEmpty.get shouldBe true
-          //
-          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).right.value
-          db.get(1).right.value shouldBe empty
-          db.isEmpty.get shouldBe true
+            db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Update(1, 100, "updated"), Prepare.Remove(1, 100)).right.value
+            db.get(1).right.value shouldBe empty
+            db.isEmpty.get shouldBe true
+            //
+            db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one one"), Prepare.Remove(1, 100), Prepare.Update(1, 100, "updated")).right.value
+            db.get(1).right.value shouldBe empty
+            db.isEmpty.get shouldBe true
 
-          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).right.value
-          db.get(1).right.value.value shouldBe "updated"
-          db.stream.materialize.map(_.toMap).right.value.values should contain only "updated"
+            db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(1, "one again"), Prepare.Update(1, 100, "updated")).right.value
+            db.get(1).right.value.value shouldBe "updated"
+            db.stream.materialize.map(_.toMap).right.value.values should contain only "updated"
 
-          db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).right.value
-          db.stream.materialize.runRandomIO.right.value shouldBe empty
+            db.commit(Prepare.Put(1, "one"), Prepare.Put(2, "two"), Prepare.Put(100, "hundred"), Prepare.Remove(1, 100), Prepare.Update(1, 1000, "updated")).right.value
+            db.stream.materialize.runRandomIO.right.value shouldBe empty
 
-        case SetMap(set) =>
-        //TODO
+          case SetMap(set) =>
+          //TODO
+        }
+
+        db.close().get
       }
-
-      db.close().get
     }
 
     "perform from, until, before & after" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 10000) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (1 to 10000) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+
+        db.from(9999).stream.materialize.runRandomIO.right.value should contain only((9999, "9999"), (10000, "10000"))
+        db.from(9998).stream.drop(2).take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
+        db.before(9999).stream.take(1).materialize.runRandomIO.right.value should contain only ((9998, "9998"))
+        db.after(9999).stream.take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
+        db.after(9999).stream.drop(1).materialize.runRandomIO.right.value shouldBe empty
+
+        db.after(10).stream.takeWhile(_._1 <= 11).materialize.runRandomIO.right.value should contain only ((11, "11"))
+        db.after(10).stream.takeWhile(_._1 <= 11).drop(1).materialize.runRandomIO.right.value shouldBe empty
+
+        db.fromOrBefore(0).stream.materialize.runRandomIO.right.value shouldBe empty
+        db.fromOrAfter(0).stream.take(1).materialize.runRandomIO.right.value should contain only ((1, "1"))
+
+        db.close().get
       }
-
-      db.from(9999).stream.materialize.runRandomIO.right.value should contain only((9999, "9999"), (10000, "10000"))
-      db.from(9998).stream.drop(2).take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
-      db.before(9999).stream.take(1).materialize.runRandomIO.right.value should contain only ((9998, "9998"))
-      db.after(9999).stream.take(1).materialize.runRandomIO.right.value should contain only ((10000, "10000"))
-      db.after(9999).stream.drop(1).materialize.runRandomIO.right.value shouldBe empty
-
-      db.after(10).stream.takeWhile(_._1 <= 11).materialize.runRandomIO.right.value should contain only ((11, "11"))
-      db.after(10).stream.takeWhile(_._1 <= 11).drop(1).materialize.runRandomIO.right.value shouldBe empty
-
-      db.fromOrBefore(0).stream.materialize.runRandomIO.right.value shouldBe empty
-      db.fromOrAfter(0).stream.take(1).materialize.runRandomIO.right.value should contain only ((1, "1"))
-
-      db.close().get
     }
 
     "perform mightContain & contains" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 10000) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (1 to 10000) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+
+        (1 to 10000) foreach {
+          i =>
+            db.mightContain(i).right.value shouldBe true
+            db.contains(i).right.value shouldBe true
+        }
+
+        //      db.mightContain(Int.MaxValue).runIO shouldBe false
+        //      db.mightContain(Int.MinValue).runIO shouldBe false
+        db.contains(20000).right.value shouldBe false
+
+        db.close().get
       }
-
-      (1 to 10000) foreach {
-        i =>
-          db.mightContain(i).right.value shouldBe true
-          db.contains(i).right.value shouldBe true
-      }
-
-      //      db.mightContain(Int.MaxValue).runIO shouldBe false
-      //      db.mightContain(Int.MinValue).runIO shouldBe false
-      db.contains(20000).right.value shouldBe false
-
-      db.close().get
     }
 
     "contains on removed should return false" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 100000) foreach {
-        i =>
-          db.put(i, i.toString).value
+        (1 to 100000) foreach {
+          i =>
+            db.put(i, i.toString).value
+        }
+
+        (1 to 100000) foreach {
+          i =>
+            db.remove(i).right.value
+        }
+
+        (1 to 100000) foreach {
+          i =>
+            db.contains(i).right.value shouldBe false
+        }
+
+        db.contains(100001).right.value shouldBe false
+
+        db.close().get
       }
-
-      (1 to 100000) foreach {
-        i =>
-          db.remove(i).right.value
-      }
-
-      (1 to 100000) foreach {
-        i =>
-          db.contains(i).right.value shouldBe false
-      }
-
-      db.contains(100001).right.value shouldBe false
-
-      db.close().get
     }
 
     "delete" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to 100000) foreach {
-        i =>
-          db.put(i, i.toString).right.value
+        (1 to 100000) foreach {
+          i =>
+            db.put(i, i.toString).right.value
+        }
+
+        db.delete().value
+
+        Files.exists(db.path) shouldBe false
       }
-
-      db.delete().value
-
-      Files.exists(db.path) shouldBe false
     }
 
     "return valueSize" in {

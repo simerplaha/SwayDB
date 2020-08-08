@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.IOValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
 
@@ -61,15 +61,17 @@ sealed trait SwayDBSizeSpec extends TestBaseEmbedded {
   def newDB(): MapT[Int, String, Nothing, IO.ApiIO]
 
   "return the size of key-values" in {
-    val db = newDB()
+    runThis(times = repeatTest, log = true) {
+      val db = newDB()
 
-    (1 to keyValueCount) foreach {
-      i =>
-        db.put(i, i.toString).right.value
+      (1 to keyValueCount) foreach {
+        i =>
+          db.put(i, i.toString).right.value
+      }
+
+      db.stream.size[IO.ApiIO] shouldBe keyValueCount
+
+      db.close().get
     }
-
-    db.stream.size[IO.ApiIO] shouldBe keyValueCount
-
-    db.close().get
   }
 }

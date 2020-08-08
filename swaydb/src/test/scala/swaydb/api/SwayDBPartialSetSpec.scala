@@ -77,31 +77,32 @@ trait SwayDBPartialSetSpec extends TestBaseEmbedded {
   def newDB(): swaydb.Set[(Int, Option[String]), Nothing, Bag.Less]
 
   "read partially ordered key-values" in {
+    runThis(times = repeatTest, log = true) {
+      val set = newDB()
 
-    val set = newDB()
+      val keyValues =
+        (1 to 1000) map {
+          i =>
+            val keyValues = (i, Some(s"value $i"))
+            set.add(keyValues)
+            keyValues
+        }
 
-    val keyValues =
-      (1 to 1000) map {
-        i =>
-          val keyValues = (i, Some(s"value $i"))
-          set.add(keyValues)
-          keyValues
+      def assertReads() = {
+        (1 to 1000) foreach {
+          i =>
+            set.get((i, None)).value shouldBe ((i, Some(s"value $i")))
+        }
+
+        set.stream.materialize[Bag.Less].toList shouldBe keyValues
+        set.reverse.stream.materialize[Bag.Less].toList shouldBe keyValues.reverse
       }
 
-    def assertReads() = {
-      (1 to 1000) foreach {
-        i =>
-          set.get((i, None)).value shouldBe ((i, Some(s"value $i")))
-      }
+      assertReads()
+      sleep(5.seconds)
+      assertReads()
 
-      set.stream.materialize[Bag.Less].toList shouldBe keyValues
-      set.reverse.stream.materialize[Bag.Less].toList shouldBe keyValues.reverse
+      set.close()
     }
-
-    assertReads()
-    sleep(5.seconds)
-    assertReads()
-
-    set.close()
   }
 }

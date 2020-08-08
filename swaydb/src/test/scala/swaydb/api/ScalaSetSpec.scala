@@ -72,68 +72,80 @@ class ScalaSetSpec3 extends ScalaSetSpec {
 sealed trait ScalaSetSpec extends TestBaseEmbedded {
 
   val keyValueCount: Int
+  val repeatTest = 100.times
 
   def newDB(): Set[Int, Nothing, IO.ApiIO]
 
+
   "Expire" when {
     "put" in {
-      val db = newDB()
-      db.asScala.add(1)
-      db.asScala.contains(1) shouldBe true
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        db.asScala.add(1)
+        db.asScala.contains(1) shouldBe true
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "putAll" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq(1, 2)
+        db.asScala ++= Seq(1, 2)
 
-      db.asScala.contains(1) shouldBe true
-      db.asScala.contains(2) shouldBe true
+        db.asScala.contains(1) shouldBe true
+        db.asScala.contains(2) shouldBe true
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "remove" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq(1, 2)
+        db.asScala ++= Seq(1, 2)
 
-      db.asScala.remove(1)
+        db.asScala.remove(1)
 
-      db.asScala.contains(1) shouldBe false
-      db.asScala.contains(2) shouldBe true
+        db.asScala.contains(1) shouldBe false
+        db.asScala.contains(2) shouldBe true
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "removeAll" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq(1, 2)
+        db.asScala ++= Seq(1, 2)
 
-      db.asScala.clear()
+        db.asScala.clear()
 
-      db.asScala.contains(1) shouldBe false
-      db.asScala.contains(2) shouldBe false
+        db.asScala.contains(1) shouldBe false
+        db.asScala.contains(2) shouldBe false
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "head, last, contains" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      db.asScala ++= Seq(1, 2)
+        db.asScala ++= Seq(1, 2)
 
-      db.asScala.head shouldBe 1
-      db.asScala.last shouldBe 2
+        db.asScala.head shouldBe 1
+        db.asScala.last shouldBe 2
 
-      db.asScala.contains(1) shouldBe true
-      db.asScala.contains(2) shouldBe true
-      db.asScala.contains(3) shouldBe false
+        db.asScala.contains(1) shouldBe true
+        db.asScala.contains(2) shouldBe true
+        db.asScala.contains(3) shouldBe false
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 }

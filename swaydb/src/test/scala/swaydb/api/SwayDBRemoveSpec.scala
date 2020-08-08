@@ -20,7 +20,7 @@
 package swaydb
 
 import swaydb.IOValues._
-import swaydb.api.TestBaseEmbedded
+import swaydb.api.{TestBaseEmbedded, repeatTest}
 import swaydb.core.CommonAssertions._
 import swaydb.core.RunThis._
 import swaydb.serializers.Default._
@@ -80,440 +80,480 @@ sealed trait SwayDBRemoveSpec extends TestBaseEmbedded {
 
   "Remove" when {
     "Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Put & Remove" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Put & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+          right = db.update(1, keyValueCount, value = "updated").right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Put & Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Put & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString + " replaced").right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString + " replaced").right.value }
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 
   "Remove" when {
     "Update" in {
-      val db: MapT[Int, String, Nothing, IO.ApiIO] = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+          right = db.update(1, keyValueCount, value = "updated").right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Update & Remove" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+          right = db.update(1, keyValueCount, value = "updated").right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Update & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-        right = db.update(1, keyValueCount, value = "updated 1").right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").right.value),
-        right = db.update(1, keyValueCount, value = "updated 2").right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+          right = db.update(1, keyValueCount, value = "updated 1").right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 2").right.value),
+          right = db.update(1, keyValueCount, value = "updated 2").right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Update & Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-        right = db.update(1, keyValueCount, value = "updated 1").right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+          right = db.update(1, keyValueCount, value = "updated 1").right.value
+        )
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline2)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline2)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Update & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
-        right = db.update(1, keyValueCount, value = "updated 1").right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated 1").right.value),
+          right = db.update(1, keyValueCount, value = "updated 1").right.value
+        )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 
   "Remove" when {
     "Remove" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Remove & Remove" in {
-      val db = newDB()
-      //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Remove & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+          right = db.update(1, keyValueCount, value = "updated").right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Remove & Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 5.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Remove & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 3.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 
   "Remove" when {
     "Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Expire & Remove" in {
-      val db = newDB()
-      //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
+        //if the deadline is either expired or delay it does not matter in this case because the underlying key-values are removed.
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Expire & Update" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
-        right = db.update(1, keyValueCount, value = "updated").right.value
-      )
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.update(i, value = "updated").right.value),
+          right = db.update(1, keyValueCount, value = "updated").right.value
+        )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Expire & Expire" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).right.value),
-        right = db.expire(1, keyValueCount, deadline2).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline2).right.value),
+          right = db.expire(1, keyValueCount, deadline2).right.value
+        )
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline2)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline2)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
 
     "Expire & Put" in {
-      val db = newDB()
+      runThis(times = repeatTest, log = true) {
+        val db = newDB()
 
-      val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
-      val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
+        val deadline = eitherOne(expiredDeadline(), 2.seconds.fromNow)
+        val deadline2 = eitherOne(expiredDeadline(), 4.seconds.fromNow)
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
-        right = db.expire(1, keyValueCount, deadline).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.expire(i, deadline).right.value),
+          right = db.expire(1, keyValueCount, deadline).right.value
+        )
 
-      (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
+        (1 to keyValueCount) foreach { i => db.put(i, i.toString).right.value }
 
-      eitherOne(
-        left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
-        right = db.remove(1, keyValueCount).right.value
-      )
+        eitherOne(
+          left = (1 to keyValueCount) foreach (i => db.remove(i).right.value),
+          right = db.remove(1, keyValueCount).right.value
+        )
 
-      doAssertEmpty(db)
-      sleep(deadline2)
-      doAssertEmpty(db)
+        doAssertEmpty(db)
+        sleep(deadline2)
+        doAssertEmpty(db)
 
-      db.close().get
+        db.close().get
+      }
     }
   }
 }
