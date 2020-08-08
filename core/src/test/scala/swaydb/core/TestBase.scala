@@ -90,9 +90,9 @@ trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfterEach with Ev
     id
   }
 
-  val testFileDirectory = Paths.get(getClass.getClassLoader.getResource("").getPath).getParent.getParent.resolve("TEST_FILES")
+  val testFileDirectory = Paths.get(ClassLoader.getSystemResource("").toURI).getParent.getParent.resolve("TEST_FILES")
 
-  val testMemoryFileDirectory = Paths.get(getClass.getClassLoader.getResource("").getPath).getParent.getParent.resolve("TEST_MEMORY_FILES")
+  val testMemoryFileDirectory = Paths.get(ClassLoader.getSystemResource("").toURI).getParent.getParent.resolve("TEST_MEMORY_FILES")
 
   //default setting, these can be overridden to apply different settings for test cases.
 
