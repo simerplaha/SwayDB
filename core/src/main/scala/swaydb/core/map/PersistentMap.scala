@@ -329,7 +329,7 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   override def delete: Unit = {
     currentFile.delete()
     Effect.delete(path)
-    skipList.clear()
+//    skipList.clear()
   }
 
   override def pathOption: Option[Path] =

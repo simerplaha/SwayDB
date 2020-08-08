@@ -53,8 +53,8 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurren
 
   override def hasRange: Boolean = _hasRange
 
-  def delete: Unit =
-    _skipList.clear()
+  def delete: Unit = ()
+//    _skipList.clear()
 
   override def writeSync(entry: MapEntry[K, V]): Boolean =
     synchronized(writeNoSync(entry))
