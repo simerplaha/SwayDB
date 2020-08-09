@@ -254,6 +254,9 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   //_hasRange is not a case class input parameters because 2.11 throws compilation error 'values cannot be volatile'
   @volatile private var _hasRange: Boolean = hasRangeInitial
 
+  override val uniqueFileNumber: Long =
+    Map.uniqueFileNumberGenerator.nextID
+
   override def hasRange: Boolean = _hasRange
 
   override protected def skipList: ConcurrentSkipListMap[K, V] =
@@ -329,13 +332,8 @@ protected case class PersistentMap[OK, OV, K <: OK, V <: OV](path: Path,
   override def delete: Unit = {
     currentFile.delete()
     Effect.delete(path)
-//    skipList.clear()
   }
 
   override def pathOption: Option[Path] =
     Some(path)
-
-  override def fileId: Long =
-    path.fileId._1
-
 }

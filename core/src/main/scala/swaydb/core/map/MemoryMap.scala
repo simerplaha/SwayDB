@@ -42,6 +42,9 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurren
   private var currentBytesWritten: Long = 0
   var skipListKeyValuesMaxCount: Int = 0
 
+  override val uniqueFileNumber: Long =
+    Map.uniqueFileNumberGenerator.nextID
+
   @volatile private var _hasRange: Boolean = false
 
   override protected def skipList: ConcurrentSkipListMap[K, V] =
@@ -54,7 +57,6 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurren
   override def hasRange: Boolean = _hasRange
 
   def delete: Unit = ()
-//    _skipList.clear()
 
   override def writeSync(entry: MapEntry[K, V]): Boolean =
     synchronized(writeNoSync(entry))
@@ -81,7 +83,5 @@ protected class MemoryMap[OK, OV, K <: OK, V <: OV](_skipList: SkipListConcurren
   override def close(): Unit =
     ()
 
-  def fileId: Long =
-    0
 
 }

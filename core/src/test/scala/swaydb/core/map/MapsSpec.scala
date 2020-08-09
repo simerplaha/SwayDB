@@ -25,6 +25,8 @@
 package swaydb.core.map
 
 import java.nio.file.{Files, NoSuchFileException}
+import java.util.concurrent.ConcurrentLinkedDeque
+import swaydb.core.RunThis._
 
 import org.scalatest.OptionValues._
 import swaydb.IOValues._
@@ -44,6 +46,7 @@ import swaydb.serializers.Default._
 import swaydb.serializers._
 
 import scala.jdk.CollectionConverters._
+import scala.util.Random
 
 class MapsSpec extends TestBase {
 
@@ -52,6 +55,7 @@ class MapsSpec extends TestBase {
   implicit val timeOrder: TimeOrder[Slice[Byte]] = TimeOrder.long
   implicit val fileSweeper: FileSweeper.Enabled = TestSweeper.fileSweeper
   implicit val memorySweeper = TestSweeper.memorySweeperMax
+
   implicit def testTimer: TestTimer = TestTimer.Empty
 
   import swaydb.core.map.serializer.LevelZeroMapEntryReader._
@@ -148,7 +152,7 @@ class MapsSpec extends TestBase {
 
   "Maps.memory" should {
     "initialise" in {
-      val map =
+      val map: Maps[SliceOption[Byte], MemoryOption, Slice[Byte], Memory] =
         Maps.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
           nullKey = Slice.Null,
           nullValue = Memory.Null,
@@ -383,5 +387,52 @@ class MapsSpec extends TestBase {
       //new Map file is created. Now this write will succeed.
       maps.write(_ => MapEntry.Put(2, Memory.put(2)))
     }
+  }
+
+  "snapshot" should {
+    def genMaps(max: Int) =
+      (1 to max) map {
+        _ =>
+          Map.memory[SliceOption[Byte], MemoryOption, Slice[Byte], Memory](
+            nullKey = Slice.Null,
+            nullValue = Memory.Null,
+            fileSize = 1.mb
+          )
+      }
+
+    "return slice" when {
+      "currentMap is the newest Map" in {
+        runThis(100.times, log = true) {
+          val queue = new ConcurrentLinkedDeque[Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]()
+          val maps = genMaps(10)
+
+          maps.drop(1).foreach(queue.add)
+
+          //randomly select a size so that extension also gets tested
+          val minimumSize = randomIntMax(maps.size)
+
+          Maps.snapshot(minimumSize, maps.head, queue).map(_.uniqueFileNumber).toList shouldBe maps.map(_.uniqueFileNumber)
+        }
+      }
+
+      "currentMap is an old map" in {
+        runThis(100.times, log = true) {
+          val queue = new ConcurrentLinkedDeque[Map[SliceOption[Byte], MemoryOption, Slice[Byte], Memory]]()
+          val maps = genMaps(10)
+
+          //add all maps to the queued map
+          maps.foreach(queue.add)
+
+          //currentMap or the head map is only of the maps in the queue
+          val currentMap = Random.shuffle(maps).head
+
+          //randomly select a size so that extension also gets tested
+          val minimumSize = randomIntMax(maps.size)
+
+          Maps.snapshot(minimumSize, currentMap, queue).map(_.uniqueFileNumber).toList shouldBe maps.map(_.uniqueFileNumber)
+        }
+      }
+    }
+
   }
 }

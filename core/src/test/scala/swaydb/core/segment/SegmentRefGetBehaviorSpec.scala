@@ -174,7 +174,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue2.key, threadState = threadState) shouldBe keyValue2
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue2
+        segmentState.keyValue._2 shouldBe keyValue2
         keyValue2.key.underlyingArraySize shouldBe 4
         segmentState.isSequential shouldBe true
       }
@@ -225,7 +225,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue100.key, threadState = threadState) shouldBe keyValue100
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue100
+        segmentState.keyValue._2 shouldBe keyValue100
         segmentState.isSequential shouldBe false
       }
 
@@ -261,7 +261,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue101.key, threadState = threadState) shouldBe keyValue101
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue101
+        segmentState.keyValue._2 shouldBe keyValue101
         segmentState.isSequential shouldBe true
       }
 
@@ -313,7 +313,7 @@ class SegmentRefGetBehaviorSpec extends TestBase with MockFactory {
         SegmentRef.get(key = keyValue3.key, threadState = threadState) shouldBe keyValue3
 
         val segmentState = threadState.getSegmentState(path).getS
-        segmentState.keyValue shouldBe keyValue3
+        segmentState.keyValue._2 shouldBe keyValue3
         segmentState.isSequential shouldBe false
       }
     }

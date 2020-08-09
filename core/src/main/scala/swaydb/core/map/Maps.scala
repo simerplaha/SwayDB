@@ -297,6 +297,58 @@ private[core] object Maps extends LazyLogging {
           flushOnOverflow = false
         )
     }
+
+  /**
+   * Returns a snapshot of [[Maps]] state to execute reads.
+   *
+   * @note Why? - [[Maps.maps]] is being concurrently updated by writes (inserts) and compaction (remove)
+   *       there is no easy was to tell how reads to access the queues maps and we cannot the Iterator
+   *       directly because of the current read architecture could access the same Iterator multiple times.
+   *       This cannot be mutable either due to performance cost. So a Slice is needed.
+   *
+   *       There will be rare cases where [[maps]] could contain [[currentMap]]
+   *       which would result in [[currentMap]] being twice but this would only
+   *       happen if [[fileSize]] is too small < 10.bytes otherwise the performance
+   *       cost is negligible.
+   */
+  @inline def snapshot[OK, OV, K <: OK, V <: OV](minimumSize: Int,
+                                                 currentMap: Map[OK, OV, K, V],
+                                                 queue: ConcurrentLinkedDeque[Map[OK, OV, K, V]]): Slice[Map[OK, OV, K, V]] = {
+    var slice = Slice.create[Map[OK, OV, K, V]](minimumSize + 2)
+    slice add currentMap
+
+    //if currentMap is already added the queue then drop head.
+    var staleCurrentMap = false
+
+    queue forEach {
+      new Consumer[Map[OK, OV, K, V]] {
+        override def accept(queuedMap: Map[OK, OV, K, V]): Unit = {
+          // As the writes are in progress currentMap could get added to the
+          // queue and the more maps could also possibly get added to the map.
+          // For those cases we need see if currentMap is already in the Map.
+          // If it is then we drop the currentMap and work off the queue directly.
+
+          if (queuedMap.uniqueFileNumber == currentMap.uniqueFileNumber)
+            staleCurrentMap = true
+
+          if (slice.isFull) {
+            //overflow - extend the map.
+            val newSlice = Slice.create[Map[OK, OV, K, V]](slice.size * 2)
+            newSlice addAll slice
+            newSlice add queuedMap
+            slice = newSlice
+          } else {
+            slice add queuedMap
+          }
+        }
+      }
+    }
+
+    if (staleCurrentMap)
+      slice.dropHead()
+    else
+      slice
+  }
 }
 
 private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeque[Map[OK, OV, K, V]],
@@ -333,28 +385,12 @@ private[core] class Maps[OK, OV, K <: OK, V <: OV](val maps: ConcurrentLinkedDeq
   private[core] def onNextMapCallback(event: () => Unit): Unit =
     onNextMapListener = event
 
-  /**
-   * Returns a snapshot of [[Maps]] state to execute reads.
-   *
-   * @note There will be rare cases where [[maps]] could contain [[currentMap]]
-   *       which would result in [[currentMap]] being twice but this would only
-   *       happen if [[fileSize]] is too small < 10.bytes otherwise the performance
-   *       cost is negligible.
-   */
-  def snapshot(): Slice[Map[OK, OV, K, V]] = {
-    val slice = Slice.create[Map[OK, OV, K, V]](totalMapsCount)
-    slice add currentMap
-
-    maps forEach {
-      new Consumer[Map[OK, OV, K, V]] {
-        override def accept(map: Map[OK, OV, K, V]): Unit =
-          if (!slice.isFull)
-            slice add map
-      }
-    }
-
-    slice
-  }
+  def snapshot(): Slice[Map[OK, OV, K, V]] =
+    Maps.snapshot(
+      minimumSize = currentMapsCount,
+      currentMap = currentMap,
+      queue = maps
+    )
 
   def write(mapEntry: Timer => MapEntry[K, V]): Unit =
     synchronized {

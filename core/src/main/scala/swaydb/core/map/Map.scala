@@ -32,12 +32,18 @@ import swaydb.IO
 import swaydb.core.actor.FileSweeper
 import swaydb.core.function.FunctionStore
 import swaydb.core.map.serializer.{MapEntryReader, MapEntryWriter}
+import swaydb.core.util.IDGenerator
 import swaydb.core.util.skiplist.{SkipList, SkipListBase}
 import swaydb.data.order.{KeyOrder, TimeOrder}
 import swaydb.data.slice.Slice
 import swaydb.data.util.StorageUnits._
 
 private[core] object Map extends LazyLogging {
+
+  /**
+   * Used to assign unique numbers for each [[Map]] instance.
+   */
+  private[map] val uniqueFileNumberGenerator = IDGenerator()
 
   def persistent[OK, OV, K <: OK, V <: OV](nullKey: OK,
                                            nullValue: OV,
@@ -121,5 +127,5 @@ private[core] trait Map[OK, OV, K <: OK, V <: OV] extends SkipListBase[OK, OV, K
 
   def close(): Unit
 
-  def fileId: Long
+  def uniqueFileNumber: Long
 }
