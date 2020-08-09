@@ -45,11 +45,11 @@ def publishScalaOptions(scalaVersion: String): Seq[String] =
   CrossVersion.partialVersion(scalaVersion) match {
     case Some((2, major)) if major >= 12 =>
       Seq(
-        "-opt:l:inline",
-        "-opt-warnings",
-        "-opt-inline-from:swaydb.**",
-        "-Yopt-log-inline",
-        "_"
+//        "-opt:l:inline",
+//        "-opt-warnings",
+//        "-opt-inline-from:swaydb.**",
+//        "-Yopt-log-inline",
+//        "_"
       )
 
     case Some((2, 11)) =>
@@ -80,7 +80,7 @@ val publishSettings = Seq[Setting[_]](
   publishMavenStyle := true,
   licenses := Seq("LAGPL3" -> url("https://github.com/simerplaha/SwayDB/blob/master/LICENSE.md")),
   publish := {},
-//  publishLocal := {},
+  publishLocal := {},
   sonatypeProjectHosting := Some(GitHubHosting("simerplaha", "SwayDB", "simer.j@gmail.com")),
   developers := List(
     Developer(id = "simerplaha", name = "Simer JS Plaha", email = "simer.j@gmail.com", url = url("http://swaydb.io"))
