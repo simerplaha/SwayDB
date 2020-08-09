@@ -45,11 +45,11 @@ def publishScalaOptions(scalaVersion: String): Seq[String] =
   CrossVersion.partialVersion(scalaVersion) match {
     case Some((2, major)) if major >= 12 =>
       Seq(
-//        "-opt:l:inline",
-//        "-opt-warnings",
-//        "-opt-inline-from:swaydb.**",
-//        "-Yopt-log-inline",
-//        "_"
+        "-opt:l:inline",
+        "-opt-warnings",
+        "-opt-inline-from:swaydb.**",
+        "-Yopt-log-inline",
+        "_"
       )
 
     case Some((2, 11)) =>
@@ -74,8 +74,10 @@ val commonSettings = Seq(
   }
 )
 
+lazy val supportedScalaVersions = List(scala211, scala212, scala213)
+
 val publishSettings = Seq[Setting[_]](
-  crossScalaVersions := Seq(scala211, scala212, scala213),
+  crossScalaVersions := supportedScalaVersions,
   sonatypeProfileName := "io.swaydb",
   publishMavenStyle := true,
   licenses := Seq("LAGPL3" -> url("https://github.com/simerplaha/SwayDB/blob/master/LICENSE.md")),
@@ -160,7 +162,6 @@ lazy val data =
 
 lazy val `data-java` =
   project
-    .settings(crossPaths := false)
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonJavaDependencies)
@@ -224,10 +225,7 @@ lazy val `swaydb-stress` =
 
 lazy val `swaydb-java` =
   project
-    .settings(
-      name := "java",
-      crossPaths := false
-    )
+    .settings(name := "java")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(libraryDependencies ++= commonJavaDependencies)
