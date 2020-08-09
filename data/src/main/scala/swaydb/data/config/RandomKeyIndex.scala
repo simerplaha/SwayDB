@@ -26,6 +26,9 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.config.builder.RandomKeyIndexBuilder
+import swaydb.data.util.Java.JavaFunction
+
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 sealed trait RandomKeyIndex {
   def toOption =
@@ -49,7 +52,28 @@ object RandomKeyIndex {
                     indexFormat: IndexFormat,
                     allocateSpace: RequiredSpace => Int,
                     ioStrategy: IOAction => IOStrategy,
-                    compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomKeyIndex
+                    compression: UncompressedBlockInfo => Iterable[Compression]) extends RandomKeyIndex {
+    def copyWithMaxProbe(maxProbe: Int) =
+      this.copy(maxProbe = maxProbe)
+
+    def copyWithMinimumNumberOfKeys(minimumNumberOfKeys: Int) =
+      this.copy(minimumNumberOfKeys = minimumNumberOfKeys)
+
+    def copyWithMinimumNumberOfHits(minimumNumberOfHits: Int) =
+      this.copy(minimumNumberOfHits = minimumNumberOfHits)
+
+    def copyWithIndexFormat(indexFormat: IndexFormat) =
+      this.copy(indexFormat = indexFormat)
+
+    def copyWithAllocateSpace(allocateSpace: JavaFunction[RequiredSpace, Int]) =
+      this.copy(allocateSpace = allocateSpace.apply)
+
+    def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
+      this.copy(ioStrategy = ioStrategy.apply)
+
+    def copyWithCompressions(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+      this.copy(compression = info => compression.apply(info).asScala)
+  }
 
   object RequiredSpace {
     def apply(_requiredSpace: Int, _numberOfKeys: Int): RequiredSpace =
@@ -62,6 +86,7 @@ object RandomKeyIndex {
 
   trait RequiredSpace {
     def requiredSpace: Int
+
     def numberOfKeys: Int
   }
 }

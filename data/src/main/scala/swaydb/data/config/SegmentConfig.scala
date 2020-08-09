@@ -44,27 +44,27 @@ case class SegmentConfig(cacheSegmentBlocksOnCreate: Boolean,
                          ioStrategy: IOAction => IOStrategy,
                          compression: UncompressedBlockInfo => Iterable[Compression]) {
 
-  def setCacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean): SegmentConfig =
+  def copyWithCacheSegmentBlocksOnCreate(cacheSegmentBlocksOnCreate: Boolean): SegmentConfig =
     this.copy(cacheSegmentBlocksOnCreate = cacheSegmentBlocksOnCreate)
 
-  def setDeleteSegmentsEventually(deleteSegmentsEventually: Boolean): SegmentConfig =
+  def copyWithDeleteSegmentsEventually(deleteSegmentsEventually: Boolean): SegmentConfig =
     this.copy(deleteSegmentsEventually = deleteSegmentsEventually)
 
-  def setPushForward(pushForward: Boolean): SegmentConfig =
+  def copyWithPushForward(pushForward: Boolean): SegmentConfig =
     this.copy(pushForward = pushForward)
 
-  def setMmap(mmap: MMAP): SegmentConfig =
+  def copyWithMmap(mmap: MMAP): SegmentConfig =
     this.copy(mmap = mmap)
 
-  def setMinSegmentSize(minSegmentSize: Int): SegmentConfig =
+  def copyWithMinSegmentSize(minSegmentSize: Int): SegmentConfig =
     this.copy(minSegmentSize = minSegmentSize)
 
-  def setMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int): SegmentConfig =
+  def copyWithMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int): SegmentConfig =
     this.copy(maxKeyValuesPerSegment = maxKeyValuesPerSegment)
 
-  def setIoStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]): SegmentConfig =
+  def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]): SegmentConfig =
     this.copy(ioStrategy = ioStrategy.apply)
 
-  def setCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SegmentConfig =
+  def copyWithCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]): SegmentConfig =
     this.copy(compression = info => compression.apply(info).asScala)
 }

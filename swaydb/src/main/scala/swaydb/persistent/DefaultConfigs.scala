@@ -38,19 +38,19 @@ object DefaultConfigs {
 
   implicit lazy val sweeperEC: ExecutionContext = SwayDB.sweeperExecutionContext
 
-  def sortedKeyIndex(cacheOnAccess: Boolean = true): SortedKeyIndex.Enable =
+  def sortedKeyIndex(cacheDataBlockOnAccess: Boolean = true): SortedKeyIndex.Enable =
     SortedKeyIndex.Enable(
       prefixCompression = PrefixCompression.Disable(normaliseIndexForBinarySearch = false),
       enablePositionIndex = true,
       ioStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheOnAccess)
+        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compressions = _ => Seq.empty
     )
 
-  def randomKeyIndex(cacheOnAccess: Boolean = true): RandomKeyIndex.Enable =
+  def randomKeyIndex(cacheDataBlockOnAccess: Boolean = true): RandomKeyIndex.Enable =
     RandomKeyIndex.Enable(
       maxProbe = 1,
       minimumNumberOfKeys = 5,
@@ -60,12 +60,12 @@ object DefaultConfigs {
       ioStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheOnAccess)
+        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
 
-  def binarySearchIndex(cacheOnAccess: Boolean = true): BinarySearchIndex.FullIndex =
+  def binarySearchIndex(cacheDataBlockOnAccess: Boolean = true): BinarySearchIndex.FullIndex =
     BinarySearchIndex.FullIndex(
       minimumNumberOfKeys = 10,
       searchSortedIndexDirectly = true,
@@ -73,12 +73,12 @@ object DefaultConfigs {
       ioStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheOnAccess)
+        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
 
-  def mightContainKeyIndex(cacheOnAccess: Boolean = true): MightContainIndex.Enable =
+  def mightContainKeyIndex(cacheDataBlockOnAccess: Boolean = true): MightContainIndex.Enable =
     MightContainIndex.Enable(
       falsePositiveRate = 0.01,
       minimumNumberOfKeys = 10,
@@ -86,24 +86,24 @@ object DefaultConfigs {
       ioStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheOnAccess)
+        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
 
-  def valuesConfig(cacheOnAccess: Boolean = false): ValuesConfig =
+  def valuesConfig(cacheDataBlockOnAccess: Boolean = false): ValuesConfig =
     ValuesConfig(
       compressDuplicateValues = true,
       compressDuplicateRangeValues = true,
       ioStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheOnAccess)
+        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )
 
-  def segmentConfig(cacheOnAccess: Boolean = false): SegmentConfig =
+  def segmentConfig(cacheDataBlockOnAccess: Boolean = false): SegmentConfig =
     SegmentConfig(
       cacheSegmentBlocksOnCreate = true,
       deleteSegmentsEventually = true,
@@ -114,7 +114,7 @@ object DefaultConfigs {
       ioStrategy = {
         case IOAction.OpenResource => IOStrategy.SynchronisedIO(cacheOnAccess = true)
         case IOAction.ReadDataOverview => IOStrategy.SynchronisedIO(cacheOnAccess = true)
-        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheOnAccess)
+        case action: IOAction.DataAction => IOStrategy.SynchronisedIO(cacheOnAccess = action.isCompressed || cacheDataBlockOnAccess)
       },
       compression = _ => Seq.empty
     )

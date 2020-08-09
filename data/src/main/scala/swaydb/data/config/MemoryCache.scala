@@ -24,7 +24,11 @@
 
 package swaydb.data.config
 
+import java.util.Optional
+
 import swaydb.data.config.builder.{ByteCacheOnlyBuilder, KeyValueCacheOnlyBuilder, MemoryCacheAllBuilder}
+
+import scala.compat.java8.OptionConverters.RichOptionalGeneric
 
 sealed trait MemoryCache
 
@@ -55,16 +59,56 @@ object MemoryCache {
   case class ByteCacheOnly(minIOSeekSize: Int,
                            skipBlockCacheSeekSize: Int,
                            cacheCapacity: Int,
-                           actorConfig: ActorConfig) extends Block
+                           actorConfig: ActorConfig) extends Block {
+    def copyWithMinIOSeekSize(minIOSeekSize: Int) =
+      this.copy(minIOSeekSize = minIOSeekSize)
+
+    def copyWithSkipBlockCacheSeekSize(skipBlockCacheSeekSize: Int) =
+      this.copy(skipBlockCacheSeekSize = skipBlockCacheSeekSize)
+
+    def copyWithCacheCapacity(cacheCapacity: Int) =
+      this.copy(cacheCapacity = cacheCapacity)
+
+    def copyWithActorConfig(actorConfig: ActorConfig) =
+      this.copy(actorConfig = actorConfig)
+
+  }
 
   case class KeyValueCacheOnly(cacheCapacity: Int,
                                maxCachedKeyValueCountPerSegment: Option[Int],
-                               actorConfig: Option[ActorConfig]) extends Enabled
+                               actorConfig: Option[ActorConfig]) extends Enabled {
+    def copyWithCacheCapacity(cacheCapacity: Int) =
+      this.copy(cacheCapacity = cacheCapacity)
+
+    def copyWithMaxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Int]) =
+      this.copy(maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment.asScala)
+
+    def copyWithActorConfig(actorConfig: Optional[ActorConfig]) =
+      this.copy(actorConfig = actorConfig.asScala)
+  }
 
   case class All(minIOSeekSize: Int,
                  skipBlockCacheSeekSize: Int,
                  cacheCapacity: Int,
                  maxCachedKeyValueCountPerSegment: Option[Int],
                  sweepCachedKeyValues: Boolean,
-                 actorConfig: ActorConfig) extends Enabled with Block
+                 actorConfig: ActorConfig) extends Enabled with Block {
+    def copyWithMinIOSeekSize(minIOSeekSize: Int) =
+      this.copy(minIOSeekSize = minIOSeekSize)
+
+    def copyWithSkipBlockCacheSeekSize(skipBlockCacheSeekSize: Int) =
+      this.copy(skipBlockCacheSeekSize = skipBlockCacheSeekSize)
+
+    def copyWithCacheCapacity(cacheCapacity: Int) =
+      this.copy(cacheCapacity = cacheCapacity)
+
+    def copyWithMaxCachedKeyValueCountPerSegment(maxCachedKeyValueCountPerSegment: Optional[Int]) =
+      this.copy(maxCachedKeyValueCountPerSegment = maxCachedKeyValueCountPerSegment.asScala)
+
+    def copyWithSweepCachedKeyValues(sweepCachedKeyValues: Boolean) =
+      this.copy(sweepCachedKeyValues = sweepCachedKeyValues)
+
+    def copyWithActorConfig(actorConfig: ActorConfig) =
+      this.copy(actorConfig = actorConfig)
+  }
 }

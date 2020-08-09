@@ -255,22 +255,22 @@ case class MemoryLevelConfig(minSegmentSize: Int,
                              deleteSegmentsEventually: Boolean,
                              compactionExecutionContext: CompactionExecutionContext,
                              throttle: LevelMeter => Throttle) extends LevelConfig {
-  def setMinSegmentSize(minSegmentSize: Int) =
+  def copyWithMinSegmentSize(minSegmentSize: Int) =
     this.copy(minSegmentSize = minSegmentSize)
 
-  def setMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) =
+  def copyWithMaxKeyValuesPerSegment(maxKeyValuesPerSegment: Int) =
     this.copy(maxKeyValuesPerSegment = maxKeyValuesPerSegment)
 
-  def setCopyForward(copyForward: Boolean) =
+  def copyWithCopyForward(copyForward: Boolean) =
     this.copy(copyForward = copyForward)
 
-  def setDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) =
+  def copyWithDeleteSegmentsEventually(deleteSegmentsEventually: Boolean) =
     this.copy(deleteSegmentsEventually = deleteSegmentsEventually)
 
-  def setCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
+  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
     this.copy(compactionExecutionContext = compactionExecutionContext)
 
-  def setThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
     this.copy(throttle = throttle.apply)
 }
 
@@ -291,43 +291,43 @@ case class PersistentLevelConfig(dir: Path,
                                  segmentConfig: SegmentConfig,
                                  compactionExecutionContext: CompactionExecutionContext,
                                  throttle: LevelMeter => Throttle) extends LevelConfig {
-  def setDir(dir: Path) =
+  def copyWithDir(dir: Path) =
     this.copy(dir = dir)
 
-  def setOtherDirs(otherDirs: Seq[Dir]) =
+  def copyWithOtherDirs(otherDirs: Seq[Dir]) =
     this.copy(otherDirs = otherDirs)
 
-  def setOtherDirs(otherDirs: java.util.Collection[Dir]) =
+  def copyWithOtherDirs(otherDirs: java.util.Collection[Dir]) =
     this.copy(otherDirs = otherDirs.asScala.toList)
 
-  def setMmapAppendix(mmapAppendix: Boolean) =
+  def copyWithMmapAppendix(mmapAppendix: Boolean) =
     this.copy(mmapAppendix = mmapAppendix)
 
-  def setAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) =
+  def copyWithAppendixFlushCheckpointSize(appendixFlushCheckpointSize: Long) =
     this.copy(appendixFlushCheckpointSize = appendixFlushCheckpointSize)
 
-  def setSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) =
+  def copyWithSortedKeyIndex(sortedKeyIndex: SortedKeyIndex) =
     this.copy(sortedKeyIndex = sortedKeyIndex)
 
-  def setRandomKeyIndex(randomKeyIndex: RandomKeyIndex) =
+  def copyWithRandomKeyIndex(randomKeyIndex: RandomKeyIndex) =
     this.copy(randomKeyIndex = randomKeyIndex)
 
-  def setBinarySearchIndex(binarySearchIndex: BinarySearchIndex) =
+  def copyWithBinarySearchIndex(binarySearchIndex: BinarySearchIndex) =
     this.copy(binarySearchIndex = binarySearchIndex)
 
-  def setMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) =
+  def copyWithMightContainKeyIndex(mightContainKeyIndex: MightContainIndex) =
     this.copy(mightContainKeyIndex = mightContainKeyIndex)
 
-  def setValuesConfig(valuesConfig: ValuesConfig) =
+  def copyWithValuesConfig(valuesConfig: ValuesConfig) =
     this.copy(valuesConfig = valuesConfig)
 
-  def setSegmentConfig(segmentConfig: SegmentConfig) =
+  def copyWithSegmentConfig(segmentConfig: SegmentConfig) =
     this.copy(segmentConfig = segmentConfig)
 
-  def setCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
+  def copyWithCompactionExecutionContext(compactionExecutionContext: CompactionExecutionContext) =
     this.copy(compactionExecutionContext = compactionExecutionContext)
 
-  def setThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
+  def copyWithThrottle(throttle: JavaFunction[LevelMeter, Throttle]) =
     this.copy(throttle = throttle.apply)
 }
 

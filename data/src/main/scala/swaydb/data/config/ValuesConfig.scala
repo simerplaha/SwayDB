@@ -26,6 +26,9 @@ package swaydb.data.config
 
 import swaydb.Compression
 import swaydb.data.config.builder.ValuesConfigBuilder
+import swaydb.data.util.Java.JavaFunction
+
+import scala.jdk.CollectionConverters._
 
 object ValuesConfig {
   def builder(): ValuesConfigBuilder.Step0 =
@@ -35,4 +38,16 @@ object ValuesConfig {
 case class ValuesConfig(compressDuplicateValues: Boolean,
                         compressDuplicateRangeValues: Boolean,
                         ioStrategy: IOAction => IOStrategy,
-                        compression: UncompressedBlockInfo => Iterable[Compression])
+                        compression: UncompressedBlockInfo => Iterable[Compression]) {
+  def copyWithCompressDuplicateValues(compressDuplicateValues: Boolean) =
+    this.copy(compressDuplicateValues = compressDuplicateValues)
+
+  def copyWithCompressDuplicateRangeValues(compressDuplicateRangeValues: Boolean) =
+    this.copy(compressDuplicateRangeValues = compressDuplicateRangeValues)
+
+  def copyWithIOStrategy(ioStrategy: JavaFunction[IOAction, IOStrategy]) =
+    this.copy(ioStrategy = ioStrategy.apply)
+
+  def copyWithCompression(compression: JavaFunction[UncompressedBlockInfo, java.lang.Iterable[Compression]]) =
+    this.copy(compression = info => compression.apply(info).asScala)
+}
