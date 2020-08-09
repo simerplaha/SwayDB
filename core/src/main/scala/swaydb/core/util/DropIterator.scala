@@ -33,15 +33,15 @@ import swaydb.data.slice.Slice
  * This cannot be immutable as it will add a lot to GC workload.
  *
  * A Segment can easily have over 100,000 key-values to merge and an immutable
- * version of this class would create the same number of of [[DropList]] instances in-memory.
+ * version of this class would create the same number of of [[DropIterator]] instances in-memory.
  */
-private[core] sealed trait DropList[H >: Null <: T, T >: Null] {
+private[core] sealed trait DropIterator[H >: Null <: T, T >: Null] {
 
   def headOrNull: T
 
-  def dropHead(): DropList[H, T]
+  def dropHead(): DropIterator[H, T]
 
-  def dropPrepend(head: H): DropList[H, T]
+  def dropPrepend(head: H): DropIterator[H, T]
 
   def depth: Int
 
@@ -52,22 +52,22 @@ private[core] sealed trait DropList[H >: Null <: T, T >: Null] {
   def iterator: Iterator[T]
 }
 
-private[core] object DropList {
+private[core] object DropIterator {
 
   @inline final def empty[H >: Null <: T, T >: Null] =
     new Single[H, T](0, null, null, Iterator.empty)
 
-  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropList[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](keyValues: Slice[T]): DropIterator[H, T] =
     new Single[H, T](keyValues.size, null, null, keyValues.iterator)
 
-  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropList[H, T] =
+  @inline final def apply[H >: Null <: T, T >: Null](size: Int, keyValues: Iterator[T]): DropIterator[H, T] =
     new Single[H, T](size, null, null, keyValues)
 
-  @inline final def single[H >: Null <: T, T >: Null](size: Int, tailHead: T, keyValues: Iterator[T]): DropList.Single[H, T] =
+  @inline final def single[H >: Null <: T, T >: Null](size: Int, tailHead: T, keyValues: Iterator[T]): DropIterator.Single[H, T] =
     new Single[H, T](size, null, tailHead, keyValues)
 
-  implicit class DropListImplicit[H >: Null <: T, T >: Null](left: DropList[H, T]) {
-    @inline final def append(right: DropList[H, T]): DropList[H, T] =
+  implicit class DropListImplicit[H >: Null <: T, T >: Null](left: DropIterator[H, T]) {
+    @inline final def append(right: DropIterator[H, T]): DropIterator[H, T] =
       if (left.isEmpty)
         right
       else if (right.isEmpty)
@@ -79,7 +79,7 @@ private[core] object DropList {
   class Single[H >: Null <: T, T >: Null](var size: Int,
                                           private var headRangeOrNull: H,
                                           private var tailHead: T,
-                                          private var tailKeyValues: Iterator[T]) extends DropList[H, T] {
+                                          private var tailKeyValues: Iterator[T]) extends DropIterator[H, T] {
 
     override val depth: Int = 1
 
@@ -95,7 +95,7 @@ private[core] object DropList {
       else
         headRangeOrNull
 
-    def dropHead(): DropList.Single[H, T] = {
+    def dropHead(): DropIterator.Single[H, T] = {
       if (headRangeOrNull != null) {
         headRangeOrNull = null
         size -= 1
@@ -110,7 +110,7 @@ private[core] object DropList {
       this
     }
 
-    def dropPrepend(head: H): DropList.Single[H, T] =
+    def dropPrepend(head: H): DropIterator.Single[H, T] =
       if (headRangeOrNull != null) {
         headRangeOrNull = head
         this
@@ -147,13 +147,13 @@ private[core] object DropList {
       }
   }
 
-  private[core] class Multiple[H >: Null <: T, T >: Null](private var left: DropList[H, T],
-                                                          right: DropList[H, T]) extends DropList[H, T] {
+  private[core] class Multiple[H >: Null <: T, T >: Null](private var left: DropIterator[H, T],
+                                                          right: DropIterator[H, T]) extends DropIterator[H, T] {
 
-    override def dropHead(): DropList[H, T] =
+    override def dropHead(): DropIterator[H, T] =
       (left.isEmpty, right.isEmpty) match {
         case (true, true) =>
-          DropList.empty
+          DropIterator.empty
         case (true, false) =>
           right.dropHead()
         case (false, true) =>
@@ -163,7 +163,7 @@ private[core] object DropList {
           this
       }
 
-    override def dropPrepend(head: H): DropList[H, T] =
+    override def dropPrepend(head: H): DropIterator[H, T] =
       (left.isEmpty, right.isEmpty) match {
         case (true, true) =>
           new Single[H, T](1, head, null, Iterator.empty)

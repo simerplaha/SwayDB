@@ -123,7 +123,7 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
     }
 
     "create with childMap" in {
-      runThis(times = 1000.times, log = true) {
+      runThis(times = 10.times, log = true) {
         val rootMap = newDB()
         rootMap.put(1, "one")
         rootMap.put(2, "two")
@@ -132,44 +132,13 @@ sealed trait MultiMapSpec_OLD extends TestBaseEmbedded {
 
         val childMap = rootMap.schema.init(1)
 
-        try
-          rootMap.schema.get(1) shouldBe defined
-        catch {
-          case exception: Exception =>
-            throw exception
-        }
+        rootMap.schema.get(1) shouldBe defined
 
         childMap.put(1, "childMap one")
         childMap.put(2, "childMap two")
 
-        try
-          childMap.get(1).value shouldBe "childMap one"
-        catch {
-          case exception: Exception =>
-            throw exception
-        }
-
-        try
-          childMap.get(2).value shouldBe "childMap two"
-        catch {
-          case exception: Exception =>
-            val value = childMap.get(2)
-            throw exception
-        }
-
-        try
-          rootMap.stream.materialize shouldBe ListBuffer((1, "one"), (2, "two"))
-        catch {
-          case exception: Exception =>
-            throw exception
-        }
-
-        try
-          childMap.stream.materialize shouldBe ListBuffer((1, "childMap one"), (2, "childMap two"))
-        catch {
-          case exception: Exception =>
-            throw exception
-        }
+        rootMap.stream.materialize shouldBe ListBuffer((1, "one"), (2, "two"))
+        childMap.stream.materialize shouldBe ListBuffer((1, "childMap one"), (2, "childMap two"))
 
         //assert
         rootMap.innerMap.stream.materialize.toList shouldBe

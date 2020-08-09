@@ -26,7 +26,7 @@ package swaydb.core.segment
 
 import swaydb.core.data.{KeyValue, Memory, MemoryOption, Value}
 import swaydb.core.map.Map
-import swaydb.core.util.DropList
+import swaydb.core.util.DropIterator
 import swaydb.data.order.KeyOrder
 import swaydb.data.slice.{Slice, SliceOption}
 
@@ -83,7 +83,7 @@ private[core] object SegmentAssigner {
         }
 
       @tailrec
-      def assign(remainingKeyValues: DropList[Memory.Range, KeyValue],
+      def assign(remainingKeyValues: DropIterator[Memory.Range, KeyValue],
                  thisSegmentMayBe: SegmentOption,
                  nextSegmentMayBe: SegmentOption): Unit =
         (remainingKeyValues.headOrNull, thisSegmentMayBe, nextSegmentMayBe) match {
@@ -149,7 +149,7 @@ private[core] object SegmentAssigner {
         }
 
       if (segmentsIterator.hasNext) {
-        assign(DropList(keyValuesCount, keyValues.iterator), segmentsIterator.next(), getNextSegmentMayBe())
+        assign(DropIterator(keyValuesCount, keyValues.iterator), segmentsIterator.next(), getNextSegmentMayBe())
         assignmentsMap map {
           case (segment, keyValues) =>
             (segment, keyValues.close())
